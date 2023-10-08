@@ -1,0 +1,75 @@
+# Copyright (c) 2022, 37 Miners, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+schedules:
+- cron: "7 0 * * *"
+  displayName: Daily midnight build
+  branches:
+    include:
+    - main
+  always: true
+
+trigger:
+  branches:
+    include:
+      - main
+  tags:
+    include: ['*']
+
+pr:
+  branches:
+    include: ['*']
+
+variables:
+  RUST_BACKTRACE: '1'
+  RUSTFLAGS: '-C debug-assertions'
+
+jobs:
+- job: linux
+  pool:
+    vmImage: ubuntu-latest
+  strategy:
+    matrix:
+      all:
+        CI_JOB: all
+        PLATFORM: linux-amd64
+  steps:
+    - script: |
+        sudo apt-get update -yqq
+        sudo apt-get install -yqq --no-install-recommends libncursesw5-dev libssl-dev
+      displayName: Linux Install Dependencies
+    - template: '.ci/all.yml'
+- job: macos
+  pool:
+    vmImage: macos-latest
+  strategy:
+    matrix:
+      all:
+        CI_JOB: all
+        PLATFORM: macos
+  steps:
+    - template: '.ci/all.yml'
+- job: windows
+  pool:
+    vmImage: windows-latest
+  strategy:
+    matrix:
+      all:
+        CI_JOB: all
+        PLATFORM: win-x64
+  steps:
+    - script: |
+        choco install -y openssl
+      displayName: Windows Install Dependencies
+    - template: '.ci/all.yml'

@@ -1,0 +1,186 @@
+steps:
+  - script: |
+      SET OPENSSL_DIR=C:\Program Files\OpenSSL-Win64
+      echo "OpenSSL = %OPENSSL_DIR%"
+      cargo test --all
+    displayName: Windows Cargo Test
+    condition: eq( variables['Agent.OS'], 'Windows_NT' )
+  - script: 'cargo test --all'
+    displayName: macOS Cargo Test
+    condition: eq( variables['Agent.OS'], 'Darwin' )
+  - script: 'cargo test --all'
+    displayName: Linux Cargo Test
+    condition: eq( variables['Agent.OS'], 'Linux' )
+  - script: 'cargo build --release'
+    displayName: Build Release
+    condition:  and(succeeded(), contains(variables['Build.SourceBranch'], 'refs/tags/'))
+  - script: |
+      MY_TAG="$(Build.SourceBranch)"
+      MY_TAG=${MY_TAG#refs/tags/}
+      echo $MY_TAG
+      echo "##vso[task.setvariable variable=build.my_tag]$MY_TAG"
+      echo "##vso[task.setvariable variable=build.platform]$PLATFORM"
+    displayName: "Create my tag variable (*nix)"
+    condition:  and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ), contains(variables['Build.SourceBranch'], 'refs/tags/'))
+  - task: CopyFiles@2
+    displayName: Copy assets (*nix)
+    condition:  and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ), contains(variables['Build.SourceBranch'], 'refs/tags/'))
+    inputs:
+      sourceFolder: '$(Build.SourcesDirectory)/target/release'
+      contents: 'bmw'
+      targetFolder: '$(Build.BinariesDirectory)/bmw'
+  - task: ArchiveFiles@2
+    displayName: Gather assets (*nix)
+    condition:  and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ), contains(variables['Build.SourceBranch'], 'refs/tags/'))
+    inputs:
+      rootFolderOrFile: '$(Build.BinariesDirectory)/bmw'
+      archiveType: 'tar'
+      tarCompression: 'gz'
+      archiveFile: '$(Build.ArtifactStagingDirectory)/bmw-$(build.my_tag)-$(build.platform).tar.gz'
+  - script: |
+      cd $(Build.ArtifactStagingDirectory) && openssl sha256 bmw-$(build.my_tag)-$(build.platform).tar.gz > bmw-$(build.my_tag)-$(build.platform)-sha256sum.txt
+    displayName: Create Checksum (*nix)
+    condition:  and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ), contains(variables['Build.SourceBranch'], 'refs/tags/'))
+  - task: GithubRelease@0
+    displayName: Github release (*nix)
+    condition: and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+    inputs:
+      gitHubConnection: 'hagridthegreat37'
+      repositoryName: '37miners/bmw'
+      action: 'edit'
+      target: '$(build.sourceVersion)'
+      tagSource: 'manual'
+      tag: '$(build.my_tag)'
+      assets: |
+        $(Build.ArtifactStagingDirectory)/bmw-$(build.my_tag)-$(build.platform).tar.gz
+        $(Build.ArtifactStagingDirectory)/bmw-$(build.my_tag)-$(build.platform)-sha256sum.txt
+      title: '$(build.my_tag)'
+      assetUploadMode: 'replace'
+      addChangeLog: true
+  - script: |
+      SET MY_TAG=$(Build.SourceBranch)
+      SET MY_TAG=%MY_TAG:~10%
+      echo %MY_TAG%
+      echo %PLATFORM%
+      echo ##vso[task.setvariable variable=build.my_tag]%MY_TAG%
+      echo ##vso[task.setvariable variable=build.platform]%PLATFORM%
+    displayName: "Create my tag variable (win)"
+    condition:  and(succeeded(), contains(variables['Build.SourceBranch'], 'refs/tags/'), eq( variables['Agent.OS'], 'Windows_NT' ))
+  - task: CopyFiles@2
+    displayName: Copy assets (win)
+    condition:  and(succeeded(), contains(variables['Build.SourceBranch'], 'refs/tags/'), eq( variables['Agent.OS'], 'Windows_NT' ))
+    inputs:
+      sourceFolder: '$(Build.SourcesDirectory)\target\release'
+      contents: 'bmw.exe'
+      targetFolder: '$(Build.BinariesDirectory)\bmw'
+  - task: ArchiveFiles@2
+    displayName: Gather assets (win)
+    condition:  and(succeeded(), contains(variables['Build.SourceBranch'], 'refs/tags/'), eq( variables['Agent.OS'], 'Windows_NT' ))
+    inputs:
+      rootFolderOrFile: '$(Build.BinariesDirectory)\bmw'
+      archiveType: 'zip'
+      archiveFile: '$(Build.ArtifactStagingDirectory)\bmw-$(build.my_tag)-$(build.platform).zip'
+  - script: |
+      powershell -Command "cd $(Build.ArtifactStagingDirectory); get-filehash -algorithm sha256 bmw-$(build.my_tag)-$(build.platform).zip | Format-List |  Out-String | ForEach-Object { $_.Trim() } > bmw-$(build.my_tag)-$(build.platform)-sha256sum.txt"
+    displayName: Create Checksum (win)
+    condition:  and(succeeded(), contains(variables['Build.SourceBranch'], 'refs/tags/'), eq( variables['Agent.OS'], 'Windows_NT' ))
+  - task: GithubRelease@0
+    displayName: Github release (win)
+    condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'), eq( variables['Agent.OS'], 'Windows_NT' ))
+    inputs:
+      gitHubConnection: 'hagridthegreat37'
+      repositoryName: '37miners/bmw'
+      action: 'edit'
+      target: '$(build.sourceVersion)'
+      tagSource: 'manual'
+      tag: '$(build.my_tag)'
+      assets: |
+        $(Build.ArtifactStagingDirectory)\bmw-$(build.my_tag)-$(build.platform).zip
+        $(Build.ArtifactStagingDirectory)\bmw-$(build.my_tag)-$(build.platform)-sha256sum.txt
+      title: '$(build.my_tag)'
+      assetUploadMode: 'replace'
+      addChangeLog: true
+  - script: |
+      last_tarpaulin_summary=$( tail -n 1 docs/tarpaulin_summary.txt)
+      last_tarpaulin_summary_split=( $last_tarpaulin_summary )
+      # only update at most once per hour
+      limit_l=`expr ${last_tarpaulin_summary_split[0]} + 3600`
+      timestamp=$(date +%s)
+      echo "limit=$limit_l,timestamp=$timestamp"
+      if [ $limit_l -le $timestamp ]
+      then
+        echo "updating"
+        sudo apt-get update -yqq
+        sudo apt-get install -yqq --no-install-recommends libncursesw5-dev tor libssl-dev
+        cargo install cargo-tarpaulin
+        cargo tarpaulin --all > /tmp/tarpaulin.out
+        git clone https://anything:$(github_pat)@github.com/37miners/bmw.git bmw_new
+        cd bmw_new
+        git config user.name "Pipelines-Bot"
+        git checkout main
+        last=$( tail -n 1 /tmp/tarpaulin.out )
+        spl=( $last )
+        str=${spl[0]}
+        IFS='%';
+        read -rasplitIFS<<< "$str"
+        cur=${splitIFS[0]}
+        IFS=' ';
+        echo "$timestamp ${splitIFS[0]}" >> docs/tarpaulin_summary.txt
+        cp README.md.template README.md
+        export ccvalue=${splitIFS[0]}
+        perl -pi -e 's/CODECOVERAGE/$ENV{ccvalue}/g' README.md
+        chmod 755 ./.ci/make_cc_graph.sh
+        ./.ci/make_cc_graph.sh
+
+        git config --global user.email "pipelinesbot.noreply@37miners.com"
+        git config --global user.name "Pipelines-Bot"
+        git pull
+        git add --all
+        git commit -m"Pipelines-Bot: Updated site (via tarpaulin.yml) Source Version is $(Build.SourceVersion)";
+        git push https://$(github_pat)@github.com/37miners/bmw.git
+      else
+        echo "not updating too recent"
+      fi
+    displayName: Tarpaulin
+    condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))
+  - script: |
+      changes_error=`git diff HEAD^^ HEAD --name-only | grep "^error" | wc -l`
+      changes_crypt=`git diff HEAD^^ HEAD --name-only | grep "^crypt" | wc -l`
+      changes_log=`git diff HEAD^^ HEAD --name-only | grep "^log" | wc -l`
+      changes_util=`git diff HEAD^^ HEAD --name-only | grep "^util" | wc -l`
+      changes_derive=`git diff HEAD^^ HEAD --name-only | grep "^derive" | wc -l`
+      changes_ser=`git diff HEAD^^ HEAD --name-only | grep "^ser" | wc -l`
+
+      if [[ $changes_error -eq 0 ]] && [[ $changes_crypt -eq 0 ]] && [[ $changes_log -eq 0 ]] && [[ $changes_util -eq 0 ]] && [[ $changes_derive -eq 0 ]] && [[ $changes_ser -eq 0 ]]
+      then
+        echo "no changes to relevant directories, not pushing"
+      else
+        changes=`git diff HEAD^^ HEAD --name-only`
+        echo "updating with changes = $changes"
+        git clone https://anything:$(github_pat)@github.com/37miners/bmw.git bmw_new
+        cd bmw_new
+        git config user.name "Pipelines-Bot"
+        git checkout main
+        cargo doc
+
+        mkdir -p docs/doc/bmw_err
+        mkdir -p docs/doc/bmw_crypt
+        mkdir -p docs/doc/bmw_log
+        mkdir -p docs/doc/bmw_util
+        mkdir -p docs/doc/bmw_derive
+        mkdir -p docs/doc/bmw_ser
+
+        cp -pr target/doc/bmw_err/* docs/doc/bmw_err
+        cp -pr target/doc/bmw_crypt/* docs/doc/bmw_crypt
+        cp -pr target/doc/bmw_log/* docs/doc/bmw_log
+        cp -pr target/doc/bmw_util/* docs/doc/bmw_util
+        cp -pr target/doc/bmw_derive/* docs/doc/bmw_derive
+        cp -pr target/doc/bmw_ser/* docs/doc/bmw_ser
+
+        git pull
+        git add --all
+        git commit -m "Pipelines-Bot: Updated site (via pushdocs.yml) Source Version is $(Build.SourceVersion)";
+        git push https://$(github_pat)@github.com/37miners/bmw.git
+      fi
+    displayName: Create and Push Docs
+    condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))

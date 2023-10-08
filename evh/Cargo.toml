@@ -1,0 +1,23 @@
+[package]
+name = "bmw_evh"
+version = "0.0.3-beta.1"
+authors = ["BMW Develoeprs"]
+description = "Eventhandler"
+license = "Apache-2.0"
+repository = "https://github.com/37miners/bmw"
+keywords = [ "crypto", "bitcoinmw", "37miners"]
+readme = "README.md"
+exclude = ["**/*.bmw", "**/*.bmw"]
+edition = "2021"
+
+[dependencies]
+
+bmw_deps   = { path = "../deps"   }
+bmw_err    = { path = "../error"  }
+bmw_log    = { path = "../log"    }
+bmw_ser    = { path = "../ser"    }
+bmw_derive = { path = "../derive" }
+bmw_util   = { path = "../util"   }
+
+[dev-dependencies]
+bmw_test = { path = "../test" }

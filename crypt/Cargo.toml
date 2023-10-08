@@ -1,0 +1,25 @@
+[package]
+name = "bmw_crypt"
+version = "0.0.3-beta.1"
+authors = ["BMW Develoeprs"]
+description = "Crypt library"
+license = "Apache-2.0"
+repository = "https://github.com/37miners/bmw"
+keywords = [ "crypto", "bitcoinmw"]
+readme = "README.md"
+exclude = ["**/*.bmw", "**/*.bmw"]
+edition = "2021"
+
+[dependencies]
+
+bmw_util =   { path = "../util"   }
+bmw_err =    { path = "../error"  }
+bmw_ser =    { path = "../ser"    }
+bmw_log =    { path = "../log"    }
+bmw_derive = { path = "../derive" }
+bmw_deps   = { path = "../deps"   }
+
+[dev-dependencies]
+bmw_test = { path = "../test" }
+
+zeroize = "1"

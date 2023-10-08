@@ -1,0 +1,163 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="The `suffix_tree` macro builds a [`crate::SuffixTree`] which can be used to match multiple patterns for a given text in a performant way. The suffix_tree macro takes the following parameters:"><meta name="keywords" content="rust, rustlang, rust-lang, suffix_tree"><title>suffix_tree in bmw_util - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../dark.css" disabled><link rel="stylesheet" type="text/css" href="../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../storage.js"></script><script defer src="sidebar-items.js"></script><script defer src="../main.js"></script><noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../favicon.svg"></head><body class="rustdoc macro"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../bmw_util/index.html"><div class="logo-container"><img class="rust-logo" src="../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../bmw_util/index.html"><div class="logo-container"><img class="rust-logo" src="../rust-logo.svg" alt="logo"></div></a><div class="sidebar-elems"><h2 class="location"><a href="index.html">In bmw_util</a></h2></div></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../bmw_util/index.html"><img class="rust-logo" src="../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="main-heading"><h1 class="fqn"><span class="in-band">Macro <a href="index.html">bmw_util</a>::<wbr><a class="macro" href="#">suffix_tree</a><button id="copy-path" onclick="copy_path(this)" title="Copy item path to clipboard"><img src="../clipboard.svg" width="19" height="18" alt="Copy item path"></button></span></h1><span class="out-of-band"><a class="srclink" href="../src/bmw_util/macros.rs.html#525-548">source</a> · <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span></div><div class="docblock item-decl"><div class="example-wrap"><pre class="rust macro"><code><span class="macro">macro_rules!</span> <span class="ident">suffix_tree</span> {
+    ( <span class="macro-nonterminal">$</span><span class="macro-nonterminal">patterns</span>:<span class="ident">expr</span>, $( <span class="macro-nonterminal">$</span><span class="macro-nonterminal">suffix_items</span>:<span class="ident">expr</span> ),<span class="op">*</span> ) =&gt; { ... };
+}</code></pre></div>
+</div><details class="rustdoc-toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>The <code>suffix_tree</code> macro builds a <a href="trait.SuffixTree.html" title="crate::SuffixTree"><code>crate::SuffixTree</code></a> which can be used to match multiple
+patterns for a given text in a performant way.
+The suffix_tree macro takes the following parameters:</p>
+<ul>
+<li><code>List&lt;Pattern&gt;</code>            (required) - The list of <a href="struct.Pattern.html" title="crate::Pattern"><code>crate::Pattern</code></a>s that this <a href="trait.SuffixTree.html" title="crate::SuffixTree"><code>crate::SuffixTree</code></a>
+will use to match.</li>
+<li>TerminationLength(usize) (optional) - The length in bytes at which matching will terminate.</li>
+<li>MaxWildcardLength(usize) (optional) - The maximum length in bytes of a wild card match.</li>
+</ul>
+<h2 id="return"><a href="#return">Return</a></h2>
+<p>Returns <code>Ok(SuffixTre)</code> on success and on error a <a href="../bmw_err/error/struct.Error.html" title="bmw_err::Error"><code>bmw_err::Error</code></a> is returned.</p>
+<h2 id="errors"><a href="#errors">Errors</a></h2>
+<ul>
+<li><a href="../bmw_err/error/enum.ErrorKind.html#variant.IllegalArgument" title="bmw_err::ErrorKind::IllegalArgument"><code>bmw_err::ErrorKind::IllegalArgument</code></a> - If one of the regular expressions is invalid.
+or the length of the patterns list is 0.</li>
+</ul>
+<h2 id="examples"><a href="#examples">Examples</a></h2>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code> <span class="kw">use</span> <span class="ident">bmw_util</span>::<span class="kw-2">*</span>;
+ <span class="kw">use</span> <span class="ident">bmw_err</span>::<span class="kw-2">*</span>;
+ <span class="kw">use</span> <span class="ident">bmw_log</span>::<span class="kw-2">*</span>;
+
+ <span class="macro">info!</span>();
+
+ <span class="kw">fn</span> <span class="ident">main</span>() -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
+         <span class="comment">// build a suffix tree with three patterns</span>
+         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">suffix_tree</span> <span class="op">=</span> <span class="macro">suffix_tree!</span>(
+                 <span class="macro">list!</span>[
+                         <span class="macro">pattern!</span>(<span class="ident">Regex</span>(<span class="string">&quot;p1&quot;</span>), <span class="ident">Id</span>(<span class="number">0</span>))<span class="question-mark">?</span>,
+                         <span class="macro">pattern!</span>(<span class="ident">Regex</span>(<span class="string">&quot;p2&quot;</span>), <span class="ident">Id</span>(<span class="number">1</span>))<span class="question-mark">?</span>,
+                         <span class="macro">pattern!</span>(<span class="ident">Regex</span>(<span class="string">&quot;p3&quot;</span>), <span class="ident">Id</span>(<span class="number">2</span>))<span class="question-mark">?</span>
+                 ],
+                 <span class="ident">TerminationLength</span>(<span class="number">1_000</span>),
+                 <span class="ident">MaxWildcardLength</span>(<span class="number">100</span>)
+         )<span class="question-mark">?</span>;
+
+         <span class="comment">// create a matches array for the suffix tree to return matches in</span>
+         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">matches</span> <span class="op">=</span> [<span class="ident">Builder::build_match_default</span>(); <span class="number">10</span>];
+
+         <span class="comment">// run the match for the input text b&quot;p1p2&quot;.</span>
+         <span class="kw">let</span> <span class="ident">count</span> <span class="op">=</span> <span class="ident">suffix_tree</span>.<span class="ident">tmatch</span>(<span class="string">b&quot;p1p2&quot;</span>, <span class="kw-2">&amp;mut</span> <span class="ident">matches</span>)<span class="question-mark">?</span>;
+
+         <span class="comment">// assert that two matches were returned &quot;p1&quot; and &quot;p2&quot;</span>
+         <span class="comment">// and that their start/end/id is correct.</span>
+         <span class="macro">info!</span>(<span class="string">&quot;count={}&quot;</span>, <span class="ident">count</span>)<span class="question-mark">?</span>;
+         <span class="macro">assert_eq!</span>(<span class="ident">count</span>, <span class="number">2</span>);
+         <span class="macro">assert_eq!</span>(<span class="ident">matches</span>[<span class="number">0</span>].<span class="ident">id</span>(), <span class="number">0</span>);
+         <span class="macro">assert_eq!</span>(<span class="ident">matches</span>[<span class="number">0</span>].<span class="ident">start</span>(), <span class="number">0</span>);
+         <span class="macro">assert_eq!</span>(<span class="ident">matches</span>[<span class="number">0</span>].<span class="ident">end</span>(), <span class="number">2</span>);
+         <span class="macro">assert_eq!</span>(<span class="ident">matches</span>[<span class="number">1</span>].<span class="ident">id</span>(), <span class="number">1</span>);
+         <span class="macro">assert_eq!</span>(<span class="ident">matches</span>[<span class="number">1</span>].<span class="ident">start</span>(), <span class="number">2</span>);
+         <span class="macro">assert_eq!</span>(<span class="ident">matches</span>[<span class="number">1</span>].<span class="ident">end</span>(), <span class="number">4</span>);
+
+         <span class="prelude-val">Ok</span>(())
+ }</code></pre></div>
+<p>Wild card match</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code> <span class="kw">use</span> <span class="ident">bmw_util</span>::<span class="kw-2">*</span>;
+ <span class="kw">use</span> <span class="ident">bmw_err</span>::<span class="kw-2">*</span>;
+ <span class="kw">use</span> <span class="ident">bmw_log</span>::<span class="kw-2">*</span>;
+
+ <span class="macro">info!</span>();
+
+ <span class="kw">fn</span> <span class="ident">main</span>() -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
+         <span class="comment">// build a suffix tree with a wild card</span>
+         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">suffix_tree</span> <span class="op">=</span> <span class="macro">suffix_tree!</span>(
+                 <span class="macro">list!</span>[
+                         <span class="macro">pattern!</span>(<span class="ident">Regex</span>(<span class="string">&quot;p1&quot;</span>), <span class="ident">Id</span>(<span class="number">0</span>))<span class="question-mark">?</span>,
+                         <span class="macro">pattern!</span>(<span class="ident">Regex</span>(<span class="string">&quot;p2.*test&quot;</span>), <span class="ident">Id</span>(<span class="number">1</span>))<span class="question-mark">?</span>,
+                         <span class="macro">pattern!</span>(<span class="ident">Regex</span>(<span class="string">&quot;p3&quot;</span>), <span class="ident">Id</span>(<span class="number">2</span>))<span class="question-mark">?</span>
+                 ],
+                 <span class="ident">TerminationLength</span>(<span class="number">1_000</span>),
+                 <span class="ident">MaxWildcardLength</span>(<span class="number">100</span>)
+         )<span class="question-mark">?</span>;
+
+         <span class="comment">// create a matches array for the suffix tree to return matches in</span>
+         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">matches</span> <span class="op">=</span> [<span class="ident">Builder::build_match_default</span>(); <span class="number">10</span>];
+
+         <span class="comment">// run the match for the input text b&quot;p1p2&quot;. Only &quot;p1&quot; matches this time.</span>
+         <span class="kw">let</span> <span class="ident">count</span> <span class="op">=</span> <span class="ident">suffix_tree</span>.<span class="ident">tmatch</span>(<span class="string">b&quot;p1p2&quot;</span>, <span class="kw-2">&amp;mut</span> <span class="ident">matches</span>)<span class="question-mark">?</span>;
+         <span class="macro">assert_eq!</span>(<span class="ident">count</span>, <span class="number">1</span>);
+
+         <span class="comment">// run the match for the input text b&quot;p1p2xxxxxxtest1&quot;. Now the wildcard</span>
+         <span class="comment">// match succeeds to two matches are returned.</span>
+         <span class="kw">let</span> <span class="ident">count</span> <span class="op">=</span> <span class="ident">suffix_tree</span>.<span class="ident">tmatch</span>(<span class="string">b&quot;p1p2xxxxxxtest1&quot;</span>, <span class="kw-2">&amp;mut</span> <span class="ident">matches</span>)<span class="question-mark">?</span>;
+         <span class="macro">assert_eq!</span>(<span class="ident">count</span>, <span class="number">2</span>);
+
+         <span class="prelude-val">Ok</span>(())
+ }</code></pre></div>
+<p>Single character wild card</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code> <span class="kw">use</span> <span class="ident">bmw_util</span>::<span class="kw-2">*</span>;
+ <span class="kw">use</span> <span class="ident">bmw_err</span>::<span class="kw-2">*</span>;
+ <span class="kw">use</span> <span class="ident">bmw_log</span>::<span class="kw-2">*</span>;
+
+ <span class="macro">info!</span>();
+
+ <span class="kw">fn</span> <span class="ident">main</span>() -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
+         <span class="comment">// build a suffix tree with a wild card</span>
+         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">suffix_tree</span> <span class="op">=</span> <span class="macro">suffix_tree!</span>(
+                 <span class="macro">list!</span>[
+                         <span class="macro">pattern!</span>(<span class="ident">Regex</span>(<span class="string">&quot;p1&quot;</span>), <span class="ident">Id</span>(<span class="number">0</span>))<span class="question-mark">?</span>,
+                         <span class="macro">pattern!</span>(<span class="ident">Regex</span>(<span class="string">&quot;p2.test&quot;</span>), <span class="ident">Id</span>(<span class="number">1</span>))<span class="question-mark">?</span>,
+                         <span class="macro">pattern!</span>(<span class="ident">Regex</span>(<span class="string">&quot;p3&quot;</span>), <span class="ident">Id</span>(<span class="number">2</span>))<span class="question-mark">?</span>
+                 ],
+                 <span class="ident">TerminationLength</span>(<span class="number">1_000</span>),
+                 <span class="ident">MaxWildcardLength</span>(<span class="number">100</span>)
+         )<span class="question-mark">?</span>;
+
+         <span class="comment">// create a matches array for the suffix tree to return matches in</span>
+         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">matches</span> <span class="op">=</span> [<span class="ident">Builder::build_match_default</span>(); <span class="number">10</span>];
+
+         <span class="comment">// run the match for the input text b&quot;p1p2&quot;. Only &quot;p1&quot; matches this time.</span>
+         <span class="kw">let</span> <span class="ident">count</span> <span class="op">=</span> <span class="ident">suffix_tree</span>.<span class="ident">tmatch</span>(<span class="string">b&quot;p1p2&quot;</span>, <span class="kw-2">&amp;mut</span> <span class="ident">matches</span>)<span class="question-mark">?</span>;
+         <span class="macro">assert_eq!</span>(<span class="ident">count</span>, <span class="number">1</span>);
+
+         <span class="comment">// run the match for the input text b&quot;p1p2xxxxxxtest1&quot;. Now the wildcard</span>
+         <span class="comment">// match doesn&#39;t succeed because it&#39;s a single char match. One match is returned.</span>
+         <span class="kw">let</span> <span class="ident">count</span> <span class="op">=</span> <span class="ident">suffix_tree</span>.<span class="ident">tmatch</span>(<span class="string">b&quot;p1p2xxxxxxtest1&quot;</span>, <span class="kw-2">&amp;mut</span> <span class="ident">matches</span>)<span class="question-mark">?</span>;
+         <span class="macro">assert_eq!</span>(<span class="ident">count</span>, <span class="number">1</span>);
+
+         <span class="comment">// run it with a single char and see that it matches pattern two.</span>
+         <span class="kw">let</span> <span class="ident">count</span> <span class="op">=</span> <span class="ident">suffix_tree</span>.<span class="ident">tmatch</span>(<span class="string">b&quot;p1p2xtestx&quot;</span>, <span class="kw-2">&amp;mut</span> <span class="ident">matches</span>)<span class="question-mark">?</span>;
+         <span class="macro">assert_eq!</span>(<span class="ident">count</span>, <span class="number">2</span>);
+
+         <span class="prelude-val">Ok</span>(())
+ }</code></pre></div>
+<p>Match at the beginning of the text</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code> <span class="kw">use</span> <span class="ident">bmw_util</span>::<span class="kw-2">*</span>;
+ <span class="kw">use</span> <span class="ident">bmw_err</span>::<span class="kw-2">*</span>;
+ <span class="kw">use</span> <span class="ident">bmw_log</span>::<span class="kw-2">*</span>;
+
+ <span class="macro">info!</span>();
+
+ <span class="kw">fn</span> <span class="ident">main</span>() -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {      
+         <span class="comment">// build a suffix tree with a wild card</span>
+         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">suffix_tree</span> <span class="op">=</span> <span class="macro">suffix_tree!</span>(
+                 <span class="macro">list!</span>[
+                         <span class="macro">pattern!</span>(<span class="ident">Regex</span>(<span class="string">&quot;p1&quot;</span>), <span class="ident">Id</span>(<span class="number">0</span>))<span class="question-mark">?</span>,
+                         <span class="macro">pattern!</span>(<span class="ident">Regex</span>(<span class="string">&quot;^p2&quot;</span>), <span class="ident">Id</span>(<span class="number">2</span>))<span class="question-mark">?</span>
+                 ],
+                 <span class="ident">TerminationLength</span>(<span class="number">1_000</span>),
+                 <span class="ident">MaxWildcardLength</span>(<span class="number">100</span>)
+         )<span class="question-mark">?</span>;
+
+         <span class="comment">// create a matches array for the suffix tree to return matches in</span>
+         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">matches</span> <span class="op">=</span> [<span class="ident">Builder::build_match_default</span>(); <span class="number">10</span>];
+
+         <span class="comment">// run the match for the input text b&quot;p1p2&quot;. Only &quot;p1&quot; matches this time</span>
+         <span class="comment">// because p2 is not at the start</span>
+         <span class="kw">let</span> <span class="ident">count</span> <span class="op">=</span> <span class="ident">suffix_tree</span>.<span class="ident">tmatch</span>(<span class="string">b&quot;p1p2&quot;</span>, <span class="kw-2">&amp;mut</span> <span class="ident">matches</span>)<span class="question-mark">?</span>;
+         <span class="macro">assert_eq!</span>(<span class="ident">count</span>, <span class="number">1</span>);
+
+         <span class="comment">// since p2 is at the beginning, both match</span>
+         <span class="kw">let</span> <span class="ident">count</span> <span class="op">=</span> <span class="ident">suffix_tree</span>.<span class="ident">tmatch</span>(<span class="string">b&quot;p2p1&quot;</span>, <span class="kw-2">&amp;mut</span> <span class="ident">matches</span>)<span class="question-mark">?</span>;
+         <span class="macro">assert_eq!</span>(<span class="ident">count</span>, <span class="number">2</span>);
+
+         <span class="prelude-val">Ok</span>(())
+ }</code></pre></div>
+</div></details></section></div></main><div id="rustdoc-vars" data-root-path="../" data-current-crate="bmw_util" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>

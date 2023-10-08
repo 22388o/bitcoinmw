@@ -1,0 +1,57 @@
+name: ds_perf
+author: 37 Miners, LLC
+
+args:
+    - eventhandler:
+        help: starts an eventhandler instance
+        long: eventhandler
+        short: e
+        takes_value: false
+    - client:
+        help: run the test client
+        long: client
+        short: c
+        takes_value: false
+    - count:
+        help: number of requests to send at a time for the client
+        long: count
+        takes_value: true
+        value_name: count
+    - itt:
+        help: number of iterations for the client
+        long: itt
+        short: i
+        takes_value: true
+        value_name: itt
+    - clients:
+        help: number of clients
+        long: clients
+        takes_value: true
+        value_name: clients
+    - threads:
+        help: number of threads for server
+        long: threads
+        short: t
+        takes_value: true
+        value_name: threads
+    - port:
+        help: port to bind/connect to
+        long: port
+        short: p
+        takes_value: true
+        value_name: port
+    - slabs:
+        help: read slabs for eventhandler
+        long: slabs
+        short: s
+        takes_value: true
+        value_name: slabs
+    - sleep_mod:
+        help: sleep mod (how often to slow down requests) Default 100
+        long: sleep_mod
+        takes_value: true
+        value_name: sleep_mod
+    - reuse_port:
+        help: If true, the SO_REUSEPORT socket option is set (linux only) and each thread may accept connections, otherwise a single thread accepts connections
+        long: reuse_port
+        takes_value: false

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Code Coverage Report</title>
+		<script src="chart.js"></script>
+		<style>
+			.chart {
+				width: 900px;
+			}
+			.textarea {
+				overflow:auto;
+				resize:none;
+			}
+		</style>
+	</head>
+	<body>
+		<center>
+			<div class="chart">
+				<canvas id="chart"></canvas>
+			</div>
+		</center>
+		<script>
+			function format_date(timestamp, time_frame) {
+				var date = new Date(timestamp);
+				var day_of_month = date.getDate();
+				var full_year = date.getFullYear();
+				var month = 1 + date.getMonth();
+				var hours = date.getHours();
+				var minutes = date.getMinutes();
+				var seconds = date.getSeconds();
+				var am_pm = 'AM';
+
+				if(seconds < 10) {
+					seconds = '0' + seconds;
+				}
+				if(minutes < 10) {
+					minutes = '0' + minutes;
+				}
+				if(hours == 12) {
+					am_pm = 'PM';
+				} else if(hours > 12) {
+					hours -= 12;
+					am_pm = 'PM';
+				}
+				if(hours == 0) {
+					hours = 12;
+				}
+
+				return month + '/' + day_of_month + '/' + full_year + ' ' +
+					hours + ':' + minutes + ':' + seconds + ' ' + am_pm;
+			}
+
+			let raw_data = [REPLACECOVERAGE];
+			let labels = [REPLACETIMESTAMP];
+
+			const data = {
+				labels: labels,
+				datasets: [{
+					label: 'Code Coverage',
+					backgroundColor: 'rgb(31,176,245)',
+					borderColor: 'rgb(31,176,245)',
+					data: raw_data,
+				}]
+			};
+
+			const config = {
+				type: 'line',
+				data: data,
+				options: {}
+			};
+
+			const chart = new Chart(
+				document.getElementById('chart'),
+				config
+			);
+
+		</script>
+
+		<p align="center">
+			Raw tarpaulin output:<br/>
+			<textarea readonly class="textarea" rows="50" cols="100">REPLACETARPAULINOUTPUT</textarea>
+		</p>
+	</body>
+</html>
+

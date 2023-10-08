@@ -1,0 +1,21 @@
+[package]
+name = "bmw_derive"
+version = "0.0.3-beta.1"
+authors = ["37 Miners, LLC"]
+description = "proc-macros bmw"
+license = "Apache-2.0"
+repository = "https://github.com/37miners/bmw"
+keywords = [ "crypto", "bmw", "mimblewimble" ]
+exclude = ["**/*.bmw"]
+edition = "2021"
+
+[dependencies]
+
+bmw_deps = { path = "../deps"  }
+bmw_err  = { path = "../error" }
+bmw_log  = { path = "../log"   }
+bmw_ser =  { path = "../ser"  }
+
+[lib]
+proc-macro = true
+

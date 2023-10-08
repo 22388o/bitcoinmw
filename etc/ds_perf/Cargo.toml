@@ -1,0 +1,24 @@
+[package]
+name = "ds_perf"
+version = "0.0.3-beta.1"
+edition = "2021"
+description = "Utility to test performance of data structurs"
+license = "Apache-2.0"
+repository = "https://github.com/37miners/bmw"
+readme = "README.md"
+exclude = ["**/*.bmw", "**/*.bmw"]
+build = "src/build/build.rs"
+
+[[bin]]
+name = "perf"
+
+[dependencies]
+bmw_deps = { path = "../../deps" }
+bmw_log = { path = "../../log" }
+bmw_util = { path = "../../util" }
+bmw_err = { path = "../../error" }
+
+clap = { version = "2.33", features = ["yaml"] }
+
+[build-dependencies]
+built = { version = "0.4", features = ["git2"]}
