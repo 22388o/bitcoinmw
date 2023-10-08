@@ -157,7 +157,7 @@ steps:
       else
         changes=`git diff HEAD^^ HEAD --name-only`
         echo "updating with changes = $changes"
-        git clone https://anything:$(github_pat)@github.com/37miners/bmw.git bmw_new
+        git clone https://anything:$(github_pat)@github.com/cgilliard/bitcoinmw.git bmw_new
         cd bmw_new
         git config user.name "Pipelines-Bot"
         git checkout main
@@ -180,7 +180,7 @@ steps:
         git pull
         git add --all
         git commit -m "Pipelines-Bot: Updated site (via pushdocs.yml) Source Version is $(Build.SourceVersion)";
-        git push https://$(github_pat)@github.com/37miners/bmw.git
+        git push https://$(github_pat)@github.com/cgilliard/bitcoinmw.git
       fi
     displayName: Create and Push Docs
     condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))

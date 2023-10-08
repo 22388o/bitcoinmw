@@ -1,9 +1,4 @@
-// Copyright (c) 2023, The BitcoinMW Developers
-// Some code and concepts from:
-// * Grin: https://github.com/mimblewimble/grin
-// * Arti: https://gitlab.torproject.org/tpo/core/arti
-// * BitcoinMW: https://github.com/bitcoinmw/bitcoinmw
-//
+// Copyright (c) 2023, The BitcoinMW Developers // Some code and concepts from: // * Grin: https://github.com/mimblewimble/grin // * Arti: https://gitlab.torproject.org/tpo/core/arti // * BitcoinMW: https://github.com/bitcoinmw/bitcoinmw //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -168,7 +163,7 @@
 //! $ choco install -y llvm
 //! ```
 //!
-//! BMW is tested with the latest version of rust. Please ensure to update it.
+//! BitcoinMW is tested with the latest version of rust. Please ensure to update it.
 //!
 //! # Use cases
 //!
