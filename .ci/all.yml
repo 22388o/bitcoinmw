@@ -45,7 +45,7 @@ steps:
     displayName: Github release (*nix)
     condition: and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
     inputs:
-      gitHubConnection: 'cgilliard'
+      gitHubConnection: 'bitcoinmw'
       repositoryName: 'cgilliard/bitcoinmw'
       action: 'edit'
       target: '$(build.sourceVersion)'
