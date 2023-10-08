@@ -152,7 +152,7 @@ steps:
       changes_ser=`git diff HEAD^^ HEAD --name-only | grep "^ser" | wc -l`
       changes_evh=`git diff HEAD^^ HEAD --name-only | grep "^evh\/src" | wc -l`
 
-      if [[ $changes_error -eq 0 ]] && [[ $changes_crypt -eq 0 ]] && [[ $changes_log -eq 0 ]] && [[ $changes_util -eq 0 ]] && [[ $changes_derive -eq 0 ]] && [[ $changes_ser -eq 0 ] && [[ $changes_evh -eq 0 ]]
+      if [[ $changes_error -eq 0 ]] && [[ $changes_crypt -eq 0 ]] && [[ $changes_log -eq 0 ]] && [[ $changes_util -eq 0 ]] && [[ $changes_derive -eq 0 ]] && [[ $changes_ser -eq 0 ]] && [[ $changes_evh -eq 0 ]]
       then
         echo "no changes to relevant directories, not pushing"
       else
