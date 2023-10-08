@@ -114,7 +114,7 @@ steps:
         sudo apt-get install -yqq --no-install-recommends libncursesw5-dev tor libssl-dev
         cargo install cargo-tarpaulin
         cargo tarpaulin --all > /tmp/tarpaulin.out
-        git clone https://anything:$(github_pat)@github.com/37miners/bmw.git bmw_new
+        git clone https://anything:$(github_pat)@github.com/cgilliard/bitcoinmw.git bmw_new
         cd bmw_new
         git config user.name "Pipelines-Bot"
         git checkout main
@@ -132,12 +132,12 @@ steps:
         chmod 755 ./.ci/make_cc_graph.sh
         ./.ci/make_cc_graph.sh
 
-        git config --global user.email "pipelinesbot.noreply@37miners.com"
+        git config --global user.email "pipelinesbot.noreply@example.com"
         git config --global user.name "Pipelines-Bot"
         git pull
         git add --all
         git commit -m"Pipelines-Bot: Updated site (via tarpaulin.yml) Source Version is $(Build.SourceVersion)";
-        git push https://$(github_pat)@github.com/37miners/bmw.git
+        git push https://$(github_pat)@github.com/cgilliard/bitcoinmw.git
       else
         echo "not updating too recent"
       fi
