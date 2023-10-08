@@ -150,8 +150,9 @@ steps:
       changes_util=`git diff HEAD^^ HEAD --name-only | grep "^util" | wc -l`
       changes_derive=`git diff HEAD^^ HEAD --name-only | grep "^derive" | wc -l`
       changes_ser=`git diff HEAD^^ HEAD --name-only | grep "^ser" | wc -l`
+      changes_evh=`git diff HEAD^^ HEAD --name-only | grep "^evh\/src" | wc -l`
 
-      if [[ $changes_error -eq 0 ]] && [[ $changes_crypt -eq 0 ]] && [[ $changes_log -eq 0 ]] && [[ $changes_util -eq 0 ]] && [[ $changes_derive -eq 0 ]] && [[ $changes_ser -eq 0 ]]
+      if [[ $changes_error -eq 0 ]] && [[ $changes_crypt -eq 0 ]] && [[ $changes_log -eq 0 ]] && [[ $changes_util -eq 0 ]] && [[ $changes_derive -eq 0 ]] && [[ $changes_ser -eq 0 ] && [[ $changes_evh -eq 0 ]]
       then
         echo "no changes to relevant directories, not pushing"
       else
@@ -169,6 +170,7 @@ steps:
         mkdir -p docs/doc/bmw_util
         mkdir -p docs/doc/bmw_derive
         mkdir -p docs/doc/bmw_ser
+        mkdir -p docs/doc/bmw_evh
 
         cp -pr target/doc/bmw_err/* docs/doc/bmw_err
         cp -pr target/doc/bmw_crypt/* docs/doc/bmw_crypt
@@ -176,6 +178,7 @@ steps:
         cp -pr target/doc/bmw_util/* docs/doc/bmw_util
         cp -pr target/doc/bmw_derive/* docs/doc/bmw_derive
         cp -pr target/doc/bmw_ser/* docs/doc/bmw_ser
+        cp -pr target/doc/bmw_evh/* docs/doc/bmw_evh
 
         git pull
         git add --all
