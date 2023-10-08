@@ -45,8 +45,8 @@ steps:
     displayName: Github release (*nix)
     condition: and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
     inputs:
-      gitHubConnection: 'hagridthegreat37'
-      repositoryName: '37miners/bmw'
+      gitHubConnection: 'cgilliard'
+      repositoryName: 'cgilliard/bitcoinmw'
       action: 'edit'
       target: '$(build.sourceVersion)'
       tagSource: 'manual'
@@ -88,8 +88,8 @@ steps:
     displayName: Github release (win)
     condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'), eq( variables['Agent.OS'], 'Windows_NT' ))
     inputs:
-      gitHubConnection: 'hagridthegreat37'
-      repositoryName: '37miners/bmw'
+      gitHubConnection: 'cgilliard'
+      repositoryName: 'cgilliard/bitcoinmw'
       action: 'edit'
       target: '$(build.sourceVersion)'
       tagSource: 'manual'
