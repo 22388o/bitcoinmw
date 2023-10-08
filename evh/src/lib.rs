@@ -60,7 +60,7 @@
 //! $ choco install -y llvm
 //! ```
 //!
-//! BitcoinMW is tested with the latest version of rust. Please ensure to update it.
+//! BitcoinMW is tested with the latest version of rust. Please ensure to update to it.
 //!
 //! # Examples
 //!
