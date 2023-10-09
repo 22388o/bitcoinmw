@@ -144,6 +144,9 @@ steps:
     displayName: Tarpaulin
     condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))
   - script: |
+      cd ~
+      git clone https://anything:$(github_pat)@github.com/cgilliard/bitcoinmw.git bmw_new
+      cd bmw_new
       changes_error=`git diff HEAD^^ HEAD --name-only | grep "^error" | wc -l`
       changes_crypt=`git diff HEAD^^ HEAD --name-only | grep "^crypt" | wc -l`
       changes_log=`git diff HEAD^^ HEAD --name-only | grep "^log" | wc -l`
@@ -158,8 +161,6 @@ steps:
       else
         changes=`git diff HEAD^^ HEAD --name-only`
         echo "updating with changes = $changes"
-        git clone https://anything:$(github_pat)@github.com/cgilliard/bitcoinmw.git bmw_new
-        cd bmw_new
         git config user.name "Pipelines-Bot"
         git checkout main
         cargo doc
