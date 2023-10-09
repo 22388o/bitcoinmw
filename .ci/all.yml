@@ -148,12 +148,12 @@ steps:
       cd ~
       git clone https://anything:$(github_pat)@github.com/cgilliard/bitcoinmw.git bmw_new
       cd bmw_new
-      changes_error=`git diff HEAD^^ HEAD --name-only | grep "^error" | wc -l`
-      changes_crypt=`git diff HEAD^^ HEAD --name-only | grep "^crypt" | wc -l`
-      changes_log=`git diff HEAD^^ HEAD --name-only | grep "^log" | wc -l`
-      changes_util=`git diff HEAD^^ HEAD --name-only | grep "^util" | wc -l`
-      changes_derive=`git diff HEAD^^ HEAD --name-only | grep "^derive" | wc -l`
-      changes_ser=`git diff HEAD^^ HEAD --name-only | grep "^ser" | wc -l`
+      changes_error=`git diff HEAD^^ HEAD --name-only | grep "^error\/src" | wc -l`
+      changes_crypt=`git diff HEAD^^ HEAD --name-only | grep "^crypt\/src" | wc -l`
+      changes_log=`git diff HEAD^^ HEAD --name-only | grep "^log\/src" | wc -l`
+      changes_util=`git diff HEAD^^ HEAD --name-only | grep "^util\/src" | wc -l`
+      changes_derive=`git diff HEAD^^ HEAD --name-only | grep "^derive\/src" | wc -l`
+      changes_ser=`git diff HEAD^^ HEAD --name-only | grep "^ser\/src" | wc -l`
       changes_evh=`git diff HEAD^^ HEAD --name-only | grep "^evh\/src" | wc -l`
 
       if [[ $changes_error -eq 0 ]] && [[ $changes_crypt -eq 0 ]] && [[ $changes_log -eq 0 ]] && [[ $changes_util -eq 0 ]] && [[ $changes_derive -eq 0 ]] && [[ $changes_ser -eq 0 ]] && [[ $changes_evh -eq 0 ]]
@@ -174,13 +174,7 @@ steps:
         mkdir -p docs/doc/bmw_ser
         mkdir -p docs/doc/bmw_evh
 
-        cp -pr target/doc/bmw_err/* docs/doc/bmw_err
-        cp -pr target/doc/bmw_crypt/* docs/doc/bmw_crypt
-        cp -pr target/doc/bmw_log/* docs/doc/bmw_log
-        cp -pr target/doc/bmw_util/* docs/doc/bmw_util
-        cp -pr target/doc/bmw_derive/* docs/doc/bmw_derive
-        cp -pr target/doc/bmw_ser/* docs/doc/bmw_ser
-        cp -pr target/doc/bmw_evh/* docs/doc/bmw_evh
+        cp -pr target/doc/* docs/doc/
 
         git pull
         git add --all
