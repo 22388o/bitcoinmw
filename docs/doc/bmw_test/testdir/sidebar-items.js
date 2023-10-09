@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["setup_test_dir",""],["tear_down_test_dir",""]]});
+window.SIDEBAR_ITEMS = {"fn":["setup_test_dir","tear_down_test_dir"]};

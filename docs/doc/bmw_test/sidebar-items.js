@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["testdir",""]]});
+window.SIDEBAR_ITEMS = {"mod":["port","testdir"]};

@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["main",""]]});
+window.SIDEBAR_ITEMS = {"constant":["LOG_LEVEL"],"fn":["main","real_main"]};
