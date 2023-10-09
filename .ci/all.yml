@@ -159,14 +159,13 @@ steps:
       git clone https://anything:$(github_pat)@github.com/cgilliard/bitcoinmw.git bmw_new
       cd bmw_new
       changes_error=`git diff HEAD^^ HEAD --name-only | grep "^error\/src" | wc -l`
-      changes_crypt=`git diff HEAD^^ HEAD --name-only | grep "^crypt\/src" | wc -l`
       changes_log=`git diff HEAD^^ HEAD --name-only | grep "^log\/src" | wc -l`
       changes_util=`git diff HEAD^^ HEAD --name-only | grep "^util\/src" | wc -l`
       changes_derive=`git diff HEAD^^ HEAD --name-only | grep "^derive\/src" | wc -l`
       changes_ser=`git diff HEAD^^ HEAD --name-only | grep "^ser\/src" | wc -l`
       changes_evh=`git diff HEAD^^ HEAD --name-only | grep "^evh\/src" | wc -l`
 
-      if [[ $changes_error -eq 0 ]] && [[ $changes_crypt -eq 0 ]] && [[ $changes_log -eq 0 ]] && [[ $changes_util -eq 0 ]] && [[ $changes_derive -eq 0 ]] && [[ $changes_ser -eq 0 ]] && [[ $changes_evh -eq 0 ]]
+      if [[ $changes_error -eq 0 ]] && [[ $changes_log -eq 0 ]] && [[ $changes_util -eq 0 ]] && [[ $changes_derive -eq 0 ]] && [[ $changes_ser -eq 0 ]] && [[ $changes_evh -eq 0 ]]
       then
         echo "no changes to relevant directories, not pushing"
       else
@@ -175,14 +174,6 @@ steps:
         git config user.name "Pipelines-Bot"
         git checkout main
         cargo doc --no-deps --workspace
-
-        mkdir -p docs/doc/bmw_err
-        mkdir -p docs/doc/bmw_crypt
-        mkdir -p docs/doc/bmw_log
-        mkdir -p docs/doc/bmw_util
-        mkdir -p docs/doc/bmw_derive
-        mkdir -p docs/doc/bmw_ser
-        mkdir -p docs/doc/bmw_evh
 
         cp -pr target/doc/* docs/doc/
 
