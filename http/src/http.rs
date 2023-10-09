@@ -18,6 +18,7 @@
 use crate::constants::*;
 use crate::types::{HttpContext, HttpServerImpl};
 use crate::{HttpConfig, HttpHeaders, HttpInstance, HttpInstanceType, HttpServer, PlainConfig};
+use bmw_deps::chrono::Utc;
 use bmw_err::*;
 use bmw_evh::{
 	create_listeners, AttachmentHolder, Builder, ConnData, ConnectionData, EventHandler,
@@ -131,12 +132,17 @@ impl HttpServerImpl {
 		let file = File::open(fpath)?;
 		let mut buf_reader = BufReader::new(file);
 
-		let res = format!(
-			"HTTP/1.1 200 OK\r\n\
-Date: Thu, 10 Nov 2022 22:31:52 GMT\r\n\
-Content-Length: {}\r\n\r\n",
-			metadata.len()
-		);
+		let dt = Utc::now();
+		let res = dt
+			.format(
+				"HTTP/1.1 200 OK\r\n\
+Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
+Content-Length: ",
+			)
+			.to_string();
+
+		let res = format!("{}{}\r\n\r\n", res, metadata.len());
+
 		conn_data.write_handle().write(&res.as_bytes()[..])?;
 
 		loop {
@@ -456,6 +462,9 @@ mod test {
 		assert_eq!(len, 90);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
+
+		tear_down_test_dir(test_dir)?;
+
 		Ok(())
 	}
 
