@@ -163,7 +163,7 @@ steps:
         echo "updating with changes = $changes"
         git config user.name "Pipelines-Bot"
         git checkout main
-        cargo doc
+        cargo doc --no-deps
 
         mkdir -p docs/doc/bmw_err
         mkdir -p docs/doc/bmw_crypt
