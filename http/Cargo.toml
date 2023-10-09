@@ -1,7 +1,7 @@
 [package]
 name = "bmw_http"
 version = "0.0.3-beta.1"
-authors = ["BMW Developers"]
+authors = ["The BitcoinMW Developers"]
 description = "Eventhandler"
 license = "Apache-2.0"
 repository = "https://github.com/cgilliard/bitcoinmw"
