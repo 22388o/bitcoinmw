@@ -1,11 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="This crate defines and implements the [`crate::EventHandler`]. EventHandlers process nonblocking i/o events. They are implemented for linux, windows, and macos. Each platform has a different implementation due to the differences between these platforms. For linux, epoll is used. On macos kqueues are used. On windows, wepoll is used. The result is a cross-platform, performant nonblocking i/o event handler."><meta name="keywords" content="rust, rustlang, rust-lang, bmw_evh"><title>bmw_evh - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../dark.css" disabled><link rel="stylesheet" type="text/css" href="../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../storage.js"></script><script defer src="../crates.js"></script><script defer src="../main.js"></script><noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../favicon.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../bmw_evh/index.html"><div class="logo-container"><img class="rust-logo" src="../rust-logo.svg" alt="logo"></div>
-        </a><h2 class="location"></h2>
-    </nav>
-    <nav class="sidebar"><a class="sidebar-logo" href="../bmw_evh/index.html"><div class="logo-container"><img class="rust-logo" src="../rust-logo.svg" alt="logo"></div>
-        </a><h2 class="location"><a href="#">Crate bmw_evh</a></h2><div class="sidebar-elems"><div class="block"><ul><li class="version">Version 0.0.3-beta.1</li><li><a id="all-types" href="all.html">All Items</a></li></ul></div><section><div class="block"><ul><li><a href="#macros">Macros</a></li><li><a href="#structs">Structs</a></li><li><a href="#constants">Constants</a></li><li><a href="#traits">Traits</a></li><li><a href="#functions">Functions</a></li></ul></div></section></div></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../bmw_evh/index.html"><img class="rust-logo" src="../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><button type="button" id="help-button" title="help">?</button><div id="settings-menu" tabindex="-1">
-                                <a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../wheel.svg"></a></div>
-                        </div></form></nav></div><section id="main-content" class="content"><div class="main-heading">
-    <h1 class="fqn"><span class="in-band">Crate <a class="mod" href="#">bmw_evh</a><button id="copy-path" onclick="copy_path(this)" title="Copy item path to clipboard"><img src="../clipboard.svg" width="19" height="18" alt="Copy item path"></button></span></h1><span class="out-of-band"><a class="srclink" href="../src/bmw_evh/lib.rs.html#14-227">source</a> · <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span></div><details class="rustdoc-toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>This crate defines and implements the <a href="trait.EventHandler.html" title="crate::EventHandler"><code>crate::EventHandler</code></a>. EventHandlers process
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="This crate defines and implements the `crate::EventHandler`. EventHandlers process nonblocking i/o events. They are implemented for linux, windows, and macos. Each platform has a different implementation due to the differences between these platforms. For linux, epoll is used. On macos kqueues are used. On windows, wepoll is used. The result is a cross-platform, performant nonblocking i/o event handler."><title>bmw_evh - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="bmw_evh" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="logo-container" href="../bmw_evh/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><h2></h2></nav><nav class="sidebar"><a class="logo-container" href="../bmw_evh/index.html"><img class="rust-logo" src="../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><h2 class="location"><a href="#">Crate bmw_evh</a></h2><div class="sidebar-elems"><ul class="block"><li class="version">Version 0.0.3-beta.1</li><li><a id="all-types" href="all.html">All Items</a></li></ul><section><ul class="block"><li><a href="#macros">Macros</a></li><li><a href="#structs">Structs</a></li><li><a href="#constants">Constants</a></li><li><a href="#traits">Traits</a></li><li><a href="#functions">Functions</a></li></ul></section></div></nav><main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Crate <a class="mod" href="#">bmw_evh</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="src" href="../src/bmw_evh/lib.rs.html#18-232">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>This crate defines and implements the <a href="trait.EventHandler.html" title="trait bmw_evh::EventHandler"><code>crate::EventHandler</code></a>. EventHandlers process
 nonblocking i/o events. They are implemented for linux, windows, and macos. Each platform has
 a different implementation due to the differences between these platforms. For linux, epoll is
 used. On macos kqueues are used. On windows, wepoll is used. The result is a cross-platform,
@@ -14,197 +7,182 @@ performant nonblocking i/o event handler.</p>
 <p>TBD</p>
 <h2 id="using-eventhandlers-in-your-project"><a href="#using-eventhandlers-in-your-project">Using eventhandlers in your project</a></h2>
 <p>Add the following to your Cargo.toml:</p>
-<div class="example-wrap"><pre class="language-text"><code> bmw_evh = { git = &quot;https://github.com/37miners/bmw&quot;  }</code></pre></div>
+<div class="example-wrap"><pre class="language-text"><code> bmw_evh = { git = &quot;https://github.com/37miners/bmw&quot;  }
+</code></pre></div>
 <p>Optionally, you may wish to use the other associated crates:</p>
 <div class="example-wrap"><pre class="language-text"><code> bmw_err    = { git = &quot;https://github.com/37miners/bmw&quot;  }
  bmw_log    = { git = &quot;https://github.com/37miners/bmw&quot;  }
  bmw_derive = { git = &quot;https://github.com/37miners/bmw&quot;  }
- bmw_util   = { git = &quot;https://github.com/37miners/bmw&quot;  }</code></pre></div>
+ bmw_util   = { git = &quot;https://github.com/37miners/bmw&quot;  }
+</code></pre></div>
 <p>The linux dependencies can be installed with the following commands on ubuntu:</p>
 <div class="example-wrap"><pre class="language-text"><code> $ sudo apt-get update -yqq
- $ sudo apt-get install -yqq --no-install-recommends libncursesw5-dev libssl-dev</code></pre></div>
+ $ sudo apt-get install -yqq --no-install-recommends libncursesw5-dev libssl-dev
+</code></pre></div>
 <p>The macos dependencies can be installed with the following commands</p>
-<div class="example-wrap"><pre class="language-text"><code>$ brew install llvm</code></pre></div>
+<div class="example-wrap"><pre class="language-text"><code>$ brew install llvm
+</code></pre></div>
 <p>The windows dependencies can be installed with the following commands</p>
-<div class="example-wrap"><pre class="language-text"><code>$ choco install -y llvm</code></pre></div>
-<p>BMW is tested with the latest version of rust. Please ensure to update it.</p>
+<div class="example-wrap"><pre class="language-text"><code>$ choco install -y llvm
+</code></pre></div>
+<p>BitcoinMW is tested with the latest version of rust. Please ensure to update it to the latest version.</p>
 <h2 id="examples"><a href="#examples">Examples</a></h2>
-<div class="example-wrap"><pre class="rust rust-example-rendered"><code> <span class="comment">// Echo Server</span>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code> <span class="comment">// Echo Server
 
- <span class="comment">// import the error, log, evh crate and several other things</span>
- <span class="kw">use</span> <span class="ident">bmw_err</span>::<span class="kw-2">*</span>;
- <span class="kw">use</span> <span class="ident">bmw_evh</span>::<span class="kw-2">*</span>;
- <span class="kw">use</span> <span class="ident">bmw_log</span>::<span class="kw-2">*</span>;
- <span class="kw">use</span> <span class="ident">bmw_test::port::pick_free_port</span>;
- <span class="kw">use</span> <span class="ident">std::net::TcpStream</span>;
- <span class="kw">use</span> <span class="ident">std::io</span>::{<span class="ident">Read</span>,<span class="ident">Write</span>};
+ // import the error, log, evh crate and several other things
+ </span><span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
+ <span class="kw">use </span>bmw_evh::<span class="kw-2">*</span>;
+ <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
+ <span class="kw">use </span>bmw_test::port::pick_free_port;
+ <span class="kw">use </span>std::net::TcpStream;
+ <span class="kw">use </span>std::io::{Read,Write};
 
  <span class="macro">info!</span>();
 
- <span class="kw">fn</span> <span class="ident">main</span>() -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-     <span class="comment">// create an evh instance with the default configuration</span>
-     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">evh</span> <span class="op">=</span> <span class="macro">eventhandler!</span>()<span class="question-mark">?</span>;
+ <span class="kw">fn </span>main() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+     <span class="comment">// create an evh instance with the default configuration
+     </span><span class="kw">let </span><span class="kw-2">mut </span>evh = <span class="macro">eventhandler!</span>()<span class="question-mark">?</span>;
 
-     <span class="comment">// set the on read handler for this evh</span>
-     <span class="ident">evh</span>.<span class="ident">set_on_read</span>(<span class="kw">move</span> <span class="op">|</span><span class="ident">cd</span>, <span class="ident">_ctx</span><span class="op">|</span> {
-         <span class="comment">// log the connection_id of this connection. The connection_id is a random u128</span>
-         <span class="comment">//value. Each connection has a unique id.</span>
-         <span class="macro">info!</span>(<span class="string">&quot;read data on connection {}&quot;</span>, <span class="ident">cd</span>.<span class="ident">get_connection_id</span>())<span class="question-mark">?</span>;
+     <span class="comment">// set the on read handler for this evh
+     </span>evh.set_on_read(<span class="kw">move </span>|cd, _ctx, _attachment| {
+         <span class="comment">// log the connection_id of this connection. The connection_id is a random u128
+         //value. Each connection has a unique id.
+         </span><span class="macro">info!</span>(<span class="string">&quot;read data on connection {}&quot;</span>, cd.get_connection_id())<span class="question-mark">?</span>;
 
-         <span class="comment">// data read is stored in a linked list of slabs. first_slab returns the first</span>
-         <span class="comment">// slab in the list.</span>
-         <span class="kw">let</span> <span class="ident">first_slab</span> <span class="op">=</span> <span class="ident">cd</span>.<span class="ident">first_slab</span>();
+         <span class="comment">// data read is stored in a linked list of slabs. first_slab returns the first
+         // slab in the list.
+         </span><span class="kw">let </span>first_slab = cd.first_slab();
 
-         <span class="comment">// in this example, we don&#39;t use it, but we could get the last slab in the list</span>
-         <span class="comment">// if more than one slab of data may be returned.</span>
-         <span class="kw">let</span> <span class="ident">_last_slab</span> <span class="op">=</span> <span class="ident">cd</span>.<span class="ident">last_slab</span>();
+         <span class="comment">// in this example, we don&#39;t use it, but we could get the last slab in the list
+         // if more than one slab of data may be returned.
+         </span><span class="kw">let </span>_last_slab = cd.last_slab();
 
-         <span class="comment">// get the slab_offset. This is the offset in the last slab read. The slabs</span>
-         <span class="comment">// before the last slab will be full so no offset is needed for them. In this</span>
-         <span class="comment">// example, we always have only a single slab so the offset is always the offset</span>
-         <span class="comment">// of the slab we are looking at.</span>
-         <span class="kw">let</span> <span class="ident">slab_offset</span> <span class="op">=</span> <span class="ident">cd</span>.<span class="ident">slab_offset</span>();
+         <span class="comment">// get the slab_offset. This is the offset in the last slab read. The slabs
+         // before the last slab will be full so no offset is needed for them. In this
+         // example, we always have only a single slab so the offset is always the offset
+         // of the slab we are looking at.
+         </span><span class="kw">let </span>slab_offset = cd.slab_offset();
 
-         <span class="comment">// the borrow slab allocator function allows for the on_read callback to analyze</span>
-         <span class="comment">// the data that has been read by this connection. The slab_allocator that is</span>
-         <span class="comment">// passed to the closure is immutable so none of the data can be modified.</span>
-         <span class="kw">let</span> <span class="ident">res</span> <span class="op">=</span> <span class="ident">cd</span>.<span class="ident">borrow_slab_allocator</span>(<span class="kw">move</span> <span class="op">|</span><span class="ident">sa</span><span class="op">|</span> {
-             <span class="comment">// get the first slab</span>
-             <span class="kw">let</span> <span class="ident">slab</span> <span class="op">=</span> <span class="ident">sa</span>.<span class="ident">get</span>(<span class="ident">first_slab</span>.<span class="ident">try_into</span>()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+         <span class="comment">// the borrow slab allocator function allows for the on_read callback to analyze
+         // the data that has been read by this connection. The slab_allocator that is
+         // passed to the closure is immutable so none of the data can be modified.
+         </span><span class="kw">let </span>res = cd.borrow_slab_allocator(<span class="kw">move </span>|sa| {
+             <span class="comment">// get the first slab
+             </span><span class="kw">let </span>slab = sa.get(first_slab.try_into()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 
-             <span class="comment">// log the number of bytes that have been read</span>
-             <span class="macro">info!</span>(<span class="string">&quot;read {} bytes&quot;</span>, <span class="ident">slab_offset</span>)<span class="question-mark">?</span>;
+             <span class="comment">// log the number of bytes that have been read
+             </span><span class="macro">info!</span>(<span class="string">&quot;read {} bytes&quot;</span>, slab_offset)<span class="question-mark">?</span>;
 
-             <span class="comment">// create a vec and extend it with the data that was read</span>
-             <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">ret</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec!</span>[];
-             <span class="ident">ret</span>.<span class="ident">extend</span>(<span class="kw-2">&amp;</span><span class="ident">slab</span>.<span class="ident">get</span>()[<span class="number">0</span>..<span class="ident">slab_offset</span> <span class="kw">as</span> <span class="ident">usize</span>]);
+             <span class="comment">// create a vec and extend it with the data that was read
+             </span><span class="kw">let </span><span class="kw-2">mut </span>ret: Vec&lt;u8&gt; = <span class="macro">vec!</span>[];
+             ret.extend(<span class="kw-2">&amp;</span>slab.get()[<span class="number">0</span>..slab_offset <span class="kw">as </span>usize]);
 
-             <span class="comment">// Return the data that was read. The return value is a generic so it</span>
-             <span class="comment">// could be any type. In this case, we return a Vec&lt;u8&gt;.</span>
-             <span class="prelude-val">Ok</span>(<span class="ident">ret</span>)
+             <span class="comment">// Return the data that was read. The return value is a generic so it
+             // could be any type. In this case, we return a Vec&lt;u8&gt;.
+             </span><span class="prelude-val">Ok</span>(ret)
          })<span class="question-mark">?</span>;
 
-         <span class="comment">// Clear all the data through the first slab, which in this example is assumed</span>
-         <span class="comment">// to be the last slab. Once this function is called, the subsequent executions</span>
-         <span class="comment">// of this callback will not include this slab.</span>
-         <span class="ident">cd</span>.<span class="ident">clear_through</span>(<span class="ident">first_slab</span>)<span class="question-mark">?</span>;
+         <span class="comment">// Clear all the data through the first slab, which in this example is assumed
+         // to be the last slab. Once this function is called, the subsequent executions
+         // of this callback will not include this slab.
+         </span>cd.clear_through(first_slab)<span class="question-mark">?</span>;
 
-         <span class="comment">// Return a write handle and echo back the data that was read.</span>
-         <span class="ident">cd</span>.<span class="ident">write_handle</span>().<span class="ident">write</span>(<span class="kw-2">&amp;</span><span class="ident">res</span>)<span class="question-mark">?</span>;
+         <span class="comment">// Return a write handle and echo back the data that was read.
+         </span>cd.write_handle().write(<span class="kw-2">&amp;</span>res)<span class="question-mark">?</span>;
 
          <span class="prelude-val">Ok</span>(())
      })<span class="question-mark">?</span>;
-     <span class="ident">evh</span>.<span class="ident">set_on_accept</span>(<span class="kw">move</span> <span class="op">|</span><span class="ident">cd</span>, <span class="ident">_ctx</span><span class="op">|</span> {
-         <span class="comment">// The on_accept callback is executed when a connection is accepted.</span>
-         <span class="macro">info!</span>(<span class="string">&quot;accepted connection id = {}&quot;</span>, <span class="ident">cd</span>.<span class="ident">get_connection_id</span>())<span class="question-mark">?</span>;
+     evh.set_on_accept(<span class="kw">move </span>|cd, _ctx| {
+         <span class="comment">// The on_accept callback is executed when a connection is accepted.
+         </span><span class="macro">info!</span>(<span class="string">&quot;accepted connection id = {}&quot;</span>, cd.get_connection_id())<span class="question-mark">?</span>;
          <span class="prelude-val">Ok</span>(())
      })<span class="question-mark">?</span>;
-     <span class="ident">evh</span>.<span class="ident">set_on_close</span>(<span class="kw">move</span> <span class="op">|</span><span class="ident">cd</span>, <span class="ident">_ctx</span><span class="op">|</span> {
-         <span class="comment">// The on_close callback is executed when a connection is closed.</span>
-         <span class="macro">info!</span>(<span class="string">&quot;closed connection id = {}&quot;</span>, <span class="ident">cd</span>.<span class="ident">get_connection_id</span>())<span class="question-mark">?</span>;
+     evh.set_on_close(<span class="kw">move </span>|cd, _ctx| {
+         <span class="comment">// The on_close callback is executed when a connection is closed.
+         </span><span class="macro">info!</span>(<span class="string">&quot;closed connection id = {}&quot;</span>, cd.get_connection_id())<span class="question-mark">?</span>;
          <span class="prelude-val">Ok</span>(())
      })<span class="question-mark">?</span>;
-     <span class="ident">evh</span>.<span class="ident">set_on_panic</span>(<span class="kw">move</span> <span class="op">|</span><span class="ident">_ctx</span>, <span class="ident">e</span><span class="op">|</span> {
-         <span class="comment">// The error is returned by the panic handler as a Box&lt;dyn Any&gt; so we downcast</span>
-         <span class="comment">// to &amp;str to get the message.</span>
-         <span class="kw">let</span> <span class="ident">e</span> <span class="op">=</span> <span class="ident">e</span>.<span class="ident">downcast_ref</span>::<span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">&gt;</span>().<span class="ident">unwrap</span>();
-         <span class="comment">// The on_panic callback is executed when a thread panic occurs.</span>
-         <span class="macro">warn!</span>(<span class="string">&quot;callback generated thread panic: {}&quot;</span>, <span class="ident">e</span>)<span class="question-mark">?</span>;
+     evh.set_on_panic(<span class="kw">move </span>|_ctx, e| {
+         <span class="comment">// The error is returned by the panic handler as a Box&lt;dyn Any&gt; so we downcast
+         // to &amp;str to get the message.
+         </span><span class="kw">let </span>e = e.downcast_ref::&lt;<span class="kw-2">&amp;</span>str&gt;().unwrap();
+         <span class="comment">// The on_panic callback is executed when a thread panic occurs.
+         </span><span class="macro">warn!</span>(<span class="string">&quot;callback generated thread panic: {}&quot;</span>, e)<span class="question-mark">?</span>;
          <span class="prelude-val">Ok</span>(())
      })<span class="question-mark">?</span>;
-     <span class="ident">evh</span>.<span class="ident">set_housekeeper</span>(<span class="kw">move</span> <span class="op">|</span><span class="ident">_ctx</span><span class="op">|</span> {
-         <span class="comment">// The housekeper callback is executed once per thread every second by default.</span>
-         <span class="macro">info!</span>(<span class="string">&quot;Housekeeper executed&quot;</span>)<span class="question-mark">?</span>;
+     evh.set_housekeeper(<span class="kw">move </span>|_ctx| {
+         <span class="comment">// The housekeper callback is executed once per thread every second by default.
+         </span><span class="macro">info!</span>(<span class="string">&quot;Housekeeper executed&quot;</span>)<span class="question-mark">?</span>;
          <span class="prelude-val">Ok</span>(())
      })<span class="question-mark">?</span>;
 
-     <span class="comment">// start the evh</span>
-     <span class="ident">evh</span>.<span class="ident">start</span>()<span class="question-mark">?</span>;
+     <span class="comment">// start the evh
+     </span>evh.start()<span class="question-mark">?</span>;
 
-     <span class="comment">// pick a free port for our server to bind to</span>
-     <span class="kw">let</span> (<span class="ident">addr</span>, <span class="ident">handles</span>) <span class="op">=</span> <span class="kw">loop</span> {
-         <span class="kw">let</span> <span class="ident">port</span> <span class="op">=</span> <span class="ident">pick_free_port</span>()<span class="question-mark">?</span>;
-         <span class="macro">info!</span>(<span class="string">&quot;using port = {}&quot;</span>, <span class="ident">port</span>);
-         <span class="comment">// bind to the loopback interface.</span>
-         <span class="kw">let</span> <span class="ident">addr</span> <span class="op">=</span> <span class="macro">format!</span>(<span class="string">&quot;127.0.0.1:{}&quot;</span>, <span class="ident">port</span>).<span class="ident">clone</span>();
+     <span class="comment">// pick a free port for our server to bind to
+     </span><span class="kw">let </span>(addr, handles) = <span class="kw">loop </span>{
+         <span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+         <span class="macro">info!</span>(<span class="string">&quot;using port = {}&quot;</span>, port);
+         <span class="comment">// bind to the loopback interface.
+         </span><span class="kw">let </span>addr = <span class="macro">format!</span>(<span class="string">&quot;127.0.0.1:{}&quot;</span>, port).clone();
 
-         <span class="comment">// create our server handles for the default 6 threads of the evh.</span>
-         <span class="comment">// We use a tcp_listener backlog of 10 in this example and we&#39;re setting</span>
-         <span class="comment">// SO_REUSE_PORT to true.</span>
-         <span class="kw">let</span> <span class="ident">handles</span> <span class="op">=</span> <span class="ident">create_listeners</span>(<span class="number">6</span>, <span class="kw-2">&amp;</span><span class="ident">addr</span>, <span class="number">10</span>, <span class="bool-val">true</span>);
-         <span class="kw">match</span> <span class="ident">handles</span> {
-             <span class="prelude-val">Ok</span>(<span class="ident">handles</span>) =&gt; <span class="kw">break</span> (<span class="ident">addr</span>, <span class="ident">handles</span>),
-             <span class="prelude-val">Err</span>(<span class="ident">_e</span>) =&gt; {}
+         <span class="comment">// create our server handles for the default 6 threads of the evh.
+         // We use a tcp_listener backlog of 10 in this example and we&#39;re setting
+         // SO_REUSE_PORT to true.
+         </span><span class="kw">let </span>handles = create_listeners(<span class="number">6</span>, <span class="kw-2">&amp;</span>addr, <span class="number">10</span>, <span class="bool-val">true</span>);
+         <span class="kw">match </span>handles {
+             <span class="prelude-val">Ok</span>(handles) =&gt; <span class="kw">break </span>(addr, handles),
+             <span class="prelude-val">Err</span>(_e) =&gt; {}
          }
      };
 
-     <span class="comment">// create a ServerConnection with no tls configurations so it will be plain</span>
-     <span class="comment">// text.</span>
-     <span class="kw">let</span> <span class="ident">sc</span> <span class="op">=</span> <span class="ident">ServerConnection</span> {
-         <span class="ident">tls_config</span>: <span class="macro">vec!</span>[],
-         <span class="ident">handles</span>,
-         <span class="ident">is_reuse_port</span>: <span class="bool-val">true</span>,
+     <span class="comment">// create a ServerConnection with no tls configurations so it will be plain
+     // text.
+     </span><span class="kw">let </span>sc = ServerConnection {
+         tls_config: <span class="macro">vec!</span>[],
+         handles,
+         is_reuse_port: <span class="bool-val">true</span>,
      };
 
-     <span class="comment">// add our server connection to the evh.</span>
-     <span class="ident">evh</span>.<span class="ident">add_server</span>(<span class="ident">sc</span>)<span class="question-mark">?</span>;
+     <span class="comment">// add our server connection to the evh.
+     </span>evh.add_server(sc, Box::new(<span class="string">&quot;&quot;</span>))<span class="question-mark">?</span>;
 
-     <span class="comment">// create a client connection to test the evh</span>
-     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">connection</span> <span class="op">=</span> <span class="ident">TcpStream::connect</span>(<span class="ident">addr</span>)<span class="question-mark">?</span>;
+     <span class="comment">// create a client connection to test the evh
+     </span><span class="kw">let </span><span class="kw-2">mut </span>connection = TcpStream::connect(addr)<span class="question-mark">?</span>;
 
-     <span class="comment">// send a message &quot;test1&quot;.</span>
-     <span class="ident">connection</span>.<span class="ident">write</span>(<span class="string">b&quot;test1&quot;</span>)<span class="question-mark">?</span>;
+     <span class="comment">// send a message &quot;test1&quot;.
+     </span>connection.write(<span class="string">b&quot;test1&quot;</span>)<span class="question-mark">?</span>;
 
-     <span class="comment">// assert that the response is an echo of our message.</span>
-     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buf</span> <span class="op">=</span> <span class="macro">vec!</span>[];
-     <span class="ident">buf</span>.<span class="ident">resize</span>(<span class="number">100</span>, <span class="number">0u8</span>);
-     <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">connection</span>.<span class="ident">read</span>(<span class="kw-2">&amp;mut</span> <span class="ident">buf</span>)<span class="question-mark">?</span>;
-     <span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span><span class="ident">buf</span>[<span class="number">0</span>..<span class="ident">len</span>], <span class="string">b&quot;test1&quot;</span>);
+     <span class="comment">// assert that the response is an echo of our message.
+     </span><span class="kw">let </span><span class="kw-2">mut </span>buf = <span class="macro">vec!</span>[];
+     buf.resize(<span class="number">100</span>, <span class="number">0u8</span>);
+     <span class="kw">let </span>len = connection.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+     <span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len], <span class="string">b&quot;test1&quot;</span>);
 
-     <span class="comment">// send a second message &quot;test2&quot;.</span>
-     <span class="ident">connection</span>.<span class="ident">write</span>(<span class="string">b&quot;test2&quot;</span>)<span class="question-mark">?</span>;
+     <span class="comment">// send a second message &quot;test2&quot;.
+     </span>connection.write(<span class="string">b&quot;test2&quot;</span>)<span class="question-mark">?</span>;
 
-     <span class="comment">// assert that the response is an echo of our message.</span>
-     <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">connection</span>.<span class="ident">read</span>(<span class="kw-2">&amp;mut</span> <span class="ident">buf</span>)<span class="question-mark">?</span>;
-     <span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span><span class="ident">buf</span>[<span class="number">0</span>..<span class="ident">len</span>], <span class="string">b&quot;test2&quot;</span>);
+     <span class="comment">// assert that the response is an echo of our message.
+     </span><span class="kw">let </span>len = connection.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+     <span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len], <span class="string">b&quot;test2&quot;</span>);
 
-     <span class="comment">// stop the evh</span>
-     <span class="ident">evh</span>.<span class="ident">stop</span>()<span class="question-mark">?</span>;
+     <span class="comment">// stop the evh
+     </span>evh.stop()<span class="question-mark">?</span>;
 
      <span class="prelude-val">Ok</span>(())
  }
 </code></pre></div>
-</div></details><h2 id="macros" class="small-section-header"><a href="#macros">Macros</a></h2>
-<div class="item-table"><div class="item-row"><div class="item-left module-item"><a class="macro" href="macro.eventhandler.html" title="bmw_evh::eventhandler macro">eventhandler</a></div><div class="item-right docblock-short"><p>Build an <a href="trait.EventHandler.html" title="crate::EventHandler"><code>crate::EventHandler</code></a> instance. See module level documentation for examples.
-Optionally, an <a href="struct.EventHandlerConfig.html" title="crate::EventHandlerConfig"><code>crate::EventHandlerConfig</code></a> may be specified. If none is specified,
-the default values are used.</p>
-</div></div></div><h2 id="structs" class="small-section-header"><a href="#structs">Structs</a></h2>
-<div class="item-table"><div class="item-row"><div class="item-left module-item"><a class="struct" href="struct.Builder.html" title="bmw_evh::Builder struct">Builder</a></div><div class="item-right docblock-short"><p>The structure that builds eventhandlers.</p>
-</div></div><div class="item-row"><div class="item-left module-item"><a class="struct" href="struct.ClientConnection.html" title="bmw_evh::ClientConnection struct">ClientConnection</a></div><div class="item-right docblock-short"><p>A struct which specifies a client connection.</p>
-</div></div><div class="item-row"><div class="item-left module-item"><a class="struct" href="struct.ConnectionData.html" title="bmw_evh::ConnectionData struct">ConnectionData</a></div><div class="item-right docblock-short"><p>A struct which is passed to several of the callbacks in <a href="trait.EventHandler.html" title="crate::EventHandler"><code>crate::EventHandler</code></a>. It provides
-information on the connection from which data is read.</p>
-</div></div><div class="item-row"><div class="item-left module-item"><a class="struct" href="struct.EventHandlerConfig.html" title="bmw_evh::EventHandlerConfig struct">EventHandlerConfig</a></div><div class="item-right docblock-short"><p>The configuration for the <a href="trait.EventHandler.html" title="crate::EventHandler"><code>crate::EventHandler</code></a>.</p>
-</div></div><div class="item-row"><div class="item-left module-item"><a class="struct" href="struct.ServerConnection.html" title="bmw_evh::ServerConnection struct">ServerConnection</a></div><div class="item-right docblock-short"><p>A struct which specifies a server connection.</p>
-</div></div><div class="item-row"><div class="item-left module-item"><a class="struct" href="struct.ThreadContext.html" title="bmw_evh::ThreadContext struct">ThreadContext</a></div><div class="item-right docblock-short"><p>A thread context which is passed to the callbacks specified by a <a href="trait.EventHandler.html" title="crate::EventHandler"><code>crate::EventHandler</code></a>.</p>
-</div></div><div class="item-row"><div class="item-left module-item"><a class="struct" href="struct.TlsClientConfig.html" title="bmw_evh::TlsClientConfig struct">TlsClientConfig</a></div><div class="item-right docblock-short"><p>TlsClientConfig specifies the configuration for a tls client.</p>
-</div></div><div class="item-row"><div class="item-left module-item"><a class="struct" href="struct.TlsServerConfig.html" title="bmw_evh::TlsServerConfig struct">TlsServerConfig</a></div><div class="item-right docblock-short"><p>TlsServerConfig specifies the configuration for a tls server.</p>
-</div></div><div class="item-row"><div class="item-left module-item"><a class="struct" href="struct.WriteHandle.html" title="bmw_evh::WriteHandle struct">WriteHandle</a></div><div class="item-right docblock-short"><p>A struct which is used to write to a connection.</p>
-</div></div></div><h2 id="constants" class="small-section-header"><a href="#constants">Constants</a></h2>
-<div class="item-table"><div class="item-row"><div class="item-left module-item"><a class="constant" href="constant.READ_SLAB_DATA_SIZE.html" title="bmw_evh::READ_SLAB_DATA_SIZE constant">READ_SLAB_DATA_SIZE</a></div><div class="item-right docblock-short"><p>The size of the data which is stored in read slabs. This data is followed by 4 bytes which is a
-pointer to the next slab in the list.</p>
-</div></div></div><h2 id="traits" class="small-section-header"><a href="#traits">Traits</a></h2>
-<div class="item-table"><div class="item-row"><div class="item-left module-item"><a class="trait" href="trait.ConnData.html" title="bmw_evh::ConnData trait">ConnData</a></div><div class="item-right docblock-short"><p>This trait which is implemented by <a href="struct.ConnectionData.html" title="crate::ConnectionData"><code>crate::ConnectionData</code></a>. This trait is used to interact
-with a connection.</p>
-</div></div><div class="item-row"><div class="item-left module-item"><a class="trait" href="trait.EventHandler.html" title="bmw_evh::EventHandler trait">EventHandler</a></div><div class="item-right docblock-short"><p>This trait defines the behaviour of an eventhandler. See the module level documentation for
-examples.</p>
-</div></div></div><h2 id="functions" class="small-section-header"><a href="#functions">Functions</a></h2>
-<div class="item-table"><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.create_listeners.html" title="bmw_evh::create_listeners fn">create_listeners</a></div><div class="item-right docblock-short"><p>Create listeners for use with the <a href="struct.ServerConnection.html" title="crate::ServerConnection"><code>crate::ServerConnection</code></a> struct.
-This function crates an array of handles which can be used to construct a <a href="struct.ServerConnection.html" title="crate::ServerConnection"><code>crate::ServerConnection</code></a>
+</div></details><h2 id="macros" class="small-section-header"><a href="#macros">Macros</a></h2><ul class="item-table"><li><div class="item-name"><a class="macro" href="macro.eventhandler.html" title="macro bmw_evh::eventhandler">eventhandler</a></div><div class="desc docblock-short">Build an <a href="trait.EventHandler.html" title="trait bmw_evh::EventHandler"><code>crate::EventHandler</code></a> instance. See module level documentation for examples.
+Optionally, an <a href="struct.EventHandlerConfig.html" title="struct bmw_evh::EventHandlerConfig"><code>crate::EventHandlerConfig</code></a> may be specified. If none is specified,
+the default values are used.</div></li></ul><h2 id="structs" class="small-section-header"><a href="#structs">Structs</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.AttachmentHolder.html" title="struct bmw_evh::AttachmentHolder">AttachmentHolder</a></div></li><li><div class="item-name"><a class="struct" href="struct.Builder.html" title="struct bmw_evh::Builder">Builder</a></div><div class="desc docblock-short">The structure that builds eventhandlers.</div></li><li><div class="item-name"><a class="struct" href="struct.ClientConnection.html" title="struct bmw_evh::ClientConnection">ClientConnection</a></div><div class="desc docblock-short">A struct which specifies a client connection.</div></li><li><div class="item-name"><a class="struct" href="struct.ConnectionData.html" title="struct bmw_evh::ConnectionData">ConnectionData</a></div><div class="desc docblock-short">A struct which is passed to several of the callbacks in <a href="trait.EventHandler.html" title="trait bmw_evh::EventHandler"><code>crate::EventHandler</code></a>. It provides
+information on the connection from which data is read.</div></li><li><div class="item-name"><a class="struct" href="struct.EventHandlerConfig.html" title="struct bmw_evh::EventHandlerConfig">EventHandlerConfig</a></div><div class="desc docblock-short">The configuration for the <a href="trait.EventHandler.html" title="trait bmw_evh::EventHandler"><code>crate::EventHandler</code></a>.</div></li><li><div class="item-name"><a class="struct" href="struct.ServerConnection.html" title="struct bmw_evh::ServerConnection">ServerConnection</a></div><div class="desc docblock-short">A struct which specifies a server connection.</div></li><li><div class="item-name"><a class="struct" href="struct.ThreadContext.html" title="struct bmw_evh::ThreadContext">ThreadContext</a></div><div class="desc docblock-short">A thread context which is passed to the callbacks specified by a <a href="trait.EventHandler.html" title="trait bmw_evh::EventHandler"><code>crate::EventHandler</code></a>.</div></li><li><div class="item-name"><a class="struct" href="struct.TlsClientConfig.html" title="struct bmw_evh::TlsClientConfig">TlsClientConfig</a></div><div class="desc docblock-short">TlsClientConfig specifies the configuration for a tls client.</div></li><li><div class="item-name"><a class="struct" href="struct.TlsServerConfig.html" title="struct bmw_evh::TlsServerConfig">TlsServerConfig</a></div><div class="desc docblock-short">TlsServerConfig specifies the configuration for a tls server.</div></li><li><div class="item-name"><a class="struct" href="struct.WriteHandle.html" title="struct bmw_evh::WriteHandle">WriteHandle</a></div><div class="desc docblock-short">A struct which is used to write to a connection.</div></li></ul><h2 id="constants" class="small-section-header"><a href="#constants">Constants</a></h2><ul class="item-table"><li><div class="item-name"><a class="constant" href="constant.READ_SLAB_DATA_SIZE.html" title="constant bmw_evh::READ_SLAB_DATA_SIZE">READ_SLAB_DATA_SIZE</a></div><div class="desc docblock-short">The size of the data which is stored in read slabs. This data is followed by 4 bytes which is a
+pointer to the next slab in the list.</div></li></ul><h2 id="traits" class="small-section-header"><a href="#traits">Traits</a></h2><ul class="item-table"><li><div class="item-name"><a class="trait" href="trait.ConnData.html" title="trait bmw_evh::ConnData">ConnData</a></div><div class="desc docblock-short">This trait which is implemented by <a href="struct.ConnectionData.html" title="struct bmw_evh::ConnectionData"><code>crate::ConnectionData</code></a>. This trait is used to interact
+with a connection.</div></li><li><div class="item-name"><a class="trait" href="trait.EventHandler.html" title="trait bmw_evh::EventHandler">EventHandler</a></div><div class="desc docblock-short">This trait defines the behaviour of an eventhandler. See the module level documentation for
+examples.</div></li></ul><h2 id="functions" class="small-section-header"><a href="#functions">Functions</a></h2><ul class="item-table"><li><div class="item-name"><a class="fn" href="fn.create_listeners.html" title="fn bmw_evh::create_listeners">create_listeners</a></div><div class="desc docblock-short">Create listeners for use with the <a href="struct.ServerConnection.html" title="struct bmw_evh::ServerConnection"><code>crate::ServerConnection</code></a> struct.
+This function crates an array of handles which can be used to construct a <a href="struct.ServerConnection.html" title="struct bmw_evh::ServerConnection"><code>crate::ServerConnection</code></a>
 object. <code>size</code> is the size of the array. It must be equal to the number of threads that the
-<a href="trait.EventHandler.html" title="crate::EventHandler"><code>crate::EventHandler</code></a> has configured. <code>addr</code> is the socketaddress to bind to. (For example:
+<a href="trait.EventHandler.html" title="trait bmw_evh::EventHandler"><code>crate::EventHandler</code></a> has configured. <code>addr</code> is the socketaddress to bind to. (For example:
 127.0.0.1:80 or 0.0.0.0:443.). <code>listen_size</code> is the size of the listener backlog for this
 tcp/ip connection. <code>reuse_port</code> specifies whether or not to reuse the port on a per thread
 basis for this connection. This is only available on linux and will be ignored on other
-platforms.</p>
-</div></div></div></section></div></main><div id="rustdoc-vars" data-root-path="../" data-current-crate="bmw_evh" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.63.0 (4b91a6ea7 2022-08-08)" ></div>
-</body></html>
+platforms.</div></li></ul></section></div></main></body></html>
