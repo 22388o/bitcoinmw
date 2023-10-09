@@ -1,9 +1,6 @@
 steps:
   - script: |
-      echo "pre"
-      ls -l "C:\Program Files"
-      echo "post"
-      SET OPENSSL_DIR=C:\Program Files\OpenSSL-Win64
+      SET OPENSSL_DIR=C:\Program Files\OpenSSL
       echo "OpenSSL = %OPENSSL_DIR%"
       cargo test --all
     displayName: Windows Cargo Test
