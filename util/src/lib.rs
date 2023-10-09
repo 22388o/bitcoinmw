@@ -38,14 +38,14 @@
 //! performance is at least in the ballpark of the standard data structures. The array, arraylist,
 //! queue, and stack are faster for insert, slower for initialization and about the same for
 //! iteration and drop. A performance tool is included in the project in the etc directory
-//! [ds_perf](https://github.com/37miners/bmw/tree/main/etc/ds_perf).
+//! [ds_perf](https://github.com/cgilliard/bitcoinmw/tree/main/etc/ds_perf).
 //!
 //! Below is the output of some runs on a linux machine.
 //!
 //!```text
 //! $ ./target/release/perf  --help
 //! ds_perf 1.0
-//! 37 Miners, LLC
+//! The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
 // * Arti: https://gitlab.torproject.org/tpo/core/arti
@@ -134,15 +134,15 @@
 //! To use the crates in bmw in your project, add the following to your Cargo.toml:
 //!
 //!```text
-//! bmw_util   = { git = "https://github.com/37miners/bmw"  }
+//! bmw_util   = { git = "https://github.com/cgilliard/bitcoinmw"  }
 //!```
 //!
 //! Optionally, you may wish to use the other associated crates:
 //!
 //!```text
-//! bmw_err    = { git = "https://github.com/37miners/bmw"  }
-//! bmw_log    = { git = "https://github.com/37miners/bmw"  }
-//! bmw_derive = { git = "https://github.com/37miners/bmw"  }
+//! bmw_err    = { git = "https://github.com/cgilliard/bitcoinmw"  }
+//! bmw_log    = { git = "https://github.com/cgilliard/bitcoinmw"  }
+//! bmw_derive = { git = "https://github.com/cgilliard/bitcoinmw"  }
 //!```
 //!
 //! The linux dependencies can be installed with the following commands on ubuntu:

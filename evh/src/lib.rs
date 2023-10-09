@@ -30,16 +30,16 @@
 //! Add the following to your Cargo.toml:
 //!
 //!```text
-//! bmw_evh = { git = "https://github.com/37miners/bmw"  }
+//! bmw_evh = { git = "https://github.com/cgilliard/bitcoinmw"  }
 //!```
 //!
 //! Optionally, you may wish to use the other associated crates:
 //!
 //!```text
-//! bmw_err    = { git = "https://github.com/37miners/bmw"  }
-//! bmw_log    = { git = "https://github.com/37miners/bmw"  }
-//! bmw_derive = { git = "https://github.com/37miners/bmw"  }
-//! bmw_util   = { git = "https://github.com/37miners/bmw"  }
+//! bmw_err    = { git = "https://github.com/cgilliard/bitcoinmw"  }
+//! bmw_log    = { git = "https://github.com/cgilliard/bitcoinmw"  }
+//! bmw_derive = { git = "https://github.com/cgilliard/bitcoinmw"  }
+//! bmw_util   = { git = "https://github.com/cgilliard/bitcoinmw"  }
 //!```
 //!
 //! The linux dependencies can be installed with the following commands on ubuntu:
