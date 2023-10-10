@@ -19,6 +19,7 @@ use crate::constants::*;
 use crate::types::{HttpContext, HttpServerImpl};
 use crate::{HttpConfig, HttpHeaders, HttpInstance, HttpInstanceType, HttpServer, PlainConfig};
 use bmw_deps::chrono::Utc;
+use bmw_deps::dirs;
 use bmw_err::*;
 use bmw_evh::{
 	create_listeners, AttachmentHolder, Builder, ConnData, ConnectionData, EventHandler,
@@ -30,6 +31,7 @@ use std::any::{type_name, Any};
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Read;
+use std::path::PathBuf;
 
 info!();
 
@@ -38,13 +40,7 @@ impl Default for HttpConfig {
 		Self {
 			evh_config: EventHandlerConfig::default(),
 			instances: vec![HttpInstance {
-				instance_type: HttpInstanceType::Plain(PlainConfig {
-					domainnames: vec![],
-				}),
-				port: 8080,
-				addr: "127.0.0.1".to_string(),
-				listen_queue_size: 100,
-				http_dir: "~/.bmw/www".to_string(),
+				..Default::default()
 			}],
 		}
 	}
@@ -60,6 +56,7 @@ impl Default for HttpInstance {
 			instance_type: HttpInstanceType::Plain(PlainConfig {
 				domainnames: vec![],
 			}),
+			default_file: "index.html".to_string(),
 		}
 	}
 }
@@ -120,15 +117,49 @@ impl HttpServerImpl {
 		})
 	}
 
-	fn process_file(
+	fn process_404(
 		_config: &HttpConfig,
+		_path: String,
+		conn_data: &mut ConnectionData,
+		_instance: &HttpInstance,
+	) -> Result<(), Error> {
+		let dt = Utc::now();
+		let res = dt
+			.format(
+				"HTTP/1.1 404 OK\r\n\
+Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
+Content-Length: 15\r\n\r\nFile not found.",
+			)
+			.to_string();
+
+		conn_data.write_handle().write(&res.as_bytes()[..])?;
+
+		Ok(())
+	}
+
+	fn process_file(
+		config: &HttpConfig,
 		path: String,
 		conn_data: &mut ConnectionData,
 		instance: &HttpInstance,
 	) -> Result<(), Error> {
+		let path = if path.ends_with("/") {
+			format!("{}{}", path, instance.default_file)
+		} else {
+			path
+		};
 		let fpath = format!("{}/{}", instance.http_dir, path);
-		info!("path={},dir={}", path, instance.http_dir)?;
-		let metadata = std::fs::metadata(fpath.clone())?;
+
+		debug!("path={},dir={}", fpath, instance.http_dir)?;
+		let metadata = std::fs::metadata(fpath.clone());
+		let metadata = match metadata {
+			Ok(metadata) => metadata,
+			Err(_e) => {
+				Self::process_404(config, path, conn_data, instance)?;
+				return Ok(());
+			}
+		};
+
 		let file = File::open(fpath)?;
 		let mut buf_reader = BufReader::new(file);
 
@@ -143,12 +174,12 @@ Content-Length: ",
 
 		let res = format!("{}{}\r\n\r\n", res, metadata.len());
 
+		debug!("writing {}", res)?;
 		conn_data.write_handle().write(&res.as_bytes()[..])?;
 
 		loop {
 			let mut buf = vec![0u8; 100];
 			let len = buf_reader.read(&mut buf)?;
-			info!("read len = {}", len)?;
 			conn_data.write_handle().write(&buf[0..len])?;
 			if len == 0 {
 				break;
@@ -183,6 +214,7 @@ Content-Length: ",
 			let id = matches[i].id();
 
 			if id == SUFFIX_TREE_TERMINATE_HEADERS_ID {
+				debug!("found term end={}, slab_off={}", end, slab_offset)?;
 				if end == slab_offset.into() {
 					termination_point = end;
 				}
@@ -235,7 +267,7 @@ Content-Length: ",
 			Some(attachment) => attachment,
 			None => return Err(err!(ErrKind::Http, "no instance found for this request1")),
 		};
-		info!(
+		debug!(
 			"atttypename={:?},type={}",
 			attachment.clone(),
 			Self::type_of(attachment.clone())
@@ -248,18 +280,20 @@ Content-Length: ",
 				return Err(err!(ErrKind::Http, "no instance found for this request2"));
 			}
 		};
-		info!("conn_data.tid={},att={:?}", conn_data.tid(), attachment)?;
+		debug!("conn_data.tid={},att={:?}", conn_data.tid(), attachment)?;
 		let ctx = Self::build_ctx(ctx)?;
 		debug!("on read slab_offset = {}", conn_data.slab_offset())?;
 		let first_slab = conn_data.first_slab();
 		let last_slab = conn_data.last_slab();
 		let slab_offset = conn_data.slab_offset();
 		debug!("firstslab={},last_slab={}", first_slab, last_slab)?;
-		let (req, slab_id_vec) = conn_data.borrow_slab_allocator(move |sa| {
+		let (req, slab_id_vec, slab_count) = conn_data.borrow_slab_allocator(move |sa| {
 			let mut slab_id_vec = vec![];
 			let mut slab_id = first_slab;
 			let mut ret: Vec<u8> = vec![];
+			let mut slab_count = 0;
 			loop {
+				slab_count += 1;
 				slab_id_vec.push(slab_id);
 				let slab = sa.get(slab_id.try_into()?)?;
 				let slab_bytes = slab.get();
@@ -269,9 +303,9 @@ Content-Length: ",
 					READ_SLAB_DATA_SIZE
 				};
 
-				let slab_bytes = &slab_bytes[0..offset];
-				debug!("read bytes = {:?}", slab_bytes)?;
-				ret.extend(slab_bytes);
+				let slab_bytes_data = &slab_bytes[0..offset];
+				debug!("read bytes = {:?}", slab_bytes_data)?;
+				ret.extend(slab_bytes_data);
 
 				if slab_id == last_slab {
 					break;
@@ -280,7 +314,7 @@ Content-Length: ",
 					slab_bytes[READ_SLAB_DATA_SIZE..READ_SLAB_DATA_SIZE + 4]
 				)?);
 			}
-			Ok((ret, slab_id_vec))
+			Ok((ret, slab_id_vec, slab_count))
 		})?;
 
 		let mut start = 0;
@@ -288,16 +322,18 @@ Content-Length: ",
 		let mut termination_sum = 0;
 
 		loop {
+			debug!("slab_count={}", slab_count)?;
 			let headers = Self::build_headers(
 				&req,
 				start,
 				ctx.matches,
 				&mut ctx.suffix_tree,
-				slab_offset.into(),
+				(slab_offset as usize + (slab_count - 1) * READ_SLAB_DATA_SIZE).into(),
 			)?;
 
 			termination_sum += headers.termination_point;
 
+			debug!("term point = {}", headers.termination_point)?;
 			if headers.termination_point == 0 {
 				break;
 			} else {
@@ -307,10 +343,10 @@ Content-Length: ",
 				Self::process_file(config, path, conn_data, attachment)?;
 			}
 
-			info!("start={}", headers.start)?;
+			debug!("start={}", headers.start)?;
 		}
 
-		info!("last term = {}", last_term)?;
+		debug!("last term = {}", last_term)?;
 
 		if termination_sum != req.len() {
 			ctx.offset = termination_sum % READ_SLAB_DATA_SIZE;
@@ -355,6 +391,20 @@ impl HttpServer for HttpServerImpl {
 				"At least one instance must be specified"
 			));
 		}
+
+		let home_dir = match dirs::home_dir() {
+			Some(p) => p,
+			None => PathBuf::new(),
+		}
+		.as_path()
+		.display()
+		.to_string();
+
+		for i in 0..self.config.instances.len() {
+			self.config.instances[i].http_dir =
+				self.config.instances[i].http_dir.replace("~", &home_dir);
+		}
+
 		let mut evh = Builder::build_evh(self.config.evh_config.clone())?;
 		let config = &self.config;
 		let config = config.clone();
@@ -383,7 +433,6 @@ impl HttpServer for HttpServerImpl {
 				is_reuse_port: false,
 			};
 
-			//evh.add_server(sc, Arc::new(instance.clone()))?;
 			evh.add_server(sc, Box::new(instance.clone()))?;
 		}
 

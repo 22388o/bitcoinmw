@@ -33,6 +33,7 @@ pub use chrono;
 pub use cipher;
 pub use colored;
 pub use digest;
+pub use dirs;
 pub use dyn_clone;
 pub use ed25519_dalek;
 pub use errno;
