@@ -28,12 +28,14 @@ use bmw_evh::{
 use bmw_log::*;
 use bmw_util::*;
 use std::any::{type_name, Any};
-use std::fs::File;
+use std::fs::{File, Metadata};
 use std::io::BufReader;
 use std::io::Read;
 use std::path::PathBuf;
 
 info!();
+
+const ERROR_CONTENT: &str = "Error ERROR_CODE: \"ERROR_MESSAGE\" occurred.";
 
 impl Default for HttpConfig {
 	fn default() -> Self {
@@ -57,7 +59,8 @@ impl Default for HttpInstance {
 				domainnames: vec![],
 			}),
 			default_file: "index.html".to_string(),
-			error_file: "error.html".to_string(),
+			error_404file: "error.html".to_string(),
+			error_400file: "error.html".to_string(),
 		}
 	}
 }
@@ -118,22 +121,57 @@ impl HttpServerImpl {
 		})
 	}
 
-	fn process_404(
+	fn process_error(
 		_config: &HttpConfig,
 		_path: String,
 		conn_data: &mut ConnectionData,
-		_instance: &HttpInstance,
+		instance: &HttpInstance,
+		code: u16,
+		message: &str,
 	) -> Result<(), Error> {
-		let dt = Utc::now();
-		let res = dt
-			.format(
-				"HTTP/1.1 404 OK\r\n\
-Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
-Content-Length: 15\r\n\r\nFile not found.",
-			)
-			.to_string();
+		let slash = if instance.http_dir.ends_with("/") {
+			""
+		} else {
+			"/"
+		};
+		let fpath = if code == 404 {
+			format!("{}{}{}", instance.http_dir, slash, instance.error_404file)
+		} else {
+			format!("{}{}{}", instance.http_dir, slash, instance.error_400file)
+		};
 
-		conn_data.write_handle().write(&res.as_bytes()[..])?;
+		debug!("error page location: {}", fpath)?;
+		let metadata = std::fs::metadata(fpath.clone());
+
+		match metadata {
+			Ok(metadata) => {
+				Self::stream_file(fpath, metadata, conn_data, code, message)?;
+			}
+			Err(_) => {
+				let dt = Utc::now();
+
+				let error_content = ERROR_CONTENT
+					.replace("ERROR_MESSAGE", message)
+					.replace("ERROR_CODE", &format!("{}", code));
+
+				let res = dt
+					.format(
+						&format!(
+							"HTTP/1.1 {} {}\r\n\
+Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
+Content-Length: {}\r\n\r\n{}\n",
+							code,
+							message,
+							error_content.len(),
+							error_content
+						)
+						.to_string(),
+					)
+					.to_string();
+
+				conn_data.write_handle().write(&res.as_bytes()[..])?;
+			}
+		}
 
 		Ok(())
 	}
@@ -151,7 +189,7 @@ Content-Length: 15\r\n\r\nFile not found.",
 			Ok(metadata) => metadata,
 			Err(_e) => {
 				debug!("404path={},dir={}", fpath, instance.http_dir)?;
-				Self::process_404(config, path, conn_data, instance)?;
+				Self::process_error(config, path, conn_data, instance, 404, "Not Found")?;
 				return Ok(());
 			}
 		};
@@ -165,7 +203,7 @@ Content-Length: 15\r\n\r\nFile not found.",
 				Ok(metadata) => metadata,
 				Err(_e) => {
 					debug!("404path={},dir={}", fpath, instance.http_dir)?;
-					Self::process_404(config, path, conn_data, instance)?;
+					Self::process_error(config, path, conn_data, instance, 404, "Not Found")?;
 					return Ok(());
 				}
 			};
@@ -177,15 +215,31 @@ Content-Length: 15\r\n\r\nFile not found.",
 
 		debug!("path={},dir={}", fpath, instance.http_dir)?;
 
+		Self::stream_file(fpath, metadata, conn_data, 200, "OK")?;
+
+		Ok(())
+	}
+
+	fn stream_file(
+		fpath: String,
+		metadata: Metadata,
+		conn_data: &mut ConnectionData,
+		code: u16,
+		message: &str,
+	) -> Result<(), Error> {
 		let file = File::open(fpath)?;
 		let mut buf_reader = BufReader::new(file);
 
 		let dt = Utc::now();
 		let res = dt
 			.format(
-				"HTTP/1.1 200 OK\r\n\
+				&format!(
+					"HTTP/1.1 {} {}\r\n\
 Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
 Content-Length: ",
+					code, message
+				)
+				.to_string(),
 			)
 			.to_string();
 
@@ -346,7 +400,23 @@ Content-Length: ",
 				ctx.matches,
 				&mut ctx.suffix_tree,
 				(slab_offset as usize + (slab_count - 1) * READ_SLAB_DATA_SIZE).into(),
-			)?;
+			);
+
+			let headers = match headers {
+				Ok(headers) => headers,
+				Err(_) => {
+					Self::process_error(
+						config,
+						"".to_string(),
+						conn_data,
+						attachment,
+						400,
+						"Bad Request",
+					)?;
+					conn_data.write_handle().close()?;
+					return Ok(());
+				}
+			};
 
 			termination_sum += headers.termination_point;
 
