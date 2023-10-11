@@ -110,10 +110,13 @@ impl HttpServerImpl {
 				),
 				pattern!(Regex("^GET .* "), Id(SUFFIX_TREE_GET_ID))?,
 				pattern!(Regex("^POST .* "), Id(SUFFIX_TREE_POST_ID))?,
+				pattern!(Regex("^HEAD .* "), Id(SUFFIX_TREE_HEAD_ID))?,
 				pattern!(Regex("^GET .*\n"), Id(SUFFIX_TREE_GET_ID))?,
 				pattern!(Regex("^POST .*\n"), Id(SUFFIX_TREE_POST_ID))?,
+				pattern!(Regex("^HEAD .*\n"), Id(SUFFIX_TREE_HEAD_ID))?,
 				pattern!(Regex("^GET .*\r"), Id(SUFFIX_TREE_GET_ID))?,
 				pattern!(Regex("^POST .*\r"), Id(SUFFIX_TREE_POST_ID))?,
+				pattern!(Regex("^HEAD .*\r"), Id(SUFFIX_TREE_HEAD_ID))?,
 				pattern!(Regex("\r\n.*: "), Id(SUFFIX_TREE_HEADER))?
 			],
 			TerminationLength(100_000),
@@ -284,7 +287,7 @@ Content-Length: ",
 
 		let mut start_uri = 0;
 		let mut end_uri = 0;
-		let http_request_type = HttpRequestType::GET;
+		let mut http_request_type = HttpRequestType::UNKNOWN;
 
 		debug!("count={}", count)?;
 		for i in 0..count {
@@ -317,11 +320,20 @@ Content-Length: ",
 				if end == slab_offset.into() {
 					termination_point = end;
 				}
-			} else if id == SUFFIX_TREE_GET_ID || id == SUFFIX_TREE_POST_ID {
+			} else if id == SUFFIX_TREE_GET_ID
+				|| id == SUFFIX_TREE_POST_ID
+				|| id == SUFFIX_TREE_HEAD_ID
+			{
 				debug!("id is GET/POST = {}", id)?;
 				if id == SUFFIX_TREE_GET_ID {
 					start_uri = start + 4;
+					http_request_type = HttpRequestType::GET;
 				} else {
+					if id == SUFFIX_TREE_POST_ID {
+						http_request_type = HttpRequestType::POST;
+					} else if id == SUFFIX_TREE_HEAD_ID {
+						http_request_type = HttpRequestType::HEAD;
+					}
 					start_uri = start + 5;
 				}
 				for i in start_uri..end {
@@ -335,6 +347,8 @@ Content-Length: ",
 
 		if termination_point != 0 && start_uri == 0 {
 			Err(err!(ErrKind::Http, "URI not specified".to_string()))
+		} else if termination_point != 0 && http_request_type == HttpRequestType::UNKNOWN {
+			Err(err!(ErrKind::Http, "Unknown http request type".to_string()))
 		} else {
 			Ok(HttpHeaders {
 				termination_point,
@@ -349,6 +363,31 @@ Content-Length: ",
 
 	fn type_of<T>(_: T) -> &'static str {
 		type_name::<T>()
+	}
+
+	fn header_error(
+		config: &HttpConfig,
+		path: String,
+		conn_data: &mut ConnectionData,
+		instance: &HttpInstance,
+		err: Error,
+	) -> Result<(), Error> {
+		info!("Err: {:?}", err.inner())?;
+		let err_text = err.inner();
+		if err_text == "http_error: Unknown http request type" {
+			Self::process_error(
+				config,
+				path,
+				conn_data,
+				instance,
+				501,
+				"Unknown Request Type",
+			)?;
+		} else {
+			Self::process_error(config, path, conn_data, instance, 400, "Bad Request")?;
+		}
+		conn_data.write_handle().close()?;
+		Ok(())
 	}
 
 	fn process_on_read(
@@ -428,16 +467,7 @@ Content-Length: ",
 			let headers = match headers {
 				Ok(headers) => headers,
 				Err(e) => {
-					debug!("Err: {:?}", e)?;
-					Self::process_error(
-						config,
-						"".to_string(),
-						conn_data,
-						attachment,
-						400,
-						"Bad Request",
-					)?;
-					conn_data.write_handle().close()?;
+					Self::header_error(config, "".to_string(), conn_data, attachment, e)?;
 					return Ok(());
 				}
 			};
@@ -452,16 +482,8 @@ Content-Length: ",
 			} else {
 				let path = match headers.path() {
 					Ok(path) => path,
-					Err(_) => {
-						Self::process_error(
-							config,
-							"".to_string(),
-							conn_data,
-							attachment,
-							400,
-							"Bad Request",
-						)?;
-						conn_data.write_handle().close()?;
+					Err(e) => {
+						Self::header_error(config, "".to_string(), conn_data, attachment, e)?;
 						return Ok(());
 					}
 				};

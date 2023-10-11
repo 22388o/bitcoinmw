@@ -19,11 +19,12 @@ use bmw_err::*;
 use bmw_evh::EventHandlerConfig;
 use bmw_util::*;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum HttpRequestType {
 	GET,
 	POST,
 	HEAD,
+	UNKNOWN,
 }
 
 pub struct HttpHeaders<'a> {
