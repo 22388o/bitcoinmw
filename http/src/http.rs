@@ -143,22 +143,38 @@ Content-Length: 15\r\n\r\nFile not found.",
 		conn_data: &mut ConnectionData,
 		instance: &HttpInstance,
 	) -> Result<(), Error> {
-		let path = if path.ends_with("/") {
-			format!("{}{}", path, instance.default_file)
-		} else {
-			path
-		};
-		let fpath = format!("{}/{}", instance.http_dir, path);
-
-		debug!("path={},dir={}", fpath, instance.http_dir)?;
+		let fpath = format!("{}{}", instance.http_dir, path);
 		let metadata = std::fs::metadata(fpath.clone());
+
 		let metadata = match metadata {
 			Ok(metadata) => metadata,
 			Err(_e) => {
+				debug!("404path={},dir={}", fpath, instance.http_dir)?;
 				Self::process_404(config, path, conn_data, instance)?;
 				return Ok(());
 			}
 		};
+
+		let (fpath, metadata) = if metadata.is_dir() {
+			let slash = if fpath.ends_with("/") { "" } else { "/" };
+			let fpath = format!("{}{}{}", fpath, slash, instance.default_file);
+			let metadata = std::fs::metadata(fpath.clone());
+
+			let metadata = match metadata {
+				Ok(metadata) => metadata,
+				Err(_e) => {
+					debug!("404path={},dir={}", fpath, instance.http_dir)?;
+					Self::process_404(config, path, conn_data, instance)?;
+					return Ok(());
+				}
+			};
+
+			(fpath, metadata)
+		} else {
+			(fpath, metadata)
+		};
+
+		debug!("path={},dir={}", fpath, instance.http_dir)?;
 
 		let file = File::open(fpath)?;
 		let mut buf_reader = BufReader::new(file);
