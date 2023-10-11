@@ -57,6 +57,7 @@ impl Default for HttpInstance {
 				domainnames: vec![],
 			}),
 			default_file: "index.html".to_string(),
+			error_file: "error.html".to_string(),
 		}
 	}
 }

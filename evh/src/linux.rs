@@ -132,6 +132,18 @@ pub(crate) fn create_listeners_impl(
 	if reuse_port {
 		for i in 0..size {
 			let fd = get_socket(reuse_port)?;
+
+			unsafe {
+				let optval: libc::c_int = 1;
+				libc::setsockopt(
+					fd,
+					libc::SOL_SOCKET,
+					libc::SO_REUSEADDR,
+					&optval as *const _ as *const libc::c_void,
+					std::mem::size_of_val(&optval) as libc::socklen_t,
+				);
+			}
+
 			bind(fd, &sock_addr)?;
 			listen(fd, listen_size)?;
 			ret[i] = fd;
@@ -141,6 +153,18 @@ pub(crate) fn create_listeners_impl(
 		}
 	} else {
 		let fd = get_socket(reuse_port)?;
+
+		unsafe {
+			let optval: libc::c_int = 1;
+			libc::setsockopt(
+				fd,
+				libc::SOL_SOCKET,
+				libc::SO_REUSEADDR,
+				&optval as *const _ as *const libc::c_void,
+				std::mem::size_of_val(&optval) as libc::socklen_t,
+			);
+		}
+
 		bind(fd, &sock_addr)?;
 		listen(fd, listen_size)?;
 		ret[0] = fd;

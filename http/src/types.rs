@@ -58,6 +58,7 @@ pub struct HttpInstance {
 	pub http_dir: String,
 	pub instance_type: HttpInstanceType,
 	pub default_file: String,
+	pub error_file: String,
 }
 
 #[derive(Clone)]

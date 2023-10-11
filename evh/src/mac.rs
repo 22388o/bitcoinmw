@@ -79,12 +79,26 @@ pub(crate) fn create_listeners_impl(
 	let sock_addr = SockAddr::new_inet(inet_addr);
 	let mut ret = array!(size, &0)?;
 	let fd = get_socket()?;
+
+	unsafe {
+		let optval: libc::c_int = 1;
+		libc::setsockopt(
+			fd,
+			libc::SOL_SOCKET,
+			libc::SO_REUSEADDR,
+			&optval as *const _ as *const libc::c_void,
+			std::mem::size_of_val(&optval) as libc::socklen_t,
+		);
+	}
+
 	bind(fd, &sock_addr)?;
 	listen(fd, listen_size)?;
-	ret[0] = fd;
+
 	unsafe {
 		fcntl(fd, F_SETFL, O_NONBLOCK);
 	}
+
+	ret[0] = fd;
 
 	Ok(ret)
 }
