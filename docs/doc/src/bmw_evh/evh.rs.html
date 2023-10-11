@@ -14177,7 +14177,7 @@
 		wh.write(<span class="string">b&quot;GET / HTTP/1.0\r\n\r\n&quot;</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
 		<span class="kw">loop </span>{
-			count += <span class="number">1</span>;
+			count = count + <span class="number">1</span>;
 			sleep(Duration::from_millis(<span class="number">1</span>));
 			<span class="kw">if </span><span class="kw-2">**</span>(found_clone.rlock()<span class="question-mark">?</span>.guard()) == <span class="bool-val">false </span>&amp;&amp; count &lt; <span class="number">10_000 </span>{
 				<span class="kw">continue</span>;

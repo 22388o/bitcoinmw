@@ -1,6 +1,5 @@
 var srcIndex = JSON.parse('{\
 "bmw":["",[],["main.rs"]],\
-"bmw_crypt":["",[],["builder.rs","cell.rs","channel.rs","circuit.rs","constants.rs","crypt.rs","ed25519.rs","lib.rs","rand.rs","stream.rs","tls.rs","types.rs"]],\
 "bmw_deps":["",[],["lib.rs"]],\
 "bmw_derive":["",[],["lib.rs"]],\
 "bmw_err":["",[],["error.rs","lib.rs","macros.rs"]],\

@@ -512,6 +512,81 @@
 <a href="#512" id="512">512</a>
 <a href="#513" id="513">513</a>
 <a href="#514" id="514">514</a>
+<a href="#515" id="515">515</a>
+<a href="#516" id="516">516</a>
+<a href="#517" id="517">517</a>
+<a href="#518" id="518">518</a>
+<a href="#519" id="519">519</a>
+<a href="#520" id="520">520</a>
+<a href="#521" id="521">521</a>
+<a href="#522" id="522">522</a>
+<a href="#523" id="523">523</a>
+<a href="#524" id="524">524</a>
+<a href="#525" id="525">525</a>
+<a href="#526" id="526">526</a>
+<a href="#527" id="527">527</a>
+<a href="#528" id="528">528</a>
+<a href="#529" id="529">529</a>
+<a href="#530" id="530">530</a>
+<a href="#531" id="531">531</a>
+<a href="#532" id="532">532</a>
+<a href="#533" id="533">533</a>
+<a href="#534" id="534">534</a>
+<a href="#535" id="535">535</a>
+<a href="#536" id="536">536</a>
+<a href="#537" id="537">537</a>
+<a href="#538" id="538">538</a>
+<a href="#539" id="539">539</a>
+<a href="#540" id="540">540</a>
+<a href="#541" id="541">541</a>
+<a href="#542" id="542">542</a>
+<a href="#543" id="543">543</a>
+<a href="#544" id="544">544</a>
+<a href="#545" id="545">545</a>
+<a href="#546" id="546">546</a>
+<a href="#547" id="547">547</a>
+<a href="#548" id="548">548</a>
+<a href="#549" id="549">549</a>
+<a href="#550" id="550">550</a>
+<a href="#551" id="551">551</a>
+<a href="#552" id="552">552</a>
+<a href="#553" id="553">553</a>
+<a href="#554" id="554">554</a>
+<a href="#555" id="555">555</a>
+<a href="#556" id="556">556</a>
+<a href="#557" id="557">557</a>
+<a href="#558" id="558">558</a>
+<a href="#559" id="559">559</a>
+<a href="#560" id="560">560</a>
+<a href="#561" id="561">561</a>
+<a href="#562" id="562">562</a>
+<a href="#563" id="563">563</a>
+<a href="#564" id="564">564</a>
+<a href="#565" id="565">565</a>
+<a href="#566" id="566">566</a>
+<a href="#567" id="567">567</a>
+<a href="#568" id="568">568</a>
+<a href="#569" id="569">569</a>
+<a href="#570" id="570">570</a>
+<a href="#571" id="571">571</a>
+<a href="#572" id="572">572</a>
+<a href="#573" id="573">573</a>
+<a href="#574" id="574">574</a>
+<a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
+<a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
+<a href="#583" id="583">583</a>
+<a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -532,6 +607,8 @@
 </span><span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
 <span class="kw">use </span><span class="kw">crate</span>::types::{HttpContext, HttpServerImpl};
 <span class="kw">use crate</span>::{HttpConfig, HttpHeaders, HttpInstance, HttpInstanceType, HttpServer, PlainConfig};
+<span class="kw">use </span>bmw_deps::chrono::Utc;
+<span class="kw">use </span>bmw_deps::dirs;
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_evh::{
 	create_listeners, AttachmentHolder, Builder, ConnData, ConnectionData, EventHandler,
@@ -543,6 +620,7 @@
 <span class="kw">use </span>std::fs::File;
 <span class="kw">use </span>std::io::BufReader;
 <span class="kw">use </span>std::io::Read;
+<span class="kw">use </span>std::path::PathBuf;
 
 <span class="macro">info!</span>();
 
@@ -551,13 +629,7 @@
 		<span class="self">Self </span>{
 			evh_config: EventHandlerConfig::default(),
 			instances: <span class="macro">vec!</span>[HttpInstance {
-				instance_type: HttpInstanceType::Plain(PlainConfig {
-					domainnames: <span class="macro">vec!</span>[],
-				}),
-				port: <span class="number">8080</span>,
-				addr: <span class="string">&quot;127.0.0.1&quot;</span>.to_string(),
-				listen_queue_size: <span class="number">100</span>,
-				http_dir: <span class="string">&quot;~/.bmw/www&quot;</span>.to_string(),
+				..Default::default()
 			}],
 		}
 	}
@@ -573,6 +645,8 @@
 			instance_type: HttpInstanceType::Plain(PlainConfig {
 				domainnames: <span class="macro">vec!</span>[],
 			}),
+			default_file: <span class="string">&quot;index.html&quot;</span>.to_string(),
+			error_file: <span class="string">&quot;error.html&quot;</span>.to_string(),
 		}
 	}
 }
@@ -633,30 +707,85 @@
 		})
 	}
 
-	<span class="kw">fn </span>process_file(
+	<span class="kw">fn </span>process_404(
 		_config: <span class="kw-2">&amp;</span>HttpConfig,
+		_path: String,
+		conn_data: <span class="kw-2">&amp;mut </span>ConnectionData,
+		_instance: <span class="kw-2">&amp;</span>HttpInstance,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span>dt = Utc::now();
+		<span class="kw">let </span>res = dt
+			.format(
+				<span class="string">&quot;HTTP/1.1 404 OK\r\n\
+Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
+Content-Length: 15\r\n\r\nFile not found.&quot;</span>,
+			)
+			.to_string();
+
+		conn_data.write_handle().write(<span class="kw-2">&amp;</span>res.as_bytes()[..])<span class="question-mark">?</span>;
+
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="kw">fn </span>process_file(
+		config: <span class="kw-2">&amp;</span>HttpConfig,
 		path: String,
 		conn_data: <span class="kw-2">&amp;mut </span>ConnectionData,
 		instance: <span class="kw-2">&amp;</span>HttpInstance,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>fpath = <span class="macro">format!</span>(<span class="string">&quot;{}/{}&quot;</span>, instance.http_dir, path);
-		<span class="macro">info!</span>(<span class="string">&quot;path={},dir={}&quot;</span>, path, instance.http_dir)<span class="question-mark">?</span>;
-		<span class="kw">let </span>metadata = std::fs::metadata(fpath.clone())<span class="question-mark">?</span>;
+		<span class="kw">let </span>fpath = <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, instance.http_dir, path);
+		<span class="kw">let </span>metadata = std::fs::metadata(fpath.clone());
+
+		<span class="kw">let </span>metadata = <span class="kw">match </span>metadata {
+			<span class="prelude-val">Ok</span>(metadata) =&gt; metadata,
+			<span class="prelude-val">Err</span>(_e) =&gt; {
+				<span class="macro">debug!</span>(<span class="string">&quot;404path={},dir={}&quot;</span>, fpath, instance.http_dir)<span class="question-mark">?</span>;
+				<span class="self">Self</span>::process_404(config, path, conn_data, instance)<span class="question-mark">?</span>;
+				<span class="kw">return </span><span class="prelude-val">Ok</span>(());
+			}
+		};
+
+		<span class="kw">let </span>(fpath, metadata) = <span class="kw">if </span>metadata.is_dir() {
+			<span class="kw">let </span>slash = <span class="kw">if </span>fpath.ends_with(<span class="string">&quot;/&quot;</span>) { <span class="string">&quot;&quot; </span>} <span class="kw">else </span>{ <span class="string">&quot;/&quot; </span>};
+			<span class="kw">let </span>fpath = <span class="macro">format!</span>(<span class="string">&quot;{}{}{}&quot;</span>, fpath, slash, instance.default_file);
+			<span class="kw">let </span>metadata = std::fs::metadata(fpath.clone());
+
+			<span class="kw">let </span>metadata = <span class="kw">match </span>metadata {
+				<span class="prelude-val">Ok</span>(metadata) =&gt; metadata,
+				<span class="prelude-val">Err</span>(_e) =&gt; {
+					<span class="macro">debug!</span>(<span class="string">&quot;404path={},dir={}&quot;</span>, fpath, instance.http_dir)<span class="question-mark">?</span>;
+					<span class="self">Self</span>::process_404(config, path, conn_data, instance)<span class="question-mark">?</span>;
+					<span class="kw">return </span><span class="prelude-val">Ok</span>(());
+				}
+			};
+
+			(fpath, metadata)
+		} <span class="kw">else </span>{
+			(fpath, metadata)
+		};
+
+		<span class="macro">debug!</span>(<span class="string">&quot;path={},dir={}&quot;</span>, fpath, instance.http_dir)<span class="question-mark">?</span>;
+
 		<span class="kw">let </span>file = File::open(fpath)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>buf_reader = BufReader::new(file);
 
-		<span class="kw">let </span>res = <span class="macro">format!</span>(
-			<span class="string">&quot;HTTP/1.1 200 OK\r\n\
-Date: Thu, 10 Nov 2022 22:31:52 GMT\r\n\
-Content-Length: {}\r\n\r\n&quot;</span>,
-			metadata.len()
-		);
+		<span class="kw">let </span>dt = Utc::now();
+		<span class="kw">let </span>res = dt
+			.format(
+				<span class="string">&quot;HTTP/1.1 200 OK\r\n\
+Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
+Content-Length: &quot;</span>,
+			)
+			.to_string();
+
+		<span class="kw">let </span>res = <span class="macro">format!</span>(<span class="string">&quot;{}{}\r\n\r\n&quot;</span>, res, metadata.len());
+
+		<span class="macro">debug!</span>(<span class="string">&quot;writing {}&quot;</span>, res)<span class="question-mark">?</span>;
 		conn_data.write_handle().write(<span class="kw-2">&amp;</span>res.as_bytes()[..])<span class="question-mark">?</span>;
 
 		<span class="kw">loop </span>{
 			<span class="kw">let </span><span class="kw-2">mut </span>buf = <span class="macro">vec!</span>[<span class="number">0u8</span>; <span class="number">100</span>];
 			<span class="kw">let </span>len = buf_reader.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
-			<span class="macro">info!</span>(<span class="string">&quot;read len = {}&quot;</span>, len)<span class="question-mark">?</span>;
 			conn_data.write_handle().write(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len])<span class="question-mark">?</span>;
 			<span class="kw">if </span>len == <span class="number">0 </span>{
 				<span class="kw">break</span>;
@@ -691,6 +820,7 @@ Content-Length: {}\r\n\r\n&quot;</span>,
 			<span class="kw">let </span>id = matches[i].id();
 
 			<span class="kw">if </span>id == SUFFIX_TREE_TERMINATE_HEADERS_ID {
+				<span class="macro">debug!</span>(<span class="string">&quot;found term end={}, slab_off={}&quot;</span>, end, slab_offset)<span class="question-mark">?</span>;
 				<span class="kw">if </span>end == slab_offset.into() {
 					termination_point = end;
 				}
@@ -743,7 +873,7 @@ Content-Length: {}\r\n\r\n&quot;</span>,
 			<span class="prelude-val">Some</span>(attachment) =&gt; attachment,
 			<span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">&quot;no instance found for this request1&quot;</span>)),
 		};
-		<span class="macro">info!</span>(
+		<span class="macro">debug!</span>(
 			<span class="string">&quot;atttypename={:?},type={}&quot;</span>,
 			attachment.clone(),
 			<span class="self">Self</span>::type_of(attachment.clone())
@@ -756,18 +886,20 @@ Content-Length: {}\r\n\r\n&quot;</span>,
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">&quot;no instance found for this request2&quot;</span>));
 			}
 		};
-		<span class="macro">info!</span>(<span class="string">&quot;conn_data.tid={},att={:?}&quot;</span>, conn_data.tid(), attachment)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">&quot;conn_data.tid={},att={:?}&quot;</span>, conn_data.tid(), attachment)<span class="question-mark">?</span>;
 		<span class="kw">let </span>ctx = <span class="self">Self</span>::build_ctx(ctx)<span class="question-mark">?</span>;
 		<span class="macro">debug!</span>(<span class="string">&quot;on read slab_offset = {}&quot;</span>, conn_data.slab_offset())<span class="question-mark">?</span>;
 		<span class="kw">let </span>first_slab = conn_data.first_slab();
 		<span class="kw">let </span>last_slab = conn_data.last_slab();
 		<span class="kw">let </span>slab_offset = conn_data.slab_offset();
 		<span class="macro">debug!</span>(<span class="string">&quot;firstslab={},last_slab={}&quot;</span>, first_slab, last_slab)<span class="question-mark">?</span>;
-		<span class="kw">let </span>(req, slab_id_vec) = conn_data.borrow_slab_allocator(<span class="kw">move </span>|sa| {
+		<span class="kw">let </span>(req, slab_id_vec, slab_count) = conn_data.borrow_slab_allocator(<span class="kw">move </span>|sa| {
 			<span class="kw">let </span><span class="kw-2">mut </span>slab_id_vec = <span class="macro">vec!</span>[];
 			<span class="kw">let </span><span class="kw-2">mut </span>slab_id = first_slab;
 			<span class="kw">let </span><span class="kw-2">mut </span>ret: Vec&lt;u8&gt; = <span class="macro">vec!</span>[];
+			<span class="kw">let </span><span class="kw-2">mut </span>slab_count = <span class="number">0</span>;
 			<span class="kw">loop </span>{
+				slab_count += <span class="number">1</span>;
 				slab_id_vec.push(slab_id);
 				<span class="kw">let </span>slab = sa.get(slab_id.try_into()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 				<span class="kw">let </span>slab_bytes = slab.get();
@@ -777,9 +909,9 @@ Content-Length: {}\r\n\r\n&quot;</span>,
 					READ_SLAB_DATA_SIZE
 				};
 
-				<span class="kw">let </span>slab_bytes = <span class="kw-2">&amp;</span>slab_bytes[<span class="number">0</span>..offset];
-				<span class="macro">debug!</span>(<span class="string">&quot;read bytes = {:?}&quot;</span>, slab_bytes)<span class="question-mark">?</span>;
-				ret.extend(slab_bytes);
+				<span class="kw">let </span>slab_bytes_data = <span class="kw-2">&amp;</span>slab_bytes[<span class="number">0</span>..offset];
+				<span class="macro">debug!</span>(<span class="string">&quot;read bytes = {:?}&quot;</span>, slab_bytes_data)<span class="question-mark">?</span>;
+				ret.extend(slab_bytes_data);
 
 				<span class="kw">if </span>slab_id == last_slab {
 					<span class="kw">break</span>;
@@ -788,7 +920,7 @@ Content-Length: {}\r\n\r\n&quot;</span>,
 					slab_bytes[READ_SLAB_DATA_SIZE..READ_SLAB_DATA_SIZE + <span class="number">4</span>]
 				)<span class="question-mark">?</span>);
 			}
-			<span class="prelude-val">Ok</span>((ret, slab_id_vec))
+			<span class="prelude-val">Ok</span>((ret, slab_id_vec, slab_count))
 		})<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>start = <span class="number">0</span>;
@@ -796,16 +928,18 @@ Content-Length: {}\r\n\r\n&quot;</span>,
 		<span class="kw">let </span><span class="kw-2">mut </span>termination_sum = <span class="number">0</span>;
 
 		<span class="kw">loop </span>{
+			<span class="macro">debug!</span>(<span class="string">&quot;slab_count={}&quot;</span>, slab_count)<span class="question-mark">?</span>;
 			<span class="kw">let </span>headers = <span class="self">Self</span>::build_headers(
 				<span class="kw-2">&amp;</span>req,
 				start,
 				ctx.matches,
 				<span class="kw-2">&amp;mut </span>ctx.suffix_tree,
-				slab_offset.into(),
+				(slab_offset <span class="kw">as </span>usize + (slab_count - <span class="number">1</span>) * READ_SLAB_DATA_SIZE).into(),
 			)<span class="question-mark">?</span>;
 
 			termination_sum += headers.termination_point;
 
+			<span class="macro">debug!</span>(<span class="string">&quot;term point = {}&quot;</span>, headers.termination_point)<span class="question-mark">?</span>;
 			<span class="kw">if </span>headers.termination_point == <span class="number">0 </span>{
 				<span class="kw">break</span>;
 			} <span class="kw">else </span>{
@@ -815,10 +949,10 @@ Content-Length: {}\r\n\r\n&quot;</span>,
 				<span class="self">Self</span>::process_file(config, path, conn_data, attachment)<span class="question-mark">?</span>;
 			}
 
-			<span class="macro">info!</span>(<span class="string">&quot;start={}&quot;</span>, headers.start)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">&quot;start={}&quot;</span>, headers.start)<span class="question-mark">?</span>;
 		}
 
-		<span class="macro">info!</span>(<span class="string">&quot;last term = {}&quot;</span>, last_term)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">&quot;last term = {}&quot;</span>, last_term)<span class="question-mark">?</span>;
 
 		<span class="kw">if </span>termination_sum != req.len() {
 			ctx.offset = termination_sum % READ_SLAB_DATA_SIZE;
@@ -863,6 +997,20 @@ Content-Length: {}\r\n\r\n&quot;</span>,
 				<span class="string">&quot;At least one instance must be specified&quot;
 			</span>));
 		}
+
+		<span class="kw">let </span>home_dir = <span class="kw">match </span>dirs::home_dir() {
+			<span class="prelude-val">Some</span>(p) =&gt; p,
+			<span class="prelude-val">None </span>=&gt; PathBuf::new(),
+		}
+		.as_path()
+		.display()
+		.to_string();
+
+		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.config.instances.len() {
+			<span class="self">self</span>.config.instances[i].http_dir =
+				<span class="self">self</span>.config.instances[i].http_dir.replace(<span class="string">&quot;~&quot;</span>, <span class="kw-2">&amp;</span>home_dir);
+		}
+
 		<span class="kw">let </span><span class="kw-2">mut </span>evh = Builder::build_evh(<span class="self">self</span>.config.evh_config.clone())<span class="question-mark">?</span>;
 		<span class="kw">let </span>config = <span class="kw-2">&amp;</span><span class="self">self</span>.config;
 		<span class="kw">let </span>config = config.clone();
@@ -891,8 +1039,7 @@ Content-Length: {}\r\n\r\n&quot;</span>,
 				is_reuse_port: <span class="bool-val">false</span>,
 			};
 
-			<span class="comment">//evh.add_server(sc, Arc::new(instance.clone()))?;
-			</span>evh.add_server(sc, Box::new(instance.clone()))<span class="question-mark">?</span>;
+			evh.add_server(sc, Box::new(instance.clone()))<span class="question-mark">?</span>;
 		}
 
 		<span class="prelude-val">Ok</span>(())
@@ -970,6 +1117,9 @@ Content-Length: {}\r\n\r\n&quot;</span>,
 		<span class="macro">assert_eq!</span>(len, <span class="number">90</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
+
+		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
+
 		<span class="prelude-val">Ok</span>(())
 	}
 

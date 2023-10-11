@@ -22,11 +22,11 @@ require serialization and deserialization of the entries on each operation. Howe
 performance is at least in the ballpark of the standard data structures. The array, arraylist,
 queue, and stack are faster for insert, slower for initialization and about the same for
 iteration and drop. A performance tool is included in the project in the etc directory
-<a href="https://github.com/37miners/bmw/tree/main/etc/ds_perf">ds_perf</a>.</p>
+<a href="https://github.com/cgilliard/bitcoinmw/tree/main/etc/ds_perf">ds_perf</a>.</p>
 <p>Below is the output of some runs on a linux machine.</p>
 <div class="example-wrap"><pre class="language-text"><code> $ ./target/release/perf  --help
  ds_perf 1.0
- 37 Miners, LLC
+ The BitcoinMW Developers
 
  USAGE:
     perf [FLAGS]
@@ -106,12 +106,12 @@ impact the performance of the application unless it’s an already very optimize
 that needs to be very scalable.</p>
 <h2 id="using-bmw_util-and-other-crates-in-your-project"><a href="#using-bmw_util-and-other-crates-in-your-project">Using bmw_util (and other crates) in your project</a></h2>
 <p>To use the crates in bmw in your project, add the following to your Cargo.toml:</p>
-<div class="example-wrap"><pre class="language-text"><code> bmw_util   = { git = &quot;https://github.com/37miners/bmw&quot;  }
+<div class="example-wrap"><pre class="language-text"><code> bmw_util   = { git = &quot;https://github.com/cgilliard/bitcoinmw&quot;  }
 </code></pre></div>
 <p>Optionally, you may wish to use the other associated crates:</p>
-<div class="example-wrap"><pre class="language-text"><code> bmw_err    = { git = &quot;https://github.com/37miners/bmw&quot;  }
- bmw_log    = { git = &quot;https://github.com/37miners/bmw&quot;  }
- bmw_derive = { git = &quot;https://github.com/37miners/bmw&quot;  }
+<div class="example-wrap"><pre class="language-text"><code> bmw_err    = { git = &quot;https://github.com/cgilliard/bitcoinmw&quot;  }
+ bmw_log    = { git = &quot;https://github.com/cgilliard/bitcoinmw&quot;  }
+ bmw_derive = { git = &quot;https://github.com/cgilliard/bitcoinmw&quot;  }
 </code></pre></div>
 <p>The linux dependencies can be installed with the following commands on ubuntu:</p>
 <div class="example-wrap"><pre class="language-text"><code> $ sudo apt-get update -yqq

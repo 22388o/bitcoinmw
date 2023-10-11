@@ -77,6 +77,8 @@
 <a href="#77" id="77">77</a>
 <a href="#78" id="78">78</a>
 <a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
+<a href="#81" id="81">81</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -136,6 +138,8 @@
 	<span class="kw">pub </span>listen_queue_size: usize,
 	<span class="kw">pub </span>http_dir: String,
 	<span class="kw">pub </span>instance_type: HttpInstanceType,
+	<span class="kw">pub </span>default_file: String,
+	<span class="kw">pub </span>error_file: String,
 }
 
 <span class="attr">#[derive(Clone)]
