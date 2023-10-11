@@ -7081,7 +7081,7 @@ mod test {
 		wh.write(b"GET / HTTP/1.0\r\n\r\n")?;
 		let mut count = 0;
 		loop {
-			count += 1;
+			count = count + 1;
 			sleep(Duration::from_millis(1));
 			if **(found_clone.rlock()?.guard()) == false && count < 10_000 {
 				continue;

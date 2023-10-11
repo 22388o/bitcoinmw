@@ -156,8 +156,8 @@ steps:
     condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))
   - script: |
       cd ~
-      git clone https://anything:$(github_pat)@github.com/cgilliard/bitcoinmw.git bmw_new
-      cd bmw_new
+      git clone https://anything:$(github_pat)@github.com/cgilliard/bitcoinmw.git bmw_new2
+      cd bmw_new2
       changes_error=`git diff HEAD^^ HEAD --name-only | grep "^error\/src" | wc -l`
       changes_log=`git diff HEAD^^ HEAD --name-only | grep "^log\/src" | wc -l`
       changes_util=`git diff HEAD^^ HEAD --name-only | grep "^util\/src" | wc -l`
