@@ -61,7 +61,7 @@ impl Default for HttpInstance {
 			instance_type: HttpInstanceType::Plain(PlainConfig {
 				domainnames: vec![],
 			}),
-			default_file: "index.html".to_string(),
+			default_file: vec!["index.html".to_string(), "index.htm".to_string()],
 			error_404file: "error.html".to_string(),
 			error_400file: "error.html".to_string(),
 		}
@@ -205,20 +205,31 @@ Content-Length: {}\r\n\r\n{}\n",
 		};
 
 		let (fpath, metadata) = if metadata.is_dir() {
+			let mut fpath_ret: Option<String> = None;
+			let mut metadata_ret: Option<Metadata> = None;
 			let slash = if fpath.ends_with("/") { "" } else { "/" };
-			let fpath = format!("{}{}{}", fpath, slash, instance.default_file);
-			let metadata = std::fs::metadata(fpath.clone());
 
-			let metadata = match metadata {
-				Ok(metadata) => metadata,
-				Err(_e) => {
-					debug!("404path2={},dir={}", fpath, instance.http_dir)?;
-					Self::process_error(config, path, conn_data, instance, 404, "Not Found")?;
-					return Ok(());
-				}
-			};
+			for default_file in instance.default_file.clone() {
+				let fpath_res = format!("{}{}{}", fpath, slash, default_file);
+				let metadata_res = std::fs::metadata(fpath_res.clone());
+				match metadata_res {
+					Ok(metadata) => {
+						fpath_ret = Some(fpath_res);
+						metadata_ret = Some(metadata);
+						break;
+					}
+					Err(_e) => {
+						// not found, continue in loop to try next path
+					}
+				};
+			}
 
-			(fpath, metadata)
+			if fpath_ret.is_some() && metadata_ret.is_some() {
+				(fpath_ret.unwrap(), metadata_ret.unwrap())
+			} else {
+				Self::process_error(config, path, conn_data, instance, 404, "Not Found")?;
+				return Ok(());
+			}
 		} else {
 			(fpath, metadata)
 		};

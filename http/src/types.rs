@@ -66,7 +66,7 @@ pub struct HttpInstance {
 	pub listen_queue_size: usize,
 	pub http_dir: String,
 	pub instance_type: HttpInstanceType,
-	pub default_file: String,
+	pub default_file: Vec<String>,
 	pub error_404file: String,
 	pub error_400file: String,
 }
