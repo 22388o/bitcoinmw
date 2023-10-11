@@ -79,6 +79,16 @@
 <a href="#79" id="79">79</a>
 <a href="#80" id="80">80</a>
 <a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a>
+<a href="#86" id="86">86</a>
+<a href="#87" id="87">87</a>
+<a href="#88" id="88">88</a>
+<a href="#89" id="89">89</a>
+<a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -100,12 +110,21 @@
 <span class="kw">use </span>bmw_evh::EventHandlerConfig;
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
 
+<span class="attr">#[derive(Debug, PartialEq)]
+</span><span class="kw">pub enum </span>HttpRequestType {
+	GET,
+	POST,
+	HEAD,
+	UNKNOWN,
+}
+
 <span class="kw">pub struct </span>HttpHeaders&lt;<span class="lifetime">&#39;a</span>&gt; {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) termination_point: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) start: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) req: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>Vec&lt;u8&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) start_uri: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) end_uri: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) http_request_type: HttpRequestType,
 }
 
 <span class="kw">pub trait </span>HttpServer {
@@ -139,7 +158,8 @@
 	<span class="kw">pub </span>http_dir: String,
 	<span class="kw">pub </span>instance_type: HttpInstanceType,
 	<span class="kw">pub </span>default_file: String,
-	<span class="kw">pub </span>error_file: String,
+	<span class="kw">pub </span>error_404file: String,
+	<span class="kw">pub </span>error_400file: String,
 }
 
 <span class="attr">#[derive(Clone)]
