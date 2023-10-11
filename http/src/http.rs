@@ -372,7 +372,7 @@ Content-Length: ",
 		instance: &HttpInstance,
 		err: Error,
 	) -> Result<(), Error> {
-		info!("Err: {:?}", err.inner())?;
+		debug!("Err: {:?}", err.inner())?;
 		let err_text = err.inner();
 		if err_text == "http_error: Unknown http request type" {
 			Self::process_error(
