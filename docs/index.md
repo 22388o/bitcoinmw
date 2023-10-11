@@ -6,3 +6,4 @@ Documentation for the crates in this repo can be found here:
 * [bmw_ser](https://cgilliard.github.io/bitcoinmw/doc/bmw_ser/index.html)
 * [bmw_derive](https://cgilliard.github.io/bitcoinmw/doc/bmw_derive/index.html)
 * [bmw_evh](https://cgilliard.github.io/bitcoinmw/doc/bmw_evh/index.html)
+* [bmw_http](https://cgilliard.github.io/bitcoinmw/doc/bmw_http/index.html)

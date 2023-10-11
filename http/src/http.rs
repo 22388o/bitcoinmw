@@ -96,7 +96,7 @@ impl HttpServerImpl {
 	}
 
 	fn build_http_context() -> Result<HttpContext, Error> {
-		debug!("build http ctx")?;
+		debug!("build ctx")?;
 		global_slab_allocator!(SlabSize(128), SlabCount(1_000))?;
 
 		let suffix_tree = Box::new(suffix_tree!(
