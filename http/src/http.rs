@@ -17,7 +17,10 @@
 
 use crate::constants::*;
 use crate::types::{HttpContext, HttpServerImpl};
-use crate::{HttpConfig, HttpHeaders, HttpInstance, HttpInstanceType, HttpServer, PlainConfig};
+use crate::{
+	HttpConfig, HttpHeaders, HttpInstance, HttpInstanceType, HttpRequestType, HttpServer,
+	PlainConfig,
+};
 use bmw_deps::chrono::Utc;
 use bmw_deps::dirs;
 use bmw_err::*;
@@ -107,6 +110,10 @@ impl HttpServerImpl {
 				),
 				pattern!(Regex("^GET .* "), Id(SUFFIX_TREE_GET_ID))?,
 				pattern!(Regex("^POST .* "), Id(SUFFIX_TREE_POST_ID))?,
+				pattern!(Regex("^GET .*\n"), Id(SUFFIX_TREE_GET_ID))?,
+				pattern!(Regex("^POST .*\n"), Id(SUFFIX_TREE_POST_ID))?,
+				pattern!(Regex("^GET .*\r"), Id(SUFFIX_TREE_GET_ID))?,
+				pattern!(Regex("^POST .*\r"), Id(SUFFIX_TREE_POST_ID))?,
 				pattern!(Regex("\r\n.*: "), Id(SUFFIX_TREE_HEADER))?
 			],
 			TerminationLength(100_000),
@@ -202,7 +209,7 @@ Content-Length: {}\r\n\r\n{}\n",
 			let metadata = match metadata {
 				Ok(metadata) => metadata,
 				Err(_e) => {
-					debug!("404path={},dir={}", fpath, instance.http_dir)?;
+					debug!("404path2={},dir={}", fpath, instance.http_dir)?;
 					Self::process_error(config, path, conn_data, instance, 404, "Not Found")?;
 					return Ok(());
 				}
@@ -277,7 +284,9 @@ Content-Length: ",
 
 		let mut start_uri = 0;
 		let mut end_uri = 0;
+		let http_request_type = HttpRequestType::GET;
 
+		debug!("count={}", count)?;
 		for i in 0..count {
 			debug!("c[{}]={:?}", i, matches[i])?;
 			let end = matches[i].end();
@@ -286,10 +295,30 @@ Content-Length: ",
 
 			if id == SUFFIX_TREE_TERMINATE_HEADERS_ID {
 				debug!("found term end={}, slab_off={}", end, slab_offset)?;
+
+				if end_uri == 0 {
+					match req.windows(1).position(|window| window == " ".as_bytes()) {
+						Some(c) => {
+							start_uri = c + 1;
+							end_uri = end;
+							for j in start_uri..end {
+								if req[j] == '\r' as u8
+									|| req[j] == '\n' as u8 || req[j] == ' ' as u8
+								{
+									end_uri = j;
+									break;
+								}
+							}
+						}
+						None => {}
+					}
+				}
+
 				if end == slab_offset.into() {
 					termination_point = end;
 				}
 			} else if id == SUFFIX_TREE_GET_ID || id == SUFFIX_TREE_POST_ID {
+				debug!("id is GET/POST = {}", id)?;
 				if id == SUFFIX_TREE_GET_ID {
 					start_uri = start + 4;
 				} else {
@@ -301,13 +330,6 @@ Content-Length: ",
 						break;
 					}
 				}
-
-				if end_uri == 0 {
-					return Err(err!(ErrKind::Http, "invalid URI".to_string()));
-				}
-
-				let path_str = std::str::from_utf8(&req[start_uri..end_uri])?;
-				debug!("path = '{}'", path_str)?;
 			}
 		}
 
@@ -320,6 +342,7 @@ Content-Length: ",
 				req,
 				start_uri,
 				end_uri,
+				http_request_type,
 			})
 		}
 	}
@@ -404,7 +427,8 @@ Content-Length: ",
 
 			let headers = match headers {
 				Ok(headers) => headers,
-				Err(_) => {
+				Err(e) => {
+					debug!("Err: {:?}", e)?;
 					Self::process_error(
 						config,
 						"".to_string(),
@@ -418,13 +442,29 @@ Content-Length: ",
 				}
 			};
 
+			debug!("Request type = {:?}", headers.http_request_type)?;
+
 			termination_sum += headers.termination_point;
 
 			debug!("term point = {}", headers.termination_point)?;
 			if headers.termination_point == 0 {
 				break;
 			} else {
-				let path = headers.path()?;
+				let path = match headers.path() {
+					Ok(path) => path,
+					Err(_) => {
+						Self::process_error(
+							config,
+							"".to_string(),
+							conn_data,
+							attachment,
+							400,
+							"Bad Request",
+						)?;
+						conn_data.write_handle().close()?;
+						return Ok(());
+					}
+				};
 				start = headers.termination_point;
 				last_term = headers.termination_point;
 				Self::process_file(config, path, conn_data, attachment)?;

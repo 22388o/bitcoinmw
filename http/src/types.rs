@@ -19,12 +19,20 @@ use bmw_err::*;
 use bmw_evh::EventHandlerConfig;
 use bmw_util::*;
 
+#[derive(Debug)]
+pub enum HttpRequestType {
+	GET,
+	POST,
+	HEAD,
+}
+
 pub struct HttpHeaders<'a> {
 	pub(crate) termination_point: usize,
 	pub(crate) start: usize,
 	pub(crate) req: &'a Vec<u8>,
 	pub(crate) start_uri: usize,
 	pub(crate) end_uri: usize,
+	pub(crate) http_request_type: HttpRequestType,
 }
 
 pub trait HttpServer {
