@@ -32,7 +32,7 @@ use bmw_evh::{
 use bmw_log::*;
 use bmw_util::*;
 use std::any::{type_name, Any};
-use std::fs::{canonicalize, File, Metadata};
+use std::fs::{File, Metadata};
 use std::io::BufReader;
 use std::io::Read;
 use std::path::PathBuf;
@@ -730,7 +730,7 @@ impl HttpServer for HttpServerImpl {
 
 		for i in 0..self.config.instances.len() {
 			self.config.instances[i].http_dir =
-				canonicalize(self.config.instances[i].http_dir.replace("~", &home_dir))?
+				Self::normalize_path(self.config.instances[i].http_dir.replace("~", &home_dir))
 					.into_os_string()
 					.into_string()?;
 		}
