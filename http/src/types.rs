@@ -16,8 +16,9 @@
 // limitations under the License.
 
 use bmw_err::*;
-use bmw_evh::EventHandlerConfig;
+use bmw_evh::{ConnectionData, EventHandlerConfig};
 use bmw_util::*;
+use std::collections::HashSet;
 
 #[derive(Debug, PartialEq)]
 pub enum HttpRequestType {
@@ -89,6 +90,9 @@ pub struct HttpInstance {
 	pub error_400file: String,
 	pub error_403file: String,
 	pub error_404file: String,
+	pub callback: Option<HttpCallback>,
+	pub callback_mappings: HashSet<String>,
+	pub callback_extensions: HashSet<String>,
 }
 
 #[derive(Clone)]
@@ -110,3 +114,6 @@ pub(crate) struct HttpContext {
 	pub(crate) matches: [Match; 1_000],
 	pub(crate) offset: usize,
 }
+
+type HttpCallback =
+	fn(&HttpHeaders, &HttpConfig, &HttpInstance, &mut ConnectionData) -> Result<(), Error>;

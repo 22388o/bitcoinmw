@@ -17,13 +17,36 @@
 // limitations under the License.
 
 use bmw_err::{err, ErrKind, Error};
-use bmw_http::{Builder, HttpConfig, HttpInstance};
+use bmw_evh::{ConnData, ConnectionData};
+use bmw_http::{Builder, HttpConfig, HttpHeaders, HttpInstance};
 use bmw_log::*;
+use std::collections::HashSet;
 use std::mem::size_of;
 #[cfg(not(test))]
 use std::thread::park;
 
 info!();
+
+fn callback(
+	_headers: &HttpHeaders,
+	_config: &HttpConfig,
+	_instance: &HttpInstance,
+	connection_data: &mut ConnectionData,
+) -> Result<(), Error> {
+	info!("in callback!")?;
+
+	connection_data.write_handle().write(
+		"\
+HTTP/1.1 200 OK\r\n\
+Date: Thu, 12 Oct 2023 22:52:16 GMT\r\n\
+Content-Length: 7\r\n\
+\r\n\
+callbk\n\r\n\r\n"
+			.as_bytes(),
+	)?;
+
+	Ok(())
+}
 
 fn main() -> Result<(), Error> {
 	real_main(false)?;
@@ -46,14 +69,22 @@ fn real_main(debug_startup_32: bool) -> Result<(), Error> {
 	})?;
 
 	let port = 8080;
+	let mut callback_mappings = HashSet::new();
+	let mut callback_extensions = HashSet::new();
+	callback_mappings.insert("/callbacktest".to_string());
+	callback_extensions.insert("rsp".to_string());
 	let config = HttpConfig {
 		instances: vec![HttpInstance {
 			port,
+			callback_mappings,
+			callback_extensions,
+			callback: Some(callback),
 			..Default::default()
 		}],
 		debug: true,
 		..Default::default()
 	};
+
 	let mut server = Builder::build_http_server(config)?;
 	server.start()?;
 	info!("listener on port 8080")?;

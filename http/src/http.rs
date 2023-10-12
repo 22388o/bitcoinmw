@@ -32,6 +32,7 @@ use bmw_evh::{
 use bmw_log::*;
 use bmw_util::*;
 use std::any::{type_name, Any};
+use std::collections::HashSet;
 use std::fs::{File, Metadata};
 use std::io::BufReader;
 use std::io::Read;
@@ -79,6 +80,9 @@ impl Default for HttpInstance {
 			error_400file: "error.html".to_string(),
 			error_403file: "error.html".to_string(),
 			error_404file: "error.html".to_string(),
+			callback_extensions: HashSet::new(),
+			callback_mappings: HashSet::new(),
+			callback: None,
 		}
 	}
 }
@@ -668,7 +672,22 @@ Content-Length: ",
 
 				start = headers.termination_point;
 				last_term = headers.termination_point;
-				Self::process_file(config, path, conn_data, attachment)?;
+
+				let mut is_callback = false;
+
+				match attachment.callback {
+					Some(callback) => {
+						if attachment.callback_mappings.contains(&path) {
+							is_callback = true;
+							callback(&headers, &config, &attachment, conn_data)?;
+						}
+					}
+					None => {}
+				}
+
+				if !is_callback {
+					Self::process_file(config, path, conn_data, attachment)?;
+				}
 			}
 
 			debug!("start={}", headers.start)?;
