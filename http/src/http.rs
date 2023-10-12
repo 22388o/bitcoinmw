@@ -18,11 +18,12 @@
 use crate::constants::*;
 use crate::types::{HttpContext, HttpServerImpl};
 use crate::{
-	HttpConfig, HttpHeaders, HttpInstance, HttpInstanceType, HttpRequestType, HttpServer,
-	PlainConfig,
+	HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType, HttpRequestType,
+	HttpServer, HttpVersion, PlainConfig,
 };
 use bmw_deps::chrono::Utc;
 use bmw_deps::dirs;
+use bmw_deps::substring::Substring;
 use bmw_err::*;
 use bmw_evh::{
 	create_listeners, AttachmentHolder, Builder, ConnData, ConnectionData, EventHandler,
@@ -31,14 +32,26 @@ use bmw_evh::{
 use bmw_log::*;
 use bmw_util::*;
 use std::any::{type_name, Any};
-use std::fs::{File, Metadata};
+use std::fs::{canonicalize, File, Metadata};
 use std::io::BufReader;
 use std::io::Read;
 use std::path::PathBuf;
+use std::path::{Component, Path};
 
 info!();
 
 const ERROR_CONTENT: &str = "Error ERROR_CODE: \"ERROR_MESSAGE\" occurred.";
+
+impl Default for HttpHeader {
+	fn default() -> Self {
+		Self {
+			start_header_name: 0,
+			end_header_name: 0,
+			start_header_value: 0,
+			end_header_value: 0,
+		}
+	}
+}
 
 impl Default for HttpConfig {
 	fn default() -> Self {
@@ -47,6 +60,7 @@ impl Default for HttpConfig {
 			instances: vec![HttpInstance {
 				..Default::default()
 			}],
+			debug: false,
 		}
 	}
 }
@@ -62,8 +76,9 @@ impl Default for HttpInstance {
 				domainnames: vec![],
 			}),
 			default_file: vec!["index.html".to_string(), "index.htm".to_string()],
-			error_404file: "error.html".to_string(),
 			error_400file: "error.html".to_string(),
+			error_403file: "error.html".to_string(),
+			error_404file: "error.html".to_string(),
 		}
 	}
 }
@@ -72,10 +87,55 @@ impl HttpHeaders<'_> {
 	pub fn path(&self) -> Result<String, Error> {
 		if self.start_uri > 0 && self.end_uri > self.start_uri {
 			let path = std::str::from_utf8(&self.req[self.start_uri..self.end_uri])?.to_string();
-			Ok(path)
+			if path.contains("?") {
+				let pos = path.chars().position(|c| c == '?').unwrap();
+				let path = path.substring(0, pos);
+				Ok(path.to_string())
+			} else {
+				Ok(path)
+			}
 		} else {
 			Err(err!(ErrKind::Http, "no path"))
 		}
+	}
+
+	pub fn query(&self) -> Result<String, Error> {
+		let path = std::str::from_utf8(&self.req[self.start_uri..self.end_uri])?.to_string();
+		let query = if path.contains("?") {
+			let pos = path.chars().position(|c| c == '?').unwrap();
+			path.substring(pos + 1, path.len()).to_string()
+		} else {
+			"".to_string()
+		};
+		Ok(query)
+	}
+
+	pub fn http_request_type(&self) -> Result<&HttpRequestType, Error> {
+		Ok(&self.http_request_type)
+	}
+
+	pub fn version(&self) -> Result<&HttpVersion, Error> {
+		Ok(&self.version)
+	}
+
+	pub fn header_count(&self) -> Result<usize, Error> {
+		Ok(self.header_count)
+	}
+
+	pub fn header_name(&self, i: usize) -> Result<String, Error> {
+		let ret = std::str::from_utf8(
+			&self.req[self.headers[i].start_header_name..self.headers[i].end_header_name],
+		)?
+		.to_string();
+		Ok(ret)
+	}
+
+	pub fn header_value(&self, i: usize) -> Result<String, Error> {
+		let ret = std::str::from_utf8(
+			&self.req[self.headers[i].start_header_value..self.headers[i].end_header_value],
+		)?
+		.to_string();
+		Ok(ret)
 	}
 }
 
@@ -117,7 +177,7 @@ impl HttpServerImpl {
 				pattern!(Regex("^GET .*\r"), Id(SUFFIX_TREE_GET_ID))?,
 				pattern!(Regex("^POST .*\r"), Id(SUFFIX_TREE_POST_ID))?,
 				pattern!(Regex("^HEAD .*\r"), Id(SUFFIX_TREE_HEAD_ID))?,
-				pattern!(Regex("\r\n.*: "), Id(SUFFIX_TREE_HEADER))?
+				pattern!(Regex("\r\n.*: "), Id(SUFFIX_TREE_HEADER_ID))?
 			],
 			TerminationLength(100_000),
 			MaxWildcardLength(100)
@@ -146,6 +206,8 @@ impl HttpServerImpl {
 		};
 		let fpath = if code == 404 {
 			format!("{}{}{}", instance.http_dir, slash, instance.error_404file)
+		} else if code == 403 {
+			format!("{}{}{}", instance.http_dir, slash, instance.error_403file)
 		} else {
 			format!("{}{}{}", instance.http_dir, slash, instance.error_400file)
 		};
@@ -186,6 +248,27 @@ Content-Length: {}\r\n\r\n{}\n",
 		Ok(())
 	}
 
+	pub fn normalize_path<P: AsRef<Path>>(path: P) -> PathBuf {
+		let ends_with_slash = path.as_ref().to_str().map_or(false, |s| s.ends_with('/'));
+		let mut normalized = PathBuf::new();
+		for component in path.as_ref().components() {
+			match &component {
+				Component::ParentDir => {
+					if !normalized.pop() {
+						normalized.push(component);
+					}
+				}
+				_ => {
+					normalized.push(component);
+				}
+			}
+		}
+		if ends_with_slash {
+			normalized.push("");
+		}
+		normalized
+	}
+
 	fn process_file(
 		config: &HttpConfig,
 		path: String,
@@ -193,6 +276,17 @@ Content-Length: {}\r\n\r\n{}\n",
 		instance: &HttpInstance,
 	) -> Result<(), Error> {
 		let fpath = format!("{}{}", instance.http_dir, path);
+
+		let fpath = Self::normalize_path(fpath)
+			.into_os_string()
+			.into_string()
+			.unwrap_or(format!("{}/", instance.http_dir));
+
+		if !fpath.starts_with(&instance.http_dir) {
+			Self::process_error(config, path, conn_data, instance, 403, "Forbidden")?;
+			return Ok(());
+		}
+
 		let metadata = std::fs::metadata(fpath.clone());
 
 		let metadata = match metadata {
@@ -299,6 +393,9 @@ Content-Length: ",
 		let mut start_uri = 0;
 		let mut end_uri = 0;
 		let mut http_request_type = HttpRequestType::UNKNOWN;
+		let mut version = HttpVersion::UNKNOWN;
+		let mut header_count = 0;
+		let mut headers = [HttpHeader::default(); 100];
 
 		debug!("count={}", count)?;
 		for i in 0..count {
@@ -347,10 +444,54 @@ Content-Length: ",
 					}
 					start_uri = start + 5;
 				}
-				for i in start_uri..end {
+
+				let mut end_version = 0;
+				let mut start_version = 0;
+				for i in start_uri..req.len() {
 					if req[start + i] == ' ' as u8 {
 						end_uri = start + i;
+						start_version = start + i + 1;
+					}
+					if req[start + i] == '\r' as u8 || req[start + i] == '\n' as u8 {
+						end_version = start + i;
 						break;
+					}
+				}
+
+				debug!("start_v={},end_v={}", start_version, end_version)?;
+				if end_version > start_version && start_version != 0 {
+					// try to get version
+					let version_str =
+						std::str::from_utf8(&req[start_version..end_version]).unwrap_or("");
+					if version_str == "HTTP/1.1" {
+						version = HttpVersion::HTTP11;
+					} else if version_str == "HTTP/1.0" {
+						version = HttpVersion::HTTP10;
+					} else {
+						version = HttpVersion::OTHER;
+					}
+				}
+			} else if id == SUFFIX_TREE_HEADER_ID {
+				if header_count < headers.len() {
+					headers[header_count].start_header_name = start + 2;
+					headers[header_count].end_header_name = end - 2;
+					headers[header_count].start_header_value = end;
+					headers[header_count].end_header_value = 0;
+
+					for i in end..req.len() {
+						if req[i] == '\n' as u8 || req[i] == '\r' as u8 {
+							headers[header_count].end_header_value = i;
+							break;
+						}
+					}
+
+					if headers[header_count].end_header_name
+						> headers[header_count].start_header_name
+						&& headers[header_count].end_header_value
+							> headers[header_count].start_header_value
+						&& headers[header_count].start_header_value < req.len()
+					{
+						header_count += 1;
 					}
 				}
 			}
@@ -368,6 +509,9 @@ Content-Length: ",
 				start_uri,
 				end_uri,
 				http_request_type,
+				version,
+				headers,
+				header_count,
 			})
 		}
 	}
@@ -498,6 +642,30 @@ Content-Length: ",
 						return Ok(());
 					}
 				};
+
+				let query = headers.query().unwrap_or("".to_string());
+				if config.debug {
+					let header_count = headers.header_count().unwrap_or(0);
+					info!(
+						"uri={},query={},method={:?},version={:?},header_count={}",
+						path,
+						query,
+						headers.http_request_type().unwrap_or(&HttpRequestType::GET),
+						headers.version().unwrap_or(&HttpVersion::UNKNOWN),
+						header_count
+					)?;
+					info!("{}", SEPARATOR_LINE)?;
+
+					for i in 0..header_count {
+						info!(
+							"   header[{}] = ['{}']",
+							headers.header_name(i).unwrap_or("".to_string()),
+							headers.header_value(i).unwrap_or("".to_string())
+						)?;
+					}
+					info!("{}", SEPARATOR_LINE)?;
+				}
+
 				start = headers.termination_point;
 				last_term = headers.termination_point;
 				Self::process_file(config, path, conn_data, attachment)?;
@@ -562,7 +730,9 @@ impl HttpServer for HttpServerImpl {
 
 		for i in 0..self.config.instances.len() {
 			self.config.instances[i].http_dir =
-				self.config.instances[i].http_dir.replace("~", &home_dir);
+				canonicalize(self.config.instances[i].http_dir.replace("~", &home_dir))?
+					.into_os_string()
+					.into_string()?;
 		}
 
 		let mut evh = Builder::build_evh(self.config.evh_config.clone())?;

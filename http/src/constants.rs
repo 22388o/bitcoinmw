@@ -19,4 +19,7 @@ pub(crate) const SUFFIX_TREE_TERMINATE_HEADERS_ID: usize = 0;
 pub(crate) const SUFFIX_TREE_GET_ID: usize = 1;
 pub(crate) const SUFFIX_TREE_POST_ID: usize = 2;
 pub(crate) const SUFFIX_TREE_HEAD_ID: usize = 3;
-pub(crate) const SUFFIX_TREE_HEADER: usize = 4;
+pub(crate) const SUFFIX_TREE_HEADER_ID: usize = 4;
+
+pub(crate) const SEPARATOR_LINE: &str =
+	"--------------------------------------------------------------------------------";

@@ -37,12 +37,21 @@ fn real_main(debug_startup_32: bool) -> Result<(), Error> {
 		false => return Err(err!(ErrKind::IllegalState, "Only 64 bit arch supported")),
 	}
 
+	log_init!(LogConfig {
+		show_bt: ShowBt(true),
+		show_millis: ShowMillis(true),
+		line_num: LineNum(false),
+		level: Level(false),
+		..Default::default()
+	})?;
+
 	let port = 8080;
 	let config = HttpConfig {
 		instances: vec![HttpInstance {
 			port,
 			..Default::default()
 		}],
+		debug: true,
 		..Default::default()
 	};
 	let mut server = Builder::build_http_server(config)?;

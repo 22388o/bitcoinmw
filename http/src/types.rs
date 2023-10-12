@@ -27,6 +27,22 @@ pub enum HttpRequestType {
 	UNKNOWN,
 }
 
+#[derive(Debug, PartialEq)]
+pub enum HttpVersion {
+	HTTP10,
+	HTTP11,
+	UNKNOWN,
+	OTHER,
+}
+
+#[derive(Clone, Copy)]
+pub struct HttpHeader {
+	pub start_header_name: usize,
+	pub end_header_name: usize,
+	pub start_header_value: usize,
+	pub end_header_value: usize,
+}
+
 pub struct HttpHeaders<'a> {
 	pub(crate) termination_point: usize,
 	pub(crate) start: usize,
@@ -34,6 +50,9 @@ pub struct HttpHeaders<'a> {
 	pub(crate) start_uri: usize,
 	pub(crate) end_uri: usize,
 	pub(crate) http_request_type: HttpRequestType,
+	pub(crate) headers: [HttpHeader; 100],
+	pub(crate) header_count: usize,
+	pub(crate) version: HttpVersion,
 }
 
 pub trait HttpServer {
@@ -67,14 +86,16 @@ pub struct HttpInstance {
 	pub http_dir: String,
 	pub instance_type: HttpInstanceType,
 	pub default_file: Vec<String>,
-	pub error_404file: String,
 	pub error_400file: String,
+	pub error_403file: String,
+	pub error_404file: String,
 }
 
 #[derive(Clone)]
 pub struct HttpConfig {
 	pub evh_config: EventHandlerConfig,
 	pub instances: Vec<HttpInstance>,
+	pub debug: bool,
 }
 
 pub struct Builder {}

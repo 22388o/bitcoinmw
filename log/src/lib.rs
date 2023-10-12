@@ -70,3 +70,4 @@ mod types;
 pub use crate::log::LogBuilder;
 pub use crate::macros::{LogHolder, LOG_REF, STATIC_LOG};
 pub use crate::types::{Log, LogConfig, LogConfigOption, LogConfigOptionName, LogLevel};
+pub use crate::LogConfigOption::*;
