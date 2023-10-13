@@ -674,12 +674,19 @@ Content-Length: ",
 				last_term = headers.termination_point;
 
 				let mut is_callback = false;
-
 				match attachment.callback {
 					Some(callback) => {
 						if attachment.callback_mappings.contains(&path) {
 							is_callback = true;
 							callback(&headers, &config, &attachment, conn_data)?;
+						} else if path.contains(r".") {
+							let pos = path.chars().rev().position(|c| c == '.').unwrap();
+							let len = path.len();
+							let suffix = path.substring(len - pos, len).to_string();
+							if attachment.callback_extensions.contains(&suffix) {
+								is_callback = true;
+								callback(&headers, &config, &attachment, conn_data)?;
+							}
 						}
 					}
 					None => {}

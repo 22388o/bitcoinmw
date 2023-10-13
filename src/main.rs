@@ -41,7 +41,7 @@ HTTP/1.1 200 OK\r\n\
 Date: Thu, 12 Oct 2023 22:52:16 GMT\r\n\
 Content-Length: 7\r\n\
 \r\n\
-callbk\n\r\n\r\n"
+callbk\n"
 			.as_bytes(),
 	)?;
 
