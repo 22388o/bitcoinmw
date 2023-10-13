@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["HttpInstanceType","HttpRequestType"],"struct":["Builder","HttpConfig","HttpHeaders","HttpInstance","PlainConfig"],"trait":["HttpServer"]};
+window.SIDEBAR_ITEMS = {"enum":["HttpInstanceType","HttpRequestType","HttpVersion"],"struct":["Builder","HttpConfig","HttpHeader","HttpHeaders","HttpInstance","PlainConfig"],"trait":["HttpServer"]};

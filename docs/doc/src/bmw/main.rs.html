@@ -72,6 +72,46 @@
 <a href="#72" id="72">72</a>
 <a href="#73" id="73">73</a>
 <a href="#74" id="74">74</a>
+<a href="#75" id="75">75</a>
+<a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
+<a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a>
+<a href="#86" id="86">86</a>
+<a href="#87" id="87">87</a>
+<a href="#88" id="88">88</a>
+<a href="#89" id="89">89</a>
+<a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -91,13 +131,36 @@
 // limitations under the License.
 
 </span><span class="kw">use </span>bmw_err::{err, ErrKind, Error};
-<span class="kw">use </span>bmw_http::{Builder, HttpConfig, HttpInstance};
+<span class="kw">use </span>bmw_evh::{ConnData, ConnectionData};
+<span class="kw">use </span>bmw_http::{Builder, HttpConfig, HttpHeaders, HttpInstance};
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
+<span class="kw">use </span>std::collections::HashSet;
 <span class="kw">use </span>std::mem::size_of;
 <span class="attr">#[cfg(not(test))]
 </span><span class="kw">use </span>std::thread::park;
 
 <span class="macro">info!</span>();
+
+<span class="kw">fn </span>callback(
+	_headers: <span class="kw-2">&amp;</span>HttpHeaders,
+	_config: <span class="kw-2">&amp;</span>HttpConfig,
+	_instance: <span class="kw-2">&amp;</span>HttpInstance,
+	connection_data: <span class="kw-2">&amp;mut </span>ConnectionData,
+) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="macro">info!</span>(<span class="string">&quot;in callback!&quot;</span>)<span class="question-mark">?</span>;
+
+	connection_data.write_handle().write(
+		<span class="string">&quot;\
+HTTP/1.1 200 OK\r\n\
+Date: Thu, 12 Oct 2023 22:52:16 GMT\r\n\
+Content-Length: 7\r\n\
+\r\n\
+callbk\n&quot;
+			</span>.as_bytes(),
+	)<span class="question-mark">?</span>;
+
+	<span class="prelude-val">Ok</span>(())
+}
 
 <span class="kw">fn </span>main() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 	real_main(<span class="bool-val">false</span>)<span class="question-mark">?</span>;
@@ -111,14 +174,31 @@
 		<span class="bool-val">false </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IllegalState, <span class="string">&quot;Only 64 bit arch supported&quot;</span>)),
 	}
 
+	<span class="macro">log_init!</span>(LogConfig {
+		show_bt: ShowBt(<span class="bool-val">true</span>),
+		show_millis: ShowMillis(<span class="bool-val">true</span>),
+		line_num: LineNum(<span class="bool-val">false</span>),
+		level: Level(<span class="bool-val">false</span>),
+		..Default::default()
+	})<span class="question-mark">?</span>;
+
 	<span class="kw">let </span>port = <span class="number">8080</span>;
+	<span class="kw">let </span><span class="kw-2">mut </span>callback_mappings = HashSet::new();
+	<span class="kw">let </span><span class="kw-2">mut </span>callback_extensions = HashSet::new();
+	callback_mappings.insert(<span class="string">&quot;/callbacktest&quot;</span>.to_string());
+	callback_extensions.insert(<span class="string">&quot;rsp&quot;</span>.to_string());
 	<span class="kw">let </span>config = HttpConfig {
 		instances: <span class="macro">vec!</span>[HttpInstance {
 			port,
+			callback_mappings,
+			callback_extensions,
+			callback: <span class="prelude-val">Some</span>(callback),
 			..Default::default()
 		}],
+		debug: <span class="bool-val">true</span>,
 		..Default::default()
 	};
+
 	<span class="kw">let </span><span class="kw-2">mut </span>server = Builder::build_http_server(config)<span class="question-mark">?</span>;
 	server.start()<span class="question-mark">?</span>;
 	<span class="macro">info!</span>(<span class="string">&quot;listener on port 8080&quot;</span>)<span class="question-mark">?</span>;
