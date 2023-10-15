@@ -117,6 +117,23 @@
 <a href="#117" id="117">117</a>
 <a href="#118" id="118">118</a>
 <a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -175,6 +192,18 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) version: HttpVersion,
 }
 
+<span class="kw">pub trait </span>HttpCache {
+	<span class="kw">fn </span>stream_file(
+		<span class="kw-2">&amp;</span><span class="self">self</span>,
+		path: <span class="kw-2">&amp;</span>String,
+		len: u64,
+		conn_data: <span class="kw-2">&amp;mut </span>ConnectionData,
+		code: u16,
+		message: <span class="kw-2">&amp;</span>str,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt;;
+	<span class="kw">fn </span>write_block(<span class="kw-2">&amp;mut </span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>String, offset: u64, data: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+}
+
 <span class="kw">pub trait </span>HttpServer {
 	<span class="kw">fn </span>start(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="kw">fn </span>stop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
@@ -226,6 +255,11 @@
 <span class="comment">// Crate local types
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpServerImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) config: HttpConfig,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) cache: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>HttpCache + Send + Sync&gt;&gt;&gt;,
+}
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpCacheImpl {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) hashtable: Box&lt;<span class="kw">dyn </span>Hashtable&lt;String, Vec&lt;String&gt;&gt; + Send + Sync&gt;,
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpContext {

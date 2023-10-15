@@ -926,6 +926,19 @@
 <a href="#926" id="926">926</a>
 <a href="#927" id="927">927</a>
 <a href="#928" id="928">928</a>
+<a href="#929" id="929">929</a>
+<a href="#930" id="930">930</a>
+<a href="#931" id="931">931</a>
+<a href="#932" id="932">932</a>
+<a href="#933" id="933">933</a>
+<a href="#934" id="934">934</a>
+<a href="#935" id="935">935</a>
+<a href="#936" id="936">936</a>
+<a href="#937" id="937">937</a>
+<a href="#938" id="938">938</a>
+<a href="#939" id="939">939</a>
+<a href="#940" id="940">940</a>
+<a href="#941" id="941">941</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -944,10 +957,10 @@
 // limitations under the License.
 
 </span><span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
-<span class="kw">use </span><span class="kw">crate</span>::types::{HttpContext, HttpServerImpl};
+<span class="kw">use </span><span class="kw">crate</span>::types::{HttpCacheImpl, HttpContext, HttpServerImpl};
 <span class="kw">use crate</span>::{
-	HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType, HttpRequestType,
-	HttpServer, HttpVersion, PlainConfig,
+	HttpCache, HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType,
+	HttpRequestType, HttpServer, HttpVersion, PlainConfig,
 };
 <span class="kw">use </span>bmw_deps::chrono::Utc;
 <span class="kw">use </span>bmw_deps::dirs;
@@ -1073,7 +1086,8 @@
 
 <span class="kw">impl </span>HttpServerImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(config: HttpConfig) -&gt; <span class="prelude-ty">Result</span>&lt;HttpServerImpl, Error&gt; {
-		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{ config })
+		<span class="kw">let </span>cache = <span class="macro">lock_box!</span>(HttpCacheImpl::new()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{ config, cache })
 	}
 
 	<span class="kw">fn </span>build_ctx&lt;<span class="lifetime">&#39;a</span>&gt;(ctx: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>ThreadContext) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>HttpContext, Error&gt; {
@@ -1149,7 +1163,7 @@
 
 		<span class="kw">match </span>metadata {
 			<span class="prelude-val">Ok</span>(metadata) =&gt; {
-				<span class="self">Self</span>::stream_file(fpath, metadata, conn_data, code, message)<span class="question-mark">?</span>;
+				<span class="self">Self</span>::stream_file(fpath, metadata.len(), conn_data, code, message)<span class="question-mark">?</span>;
 			}
 			<span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; {
 				<span class="kw">let </span>dt = Utc::now();
@@ -1203,6 +1217,7 @@ Content-Length: {}\r\n\r\n{}\n&quot;</span>,
 
 	<span class="kw">fn </span>process_file(
 		config: <span class="kw-2">&amp;</span>HttpConfig,
+		<span class="kw-2">mut </span>cache: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>HttpCache + Send + Sync&gt;&gt;&gt;,
 		path: String,
 		conn_data: <span class="kw-2">&amp;mut </span>ConnectionData,
 		instance: <span class="kw-2">&amp;</span>HttpInstance,
@@ -1214,7 +1229,7 @@ Content-Length: {}\r\n\r\n{}\n&quot;</span>,
 			.into_string()
 			.unwrap_or(<span class="macro">format!</span>(<span class="string">&quot;{}/&quot;</span>, instance.http_dir));
 
-		<span class="kw">if </span>!fpath.starts_with(<span class="kw-2">&amp;</span>instance.http_dir) {
+		<span class="kw">if </span>!fpath.starts_with(<span class="kw-2">&amp;</span>instance.http_dir) || !path.starts_with(<span class="string">&quot;/&quot;</span>) {
 			<span class="self">Self</span>::process_error(config, path, conn_data, instance, <span class="number">403</span>, <span class="string">&quot;Forbidden&quot;</span>)<span class="question-mark">?</span>;
 			<span class="kw">return </span><span class="prelude-val">Ok</span>(());
 		}
@@ -1262,14 +1277,23 @@ Content-Length: {}\r\n\r\n{}\n&quot;</span>,
 
 		<span class="macro">debug!</span>(<span class="string">&quot;path={},dir={}&quot;</span>, fpath, instance.http_dir)<span class="question-mark">?</span>;
 
-		<span class="self">Self</span>::stream_file(fpath, metadata, conn_data, <span class="number">200</span>, <span class="string">&quot;OK&quot;</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span>hit: bool;
+		<span class="kw">let </span>len = metadata.len();
+		{
+			<span class="kw">let </span><span class="kw-2">mut </span>cache = cache.rlock()<span class="question-mark">?</span>;
+			hit = (<span class="kw-2">**</span>cache.guard()).stream_file(<span class="kw-2">&amp;</span>fpath, len, conn_data, <span class="number">200</span>, <span class="string">&quot;OK&quot;</span>)<span class="question-mark">?</span>;
+		}
+
+		<span class="kw">if </span>!hit {
+			<span class="self">Self</span>::stream_file(fpath, len, conn_data, <span class="number">200</span>, <span class="string">&quot;OK&quot;</span>)<span class="question-mark">?</span>;
+		}
 
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="kw">fn </span>stream_file(
 		fpath: String,
-		metadata: Metadata,
+		len: u64,
 		conn_data: <span class="kw-2">&amp;mut </span>ConnectionData,
 		code: u16,
 		message: <span class="kw-2">&amp;</span>str,
@@ -1290,13 +1314,13 @@ Content-Length: &quot;</span>,
 			)
 			.to_string();
 
-		<span class="kw">let </span>res = <span class="macro">format!</span>(<span class="string">&quot;{}{}\r\n\r\n&quot;</span>, res, metadata.len());
+		<span class="kw">let </span>res = <span class="macro">format!</span>(<span class="string">&quot;{}{}\r\n\r\n&quot;</span>, res, len);
 
 		<span class="macro">debug!</span>(<span class="string">&quot;writing {}&quot;</span>, res)<span class="question-mark">?</span>;
 		conn_data.write_handle().write(<span class="kw-2">&amp;</span>res.as_bytes()[..])<span class="question-mark">?</span>;
 
+		<span class="kw">let </span><span class="kw-2">mut </span>buf = <span class="macro">vec!</span>[<span class="number">0u8</span>; <span class="number">100</span>];
 		<span class="kw">loop </span>{
-			<span class="kw">let </span><span class="kw-2">mut </span>buf = <span class="macro">vec!</span>[<span class="number">0u8</span>; <span class="number">100</span>];
 			<span class="kw">let </span>len = buf_reader.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
 			conn_data.write_handle().write(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len])<span class="question-mark">?</span>;
 			<span class="kw">if </span>len == <span class="number">0 </span>{
@@ -1479,6 +1503,7 @@ Content-Length: &quot;</span>,
 
 	<span class="kw">fn </span>process_on_read(
 		config: <span class="kw-2">&amp;</span>HttpConfig,
+		cache: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>HttpCache + Send + Sync&gt;&gt;&gt;,
 		conn_data: <span class="kw-2">&amp;mut </span>ConnectionData,
 		ctx: <span class="kw-2">&amp;mut </span>ThreadContext,
 		attachment: <span class="prelude-ty">Option</span>&lt;AttachmentHolder&gt;,
@@ -1621,7 +1646,7 @@ Content-Length: &quot;</span>,
 				}
 
 				<span class="kw">if </span>!is_callback {
-					<span class="self">Self</span>::process_file(config, path, conn_data, attachment)<span class="question-mark">?</span>;
+					<span class="self">Self</span>::process_file(config, cache.clone(), path, conn_data, attachment)<span class="question-mark">?</span>;
 				}
 			}
 
@@ -1692,9 +1717,10 @@ Content-Length: &quot;</span>,
 		<span class="kw">let </span><span class="kw-2">mut </span>evh = Builder::build_evh(<span class="self">self</span>.config.evh_config.clone())<span class="question-mark">?</span>;
 		<span class="kw">let </span>config = <span class="kw-2">&amp;</span><span class="self">self</span>.config;
 		<span class="kw">let </span>config = config.clone();
+		<span class="kw">let </span>cache = <span class="self">self</span>.cache.clone();
 
 		evh.set_on_read(<span class="kw">move </span>|conn_data, ctx, attach| {
-			<span class="self">Self</span>::process_on_read(<span class="kw-2">&amp;</span>config, conn_data, ctx, attach)
+			<span class="self">Self</span>::process_on_read(<span class="kw-2">&amp;</span>config, cache.clone(), conn_data, ctx, attach)
 		})<span class="question-mark">?</span>;
 		evh.set_on_accept(<span class="kw">move </span>|conn_data, ctx| <span class="self">Self</span>::process_on_accept(conn_data, ctx))<span class="question-mark">?</span>;
 		evh.set_on_close(<span class="kw">move </span>|conn_data, ctx| <span class="self">Self</span>::process_on_close(conn_data, ctx))<span class="question-mark">?</span>;
