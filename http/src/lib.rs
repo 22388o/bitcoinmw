@@ -16,11 +16,12 @@
 // limitations under the License.
 
 mod builder;
+mod cache;
 mod constants;
 mod http;
 mod types;
 
 pub use crate::types::{
-	Builder, HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType, HttpRequestType,
-	HttpServer, HttpVersion, PlainConfig,
+	Builder, HttpCache, HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType,
+	HttpRequestType, HttpServer, HttpVersion, PlainConfig,
 };

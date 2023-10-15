@@ -498,6 +498,10 @@ where
 	fn clear(&mut self) -> Result<(), Error>;
 	/// Returns an [`std::iter::Iterator`] to iterate through this hashtable.
 	fn iter<'a>(&'a self) -> HashtableIterator<'a, K, V>;
+	/// Bring the entry to the front of the list for deletion purposes in a cache.
+	fn bring_to_front(&mut self, key: &K) -> Result<(), Error>;
+	/// Remove the oldest entry in the hashtable.
+	fn remove_oldest(&mut self) -> Result<Option<K>, Error>;
 }
 
 /// A slab allocated Hashset. Most of the implementation is shared with [`crate::Hashtable`].

@@ -422,6 +422,15 @@ where
 	fn max_entries(&self) -> usize {
 		self.static_impl.max_entries
 	}
+	fn bring_to_front(&mut self, key: &K) -> Result<(), Error> {
+		let mut hasher = DefaultHasher::new();
+		key.hash(&mut hasher);
+		let hash = hasher.finish() as usize;
+		self.static_impl.bring_to_front_impl::<V>(key, hash)
+	}
+	fn remove_oldest(&mut self) -> Result<Option<K>, Error> {
+		self.static_impl.remove_oldest_impl()
+	}
 }
 
 impl<K> Hashset<K> for HashImplSync<K>
@@ -791,6 +800,39 @@ where
 		Ok(())
 	}
 
+	fn remove_oldest_impl(&mut self) -> Result<Option<K>, Error> {
+		if self.head == SLOT_EMPTY {
+			Ok(None)
+		} else {
+			let entry = self.lookup_entry(self.head);
+			let ret = self.read_key(entry)?;
+			self.remove_impl(self.head)?;
+			match ret {
+				Some(ret) => Ok(Some(ret.0)),
+				None => Ok(None),
+			}
+		}
+	}
+
+	fn bring_to_front_impl<V>(&mut self, key: &K, hash: usize) -> Result<(), Error>
+	where
+		K: PartialEq,
+		V: Serializable + Clone,
+	{
+		match self.get_impl(key, hash)? {
+			Some((entry, mut reader)) => {
+				let value = V::read(&mut reader)?;
+				self.remove_impl(entry)?;
+				self.insert_hash_impl(Some(key), Some(&value), hash)?;
+				// TODO: this implementation can be sped up by just updating pointers instead of
+				// removing and reinserting
+			}
+			None => {}
+		}
+
+		Ok(())
+	}
+
 	// None line reported as not covered, but it is
 	#[cfg(not(tarpaulin_include))]
 	fn get_impl(&self, key: &K, hash: usize) -> Result<Option<(usize, SlabReader)>, Error>
@@ -843,7 +885,7 @@ where
 		hash: usize,
 	) -> Result<(), Error>
 	where
-		K: Serializable + Hash + PartialEq + Clone,
+		K: Serializable + PartialEq + Clone,
 		V: Serializable + Clone,
 	{
 		let entry_array_len = self.entry_array.as_ref().unwrap().size();
@@ -1189,6 +1231,15 @@ where
 	}
 	fn max_entries(&self) -> usize {
 		self.max_entries
+	}
+	fn bring_to_front(&mut self, key: &K) -> Result<(), Error> {
+		let mut hasher = DefaultHasher::new();
+		key.hash(&mut hasher);
+		let hash = hasher.finish() as usize;
+		self.bring_to_front_impl::<V>(key, hash)
+	}
+	fn remove_oldest(&mut self) -> Result<Option<K>, Error> {
+		self.remove_oldest_impl()
 	}
 }
 
@@ -2278,6 +2329,61 @@ mod test {
 		}
 
 		assert!(hashset.insert(&10u128).is_err());
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_remove_oldest() -> Result<(), Error> {
+		let slabs = slab_allocator!(SlabSize(25), SlabCount(10))?;
+		{
+			let mut hashtable =
+				Builder::build_hashtable::<u32, u32>(HashtableConfig::default(), &Some(&slabs))?;
+			hashtable.insert(&1, &4)?;
+			hashtable.insert(&2, &5)?;
+			hashtable.insert(&3, &6)?;
+			{
+				let slabs = slabs.borrow();
+				assert_eq!(slabs.free_count()?, 7);
+			}
+
+			assert_eq!(hashtable.get(&1), Ok(Some(4)));
+			assert_eq!(hashtable.get(&2), Ok(Some(5)));
+			assert_eq!(hashtable.get(&3), Ok(Some(6)));
+			hashtable.remove_oldest()?;
+			{
+				let slabs = slabs.borrow();
+				assert_eq!(slabs.free_count()?, 8);
+			}
+			assert_eq!(hashtable.get(&1), Ok(None));
+			assert_eq!(hashtable.get(&2), Ok(Some(5)));
+			assert_eq!(hashtable.get(&3), Ok(Some(6)));
+		}
+		Ok(())
+	}
+
+	#[test]
+	fn test_bring_to_front() -> Result<(), Error> {
+		let slabs = slab_allocator!(SlabSize(25), SlabCount(10))?;
+		let mut hashtable =
+			Builder::build_hashtable::<u32, u32>(HashtableConfig::default(), &Some(&slabs))?;
+		hashtable.insert(&0, &4)?;
+		hashtable.insert(&1, &5)?;
+		hashtable.insert(&2, &6)?;
+
+		hashtable.bring_to_front(&1)?;
+
+		hashtable.remove_oldest()?;
+
+		assert_eq!(hashtable.get(&0), Ok(None));
+		assert_eq!(hashtable.get(&1), Ok(Some(5)));
+		assert_eq!(hashtable.get(&2), Ok(Some(6)));
+
+		hashtable.remove_oldest()?;
+
+		assert_eq!(hashtable.get(&0), Ok(None));
+		assert_eq!(hashtable.get(&1), Ok(Some(5)));
+		assert_eq!(hashtable.get(&2), Ok(None));
 
 		Ok(())
 	}

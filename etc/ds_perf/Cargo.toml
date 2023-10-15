@@ -2,9 +2,9 @@
 name = "ds_perf"
 version = "0.0.3-beta.1"
 edition = "2021"
-description = "Utility to test performance of data structurs"
+description = "Utility to test performance of data structures"
 license = "Apache-2.0"
-repository = "https://github.com/cgilliard/bitcoinmw
+repository = "https://github.com/cgilliard/bitcoinmw"
 readme = "README.md"
 exclude = ["**/*.bmw", "**/*.bmw"]
 build = "src/build/build.rs"
@@ -21,4 +21,4 @@ bmw_err = { path = "../../error" }
 clap = { version = "2.33", features = ["yaml"] }
 
 [build-dependencies]
-built = { version = "0.4", features = ["git2"]}
+built = { version = "0.5.1", features = ["git2"]}

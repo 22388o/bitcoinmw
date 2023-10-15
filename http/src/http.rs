@@ -16,10 +16,10 @@
 // limitations under the License.
 
 use crate::constants::*;
-use crate::types::{HttpContext, HttpServerImpl};
+use crate::types::{HttpCacheImpl, HttpContext, HttpServerImpl};
 use crate::{
-	HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType, HttpRequestType,
-	HttpServer, HttpVersion, PlainConfig,
+	HttpCache, HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType,
+	HttpRequestType, HttpServer, HttpVersion, PlainConfig,
 };
 use bmw_deps::chrono::Utc;
 use bmw_deps::dirs;
@@ -145,7 +145,8 @@ impl HttpHeaders<'_> {
 
 impl HttpServerImpl {
 	pub(crate) fn new(config: HttpConfig) -> Result<HttpServerImpl, Error> {
-		Ok(Self { config })
+		let cache = lock_box!(HttpCacheImpl::new()?)?;
+		Ok(Self { config, cache })
 	}
 
 	fn build_ctx<'a>(ctx: &'a mut ThreadContext) -> Result<&'a mut HttpContext, Error> {
@@ -221,7 +222,7 @@ impl HttpServerImpl {
 
 		match metadata {
 			Ok(metadata) => {
-				Self::stream_file(fpath, metadata, conn_data, code, message)?;
+				Self::stream_file(fpath, metadata.len(), conn_data, code, message)?;
 			}
 			Err(_) => {
 				let dt = Utc::now();
@@ -275,6 +276,7 @@ Content-Length: {}\r\n\r\n{}\n",
 
 	fn process_file(
 		config: &HttpConfig,
+		mut cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
 		path: String,
 		conn_data: &mut ConnectionData,
 		instance: &HttpInstance,
@@ -286,7 +288,7 @@ Content-Length: {}\r\n\r\n{}\n",
 			.into_string()
 			.unwrap_or(format!("{}/", instance.http_dir));
 
-		if !fpath.starts_with(&instance.http_dir) {
+		if !fpath.starts_with(&instance.http_dir) || !path.starts_with("/") {
 			Self::process_error(config, path, conn_data, instance, 403, "Forbidden")?;
 			return Ok(());
 		}
@@ -334,14 +336,23 @@ Content-Length: {}\r\n\r\n{}\n",
 
 		debug!("path={},dir={}", fpath, instance.http_dir)?;
 
-		Self::stream_file(fpath, metadata, conn_data, 200, "OK")?;
+		let hit: bool;
+		let len = metadata.len();
+		{
+			let mut cache = cache.rlock()?;
+			hit = (**cache.guard()).stream_file(&fpath, len, conn_data, 200, "OK")?;
+		}
+
+		if !hit {
+			Self::stream_file(fpath, len, conn_data, 200, "OK")?;
+		}
 
 		Ok(())
 	}
 
 	fn stream_file(
 		fpath: String,
-		metadata: Metadata,
+		len: u64,
 		conn_data: &mut ConnectionData,
 		code: u16,
 		message: &str,
@@ -362,13 +373,13 @@ Content-Length: ",
 			)
 			.to_string();
 
-		let res = format!("{}{}\r\n\r\n", res, metadata.len());
+		let res = format!("{}{}\r\n\r\n", res, len);
 
 		debug!("writing {}", res)?;
 		conn_data.write_handle().write(&res.as_bytes()[..])?;
 
+		let mut buf = vec![0u8; 100];
 		loop {
-			let mut buf = vec![0u8; 100];
 			let len = buf_reader.read(&mut buf)?;
 			conn_data.write_handle().write(&buf[0..len])?;
 			if len == 0 {
@@ -551,6 +562,7 @@ Content-Length: ",
 
 	fn process_on_read(
 		config: &HttpConfig,
+		cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
 		conn_data: &mut ConnectionData,
 		ctx: &mut ThreadContext,
 		attachment: Option<AttachmentHolder>,
@@ -693,7 +705,7 @@ Content-Length: ",
 				}
 
 				if !is_callback {
-					Self::process_file(config, path, conn_data, attachment)?;
+					Self::process_file(config, cache.clone(), path, conn_data, attachment)?;
 				}
 			}
 
@@ -764,9 +776,10 @@ impl HttpServer for HttpServerImpl {
 		let mut evh = Builder::build_evh(self.config.evh_config.clone())?;
 		let config = &self.config;
 		let config = config.clone();
+		let cache = self.cache.clone();
 
 		evh.set_on_read(move |conn_data, ctx, attach| {
-			Self::process_on_read(&config, conn_data, ctx, attach)
+			Self::process_on_read(&config, cache.clone(), conn_data, ctx, attach)
 		})?;
 		evh.set_on_accept(move |conn_data, ctx| Self::process_on_accept(conn_data, ctx))?;
 		evh.set_on_close(move |conn_data, ctx| Self::process_on_close(conn_data, ctx))?;

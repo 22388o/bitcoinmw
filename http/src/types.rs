@@ -56,6 +56,18 @@ pub struct HttpHeaders<'a> {
 	pub(crate) version: HttpVersion,
 }
 
+pub trait HttpCache {
+	fn stream_file(
+		&self,
+		path: &String,
+		len: u64,
+		conn_data: &mut ConnectionData,
+		code: u16,
+		message: &str,
+	) -> Result<bool, Error>;
+	fn write_block(&mut self, path: &String, offset: u64, data: &[u8]) -> Result<(), Error>;
+}
+
 pub trait HttpServer {
 	fn start(&mut self) -> Result<(), Error>;
 	fn stop(&mut self) -> Result<(), Error>;
@@ -107,6 +119,11 @@ pub struct Builder {}
 // Crate local types
 pub(crate) struct HttpServerImpl {
 	pub(crate) config: HttpConfig,
+	pub(crate) cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
+}
+
+pub(crate) struct HttpCacheImpl {
+	pub(crate) hashtable: Box<dyn Hashtable<String, Vec<String>> + Send + Sync>,
 }
 
 pub(crate) struct HttpContext {
