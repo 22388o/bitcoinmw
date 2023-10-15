@@ -23,6 +23,7 @@ use crate::{
 };
 use bmw_deps::chrono::Utc;
 use bmw_deps::dirs;
+use bmw_deps::rand::random;
 use bmw_deps::substring::Substring;
 use bmw_err::*;
 use bmw_evh::{
@@ -339,8 +340,16 @@ Content-Length: {}\r\n\r\n{}\n",
 		let hit: bool;
 		let len = metadata.len();
 		{
-			let mut cache = cache.rlock()?;
-			hit = (**cache.guard()).stream_file(&fpath, len, conn_data, 200, "OK")?;
+			{
+				let cache = cache.rlock()?;
+				hit = (**cache.guard()).stream_file(&fpath, len, conn_data, 200, "OK")?;
+			}
+			let r = random::<u64>();
+			info!("r={}", r);
+			if hit && r % 2 == 0 {
+				let mut cache = cache.wlock()?;
+				(**cache.guard()).bring_to_front(&fpath)?;
+			}
 		}
 
 		if !hit {

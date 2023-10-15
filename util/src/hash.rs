@@ -801,6 +801,7 @@ where
 	}
 
 	fn remove_oldest_impl(&mut self) -> Result<Option<K>, Error> {
+		debug!("self.head={}", self.head)?;
 		if self.head == SLOT_EMPTY {
 			Ok(None)
 		} else {
@@ -820,12 +821,55 @@ where
 		V: Serializable + Clone,
 	{
 		match self.get_impl(key, hash)? {
-			Some((entry, mut reader)) => {
-				let value = V::read(&mut reader)?;
-				self.remove_impl(entry)?;
-				self.insert_hash_impl(Some(key), Some(&value), hash)?;
-				// TODO: this implementation can be sped up by just updating pointers instead of
-				// removing and reinserting
+			Some((entry, _reader)) => {
+				debug!(
+					"entry={},self.tail={},self.head={}",
+					entry, self.tail, self.head
+				)?;
+				if entry != self.tail {
+					let entry_slab_id = self.lookup_entry(entry);
+					let tail_slab_id = self.lookup_entry(self.tail);
+
+					let ptr_size = self.ptr_size;
+					self.slab_reader.seek(entry_slab_id, 0);
+					let mut ptrs = [0u8; 16];
+
+					self.slab_reader
+						.read_fixed_bytes(&mut ptrs[0..ptr_size * 2])?;
+					let entry_next = slice_to_usize(&ptrs[0..ptr_size])?;
+					let entry_prev = slice_to_usize(&ptrs[ptr_size..ptr_size * 2])?;
+					let entry_next_slab_id = self.lookup_entry(entry_next);
+
+					// update entry_prev_next to entry_next
+					if entry != self.head {
+						let entry_prev_slab_id = self.lookup_entry(entry_prev);
+						self.slab_writer.seek(entry_prev_slab_id, 0);
+						usize_to_slice(entry_next, &mut ptrs[0..ptr_size])?;
+						self.slab_writer.write_fixed_bytes(&ptrs[0..ptr_size])?;
+					}
+
+					// update entry_next_prev to entry_prev
+					self.slab_writer.seek(entry_next_slab_id, ptr_size);
+					usize_to_slice(entry_prev, &mut ptrs[0..ptr_size])?;
+					self.slab_writer.write_fixed_bytes(&ptrs[0..ptr_size])?;
+
+					// write the entry to point to current tail
+					self.slab_writer.seek(entry_slab_id, 0);
+					usize_to_slice(SLOT_EMPTY, &mut ptrs[0..ptr_size])?;
+					usize_to_slice(self.tail, &mut ptrs[ptr_size..ptr_size * 2])?;
+					self.slab_writer.write_fixed_bytes(&ptrs[0..ptr_size * 2])?;
+
+					// update the tail
+					self.slab_writer.seek(tail_slab_id, 0);
+					usize_to_slice(entry, &mut ptrs[0..ptr_size])?;
+					self.slab_writer.write_fixed_bytes(&ptrs[0..ptr_size])?;
+
+					self.tail = entry;
+					if entry == self.head {
+						debug!("setting head to {}", entry_next)?;
+						self.head = entry_next;
+					}
+				}
 			}
 			None => {}
 		}
@@ -942,6 +986,7 @@ where
 		let max_value = self.max_value;
 		let tail = self.tail;
 		let slab_id = self.allocate()?;
+		debug!("alloc={},entry={:?}", slab_id, entry)?;
 		self.slab_writer.seek(slab_id, 0);
 
 		// for lists we use the slab_id as the entry
@@ -2363,7 +2408,7 @@ mod test {
 	}
 
 	#[test]
-	fn test_bring_to_front() -> Result<(), Error> {
+	fn test_bring_to_front_mid_tail() -> Result<(), Error> {
 		let slabs = slab_allocator!(SlabSize(25), SlabCount(10))?;
 		let mut hashtable =
 			Builder::build_hashtable::<u32, u32>(HashtableConfig::default(), &Some(&slabs))?;
@@ -2372,19 +2417,144 @@ mod test {
 		hashtable.insert(&2, &6)?;
 
 		hashtable.bring_to_front(&1)?;
+		info!("bring to front 1")?;
 
 		hashtable.remove_oldest()?;
 
-		assert_eq!(hashtable.get(&0), Ok(None));
+		hashtable.remove_oldest()?;
 		assert_eq!(hashtable.get(&1), Ok(Some(5)));
+
+		hashtable.insert(&3, &7)?;
+		hashtable.insert(&4, &8)?;
+
+		hashtable.bring_to_front(&4)?;
+		info!("bring to front complete")?;
+		assert_eq!(hashtable.get(&3), Ok(Some(7)));
+		assert_eq!(hashtable.get(&4), Ok(Some(8)));
+		assert_eq!(hashtable.get(&1), Ok(Some(5)));
+
+		info!("remove oldest start")?;
+		hashtable.remove_oldest()?;
+		info!("remove oldest complete")?;
+
+		assert_eq!(hashtable.get(&3), Ok(Some(7)));
+		assert_eq!(hashtable.get(&4), Ok(Some(8)));
+		assert_eq!(hashtable.get(&1), Ok(None));
+		hashtable.remove_oldest()?;
+		assert_eq!(hashtable.get(&3), Ok(None));
+		assert_eq!(hashtable.get(&4), Ok(Some(8)));
+		assert_eq!(hashtable.get(&1), Ok(None));
+		hashtable.remove_oldest()?;
+		assert_eq!(hashtable.get(&3), Ok(None));
+		assert_eq!(hashtable.get(&4), Ok(None));
+		assert_eq!(hashtable.get(&1), Ok(None));
+
+		info!("end assertions")?;
+		Ok(())
+	}
+
+	#[test]
+	fn test_bring_to_front_head() -> Result<(), Error> {
+		let slabs = slab_allocator!(SlabSize(25), SlabCount(10))?;
+		let mut hashtable =
+			Builder::build_hashtable::<u32, u32>(HashtableConfig::default(), &Some(&slabs))?;
+		hashtable.insert(&0, &4)?;
+		hashtable.insert(&1, &5)?;
+		hashtable.insert(&2, &6)?;
+		info!("bring to front")?;
+		hashtable.bring_to_front(&0)?;
+		info!("end bring to front")?;
+
+		hashtable.remove_oldest()?;
+
+		info!("end rem")?;
+
+		assert_eq!(hashtable.get(&0), Ok(Some(4)));
+		assert_eq!(hashtable.get(&1), Ok(None));
 		assert_eq!(hashtable.get(&2), Ok(Some(6)));
 
 		hashtable.remove_oldest()?;
 
-		assert_eq!(hashtable.get(&0), Ok(None));
-		assert_eq!(hashtable.get(&1), Ok(Some(5)));
+		assert_eq!(hashtable.get(&0), Ok(Some(4)));
+		assert_eq!(hashtable.get(&1), Ok(None));
 		assert_eq!(hashtable.get(&2), Ok(None));
 
+		hashtable.remove_oldest()?;
+
+		assert_eq!(hashtable.get(&0), Ok(None));
+		assert_eq!(hashtable.get(&1), Ok(None));
+		assert_eq!(hashtable.get(&2), Ok(None));
+
+		hashtable.insert(&0, &10)?;
+
+		hashtable.bring_to_front(&0)?;
+
+		assert_eq!(hashtable.get(&0), Ok(Some(10)));
+
+		hashtable.insert(&0, &10)?;
+		hashtable.insert(&1, &11)?;
+		hashtable.insert(&2, &12)?;
+		hashtable.insert(&3, &13)?;
+		hashtable.insert(&4, &14)?;
+		hashtable.insert(&5, &15)?;
+
+		hashtable.bring_to_front(&2)?;
+
+		hashtable.remove_oldest()?;
+
+		assert_eq!(hashtable.get(&0), Ok(None));
+		assert_eq!(hashtable.get(&1), Ok(Some(11)));
+		assert_eq!(hashtable.get(&2), Ok(Some(12)));
+		assert_eq!(hashtable.get(&3), Ok(Some(13)));
+		assert_eq!(hashtable.get(&4), Ok(Some(14)));
+		assert_eq!(hashtable.get(&5), Ok(Some(15)));
+
+		hashtable.remove_oldest()?;
+
+		assert_eq!(hashtable.get(&0), Ok(None));
+		assert_eq!(hashtable.get(&1), Ok(None));
+		assert_eq!(hashtable.get(&2), Ok(Some(12)));
+		assert_eq!(hashtable.get(&3), Ok(Some(13)));
+		assert_eq!(hashtable.get(&4), Ok(Some(14)));
+		assert_eq!(hashtable.get(&5), Ok(Some(15)));
+
+		hashtable.remove_oldest()?;
+
+		assert_eq!(hashtable.get(&0), Ok(None));
+		assert_eq!(hashtable.get(&1), Ok(None));
+		assert_eq!(hashtable.get(&2), Ok(Some(12)));
+		assert_eq!(hashtable.get(&3), Ok(None));
+		assert_eq!(hashtable.get(&4), Ok(Some(14)));
+		assert_eq!(hashtable.get(&5), Ok(Some(15)));
+
+		hashtable.remove_oldest()?;
+
+		assert_eq!(hashtable.get(&0), Ok(None));
+		assert_eq!(hashtable.get(&1), Ok(None));
+		assert_eq!(hashtable.get(&2), Ok(Some(12)));
+		assert_eq!(hashtable.get(&3), Ok(None));
+		assert_eq!(hashtable.get(&4), Ok(None));
+		assert_eq!(hashtable.get(&5), Ok(Some(15)));
+
+		hashtable.remove_oldest()?;
+
+		assert_eq!(hashtable.get(&0), Ok(None));
+		assert_eq!(hashtable.get(&1), Ok(None));
+		assert_eq!(hashtable.get(&2), Ok(Some(12)));
+		assert_eq!(hashtable.get(&3), Ok(None));
+		assert_eq!(hashtable.get(&4), Ok(None));
+		assert_eq!(hashtable.get(&5), Ok(None));
+
+		hashtable.remove_oldest()?;
+
+		assert_eq!(hashtable.get(&0), Ok(None));
+		assert_eq!(hashtable.get(&1), Ok(None));
+		assert_eq!(hashtable.get(&2), Ok(None));
+		assert_eq!(hashtable.get(&3), Ok(None));
+		assert_eq!(hashtable.get(&4), Ok(None));
+		assert_eq!(hashtable.get(&5), Ok(None));
+
+		hashtable.bring_to_front(&1)?;
 		Ok(())
 	}
 }

@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bmw_deps::rand::random;
 use bmw_err::*;
 use bmw_evh::{ConnectionData, EventHandlerConfig};
 use bmw_util::*;
@@ -66,6 +67,7 @@ pub trait HttpCache {
 		message: &str,
 	) -> Result<bool, Error>;
 	fn write_block(&mut self, path: &String, offset: u64, data: &[u8]) -> Result<(), Error>;
+	fn bring_to_front(&mut self, path: &String) -> Result<(), Error>;
 }
 
 pub trait HttpServer {

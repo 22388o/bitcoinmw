@@ -84,4 +84,8 @@ impl HttpCache for HttpCacheImpl {
 	fn write_block(&mut self, path: &String, offset: u64, data: &[u8]) -> Result<(), Error> {
 		todo!()
 	}
+
+	fn bring_to_front(&mut self, path: &String) -> Result<(), Error> {
+		todo!()
+	}
 }
