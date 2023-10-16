@@ -146,7 +146,7 @@
 <span class="macro">info!</span>();
 
 <span class="doccomment">/// Utility to convert a usize to an arbitrary length slice (up to 8 bytes).
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>usize_to_slice(<span class="kw-2">mut </span>n: usize, slice: <span class="kw-2">&amp;mut </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+</span><span class="kw">pub fn </span>usize_to_slice(<span class="kw-2">mut </span>n: usize, slice: <span class="kw-2">&amp;mut </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 	<span class="kw">let </span>len = slice.len();
 	<span class="kw">if </span>len &gt; <span class="number">8 </span>{
 		<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">&quot;slice must be equal to or less than 8 bytes ({})&quot;</span>, len);
@@ -169,7 +169,7 @@
 }
 
 <span class="doccomment">/// Utility to convert an arbitrary length slice (up to 8 bytes) to a usize.
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>slice_to_usize(slice: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
+</span><span class="kw">pub fn </span>slice_to_usize(slice: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
 	<span class="kw">let </span>len = slice.len();
 	<span class="kw">if </span>len &gt; <span class="number">8 </span>{
 		<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">&quot;slice must be equal to or less than 8 bytes ({})&quot;</span>, len);

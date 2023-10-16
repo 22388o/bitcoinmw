@@ -1865,10 +1865,10 @@
 	</span><span class="kw">fn </span>bring_to_front(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="doccomment">/// Remove the oldest entry in the hashtable.
 	</span><span class="kw">fn </span>remove_oldest(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
-	<span class="doccomment">/// Get raw data and store it in `data`. Read the nth 512 byte chunk.
-	</span><span class="kw">fn </span>raw_get(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: <span class="kw-2">&amp;mut </span>[u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt;;
-	<span class="doccomment">/// Write raw data from `data` in the nth 512 byte chunk.
-	</span><span class="kw">fn </span>raw_write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: [u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+	<span class="doccomment">/// Get raw data and store it in `data` with given offset.
+	</span><span class="kw">fn </span>raw_read(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, offset: usize, data: <span class="kw-2">&amp;mut </span>[u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt;;
+	<span class="doccomment">/// Write raw data from `data` with given offset.
+	</span><span class="kw">fn </span>raw_write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, offset: usize, data: <span class="kw-2">&amp;</span>[u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 }
 
 <span class="doccomment">/// A slab allocated Hashset. Most of the implementation is shared with [`crate::Hashtable`].

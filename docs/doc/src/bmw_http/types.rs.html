@@ -199,12 +199,12 @@
 	<span class="kw">fn </span>stream_file(
 		<span class="kw-2">&amp;</span><span class="self">self</span>,
 		path: <span class="kw-2">&amp;</span>String,
-		len: u64,
 		conn_data: <span class="kw-2">&amp;mut </span>ConnectionData,
 		code: u16,
 		message: <span class="kw-2">&amp;</span>str,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt;;
-	<span class="kw">fn </span>write_block(<span class="kw-2">&amp;mut </span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>String, offset: u64, data: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+	<span class="kw">fn </span>write_len(<span class="kw-2">&amp;mut </span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>String, len: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+	<span class="kw">fn </span>write_block(<span class="kw-2">&amp;mut </span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>String, offset: usize, data: <span class="kw-2">&amp;</span>[u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="kw">fn </span>bring_to_front(<span class="kw-2">&amp;mut </span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 }
 
@@ -263,7 +263,7 @@
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpCacheImpl {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) hashtable: Box&lt;<span class="kw">dyn </span>Hashtable&lt;String, Vec&lt;String&gt;&gt; + Send + Sync&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) hashtable: Box&lt;<span class="kw">dyn </span>Hashtable&lt;String, usize&gt; + Send + Sync&gt;,
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpContext {

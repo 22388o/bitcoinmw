@@ -948,6 +948,32 @@
 <a href="#948" id="948">948</a>
 <a href="#949" id="949">949</a>
 <a href="#950" id="950">950</a>
+<a href="#951" id="951">951</a>
+<a href="#952" id="952">952</a>
+<a href="#953" id="953">953</a>
+<a href="#954" id="954">954</a>
+<a href="#955" id="955">955</a>
+<a href="#956" id="956">956</a>
+<a href="#957" id="957">957</a>
+<a href="#958" id="958">958</a>
+<a href="#959" id="959">959</a>
+<a href="#960" id="960">960</a>
+<a href="#961" id="961">961</a>
+<a href="#962" id="962">962</a>
+<a href="#963" id="963">963</a>
+<a href="#964" id="964">964</a>
+<a href="#965" id="965">965</a>
+<a href="#966" id="966">966</a>
+<a href="#967" id="967">967</a>
+<a href="#968" id="968">968</a>
+<a href="#969" id="969">969</a>
+<a href="#970" id="970">970</a>
+<a href="#971" id="971">971</a>
+<a href="#972" id="972">972</a>
+<a href="#973" id="973">973</a>
+<a href="#974" id="974">974</a>
+<a href="#975" id="975">975</a>
+<a href="#976" id="976">976</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1154,6 +1180,7 @@
 		instance: <span class="kw-2">&amp;</span>HttpInstance,
 		code: u16,
 		message: <span class="kw-2">&amp;</span>str,
+		<span class="kw-2">mut </span>cache: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>HttpCache + Send + Sync&gt;&gt;&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>slash = <span class="kw">if </span>instance.http_dir.ends_with(<span class="string">&quot;/&quot;</span>) {
 			<span class="string">&quot;&quot;
@@ -1173,7 +1200,7 @@
 
 		<span class="kw">match </span>metadata {
 			<span class="prelude-val">Ok</span>(metadata) =&gt; {
-				<span class="self">Self</span>::stream_file(fpath, metadata.len(), conn_data, code, message)<span class="question-mark">?</span>;
+				<span class="self">Self</span>::stream_file(fpath, metadata.len(), conn_data, code, message, cache)<span class="question-mark">?</span>;
 			}
 			<span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; {
 				<span class="kw">let </span>dt = Utc::now();
@@ -1240,7 +1267,7 @@ Content-Length: {}\r\n\r\n{}\n&quot;</span>,
 			.unwrap_or(<span class="macro">format!</span>(<span class="string">&quot;{}/&quot;</span>, instance.http_dir));
 
 		<span class="kw">if </span>!fpath.starts_with(<span class="kw-2">&amp;</span>instance.http_dir) || !path.starts_with(<span class="string">&quot;/&quot;</span>) {
-			<span class="self">Self</span>::process_error(config, path, conn_data, instance, <span class="number">403</span>, <span class="string">&quot;Forbidden&quot;</span>)<span class="question-mark">?</span>;
+			<span class="self">Self</span>::process_error(config, path, conn_data, instance, <span class="number">403</span>, <span class="string">&quot;Forbidden&quot;</span>, cache)<span class="question-mark">?</span>;
 			<span class="kw">return </span><span class="prelude-val">Ok</span>(());
 		}
 
@@ -1250,7 +1277,7 @@ Content-Length: {}\r\n\r\n{}\n&quot;</span>,
 			<span class="prelude-val">Ok</span>(metadata) =&gt; metadata,
 			<span class="prelude-val">Err</span>(_e) =&gt; {
 				<span class="macro">debug!</span>(<span class="string">&quot;404path={},dir={}&quot;</span>, fpath, instance.http_dir)<span class="question-mark">?</span>;
-				<span class="self">Self</span>::process_error(config, path, conn_data, instance, <span class="number">404</span>, <span class="string">&quot;Not Found&quot;</span>)<span class="question-mark">?</span>;
+				<span class="self">Self</span>::process_error(config, path, conn_data, instance, <span class="number">404</span>, <span class="string">&quot;Not Found&quot;</span>, cache)<span class="question-mark">?</span>;
 				<span class="kw">return </span><span class="prelude-val">Ok</span>(());
 			}
 		};
@@ -1278,7 +1305,7 @@ Content-Length: {}\r\n\r\n{}\n&quot;</span>,
 			<span class="kw">if </span>fpath_ret.is_some() &amp;&amp; metadata_ret.is_some() {
 				(fpath_ret.unwrap(), metadata_ret.unwrap())
 			} <span class="kw">else </span>{
-				<span class="self">Self</span>::process_error(config, path, conn_data, instance, <span class="number">404</span>, <span class="string">&quot;Not Found&quot;</span>)<span class="question-mark">?</span>;
+				<span class="self">Self</span>::process_error(config, path, conn_data, instance, <span class="number">404</span>, <span class="string">&quot;Not Found&quot;</span>, cache)<span class="question-mark">?</span>;
 				<span class="kw">return </span><span class="prelude-val">Ok</span>(());
 			}
 		} <span class="kw">else </span>{
@@ -1288,11 +1315,10 @@ Content-Length: {}\r\n\r\n{}\n&quot;</span>,
 		<span class="macro">debug!</span>(<span class="string">&quot;path={},dir={}&quot;</span>, fpath, instance.http_dir)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>hit: bool;
-		<span class="kw">let </span>len = metadata.len();
 		{
 			{
 				<span class="kw">let </span>cache = cache.rlock()<span class="question-mark">?</span>;
-				hit = (<span class="kw-2">**</span>cache.guard()).stream_file(<span class="kw-2">&amp;</span>fpath, len, conn_data, <span class="number">200</span>, <span class="string">&quot;OK&quot;</span>)<span class="question-mark">?</span>;
+				hit = (<span class="kw-2">**</span>cache.guard()).stream_file(<span class="kw-2">&amp;</span>fpath, conn_data, <span class="number">200</span>, <span class="string">&quot;OK&quot;</span>)<span class="question-mark">?</span>;
 			}
 			<span class="kw">let </span>r = random::&lt;u64&gt;();
 			<span class="macro">info!</span>(<span class="string">&quot;r={}&quot;</span>, r);
@@ -1303,7 +1329,7 @@ Content-Length: {}\r\n\r\n{}\n&quot;</span>,
 		}
 
 		<span class="kw">if </span>!hit {
-			<span class="self">Self</span>::stream_file(fpath, len, conn_data, <span class="number">200</span>, <span class="string">&quot;OK&quot;</span>)<span class="question-mark">?</span>;
+			<span class="self">Self</span>::stream_file(fpath, metadata.len(), conn_data, <span class="number">200</span>, <span class="string">&quot;OK&quot;</span>, cache)<span class="question-mark">?</span>;
 		}
 
 		<span class="prelude-val">Ok</span>(())
@@ -1315,8 +1341,9 @@ Content-Length: {}\r\n\r\n{}\n&quot;</span>,
 		conn_data: <span class="kw-2">&amp;mut </span>ConnectionData,
 		code: u16,
 		message: <span class="kw-2">&amp;</span>str,
+		<span class="kw-2">mut </span>cache: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>HttpCache + Send + Sync&gt;&gt;&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>file = File::open(fpath)<span class="question-mark">?</span>;
+		<span class="kw">let </span>file = File::open(fpath.clone())<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>buf_reader = BufReader::new(file);
 
 		<span class="kw">let </span>dt = Utc::now();
@@ -1334,16 +1361,32 @@ Content-Length: &quot;</span>,
 
 		<span class="kw">let </span>res = <span class="macro">format!</span>(<span class="string">&quot;{}{}\r\n\r\n&quot;</span>, res, len);
 
-		<span class="macro">debug!</span>(<span class="string">&quot;writing {}&quot;</span>, res)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">&quot;writing {}&quot;</span>, res)<span class="question-mark">?</span>;
 		conn_data.write_handle().write(<span class="kw-2">&amp;</span>res.as_bytes()[..])<span class="question-mark">?</span>;
 
-		<span class="kw">let </span><span class="kw-2">mut </span>buf = <span class="macro">vec!</span>[<span class="number">0u8</span>; <span class="number">100</span>];
+		<span class="kw">let </span><span class="kw-2">mut </span>buf = <span class="macro">vec!</span>[<span class="number">0u8</span>; <span class="number">512</span>];
+		<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
 		<span class="kw">loop </span>{
-			<span class="kw">let </span>len = buf_reader.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
-			conn_data.write_handle().write(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len])<span class="question-mark">?</span>;
-			<span class="kw">if </span>len == <span class="number">0 </span>{
+			<span class="kw">let </span>blen = buf_reader.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+			conn_data.write_handle().write(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..blen])<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(
+				<span class="string">&quot;write &#39;{}&#39;&quot;</span>,
+				std::str::from_utf8(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..blen]).unwrap_or(<span class="string">&quot;&quot;</span>)
+			);
+
+			<span class="kw">if </span>blen == <span class="number">0 </span>{
 				<span class="kw">break</span>;
 			}
+
+			{
+				<span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
+				<span class="kw">if </span>i == <span class="number">0 </span>{
+					(<span class="kw-2">**</span>cache.guard()).write_len(<span class="kw-2">&amp;</span>fpath, <span class="macro">try_into!</span>(len)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+				}
+				(<span class="kw-2">**</span>cache.guard()).write_block(<span class="kw-2">&amp;</span>fpath, i, <span class="kw-2">&amp;</span><span class="macro">try_into!</span>(buf[<span class="number">0</span>..<span class="number">512</span>])<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+			}
+
+			i += <span class="number">1</span>;
 		}
 
 		<span class="prelude-val">Ok</span>(())
@@ -1500,6 +1543,7 @@ Content-Length: &quot;</span>,
 		conn_data: <span class="kw-2">&amp;mut </span>ConnectionData,
 		instance: <span class="kw-2">&amp;</span>HttpInstance,
 		err: Error,
+		<span class="kw-2">mut </span>cache: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>HttpCache + Send + Sync&gt;&gt;&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="macro">debug!</span>(<span class="string">&quot;Err: {:?}&quot;</span>, err.inner())<span class="question-mark">?</span>;
 		<span class="kw">let </span>err_text = err.inner();
@@ -1511,9 +1555,10 @@ Content-Length: &quot;</span>,
 				instance,
 				<span class="number">501</span>,
 				<span class="string">&quot;Unknown Request Type&quot;</span>,
+				cache,
 			)<span class="question-mark">?</span>;
 		} <span class="kw">else </span>{
-			<span class="self">Self</span>::process_error(config, path, conn_data, instance, <span class="number">400</span>, <span class="string">&quot;Bad Request&quot;</span>)<span class="question-mark">?</span>;
+			<span class="self">Self</span>::process_error(config, path, conn_data, instance, <span class="number">400</span>, <span class="string">&quot;Bad Request&quot;</span>, cache)<span class="question-mark">?</span>;
 		}
 		conn_data.write_handle().close()<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
@@ -1597,7 +1642,7 @@ Content-Length: &quot;</span>,
 			<span class="kw">let </span>headers = <span class="kw">match </span>headers {
 				<span class="prelude-val">Ok</span>(headers) =&gt; headers,
 				<span class="prelude-val">Err</span>(e) =&gt; {
-					<span class="self">Self</span>::header_error(config, <span class="string">&quot;&quot;</span>.to_string(), conn_data, attachment, e)<span class="question-mark">?</span>;
+					<span class="self">Self</span>::header_error(config, <span class="string">&quot;&quot;</span>.to_string(), conn_data, attachment, e, cache)<span class="question-mark">?</span>;
 					<span class="kw">return </span><span class="prelude-val">Ok</span>(());
 				}
 			};
@@ -1613,7 +1658,14 @@ Content-Length: &quot;</span>,
 				<span class="kw">let </span>path = <span class="kw">match </span>headers.path() {
 					<span class="prelude-val">Ok</span>(path) =&gt; path,
 					<span class="prelude-val">Err</span>(e) =&gt; {
-						<span class="self">Self</span>::header_error(config, <span class="string">&quot;&quot;</span>.to_string(), conn_data, attachment, e)<span class="question-mark">?</span>;
+						<span class="self">Self</span>::header_error(
+							config,
+							<span class="string">&quot;&quot;</span>.to_string(),
+							conn_data,
+							attachment,
+							e,
+							cache,
+						)<span class="question-mark">?</span>;
 						<span class="kw">return </span><span class="prelude-val">Ok</span>(());
 					}
 				};
