@@ -431,6 +431,15 @@ where
 	fn remove_oldest(&mut self) -> Result<Option<K>, Error> {
 		self.static_impl.remove_oldest_impl()
 	}
+	fn raw_get(&self, key: &K, chunk: usize, data: [u8; 512]) -> Result<(), Error> {
+		self.static_impl.raw_get_impl(key, chunk, data)
+	}
+	fn raw_allocate(&mut self, key: &K, chunks: usize) -> Result<(), Error> {
+		self.static_impl.raw_allocate_impl(key, chunks)
+	}
+	fn raw_write(&mut self, key: &K, chunk: usize, data: [u8; 512]) -> Result<(), Error> {
+		self.static_impl.raw_write_impl(key, chunk, data)
+	}
 }
 
 impl<K> Hashset<K> for HashImplSync<K>
@@ -488,7 +497,8 @@ where
 	V: Serializable + Debug + PartialEq + Clone,
 {
 	fn push(&mut self, value: V) -> Result<(), Error> {
-		self.static_impl.insert_impl::<V>(Some(&value), None, None)
+		self.static_impl
+			.insert_impl::<V>(Some(&value), None, None, None)
 	}
 
 	fn iter<'b>(&'b self) -> Box<dyn Iterator<Item = V> + 'b> {
@@ -829,7 +839,6 @@ where
 				if entry != self.tail {
 					let entry_slab_id = self.lookup_entry(entry);
 					let tail_slab_id = self.lookup_entry(self.tail);
-
 					let ptr_size = self.ptr_size;
 					self.slab_reader.seek(entry_slab_id, 0);
 					let mut ptrs = [0u8; 16];
@@ -875,6 +884,16 @@ where
 		}
 
 		Ok(())
+	}
+
+	fn raw_get_impl(&self, key: &K, chunk: usize, data: [u8; 512]) -> Result<(), Error> {
+		todo!()
+	}
+	fn raw_allocate_impl(&mut self, key: &K, chunks: usize) -> Result<(), Error> {
+		todo!()
+	}
+	fn raw_write_impl(&mut self, key: &K, chunk: usize, data: [u8; 512]) -> Result<(), Error> {
+		todo!()
 	}
 
 	// None line reported as not covered, but it is
@@ -968,7 +987,7 @@ where
 			i += 1;
 		}
 
-		self.insert_impl(key, value, Some(entry))
+		self.insert_impl(key, value, None, Some(entry))
 	}
 
 	// fully covered but tarpaulin reporting a few lines uncovered
@@ -977,6 +996,7 @@ where
 		&mut self,
 		key: Option<&K>,
 		value: Option<&V>,
+		raw_value: Option<(usize, [u8; 512])>,
 		entry: Option<usize>,
 	) -> Result<(), Error>
 	where
@@ -1027,6 +1047,12 @@ where
 					return Err(e);
 				}
 			}
+		}
+
+		if raw_value.is_some() {
+			let raw_value = raw_value.unwrap();
+			self.slab_writer.seek(slab_id, 10);
+			self.slab_writer.write_fixed_bytes(raw_value.1)?;
 		}
 
 		debug!("array update")?;
@@ -1286,6 +1312,15 @@ where
 	fn remove_oldest(&mut self) -> Result<Option<K>, Error> {
 		self.remove_oldest_impl()
 	}
+	fn raw_get(&self, key: &K, chunk: usize, data: [u8; 512]) -> Result<(), Error> {
+		self.raw_get_impl(key, chunk, data)
+	}
+	fn raw_allocate(&mut self, key: &K, chunks: usize) -> Result<(), Error> {
+		self.raw_allocate_impl(key, chunks)
+	}
+	fn raw_write(&mut self, key: &K, chunk: usize, data: [u8; 512]) -> Result<(), Error> {
+		self.raw_write_impl(key, chunk, data)
+	}
 }
 
 impl<K> Hashset<K> for HashImpl<K>
@@ -1342,7 +1377,7 @@ where
 	V: Serializable + Debug + Clone,
 {
 	fn push(&mut self, value: V) -> Result<(), Error> {
-		self.insert_impl::<V>(Some(&value), None, None)
+		self.insert_impl::<V>(Some(&value), None, None, None)
 	}
 
 	fn iter<'b>(&'b self) -> Box<dyn Iterator<Item = V> + 'b> {

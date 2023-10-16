@@ -313,10 +313,13 @@ impl SlabWriter {
 		bytes: &[u8],
 		slab_size: usize,
 		bytes_per_slab: usize,
+		skip: bool,
 	) -> Result<(), Error> {
 		debug!("process slab mut: {}", slab_mut.id(),)?;
 		let slab_mut = slab_mut.get_mut();
-		slab_mut[self_offset..self_offset + wlen].clone_from_slice(bytes);
+		if !skip {
+			slab_mut[self_offset..self_offset + wlen].clone_from_slice(bytes);
+		}
 
 		if is_allocated {
 			for i in bytes_per_slab..slab_size {
@@ -326,15 +329,38 @@ impl SlabWriter {
 		Ok(())
 	}
 
+	pub fn skip_bytes(&mut self, count: usize) -> Result<(), Error> {
+		match self.slabs.clone() {
+			Some(slabs) => {
+				let slabs = slabs.borrow_mut();
+				self.do_write_fixed_bytes_impl(&[0u8; 0], Some(count), Some(slabs))
+			}
+			None => self.do_write_fixed_bytes_impl(&[0u8; 0], Some(count), None),
+		}
+	}
+
 	// appears to be 100% covered. Tarpaulin reprots a few lines.
 	#[cfg(not(tarpaulin_include))]
 	pub(crate) fn write_fixed_bytes_impl<T: AsRef<[u8]>>(
 		&mut self,
 		bytes: T,
+		slabs: Option<RefMut<dyn SlabAllocator>>,
+	) -> Result<(), Error> {
+		self.do_write_fixed_bytes_impl(bytes, None, slabs)
+	}
+
+	fn do_write_fixed_bytes_impl<T: AsRef<[u8]>>(
+		&mut self,
+		bytes: T,
+		count: Option<usize>,
 		mut slabs: Option<RefMut<dyn SlabAllocator>>,
 	) -> Result<(), Error> {
+		let skip = count.is_some();
 		let bytes = bytes.as_ref();
-		let bytes_len = bytes.len();
+		let bytes_len = match count {
+			Some(count) => count,
+			None => bytes.len(),
+		};
 		debug!("write blen={}", bytes_len)?;
 		if bytes_len == 0 {
 			return Ok(());
@@ -365,6 +391,12 @@ impl SlabWriter {
 			if self.offset < bytes_per_slab {
 				debug!("true: slab_id = {}", slab_id)?;
 
+				let b = if skip {
+					&[0; 0usize]
+				} else {
+					&bytes[bytes_offset..bytes_offset + wlen]
+				};
+
 				match &mut slabs {
 					Some(slabs) => {
 						debug!("write from existing slab {}", wlen)?;
@@ -374,9 +406,10 @@ impl SlabWriter {
 							false,
 							wlen,
 							self.offset,
-							&bytes[bytes_offset..bytes_offset + wlen],
+							b,
 							slab_size,
 							bytes_per_slab,
+							skip,
 						)?;
 					}
 					None => GLOBAL_SLAB_ALLOCATOR.with(|f| -> Result<(), Error> {
@@ -387,9 +420,10 @@ impl SlabWriter {
 							false,
 							wlen,
 							self.offset,
-							&bytes[bytes_offset..bytes_offset + wlen],
+							b,
 							slab_size,
 							bytes_per_slab,
+							skip,
 						)?;
 						Ok(())
 					})?,
@@ -405,6 +439,12 @@ impl SlabWriter {
 						} else {
 							buffer_rem
 						};
+
+						let b = if skip {
+							&[0; 0usize]
+						} else {
+							&bytes[bytes_offset..bytes_offset + wlen]
+						};
 						match slabs.allocate() {
 							Ok(mut slab) => {
 								debug!(
@@ -417,9 +457,10 @@ impl SlabWriter {
 									true,
 									wlen,
 									0,
-									&bytes[bytes_offset..bytes_offset + wlen],
+									b,
 									slab_size,
 									bytes_per_slab,
+									skip,
 								)?;
 								slab.id()
 							}
@@ -437,6 +478,11 @@ impl SlabWriter {
 						} else {
 							buffer_rem
 						};
+						let b = if skip {
+							&[0; 0usize]
+						} else {
+							&bytes[bytes_offset..bytes_offset + wlen]
+						};
 						debug!("wlen={}", wlen)?;
 						match slabs.allocate() {
 							Ok(mut slab) => {
@@ -446,9 +492,10 @@ impl SlabWriter {
 									true,
 									wlen,
 									0,
-									&bytes[bytes_offset..bytes_offset + wlen],
+									b,
 									slab_size,
 									bytes_per_slab,
+									skip,
 								)?;
 								Ok(slab.id())
 							}
@@ -599,28 +646,44 @@ impl<'a> SlabReader {
 		offset: usize,
 		rlen: usize,
 		buf: &mut [u8],
+		skip: bool,
 	) -> Result<(), Error> {
 		match &self.slabs {
 			Some(slabs) => {
 				let slabs: Ref<_> = slabs.borrow();
 				let slab = slabs.get(id)?;
-				buf.clone_from_slice(&slab.get()[offset..(offset + rlen)]);
+				if !skip {
+					buf.clone_from_slice(&slab.get()[offset..(offset + rlen)]);
+				}
 				Ok(())
 			}
 			None => GLOBAL_SLAB_ALLOCATOR.with(|f| -> Result<(), Error> {
 				let slabs = unsafe { f.get().as_ref().unwrap() };
 				let slab = slabs.get(id)?;
-				buf.clone_from_slice(&slab.get()[offset..(offset + rlen)]);
+				if !skip {
+					buf.clone_from_slice(&slab.get()[offset..(offset + rlen)]);
+				}
 				Ok(())
 			}),
 		}
 	}
 
+	pub fn skip_bytes(&mut self, count: usize) -> Result<(), Error> {
+		self.do_read_exact(&mut [0u8; 0], Some(count))
+	}
+
 	// only the break line is reported as uncovered, but it is covered
 	#[cfg(not(tarpaulin_include))]
 	pub fn read_exact(&mut self, buf: &mut [u8]) -> Result<(), Error> {
+		self.do_read_exact(buf, None)
+	}
+
+	pub fn do_read_exact(&mut self, buf: &mut [u8], count: Option<usize>) -> Result<(), Error> {
 		let mut buf_offset = 0;
-		let buf_len = buf.len();
+		let buf_len = match count {
+			Some(count) => count,
+			None => buf.len(),
+		};
 		debug!("buflen={}", buf_len)?;
 		loop {
 			if buf_offset >= buf_len {
@@ -644,12 +707,13 @@ impl<'a> SlabReader {
 
 			debug!("read exact rln={}", rlen)?;
 
-			self.read_bytes(
-				self.slab_id,
-				self.offset,
-				rlen,
-				&mut buf[buf_offset..buf_offset + rlen],
-			)?;
+			let b = if count.is_some() {
+				&mut [0; 0usize]
+			} else {
+				&mut buf[buf_offset..buf_offset + rlen]
+			};
+
+			self.read_bytes(self.slab_id, self.offset, rlen, b, count.is_some())?;
 			debug!("buf[first]={}", buf[buf_offset])?;
 			buf_offset += rlen;
 			debug!("buf_offset={}", buf_offset)?;
@@ -966,6 +1030,26 @@ mod test {
 		let ser_in = S::read(&mut slab_reader)?;
 		assert_eq!(ser_in, ser_out);
 
+		Ok(())
+	}
+
+	#[test]
+	fn test_skip_bytes() -> Result<(), Error> {
+		let slabs = slab_allocator(1024, 10_240)?;
+
+		let slab_id = {
+			let mut slabs: RefMut<_> = slabs.borrow_mut();
+			let slab = slabs.allocate()?;
+			slab.id()
+		};
+
+		let mut slab_writer = SlabWriter::new(Some(slabs.clone()), slab_id, None)?;
+		slab_writer.skip_bytes(800)?;
+		slab_writer.write_u128(123)?;
+
+		let mut slab_reader = SlabReader::new(Some(slabs.clone()), slab_id, None)?;
+		slab_reader.skip_bytes(800)?;
+		assert_eq!(slab_reader.read_u128()?, 123);
 		Ok(())
 	}
 

@@ -502,6 +502,10 @@ where
 	fn bring_to_front(&mut self, key: &K) -> Result<(), Error>;
 	/// Remove the oldest entry in the hashtable.
 	fn remove_oldest(&mut self) -> Result<Option<K>, Error>;
+	/// Get raw data and store it in `data`. Read the nth 512 byte chunk.
+	fn raw_get(&self, key: &K, chunk: usize, data: [u8; 512]) -> Result<(), Error>;
+	fn raw_allocate(&mut self, key: &K, chunk: usize) -> Result<(), Error>;
+	fn raw_write(&mut self, key: &K, chunk: usize, data: [u8; 512]) -> Result<(), Error>;
 }
 
 /// A slab allocated Hashset. Most of the implementation is shared with [`crate::Hashtable`].
