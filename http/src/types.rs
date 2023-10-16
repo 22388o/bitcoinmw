@@ -61,12 +61,12 @@ pub trait HttpCache {
 	fn stream_file(
 		&self,
 		path: &String,
-		len: u64,
 		conn_data: &mut ConnectionData,
 		code: u16,
 		message: &str,
 	) -> Result<bool, Error>;
-	fn write_block(&mut self, path: &String, offset: u64, data: &[u8]) -> Result<(), Error>;
+	fn write_len(&mut self, path: &String, len: usize) -> Result<(), Error>;
+	fn write_block(&mut self, path: &String, offset: usize, data: &[u8; 512]) -> Result<(), Error>;
 	fn bring_to_front(&mut self, path: &String) -> Result<(), Error>;
 }
 
@@ -125,7 +125,7 @@ pub(crate) struct HttpServerImpl {
 }
 
 pub(crate) struct HttpCacheImpl {
-	pub(crate) hashtable: Box<dyn Hashtable<String, Vec<String>> + Send + Sync>,
+	pub(crate) hashtable: Box<dyn Hashtable<String, usize> + Send + Sync>,
 }
 
 pub(crate) struct HttpContext {

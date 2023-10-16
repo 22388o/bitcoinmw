@@ -431,20 +431,21 @@ where
 	fn remove_oldest(&mut self) -> Result<(), Error> {
 		self.static_impl.remove_oldest_impl()
 	}
-	fn raw_get(&self, key: &K, chunk: usize, data: &mut [u8; 512]) -> Result<bool, Error> {
+	fn raw_read(&self, key: &K, offset: usize, data: &mut [u8; 512]) -> Result<bool, Error> {
 		let mut hasher = DefaultHasher::new();
 		key.hash(&mut hasher);
 		let hash = hasher.finish() as usize;
-		self.static_impl.raw_get_impl(key, hash, chunk, data)
+		self.static_impl.raw_read_impl(key, hash, offset, data)
 	}
-	fn raw_write(&mut self, key: &K, chunk: usize, data: [u8; 512]) -> Result<(), Error>
+	fn raw_write(&mut self, key: &K, offset: usize, data: &[u8; 512]) -> Result<(), Error>
 	where
 		V: Clone,
 	{
 		let mut hasher = DefaultHasher::new();
 		key.hash(&mut hasher);
 		let hash = hasher.finish() as usize;
-		self.static_impl.raw_write_impl::<V>(key, hash, chunk, data)
+		self.static_impl
+			.raw_write_impl::<V>(key, hash, offset, data)
 	}
 }
 
@@ -504,7 +505,7 @@ where
 {
 	fn push(&mut self, value: V) -> Result<(), Error> {
 		self.static_impl
-			.insert_impl::<V>(Some(&value), None, None, None)
+			.insert_impl::<V>(Some(&value), None, None, None, None)
 	}
 
 	fn iter<'b>(&'b self) -> Box<dyn Iterator<Item = V> + 'b> {
@@ -885,11 +886,11 @@ where
 		Ok(())
 	}
 
-	fn raw_get_impl(
+	fn raw_read_impl(
 		&self,
 		key: &K,
 		hash: usize,
-		chunk: usize,
+		offset: usize,
 		data: &mut [u8; 512],
 	) -> Result<bool, Error>
 	where
@@ -897,7 +898,7 @@ where
 	{
 		match self.get_impl(key, hash)? {
 			Some((_entry, mut reader)) => {
-				reader.skip_bytes(512 * chunk)?;
+				reader.skip_bytes(offset)?;
 				reader.read_fixed_bytes(data)?;
 				Ok(true)
 			}
@@ -908,14 +909,14 @@ where
 		&mut self,
 		key: &K,
 		hash: usize,
-		chunk: usize,
-		data: [u8; 512],
+		offset: usize,
+		data: &[u8; 512],
 	) -> Result<(), Error>
 	where
 		K: PartialEq,
 		V: Clone + Serializable,
 	{
-		self.insert_hash_impl::<V>(Some(key), None, Some((chunk, data)), hash)
+		self.insert_hash_impl::<V>(Some(key), None, Some((offset, data)), hash)
 	}
 
 	// None line reported as not covered, but it is
@@ -967,7 +968,7 @@ where
 		&mut self,
 		key: Option<&K>,
 		value: Option<&V>,
-		raw_chunk: Option<(usize, [u8; 512])>,
+		raw_chunk: Option<(usize, &[u8; 512])>,
 		hash: usize,
 	) -> Result<(), Error>
 	where
@@ -986,6 +987,7 @@ where
 		}
 
 		let mut i = 0;
+		let mut slab_id = self.max_value;
 		loop {
 			if i >= entry_array_len || self.debug_entry_array_len {
 				let msg = "HashImpl: Capacity exceeded";
@@ -1001,7 +1003,12 @@ where
 			if kr.is_some() {
 				let k = kr.unwrap().0;
 				if &k == key_val {
-					self.remove_impl(entry)?;
+					debug!("match")?;
+					if raw_chunk.is_none() {
+						self.remove_impl(entry)?;
+					} else {
+						slab_id = entry_value;
+					}
 					break;
 				}
 			}
@@ -1009,8 +1016,17 @@ where
 			entry = (entry + 1) % entry_array_len;
 			i += 1;
 		}
-
-		self.insert_impl(key, value, raw_chunk, Some(entry))
+		debug!("slab_id={}", slab_id)?;
+		self.insert_impl(
+			key,
+			value,
+			raw_chunk,
+			Some(entry),
+			match slab_id != self.max_value {
+				true => Some(slab_id),
+				false => None,
+			},
+		)
 	}
 
 	// fully covered but tarpaulin reporting a few lines uncovered
@@ -1019,16 +1035,25 @@ where
 		&mut self,
 		key: Option<&K>,
 		value: Option<&V>,
-		raw_value: Option<(usize, [u8; 512])>,
+		raw_value: Option<(usize, &[u8; 512])>,
 		entry: Option<usize>,
+		slab_id_allocated: Option<usize>,
 	) -> Result<(), Error>
 	where
 		V: Serializable + Clone,
 	{
+		debug!(
+			"in insert impl with raw value = {:?}, entry = {:?}",
+			raw_value, entry
+		)?;
 		let ptr_size = self.ptr_size;
 		let max_value = self.max_value;
 		let tail = self.tail;
-		let slab_id = self.allocate()?;
+		debug!("in insert_impl")?;
+		let slab_id = match slab_id_allocated {
+			Some(slab_id) => slab_id,
+			None => self.allocate()?,
+		};
 		debug!("alloc={},entry={:?}", slab_id, entry)?;
 		self.slab_writer.seek(slab_id, 0);
 
@@ -1074,7 +1099,7 @@ where
 
 		if raw_value.is_some() {
 			let raw_value = raw_value.unwrap();
-			self.slab_writer.skip_bytes(raw_value.0 * 512)?;
+			self.slab_writer.skip_bytes(raw_value.0)?;
 			self.slab_writer.write_fixed_bytes(raw_value.1)?;
 		}
 
@@ -1337,13 +1362,13 @@ where
 	fn remove_oldest(&mut self) -> Result<(), Error> {
 		self.remove_oldest_impl()
 	}
-	fn raw_get(&self, key: &K, chunk: usize, data: &mut [u8; 512]) -> Result<bool, Error> {
+	fn raw_read(&self, key: &K, chunk: usize, data: &mut [u8; 512]) -> Result<bool, Error> {
 		let mut hasher = DefaultHasher::new();
 		key.hash(&mut hasher);
 		let hash = hasher.finish() as usize;
-		self.raw_get_impl(key, hash, chunk, data)
+		self.raw_read_impl(key, hash, chunk, data)
 	}
-	fn raw_write(&mut self, key: &K, chunk: usize, data: [u8; 512]) -> Result<(), Error> {
+	fn raw_write(&mut self, key: &K, chunk: usize, data: &[u8; 512]) -> Result<(), Error> {
 		let mut hasher = DefaultHasher::new();
 		key.hash(&mut hasher);
 		let hash = hasher.finish() as usize;
@@ -1405,7 +1430,7 @@ where
 	V: Serializable + Debug + Clone,
 {
 	fn push(&mut self, value: V) -> Result<(), Error> {
-		self.insert_impl::<V>(Some(&value), None, None, None)
+		self.insert_impl::<V>(Some(&value), None, None, None, None)
 	}
 
 	fn iter<'b>(&'b self) -> Box<dyn Iterator<Item = V> + 'b> {
@@ -2629,15 +2654,35 @@ mod test {
 
 		let mut data2 = [0u8; 512];
 		let data = [8u8; 512];
-		hashtable.raw_write(&0, 0, data)?;
-		hashtable.raw_get(&0, 0, &mut data2)?;
+		hashtable.raw_write(&0, 0, &data)?;
+		hashtable.raw_read(&0, 0, &mut data2)?;
 		assert_eq!(data, data2);
 
 		let data = [10u8; 512];
-		hashtable.raw_write(&7, 3, data)?;
-		hashtable.raw_get(&7, 3, &mut data2)?;
+		hashtable.raw_write(&7, 383, &data)?;
+		hashtable.raw_read(&7, 383, &mut data2)?;
 		assert_eq!(data, data2);
 
+		Ok(())
+	}
+
+	#[test]
+	fn test_hashtable_raw_overwrite() -> Result<(), Error> {
+		let slabs = slab_allocator!(SlabSize(25), SlabCount(1_000))?;
+		let mut hashtable =
+			Builder::build_hashtable::<u32, u32>(HashtableConfig::default(), &Some(&slabs))?;
+
+		let mut data2 = [0u8; 512];
+		let empty = [4u8; 512];
+		let data = [10u8; 512];
+
+		info!("raw_write at 1383")?;
+		hashtable.raw_write(&7, 1383, &data)?;
+		info!("raw write at 0")?;
+		hashtable.raw_write(&7, 0, &empty)?;
+		info!("raw read at 1383")?;
+		hashtable.raw_read(&7, 1383, &mut data2)?;
+		assert_eq!(data, data2);
 		Ok(())
 	}
 }

@@ -536,6 +536,7 @@ mod suffix_tree;
 mod threadpool;
 mod types;
 
+pub use crate::misc::{slice_to_usize, usize_to_slice};
 pub use crate::ser::{deserialize, serialize};
 pub use crate::slabs::GLOBAL_SLAB_ALLOCATOR;
 pub use crate::types::ConfigOption::*;

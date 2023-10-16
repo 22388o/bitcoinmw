@@ -204,6 +204,7 @@ impl HttpServerImpl {
 		instance: &HttpInstance,
 		code: u16,
 		message: &str,
+		mut cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
 	) -> Result<(), Error> {
 		let slash = if instance.http_dir.ends_with("/") {
 			""
@@ -223,7 +224,7 @@ impl HttpServerImpl {
 
 		match metadata {
 			Ok(metadata) => {
-				Self::stream_file(fpath, metadata.len(), conn_data, code, message)?;
+				Self::stream_file(fpath, metadata.len(), conn_data, code, message, cache)?;
 			}
 			Err(_) => {
 				let dt = Utc::now();
@@ -290,7 +291,7 @@ Content-Length: {}\r\n\r\n{}\n",
 			.unwrap_or(format!("{}/", instance.http_dir));
 
 		if !fpath.starts_with(&instance.http_dir) || !path.starts_with("/") {
-			Self::process_error(config, path, conn_data, instance, 403, "Forbidden")?;
+			Self::process_error(config, path, conn_data, instance, 403, "Forbidden", cache)?;
 			return Ok(());
 		}
 
@@ -300,7 +301,7 @@ Content-Length: {}\r\n\r\n{}\n",
 			Ok(metadata) => metadata,
 			Err(_e) => {
 				debug!("404path={},dir={}", fpath, instance.http_dir)?;
-				Self::process_error(config, path, conn_data, instance, 404, "Not Found")?;
+				Self::process_error(config, path, conn_data, instance, 404, "Not Found", cache)?;
 				return Ok(());
 			}
 		};
@@ -328,7 +329,7 @@ Content-Length: {}\r\n\r\n{}\n",
 			if fpath_ret.is_some() && metadata_ret.is_some() {
 				(fpath_ret.unwrap(), metadata_ret.unwrap())
 			} else {
-				Self::process_error(config, path, conn_data, instance, 404, "Not Found")?;
+				Self::process_error(config, path, conn_data, instance, 404, "Not Found", cache)?;
 				return Ok(());
 			}
 		} else {
@@ -338,11 +339,10 @@ Content-Length: {}\r\n\r\n{}\n",
 		debug!("path={},dir={}", fpath, instance.http_dir)?;
 
 		let hit: bool;
-		let len = metadata.len();
 		{
 			{
 				let cache = cache.rlock()?;
-				hit = (**cache.guard()).stream_file(&fpath, len, conn_data, 200, "OK")?;
+				hit = (**cache.guard()).stream_file(&fpath, conn_data, 200, "OK")?;
 			}
 			let r = random::<u64>();
 			info!("r={}", r);
@@ -353,7 +353,7 @@ Content-Length: {}\r\n\r\n{}\n",
 		}
 
 		if !hit {
-			Self::stream_file(fpath, len, conn_data, 200, "OK")?;
+			Self::stream_file(fpath, metadata.len(), conn_data, 200, "OK", cache)?;
 		}
 
 		Ok(())
@@ -365,8 +365,9 @@ Content-Length: {}\r\n\r\n{}\n",
 		conn_data: &mut ConnectionData,
 		code: u16,
 		message: &str,
+		mut cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
 	) -> Result<(), Error> {
-		let file = File::open(fpath)?;
+		let file = File::open(fpath.clone())?;
 		let mut buf_reader = BufReader::new(file);
 
 		let dt = Utc::now();
@@ -384,16 +385,32 @@ Content-Length: ",
 
 		let res = format!("{}{}\r\n\r\n", res, len);
 
-		debug!("writing {}", res)?;
+		info!("writing {}", res)?;
 		conn_data.write_handle().write(&res.as_bytes()[..])?;
 
-		let mut buf = vec![0u8; 100];
+		let mut buf = vec![0u8; 512];
+		let mut i = 0;
 		loop {
-			let len = buf_reader.read(&mut buf)?;
-			conn_data.write_handle().write(&buf[0..len])?;
-			if len == 0 {
+			let blen = buf_reader.read(&mut buf)?;
+			conn_data.write_handle().write(&buf[0..blen])?;
+			info!(
+				"write '{}'",
+				std::str::from_utf8(&buf[0..blen]).unwrap_or("")
+			);
+
+			if blen == 0 {
 				break;
 			}
+
+			{
+				let mut cache = cache.wlock()?;
+				if i == 0 {
+					(**cache.guard()).write_len(&fpath, try_into!(len)?)?;
+				}
+				(**cache.guard()).write_block(&fpath, i, &try_into!(buf[0..512])?)?;
+			}
+
+			i += 1;
 		}
 
 		Ok(())
@@ -550,6 +567,7 @@ Content-Length: ",
 		conn_data: &mut ConnectionData,
 		instance: &HttpInstance,
 		err: Error,
+		mut cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
 	) -> Result<(), Error> {
 		debug!("Err: {:?}", err.inner())?;
 		let err_text = err.inner();
@@ -561,9 +579,10 @@ Content-Length: ",
 				instance,
 				501,
 				"Unknown Request Type",
+				cache,
 			)?;
 		} else {
-			Self::process_error(config, path, conn_data, instance, 400, "Bad Request")?;
+			Self::process_error(config, path, conn_data, instance, 400, "Bad Request", cache)?;
 		}
 		conn_data.write_handle().close()?;
 		Ok(())
@@ -647,7 +666,7 @@ Content-Length: ",
 			let headers = match headers {
 				Ok(headers) => headers,
 				Err(e) => {
-					Self::header_error(config, "".to_string(), conn_data, attachment, e)?;
+					Self::header_error(config, "".to_string(), conn_data, attachment, e, cache)?;
 					return Ok(());
 				}
 			};
@@ -663,7 +682,14 @@ Content-Length: ",
 				let path = match headers.path() {
 					Ok(path) => path,
 					Err(e) => {
-						Self::header_error(config, "".to_string(), conn_data, attachment, e)?;
+						Self::header_error(
+							config,
+							"".to_string(),
+							conn_data,
+							attachment,
+							e,
+							cache,
+						)?;
 						return Ok(());
 					}
 				};

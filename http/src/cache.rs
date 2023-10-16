@@ -39,53 +39,92 @@ impl HttpCache for HttpCacheImpl {
 	fn stream_file(
 		&self,
 		fpath: &String,
-		len: u64,
 		conn_data: &mut ConnectionData,
 		code: u16,
 		message: &str,
 	) -> Result<bool, Error> {
-		/*
-						let file = File::open(fpath)?;
-						let mut buf_reader = BufReader::new(file);
+		let mut data = [0u8; 512];
+		info!("try cache {}", fpath);
+		let found = self.hashtable.raw_read(fpath, 0, &mut data)?;
+		if found {
+			let len = slice_to_usize(&data[0..8])?;
+			info!(
+				"cache found len = {}, data = {:?}, found={}",
+				len,
+				&data[0..8],
+				found
+			);
 
-						let dt = Utc::now();
-						let res = dt
-								.format(
-										&format!(
-												"HTTP/1.1 {} {}\r\n\
+			let dt = Utc::now();
+			let res = dt
+				.format(
+					&format!(
+						"HTTP/1.1 {} {}\r\n\
 		Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
 		Content-Length: ",
-												code, message
-										)
-										.to_string(),
-								)
-								.to_string();
+						code, message
+					)
+					.to_string(),
+				)
+				.to_string();
 
-						let res = format!("{}{}\r\n\r\n", res, len);
+			let res = format!("{}{}\r\n\r\n", res, len);
 
-						debug!("writing {}", res)?;
-		*/
+			debug!("writing {}", res)?;
 
-		/*
-						conn_data.write_handle().write(&res.as_bytes()[..])?;
+			conn_data.write_handle().write(&res.as_bytes()[..])?;
+			let mut rem = len;
+			let mut i = 0;
+			loop {
+				let mut buf = vec![0u8; 512];
+				let found = self.hashtable.raw_read(fpath, 8 + i * 512, &mut data)?;
+				let wlen = if rem > 512 { 512 } else { rem };
+				conn_data.write_handle().write(&data[0..wlen])?;
 
-						loop {
-								let mut buf = vec![0u8; 100];
-								let len = buf_reader.read(&mut buf)?;
-								conn_data.write_handle().write(&buf[0..len])?;
-								if len == 0 {
-										break;
-								}
-						}
-		*/
-		Ok(false)
+				rem = rem.saturating_sub(wlen);
+				if rem == 0 {
+					break;
+				}
+				i += 1;
+			}
+		}
+		Ok(found)
 	}
 
-	fn write_block(&mut self, path: &String, offset: u64, data: &[u8]) -> Result<(), Error> {
-		todo!()
+	fn write_len(&mut self, path: &String, len: usize) -> Result<(), Error> {
+		info!("write_len {} = {}", path, len);
+		let mut data = [0u8; 512];
+		usize_to_slice(len, &mut data[0..8])?;
+		info!("writing data = {:?}", &data[0..8]);
+		self.hashtable.raw_write(path, 0, &data)?;
+		Ok(())
+	}
+
+	fn write_block(
+		&mut self,
+		path: &String,
+		block_num: usize,
+		data: &[u8; 512],
+	) -> Result<(), Error> {
+		info!("write block num = {}, path = {}", block_num, path);
+		self.hashtable.raw_write(path, 8 + block_num * 512, data);
+		Ok(())
 	}
 
 	fn bring_to_front(&mut self, path: &String) -> Result<(), Error> {
-		todo!()
+		self.hashtable.bring_to_front(path)
+	}
+}
+
+#[cfg(test)]
+mod test {
+	use bmw_err::*;
+	use bmw_log::*;
+
+	debug!();
+
+	#[test]
+	fn test_cache_basic() -> Result<(), Error> {
+		Ok(())
 	}
 }
