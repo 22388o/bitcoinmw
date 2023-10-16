@@ -1456,6 +1456,7 @@
 <a href="#1456" id="1456">1456</a>
 <a href="#1457" id="1457">1457</a>
 <a href="#1458" id="1458">1458</a>
+<a href="#1459" id="1459">1459</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2137,6 +2138,7 @@
 	}
 
 	<span class="kw">pub fn </span>do_read_exact(<span class="kw-2">&amp;mut </span><span class="self">self</span>, buf: <span class="kw-2">&amp;mut </span>[u8], count: <span class="prelude-ty">Option</span>&lt;usize&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="macro">debug!</span>(<span class="string">&quot;do read exact {:?},buf.len={}&quot;</span>, count, buf.len())<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>buf_offset = <span class="number">0</span>;
 		<span class="kw">let </span>buf_len = <span class="kw">match </span>count {
 			<span class="prelude-val">Some</span>(count) =&gt; count,

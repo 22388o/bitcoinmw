@@ -2593,6 +2593,54 @@
 <a href="#2593" id="2593">2593</a>
 <a href="#2594" id="2594">2594</a>
 <a href="#2595" id="2595">2595</a>
+<a href="#2596" id="2596">2596</a>
+<a href="#2597" id="2597">2597</a>
+<a href="#2598" id="2598">2598</a>
+<a href="#2599" id="2599">2599</a>
+<a href="#2600" id="2600">2600</a>
+<a href="#2601" id="2601">2601</a>
+<a href="#2602" id="2602">2602</a>
+<a href="#2603" id="2603">2603</a>
+<a href="#2604" id="2604">2604</a>
+<a href="#2605" id="2605">2605</a>
+<a href="#2606" id="2606">2606</a>
+<a href="#2607" id="2607">2607</a>
+<a href="#2608" id="2608">2608</a>
+<a href="#2609" id="2609">2609</a>
+<a href="#2610" id="2610">2610</a>
+<a href="#2611" id="2611">2611</a>
+<a href="#2612" id="2612">2612</a>
+<a href="#2613" id="2613">2613</a>
+<a href="#2614" id="2614">2614</a>
+<a href="#2615" id="2615">2615</a>
+<a href="#2616" id="2616">2616</a>
+<a href="#2617" id="2617">2617</a>
+<a href="#2618" id="2618">2618</a>
+<a href="#2619" id="2619">2619</a>
+<a href="#2620" id="2620">2620</a>
+<a href="#2621" id="2621">2621</a>
+<a href="#2622" id="2622">2622</a>
+<a href="#2623" id="2623">2623</a>
+<a href="#2624" id="2624">2624</a>
+<a href="#2625" id="2625">2625</a>
+<a href="#2626" id="2626">2626</a>
+<a href="#2627" id="2627">2627</a>
+<a href="#2628" id="2628">2628</a>
+<a href="#2629" id="2629">2629</a>
+<a href="#2630" id="2630">2630</a>
+<a href="#2631" id="2631">2631</a>
+<a href="#2632" id="2632">2632</a>
+<a href="#2633" id="2633">2633</a>
+<a href="#2634" id="2634">2634</a>
+<a href="#2635" id="2635">2635</a>
+<a href="#2636" id="2636">2636</a>
+<a href="#2637" id="2637">2637</a>
+<a href="#2638" id="2638">2638</a>
+<a href="#2639" id="2639">2639</a>
+<a href="#2640" id="2640">2640</a>
+<a href="#2641" id="2641">2641</a>
+<a href="#2642" id="2642">2642</a>
+<a href="#2643" id="2643">2643</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2977,7 +3025,7 @@
 		key.hash(<span class="kw-2">&amp;mut </span>hasher);
 		<span class="kw">let </span>hash = hasher.finish() <span class="kw">as </span>usize;
 		<span class="self">self</span>.static_impl
-			.insert_hash_impl(<span class="prelude-val">Some</span>(key), <span class="prelude-val">Some</span>(value), hash)
+			.insert_hash_impl(<span class="prelude-val">Some</span>(key), <span class="prelude-val">Some</span>(value), <span class="prelude-val">None</span>, hash)
 	}
 	<span class="kw">fn </span>get(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;V&gt;, Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>hasher = DefaultHasher::new();
@@ -3023,17 +3071,23 @@
 		<span class="kw">let </span>hash = hasher.finish() <span class="kw">as </span>usize;
 		<span class="self">self</span>.static_impl.bring_to_front_impl::&lt;V&gt;(key, hash)
 	}
-	<span class="kw">fn </span>remove_oldest(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;K&gt;, Error&gt; {
+	<span class="kw">fn </span>remove_oldest(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.static_impl.remove_oldest_impl()
 	}
-	<span class="kw">fn </span>raw_get(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: [u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="self">self</span>.static_impl.raw_get_impl(key, chunk, data)
+	<span class="kw">fn </span>raw_get(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: <span class="kw-2">&amp;mut </span>[u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>hasher = DefaultHasher::new();
+		key.hash(<span class="kw-2">&amp;mut </span>hasher);
+		<span class="kw">let </span>hash = hasher.finish() <span class="kw">as </span>usize;
+		<span class="self">self</span>.static_impl.raw_get_impl(key, hash, chunk, data)
 	}
-	<span class="kw">fn </span>raw_allocate(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunks: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="self">self</span>.static_impl.raw_allocate_impl(key, chunks)
-	}
-	<span class="kw">fn </span>raw_write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: [u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="self">self</span>.static_impl.raw_write_impl(key, chunk, data)
+	<span class="kw">fn </span>raw_write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: [u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
+	<span class="kw">where
+		</span>V: Clone,
+	{
+		<span class="kw">let </span><span class="kw-2">mut </span>hasher = DefaultHasher::new();
+		key.hash(<span class="kw-2">&amp;mut </span>hasher);
+		<span class="kw">let </span>hash = hasher.finish() <span class="kw">as </span>usize;
+		<span class="self">self</span>.static_impl.raw_write_impl::&lt;V&gt;(key, hash, chunk, data)
 	}
 }
 
@@ -3046,7 +3100,7 @@
 		key.hash(<span class="kw-2">&amp;mut </span>hasher);
 		<span class="kw">let </span>hash = hasher.finish() <span class="kw">as </span>usize;
 		<span class="self">self</span>.static_impl
-			.insert_hash_impl::&lt;K&gt;(<span class="prelude-val">Some</span>(key), <span class="prelude-val">None</span>, hash)
+			.insert_hash_impl::&lt;K&gt;(<span class="prelude-val">Some</span>(key), <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, hash)
 	}
 	<span class="kw">fn </span>contains(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>hasher = DefaultHasher::new();
@@ -3405,19 +3459,12 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">fn </span>remove_oldest_impl(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;K&gt;, Error&gt; {
+	<span class="kw">fn </span>remove_oldest_impl(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="macro">debug!</span>(<span class="string">&quot;self.head={}&quot;</span>, <span class="self">self</span>.head)<span class="question-mark">?</span>;
-		<span class="kw">if </span><span class="self">self</span>.head == SLOT_EMPTY {
-			<span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
-		} <span class="kw">else </span>{
-			<span class="kw">let </span>entry = <span class="self">self</span>.lookup_entry(<span class="self">self</span>.head);
-			<span class="kw">let </span>ret = <span class="self">self</span>.read_key(entry)<span class="question-mark">?</span>;
+		<span class="kw">if </span><span class="self">self</span>.head != SLOT_EMPTY {
 			<span class="self">self</span>.remove_impl(<span class="self">self</span>.head)<span class="question-mark">?</span>;
-			<span class="kw">match </span>ret {
-				<span class="prelude-val">Some</span>(ret) =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(ret.<span class="number">0</span>)),
-				<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
-			}
 		}
+		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="kw">fn </span>bring_to_front_impl&lt;V&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, hash: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
@@ -3481,14 +3528,37 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">fn </span>raw_get_impl(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: [u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">todo!</span>()
+	<span class="kw">fn </span>raw_get_impl(
+		<span class="kw-2">&amp;</span><span class="self">self</span>,
+		key: <span class="kw-2">&amp;</span>K,
+		hash: usize,
+		chunk: usize,
+		data: <span class="kw-2">&amp;mut </span>[u8; <span class="number">512</span>],
+	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt;
+	<span class="kw">where
+		</span>K: PartialEq,
+	{
+		<span class="kw">match </span><span class="self">self</span>.get_impl(key, hash)<span class="question-mark">? </span>{
+			<span class="prelude-val">Some</span>((_entry, <span class="kw-2">mut </span>reader)) =&gt; {
+				reader.skip_bytes(<span class="number">512 </span>* chunk)<span class="question-mark">?</span>;
+				reader.read_fixed_bytes(data)<span class="question-mark">?</span>;
+				<span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
+			}
+			<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Ok</span>(<span class="bool-val">false</span>),
+		}
 	}
-	<span class="kw">fn </span>raw_allocate_impl(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunks: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">todo!</span>()
-	}
-	<span class="kw">fn </span>raw_write_impl(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: [u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">todo!</span>()
+	<span class="kw">fn </span>raw_write_impl&lt;V&gt;(
+		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
+		key: <span class="kw-2">&amp;</span>K,
+		hash: usize,
+		chunk: usize,
+		data: [u8; <span class="number">512</span>],
+	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
+	<span class="kw">where
+		</span>K: PartialEq,
+		V: Clone + Serializable,
+	{
+		<span class="self">self</span>.insert_hash_impl::&lt;V&gt;(<span class="prelude-val">Some</span>(key), <span class="prelude-val">None</span>, <span class="prelude-val">Some</span>((chunk, data)), hash)
 	}
 
 	<span class="comment">// None line reported as not covered, but it is
@@ -3540,6 +3610,7 @@
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		key: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>K&gt;,
 		value: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>V&gt;,
+		raw_chunk: <span class="prelude-ty">Option</span>&lt;(usize, [u8; <span class="number">512</span>])&gt;,
 		hash: usize,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 	<span class="kw">where
@@ -3582,7 +3653,7 @@
 			i += <span class="number">1</span>;
 		}
 
-		<span class="self">self</span>.insert_impl(key, value, <span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(entry))
+		<span class="self">self</span>.insert_impl(key, value, raw_chunk, <span class="prelude-val">Some</span>(entry))
 	}
 
 	<span class="comment">// fully covered but tarpaulin reporting a few lines uncovered
@@ -3646,7 +3717,7 @@
 
 		<span class="kw">if </span>raw_value.is_some() {
 			<span class="kw">let </span>raw_value = raw_value.unwrap();
-			<span class="self">self</span>.slab_writer.seek(slab_id, <span class="number">10</span>);
+			<span class="self">self</span>.slab_writer.skip_bytes(raw_value.<span class="number">0 </span>* <span class="number">512</span>)<span class="question-mark">?</span>;
 			<span class="self">self</span>.slab_writer.write_fixed_bytes(raw_value.<span class="number">1</span>)<span class="question-mark">?</span>;
 		}
 
@@ -3708,6 +3779,7 @@
 				</span><span class="kw">for </span>i <span class="kw">in </span><span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size {
 					slab_mut[i] = <span class="number">0xFF</span>;
 				}
+				<span class="macro">debug!</span>(<span class="string">&quot;allocate id = {}&quot;</span>, slab.id())<span class="question-mark">?</span>;
 				<span class="prelude-val">Ok</span>(slab.id())
 			}
 			<span class="prelude-val">None </span>=&gt; GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
@@ -3718,6 +3790,7 @@
 				</span><span class="kw">for </span>i <span class="kw">in </span><span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size {
 					slab_mut[i] = <span class="number">0xFF</span>;
 				}
+				<span class="macro">debug!</span>(<span class="string">&quot;allocate id = {}&quot;</span>, slab.id())<span class="question-mark">?</span>;
 				<span class="prelude-val">Ok</span>(slab.id())
 			}),
 		}
@@ -3858,7 +3931,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>hasher = DefaultHasher::new();
 		key.hash(<span class="kw-2">&amp;mut </span>hasher);
 		<span class="kw">let </span>hash = hasher.finish() <span class="kw">as </span>usize;
-		<span class="self">self</span>.insert_hash_impl(<span class="prelude-val">Some</span>(key), <span class="prelude-val">Some</span>(value), hash)
+		<span class="self">self</span>.insert_hash_impl(<span class="prelude-val">Some</span>(key), <span class="prelude-val">Some</span>(value), <span class="prelude-val">None</span>, hash)
 	}
 	<span class="kw">fn </span>get(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;V&gt;, Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>hasher = DefaultHasher::new();
@@ -3904,17 +3977,20 @@
 		<span class="kw">let </span>hash = hasher.finish() <span class="kw">as </span>usize;
 		<span class="self">self</span>.bring_to_front_impl::&lt;V&gt;(key, hash)
 	}
-	<span class="kw">fn </span>remove_oldest(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;K&gt;, Error&gt; {
+	<span class="kw">fn </span>remove_oldest(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.remove_oldest_impl()
 	}
-	<span class="kw">fn </span>raw_get(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: [u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="self">self</span>.raw_get_impl(key, chunk, data)
-	}
-	<span class="kw">fn </span>raw_allocate(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunks: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="self">self</span>.raw_allocate_impl(key, chunks)
+	<span class="kw">fn </span>raw_get(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: <span class="kw-2">&amp;mut </span>[u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>hasher = DefaultHasher::new();
+		key.hash(<span class="kw-2">&amp;mut </span>hasher);
+		<span class="kw">let </span>hash = hasher.finish() <span class="kw">as </span>usize;
+		<span class="self">self</span>.raw_get_impl(key, hash, chunk, data)
 	}
 	<span class="kw">fn </span>raw_write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: [u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="self">self</span>.raw_write_impl(key, chunk, data)
+		<span class="kw">let </span><span class="kw-2">mut </span>hasher = DefaultHasher::new();
+		key.hash(<span class="kw-2">&amp;mut </span>hasher);
+		<span class="kw">let </span>hash = hasher.finish() <span class="kw">as </span>usize;
+		<span class="self">self</span>.raw_write_impl::&lt;V&gt;(key, hash, chunk, data)
 	}
 }
 
@@ -3926,7 +4002,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>hasher = DefaultHasher::new();
 		key.hash(<span class="kw-2">&amp;mut </span>hasher);
 		<span class="kw">let </span>hash = hasher.finish() <span class="kw">as </span>usize;
-		<span class="self">self</span>.insert_hash_impl::&lt;K&gt;(<span class="prelude-val">Some</span>(key), <span class="prelude-val">None</span>, hash)
+		<span class="self">self</span>.insert_hash_impl::&lt;K&gt;(<span class="prelude-val">Some</span>(key), <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, hash)
 	}
 	<span class="kw">fn </span>contains(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>hasher = DefaultHasher::new();
@@ -5185,6 +5261,26 @@
 		<span class="macro">assert_eq!</span>(hashtable.get(<span class="kw-2">&amp;</span><span class="number">5</span>), <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>));
 
 		hashtable.bring_to_front(<span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>;
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="attr">#[test]
+	</span><span class="kw">fn </span>test_hashtable_raw() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span>slabs = <span class="macro">slab_allocator!</span>(SlabSize(<span class="number">25</span>), SlabCount(<span class="number">1_000</span>))<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>hashtable =
+			Builder::build_hashtable::&lt;u32, u32&gt;(HashtableConfig::default(), <span class="kw-2">&amp;</span><span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>slabs))<span class="question-mark">?</span>;
+
+		<span class="kw">let </span><span class="kw-2">mut </span>data2 = [<span class="number">0u8</span>; <span class="number">512</span>];
+		<span class="kw">let </span>data = [<span class="number">8u8</span>; <span class="number">512</span>];
+		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">0</span>, <span class="number">0</span>, data)<span class="question-mark">?</span>;
+		hashtable.raw_get(<span class="kw-2">&amp;</span><span class="number">0</span>, <span class="number">0</span>, <span class="kw-2">&amp;mut </span>data2)<span class="question-mark">?</span>;
+		<span class="macro">assert_eq!</span>(data, data2);
+
+		<span class="kw">let </span>data = [<span class="number">10u8</span>; <span class="number">512</span>];
+		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">7</span>, <span class="number">3</span>, data)<span class="question-mark">?</span>;
+		hashtable.raw_get(<span class="kw-2">&amp;</span><span class="number">7</span>, <span class="number">3</span>, <span class="kw-2">&amp;mut </span>data2)<span class="question-mark">?</span>;
+		<span class="macro">assert_eq!</span>(data, data2);
+
 		<span class="prelude-val">Ok</span>(())
 	}
 }
