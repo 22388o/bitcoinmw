@@ -1357,6 +1357,10 @@
 <a href="#1357" id="1357">1357</a>
 <a href="#1358" id="1358">1358</a>
 <a href="#1359" id="1359">1359</a>
+<a href="#1360" id="1360">1360</a>
+<a href="#1361" id="1361">1361</a>
+<a href="#1362" id="1362">1362</a>
+<a href="#1363" id="1363">1363</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1861,6 +1865,10 @@
 	</span><span class="kw">fn </span>bring_to_front(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="doccomment">/// Remove the oldest entry in the hashtable.
 	</span><span class="kw">fn </span>remove_oldest(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;K&gt;, Error&gt;;
+	<span class="doccomment">/// Get raw data and store it in `data`. Read the nth 512 byte chunk.
+	</span><span class="kw">fn </span>raw_get(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: [u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+	<span class="kw">fn </span>raw_allocate(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+	<span class="kw">fn </span>raw_write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: [u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 }
 
 <span class="doccomment">/// A slab allocated Hashset. Most of the implementation is shared with [`crate::Hashtable`].

@@ -2558,6 +2558,41 @@
 <a href="#2558" id="2558">2558</a>
 <a href="#2559" id="2559">2559</a>
 <a href="#2560" id="2560">2560</a>
+<a href="#2561" id="2561">2561</a>
+<a href="#2562" id="2562">2562</a>
+<a href="#2563" id="2563">2563</a>
+<a href="#2564" id="2564">2564</a>
+<a href="#2565" id="2565">2565</a>
+<a href="#2566" id="2566">2566</a>
+<a href="#2567" id="2567">2567</a>
+<a href="#2568" id="2568">2568</a>
+<a href="#2569" id="2569">2569</a>
+<a href="#2570" id="2570">2570</a>
+<a href="#2571" id="2571">2571</a>
+<a href="#2572" id="2572">2572</a>
+<a href="#2573" id="2573">2573</a>
+<a href="#2574" id="2574">2574</a>
+<a href="#2575" id="2575">2575</a>
+<a href="#2576" id="2576">2576</a>
+<a href="#2577" id="2577">2577</a>
+<a href="#2578" id="2578">2578</a>
+<a href="#2579" id="2579">2579</a>
+<a href="#2580" id="2580">2580</a>
+<a href="#2581" id="2581">2581</a>
+<a href="#2582" id="2582">2582</a>
+<a href="#2583" id="2583">2583</a>
+<a href="#2584" id="2584">2584</a>
+<a href="#2585" id="2585">2585</a>
+<a href="#2586" id="2586">2586</a>
+<a href="#2587" id="2587">2587</a>
+<a href="#2588" id="2588">2588</a>
+<a href="#2589" id="2589">2589</a>
+<a href="#2590" id="2590">2590</a>
+<a href="#2591" id="2591">2591</a>
+<a href="#2592" id="2592">2592</a>
+<a href="#2593" id="2593">2593</a>
+<a href="#2594" id="2594">2594</a>
+<a href="#2595" id="2595">2595</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2991,6 +3026,15 @@
 	<span class="kw">fn </span>remove_oldest(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;K&gt;, Error&gt; {
 		<span class="self">self</span>.static_impl.remove_oldest_impl()
 	}
+	<span class="kw">fn </span>raw_get(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: [u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="self">self</span>.static_impl.raw_get_impl(key, chunk, data)
+	}
+	<span class="kw">fn </span>raw_allocate(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunks: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="self">self</span>.static_impl.raw_allocate_impl(key, chunks)
+	}
+	<span class="kw">fn </span>raw_write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: [u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="self">self</span>.static_impl.raw_write_impl(key, chunk, data)
+	}
 }
 
 <span class="kw">impl</span>&lt;K&gt; Hashset&lt;K&gt; <span class="kw">for </span>HashImplSync&lt;K&gt;
@@ -3048,7 +3092,8 @@
 	</span>V: Serializable + Debug + PartialEq + Clone,
 {
 	<span class="kw">fn </span>push(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: V) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="self">self</span>.static_impl.insert_impl::&lt;V&gt;(<span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>value), <span class="prelude-val">None</span>, <span class="prelude-val">None</span>)
+		<span class="self">self</span>.static_impl
+			.insert_impl::&lt;V&gt;(<span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>value), <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>)
 	}
 
 	<span class="kw">fn </span>iter&lt;<span class="lifetime">&#39;b</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;b </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = V&gt; + <span class="lifetime">&#39;b</span>&gt; {
@@ -3389,7 +3434,6 @@
 				<span class="kw">if </span>entry != <span class="self">self</span>.tail {
 					<span class="kw">let </span>entry_slab_id = <span class="self">self</span>.lookup_entry(entry);
 					<span class="kw">let </span>tail_slab_id = <span class="self">self</span>.lookup_entry(<span class="self">self</span>.tail);
-
 					<span class="kw">let </span>ptr_size = <span class="self">self</span>.ptr_size;
 					<span class="self">self</span>.slab_reader.seek(entry_slab_id, <span class="number">0</span>);
 					<span class="kw">let </span><span class="kw-2">mut </span>ptrs = [<span class="number">0u8</span>; <span class="number">16</span>];
@@ -3435,6 +3479,16 @@
 		}
 
 		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="kw">fn </span>raw_get_impl(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: [u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="macro">todo!</span>()
+	}
+	<span class="kw">fn </span>raw_allocate_impl(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunks: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="macro">todo!</span>()
+	}
+	<span class="kw">fn </span>raw_write_impl(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: [u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="macro">todo!</span>()
 	}
 
 	<span class="comment">// None line reported as not covered, but it is
@@ -3528,7 +3582,7 @@
 			i += <span class="number">1</span>;
 		}
 
-		<span class="self">self</span>.insert_impl(key, value, <span class="prelude-val">Some</span>(entry))
+		<span class="self">self</span>.insert_impl(key, value, <span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(entry))
 	}
 
 	<span class="comment">// fully covered but tarpaulin reporting a few lines uncovered
@@ -3537,6 +3591,7 @@
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		key: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>K&gt;,
 		value: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>V&gt;,
+		raw_value: <span class="prelude-ty">Option</span>&lt;(usize, [u8; <span class="number">512</span>])&gt;,
 		entry: <span class="prelude-ty">Option</span>&lt;usize&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 	<span class="kw">where
@@ -3587,6 +3642,12 @@
 					<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 				}
 			}
+		}
+
+		<span class="kw">if </span>raw_value.is_some() {
+			<span class="kw">let </span>raw_value = raw_value.unwrap();
+			<span class="self">self</span>.slab_writer.seek(slab_id, <span class="number">10</span>);
+			<span class="self">self</span>.slab_writer.write_fixed_bytes(raw_value.<span class="number">1</span>)<span class="question-mark">?</span>;
 		}
 
 		<span class="macro">debug!</span>(<span class="string">&quot;array update&quot;</span>)<span class="question-mark">?</span>;
@@ -3846,6 +3907,15 @@
 	<span class="kw">fn </span>remove_oldest(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;K&gt;, Error&gt; {
 		<span class="self">self</span>.remove_oldest_impl()
 	}
+	<span class="kw">fn </span>raw_get(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: [u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="self">self</span>.raw_get_impl(key, chunk, data)
+	}
+	<span class="kw">fn </span>raw_allocate(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunks: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="self">self</span>.raw_allocate_impl(key, chunks)
+	}
+	<span class="kw">fn </span>raw_write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: [u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="self">self</span>.raw_write_impl(key, chunk, data)
+	}
 }
 
 <span class="kw">impl</span>&lt;K&gt; Hashset&lt;K&gt; <span class="kw">for </span>HashImpl&lt;K&gt;
@@ -3902,7 +3972,7 @@
 	</span>V: Serializable + Debug + Clone,
 {
 	<span class="kw">fn </span>push(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: V) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="self">self</span>.insert_impl::&lt;V&gt;(<span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>value), <span class="prelude-val">None</span>, <span class="prelude-val">None</span>)
+		<span class="self">self</span>.insert_impl::&lt;V&gt;(<span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>value), <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>)
 	}
 
 	<span class="kw">fn </span>iter&lt;<span class="lifetime">&#39;b</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;b </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = V&gt; + <span class="lifetime">&#39;b</span>&gt; {
