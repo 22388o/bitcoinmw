@@ -679,6 +679,7 @@ impl<'a> SlabReader {
 	}
 
 	pub fn do_read_exact(&mut self, buf: &mut [u8], count: Option<usize>) -> Result<(), Error> {
+		debug!("do read exact {:?},buf.len={}", count, buf.len())?;
 		let mut buf_offset = 0;
 		let buf_len = match count {
 			Some(count) => count,

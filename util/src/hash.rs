@@ -382,7 +382,7 @@ where
 		key.hash(&mut hasher);
 		let hash = hasher.finish() as usize;
 		self.static_impl
-			.insert_hash_impl(Some(key), Some(value), hash)
+			.insert_hash_impl(Some(key), Some(value), None, hash)
 	}
 	fn get(&self, key: &K) -> Result<Option<V>, Error> {
 		let mut hasher = DefaultHasher::new();
@@ -428,17 +428,23 @@ where
 		let hash = hasher.finish() as usize;
 		self.static_impl.bring_to_front_impl::<V>(key, hash)
 	}
-	fn remove_oldest(&mut self) -> Result<Option<K>, Error> {
+	fn remove_oldest(&mut self) -> Result<(), Error> {
 		self.static_impl.remove_oldest_impl()
 	}
-	fn raw_get(&self, key: &K, chunk: usize, data: [u8; 512]) -> Result<(), Error> {
-		self.static_impl.raw_get_impl(key, chunk, data)
+	fn raw_get(&self, key: &K, chunk: usize, data: &mut [u8; 512]) -> Result<bool, Error> {
+		let mut hasher = DefaultHasher::new();
+		key.hash(&mut hasher);
+		let hash = hasher.finish() as usize;
+		self.static_impl.raw_get_impl(key, hash, chunk, data)
 	}
-	fn raw_allocate(&mut self, key: &K, chunks: usize) -> Result<(), Error> {
-		self.static_impl.raw_allocate_impl(key, chunks)
-	}
-	fn raw_write(&mut self, key: &K, chunk: usize, data: [u8; 512]) -> Result<(), Error> {
-		self.static_impl.raw_write_impl(key, chunk, data)
+	fn raw_write(&mut self, key: &K, chunk: usize, data: [u8; 512]) -> Result<(), Error>
+	where
+		V: Clone,
+	{
+		let mut hasher = DefaultHasher::new();
+		key.hash(&mut hasher);
+		let hash = hasher.finish() as usize;
+		self.static_impl.raw_write_impl::<V>(key, hash, chunk, data)
 	}
 }
 
@@ -451,7 +457,7 @@ where
 		key.hash(&mut hasher);
 		let hash = hasher.finish() as usize;
 		self.static_impl
-			.insert_hash_impl::<K>(Some(key), None, hash)
+			.insert_hash_impl::<K>(Some(key), None, None, hash)
 	}
 	fn contains(&self, key: &K) -> Result<bool, Error> {
 		let mut hasher = DefaultHasher::new();
@@ -810,19 +816,12 @@ where
 		Ok(())
 	}
 
-	fn remove_oldest_impl(&mut self) -> Result<Option<K>, Error> {
+	fn remove_oldest_impl(&mut self) -> Result<(), Error> {
 		debug!("self.head={}", self.head)?;
-		if self.head == SLOT_EMPTY {
-			Ok(None)
-		} else {
-			let entry = self.lookup_entry(self.head);
-			let ret = self.read_key(entry)?;
+		if self.head != SLOT_EMPTY {
 			self.remove_impl(self.head)?;
-			match ret {
-				Some(ret) => Ok(Some(ret.0)),
-				None => Ok(None),
-			}
 		}
+		Ok(())
 	}
 
 	fn bring_to_front_impl<V>(&mut self, key: &K, hash: usize) -> Result<(), Error>
@@ -886,14 +885,37 @@ where
 		Ok(())
 	}
 
-	fn raw_get_impl(&self, key: &K, chunk: usize, data: [u8; 512]) -> Result<(), Error> {
-		todo!()
+	fn raw_get_impl(
+		&self,
+		key: &K,
+		hash: usize,
+		chunk: usize,
+		data: &mut [u8; 512],
+	) -> Result<bool, Error>
+	where
+		K: PartialEq,
+	{
+		match self.get_impl(key, hash)? {
+			Some((_entry, mut reader)) => {
+				reader.skip_bytes(512 * chunk)?;
+				reader.read_fixed_bytes(data)?;
+				Ok(true)
+			}
+			None => Ok(false),
+		}
 	}
-	fn raw_allocate_impl(&mut self, key: &K, chunks: usize) -> Result<(), Error> {
-		todo!()
-	}
-	fn raw_write_impl(&mut self, key: &K, chunk: usize, data: [u8; 512]) -> Result<(), Error> {
-		todo!()
+	fn raw_write_impl<V>(
+		&mut self,
+		key: &K,
+		hash: usize,
+		chunk: usize,
+		data: [u8; 512],
+	) -> Result<(), Error>
+	where
+		K: PartialEq,
+		V: Clone + Serializable,
+	{
+		self.insert_hash_impl::<V>(Some(key), None, Some((chunk, data)), hash)
 	}
 
 	// None line reported as not covered, but it is
@@ -945,6 +967,7 @@ where
 		&mut self,
 		key: Option<&K>,
 		value: Option<&V>,
+		raw_chunk: Option<(usize, [u8; 512])>,
 		hash: usize,
 	) -> Result<(), Error>
 	where
@@ -987,7 +1010,7 @@ where
 			i += 1;
 		}
 
-		self.insert_impl(key, value, None, Some(entry))
+		self.insert_impl(key, value, raw_chunk, Some(entry))
 	}
 
 	// fully covered but tarpaulin reporting a few lines uncovered
@@ -1051,7 +1074,7 @@ where
 
 		if raw_value.is_some() {
 			let raw_value = raw_value.unwrap();
-			self.slab_writer.seek(slab_id, 10);
+			self.slab_writer.skip_bytes(raw_value.0 * 512)?;
 			self.slab_writer.write_fixed_bytes(raw_value.1)?;
 		}
 
@@ -1113,6 +1136,7 @@ where
 				for i in self.bytes_per_slab..self.slab_size {
 					slab_mut[i] = 0xFF;
 				}
+				debug!("allocate id = {}", slab.id())?;
 				Ok(slab.id())
 			}
 			None => GLOBAL_SLAB_ALLOCATOR.with(|f| -> Result<usize, Error> {
@@ -1123,6 +1147,7 @@ where
 				for i in self.bytes_per_slab..self.slab_size {
 					slab_mut[i] = 0xFF;
 				}
+				debug!("allocate id = {}", slab.id())?;
 				Ok(slab.id())
 			}),
 		}
@@ -1263,7 +1288,7 @@ where
 		let mut hasher = DefaultHasher::new();
 		key.hash(&mut hasher);
 		let hash = hasher.finish() as usize;
-		self.insert_hash_impl(Some(key), Some(value), hash)
+		self.insert_hash_impl(Some(key), Some(value), None, hash)
 	}
 	fn get(&self, key: &K) -> Result<Option<V>, Error> {
 		let mut hasher = DefaultHasher::new();
@@ -1309,17 +1334,20 @@ where
 		let hash = hasher.finish() as usize;
 		self.bring_to_front_impl::<V>(key, hash)
 	}
-	fn remove_oldest(&mut self) -> Result<Option<K>, Error> {
+	fn remove_oldest(&mut self) -> Result<(), Error> {
 		self.remove_oldest_impl()
 	}
-	fn raw_get(&self, key: &K, chunk: usize, data: [u8; 512]) -> Result<(), Error> {
-		self.raw_get_impl(key, chunk, data)
-	}
-	fn raw_allocate(&mut self, key: &K, chunks: usize) -> Result<(), Error> {
-		self.raw_allocate_impl(key, chunks)
+	fn raw_get(&self, key: &K, chunk: usize, data: &mut [u8; 512]) -> Result<bool, Error> {
+		let mut hasher = DefaultHasher::new();
+		key.hash(&mut hasher);
+		let hash = hasher.finish() as usize;
+		self.raw_get_impl(key, hash, chunk, data)
 	}
 	fn raw_write(&mut self, key: &K, chunk: usize, data: [u8; 512]) -> Result<(), Error> {
-		self.raw_write_impl(key, chunk, data)
+		let mut hasher = DefaultHasher::new();
+		key.hash(&mut hasher);
+		let hash = hasher.finish() as usize;
+		self.raw_write_impl::<V>(key, hash, chunk, data)
 	}
 }
 
@@ -1331,7 +1359,7 @@ where
 		let mut hasher = DefaultHasher::new();
 		key.hash(&mut hasher);
 		let hash = hasher.finish() as usize;
-		self.insert_hash_impl::<K>(Some(key), None, hash)
+		self.insert_hash_impl::<K>(Some(key), None, None, hash)
 	}
 	fn contains(&self, key: &K) -> Result<bool, Error> {
 		let mut hasher = DefaultHasher::new();
@@ -2590,6 +2618,26 @@ mod test {
 		assert_eq!(hashtable.get(&5), Ok(None));
 
 		hashtable.bring_to_front(&1)?;
+		Ok(())
+	}
+
+	#[test]
+	fn test_hashtable_raw() -> Result<(), Error> {
+		let slabs = slab_allocator!(SlabSize(25), SlabCount(1_000))?;
+		let mut hashtable =
+			Builder::build_hashtable::<u32, u32>(HashtableConfig::default(), &Some(&slabs))?;
+
+		let mut data2 = [0u8; 512];
+		let data = [8u8; 512];
+		hashtable.raw_write(&0, 0, data)?;
+		hashtable.raw_get(&0, 0, &mut data2)?;
+		assert_eq!(data, data2);
+
+		let data = [10u8; 512];
+		hashtable.raw_write(&7, 3, data)?;
+		hashtable.raw_get(&7, 3, &mut data2)?;
+		assert_eq!(data, data2);
+
 		Ok(())
 	}
 }
