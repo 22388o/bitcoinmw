@@ -141,6 +141,40 @@
 <a href="#141" id="141">141</a>
 <a href="#142" id="142">142</a>
 <a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
+<a href="#163" id="163">163</a>
+<a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -158,7 +192,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="kw">use </span><span class="kw">crate</span>::types::HttpCacheImpl;
+</span><span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
+<span class="kw">use </span><span class="kw">crate</span>::types::HttpCacheImpl;
 <span class="kw">use crate</span>::{HttpCache, HttpConfig};
 <span class="kw">use </span>bmw_deps::chrono::Utc;
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
@@ -166,15 +201,13 @@
 <span class="kw">use </span>bmw_evh::ConnectionData;
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
-<span class="kw">use </span>std::fs::File;
-<span class="kw">use </span>std::io::{BufReader, Read};
 
 <span class="macro">info!</span>();
 
 <span class="kw">impl </span>HttpCacheImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(config: <span class="kw-2">&amp;</span>HttpConfig) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>HttpCache + Send + Sync&gt;, Error&gt; {
 		<span class="kw">let </span>hashtable = <span class="macro">hashtable_sync_box!</span>(
-			SlabSize(config.cache_slab_size),
+			SlabSize(CACHE_SLAB_SIZE),
 			SlabCount(config.cache_slab_count)
 		)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(Box::new(HttpCacheImpl { hashtable }))
@@ -189,26 +222,26 @@
 		code: u16,
 		message: <span class="kw-2">&amp;</span>str,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
-		<span class="kw">let </span><span class="kw-2">mut </span>data = [<span class="number">0u8</span>; <span class="number">512</span>];
-		<span class="macro">info!</span>(<span class="string">&quot;try cache {}&quot;</span>, fpath);
+		<span class="kw">let </span><span class="kw-2">mut </span>data = [<span class="number">0u8</span>; CACHE_BUFFER_SIZE];
+		<span class="macro">debug!</span>(<span class="string">&quot;try cache {}&quot;</span>, fpath)<span class="question-mark">?</span>;
 		<span class="kw">let </span>found = <span class="self">self</span>.hashtable.raw_read(fpath, <span class="number">0</span>, <span class="kw-2">&amp;mut </span>data)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;raw read complete&quot;</span>);
+		<span class="macro">debug!</span>(<span class="string">&quot;raw read complete&quot;</span>)<span class="question-mark">?</span>;
 		<span class="kw">if </span>found {
 			<span class="kw">let </span>len = slice_to_usize(<span class="kw-2">&amp;</span>data[<span class="number">0</span>..<span class="number">8</span>])<span class="question-mark">?</span>;
-			<span class="macro">info!</span>(
+			<span class="macro">debug!</span>(
 				<span class="string">&quot;cache found len = {}, data = {:?}, found={}&quot;</span>,
 				len,
 				<span class="kw-2">&amp;</span>data[<span class="number">0</span>..<span class="number">8</span>],
 				found
-			);
+			)<span class="question-mark">?</span>;
 
 			<span class="kw">let </span>dt = Utc::now();
 			<span class="kw">let </span>res = dt
 				.format(
 					<span class="kw-2">&amp;</span><span class="macro">format!</span>(
 						<span class="string">&quot;HTTP/1.1 {} {}\r\n\
-		Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
-		Content-Length: &quot;</span>,
+                                                Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
+                                                Content-Length: &quot;</span>,
 						code, message
 					)
 					.to_string(),
@@ -223,10 +256,14 @@
 			<span class="kw">let </span><span class="kw-2">mut </span>rem = len;
 			<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
 			<span class="kw">loop </span>{
-				<span class="kw">let </span><span class="kw-2">mut </span>buf = <span class="macro">vec!</span>[<span class="number">0u8</span>; <span class="number">512</span>];
-				<span class="kw">let </span>found = <span class="self">self</span>.hashtable.raw_read(fpath, <span class="number">8 </span>+ i * <span class="number">512</span>, <span class="kw-2">&amp;mut </span>data)<span class="question-mark">?</span>;
-				<span class="kw">let </span>wlen = <span class="kw">if </span>rem &gt; <span class="number">512 </span>{ <span class="number">512 </span>} <span class="kw">else </span>{ rem };
-				<span class="macro">info!</span>(<span class="string">&quot;read wlen={},rem={},data={:?}&quot;</span>, wlen, rem, data);
+				<span class="self">self</span>.hashtable
+					.raw_read(fpath, <span class="number">8 </span>+ i * CACHE_BUFFER_SIZE, <span class="kw-2">&amp;mut </span>data)<span class="question-mark">?</span>;
+				<span class="kw">let </span>wlen = <span class="kw">if </span>rem &gt; CACHE_BUFFER_SIZE {
+					CACHE_BUFFER_SIZE
+				} <span class="kw">else </span>{
+					rem
+				};
+				<span class="macro">debug!</span>(<span class="string">&quot;read wlen={},rem={},data={:?}&quot;</span>, wlen, rem, data)<span class="question-mark">?</span>;
 				conn_data.write_handle().write(<span class="kw-2">&amp;</span>data[<span class="number">0</span>..wlen])<span class="question-mark">?</span>;
 
 				rem = rem.saturating_sub(wlen);
@@ -239,31 +276,62 @@
 		<span class="prelude-val">Ok</span>(found)
 	}
 
-	<span class="kw">fn </span>write_len(<span class="kw-2">&amp;mut </span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>String, len: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">info!</span>(<span class="string">&quot;write_len {} = {}&quot;</span>, path, len);
-		<span class="kw">let </span><span class="kw-2">mut </span>data = [<span class="number">0u8</span>; <span class="number">512</span>];
-		usize_to_slice(len, <span class="kw-2">&amp;mut </span>data[<span class="number">0</span>..<span class="number">8</span>])<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;write_len {:?}&quot;</span>, <span class="kw-2">&amp;</span>data[<span class="number">0</span>..<span class="number">8</span>]);
-		<span class="self">self</span>.hashtable.raw_write(path, <span class="number">0</span>, <span class="kw-2">&amp;</span>data)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;====================================write_len complete&quot;</span>);
-		<span class="prelude-val">Ok</span>(())
+	<span class="kw">fn </span>write_len(<span class="kw-2">&amp;mut </span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>String, len: usize) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>free_count;
+		<span class="kw">let </span>slab_count;
+		(free_count, slab_count) = {
+			<span class="kw">let </span>slabs = <span class="self">self</span>.hashtable.slabs()<span class="question-mark">?</span>.unwrap();
+			<span class="kw">let </span>slabs = slabs.borrow();
+			(slabs.free_count()<span class="question-mark">?</span>, slabs.slab_count()<span class="question-mark">?</span>)
+		};
+		<span class="kw">let </span>bytes_needed = len + path.len() + CACHE_OVERHEAD_BYTES;
+		<span class="kw">let </span>blocks_needed = <span class="number">1 </span>+ (bytes_needed / CACHE_BYTES_PER_SLAB);
+		<span class="macro">debug!</span>(<span class="string">&quot;free_count={},blocks_needed={}&quot;</span>, free_count, blocks_needed)<span class="question-mark">?</span>;
+
+		<span class="kw">if </span>blocks_needed &gt; slab_count {
+			<span class="prelude-val">Ok</span>(<span class="bool-val">false</span>)
+		} <span class="kw">else </span>{
+			<span class="kw">loop </span>{
+				<span class="kw">if </span>free_count &gt;= blocks_needed {
+					<span class="kw">break</span>;
+				}
+
+				<span class="macro">debug!</span>(<span class="string">&quot;removing oldest&quot;</span>)<span class="question-mark">?</span>;
+				<span class="self">self</span>.hashtable.remove_oldest()<span class="question-mark">?</span>;
+
+				free_count = <span class="self">self</span>.hashtable.slabs()<span class="question-mark">?</span>.unwrap().borrow().free_count()<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(
+					<span class="string">&quot;loop free_count={},blocks_needed={}&quot;</span>,
+					free_count, blocks_needed
+				)<span class="question-mark">?</span>;
+			}
+			<span class="macro">debug!</span>(<span class="string">&quot;write_len {} = {}&quot;</span>, path, len)<span class="question-mark">?</span>;
+			<span class="kw">let </span><span class="kw-2">mut </span>data = [<span class="number">0u8</span>; CACHE_BUFFER_SIZE];
+			usize_to_slice(len, <span class="kw-2">&amp;mut </span>data[<span class="number">0</span>..<span class="number">8</span>])<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">&quot;write_len {:?}&quot;</span>, <span class="kw-2">&amp;</span>data[<span class="number">0</span>..<span class="number">8</span>])<span class="question-mark">?</span>;
+			<span class="self">self</span>.hashtable.raw_write(path, <span class="number">0</span>, <span class="kw-2">&amp;</span>data)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">&quot;====================================write_len complete&quot;</span>)<span class="question-mark">?</span>;
+			<span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
+		}
 	}
 
 	<span class="kw">fn </span>write_block(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		path: <span class="kw-2">&amp;</span>String,
 		block_num: usize,
-		data: <span class="kw-2">&amp;</span>[u8; <span class="number">512</span>],
+		data: <span class="kw-2">&amp;</span>[u8; CACHE_BUFFER_SIZE],
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">info!</span>(
+		<span class="macro">debug!</span>(
 			<span class="string">&quot;write block num = {}, path = {}, data={:?}&quot;</span>,
 			block_num, path, data
-		);
-		<span class="kw">let </span>ret = <span class="self">self</span>.hashtable.raw_write(path, <span class="number">8 </span>+ block_num * <span class="number">512</span>, data);
-		<span class="macro">info!</span>(
+		)<span class="question-mark">?</span>;
+		<span class="kw">let </span>ret = <span class="self">self
+			</span>.hashtable
+			.raw_write(path, <span class="number">8 </span>+ block_num * CACHE_BUFFER_SIZE, data);
+		<span class="macro">debug!</span>(
 			<span class="string">&quot;=====================================write block complete: {:?}&quot;</span>,
 			ret
-		);
+		)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 

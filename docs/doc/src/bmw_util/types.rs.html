@@ -1361,6 +1361,20 @@
 <a href="#1361" id="1361">1361</a>
 <a href="#1362" id="1362">1362</a>
 <a href="#1363" id="1363">1363</a>
+<a href="#1364" id="1364">1364</a>
+<a href="#1365" id="1365">1365</a>
+<a href="#1366" id="1366">1366</a>
+<a href="#1367" id="1367">1367</a>
+<a href="#1368" id="1368">1368</a>
+<a href="#1369" id="1369">1369</a>
+<a href="#1370" id="1370">1370</a>
+<a href="#1371" id="1371">1371</a>
+<a href="#1372" id="1372">1372</a>
+<a href="#1373" id="1373">1373</a>
+<a href="#1374" id="1374">1374</a>
+<a href="#1375" id="1375">1375</a>
+<a href="#1376" id="1376">1376</a>
+<a href="#1377" id="1377">1377</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1378,7 +1392,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="kw">use </span><span class="kw">crate</span>::Serializable;
+</span><span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
+<span class="kw">use </span><span class="kw">crate</span>::Serializable;
 <span class="kw">use </span>bmw_deps::dyn_clone::{clone_trait_object, DynClone};
 <span class="kw">use </span>bmw_derive::Serializable;
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
@@ -1866,9 +1881,22 @@
 	<span class="doccomment">/// Remove the oldest entry in the hashtable.
 	</span><span class="kw">fn </span>remove_oldest(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="doccomment">/// Get raw data and store it in `data` with given offset.
-	</span><span class="kw">fn </span>raw_read(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, offset: usize, data: <span class="kw-2">&amp;mut </span>[u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt;;
+	</span><span class="kw">fn </span>raw_read(
+		<span class="kw-2">&amp;</span><span class="self">self</span>,
+		key: <span class="kw-2">&amp;</span>K,
+		offset: usize,
+		data: <span class="kw-2">&amp;mut </span>[u8; CACHE_BUFFER_SIZE],
+	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt;;
 	<span class="doccomment">/// Write raw data from `data` with given offset.
-	</span><span class="kw">fn </span>raw_write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, offset: usize, data: <span class="kw-2">&amp;</span>[u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+	</span><span class="kw">fn </span>raw_write(
+		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
+		key: <span class="kw-2">&amp;</span>K,
+		offset: usize,
+		data: <span class="kw-2">&amp;</span>[u8; CACHE_BUFFER_SIZE],
+	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+	<span class="doccomment">/// Gets the slab allocator associated with this Hashtable or None if the global slab
+	/// allocator is used.
+	</span><span class="kw">fn </span>slabs(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Rc&lt;RefCell&lt;<span class="kw">dyn </span>SlabAllocator&gt;&gt;&gt;, Error&gt;;
 }
 
 <span class="doccomment">/// A slab allocated Hashset. Most of the implementation is shared with [`crate::Hashtable`].

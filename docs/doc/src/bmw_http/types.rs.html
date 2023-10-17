@@ -138,6 +138,10 @@
 <a href="#138" id="138">138</a>
 <a href="#139" id="139">139</a>
 <a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -155,7 +159,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="kw">use </span>bmw_deps::rand::random;
+</span><span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_evh::{ConnectionData, EventHandlerConfig};
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
@@ -205,8 +209,13 @@
 		code: u16,
 		message: <span class="kw-2">&amp;</span>str,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt;;
-	<span class="kw">fn </span>write_len(<span class="kw-2">&amp;mut </span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>String, len: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
-	<span class="kw">fn </span>write_block(<span class="kw-2">&amp;mut </span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>String, offset: usize, data: <span class="kw-2">&amp;</span>[u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+	<span class="kw">fn </span>write_len(<span class="kw-2">&amp;mut </span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>String, len: usize) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt;;
+	<span class="kw">fn </span>write_block(
+		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
+		path: <span class="kw-2">&amp;</span>String,
+		offset: usize,
+		data: <span class="kw-2">&amp;</span>[u8; CACHE_BUFFER_SIZE],
+	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="kw">fn </span>bring_to_front(<span class="kw-2">&amp;mut </span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 }
 
@@ -254,7 +263,6 @@
 	<span class="kw">pub </span>evh_config: EventHandlerConfig,
 	<span class="kw">pub </span>instances: Vec&lt;HttpInstance&gt;,
 	<span class="kw">pub </span>debug: bool,
-	<span class="kw">pub </span>cache_slab_size: usize,
 	<span class="kw">pub </span>cache_slab_count: usize,
 }
 

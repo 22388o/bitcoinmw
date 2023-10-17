@@ -23,6 +23,13 @@
 <a href="#23" id="23">23</a>
 <a href="#24" id="24">24</a>
 <a href="#25" id="25">25</a>
+<a href="#26" id="26">26</a>
+<a href="#27" id="27">27</a>
+<a href="#28" id="28">28</a>
+<a href="#29" id="29">29</a>
+<a href="#30" id="30">30</a>
+<a href="#31" id="31">31</a>
+<a href="#32" id="32">32</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -46,6 +53,13 @@
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>SUFFIX_TREE_HEAD_ID: usize = <span class="number">3</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>SUFFIX_TREE_HEADER_ID: usize = <span class="number">4</span>;
 
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>CACHE_BUFFER_SIZE: usize = <span class="number">412</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>CACHE_OVERHEAD_BYTES: usize = <span class="number">100</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>CACHE_SLAB_SIZE: usize = <span class="number">512</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>CACHE_BYTES_PER_SLAB: usize = <span class="number">500</span>;
+
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>SEPARATOR_LINE: <span class="kw-2">&amp;</span>str =
 	<span class="string">&quot;--------------------------------------------------------------------------------&quot;</span>;
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>ERROR_CONTENT: <span class="kw-2">&amp;</span>str = <span class="string">&quot;Error ERROR_CODE: \&quot;ERROR_MESSAGE\&quot; occurred.&quot;</span>;
 </code></pre></div></section></main></body></html>

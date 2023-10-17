@@ -979,6 +979,11 @@
 <a href="#979" id="979">979</a>
 <a href="#980" id="980">980</a>
 <a href="#981" id="981">981</a>
+<a href="#982" id="982">982</a>
+<a href="#983" id="983">983</a>
+<a href="#984" id="984">984</a>
+<a href="#985" id="985">985</a>
+<a href="#986" id="986">986</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1023,8 +1028,6 @@
 
 <span class="macro">info!</span>();
 
-<span class="kw">const </span>ERROR_CONTENT: <span class="kw-2">&amp;</span>str = <span class="string">&quot;Error ERROR_CODE: \&quot;ERROR_MESSAGE\&quot; occurred.&quot;</span>;
-
 <span class="kw">impl </span>Default <span class="kw">for </span>HttpHeader {
 	<span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
 		<span class="self">Self </span>{
@@ -1044,8 +1047,7 @@
 				..Default::default()
 			}],
 			debug: <span class="bool-val">false</span>,
-			cache_slab_size: <span class="number">35</span>,
-			cache_slab_count: <span class="number">1_000_000</span>,
+			cache_slab_count: <span class="number">10_000</span>,
 		}
 	}
 }
@@ -1190,7 +1192,7 @@
 		instance: <span class="kw-2">&amp;</span>HttpInstance,
 		code: u16,
 		message: <span class="kw-2">&amp;</span>str,
-		<span class="kw-2">mut </span>cache: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>HttpCache + Send + Sync&gt;&gt;&gt;,
+		cache: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>HttpCache + Send + Sync&gt;&gt;&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>slash = <span class="kw">if </span>instance.http_dir.ends_with(<span class="string">&quot;/&quot;</span>) {
 			<span class="string">&quot;&quot;
@@ -1331,7 +1333,7 @@ Content-Length: {}\r\n\r\n{}\n&quot;</span>,
 				hit = (<span class="kw-2">**</span>cache.guard()).stream_file(<span class="kw-2">&amp;</span>fpath, conn_data, <span class="number">200</span>, <span class="string">&quot;OK&quot;</span>)<span class="question-mark">?</span>;
 			}
 			<span class="kw">let </span>r = random::&lt;u64&gt;();
-			<span class="macro">info!</span>(<span class="string">&quot;r={}&quot;</span>, r);
+			<span class="macro">debug!</span>(<span class="string">&quot;r={}&quot;</span>, r)<span class="question-mark">?</span>;
 			<span class="kw">if </span>hit &amp;&amp; r % <span class="number">2 </span>== <span class="number">0 </span>{
 				<span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
 				(<span class="kw-2">**</span>cache.guard()).bring_to_front(<span class="kw-2">&amp;</span>fpath)<span class="question-mark">?</span>;
@@ -1371,18 +1373,19 @@ Content-Length: &quot;</span>,
 
 		<span class="kw">let </span>res = <span class="macro">format!</span>(<span class="string">&quot;{}{}\r\n\r\n&quot;</span>, res, len);
 
-		<span class="macro">info!</span>(<span class="string">&quot;writing {}&quot;</span>, res)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">&quot;writing {}&quot;</span>, res)<span class="question-mark">?</span>;
 		conn_data.write_handle().write(<span class="kw-2">&amp;</span>res.as_bytes()[..])<span class="question-mark">?</span>;
 
-		<span class="kw">let </span><span class="kw-2">mut </span>buf = <span class="macro">vec!</span>[<span class="number">0u8</span>; <span class="number">512</span>];
+		<span class="kw">let </span><span class="kw-2">mut </span>buf = <span class="macro">vec!</span>[<span class="number">0u8</span>; CACHE_BUFFER_SIZE];
 		<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>write_to_cache = <span class="bool-val">true</span>;
 		<span class="kw">loop </span>{
 			<span class="kw">let </span>blen = buf_reader.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
 			conn_data.write_handle().write(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..blen])<span class="question-mark">?</span>;
-			<span class="macro">info!</span>(
+			<span class="macro">debug!</span>(
 				<span class="string">&quot;write &#39;{}&#39;&quot;</span>,
 				std::str::from_utf8(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..blen]).unwrap_or(<span class="string">&quot;&quot;</span>)
-			);
+			)<span class="question-mark">?</span>;
 
 			<span class="kw">if </span>blen == <span class="number">0 </span>{
 				<span class="kw">break</span>;
@@ -1391,9 +1394,16 @@ Content-Length: &quot;</span>,
 			{
 				<span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
 				<span class="kw">if </span>i == <span class="number">0 </span>{
-					(<span class="kw-2">**</span>cache.guard()).write_len(<span class="kw-2">&amp;</span>fpath, <span class="macro">try_into!</span>(len)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+					write_to_cache = (<span class="kw-2">**</span>cache.guard()).write_len(<span class="kw-2">&amp;</span>fpath, <span class="macro">try_into!</span>(len)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 				}
-				(<span class="kw-2">**</span>cache.guard()).write_block(<span class="kw-2">&amp;</span>fpath, i, <span class="kw-2">&amp;</span><span class="macro">try_into!</span>(buf[<span class="number">0</span>..<span class="number">512</span>])<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+
+				<span class="kw">if </span>write_to_cache {
+					(<span class="kw-2">**</span>cache.guard()).write_block(
+						<span class="kw-2">&amp;</span>fpath,
+						i,
+						<span class="kw-2">&amp;</span><span class="macro">try_into!</span>(buf[<span class="number">0</span>..CACHE_BUFFER_SIZE])<span class="question-mark">?</span>,
+					)<span class="question-mark">?</span>;
+				}
 			}
 
 			i += <span class="number">1</span>;
@@ -1553,7 +1563,7 @@ Content-Length: &quot;</span>,
 		conn_data: <span class="kw-2">&amp;mut </span>ConnectionData,
 		instance: <span class="kw-2">&amp;</span>HttpInstance,
 		err: Error,
-		<span class="kw-2">mut </span>cache: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>HttpCache + Send + Sync&gt;&gt;&gt;,
+		cache: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>HttpCache + Send + Sync&gt;&gt;&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="macro">debug!</span>(<span class="string">&quot;Err: {:?}&quot;</span>, err.inner())<span class="question-mark">?</span>;
 		<span class="kw">let </span>err_text = err.inner();

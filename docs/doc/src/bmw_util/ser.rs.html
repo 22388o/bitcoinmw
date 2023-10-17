@@ -1432,6 +1432,8 @@
 <a href="#1432" id="1432">1432</a>
 <a href="#1433" id="1433">1433</a>
 <a href="#1434" id="1434">1434</a>
+<a href="#1435" id="1435">1435</a>
+<a href="#1436" id="1436">1436</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1777,11 +1779,13 @@
 			<span class="kw">match </span><span class="kw-2">&amp;mut </span>slabs {
 				<span class="prelude-val">Some</span>(slabs) =&gt; {
 					<span class="kw">let </span><span class="kw-2">mut </span>slab_mut = slabs.get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>;
+
 					<span class="macro">debug!</span>(
-						<span class="string">&quot;bytes.len={},self.offset={},wlen={}&quot;</span>,
+						<span class="string">&quot;bytes.len={},self.offset={},wlen={},slab_size={}&quot;</span>,
 						bytes.len(),
 						<span class="self">self</span>.offset,
-						wlen
+						wlen,
+						<span class="self">self</span>.slab_size,
 					)<span class="question-mark">?</span>;
 					slab_mut.get_mut()[<span class="self">self</span>.offset..<span class="self">self</span>.offset + wlen]
 						.clone_from_slice(<span class="kw-2">&amp;</span>bytes[<span class="number">0</span>..wlen]);

@@ -2697,6 +2697,38 @@
 <a href="#2697" id="2697">2697</a>
 <a href="#2698" id="2698">2698</a>
 <a href="#2699" id="2699">2699</a>
+<a href="#2700" id="2700">2700</a>
+<a href="#2701" id="2701">2701</a>
+<a href="#2702" id="2702">2702</a>
+<a href="#2703" id="2703">2703</a>
+<a href="#2704" id="2704">2704</a>
+<a href="#2705" id="2705">2705</a>
+<a href="#2706" id="2706">2706</a>
+<a href="#2707" id="2707">2707</a>
+<a href="#2708" id="2708">2708</a>
+<a href="#2709" id="2709">2709</a>
+<a href="#2710" id="2710">2710</a>
+<a href="#2711" id="2711">2711</a>
+<a href="#2712" id="2712">2712</a>
+<a href="#2713" id="2713">2713</a>
+<a href="#2714" id="2714">2714</a>
+<a href="#2715" id="2715">2715</a>
+<a href="#2716" id="2716">2716</a>
+<a href="#2717" id="2717">2717</a>
+<a href="#2718" id="2718">2718</a>
+<a href="#2719" id="2719">2719</a>
+<a href="#2720" id="2720">2720</a>
+<a href="#2721" id="2721">2721</a>
+<a href="#2722" id="2722">2722</a>
+<a href="#2723" id="2723">2723</a>
+<a href="#2724" id="2724">2724</a>
+<a href="#2725" id="2725">2725</a>
+<a href="#2726" id="2726">2726</a>
+<a href="#2727" id="2727">2727</a>
+<a href="#2728" id="2728">2728</a>
+<a href="#2729" id="2729">2729</a>
+<a href="#2730" id="2730">2730</a>
+<a href="#2731" id="2731">2731</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2714,7 +2746,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="kw">use </span><span class="kw">crate</span>::list_append;
+</span><span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
+<span class="kw">use </span><span class="kw">crate</span>::list_append;
 <span class="kw">use </span><span class="kw">crate</span>::misc::{set_max, slice_to_usize, usize_to_slice};
 <span class="kw">use </span><span class="kw">crate</span>::types::{Direction, HashImpl, HashImplSync};
 <span class="kw">use crate</span>::{
@@ -3130,13 +3163,23 @@
 	<span class="kw">fn </span>remove_oldest(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.static_impl.remove_oldest_impl()
 	}
-	<span class="kw">fn </span>raw_read(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, offset: usize, data: <span class="kw-2">&amp;mut </span>[u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
+	<span class="kw">fn </span>raw_read(
+		<span class="kw-2">&amp;</span><span class="self">self</span>,
+		key: <span class="kw-2">&amp;</span>K,
+		offset: usize,
+		data: <span class="kw-2">&amp;mut </span>[u8; CACHE_BUFFER_SIZE],
+	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>hasher = DefaultHasher::new();
 		key.hash(<span class="kw-2">&amp;mut </span>hasher);
 		<span class="kw">let </span>hash = hasher.finish() <span class="kw">as </span>usize;
 		<span class="self">self</span>.static_impl.raw_read_impl(key, hash, offset, data)
 	}
-	<span class="kw">fn </span>raw_write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, offset: usize, data: <span class="kw-2">&amp;</span>[u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
+	<span class="kw">fn </span>raw_write(
+		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
+		key: <span class="kw-2">&amp;</span>K,
+		offset: usize,
+		data: <span class="kw-2">&amp;</span>[u8; CACHE_BUFFER_SIZE],
+	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 	<span class="kw">where
 		</span>V: Clone,
 	{
@@ -3145,6 +3188,9 @@
 		<span class="kw">let </span>hash = hasher.finish() <span class="kw">as </span>usize;
 		<span class="self">self</span>.static_impl
 			.raw_write_impl::&lt;V&gt;(key, hash, offset, data)
+	}
+	<span class="kw">fn </span>slabs(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Rc&lt;RefCell&lt;<span class="kw">dyn </span>SlabAllocator&gt;&gt;&gt;, Error&gt; {
+		<span class="self">self</span>.static_impl.slabs_impl()
 	}
 }
 
@@ -3590,7 +3636,7 @@
 		key: <span class="kw-2">&amp;</span>K,
 		hash: usize,
 		offset: usize,
-		data: <span class="kw-2">&amp;mut </span>[u8; <span class="number">512</span>],
+		data: <span class="kw-2">&amp;mut </span>[u8; CACHE_BUFFER_SIZE],
 	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt;
 	<span class="kw">where
 		</span>K: PartialEq,
@@ -3609,7 +3655,7 @@
 		key: <span class="kw-2">&amp;</span>K,
 		hash: usize,
 		offset: usize,
-		data: <span class="kw-2">&amp;</span>[u8; <span class="number">512</span>],
+		data: <span class="kw-2">&amp;</span>[u8; CACHE_BUFFER_SIZE],
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 	<span class="kw">where
 		</span>K: PartialEq,
@@ -3667,7 +3713,7 @@
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		key: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>K&gt;,
 		value: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>V&gt;,
-		raw_chunk: <span class="prelude-ty">Option</span>&lt;(usize, <span class="kw-2">&amp;</span>[u8; <span class="number">512</span>])&gt;,
+		raw_chunk: <span class="prelude-ty">Option</span>&lt;(usize, <span class="kw-2">&amp;</span>[u8; CACHE_BUFFER_SIZE])&gt;,
 		hash: usize,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 	<span class="kw">where
@@ -3744,7 +3790,7 @@
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		key: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>K&gt;,
 		value: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>V&gt;,
-		raw_value: <span class="prelude-ty">Option</span>&lt;(usize, <span class="kw-2">&amp;</span>[u8; <span class="number">512</span>])&gt;,
+		raw_value: <span class="prelude-ty">Option</span>&lt;(usize, <span class="kw-2">&amp;</span>[u8; CACHE_BUFFER_SIZE])&gt;,
 		entry: <span class="prelude-ty">Option</span>&lt;usize&gt;,
 		slab_id_allocated: <span class="prelude-ty">Option</span>&lt;usize&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
@@ -3999,6 +4045,10 @@
 
 		<span class="prelude-val">Ok</span>(())
 	}
+
+	<span class="kw">fn </span>slabs_impl(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Rc&lt;RefCell&lt;<span class="kw">dyn </span>SlabAllocator&gt;&gt;&gt;, Error&gt; {
+		<span class="prelude-val">Ok</span>(<span class="self">self</span>.slabs.clone())
+	}
 }
 
 <span class="kw">impl</span>&lt;K&gt; Drop <span class="kw">for </span>HashImpl&lt;K&gt;
@@ -4072,17 +4122,30 @@
 	<span class="kw">fn </span>remove_oldest(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.remove_oldest_impl()
 	}
-	<span class="kw">fn </span>raw_read(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: <span class="kw-2">&amp;mut </span>[u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
+	<span class="kw">fn </span>raw_read(
+		<span class="kw-2">&amp;</span><span class="self">self</span>,
+		key: <span class="kw-2">&amp;</span>K,
+		chunk: usize,
+		data: <span class="kw-2">&amp;mut </span>[u8; CACHE_BUFFER_SIZE],
+	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>hasher = DefaultHasher::new();
 		key.hash(<span class="kw-2">&amp;mut </span>hasher);
 		<span class="kw">let </span>hash = hasher.finish() <span class="kw">as </span>usize;
 		<span class="self">self</span>.raw_read_impl(key, hash, chunk, data)
 	}
-	<span class="kw">fn </span>raw_write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, chunk: usize, data: <span class="kw-2">&amp;</span>[u8; <span class="number">512</span>]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">fn </span>raw_write(
+		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
+		key: <span class="kw-2">&amp;</span>K,
+		chunk: usize,
+		data: <span class="kw-2">&amp;</span>[u8; CACHE_BUFFER_SIZE],
+	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>hasher = DefaultHasher::new();
 		key.hash(<span class="kw-2">&amp;mut </span>hasher);
 		<span class="kw">let </span>hash = hasher.finish() <span class="kw">as </span>usize;
 		<span class="self">self</span>.raw_write_impl::&lt;V&gt;(key, hash, chunk, data)
+	}
+	<span class="kw">fn </span>slabs(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Rc&lt;RefCell&lt;<span class="kw">dyn </span>SlabAllocator&gt;&gt;&gt;, Error&gt; {
+		<span class="self">self</span>.slabs_impl()
 	}
 }
 
@@ -4163,6 +4226,7 @@
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
 	<span class="kw">use crate as </span>bmw_util;
+	<span class="kw">use </span><span class="kw">crate</span>::hash::CACHE_BUFFER_SIZE;
 	<span class="kw">use </span><span class="kw">crate</span>::types::{HashImpl, HashImplSync, Hashset, List};
 	<span class="kw">use </span><span class="kw">crate</span>::ConfigOption::{SlabCount, SlabSize};
 	<span class="kw">use crate</span>::{
@@ -5362,13 +5426,13 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>hashtable =
 			Builder::build_hashtable::&lt;u32, u32&gt;(HashtableConfig::default(), <span class="kw-2">&amp;</span><span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>slabs))<span class="question-mark">?</span>;
 
-		<span class="kw">let </span><span class="kw-2">mut </span>data2 = [<span class="number">0u8</span>; <span class="number">512</span>];
-		<span class="kw">let </span>data = [<span class="number">8u8</span>; <span class="number">512</span>];
+		<span class="kw">let </span><span class="kw-2">mut </span>data2 = [<span class="number">0u8</span>; CACHE_BUFFER_SIZE];
+		<span class="kw">let </span>data = [<span class="number">8u8</span>; CACHE_BUFFER_SIZE];
 		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">0</span>, <span class="number">0</span>, <span class="kw-2">&amp;</span>data)<span class="question-mark">?</span>;
 		hashtable.raw_read(<span class="kw-2">&amp;</span><span class="number">0</span>, <span class="number">0</span>, <span class="kw-2">&amp;mut </span>data2)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(data, data2);
 
-		<span class="kw">let </span>data = [<span class="number">10u8</span>; <span class="number">512</span>];
+		<span class="kw">let </span>data = [<span class="number">10u8</span>; CACHE_BUFFER_SIZE];
 		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">7</span>, <span class="number">383</span>, <span class="kw-2">&amp;</span>data)<span class="question-mark">?</span>;
 		hashtable.raw_read(<span class="kw-2">&amp;</span><span class="number">7</span>, <span class="number">383</span>, <span class="kw-2">&amp;mut </span>data2)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(data, data2);
@@ -5382,9 +5446,9 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>hashtable =
 			Builder::build_hashtable::&lt;u32, u32&gt;(HashtableConfig::default(), <span class="kw-2">&amp;</span><span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>slabs))<span class="question-mark">?</span>;
 
-		<span class="kw">let </span><span class="kw-2">mut </span>data2 = [<span class="number">0u8</span>; <span class="number">512</span>];
-		<span class="kw">let </span>empty = [<span class="number">4u8</span>; <span class="number">512</span>];
-		<span class="kw">let </span>data = [<span class="number">10u8</span>; <span class="number">512</span>];
+		<span class="kw">let </span><span class="kw-2">mut </span>data2 = [<span class="number">0u8</span>; CACHE_BUFFER_SIZE];
+		<span class="kw">let </span>empty = [<span class="number">4u8</span>; CACHE_BUFFER_SIZE];
+		<span class="kw">let </span>data = [<span class="number">10u8</span>; CACHE_BUFFER_SIZE];
 
 		<span class="macro">info!</span>(<span class="string">&quot;raw_write at 1383&quot;</span>)<span class="question-mark">?</span>;
 		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">7</span>, <span class="number">1383</span>, <span class="kw-2">&amp;</span>data)<span class="question-mark">?</span>;

@@ -8,6 +8,6 @@ var srcIndex = JSON.parse('{\
 "bmw_log":["",[],["lib.rs","log.rs","macros.rs","types.rs"]],\
 "bmw_ser":["",[],["lib.rs"]],\
 "bmw_test":["",[],["lib.rs","port.rs","testdir.rs"]],\
-"bmw_util":["",[],["array.rs","builder.rs","hash.rs","lib.rs","lock.rs","macros.rs","misc.rs","ser.rs","slabs.rs","suffix_tree.rs","threadpool.rs","types.rs"]]\
+"bmw_util":["",[],["array.rs","builder.rs","constants.rs","hash.rs","lib.rs","lock.rs","macros.rs","misc.rs","ser.rs","slabs.rs","suffix_tree.rs","threadpool.rs","types.rs"]]\
 }');
 createSrcSidebar();
