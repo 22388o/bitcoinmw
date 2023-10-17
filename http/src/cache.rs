@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::constants::*;
 use crate::types::HttpCacheImpl;
 use crate::{HttpCache, HttpConfig};
 use bmw_deps::chrono::Utc;
@@ -23,15 +24,13 @@ use bmw_evh::ConnData;
 use bmw_evh::ConnectionData;
 use bmw_log::*;
 use bmw_util::*;
-use std::fs::File;
-use std::io::{BufReader, Read};
 
 info!();
 
 impl HttpCacheImpl {
 	pub(crate) fn new(config: &HttpConfig) -> Result<Box<dyn HttpCache + Send + Sync>, Error> {
 		let hashtable = hashtable_sync_box!(
-			SlabSize(config.cache_slab_size),
+			SlabSize(CACHE_SLAB_SIZE),
 			SlabCount(config.cache_slab_count)
 		)?;
 		Ok(Box::new(HttpCacheImpl { hashtable }))
@@ -46,26 +45,26 @@ impl HttpCache for HttpCacheImpl {
 		code: u16,
 		message: &str,
 	) -> Result<bool, Error> {
-		let mut data = [0u8; 512];
-		info!("try cache {}", fpath);
+		let mut data = [0u8; CACHE_BUFFER_SIZE];
+		debug!("try cache {}", fpath)?;
 		let found = self.hashtable.raw_read(fpath, 0, &mut data)?;
-		info!("raw read complete");
+		debug!("raw read complete")?;
 		if found {
 			let len = slice_to_usize(&data[0..8])?;
-			info!(
+			debug!(
 				"cache found len = {}, data = {:?}, found={}",
 				len,
 				&data[0..8],
 				found
-			);
+			)?;
 
 			let dt = Utc::now();
 			let res = dt
 				.format(
 					&format!(
 						"HTTP/1.1 {} {}\r\n\
-		Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
-		Content-Length: ",
+                                                Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
+                                                Content-Length: ",
 						code, message
 					)
 					.to_string(),
@@ -80,10 +79,14 @@ impl HttpCache for HttpCacheImpl {
 			let mut rem = len;
 			let mut i = 0;
 			loop {
-				let mut buf = vec![0u8; 512];
-				let found = self.hashtable.raw_read(fpath, 8 + i * 512, &mut data)?;
-				let wlen = if rem > 512 { 512 } else { rem };
-				info!("read wlen={},rem={},data={:?}", wlen, rem, data);
+				self.hashtable
+					.raw_read(fpath, 8 + i * CACHE_BUFFER_SIZE, &mut data)?;
+				let wlen = if rem > CACHE_BUFFER_SIZE {
+					CACHE_BUFFER_SIZE
+				} else {
+					rem
+				};
+				debug!("read wlen={},rem={},data={:?}", wlen, rem, data)?;
 				conn_data.write_handle().write(&data[0..wlen])?;
 
 				rem = rem.saturating_sub(wlen);
@@ -96,31 +99,62 @@ impl HttpCache for HttpCacheImpl {
 		Ok(found)
 	}
 
-	fn write_len(&mut self, path: &String, len: usize) -> Result<(), Error> {
-		info!("write_len {} = {}", path, len);
-		let mut data = [0u8; 512];
-		usize_to_slice(len, &mut data[0..8])?;
-		info!("write_len {:?}", &data[0..8]);
-		self.hashtable.raw_write(path, 0, &data)?;
-		info!("====================================write_len complete");
-		Ok(())
+	fn write_len(&mut self, path: &String, len: usize) -> Result<bool, Error> {
+		let mut free_count;
+		let slab_count;
+		(free_count, slab_count) = {
+			let slabs = self.hashtable.slabs()?.unwrap();
+			let slabs = slabs.borrow();
+			(slabs.free_count()?, slabs.slab_count()?)
+		};
+		let bytes_needed = len + path.len() + CACHE_OVERHEAD_BYTES;
+		let blocks_needed = 1 + (bytes_needed / CACHE_BYTES_PER_SLAB);
+		debug!("free_count={},blocks_needed={}", free_count, blocks_needed)?;
+
+		if blocks_needed > slab_count {
+			Ok(false)
+		} else {
+			loop {
+				if free_count >= blocks_needed {
+					break;
+				}
+
+				debug!("removing oldest")?;
+				self.hashtable.remove_oldest()?;
+
+				free_count = self.hashtable.slabs()?.unwrap().borrow().free_count()?;
+				debug!(
+					"loop free_count={},blocks_needed={}",
+					free_count, blocks_needed
+				)?;
+			}
+			debug!("write_len {} = {}", path, len)?;
+			let mut data = [0u8; CACHE_BUFFER_SIZE];
+			usize_to_slice(len, &mut data[0..8])?;
+			debug!("write_len {:?}", &data[0..8])?;
+			self.hashtable.raw_write(path, 0, &data)?;
+			debug!("====================================write_len complete")?;
+			Ok(true)
+		}
 	}
 
 	fn write_block(
 		&mut self,
 		path: &String,
 		block_num: usize,
-		data: &[u8; 512],
+		data: &[u8; CACHE_BUFFER_SIZE],
 	) -> Result<(), Error> {
-		info!(
+		debug!(
 			"write block num = {}, path = {}, data={:?}",
 			block_num, path, data
-		);
-		let ret = self.hashtable.raw_write(path, 8 + block_num * 512, data);
-		info!(
+		)?;
+		let ret = self
+			.hashtable
+			.raw_write(path, 8 + block_num * CACHE_BUFFER_SIZE, data);
+		debug!(
 			"=====================================write block complete: {:?}",
 			ret
-		);
+		)?;
 		Ok(())
 	}
 

@@ -526,6 +526,7 @@
 
 mod array;
 mod builder;
+mod constants;
 mod hash;
 mod lock;
 mod macros;

@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::constants::*;
 use crate::list_append;
 use crate::misc::{set_max, slice_to_usize, usize_to_slice};
 use crate::types::{Direction, HashImpl, HashImplSync};
@@ -431,13 +432,23 @@ where
 	fn remove_oldest(&mut self) -> Result<(), Error> {
 		self.static_impl.remove_oldest_impl()
 	}
-	fn raw_read(&self, key: &K, offset: usize, data: &mut [u8; 512]) -> Result<bool, Error> {
+	fn raw_read(
+		&self,
+		key: &K,
+		offset: usize,
+		data: &mut [u8; CACHE_BUFFER_SIZE],
+	) -> Result<bool, Error> {
 		let mut hasher = DefaultHasher::new();
 		key.hash(&mut hasher);
 		let hash = hasher.finish() as usize;
 		self.static_impl.raw_read_impl(key, hash, offset, data)
 	}
-	fn raw_write(&mut self, key: &K, offset: usize, data: &[u8; 512]) -> Result<(), Error>
+	fn raw_write(
+		&mut self,
+		key: &K,
+		offset: usize,
+		data: &[u8; CACHE_BUFFER_SIZE],
+	) -> Result<(), Error>
 	where
 		V: Clone,
 	{
@@ -446,6 +457,9 @@ where
 		let hash = hasher.finish() as usize;
 		self.static_impl
 			.raw_write_impl::<V>(key, hash, offset, data)
+	}
+	fn slabs(&self) -> Result<Option<Rc<RefCell<dyn SlabAllocator>>>, Error> {
+		self.static_impl.slabs_impl()
 	}
 }
 
@@ -891,7 +905,7 @@ where
 		key: &K,
 		hash: usize,
 		offset: usize,
-		data: &mut [u8; 512],
+		data: &mut [u8; CACHE_BUFFER_SIZE],
 	) -> Result<bool, Error>
 	where
 		K: PartialEq,
@@ -910,7 +924,7 @@ where
 		key: &K,
 		hash: usize,
 		offset: usize,
-		data: &[u8; 512],
+		data: &[u8; CACHE_BUFFER_SIZE],
 	) -> Result<(), Error>
 	where
 		K: PartialEq,
@@ -968,7 +982,7 @@ where
 		&mut self,
 		key: Option<&K>,
 		value: Option<&V>,
-		raw_chunk: Option<(usize, &[u8; 512])>,
+		raw_chunk: Option<(usize, &[u8; CACHE_BUFFER_SIZE])>,
 		hash: usize,
 	) -> Result<(), Error>
 	where
@@ -1045,7 +1059,7 @@ where
 		&mut self,
 		key: Option<&K>,
 		value: Option<&V>,
-		raw_value: Option<(usize, &[u8; 512])>,
+		raw_value: Option<(usize, &[u8; CACHE_BUFFER_SIZE])>,
 		entry: Option<usize>,
 		slab_id_allocated: Option<usize>,
 	) -> Result<(), Error>
@@ -1300,6 +1314,10 @@ where
 
 		Ok(())
 	}
+
+	fn slabs_impl(&self) -> Result<Option<Rc<RefCell<dyn SlabAllocator>>>, Error> {
+		Ok(self.slabs.clone())
+	}
 }
 
 impl<K> Drop for HashImpl<K>
@@ -1373,17 +1391,30 @@ where
 	fn remove_oldest(&mut self) -> Result<(), Error> {
 		self.remove_oldest_impl()
 	}
-	fn raw_read(&self, key: &K, chunk: usize, data: &mut [u8; 512]) -> Result<bool, Error> {
+	fn raw_read(
+		&self,
+		key: &K,
+		chunk: usize,
+		data: &mut [u8; CACHE_BUFFER_SIZE],
+	) -> Result<bool, Error> {
 		let mut hasher = DefaultHasher::new();
 		key.hash(&mut hasher);
 		let hash = hasher.finish() as usize;
 		self.raw_read_impl(key, hash, chunk, data)
 	}
-	fn raw_write(&mut self, key: &K, chunk: usize, data: &[u8; 512]) -> Result<(), Error> {
+	fn raw_write(
+		&mut self,
+		key: &K,
+		chunk: usize,
+		data: &[u8; CACHE_BUFFER_SIZE],
+	) -> Result<(), Error> {
 		let mut hasher = DefaultHasher::new();
 		key.hash(&mut hasher);
 		let hash = hasher.finish() as usize;
 		self.raw_write_impl::<V>(key, hash, chunk, data)
+	}
+	fn slabs(&self) -> Result<Option<Rc<RefCell<dyn SlabAllocator>>>, Error> {
+		self.slabs_impl()
 	}
 }
 
@@ -1464,6 +1495,7 @@ where
 #[cfg(test)]
 mod test {
 	use crate as bmw_util;
+	use crate::hash::CACHE_BUFFER_SIZE;
 	use crate::types::{HashImpl, HashImplSync, Hashset, List};
 	use crate::ConfigOption::{SlabCount, SlabSize};
 	use crate::{
@@ -2663,13 +2695,13 @@ mod test {
 		let mut hashtable =
 			Builder::build_hashtable::<u32, u32>(HashtableConfig::default(), &Some(&slabs))?;
 
-		let mut data2 = [0u8; 512];
-		let data = [8u8; 512];
+		let mut data2 = [0u8; CACHE_BUFFER_SIZE];
+		let data = [8u8; CACHE_BUFFER_SIZE];
 		hashtable.raw_write(&0, 0, &data)?;
 		hashtable.raw_read(&0, 0, &mut data2)?;
 		assert_eq!(data, data2);
 
-		let data = [10u8; 512];
+		let data = [10u8; CACHE_BUFFER_SIZE];
 		hashtable.raw_write(&7, 383, &data)?;
 		hashtable.raw_read(&7, 383, &mut data2)?;
 		assert_eq!(data, data2);
@@ -2683,9 +2715,9 @@ mod test {
 		let mut hashtable =
 			Builder::build_hashtable::<u32, u32>(HashtableConfig::default(), &Some(&slabs))?;
 
-		let mut data2 = [0u8; 512];
-		let empty = [4u8; 512];
-		let data = [10u8; 512];
+		let mut data2 = [0u8; CACHE_BUFFER_SIZE];
+		let empty = [4u8; CACHE_BUFFER_SIZE];
+		let data = [10u8; CACHE_BUFFER_SIZE];
 
 		info!("raw_write at 1383")?;
 		hashtable.raw_write(&7, 1383, &data)?;

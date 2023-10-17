@@ -42,8 +42,6 @@ use std::path::{Component, Path};
 
 info!();
 
-const ERROR_CONTENT: &str = "Error ERROR_CODE: \"ERROR_MESSAGE\" occurred.";
-
 impl Default for HttpHeader {
 	fn default() -> Self {
 		Self {
@@ -63,8 +61,7 @@ impl Default for HttpConfig {
 				..Default::default()
 			}],
 			debug: false,
-			cache_slab_size: 35,
-			cache_slab_count: 1_000_000,
+			cache_slab_count: 10_000,
 		}
 	}
 }
@@ -209,7 +206,7 @@ impl HttpServerImpl {
 		instance: &HttpInstance,
 		code: u16,
 		message: &str,
-		mut cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
+		cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
 	) -> Result<(), Error> {
 		let slash = if instance.http_dir.ends_with("/") {
 			""
@@ -350,7 +347,7 @@ Content-Length: {}\r\n\r\n{}\n",
 				hit = (**cache.guard()).stream_file(&fpath, conn_data, 200, "OK")?;
 			}
 			let r = random::<u64>();
-			info!("r={}", r);
+			debug!("r={}", r)?;
 			if hit && r % 2 == 0 {
 				let mut cache = cache.wlock()?;
 				(**cache.guard()).bring_to_front(&fpath)?;
@@ -390,18 +387,19 @@ Content-Length: ",
 
 		let res = format!("{}{}\r\n\r\n", res, len);
 
-		info!("writing {}", res)?;
+		debug!("writing {}", res)?;
 		conn_data.write_handle().write(&res.as_bytes()[..])?;
 
-		let mut buf = vec![0u8; 512];
+		let mut buf = vec![0u8; CACHE_BUFFER_SIZE];
 		let mut i = 0;
+		let mut write_to_cache = true;
 		loop {
 			let blen = buf_reader.read(&mut buf)?;
 			conn_data.write_handle().write(&buf[0..blen])?;
-			info!(
+			debug!(
 				"write '{}'",
 				std::str::from_utf8(&buf[0..blen]).unwrap_or("")
-			);
+			)?;
 
 			if blen == 0 {
 				break;
@@ -410,9 +408,16 @@ Content-Length: ",
 			{
 				let mut cache = cache.wlock()?;
 				if i == 0 {
-					(**cache.guard()).write_len(&fpath, try_into!(len)?)?;
+					write_to_cache = (**cache.guard()).write_len(&fpath, try_into!(len)?)?;
 				}
-				(**cache.guard()).write_block(&fpath, i, &try_into!(buf[0..512])?)?;
+
+				if write_to_cache {
+					(**cache.guard()).write_block(
+						&fpath,
+						i,
+						&try_into!(buf[0..CACHE_BUFFER_SIZE])?,
+					)?;
+				}
 			}
 
 			i += 1;
@@ -572,7 +577,7 @@ Content-Length: ",
 		conn_data: &mut ConnectionData,
 		instance: &HttpInstance,
 		err: Error,
-		mut cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
+		cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
 	) -> Result<(), Error> {
 		debug!("Err: {:?}", err.inner())?;
 		let err_text = err.inner();

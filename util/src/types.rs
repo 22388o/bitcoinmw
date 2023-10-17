@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::constants::*;
 use crate::Serializable;
 use bmw_deps::dyn_clone::{clone_trait_object, DynClone};
 use bmw_derive::Serializable;
@@ -503,9 +504,22 @@ where
 	/// Remove the oldest entry in the hashtable.
 	fn remove_oldest(&mut self) -> Result<(), Error>;
 	/// Get raw data and store it in `data` with given offset.
-	fn raw_read(&self, key: &K, offset: usize, data: &mut [u8; 512]) -> Result<bool, Error>;
+	fn raw_read(
+		&self,
+		key: &K,
+		offset: usize,
+		data: &mut [u8; CACHE_BUFFER_SIZE],
+	) -> Result<bool, Error>;
 	/// Write raw data from `data` with given offset.
-	fn raw_write(&mut self, key: &K, offset: usize, data: &[u8; 512]) -> Result<(), Error>;
+	fn raw_write(
+		&mut self,
+		key: &K,
+		offset: usize,
+		data: &[u8; CACHE_BUFFER_SIZE],
+	) -> Result<(), Error>;
+	/// Gets the slab allocator associated with this Hashtable or None if the global slab
+	/// allocator is used.
+	fn slabs(&self) -> Result<Option<Rc<RefCell<dyn SlabAllocator>>>, Error>;
 }
 
 /// A slab allocated Hashset. Most of the implementation is shared with [`crate::Hashtable`].

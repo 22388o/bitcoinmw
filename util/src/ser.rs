@@ -343,11 +343,13 @@ impl SlabWriter {
 			match &mut slabs {
 				Some(slabs) => {
 					let mut slab_mut = slabs.get_mut(self.slab_id)?;
+
 					debug!(
-						"bytes.len={},self.offset={},wlen={}",
+						"bytes.len={},self.offset={},wlen={},slab_size={}",
 						bytes.len(),
 						self.offset,
-						wlen
+						wlen,
+						self.slab_size,
 					)?;
 					slab_mut.get_mut()[self.offset..self.offset + wlen]
 						.clone_from_slice(&bytes[0..wlen]);
