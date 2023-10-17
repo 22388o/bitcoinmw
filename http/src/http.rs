@@ -63,8 +63,8 @@ impl Default for HttpConfig {
 				..Default::default()
 			}],
 			debug: false,
-			cache_slab_size: 520,
-			cache_slab_count: 1_024,
+			cache_slab_size: 35,
+			cache_slab_count: 1_000_000,
 		}
 	}
 }
@@ -887,7 +887,7 @@ mod test {
 			}],
 			..Default::default()
 		};
-		let mut http = HttpServerImpl::new(config)?;
+		let mut http = HttpServerImpl::new(&config)?;
 		http.start()?;
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 		let addr = &format!("127.0.0.1:{}", port)[..];
@@ -942,7 +942,7 @@ mod test {
 			}],
 			..Default::default()
 		};
-		let mut http = HttpServerImpl::new(config)?;
+		let mut http = HttpServerImpl::new(&config)?;
 		http.start()?;
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 		let addr = &format!("127.0.0.1:{}", port)[..];

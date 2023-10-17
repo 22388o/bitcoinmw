@@ -42,7 +42,7 @@ mod test {
 			}],
 			..Default::default()
 		};
-		let mut server = Builder::build_http_server(config)?;
+		let mut server = Builder::build_http_server(&config)?;
 		server.start()?;
 		Ok(())
 	}
