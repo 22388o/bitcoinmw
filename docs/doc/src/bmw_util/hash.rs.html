@@ -2686,6 +2686,17 @@
 <a href="#2686" id="2686">2686</a>
 <a href="#2687" id="2687">2687</a>
 <a href="#2688" id="2688">2688</a>
+<a href="#2689" id="2689">2689</a>
+<a href="#2690" id="2690">2690</a>
+<a href="#2691" id="2691">2691</a>
+<a href="#2692" id="2692">2692</a>
+<a href="#2693" id="2693">2693</a>
+<a href="#2694" id="2694">2694</a>
+<a href="#2695" id="2695">2695</a>
+<a href="#2696" id="2696">2696</a>
+<a href="#2697" id="2697">2697</a>
+<a href="#2698" id="2698">2698</a>
+<a href="#2699" id="2699">2699</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -3663,6 +3674,7 @@
 		</span>K: Serializable + PartialEq + Clone,
 		V: Serializable + Clone,
 	{
+		<span class="macro">debug!</span>(<span class="string">&quot;Raw write of chunk = {:?}&quot;</span>, raw_chunk)<span class="question-mark">?</span>;
 		<span class="kw">let </span>entry_array_len = <span class="self">self</span>.entry_array.as_ref().unwrap().size();
 
 		<span class="kw">let </span>key_val = key.unwrap();
@@ -3677,21 +3689,22 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>slab_id = <span class="self">self</span>.max_value;
 		<span class="kw">loop </span>{
+			<span class="macro">debug!</span>(<span class="string">&quot;loop&quot;</span>)<span class="question-mark">?</span>;
 			<span class="kw">if </span>i &gt;= entry_array_len || <span class="self">self</span>.debug_entry_array_len {
 				<span class="kw">let </span>msg = <span class="string">&quot;HashImpl: Capacity exceeded&quot;</span>;
+				<span class="macro">debug!</span>(<span class="string">&quot;err1&quot;</span>)<span class="question-mark">?</span>;
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::CapacityExceeded, msg));
 			}
 			<span class="kw">let </span>entry_value = <span class="self">self</span>.lookup_entry(entry);
 			<span class="kw">if </span>entry_value == SLOT_EMPTY || entry_value == SLOT_DELETED {
+				<span class="macro">debug!</span>(<span class="string">&quot;break&quot;</span>)<span class="question-mark">?</span>;
 				<span class="kw">break</span>;
 			}
-
 			<span class="comment">// does the current key match ours?
 			</span><span class="kw">let </span>kr = <span class="self">self</span>.read_key(entry_value)<span class="question-mark">?</span>;
 			<span class="kw">if </span>kr.is_some() {
 				<span class="kw">let </span>k = kr.unwrap().<span class="number">0</span>;
 				<span class="kw">if </span><span class="kw-2">&amp;</span>k == key_val {
-					<span class="macro">debug!</span>(<span class="string">&quot;match&quot;</span>)<span class="question-mark">?</span>;
 					<span class="kw">if </span>raw_chunk.is_none() {
 						<span class="self">self</span>.remove_impl(entry)<span class="question-mark">?</span>;
 					} <span class="kw">else </span>{
@@ -3704,7 +3717,8 @@
 			entry = (entry + <span class="number">1</span>) % entry_array_len;
 			i += <span class="number">1</span>;
 		}
-		<span class="macro">debug!</span>(<span class="string">&quot;slab_id={}&quot;</span>, slab_id)<span class="question-mark">?</span>;
+
+		<span class="macro">debug!</span>(<span class="string">&quot;insert_impl&quot;</span>)<span class="question-mark">?</span>;
 		<span class="self">self</span>.insert_impl(
 			key,
 			value,
@@ -3714,7 +3728,14 @@
 				<span class="bool-val">true </span>=&gt; <span class="prelude-val">Some</span>(slab_id),
 				<span class="bool-val">false </span>=&gt; <span class="prelude-val">None</span>,
 			},
-		)
+		)<span class="question-mark">?</span>;
+
+		<span class="macro">debug!</span>(
+			<span class="string">&quot;---------------------------------insert_hash_impl complete slab_id={}&quot;</span>,
+			slab_id
+		)<span class="question-mark">?</span>;
+
+		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="comment">// fully covered but tarpaulin reporting a few lines uncovered
@@ -3758,7 +3779,6 @@
 		<span class="macro">debug!</span>(<span class="string">&quot;updating slab id {}&quot;</span>, slab_id)<span class="question-mark">?</span>;
 
 		<span class="self">self</span>.slab_writer.write_fixed_bytes(<span class="kw-2">&amp;</span>ptrs[<span class="number">0</span>..ptr_size * <span class="number">2</span>])<span class="question-mark">?</span>;
-		<span class="macro">debug!</span>(<span class="string">&quot;key write&quot;</span>)<span class="question-mark">?</span>;
 		<span class="kw">if </span>key.is_some() {
 			<span class="kw">match </span>key.as_ref().unwrap().write(<span class="kw-2">&amp;mut </span><span class="self">self</span>.slab_writer) {
 				<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
@@ -3787,7 +3807,9 @@
 
 		<span class="kw">if </span>raw_value.is_some() {
 			<span class="kw">let </span>raw_value = raw_value.unwrap();
+			<span class="macro">debug!</span>(<span class="string">&quot;skip bytes {}&quot;</span>, raw_value.<span class="number">0</span>)<span class="question-mark">?</span>;
 			<span class="self">self</span>.slab_writer.skip_bytes(raw_value.<span class="number">0</span>)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">&quot;write fixed bytes {:?}&quot;</span>, raw_value.<span class="number">1</span>)<span class="question-mark">?</span>;
 			<span class="self">self</span>.slab_writer.write_fixed_bytes(raw_value.<span class="number">1</span>)<span class="question-mark">?</span>;
 		}
 

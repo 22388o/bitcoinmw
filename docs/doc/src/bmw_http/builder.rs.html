@@ -70,7 +70,7 @@
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 
 <span class="kw">impl </span>Builder {
-	<span class="kw">pub fn </span>build_http_server(config: HttpConfig) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>HttpServer&gt;, Error&gt; {
+	<span class="kw">pub fn </span>build_http_server(config: <span class="kw-2">&amp;</span>HttpConfig) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>HttpServer&gt;, Error&gt; {
 		<span class="prelude-val">Ok</span>(Box::new(HttpServerImpl::new(config)<span class="question-mark">?</span>))
 	}
 }
@@ -91,7 +91,7 @@
 			}],
 			..Default::default()
 		};
-		<span class="kw">let </span><span class="kw-2">mut </span>server = Builder::build_http_server(config)<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>server = Builder::build_http_server(<span class="kw-2">&amp;</span>config)<span class="question-mark">?</span>;
 		server.start()<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}

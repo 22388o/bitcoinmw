@@ -128,6 +128,19 @@
 <a href="#128" id="128">128</a>
 <a href="#129" id="129">129</a>
 <a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -146,7 +159,7 @@
 // limitations under the License.
 
 </span><span class="kw">use </span><span class="kw">crate</span>::types::HttpCacheImpl;
-<span class="kw">use </span><span class="kw">crate</span>::HttpCache;
+<span class="kw">use crate</span>::{HttpCache, HttpConfig};
 <span class="kw">use </span>bmw_deps::chrono::Utc;
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_evh::ConnData;
@@ -159,8 +172,11 @@
 <span class="macro">info!</span>();
 
 <span class="kw">impl </span>HttpCacheImpl {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new() -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>HttpCache + Send + Sync&gt;, Error&gt; {
-		<span class="kw">let </span>hashtable = <span class="macro">hashtable_sync_box!</span>()<span class="question-mark">?</span>;
+	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(config: <span class="kw-2">&amp;</span>HttpConfig) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>HttpCache + Send + Sync&gt;, Error&gt; {
+		<span class="kw">let </span>hashtable = <span class="macro">hashtable_sync_box!</span>(
+			SlabSize(config.cache_slab_size),
+			SlabCount(config.cache_slab_count)
+		)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(Box::new(HttpCacheImpl { hashtable }))
 	}
 }
@@ -176,6 +192,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>data = [<span class="number">0u8</span>; <span class="number">512</span>];
 		<span class="macro">info!</span>(<span class="string">&quot;try cache {}&quot;</span>, fpath);
 		<span class="kw">let </span>found = <span class="self">self</span>.hashtable.raw_read(fpath, <span class="number">0</span>, <span class="kw-2">&amp;mut </span>data)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">&quot;raw read complete&quot;</span>);
 		<span class="kw">if </span>found {
 			<span class="kw">let </span>len = slice_to_usize(<span class="kw-2">&amp;</span>data[<span class="number">0</span>..<span class="number">8</span>])<span class="question-mark">?</span>;
 			<span class="macro">info!</span>(
@@ -209,6 +226,7 @@
 				<span class="kw">let </span><span class="kw-2">mut </span>buf = <span class="macro">vec!</span>[<span class="number">0u8</span>; <span class="number">512</span>];
 				<span class="kw">let </span>found = <span class="self">self</span>.hashtable.raw_read(fpath, <span class="number">8 </span>+ i * <span class="number">512</span>, <span class="kw-2">&amp;mut </span>data)<span class="question-mark">?</span>;
 				<span class="kw">let </span>wlen = <span class="kw">if </span>rem &gt; <span class="number">512 </span>{ <span class="number">512 </span>} <span class="kw">else </span>{ rem };
+				<span class="macro">info!</span>(<span class="string">&quot;read wlen={},rem={},data={:?}&quot;</span>, wlen, rem, data);
 				conn_data.write_handle().write(<span class="kw-2">&amp;</span>data[<span class="number">0</span>..wlen])<span class="question-mark">?</span>;
 
 				rem = rem.saturating_sub(wlen);
@@ -225,8 +243,9 @@
 		<span class="macro">info!</span>(<span class="string">&quot;write_len {} = {}&quot;</span>, path, len);
 		<span class="kw">let </span><span class="kw-2">mut </span>data = [<span class="number">0u8</span>; <span class="number">512</span>];
 		usize_to_slice(len, <span class="kw-2">&amp;mut </span>data[<span class="number">0</span>..<span class="number">8</span>])<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;writing data = {:?}&quot;</span>, <span class="kw-2">&amp;</span>data[<span class="number">0</span>..<span class="number">8</span>]);
+		<span class="macro">info!</span>(<span class="string">&quot;write_len {:?}&quot;</span>, <span class="kw-2">&amp;</span>data[<span class="number">0</span>..<span class="number">8</span>]);
 		<span class="self">self</span>.hashtable.raw_write(path, <span class="number">0</span>, <span class="kw-2">&amp;</span>data)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">&quot;====================================write_len complete&quot;</span>);
 		<span class="prelude-val">Ok</span>(())
 	}
 
@@ -236,8 +255,15 @@
 		block_num: usize,
 		data: <span class="kw-2">&amp;</span>[u8; <span class="number">512</span>],
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">info!</span>(<span class="string">&quot;write block num = {}, path = {}&quot;</span>, block_num, path);
-		<span class="self">self</span>.hashtable.raw_write(path, <span class="number">8 </span>+ block_num * <span class="number">512</span>, data);
+		<span class="macro">info!</span>(
+			<span class="string">&quot;write block num = {}, path = {}, data={:?}&quot;</span>,
+			block_num, path, data
+		);
+		<span class="kw">let </span>ret = <span class="self">self</span>.hashtable.raw_write(path, <span class="number">8 </span>+ block_num * <span class="number">512</span>, data);
+		<span class="macro">info!</span>(
+			<span class="string">&quot;=====================================write block complete: {:?}&quot;</span>,
+			ret
+		);
 		<span class="prelude-val">Ok</span>(())
 	}
 

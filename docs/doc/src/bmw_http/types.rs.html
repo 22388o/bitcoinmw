@@ -136,6 +136,8 @@
 <a href="#136" id="136">136</a>
 <a href="#137" id="137">137</a>
 <a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -252,6 +254,8 @@
 	<span class="kw">pub </span>evh_config: EventHandlerConfig,
 	<span class="kw">pub </span>instances: Vec&lt;HttpInstance&gt;,
 	<span class="kw">pub </span>debug: bool,
+	<span class="kw">pub </span>cache_slab_size: usize,
+	<span class="kw">pub </span>cache_slab_count: usize,
 }
 
 <span class="kw">pub struct </span>Builder {}

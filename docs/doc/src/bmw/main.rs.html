@@ -199,7 +199,7 @@ callbk\n&quot;
 		..Default::default()
 	};
 
-	<span class="kw">let </span><span class="kw-2">mut </span>server = Builder::build_http_server(config)<span class="question-mark">?</span>;
+	<span class="kw">let </span><span class="kw-2">mut </span>server = Builder::build_http_server(<span class="kw-2">&amp;</span>config)<span class="question-mark">?</span>;
 	server.start()<span class="question-mark">?</span>;
 	<span class="macro">info!</span>(<span class="string">&quot;listener on port 8080&quot;</span>)<span class="question-mark">?</span>;
 

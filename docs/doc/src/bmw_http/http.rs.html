@@ -974,6 +974,11 @@
 <a href="#974" id="974">974</a>
 <a href="#975" id="975">975</a>
 <a href="#976" id="976">976</a>
+<a href="#977" id="977">977</a>
+<a href="#978" id="978">978</a>
+<a href="#979" id="979">979</a>
+<a href="#980" id="980">980</a>
+<a href="#981" id="981">981</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1039,6 +1044,8 @@
 				..Default::default()
 			}],
 			debug: <span class="bool-val">false</span>,
+			cache_slab_size: <span class="number">35</span>,
+			cache_slab_count: <span class="number">1_000_000</span>,
 		}
 	}
 }
@@ -1121,9 +1128,12 @@
 }
 
 <span class="kw">impl </span>HttpServerImpl {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(config: HttpConfig) -&gt; <span class="prelude-ty">Result</span>&lt;HttpServerImpl, Error&gt; {
-		<span class="kw">let </span>cache = <span class="macro">lock_box!</span>(HttpCacheImpl::new()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{ config, cache })
+	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(config: <span class="kw-2">&amp;</span>HttpConfig) -&gt; <span class="prelude-ty">Result</span>&lt;HttpServerImpl, Error&gt; {
+		<span class="kw">let </span>cache = <span class="macro">lock_box!</span>(HttpCacheImpl::new(config)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
+			config: config.clone(),
+			cache,
+		})
 	}
 
 	<span class="kw">fn </span>build_ctx&lt;<span class="lifetime">&#39;a</span>&gt;(ctx: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>ThreadContext) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>HttpContext, Error&gt; {
@@ -1858,7 +1868,7 @@ Content-Length: &quot;</span>,
 			}],
 			..Default::default()
 		};
-		<span class="kw">let </span><span class="kw-2">mut </span>http = HttpServerImpl::new(config)<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>http = HttpServerImpl::new(<span class="kw-2">&amp;</span>config)<span class="question-mark">?</span>;
 		http.start()<span class="question-mark">?</span>;
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;127.0.0.1:{}&quot;</span>, port)[..];
@@ -1913,7 +1923,7 @@ Content-Length: &quot;</span>,
 			}],
 			..Default::default()
 		};
-		<span class="kw">let </span><span class="kw-2">mut </span>http = HttpServerImpl::new(config)<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>http = HttpServerImpl::new(<span class="kw-2">&amp;</span>config)<span class="question-mark">?</span>;
 		http.start()<span class="question-mark">?</span>;
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;127.0.0.1:{}&quot;</span>, port)[..];

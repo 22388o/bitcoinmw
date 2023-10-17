@@ -1432,88 +1432,6 @@
 <a href="#1432" id="1432">1432</a>
 <a href="#1433" id="1433">1433</a>
 <a href="#1434" id="1434">1434</a>
-<a href="#1435" id="1435">1435</a>
-<a href="#1436" id="1436">1436</a>
-<a href="#1437" id="1437">1437</a>
-<a href="#1438" id="1438">1438</a>
-<a href="#1439" id="1439">1439</a>
-<a href="#1440" id="1440">1440</a>
-<a href="#1441" id="1441">1441</a>
-<a href="#1442" id="1442">1442</a>
-<a href="#1443" id="1443">1443</a>
-<a href="#1444" id="1444">1444</a>
-<a href="#1445" id="1445">1445</a>
-<a href="#1446" id="1446">1446</a>
-<a href="#1447" id="1447">1447</a>
-<a href="#1448" id="1448">1448</a>
-<a href="#1449" id="1449">1449</a>
-<a href="#1450" id="1450">1450</a>
-<a href="#1451" id="1451">1451</a>
-<a href="#1452" id="1452">1452</a>
-<a href="#1453" id="1453">1453</a>
-<a href="#1454" id="1454">1454</a>
-<a href="#1455" id="1455">1455</a>
-<a href="#1456" id="1456">1456</a>
-<a href="#1457" id="1457">1457</a>
-<a href="#1458" id="1458">1458</a>
-<a href="#1459" id="1459">1459</a>
-<a href="#1460" id="1460">1460</a>
-<a href="#1461" id="1461">1461</a>
-<a href="#1462" id="1462">1462</a>
-<a href="#1463" id="1463">1463</a>
-<a href="#1464" id="1464">1464</a>
-<a href="#1465" id="1465">1465</a>
-<a href="#1466" id="1466">1466</a>
-<a href="#1467" id="1467">1467</a>
-<a href="#1468" id="1468">1468</a>
-<a href="#1469" id="1469">1469</a>
-<a href="#1470" id="1470">1470</a>
-<a href="#1471" id="1471">1471</a>
-<a href="#1472" id="1472">1472</a>
-<a href="#1473" id="1473">1473</a>
-<a href="#1474" id="1474">1474</a>
-<a href="#1475" id="1475">1475</a>
-<a href="#1476" id="1476">1476</a>
-<a href="#1477" id="1477">1477</a>
-<a href="#1478" id="1478">1478</a>
-<a href="#1479" id="1479">1479</a>
-<a href="#1480" id="1480">1480</a>
-<a href="#1481" id="1481">1481</a>
-<a href="#1482" id="1482">1482</a>
-<a href="#1483" id="1483">1483</a>
-<a href="#1484" id="1484">1484</a>
-<a href="#1485" id="1485">1485</a>
-<a href="#1486" id="1486">1486</a>
-<a href="#1487" id="1487">1487</a>
-<a href="#1488" id="1488">1488</a>
-<a href="#1489" id="1489">1489</a>
-<a href="#1490" id="1490">1490</a>
-<a href="#1491" id="1491">1491</a>
-<a href="#1492" id="1492">1492</a>
-<a href="#1493" id="1493">1493</a>
-<a href="#1494" id="1494">1494</a>
-<a href="#1495" id="1495">1495</a>
-<a href="#1496" id="1496">1496</a>
-<a href="#1497" id="1497">1497</a>
-<a href="#1498" id="1498">1498</a>
-<a href="#1499" id="1499">1499</a>
-<a href="#1500" id="1500">1500</a>
-<a href="#1501" id="1501">1501</a>
-<a href="#1502" id="1502">1502</a>
-<a href="#1503" id="1503">1503</a>
-<a href="#1504" id="1504">1504</a>
-<a href="#1505" id="1505">1505</a>
-<a href="#1506" id="1506">1506</a>
-<a href="#1507" id="1507">1507</a>
-<a href="#1508" id="1508">1508</a>
-<a href="#1509" id="1509">1509</a>
-<a href="#1510" id="1510">1510</a>
-<a href="#1511" id="1511">1511</a>
-<a href="#1512" id="1512">1512</a>
-<a href="#1513" id="1513">1513</a>
-<a href="#1514" id="1514">1514</a>
-<a href="#1515" id="1515">1515</a>
-<a href="#1516" id="1516">1516</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1821,30 +1739,6 @@
 		<span class="self">self</span>.offset = offset;
 	}
 
-	<span class="kw">fn </span>process_slab_mut(
-		slab_mut: <span class="kw-2">&amp;mut </span>SlabMut,
-		is_allocated: bool,
-		wlen: usize,
-		self_offset: usize,
-		bytes: <span class="kw-2">&amp;</span>[u8],
-		slab_size: usize,
-		bytes_per_slab: usize,
-		skip: bool,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">debug!</span>(<span class="string">&quot;process slab mut: {}&quot;</span>, slab_mut.id(),)<span class="question-mark">?</span>;
-		<span class="kw">let </span>slab_mut = slab_mut.get_mut();
-		<span class="kw">if </span>!skip {
-			slab_mut[self_offset..self_offset + wlen].clone_from_slice(bytes);
-		}
-
-		<span class="kw">if </span>is_allocated {
-			<span class="kw">for </span>i <span class="kw">in </span>bytes_per_slab..slab_size {
-				slab_mut[i] = <span class="number">0xFF</span>;
-			}
-		}
-		<span class="prelude-val">Ok</span>(())
-	}
-
 	<span class="kw">pub fn </span>skip_bytes(<span class="kw-2">&amp;mut </span><span class="self">self</span>, count: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">match </span><span class="self">self</span>.slabs.clone() {
 			<span class="prelude-val">Some</span>(slabs) =&gt; {
@@ -1865,229 +1759,171 @@
 		<span class="self">self</span>.do_write_fixed_bytes_impl(bytes, <span class="prelude-val">None</span>, slabs)
 	}
 
+	<span class="kw">fn </span>process_write(
+		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
+		bytes: <span class="kw-2">&amp;</span>[u8],
+		bytes_len: usize,
+		skip: bool,
+		<span class="kw-2">mut </span>slabs: <span class="kw-2">&amp;mut </span><span class="prelude-ty">Option</span>&lt;RefMut&lt;<span class="kw">dyn </span>SlabAllocator&gt;&gt;,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>wlen = bytes_len;
+		<span class="kw">let </span>space_left_in_slab = <span class="self">self</span>.bytes_per_slab.saturating_sub(<span class="self">self</span>.offset);
+
+		<span class="kw">if </span>wlen &gt; space_left_in_slab {
+			wlen = space_left_in_slab;
+		}
+
+		<span class="kw">if </span>!skip {
+			<span class="kw">match </span><span class="kw-2">&amp;mut </span>slabs {
+				<span class="prelude-val">Some</span>(slabs) =&gt; {
+					<span class="kw">let </span><span class="kw-2">mut </span>slab_mut = slabs.get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>;
+					<span class="macro">debug!</span>(
+						<span class="string">&quot;bytes.len={},self.offset={},wlen={}&quot;</span>,
+						bytes.len(),
+						<span class="self">self</span>.offset,
+						wlen
+					)<span class="question-mark">?</span>;
+					slab_mut.get_mut()[<span class="self">self</span>.offset..<span class="self">self</span>.offset + wlen]
+						.clone_from_slice(<span class="kw-2">&amp;</span>bytes[<span class="number">0</span>..wlen]);
+				}
+				<span class="prelude-val">None </span>=&gt; GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+					<span class="kw">let </span>slabs = <span class="kw">unsafe </span>{ f.get().as_mut().unwrap() };
+					<span class="kw">let </span><span class="kw-2">mut </span>slab_mut = slabs.get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>;
+					slab_mut.get_mut()[<span class="self">self</span>.offset..<span class="self">self</span>.offset + wlen]
+						.clone_from_slice(<span class="kw-2">&amp;</span>bytes[<span class="number">0</span>..wlen]);
+					<span class="prelude-val">Ok</span>(())
+				})<span class="question-mark">?</span>,
+			}
+		}
+
+		<span class="prelude-val">Ok</span>(wlen)
+	}
+
 	<span class="kw">fn </span>do_write_fixed_bytes_impl&lt;T: AsRef&lt;[u8]&gt;&gt;(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		bytes: T,
 		count: <span class="prelude-ty">Option</span>&lt;usize&gt;,
 		<span class="kw-2">mut </span>slabs: <span class="prelude-ty">Option</span>&lt;RefMut&lt;<span class="kw">dyn </span>SlabAllocator&gt;&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>skip = count.is_some();
 		<span class="kw">let </span>bytes = bytes.as_ref();
 		<span class="kw">let </span>bytes_len = <span class="kw">match </span>count {
 			<span class="prelude-val">Some</span>(count) =&gt; count,
 			<span class="prelude-val">None </span>=&gt; bytes.len(),
 		};
-		<span class="macro">debug!</span>(<span class="string">&quot;write blen={}&quot;</span>, bytes_len)<span class="question-mark">?</span>;
+		<span class="kw">let </span>skip = count.is_some();
+
+		<span class="macro">debug!</span>(
+			<span class="string">&quot;+++++++++++++++++ do_write_fixed_bytes_impl bytes={:?},count={:?},slab_id={},offset={}&quot;</span>,
+			bytes, count, <span class="self">self</span>.slab_id, <span class="self">self</span>.offset
+		)<span class="question-mark">?</span>;
+
 		<span class="kw">if </span>bytes_len == <span class="number">0 </span>{
 			<span class="kw">return </span><span class="prelude-val">Ok</span>(());
 		}
 
 		<span class="kw">let </span><span class="kw-2">mut </span>bytes_offset = <span class="number">0</span>;
-		<span class="kw">let </span>slab_id = <span class="self">self</span>.slab_id;
-		<span class="macro">debug!</span>(<span class="string">&quot;slab_id preloop = {}&quot;</span>, slab_id)<span class="question-mark">?</span>;
-		<span class="kw">let </span>bytes_per_slab = <span class="self">self</span>.bytes_per_slab;
-		<span class="kw">let </span>slab_size = <span class="self">self</span>.slab_size;
-		<span class="macro">debug!</span>(<span class="string">&quot;Begin loop&quot;</span>)<span class="question-mark">?</span>;
+
+		<span class="kw">let </span><span class="kw-2">mut </span>ptr = [<span class="number">0u8</span>; <span class="number">8</span>];
+		<span class="kw">let </span>slab_ptr_size = <span class="self">self</span>.slab_size.saturating_sub(<span class="self">self</span>.bytes_per_slab);
+		set_max(<span class="kw-2">&amp;mut </span>ptr[<span class="number">0</span>..slab_ptr_size]);
+		<span class="kw">let </span>max_value = slice_to_usize(<span class="kw-2">&amp;</span>ptr[<span class="number">0</span>..slab_ptr_size])<span class="question-mark">?</span>;
+
 		<span class="kw">loop </span>{
-			<span class="macro">debug!</span>(<span class="string">&quot;top of loop&quot;</span>)<span class="question-mark">?</span>;
-			<span class="comment">// if we&#39;ve already written all of it break
-			</span><span class="kw">if </span>bytes_offset &gt;= bytes_len {
+			<span class="macro">debug!</span>(
+				<span class="string">&quot;loop with bytes_offset={},bytes_len={},self.offset={},slab_id={},self.bytes_per_slab={},slab_size={}&quot;</span>,
+				bytes_offset, bytes_len, <span class="self">self</span>.offset, <span class="self">self</span>.slab_id, <span class="self">self</span>.bytes_per_slab, <span class="self">self</span>.slab_size,
+			)<span class="question-mark">?</span>;
+			<span class="kw">if </span>bytes_offset &gt;= bytes_len {
 				<span class="kw">break</span>;
 			}
 
-			<span class="kw">let </span>buffer_rem = bytes_len - bytes_offset;
-
-			<span class="comment">// we calculate the maximum we can write
-			</span><span class="kw">let </span><span class="kw-2">mut </span>wlen = <span class="kw">if </span>buffer_rem &gt; bytes_per_slab - <span class="self">self</span>.offset {
-				bytes_per_slab - <span class="self">self</span>.offset
-			} <span class="kw">else </span>{
-				buffer_rem
-			};
-
-			<span class="comment">// get slab, if cur slab has more room get it otherwise allocate
-			</span><span class="macro">debug!</span>(<span class="string">&quot;self.offset={}&quot;</span>, <span class="self">self</span>.offset)<span class="question-mark">?</span>;
-			<span class="kw">if </span><span class="self">self</span>.offset &lt; bytes_per_slab {
-				<span class="macro">debug!</span>(<span class="string">&quot;true: slab_id = {}&quot;</span>, slab_id)<span class="question-mark">?</span>;
-
-				<span class="kw">let </span>b = <span class="kw">if </span>skip {
-					<span class="kw-2">&amp;</span>[<span class="number">0</span>; <span class="number">0usize</span>]
-				} <span class="kw">else </span>{
-					<span class="kw-2">&amp;</span>bytes[bytes_offset..bytes_offset + wlen]
-				};
-
-				<span class="kw">match </span><span class="kw-2">&amp;mut </span>slabs {
-					<span class="prelude-val">Some</span>(slabs) =&gt; {
-						<span class="macro">debug!</span>(<span class="string">&quot;write from existing slab {}&quot;</span>, wlen)<span class="question-mark">?</span>;
-						<span class="kw">let </span><span class="kw-2">mut </span>slab_mut = slabs.get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>;
-						<span class="self">Self</span>::process_slab_mut(
-							<span class="kw-2">&amp;mut </span>slab_mut,
-							<span class="bool-val">false</span>,
-							wlen,
-							<span class="self">self</span>.offset,
-							b,
-							slab_size,
-							bytes_per_slab,
-							skip,
-						)<span class="question-mark">?</span>;
-					}
-					<span class="prelude-val">None </span>=&gt; GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-						<span class="kw">let </span>slabs = <span class="kw">unsafe </span>{ f.get().as_mut().unwrap() };
-						<span class="kw">let </span><span class="kw-2">mut </span>slab_mut = slabs.get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>;
-						<span class="self">Self</span>::process_slab_mut(
-							<span class="kw-2">&amp;mut </span>slab_mut,
-							<span class="bool-val">false</span>,
-							wlen,
-							<span class="self">self</span>.offset,
-							b,
-							slab_size,
-							bytes_per_slab,
-							skip,
-						)<span class="question-mark">?</span>;
-						<span class="prelude-val">Ok</span>(())
-					})<span class="question-mark">?</span>,
-				}
-			} <span class="kw">else </span>{
-				<span class="macro">debug!</span>(<span class="string">&quot;else&quot;</span>)<span class="question-mark">?</span>;
-				<span class="kw">let </span>self_slab_id = <span class="self">self</span>.slab_id;
-
-				<span class="kw">let </span><span class="kw-2">mut </span>error = <span class="prelude-val">None</span>;
-				<span class="kw">let </span>nslab_id = <span class="kw">match </span>slabs {
-					<span class="prelude-val">Some</span>(<span class="kw-2">ref mut </span>slabs) =&gt; {
-						<span class="self">self</span>.offset = <span class="number">0</span>;
-						wlen = <span class="kw">if </span>buffer_rem &gt; bytes_per_slab - <span class="self">self</span>.offset {
-							bytes_per_slab - <span class="self">self</span>.offset
-						} <span class="kw">else </span>{
-							buffer_rem
-						};
-
-						<span class="kw">let </span>b = <span class="kw">if </span>skip {
-							<span class="kw-2">&amp;</span>[<span class="number">0</span>; <span class="number">0usize</span>]
-						} <span class="kw">else </span>{
-							<span class="kw-2">&amp;</span>bytes[bytes_offset..bytes_offset + wlen]
-						};
-
-						<span class="kw">let </span>cur_slab = slabs.get(self_slab_id)<span class="question-mark">?</span>;
-						<span class="kw">let </span>next =
-							slice_to_usize(<span class="kw-2">&amp;</span>cur_slab.get()[<span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size])<span class="question-mark">?</span>;
-						<span class="macro">debug!</span>(<span class="string">&quot;next={}&quot;</span>, next)<span class="question-mark">?</span>;
-
-						<span class="kw">let </span><span class="kw-2">mut </span>ptr = [<span class="number">0u8</span>; <span class="number">8</span>];
-						<span class="kw">let </span>slab_ptr_size = slab_size.saturating_sub(bytes_per_slab);
-						set_max(<span class="kw-2">&amp;mut </span>ptr[<span class="number">0</span>..slab_ptr_size]);
-						<span class="kw">let </span>max_value = slice_to_usize(<span class="kw-2">&amp;</span>ptr[<span class="number">0</span>..slab_ptr_size])<span class="question-mark">?</span>;
-
-						<span class="kw">if </span>next != max_value {
-							<span class="macro">debug!</span>(<span class="string">&quot;found a next = {},max_value={}&quot;</span>, next, max_value)<span class="question-mark">?</span>;
-							next
-						} <span class="kw">else </span>{
-							<span class="kw">match </span>slabs.allocate() {
-								<span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>slab) =&gt; {
-									<span class="macro">debug!</span>(
-										<span class="string">&quot;allocate slab id={},bytes_offset={}&quot;</span>,
-										slab.id(),
-										bytes_offset
-									)<span class="question-mark">?</span>;
-									<span class="self">Self</span>::process_slab_mut(
-										<span class="kw-2">&amp;mut </span>slab,
-										<span class="bool-val">true</span>,
-										wlen,
-										<span class="number">0</span>,
-										b,
-										slab_size,
-										bytes_per_slab,
-										skip,
-									)<span class="question-mark">?</span>;
-									slab.id()
-								}
-								<span class="prelude-val">Err</span>(e) =&gt; {
-									error = <span class="prelude-val">Some</span>(e);
-									<span class="number">0
-								</span>}
-							}
-						}
-					}
-					<span class="prelude-val">None </span>=&gt; GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
-						<span class="kw">let </span>slabs = <span class="kw">unsafe </span>{ f.get().as_mut().unwrap() };
-						<span class="self">self</span>.offset = <span class="number">0</span>;
-						wlen = <span class="kw">if </span>buffer_rem &gt; bytes_per_slab - <span class="self">self</span>.offset {
-							bytes_per_slab - <span class="self">self</span>.offset
-						} <span class="kw">else </span>{
-							buffer_rem
-						};
-						<span class="kw">let </span>b = <span class="kw">if </span>skip {
-							<span class="kw-2">&amp;</span>[<span class="number">0</span>; <span class="number">0usize</span>]
-						} <span class="kw">else </span>{
-							<span class="kw-2">&amp;</span>bytes[bytes_offset..bytes_offset + wlen]
-						};
-						<span class="macro">debug!</span>(<span class="string">&quot;wlen={}&quot;</span>, wlen)<span class="question-mark">?</span>;
-
-						<span class="kw">let </span>cur_slab = slabs.get(self_slab_id)<span class="question-mark">?</span>;
-						<span class="kw">let </span>next =
-							slice_to_usize(<span class="kw-2">&amp;</span>cur_slab.get()[<span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size])<span class="question-mark">?</span>;
-						<span class="macro">debug!</span>(<span class="string">&quot;next={}&quot;</span>, next)<span class="question-mark">?</span>;
-
-						<span class="kw">let </span><span class="kw-2">mut </span>ptr = [<span class="number">0u8</span>; <span class="number">8</span>];
-						<span class="kw">let </span>slab_ptr_size = slab_size.saturating_sub(bytes_per_slab);
-						set_max(<span class="kw-2">&amp;mut </span>ptr[<span class="number">0</span>..slab_ptr_size]);
-						<span class="kw">let </span>max_value = slice_to_usize(<span class="kw-2">&amp;</span>ptr[<span class="number">0</span>..slab_ptr_size])<span class="question-mark">?</span>;
-
-						<span class="kw">if </span>next != max_value {
-							<span class="macro">debug!</span>(<span class="string">&quot;found a next = {},max_value={}&quot;</span>, next, max_value)<span class="question-mark">?</span>;
-							<span class="prelude-val">Ok</span>(next)
-						} <span class="kw">else </span>{
-							<span class="kw">match </span>slabs.allocate() {
-								<span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>slab) =&gt; {
-									<span class="macro">debug!</span>(<span class="string">&quot;allocate slab.id={}&quot;</span>, slab.id())<span class="question-mark">?</span>;
-									<span class="self">Self</span>::process_slab_mut(
-										<span class="kw-2">&amp;mut </span>slab,
-										<span class="bool-val">true</span>,
-										wlen,
-										<span class="number">0</span>,
-										b,
-										slab_size,
-										bytes_per_slab,
-										skip,
-									)<span class="question-mark">?</span>;
-									<span class="prelude-val">Ok</span>(slab.id())
-								}
-								<span class="prelude-val">Err</span>(e) =&gt; {
-									error = <span class="prelude-val">Some</span>(e);
-									<span class="prelude-val">Ok</span>(<span class="number">0</span>)
-								}
-							}
-						}
-					})<span class="question-mark">?</span>,
-				};
-				<span class="kw">match </span>error {
-					<span class="prelude-val">Some</span>(e) =&gt; {
-						<span class="kw">return </span><span class="prelude-val">Err</span>(e);
-					}
-					<span class="prelude-val">None </span>=&gt; {}
-				}
-
-				<span class="kw">match </span><span class="kw-2">&amp;mut </span>slabs {
-					<span class="prelude-val">Some</span>(slabs) =&gt; {
-						<span class="kw">let </span><span class="kw-2">mut </span>slab = slabs.get_mut(self_slab_id)<span class="question-mark">?</span>;
-						<span class="kw">let </span>prev = <span class="kw-2">&amp;mut </span>slab.get_mut()[bytes_per_slab..slab_size];
-						<span class="macro">debug!</span>(<span class="string">&quot;writing pointer to {} -&gt; {}&quot;</span>, self_slab_id, nslab_id)<span class="question-mark">?</span>;
-						usize_to_slice(nslab_id, prev)<span class="question-mark">?</span>;
-					}
-					<span class="prelude-val">None </span>=&gt; GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-						<span class="kw">let </span>slabs = <span class="kw">unsafe </span>{ f.get().as_mut().unwrap() };
-						<span class="kw">let </span><span class="kw-2">mut </span>slab = slabs.get_mut(self_slab_id)<span class="question-mark">?</span>;
-						<span class="kw">let </span>prev = <span class="kw-2">&amp;mut </span>slab.get_mut()[bytes_per_slab..slab_size];
-						<span class="macro">debug!</span>(<span class="string">&quot;writing pointer to {} -&gt; {}&quot;</span>, self_slab_id, nslab_id)<span class="question-mark">?</span>;
-						usize_to_slice(nslab_id, prev)<span class="question-mark">?</span>;
-						<span class="prelude-val">Ok</span>(())
-					})<span class="question-mark">?</span>,
-				}
-				<span class="macro">debug!</span>(<span class="string">&quot;setting self.slab_id = {}&quot;</span>, nslab_id)<span class="question-mark">?</span>;
-				<span class="self">self</span>.slab_id = nslab_id;
+			<span class="kw">if </span><span class="self">self</span>.offset &gt;= <span class="self">self</span>.bytes_per_slab {
+				<span class="macro">debug!</span>(
+					<span class="string">&quot;need to allocate a new slab bytes_offset={}, bytes_len={}&quot;</span>,
+					bytes_offset, bytes_len
+				)<span class="question-mark">?</span>;
+				<span class="comment">// we need to allocate another slab
+				</span><span class="self">self</span>.next_slab(<span class="kw-2">&amp;mut </span>slabs, max_value)<span class="question-mark">?</span>;
 			}
 
+			<span class="kw">let </span>index = <span class="kw">if </span>skip { <span class="number">0 </span>} <span class="kw">else </span>{ bytes_offset };
+
+			<span class="kw">let </span>wlen = <span class="self">self</span>.process_write(
+				<span class="kw-2">&amp;</span>bytes[index..],
+				bytes_len.saturating_sub(bytes_offset),
+				skip,
+				<span class="kw-2">&amp;mut </span>slabs,
+			)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">&quot;wlen = {}&quot;</span>, wlen)<span class="question-mark">?</span>;
 			bytes_offset += wlen;
-			<span class="macro">debug!</span>(<span class="string">&quot;adding wlen = {} to self.offset = {}&quot;</span>, wlen, <span class="self">self</span>.offset)<span class="question-mark">?</span>;
 			<span class="self">self</span>.offset += wlen;
+		}
+
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="kw">fn </span>read_next(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cur_slab: SlabMut) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
+		<span class="kw">let </span>next = slice_to_usize(<span class="kw-2">&amp;</span>cur_slab.get()[<span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size])<span class="question-mark">?</span>;
+		<span class="prelude-val">Ok</span>(next)
+	}
+
+	<span class="kw">fn </span>next_slab(
+		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
+		<span class="kw-2">mut </span>slabs: <span class="kw-2">&amp;mut </span><span class="prelude-ty">Option</span>&lt;RefMut&lt;<span class="kw">dyn </span>SlabAllocator&gt;&gt;,
+		max_value: usize,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="self">self</span>.offset = <span class="number">0</span>;
+
+		<span class="kw">let </span>next = <span class="kw">match </span><span class="kw-2">&amp;mut </span>slabs {
+			<span class="prelude-val">Some</span>(slabs) =&gt; <span class="self">self</span>.read_next(slabs.get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>)<span class="question-mark">?</span>,
+			<span class="prelude-val">None </span>=&gt; GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
+				<span class="kw">let </span>slabs = <span class="kw">unsafe </span>{ f.get().as_mut().unwrap() };
+				<span class="self">self</span>.read_next(slabs.get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>)
+			})<span class="question-mark">?</span>,
+		};
+
+		<span class="kw">if </span>next == max_value {
+			<span class="kw">let </span>new_id = <span class="kw">match </span><span class="kw-2">&amp;mut </span>slabs {
+				<span class="prelude-val">Some</span>(slabs) =&gt; {
+					<span class="kw">let </span><span class="kw-2">mut </span>nslab = slabs.allocate()<span class="question-mark">?</span>;
+					<span class="kw">let </span>nslab_mut = nslab.get_mut();
+					<span class="kw">for </span>i <span class="kw">in </span><span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size {
+						nslab_mut[i] = <span class="number">0xFF</span>;
+					}
+					nslab.id()
+				}
+				<span class="prelude-val">None </span>=&gt; GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
+					<span class="kw">let </span>slabs = <span class="kw">unsafe </span>{ f.get().as_mut().unwrap() };
+					<span class="kw">let </span><span class="kw-2">mut </span>nslab = slabs.allocate()<span class="question-mark">?</span>;
+					<span class="kw">let </span>nslab_mut = nslab.get_mut();
+					<span class="kw">for </span>i <span class="kw">in </span><span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size {
+						nslab_mut[i] = <span class="number">0xFF</span>;
+					}
+
+					<span class="prelude-val">Ok</span>(nslab.id())
+				})<span class="question-mark">?</span>,
+			};
+
+			<span class="kw">match </span><span class="kw-2">&amp;mut </span>slabs {
+				<span class="prelude-val">Some</span>(slabs) =&gt; {
+					<span class="kw">let </span><span class="kw-2">mut </span>slab = slabs.get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>;
+					<span class="kw">let </span>prev = <span class="kw-2">&amp;mut </span>slab.get_mut()[<span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size];
+					<span class="macro">debug!</span>(<span class="string">&quot;writing pointer to {} -&gt; {}&quot;</span>, <span class="self">self</span>.slab_id, new_id)<span class="question-mark">?</span>;
+					usize_to_slice(new_id, prev)<span class="question-mark">?</span>;
+				}
+				<span class="prelude-val">None </span>=&gt; GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+					<span class="kw">let </span>slabs = <span class="kw">unsafe </span>{ f.get().as_mut().unwrap() };
+					<span class="kw">let </span><span class="kw-2">mut </span>slab = slabs.get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>;
+					<span class="kw">let </span>prev = <span class="kw-2">&amp;mut </span>slab.get_mut()[<span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size];
+					<span class="macro">debug!</span>(<span class="string">&quot;writing pointer to {} -&gt; {}&quot;</span>, <span class="self">self</span>.slab_id, new_id)<span class="question-mark">?</span>;
+					usize_to_slice(new_id, prev)<span class="question-mark">?</span>;
+					<span class="prelude-val">Ok</span>(())
+				})<span class="question-mark">?</span>,
+			}
+
+			<span class="self">self</span>.slab_id = new_id;
+		} <span class="kw">else </span>{
+			<span class="self">self</span>.slab_id = next;
 		}
 
 		<span class="prelude-val">Ok</span>(())
