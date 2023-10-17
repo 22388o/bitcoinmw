@@ -21,7 +21,7 @@ use crate::{HttpConfig, HttpServer};
 use bmw_err::*;
 
 impl Builder {
-	pub fn build_http_server(config: HttpConfig) -> Result<Box<dyn HttpServer>, Error> {
+	pub fn build_http_server(config: &HttpConfig) -> Result<Box<dyn HttpServer>, Error> {
 		Ok(Box::new(HttpServerImpl::new(config)?))
 	}
 }

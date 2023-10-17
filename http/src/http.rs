@@ -63,6 +63,8 @@ impl Default for HttpConfig {
 				..Default::default()
 			}],
 			debug: false,
+			cache_slab_size: 520,
+			cache_slab_count: 1_024,
 		}
 	}
 }
@@ -145,9 +147,12 @@ impl HttpHeaders<'_> {
 }
 
 impl HttpServerImpl {
-	pub(crate) fn new(config: HttpConfig) -> Result<HttpServerImpl, Error> {
-		let cache = lock_box!(HttpCacheImpl::new()?)?;
-		Ok(Self { config, cache })
+	pub(crate) fn new(config: &HttpConfig) -> Result<HttpServerImpl, Error> {
+		let cache = lock_box!(HttpCacheImpl::new(config)?)?;
+		Ok(Self {
+			config: config.clone(),
+			cache,
+		})
 	}
 
 	fn build_ctx<'a>(ctx: &'a mut ThreadContext) -> Result<&'a mut HttpContext, Error> {

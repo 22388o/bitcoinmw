@@ -16,7 +16,7 @@
 // limitations under the License.
 
 use crate::types::HttpCacheImpl;
-use crate::HttpCache;
+use crate::{HttpCache, HttpConfig};
 use bmw_deps::chrono::Utc;
 use bmw_err::*;
 use bmw_evh::ConnData;
@@ -29,8 +29,11 @@ use std::io::{BufReader, Read};
 info!();
 
 impl HttpCacheImpl {
-	pub(crate) fn new() -> Result<Box<dyn HttpCache + Send + Sync>, Error> {
-		let hashtable = hashtable_sync_box!()?;
+	pub(crate) fn new(config: &HttpConfig) -> Result<Box<dyn HttpCache + Send + Sync>, Error> {
+		let hashtable = hashtable_sync_box!(
+			SlabSize(config.cache_slab_size),
+			SlabCount(config.cache_slab_count)
+		)?;
 		Ok(Box::new(HttpCacheImpl { hashtable }))
 	}
 }
@@ -46,6 +49,7 @@ impl HttpCache for HttpCacheImpl {
 		let mut data = [0u8; 512];
 		info!("try cache {}", fpath);
 		let found = self.hashtable.raw_read(fpath, 0, &mut data)?;
+		info!("raw read complete");
 		if found {
 			let len = slice_to_usize(&data[0..8])?;
 			info!(
@@ -79,6 +83,7 @@ impl HttpCache for HttpCacheImpl {
 				let mut buf = vec![0u8; 512];
 				let found = self.hashtable.raw_read(fpath, 8 + i * 512, &mut data)?;
 				let wlen = if rem > 512 { 512 } else { rem };
+				info!("read wlen={},rem={},data={:?}", wlen, rem, data);
 				conn_data.write_handle().write(&data[0..wlen])?;
 
 				rem = rem.saturating_sub(wlen);
@@ -95,8 +100,9 @@ impl HttpCache for HttpCacheImpl {
 		info!("write_len {} = {}", path, len);
 		let mut data = [0u8; 512];
 		usize_to_slice(len, &mut data[0..8])?;
-		info!("writing data = {:?}", &data[0..8]);
+		info!("write_len {:?}", &data[0..8]);
 		self.hashtable.raw_write(path, 0, &data)?;
+		info!("====================================write_len complete");
 		Ok(())
 	}
 
@@ -106,8 +112,15 @@ impl HttpCache for HttpCacheImpl {
 		block_num: usize,
 		data: &[u8; 512],
 	) -> Result<(), Error> {
-		info!("write block num = {}, path = {}", block_num, path);
-		self.hashtable.raw_write(path, 8 + block_num * 512, data);
+		info!(
+			"write block num = {}, path = {}, data={:?}",
+			block_num, path, data
+		);
+		let ret = self.hashtable.raw_write(path, 8 + block_num * 512, data);
+		info!(
+			"=====================================write block complete: {:?}",
+			ret
+		);
 		Ok(())
 	}
 

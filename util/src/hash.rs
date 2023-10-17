@@ -975,6 +975,7 @@ where
 		K: Serializable + PartialEq + Clone,
 		V: Serializable + Clone,
 	{
+		debug!("Raw write of chunk = {:?}", raw_chunk)?;
 		let entry_array_len = self.entry_array.as_ref().unwrap().size();
 
 		let key_val = key.unwrap();
@@ -989,21 +990,22 @@ where
 		let mut i = 0;
 		let mut slab_id = self.max_value;
 		loop {
+			debug!("loop")?;
 			if i >= entry_array_len || self.debug_entry_array_len {
 				let msg = "HashImpl: Capacity exceeded";
+				debug!("err1")?;
 				return Err(err!(ErrKind::CapacityExceeded, msg));
 			}
 			let entry_value = self.lookup_entry(entry);
 			if entry_value == SLOT_EMPTY || entry_value == SLOT_DELETED {
+				debug!("break")?;
 				break;
 			}
-
 			// does the current key match ours?
 			let kr = self.read_key(entry_value)?;
 			if kr.is_some() {
 				let k = kr.unwrap().0;
 				if &k == key_val {
-					debug!("match")?;
 					if raw_chunk.is_none() {
 						self.remove_impl(entry)?;
 					} else {
@@ -1016,7 +1018,8 @@ where
 			entry = (entry + 1) % entry_array_len;
 			i += 1;
 		}
-		debug!("slab_id={}", slab_id)?;
+
+		debug!("insert_impl")?;
 		self.insert_impl(
 			key,
 			value,
@@ -1026,7 +1029,14 @@ where
 				true => Some(slab_id),
 				false => None,
 			},
-		)
+		)?;
+
+		debug!(
+			"---------------------------------insert_hash_impl complete slab_id={}",
+			slab_id
+		)?;
+
+		Ok(())
 	}
 
 	// fully covered but tarpaulin reporting a few lines uncovered
@@ -1070,7 +1080,6 @@ where
 		debug!("updating slab id {}", slab_id)?;
 
 		self.slab_writer.write_fixed_bytes(&ptrs[0..ptr_size * 2])?;
-		debug!("key write")?;
 		if key.is_some() {
 			match key.as_ref().unwrap().write(&mut self.slab_writer) {
 				Ok(_) => {}
@@ -1099,7 +1108,9 @@ where
 
 		if raw_value.is_some() {
 			let raw_value = raw_value.unwrap();
+			debug!("skip bytes {}", raw_value.0)?;
 			self.slab_writer.skip_bytes(raw_value.0)?;
+			debug!("write fixed bytes {:?}", raw_value.1)?;
 			self.slab_writer.write_fixed_bytes(raw_value.1)?;
 		}
 

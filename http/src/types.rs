@@ -114,6 +114,8 @@ pub struct HttpConfig {
 	pub evh_config: EventHandlerConfig,
 	pub instances: Vec<HttpInstance>,
 	pub debug: bool,
+	pub cache_slab_size: usize,
+	pub cache_slab_count: usize,
 }
 
 pub struct Builder {}

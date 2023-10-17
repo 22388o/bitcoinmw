@@ -85,7 +85,7 @@ fn real_main(debug_startup_32: bool) -> Result<(), Error> {
 		..Default::default()
 	};
 
-	let mut server = Builder::build_http_server(config)?;
+	let mut server = Builder::build_http_server(&config)?;
 	server.start()?;
 	info!("listener on port 8080")?;
 
