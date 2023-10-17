@@ -519,7 +519,7 @@ where
 {
 	fn push(&mut self, value: V) -> Result<(), Error> {
 		self.static_impl
-			.insert_impl::<V>(Some(&value), None, None, None, None)
+			.insert_impl::<V>(Some(&value), None, None, None, None, false)
 	}
 
 	fn iter<'b>(&'b self) -> Box<dyn Iterator<Item = V> + 'b> {
@@ -832,7 +832,10 @@ where
 	}
 
 	fn remove_oldest_impl(&mut self) -> Result<(), Error> {
-		debug!("self.head={}", self.head)?;
+		debug!(
+			"remove_oldest_impl self.head={}, Slot_empty={}",
+			self.head, SLOT_EMPTY
+		)?;
 		if self.head != SLOT_EMPTY {
 			self.remove_impl(self.head)?;
 		}
@@ -930,7 +933,9 @@ where
 		K: PartialEq,
 		V: Clone + Serializable,
 	{
-		self.insert_hash_impl::<V>(Some(key), None, Some((offset, data)), hash)
+		self.insert_hash_impl::<V>(Some(key), None, Some((offset, data)), hash)?;
+
+		Ok(())
 	}
 
 	// None line reported as not covered, but it is
@@ -989,7 +994,10 @@ where
 		K: Serializable + PartialEq + Clone,
 		V: Serializable + Clone,
 	{
-		debug!("Raw write of chunk = {:?}", raw_chunk)?;
+		debug!(
+			"insert_hash_impl with cur head = {}, raw_chunk={:?}",
+			self.head, raw_chunk
+		)?;
 		let entry_array_len = self.entry_array.as_ref().unwrap().size();
 
 		let key_val = key.unwrap();
@@ -1003,6 +1011,7 @@ where
 
 		let mut i = 0;
 		let mut slab_id = self.max_value;
+		let mut raw_exists = false;
 		loop {
 			debug!("loop")?;
 			if i >= entry_array_len || self.debug_entry_array_len {
@@ -1023,6 +1032,7 @@ where
 					if raw_chunk.is_none() {
 						self.remove_impl(entry)?;
 					} else {
+						raw_exists = true;
 						slab_id = entry_value;
 					}
 					break;
@@ -1043,6 +1053,7 @@ where
 				true => Some(slab_id),
 				false => None,
 			},
+			raw_exists,
 		)?;
 
 		debug!(
@@ -1062,13 +1073,14 @@ where
 		raw_value: Option<(usize, &[u8; CACHE_BUFFER_SIZE])>,
 		entry: Option<usize>,
 		slab_id_allocated: Option<usize>,
+		raw_exists: bool,
 	) -> Result<(), Error>
 	where
 		V: Serializable + Clone,
 	{
 		debug!(
-			"in insert impl with raw value = {:?}, entry = {:?}",
-			raw_value, entry
+			"in insert impl with raw value = {:?}, entry = {:?}, raw_exists = {}",
+			raw_value, entry, raw_exists
 		)?;
 		let ptr_size = self.ptr_size;
 		let max_value = self.max_value;
@@ -1093,7 +1105,12 @@ where
 		usize_to_slice(tail, &mut ptrs[ptr_size..ptr_size * 2])?;
 		debug!("updating slab id {}", slab_id)?;
 
-		self.slab_writer.write_fixed_bytes(&ptrs[0..ptr_size * 2])?;
+		if !raw_exists {
+			self.slab_writer.write_fixed_bytes(&ptrs[0..ptr_size * 2])?;
+		} else {
+			self.slab_writer.skip_bytes(ptr_size * 2)?;
+		}
+
 		if key.is_some() {
 			match key.as_ref().unwrap().write(&mut self.slab_writer) {
 				Ok(_) => {}
@@ -1129,39 +1146,42 @@ where
 		}
 
 		debug!("array update")?;
-		match self.entry_array.as_mut() {
-			Some(entry_array) => {
-				// for hash based structures we use the entry index
-				if self.tail < max_value {
-					if entry_array[self.tail] < max_value {
-						let entry_value = self.lookup_entry(self.tail);
-						self.slab_writer.seek(entry_value, 0);
+
+		if !raw_exists {
+			match self.entry_array.as_mut() {
+				Some(entry_array) => {
+					// for hash based structures we use the entry index
+					if self.tail < max_value {
+						if entry_array[self.tail] < max_value {
+							let entry_value = self.lookup_entry(self.tail);
+							self.slab_writer.seek(entry_value, 0);
+							usize_to_slice(entry, &mut ptrs[0..ptr_size])?;
+							self.slab_writer.write_fixed_bytes(&ptrs[0..ptr_size])?;
+						}
+					}
+				}
+				None => {
+					// for list based structures we use the slab_id directly
+					if self.tail < max_value {
+						self.slab_writer.seek(self.tail, 0);
 						usize_to_slice(entry, &mut ptrs[0..ptr_size])?;
 						self.slab_writer.write_fixed_bytes(&ptrs[0..ptr_size])?;
 					}
 				}
 			}
-			None => {
-				// for list based structures we use the slab_id directly
-				if self.tail < max_value {
-					self.slab_writer.seek(self.tail, 0);
-					usize_to_slice(entry, &mut ptrs[0..ptr_size])?;
-					self.slab_writer.write_fixed_bytes(&ptrs[0..ptr_size])?;
-				}
+
+			self.tail = entry;
+
+			if self.head >= max_value {
+				self.head = entry;
 			}
+
+			if self.entry_array.is_some() {
+				self.entry_array.as_mut().unwrap()[entry] = slab_id;
+			}
+
+			self.size += 1;
 		}
-
-		self.tail = entry;
-
-		if self.head >= max_value {
-			self.head = entry;
-		}
-
-		if self.entry_array.is_some() {
-			self.entry_array.as_mut().unwrap()[entry] = slab_id;
-		}
-
-		self.size += 1;
 
 		Ok(())
 	}
@@ -1266,11 +1286,25 @@ where
 		let next_usize_entry = slice_to_usize(&next[0..ptr_size])?;
 		let prev_usize_entry = slice_to_usize(&prev[0..ptr_size])?;
 
+		debug!(
+			"free_iter_list with self.head = {}, entry = {}, next_usize_entry={}, prev_usize_entry={}",
+			self.head, entry, next_usize_entry, prev_usize_entry
+		)?;
 		if self.head == entry {
-			self.head = next_usize_entry;
+			if next_usize_entry >= self.max_value {
+				debug!("updating self.head to {}", SLOT_EMPTY)?;
+				self.head = SLOT_EMPTY;
+			} else {
+				debug!("2updating self.head to {}", next_usize_entry)?;
+				self.head = next_usize_entry;
+			}
 		}
 		if self.tail == entry {
-			self.tail = prev_usize_entry;
+			if prev_usize_entry >= self.max_value {
+				self.tail = SLOT_EMPTY;
+			} else {
+				self.tail = prev_usize_entry;
+			}
 		}
 
 		if next_usize_entry < self.max_value {
@@ -1305,6 +1339,7 @@ where
 	}
 	fn remove_impl(&mut self, entry: usize) -> Result<(), Error> {
 		debug!("remove impl {}", entry)?;
+
 		self.free_iter_list(entry)?;
 		self.free_chain(self.lookup_entry(entry))?;
 		if self.entry_array.is_some() {
@@ -1472,7 +1507,7 @@ where
 	V: Serializable + Debug + Clone,
 {
 	fn push(&mut self, value: V) -> Result<(), Error> {
-		self.insert_impl::<V>(Some(&value), None, None, None, None)
+		self.insert_impl::<V>(Some(&value), None, None, None, None, false)
 	}
 
 	fn iter<'b>(&'b self) -> Box<dyn Iterator<Item = V> + 'b> {
@@ -2726,6 +2761,186 @@ mod test {
 		info!("raw read at 1383")?;
 		hashtable.raw_read(&7, 1383, &mut data2)?;
 		assert_eq!(data, data2);
+		Ok(())
+	}
+
+	#[test]
+	fn test_multi_remove_oldest() -> Result<(), Error> {
+		let slabs = slab_allocator!(SlabSize(25), SlabCount(3))?;
+		let mut hashtable =
+			Builder::build_hashtable::<u32, String>(HashtableConfig::default(), &Some(&slabs))?;
+		hashtable.insert(&1, &"4".to_string())?;
+		hashtable.insert(&2, &"5".to_string())?;
+		hashtable.insert(&3, &"6".to_string())?;
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 0);
+		}
+
+		hashtable.remove_oldest()?;
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 1);
+		}
+
+		hashtable.remove_oldest()?;
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 2);
+		}
+
+		hashtable.remove_oldest()?;
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 3);
+		}
+
+		hashtable.insert(&1, &"0123456789012345678901234".to_string())?;
+
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 1);
+		}
+
+		hashtable.remove_oldest()?;
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 3);
+		}
+
+		hashtable.insert(&1, &"012345678901234567890123456789".to_string())?;
+
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 0);
+		}
+
+		hashtable.remove_oldest()?;
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 3);
+		}
+
+		hashtable.insert(&1, &"4".to_string())?;
+		hashtable.insert(&2, &"0123456789012345678901234".to_string())?;
+
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 0);
+		}
+
+		hashtable.remove_oldest()?;
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 1);
+		}
+
+		hashtable.remove_oldest()?;
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 3);
+		}
+
+		hashtable.insert(&2, &"0123456789012345678901234".to_string())?;
+		hashtable.insert(&1, &"4".to_string())?;
+
+		hashtable.remove_oldest()?;
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 2);
+		}
+
+		hashtable.remove_oldest()?;
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 3);
+		}
+
+		hashtable.remove_oldest()?;
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 3);
+		}
+
+		hashtable.insert(&1, &"012345678901234567890123456789".to_string())?;
+
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 0);
+		}
+
+		hashtable.remove_oldest()?;
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 3);
+		}
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_insert_with_big_small_big_rem_all() -> Result<(), Error> {
+		let slabs = slab_allocator!(SlabSize(25), SlabCount(64))?;
+		let mut hashtable =
+			Builder::build_hashtable::<u32, String>(HashtableConfig::default(), &Some(&slabs))?;
+
+		let mut big_string = "".to_string();
+		let string10 = "0123456789".to_string();
+		for _ in 0..137 {
+			big_string = format!("{}{}", big_string, string10);
+		}
+		hashtable.insert(&1, &big_string)?;
+
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 0);
+		}
+
+		hashtable.remove_oldest()?;
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 64);
+		}
+
+		hashtable.insert(&2, &"ok".to_string())?;
+
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 63);
+		}
+
+		hashtable.remove_oldest()?;
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 64);
+		}
+
+		hashtable.insert(&1, &big_string)?;
+
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 0);
+		}
+
+		hashtable.remove_oldest()?;
+		{
+			let slabs = slabs.borrow();
+			assert_eq!(slabs.free_count()?, 64);
+		}
+		Ok(())
+	}
+
+	#[test]
+	fn test_raw() -> Result<(), Error> {
+		let slabs = slab_allocator!(SlabSize(250), SlabCount(3))?;
+		let mut hashtable =
+			Builder::build_hashtable::<u32, String>(HashtableConfig::default(), &Some(&slabs))?;
+
+		let bytes = [3u8; 412];
+		hashtable.raw_write(&1, 0, &bytes)?;
+		hashtable.raw_write(&1, 4, &bytes)?;
+		hashtable.remove_oldest()?;
+
 		Ok(())
 	}
 }
