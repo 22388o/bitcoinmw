@@ -984,6 +984,7 @@
 <a href="#984" id="984">984</a>
 <a href="#985" id="985">985</a>
 <a href="#986" id="986">986</a>
+<a href="#987" id="987">987</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1047,7 +1048,8 @@
 				..Default::default()
 			}],
 			debug: <span class="bool-val">false</span>,
-			cache_slab_count: <span class="number">10_000</span>,
+			<span class="comment">//cache_slab_count: 10_000,
+			</span>cache_slab_count: <span class="number">64</span>,
 		}
 	}
 }
