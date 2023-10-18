@@ -414,7 +414,9 @@ pub(crate) fn create_listeners_impl(
 		));
 	}
 
-	ret[0] = handle;
+	for i in 0..size {
+		ret[i] = handle;
+	}
 
 	Ok(ret)
 }

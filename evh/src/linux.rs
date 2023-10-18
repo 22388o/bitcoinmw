@@ -125,11 +125,11 @@ pub(crate) fn create_listeners_impl(
 	reuse_port: bool,
 ) -> Result<Array<Handle>, Error> {
 	let mut ret = array!(size, &0)?;
-	let mut fd = setup_fd(reuse_port, addr, AddressFamily::Inet)?;
+	let mut fd = setup_fd(reuse_port, addr, listen_size)?;
 	ret[0] = fd;
 	for i in 1..size {
 		if reuse_port {
-			fd = setup_fd(reuse_port, AddressFamily::Inet)?;
+			fd = setup_fd(reuse_port, addr, listen_size)?;
 		}
 		ret[i] = fd;
 	}
@@ -137,10 +137,10 @@ pub(crate) fn create_listeners_impl(
 	Ok(ret)
 }
 
-fn setup_fd(reuse_port: bool, addr: &str, family: AddressFamily) -> Result<RawFd, Error> {
+fn setup_fd(reuse_port: bool, addr: &str, listen_size: usize) -> Result<RawFd, Error> {
 	let fd = match SockaddrIn::from_str(addr) {
-		Ok(socket_addr) => {
-			let fd = get_socket(reuse_port, family)?;
+		Ok(sock_addr) => {
+			let fd = get_socket(reuse_port, AddressFamily::Inet)?;
 
 			unsafe {
 				let optval: libc::c_int = 1;
@@ -158,7 +158,7 @@ fn setup_fd(reuse_port: bool, addr: &str, family: AddressFamily) -> Result<RawFd
 		}
 		Err(_) => {
 			let sock_addr = SockaddrIn6::from_str(addr)?;
-			let fd = get_socket(reuse_port, family)?;
+			let fd = get_socket(reuse_port, AddressFamily::Inet6)?;
 
 			unsafe {
 				let optval: libc::c_int = 1;

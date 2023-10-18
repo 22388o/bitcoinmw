@@ -118,7 +118,9 @@ pub(crate) fn create_listeners_impl(
 	}
 
 	let mut ret = array!(size, &0)?;
-	ret[0] = fd;
+	for i in 0..size {
+		ret[i] = fd;
+	}
 
 	Ok(ret)
 }
