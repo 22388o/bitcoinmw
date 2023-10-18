@@ -45,7 +45,7 @@ libc = "0.2.132"
 errno = "0.2.8"
 portpicker = "0.1.1"
 winapi = { version = "0.3.9", features = ["winsock2"] }
-nix = "0.22.0"
+nix = { version = "0.26.4", features = ["socket", "net"] }
 bitvec = "1.0.1"
 rustls = { version = "0.20.7", features = [ "dangerous_configuration" ]}
 rustls-pemfile = "1.0.1"

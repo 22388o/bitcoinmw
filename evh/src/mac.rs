@@ -24,13 +24,12 @@ use bmw_deps::libc::{
 	self, accept, c_void, close, fcntl, pipe, read, sockaddr, timespec, write, F_SETFL, O_NONBLOCK,
 };
 use bmw_deps::nix::sys::socket::{
-	bind, listen, socket, AddressFamily, InetAddr, SockAddr, SockFlag, SockType,
+	bind, listen, socket, AddressFamily, SockFlag, SockType, SockaddrIn, SockaddrIn6,
 };
 use bmw_err::*;
 use bmw_log::*;
 use bmw_util::*;
 use std::mem::{size_of, zeroed};
-use std::net::SocketAddr;
 use std::net::TcpStream;
 use std::os::raw::c_int;
 use std::os::unix::prelude::RawFd;
@@ -74,30 +73,51 @@ pub(crate) fn create_listeners_impl(
 	listen_size: usize,
 	_reuse_port: bool,
 ) -> Result<Array<Handle>, Error> {
-	let std_sa = SocketAddr::from_str(&addr).unwrap();
-	let inet_addr = InetAddr::from_std(&std_sa);
-	let sock_addr = SockAddr::new_inet(inet_addr);
-	let mut ret = array!(size, &0)?;
-	let fd = get_socket()?;
+	let fd = match SockaddrIn::from_str(addr) {
+		Ok(sock_addr) => {
+			let fd = get_socket(AddressFamily::Inet)?;
+			unsafe {
+				let optval: libc::c_int = 1;
+				libc::setsockopt(
+					fd,
+					libc::SOL_SOCKET,
+					libc::SO_REUSEADDR,
+					&optval as *const _ as *const libc::c_void,
+					std::mem::size_of_val(&optval) as libc::socklen_t,
+				);
+			}
 
-	unsafe {
-		let optval: libc::c_int = 1;
-		libc::setsockopt(
-			fd,
-			libc::SOL_SOCKET,
-			libc::SO_REUSEADDR,
-			&optval as *const _ as *const libc::c_void,
-			std::mem::size_of_val(&optval) as libc::socklen_t,
-		);
-	}
+			bind(fd, &sock_addr)?;
 
-	bind(fd, &sock_addr)?;
+			fd
+		}
+		Err(_) => {
+			let sock_addr = SockaddrIn6::from_str(addr)?;
+			let fd = get_socket(AddressFamily::Inet6)?;
+			unsafe {
+				let optval: libc::c_int = 1;
+				libc::setsockopt(
+					fd,
+					libc::SOL_SOCKET,
+					libc::SO_REUSEADDR,
+					&optval as *const _ as *const libc::c_void,
+					std::mem::size_of_val(&optval) as libc::socklen_t,
+				);
+			}
+
+			bind(fd, &sock_addr)?;
+
+			fd
+		}
+	};
+
 	listen(fd, listen_size)?;
 
 	unsafe {
 		fcntl(fd, F_SETFL, O_NONBLOCK);
 	}
 
+	let mut ret = array!(size, &0)?;
 	ret[0] = fd;
 
 	Ok(ret)
@@ -272,13 +292,8 @@ fn duration_to_timespec(d: Duration) -> timespec {
 	timespec { tv_sec, tv_nsec }
 }
 
-fn get_socket() -> Result<RawFd, Error> {
-	let raw_fd = socket(
-		AddressFamily::Inet,
-		SockType::Stream,
-		SockFlag::empty(),
-		None,
-	)?;
+fn get_socket(family: AddressFamily) -> Result<RawFd, Error> {
+	let raw_fd = socket(family, SockType::Stream, SockFlag::empty(), None)?;
 
 	Ok(raw_fd)
 }

@@ -76,6 +76,8 @@ fn real_main(debug_startup_32: bool) -> Result<(), Error> {
 	let config = HttpConfig {
 		instances: vec![HttpInstance {
 			port,
+			//addr: "[::1]".to_string(), // ipv6
+			addr: "127.0.0.1".to_string(), // ipv4
 			callback_mappings,
 			callback_extensions,
 			callback: Some(callback),

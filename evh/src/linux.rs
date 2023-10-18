@@ -24,7 +24,7 @@ use bmw_deps::libc::{
 };
 use bmw_deps::nix::sys::epoll::{epoll_ctl, epoll_wait, EpollEvent, EpollFlags, EpollOp};
 use bmw_deps::nix::sys::socket::{
-	bind, listen, socket, AddressFamily, InetAddr, SockAddr, SockFlag, SockType,
+	bind, listen, socket, AddressFamily, SockFlag, SockType, SockaddrIn, SockaddrIn6,
 };
 use bmw_err::*;
 use bmw_log::*;
@@ -131,7 +131,7 @@ pub(crate) fn create_listeners_impl(
 	let mut ret = array!(size, &0)?;
 	if reuse_port {
 		for i in 0..size {
-			let fd = get_socket(reuse_port)?;
+			let fd = get_socket(reuse_port, AddressFamily::Inet)?;
 
 			unsafe {
 				let optval: libc::c_int = 1;
@@ -152,7 +152,7 @@ pub(crate) fn create_listeners_impl(
 			}
 		}
 	} else {
-		let fd = get_socket(reuse_port)?;
+		let fd = get_socket(reuse_port, AddressFaily::Inet)?;
 
 		unsafe {
 			let optval: libc::c_int = 1;
@@ -176,13 +176,8 @@ pub(crate) fn create_listeners_impl(
 	Ok(ret)
 }
 
-fn get_socket(reuseport: bool) -> Result<RawFd, Error> {
-	let raw_fd = socket(
-		AddressFamily::Inet,
-		SockType::Stream,
-		SockFlag::empty(),
-		None,
-	)?;
+fn get_socket(reuseport: bool, family: AddressFamily) -> Result<RawFd, Error> {
+	let raw_fd = socket(family, SockType::Stream, SockFlag::empty(), None)?;
 
 	if reuseport {
 		let optval: libc::c_int = 1;
@@ -356,6 +351,7 @@ pub(crate) fn get_events_impl(
 mod test {
 	use crate::linux::*;
 	use crate::types::{EventHandlerContext, EventIn};
+	use bmw_deps::nix::sys::socket::AddressFamily;
 	use bmw_test::port::pick_free_port;
 	use std::thread::sleep;
 	use std::time::Duration;
@@ -365,7 +361,7 @@ mod test {
 		sleep(Duration::from_millis(5_000));
 		let mut ctx = EventHandlerContext::new(0, 10, 10, 10, 10)?;
 		ctx.tid = 100;
-		let handle = get_socket(true)?;
+		let handle = get_socket(true, AddressFamily::Inet)?;
 		assert!(accept_impl(handle).is_err());
 		ctx.filter_set.resize(1, false);
 		assert_eq!(ctx.filter_set.len(), 1);
