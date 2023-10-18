@@ -125,9 +125,7 @@ pub(crate) fn create_listeners_impl(
 	listen_size: usize,
 	reuse_port: bool,
 ) -> Result<Array<Handle>, Error> {
-	let std_sa = SocketAddr::from_str(&addr).unwrap();
-	let inet_addr = InetAddr::from_std(&std_sa);
-	let sock_addr = SockAddr::new_inet(inet_addr);
+	let sock_addr = SockaddrIn::from_str(addr)?;
 	let mut ret = array!(size, &0)?;
 	if reuse_port {
 		for i in 0..size {
@@ -152,7 +150,7 @@ pub(crate) fn create_listeners_impl(
 			}
 		}
 	} else {
-		let fd = get_socket(reuse_port, AddressFaily::Inet)?;
+		let fd = get_socket(reuse_port, AddressFamily::Inet)?;
 
 		unsafe {
 			let optval: libc::c_int = 1;
