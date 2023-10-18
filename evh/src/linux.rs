@@ -30,7 +30,6 @@ use bmw_err::*;
 use bmw_log::*;
 use bmw_util::*;
 use std::mem::{self, size_of, zeroed};
-use std::net::SocketAddr;
 use std::net::TcpStream;
 use std::os::raw::c_int;
 use std::os::unix::prelude::RawFd;
@@ -125,11 +124,23 @@ pub(crate) fn create_listeners_impl(
 	listen_size: usize,
 	reuse_port: bool,
 ) -> Result<Array<Handle>, Error> {
-	let sock_addr = SockaddrIn::from_str(addr)?;
 	let mut ret = array!(size, &0)?;
-	if reuse_port {
-		for i in 0..size {
-			let fd = get_socket(reuse_port, AddressFamily::Inet)?;
+	let mut fd = setup_fd(reuse_port, addr, AddressFamily::Inet)?;
+	ret[0] = fd;
+	for i in 1..size {
+		if reuse_port {
+			fd = setup_fd(reuse_port, AddressFamily::Inet)?;
+		}
+		ret[i] = fd;
+	}
+
+	Ok(ret)
+}
+
+fn setup_fd(reuse_port: bool, addr: &str, family: AddressFamily) -> Result<RawFd, Error> {
+	let fd = match SockaddrIn::from_str(addr) {
+		Ok(socket_addr) => {
+			let fd = get_socket(reuse_port, family)?;
 
 			unsafe {
 				let optval: libc::c_int = 1;
@@ -143,35 +154,33 @@ pub(crate) fn create_listeners_impl(
 			}
 
 			bind(fd, &sock_addr)?;
-			listen(fd, listen_size)?;
-			ret[i] = fd;
+			fd
+		}
+		Err(_) => {
+			let sock_addr = SockaddrIn6::from_str(addr)?;
+			let fd = get_socket(reuse_port, family)?;
+
 			unsafe {
-				fcntl(fd, F_SETFL, O_NONBLOCK);
+				let optval: libc::c_int = 1;
+				libc::setsockopt(
+					fd,
+					libc::SOL_SOCKET,
+					libc::SO_REUSEADDR,
+					&optval as *const _ as *const libc::c_void,
+					std::mem::size_of_val(&optval) as libc::socklen_t,
+				);
 			}
-		}
-	} else {
-		let fd = get_socket(reuse_port, AddressFamily::Inet)?;
 
-		unsafe {
-			let optval: libc::c_int = 1;
-			libc::setsockopt(
-				fd,
-				libc::SOL_SOCKET,
-				libc::SO_REUSEADDR,
-				&optval as *const _ as *const libc::c_void,
-				std::mem::size_of_val(&optval) as libc::socklen_t,
-			);
+			bind(fd, &sock_addr)?;
+			fd
 		}
+	};
 
-		bind(fd, &sock_addr)?;
-		listen(fd, listen_size)?;
-		ret[0] = fd;
-		unsafe {
-			fcntl(fd, F_SETFL, O_NONBLOCK);
-		}
+	listen(fd, listen_size)?;
+	unsafe {
+		fcntl(fd, F_SETFL, O_NONBLOCK);
 	}
-
-	Ok(ret)
+	Ok(fd)
 }
 
 fn get_socket(reuseport: bool, family: AddressFamily) -> Result<RawFd, Error> {
