@@ -34,6 +34,7 @@ use bmw_log::*;
 use bmw_util::*;
 use std::any::{type_name, Any};
 use std::collections::HashSet;
+use std::fs::metadata;
 use std::fs::{File, Metadata};
 use std::io::BufReader;
 use std::io::Read;
@@ -223,9 +224,8 @@ impl HttpServerImpl {
 		};
 
 		debug!("error page location: {}", fpath)?;
-		let metadata = std::fs::metadata(fpath.clone());
 
-		match metadata {
+		match metadata(fpath.clone()) {
 			Ok(metadata) => {
 				Self::stream_file(fpath, metadata.len(), conn_data, code, message, cache)?;
 			}
@@ -279,9 +279,31 @@ Content-Length: {}\r\n\r\n{}\n",
 		normalized
 	}
 
+	fn try_cache(
+		mut cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
+		path: &String,
+		conn_data: &mut ConnectionData,
+	) -> Result<bool, Error> {
+		debug!("try cache: {}", path)?;
+		let hit: bool;
+		{
+			let cache = cache.rlock()?;
+			hit = (**cache.guard()).stream_file(path, conn_data, 200, "OK")?;
+		}
+		let r = random::<u64>();
+		debug!("cache hit={}", hit)?;
+
+		if hit && r % 2 == 0 {
+			let mut cache = cache.wlock()?;
+			(**cache.guard()).bring_to_front(path)?;
+		}
+
+		Ok(hit)
+	}
+
 	fn process_file(
 		config: &HttpConfig,
-		mut cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
+		cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
 		path: String,
 		conn_data: &mut ConnectionData,
 		instance: &HttpInstance,
@@ -298,10 +320,16 @@ Content-Length: {}\r\n\r\n{}\n",
 			return Ok(());
 		}
 
-		let metadata = std::fs::metadata(fpath.clone());
+		// optimistically see if the file is in cache and return on success, otherwise we
+		// need to do a stat.
+		if Self::try_cache(cache.clone(), &fpath, conn_data)? {
+			return Ok(());
+		}
 
-		let metadata = match metadata {
-			Ok(metadata) => metadata,
+		debug!("metadata on fpath = {}", fpath)?;
+
+		let metadata_result = match metadata(fpath.clone()) {
+			Ok(metadata_result) => metadata_result,
 			Err(_e) => {
 				debug!("404path={},dir={}", fpath, instance.http_dir)?;
 				Self::process_error(config, path, conn_data, instance, 404, "Not Found", cache)?;
@@ -309,14 +337,15 @@ Content-Length: {}\r\n\r\n{}\n",
 			}
 		};
 
-		let (fpath, metadata) = if metadata.is_dir() {
+		let (fpath, metadata) = if metadata_result.is_dir() {
 			let mut fpath_ret: Option<String> = None;
 			let mut metadata_ret: Option<Metadata> = None;
 			let slash = if fpath.ends_with("/") { "" } else { "/" };
 
 			for default_file in instance.default_file.clone() {
 				let fpath_res = format!("{}{}{}", fpath, slash, default_file);
-				let metadata_res = std::fs::metadata(fpath_res.clone());
+				debug!("metadata on fpath = {}", fpath_res)?;
+				let metadata_res = metadata(fpath_res.clone());
 				match metadata_res {
 					Ok(metadata) => {
 						fpath_ret = Some(fpath_res);
@@ -336,28 +365,16 @@ Content-Length: {}\r\n\r\n{}\n",
 				return Ok(());
 			}
 		} else {
-			(fpath, metadata)
+			(fpath, metadata_result)
 		};
 
 		debug!("path={},dir={}", fpath, instance.http_dir)?;
 
-		let hit: bool;
-		{
-			{
-				let cache = cache.rlock()?;
-				hit = (**cache.guard()).stream_file(&fpath, conn_data, 200, "OK")?;
-			}
-			let r = random::<u64>();
-			debug!("r={}", r)?;
-			if hit && r % 2 == 0 {
-				let mut cache = cache.wlock()?;
-				(**cache.guard()).bring_to_front(&fpath)?;
-			}
+		if Self::try_cache(cache.clone(), &fpath, conn_data)? {
+			return Ok(());
 		}
 
-		if !hit {
-			Self::stream_file(fpath, metadata.len(), conn_data, 200, "OK", cache)?;
-		}
+		Self::stream_file(fpath, metadata.len(), conn_data, 200, "OK", cache)?;
 
 		Ok(())
 	}
