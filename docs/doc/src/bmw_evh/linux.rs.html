@@ -407,6 +407,9 @@
 <a href="#407" id="407">407</a>
 <a href="#408" id="408">408</a>
 <a href="#409" id="409">409</a>
+<a href="#410" id="410">410</a>
+<a href="#411" id="411">411</a>
+<a href="#412" id="412">412</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -433,13 +436,12 @@
 };
 <span class="kw">use </span>bmw_deps::nix::sys::epoll::{epoll_ctl, epoll_wait, EpollEvent, EpollFlags, EpollOp};
 <span class="kw">use </span>bmw_deps::nix::sys::socket::{
-	bind, listen, socket, AddressFamily, InetAddr, SockAddr, SockFlag, SockType,
+	bind, listen, socket, AddressFamily, SockFlag, SockType, SockaddrIn, SockaddrIn6,
 };
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
 <span class="kw">use </span>std::mem::{<span class="self">self</span>, size_of, zeroed};
-<span class="kw">use </span>std::net::SocketAddr;
 <span class="kw">use </span>std::net::TcpStream;
 <span class="kw">use </span>std::os::raw::c_int;
 <span class="kw">use </span>std::os::unix::prelude::RawFd;
@@ -534,13 +536,23 @@
 	listen_size: usize,
 	reuse_port: bool,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;Array&lt;Handle&gt;, Error&gt; {
-	<span class="kw">let </span>std_sa = SocketAddr::from_str(<span class="kw-2">&amp;</span>addr).unwrap();
-	<span class="kw">let </span>inet_addr = InetAddr::from_std(<span class="kw-2">&amp;</span>std_sa);
-	<span class="kw">let </span>sock_addr = SockAddr::new_inet(inet_addr);
 	<span class="kw">let </span><span class="kw-2">mut </span>ret = <span class="macro">array!</span>(size, <span class="kw-2">&amp;</span><span class="number">0</span>)<span class="question-mark">?</span>;
-	<span class="kw">if </span>reuse_port {
-		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..size {
-			<span class="kw">let </span>fd = get_socket(reuse_port)<span class="question-mark">?</span>;
+	<span class="kw">let </span><span class="kw-2">mut </span>fd = setup_fd(reuse_port, addr, listen_size)<span class="question-mark">?</span>;
+	ret[<span class="number">0</span>] = fd;
+	<span class="kw">for </span>i <span class="kw">in </span><span class="number">1</span>..size {
+		<span class="kw">if </span>reuse_port {
+			fd = setup_fd(reuse_port, addr, listen_size)<span class="question-mark">?</span>;
+		}
+		ret[i] = fd;
+	}
+
+	<span class="prelude-val">Ok</span>(ret)
+}
+
+<span class="kw">fn </span>setup_fd(reuse_port: bool, addr: <span class="kw-2">&amp;</span>str, listen_size: usize) -&gt; <span class="prelude-ty">Result</span>&lt;RawFd, Error&gt; {
+	<span class="kw">let </span>fd = <span class="kw">match </span>SockaddrIn::from_str(addr) {
+		<span class="prelude-val">Ok</span>(sock_addr) =&gt; {
+			<span class="kw">let </span>fd = get_socket(reuse_port, AddressFamily::Inet)<span class="question-mark">?</span>;
 
 			<span class="kw">unsafe </span>{
 				<span class="kw">let </span>optval: libc::c_int = <span class="number">1</span>;
@@ -554,44 +566,37 @@
 			}
 
 			bind(fd, <span class="kw-2">&amp;</span>sock_addr)<span class="question-mark">?</span>;
-			listen(fd, listen_size)<span class="question-mark">?</span>;
-			ret[i] = fd;
+			fd
+		}
+		<span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; {
+			<span class="kw">let </span>sock_addr = SockaddrIn6::from_str(addr)<span class="question-mark">?</span>;
+			<span class="kw">let </span>fd = get_socket(reuse_port, AddressFamily::Inet6)<span class="question-mark">?</span>;
+
 			<span class="kw">unsafe </span>{
-				fcntl(fd, F_SETFL, O_NONBLOCK);
+				<span class="kw">let </span>optval: libc::c_int = <span class="number">1</span>;
+				libc::setsockopt(
+					fd,
+					libc::SOL_SOCKET,
+					libc::SO_REUSEADDR,
+					<span class="kw-2">&amp;</span>optval <span class="kw">as </span><span class="kw-2">*const </span><span class="kw">_ as </span><span class="kw-2">*const </span>libc::c_void,
+					std::mem::size_of_val(<span class="kw-2">&amp;</span>optval) <span class="kw">as </span>libc::socklen_t,
+				);
 			}
-		}
-	} <span class="kw">else </span>{
-		<span class="kw">let </span>fd = get_socket(reuse_port)<span class="question-mark">?</span>;
 
-		<span class="kw">unsafe </span>{
-			<span class="kw">let </span>optval: libc::c_int = <span class="number">1</span>;
-			libc::setsockopt(
-				fd,
-				libc::SOL_SOCKET,
-				libc::SO_REUSEADDR,
-				<span class="kw-2">&amp;</span>optval <span class="kw">as </span><span class="kw-2">*const </span><span class="kw">_ as </span><span class="kw-2">*const </span>libc::c_void,
-				std::mem::size_of_val(<span class="kw-2">&amp;</span>optval) <span class="kw">as </span>libc::socklen_t,
-			);
+			bind(fd, <span class="kw-2">&amp;</span>sock_addr)<span class="question-mark">?</span>;
+			fd
 		}
+	};
 
-		bind(fd, <span class="kw-2">&amp;</span>sock_addr)<span class="question-mark">?</span>;
-		listen(fd, listen_size)<span class="question-mark">?</span>;
-		ret[<span class="number">0</span>] = fd;
-		<span class="kw">unsafe </span>{
-			fcntl(fd, F_SETFL, O_NONBLOCK);
-		}
+	listen(fd, listen_size)<span class="question-mark">?</span>;
+	<span class="kw">unsafe </span>{
+		fcntl(fd, F_SETFL, O_NONBLOCK);
 	}
-
-	<span class="prelude-val">Ok</span>(ret)
+	<span class="prelude-val">Ok</span>(fd)
 }
 
-<span class="kw">fn </span>get_socket(reuseport: bool) -&gt; <span class="prelude-ty">Result</span>&lt;RawFd, Error&gt; {
-	<span class="kw">let </span>raw_fd = socket(
-		AddressFamily::Inet,
-		SockType::Stream,
-		SockFlag::empty(),
-		<span class="prelude-val">None</span>,
-	)<span class="question-mark">?</span>;
+<span class="kw">fn </span>get_socket(reuseport: bool, family: AddressFamily) -&gt; <span class="prelude-ty">Result</span>&lt;RawFd, Error&gt; {
+	<span class="kw">let </span>raw_fd = socket(family, SockType::Stream, SockFlag::empty(), <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 
 	<span class="kw">if </span>reuseport {
 		<span class="kw">let </span>optval: libc::c_int = <span class="number">1</span>;
@@ -765,6 +770,7 @@
 </span><span class="kw">mod </span>test {
 	<span class="kw">use </span><span class="kw">crate</span>::linux::<span class="kw-2">*</span>;
 	<span class="kw">use </span><span class="kw">crate</span>::types::{EventHandlerContext, EventIn};
+	<span class="kw">use </span>bmw_deps::nix::sys::socket::AddressFamily;
 	<span class="kw">use </span>bmw_test::port::pick_free_port;
 	<span class="kw">use </span>std::thread::sleep;
 	<span class="kw">use </span>std::time::Duration;
@@ -774,7 +780,7 @@
 		sleep(Duration::from_millis(<span class="number">5_000</span>));
 		<span class="kw">let </span><span class="kw-2">mut </span>ctx = EventHandlerContext::new(<span class="number">0</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>)<span class="question-mark">?</span>;
 		ctx.tid = <span class="number">100</span>;
-		<span class="kw">let </span>handle = get_socket(<span class="bool-val">true</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span>handle = get_socket(<span class="bool-val">true</span>, AddressFamily::Inet)<span class="question-mark">?</span>;
 		<span class="macro">assert!</span>(accept_impl(handle).is_err());
 		ctx.filter_set.resize(<span class="number">1</span>, <span class="bool-val">false</span>);
 		<span class="macro">assert_eq!</span>(ctx.filter_set.len(), <span class="number">1</span>);

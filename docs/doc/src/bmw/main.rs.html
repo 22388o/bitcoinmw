@@ -112,6 +112,8 @@
 <a href="#112" id="112">112</a>
 <a href="#113" id="113">113</a>
 <a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -190,7 +192,9 @@ callbk\n&quot;
 	<span class="kw">let </span>config = HttpConfig {
 		instances: <span class="macro">vec!</span>[HttpInstance {
 			port,
-			callback_mappings,
+			<span class="comment">//addr: &quot;[::1]&quot;.to_string(), // ipv6
+			</span>addr: <span class="string">&quot;127.0.0.1&quot;</span>.to_string(), <span class="comment">// ipv4
+			</span>callback_mappings,
 			callback_extensions,
 			callback: <span class="prelude-val">Some</span>(callback),
 			..Default::default()
