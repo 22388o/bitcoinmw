@@ -62,8 +62,7 @@ impl Default for HttpConfig {
 				..Default::default()
 			}],
 			debug: false,
-			//cache_slab_count: 10_000,
-			cache_slab_count: 64,
+			cache_slab_count: 6400,
 		}
 	}
 }
@@ -406,24 +405,43 @@ Content-Length: ",
 		let res = format!("{}{}\r\n\r\n", res, len);
 
 		debug!("writing {}", res)?;
-		conn_data.write_handle().write(&res.as_bytes()[..])?;
+
+		let mut write_error = false;
+		let mut write_handle = conn_data.write_handle();
+		match write_handle.write(&res.as_bytes()[..]) {
+			Ok(_) => {}
+			Err(_) => write_error = true,
+		}
 
 		let mut buf = vec![0u8; CACHE_BUFFER_SIZE];
 		let mut i = 0;
 		let mut write_to_cache = true;
+		let mut term = false;
 		loop {
-			let blen = buf_reader.read(&mut buf)?;
-			conn_data.write_handle().write(&buf[0..blen])?;
-			debug!(
-				"write '{}'",
-				std::str::from_utf8(&buf[0..blen]).unwrap_or("")
-			)?;
+			let mut blen = 0;
+			loop {
+				let cur = buf_reader.read(&mut buf[blen..])?;
+				if cur <= 0 {
+					term = true;
+					break;
+				}
+				blen += cur;
 
-			if blen == 0 {
-				break;
+				if blen == CACHE_BUFFER_SIZE {
+					break;
+				}
 			}
 
-			{
+			debug!("i={},blen={}", i, blen)?;
+
+			if !write_error {
+				match write_handle.write(&buf[0..blen]) {
+					Ok(_) => {}
+					Err(_) => write_error = true,
+				}
+			}
+
+			if blen > 0 {
 				let mut cache = cache.wlock()?;
 				if i == 0 {
 					write_to_cache = (**cache.guard()).write_len(&fpath, try_into!(len)?)?;
@@ -438,8 +456,13 @@ Content-Length: ",
 				}
 			}
 
+			if term {
+				break;
+			}
+
 			i += 1;
 		}
+		debug!("write_error={}", write_error)?;
 
 		Ok(())
 	}
@@ -623,6 +646,7 @@ Content-Length: ",
 		ctx: &mut ThreadContext,
 		attachment: Option<AttachmentHolder>,
 	) -> Result<(), Error> {
+		debug!("proc on_read")?;
 		let attachment = match attachment {
 			Some(attachment) => attachment,
 			None => return Err(err!(ErrKind::Http, "no instance found for this request1")),
@@ -793,6 +817,7 @@ Content-Length: ",
 		_conn_data: &mut ConnectionData,
 		_ctx: &mut ThreadContext,
 	) -> Result<(), Error> {
+		debug!("on accept")?;
 		Ok(())
 	}
 
@@ -800,6 +825,7 @@ Content-Length: ",
 		_conn_data: &mut ConnectionData,
 		_ctx: &mut ThreadContext,
 	) -> Result<(), Error> {
+		debug!("on close")?;
 		Ok(())
 	}
 

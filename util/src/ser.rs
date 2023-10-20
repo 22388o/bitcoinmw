@@ -654,7 +654,13 @@ impl<'a> SlabReader {
 				self.offset = 0;
 				let next = self.get_next_id(self.slab_id)?;
 				if next >= self.max_value {
-					return Err(err!(ErrKind::IO, "failed to fill whole buffer"));
+					return Err(err!(
+						ErrKind::IO,
+						format!(
+							"failed to fill whole buffer next={}, self.max_value={}",
+							next, self.max_value
+						)
+					));
 				}
 				self.slab_id = next;
 			}

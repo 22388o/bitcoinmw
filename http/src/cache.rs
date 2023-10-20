@@ -79,13 +79,13 @@ impl HttpCache for HttpCacheImpl {
 			let mut rem = len;
 			let mut i = 0;
 			loop {
-				self.hashtable
-					.raw_read(fpath, 8 + i * CACHE_BUFFER_SIZE, &mut data)?;
 				let wlen = if rem > CACHE_BUFFER_SIZE {
 					CACHE_BUFFER_SIZE
 				} else {
 					rem
 				};
+				self.hashtable
+					.raw_read(fpath, 8 + i * CACHE_BUFFER_SIZE, &mut data)?;
 				debug!("read wlen={},rem={},data={:?}", wlen, rem, data)?;
 				conn_data.write_handle().write(&data[0..wlen])?;
 
@@ -134,6 +134,7 @@ impl HttpCache for HttpCacheImpl {
 			debug!("write_len {:?}", &data[0..8])?;
 			self.hashtable.raw_write(path, 0, &data)?;
 			debug!("====================================write_len complete")?;
+
 			Ok(true)
 		}
 	}
@@ -148,12 +149,11 @@ impl HttpCache for HttpCacheImpl {
 			"write block num = {}, path = {}, data={:?}",
 			block_num, path, data
 		)?;
-		let ret = self
-			.hashtable
-			.raw_write(path, 8 + block_num * CACHE_BUFFER_SIZE, data);
+		self.hashtable
+			.raw_write(path, 8 + block_num * CACHE_BUFFER_SIZE, data)?;
 		debug!(
-			"=====================================write block complete: {:?}",
-			ret
+			"=====================================write block {} data: {:?}",
+			block_num, data,
 		)?;
 		Ok(())
 	}

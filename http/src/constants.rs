@@ -22,7 +22,7 @@ pub(crate) const SUFFIX_TREE_HEAD_ID: usize = 3;
 pub(crate) const SUFFIX_TREE_HEADER_ID: usize = 4;
 
 pub(crate) const CACHE_BUFFER_SIZE: usize = 412;
-pub(crate) const CACHE_OVERHEAD_BYTES: usize = 100;
+pub(crate) const CACHE_OVERHEAD_BYTES: usize = 28;
 pub(crate) const CACHE_SLAB_SIZE: usize = 512;
 pub(crate) const CACHE_BYTES_PER_SLAB: usize = 500;
 

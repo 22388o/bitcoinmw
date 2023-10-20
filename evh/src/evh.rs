@@ -26,11 +26,9 @@ use crate::{
 };
 use bmw_deps::errno::{errno, set_errno, Errno};
 use bmw_deps::rand::random;
-use bmw_deps::rustls::server::{NoClientAuth, ResolvesServerCertUsingSni};
-use bmw_deps::rustls::sign::{any_supported_type, CertifiedKey};
 use bmw_deps::rustls::{
 	Certificate, ClientConfig, ClientConnection as RCConn, OwnedTrustAnchor, PrivateKey,
-	RootCertStore, ServerConfig, ServerConnection as RSConn, ALL_CIPHER_SUITES, ALL_VERSIONS,
+	RootCertStore, ServerConfig, ServerConnection as RSConn,
 };
 use bmw_deps::rustls_pemfile::{certs, read_one, Item};
 use bmw_deps::webpki_roots::TLS_SERVER_ROOTS;
@@ -1486,6 +1484,10 @@ where
 					return Ok((-1, 0)); // invalid text received. Close conn.
 				}
 			}
+		}
+		{
+			let mut tls_conn = rw.tls_server.as_mut().unwrap().wlock()?;
+			let tls_conn = tls_conn.guard();
 			(**tls_conn).write_tls(&mut wbuf)?;
 		}
 
@@ -1744,6 +1746,7 @@ where
 				if clen > slen {
 					clen = slen;
 				}
+				debug!("clen={}, ctx.buffer.len={}", clen, ctx.buffer.len())?;
 				slab.get_mut()[slab_offset..clen + slab_offset]
 					.clone_from_slice(&ctx.buffer[0..clen]);
 				ctx.buffer.drain(0..clen);
@@ -2445,22 +2448,13 @@ where
 		let tls_config = if connection.tls_config.len() == 0 {
 			None
 		} else {
-			let mut cert_resolver = ResolvesServerCertUsingSni::new();
-
-			for tls_config in connection.tls_config {
-				let pk = load_private_key(&tls_config.private_key_file)?;
-				let signingkey = any_supported_type(&pk)?;
-				let certs = load_certs(&tls_config.certificates_file)?;
-				let mut certified_key = CertifiedKey::new(certs, signingkey);
-				certified_key.ocsp = Some(load_ocsp(&tls_config.ocsp_file)?);
-				cert_resolver.add(&tls_config.sni_host, certified_key)?;
-			}
 			let config = ServerConfig::builder()
-				.with_cipher_suites(&ALL_CIPHER_SUITES.to_vec())
-				.with_safe_default_kx_groups()
-				.with_protocol_versions(&ALL_VERSIONS.to_vec())?
-				.with_client_cert_verifier(NoClientAuth::new())
-				.with_cert_resolver(Arc::new(cert_resolver));
+				.with_safe_defaults()
+				.with_no_client_auth()
+				.with_single_cert(
+					load_certs(&connection.tls_config[0].certificates_file)?,
+					load_private_key(&connection.tls_config[0].private_key_file)?,
+				)?;
 
 			Some(Arc::new(config))
 		};
@@ -2566,7 +2560,7 @@ fn write_bytes(handle: Handle, buf: &[u8]) -> isize {
 
 fn make_config(trusted_cert_full_chain_file: Option<String>) -> Result<Arc<ClientConfig>, Error> {
 	let mut root_store = RootCertStore::empty();
-	root_store.add_server_trust_anchors(TLS_SERVER_ROOTS.0.iter().map(|ta| {
+	root_store.add_trust_anchors(TLS_SERVER_ROOTS.0.iter().map(|ta| {
 		OwnedTrustAnchor::from_subject_spki_name_constraints(
 			ta.subject,
 			ta.spki,
@@ -2603,16 +2597,6 @@ fn load_certs(filename: &str) -> Result<Vec<Certificate>, Error> {
 	let mut reader = BufReader::new(certfile);
 	let certs = certs(&mut reader)?;
 	Ok(certs.iter().map(|v| Certificate(v.clone())).collect())
-}
-
-fn load_ocsp(filename: &Option<String>) -> Result<Vec<u8>, Error> {
-	let mut ret = vec![];
-
-	if let &Some(ref name) = filename {
-		File::open(name)?.read_to_end(&mut ret)?;
-	}
-
-	Ok(ret)
 }
 
 fn load_private_key(filename: &str) -> Result<PrivateKey, Error> {
