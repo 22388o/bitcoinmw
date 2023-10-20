@@ -2560,32 +2560,31 @@ fn write_bytes(handle: Handle, buf: &[u8]) -> isize {
 
 fn make_config(trusted_cert_full_chain_file: Option<String>) -> Result<Arc<ClientConfig>, Error> {
 	let mut root_store = RootCertStore::empty();
-	root_store.add_trust_anchors(TLS_SERVER_ROOTS.0.iter().map(|ta| {
+	root_store.add_trust_anchors(TLS_SERVER_ROOTS.iter().map(|ta| {
 		OwnedTrustAnchor::from_subject_spki_name_constraints(
 			ta.subject,
 			ta.spki,
 			ta.name_constraints,
 		)
 	}));
-
 	match trusted_cert_full_chain_file {
 		Some(trusted_cert_full_chain_file) => {
 			let full_chain_certs = load_certs(&trusted_cert_full_chain_file)?;
 			for i in 0..full_chain_certs.len() {
-				map_err!(
-					root_store.add(&full_chain_certs[i]),
-					ErrKind::IllegalArgument,
-					"adding certificate to root store generated error"
-				)?;
+				root_store.add(&full_chain_certs[i]).map_err(|e| {
+					let error: Error = ErrorKind::Rustls(format!(
+						"adding certificate to root store generated error: {}",
+						e.to_string()
+					))
+					.into();
+					error
+				})?;
 			}
 		}
 		None => {}
 	}
-
 	let config = ClientConfig::builder()
-		.with_safe_default_cipher_suites()
-		.with_safe_default_kx_groups()
-		.with_safe_default_protocol_versions()?
+		.with_safe_defaults()
 		.with_root_certificates(root_store)
 		.with_no_client_auth();
 
@@ -3223,7 +3222,10 @@ mod test {
 
 			evh.set_on_read(move |_conn_data, _thread_context, _attachment| Ok(()))?;
 			evh.set_on_accept(move |_conn_data, _thread_context| Ok(()))?;
-			evh.set_on_close(move |_conn_data, _thread_context| Ok(()))?;
+			evh.set_on_close(move |_conn_data, _thread_context| {
+				info!("on close")?;
+				Ok(())
+			})?;
 			evh.set_on_panic(move |_thread_context, _e| Ok(()))?;
 			evh.set_housekeeper(move |_thread_context| Ok(()))?;
 			evh.start()?;
@@ -3248,9 +3250,9 @@ mod test {
 			let mut connection = TcpStream::connect(addr)?;
 			connection.write(b"test")?;
 			sleep(Duration::from_millis(1000));
-			connection.write(b"test")?;
+			let _ = connection.write(b"test"); // error is ok it just means the connection has correctly been closed.
 			sleep(Duration::from_millis(1000));
-			connection.write(b"test")?;
+			let _ = connection.write(b"test"); // error is ok it just means the connection has correctly been closed.
 			evh.stop()?;
 		}
 
@@ -5989,7 +5991,7 @@ mod test {
 	}
 
 	#[test]
-	fn test_evh_tls_multi_chunk() -> Result<(), Error> {
+	fn test_evh_tls_multi_chunk1() -> Result<(), Error> {
 		let port = pick_free_port()?;
 		info!("eventhandler tls_multi_chunk Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];

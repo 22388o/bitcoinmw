@@ -49,7 +49,7 @@ nix = { version = "0.26.4", features = ["socket", "net"] }
 bitvec = "1.0.1"
 rustls = "0.21.7"
 rustls-pemfile = "1.0.1"
-webpki-roots = "0.22.4"
+webpki-roots = "0.25.2"
 digest = "0.10.0"
 typenum = "1.12"
 cipher = "0.3.0"
