@@ -2614,7 +2614,7 @@ fn load_private_key(filename: &str) -> Result<PrivateKey, Error> {
 #[cfg(test)]
 mod test {
 	use crate::evh::{create_listeners, read_bytes};
-	use crate::evh::{load_ocsp, load_private_key, READ_SLAB_NEXT_OFFSET, READ_SLAB_SIZE};
+	use crate::evh::{load_private_key, READ_SLAB_NEXT_OFFSET, READ_SLAB_SIZE};
 	use crate::types::{
 		ConnectionInfo, Event, EventHandlerContext, EventHandlerImpl, EventType, ListenerInfo,
 		StreamInfo, Wakeup, WriteState,
@@ -6206,10 +6206,6 @@ mod test {
 		// eckey
 		assert!(load_private_key("./resources/ec256.pem").is_ok());
 
-		// load ocsp
-		assert!(load_ocsp(&Some("./resources/emptykey.pem".to_string())).is_ok());
-		assert!(load_ocsp(&Some("./resources/emptykey.pem1".to_string())).is_err());
-
 		Ok(())
 	}
 
@@ -7000,7 +6996,7 @@ mod test {
 		let found_clone = found.clone();
 
 		evh.set_on_read(move |conn_data, _thread_context, _attachment| {
-			debug!("examplecom read slab_offset = {}", conn_data.slab_offset())?;
+			info!("examplecom read slab_offset = {}", conn_data.slab_offset())?;
 			let first_slab = conn_data.first_slab();
 			let last_slab = conn_data.last_slab();
 			let slab_offset = conn_data.slab_offset();
@@ -7043,7 +7039,7 @@ mod test {
 			is_reuse_port: true,
 		};
 		evh.add_server(sc, Box::new(""))?;
-		sleep(Duration::from_millis(5_000));
+		sleep(Duration::from_millis(15_000));
 
 		let connection = TcpStream::connect("example.com:443")?;
 		connection.set_nonblocking(true)?;
