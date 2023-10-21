@@ -285,7 +285,7 @@ Content-Length: {}\r\n\r\n{}\n",
 		path: String,
 		conn_data: &mut ConnectionData,
 		instance: &HttpInstance,
-	) -> Result<(), Error> {
+	) -> Result<bool, Error> {
 		let fpath = format!("{}{}", instance.http_dir, path);
 
 		let fpath = Self::normalize_path(fpath)
@@ -295,7 +295,7 @@ Content-Length: {}\r\n\r\n{}\n",
 
 		if !fpath.starts_with(&instance.http_dir) || !path.starts_with("/") {
 			Self::process_error(config, path, conn_data, instance, 403, "Forbidden", cache)?;
-			return Ok(());
+			return Ok(false);
 		}
 
 		let metadata = std::fs::metadata(fpath.clone());
@@ -305,7 +305,7 @@ Content-Length: {}\r\n\r\n{}\n",
 			Err(_e) => {
 				debug!("404path={},dir={}", fpath, instance.http_dir)?;
 				Self::process_error(config, path, conn_data, instance, 404, "Not Found", cache)?;
-				return Ok(());
+				return Ok(false);
 			}
 		};
 
@@ -333,7 +333,7 @@ Content-Length: {}\r\n\r\n{}\n",
 				(fpath_ret.unwrap(), metadata_ret.unwrap())
 			} else {
 				Self::process_error(config, path, conn_data, instance, 404, "Not Found", cache)?;
-				return Ok(());
+				return Ok(false);
 			}
 		} else {
 			(fpath, metadata)
@@ -359,7 +359,7 @@ Content-Length: {}\r\n\r\n{}\n",
 			Self::stream_file(fpath, metadata.len(), conn_data, 200, "OK", cache)?;
 		}
 
-		Ok(())
+		Ok(hit)
 	}
 
 	fn stream_file(
@@ -729,29 +729,6 @@ Content-Length: ",
 					}
 				};
 
-				let query = headers.query().unwrap_or("".to_string());
-				if config.debug {
-					let header_count = headers.header_count().unwrap_or(0);
-					info!(
-						"uri={},query={},method={:?},version={:?},header_count={}",
-						path,
-						query,
-						headers.http_request_type().unwrap_or(&HttpRequestType::GET),
-						headers.version().unwrap_or(&HttpVersion::UNKNOWN),
-						header_count
-					)?;
-					info!("{}", SEPARATOR_LINE)?;
-
-					for i in 0..header_count {
-						info!(
-							"   header[{}] = ['{}']",
-							headers.header_name(i).unwrap_or("".to_string()),
-							headers.header_value(i).unwrap_or("".to_string())
-						)?;
-					}
-					info!("{}", SEPARATOR_LINE)?;
-				}
-
 				start = headers.termination_point;
 				last_term = headers.termination_point;
 
@@ -774,8 +751,39 @@ Content-Length: ",
 					None => {}
 				}
 
+				let mut cache_hit = false;
 				if !is_callback {
-					Self::process_file(config, cache.clone(), path, conn_data, attachment)?;
+					cache_hit = Self::process_file(
+						config,
+						cache.clone(),
+						path.clone(),
+						conn_data,
+						attachment,
+					)?;
+				}
+
+				if config.debug {
+					let query = headers.query().unwrap_or("".to_string());
+					let header_count = headers.header_count().unwrap_or(0);
+					info!(
+						"uri={},query={},method={:?},version={:?},header_count={},cache_hit={}",
+						path,
+						query,
+						headers.http_request_type().unwrap_or(&HttpRequestType::GET),
+						headers.version().unwrap_or(&HttpVersion::UNKNOWN),
+						header_count,
+						cache_hit
+					)?;
+					info!("{}", SEPARATOR_LINE)?;
+
+					for i in 0..header_count {
+						info!(
+							"   header[{}] = ['{}']",
+							headers.header_name(i).unwrap_or("".to_string()),
+							headers.header_value(i).unwrap_or("".to_string())
+						)?;
+					}
+					info!("{}", SEPARATOR_LINE)?;
 				}
 			}
 
