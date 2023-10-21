@@ -1434,6 +1434,12 @@
 <a href="#1434" id="1434">1434</a>
 <a href="#1435" id="1435">1435</a>
 <a href="#1436" id="1436">1436</a>
+<a href="#1437" id="1437">1437</a>
+<a href="#1438" id="1438">1438</a>
+<a href="#1439" id="1439">1439</a>
+<a href="#1440" id="1440">1440</a>
+<a href="#1441" id="1441">1441</a>
+<a href="#1442" id="1442">1442</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2090,7 +2096,13 @@
 				<span class="self">self</span>.offset = <span class="number">0</span>;
 				<span class="kw">let </span>next = <span class="self">self</span>.get_next_id(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>;
 				<span class="kw">if </span>next &gt;= <span class="self">self</span>.max_value {
-					<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IO, <span class="string">&quot;failed to fill whole buffer&quot;</span>));
+					<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
+						ErrKind::IO,
+						<span class="macro">format!</span>(
+							<span class="string">&quot;failed to fill whole buffer next={}, self.max_value={}&quot;</span>,
+							next, <span class="self">self</span>.max_value
+						)
+					));
 				}
 				<span class="self">self</span>.slab_id = next;
 			}
