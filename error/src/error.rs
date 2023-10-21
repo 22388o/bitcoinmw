@@ -16,11 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use bmw_deps::ed25519_dalek::ed25519;
 use bmw_deps::failure::{Backtrace, Context, Fail};
-use bmw_deps::openssl::error::ErrorStack;
-use bmw_deps::pem::PemError;
-use bmw_deps::rcgen::RcgenError;
 use bmw_deps::rustls::client::InvalidDnsNameError;
 use bmw_deps::rustls::sign::SignError;
 use std::alloc::LayoutError;
@@ -307,14 +303,6 @@ impl From<SystemTimeError> for Error {
 	}
 }
 
-impl From<ErrorStack> for Error {
-	fn from(e: ErrorStack) -> Error {
-		Error {
-			inner: Context::new(ErrorKind::Misc(format!("openssl error: {}", e))),
-		}
-	}
-}
-
 // infallible cannot happen
 #[cfg(not(tarpaulin_include))]
 impl From<Infallible> for Error {
@@ -377,34 +365,10 @@ impl From<FromUtf8Error> for Error {
 	}
 }
 
-impl From<RcgenError> for Error {
-	fn from(e: RcgenError) -> Error {
-		Error {
-			inner: Context::new(ErrorKind::Misc(format!("rcgen error: {}", e))),
-		}
-	}
-}
-
 impl From<AddrParseError> for Error {
 	fn from(e: AddrParseError) -> Error {
 		Error {
 			inner: Context::new(ErrorKind::Misc(format!("addr parse error: {}", e))),
-		}
-	}
-}
-
-impl From<PemError> for Error {
-	fn from(e: PemError) -> Error {
-		Error {
-			inner: Context::new(ErrorKind::Misc(format!("pem parse error: {}", e))),
-		}
-	}
-}
-
-impl From<ed25519::Error> for Error {
-	fn from(e: ed25519::Error) -> Error {
-		Error {
-			inner: Context::new(ErrorKind::Misc(format!("ed25519 error: {}", e))),
 		}
 	}
 }
