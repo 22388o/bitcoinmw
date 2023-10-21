@@ -9602,7 +9602,7 @@
 
 <span class="kw">fn </span>make_config(trusted_cert_full_chain_file: <span class="prelude-ty">Option</span>&lt;String&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;ClientConfig&gt;, Error&gt; {
 	<span class="kw">let </span><span class="kw-2">mut </span>root_store = RootCertStore::empty();
-	root_store.add_server_trust_anchors(TLS_SERVER_ROOTS.<span class="number">0</span>.iter().map(|ta| {
+	root_store.add_server_trust_anchors(TLS_SERVER_ROOTS.iter().map(|ta| {
 		OwnedTrustAnchor::from_subject_spki_name_constraints(
 			ta.subject,
 			ta.spki,
