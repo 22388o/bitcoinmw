@@ -139,7 +139,7 @@ performant nonblocking i/o event handler.</p>
      <span class="comment">// create a ServerConnection with no tls configurations so it will be plain
      // text.
      </span><span class="kw">let </span>sc = ServerConnection {
-         tls_config: <span class="macro">vec!</span>[],
+         tls_config: <span class="prelude-val">None</span>,
          handles,
          is_reuse_port: <span class="bool-val">true</span>,
      };

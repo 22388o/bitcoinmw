@@ -428,11 +428,6 @@
 <a href="#428" id="428">428</a>
 <a href="#429" id="429">429</a>
 <a href="#430" id="430">430</a>
-<a href="#431" id="431">431</a>
-<a href="#432" id="432">432</a>
-<a href="#433" id="433">433</a>
-<a href="#434" id="434">434</a>
-<a href="#435" id="435">435</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -479,10 +474,6 @@
 	</span><span class="kw">pub </span>private_key_file: String,
 	<span class="doccomment">/// The location of the certificates file (fullchain.pem).
 	</span><span class="kw">pub </span>certificates_file: String,
-	<span class="doccomment">/// The sni_host to use with the cert/key pair.
-	</span><span class="kw">pub </span>sni_host: String,
-	<span class="doccomment">/// The location of the optional ocsp file.
-	</span><span class="kw">pub </span>ocsp_file: <span class="prelude-ty">Option</span>&lt;String&gt;,
 }
 
 <span class="doccomment">/// TlsClientConfig specifies the configuration for a tls client.
@@ -514,10 +505,9 @@
 	<span class="doccomment">/// An array of handles. The size of this array must be equal to the number of threads that
 	/// the [`crate::EventHandler`] has configured.
 	</span><span class="kw">pub </span>handles: Array&lt;Handle&gt;,
-	<span class="doccomment">/// This is a list of TlsServerConfigs for this connection. If none are specified, plain
-	/// text is used. Multiple tls configurations allow for multiple domains to be used in the
-	/// same connection.
-	</span><span class="kw">pub </span>tls_config: Vec&lt;TlsServerConfig&gt;,
+	<span class="doccomment">/// This is an optional TlsServerConfig for this connection. If none is specified, plain
+	/// text is used.
+	</span><span class="kw">pub </span>tls_config: <span class="prelude-ty">Option</span>&lt;TlsServerConfig&gt;,
 	<span class="kw">pub </span>is_reuse_port: bool,
 }
 
