@@ -26,9 +26,11 @@ use crate::{
 };
 use bmw_deps::errno::{errno, set_errno, Errno};
 use bmw_deps::rand::random;
+use bmw_deps::rustls::server::{NoClientAuth, ResolvesServerCertUsingSni};
+use bmw_deps::rustls::sign::{any_supported_type, CertifiedKey};
 use bmw_deps::rustls::{
 	Certificate, ClientConfig, ClientConnection as RCConn, OwnedTrustAnchor, PrivateKey,
-	RootCertStore, ServerConfig, ServerConnection as RSConn,
+	RootCertStore, ServerConfig, ServerConnection as RSConn, ALL_CIPHER_SUITES, ALL_VERSIONS,
 };
 use bmw_deps::rustls_pemfile::{certs, read_one, Item};
 use bmw_deps::webpki_roots::TLS_SERVER_ROOTS;
@@ -1484,10 +1486,6 @@ where
 					return Ok((-1, 0)); // invalid text received. Close conn.
 				}
 			}
-		}
-		{
-			let mut tls_conn = rw.tls_server.as_mut().unwrap().wlock()?;
-			let tls_conn = tls_conn.guard();
 			(**tls_conn).write_tls(&mut wbuf)?;
 		}
 
@@ -1746,7 +1744,6 @@ where
 				if clen > slen {
 					clen = slen;
 				}
-				debug!("clen={}, ctx.buffer.len={}", clen, ctx.buffer.len())?;
 				slab.get_mut()[slab_offset..clen + slab_offset]
 					.clone_from_slice(&ctx.buffer[0..clen]);
 				ctx.buffer.drain(0..clen);
@@ -2448,13 +2445,22 @@ where
 		let tls_config = if connection.tls_config.len() == 0 {
 			None
 		} else {
+			let mut cert_resolver = ResolvesServerCertUsingSni::new();
+
+			for tls_config in connection.tls_config {
+				let pk = load_private_key(&tls_config.private_key_file)?;
+				let signingkey = any_supported_type(&pk)?;
+				let certs = load_certs(&tls_config.certificates_file)?;
+				let mut certified_key = CertifiedKey::new(certs, signingkey);
+				certified_key.ocsp = Some(load_ocsp(&tls_config.ocsp_file)?);
+				cert_resolver.add(&tls_config.sni_host, certified_key)?;
+			}
 			let config = ServerConfig::builder()
-				.with_safe_defaults()
-				.with_no_client_auth()
-				.with_single_cert(
-					load_certs(&connection.tls_config[0].certificates_file)?,
-					load_private_key(&connection.tls_config[0].private_key_file)?,
-				)?;
+				.with_cipher_suites(&ALL_CIPHER_SUITES.to_vec())
+				.with_safe_default_kx_groups()
+				.with_protocol_versions(&ALL_VERSIONS.to_vec())?
+				.with_client_cert_verifier(NoClientAuth::new())
+				.with_cert_resolver(Arc::new(cert_resolver));
 
 			Some(Arc::new(config))
 		};
@@ -2560,31 +2566,32 @@ fn write_bytes(handle: Handle, buf: &[u8]) -> isize {
 
 fn make_config(trusted_cert_full_chain_file: Option<String>) -> Result<Arc<ClientConfig>, Error> {
 	let mut root_store = RootCertStore::empty();
-	root_store.add_trust_anchors(TLS_SERVER_ROOTS.iter().map(|ta| {
+	root_store.add_server_trust_anchors(TLS_SERVER_ROOTS.0.iter().map(|ta| {
 		OwnedTrustAnchor::from_subject_spki_name_constraints(
 			ta.subject,
 			ta.spki,
 			ta.name_constraints,
 		)
 	}));
+
 	match trusted_cert_full_chain_file {
 		Some(trusted_cert_full_chain_file) => {
 			let full_chain_certs = load_certs(&trusted_cert_full_chain_file)?;
 			for i in 0..full_chain_certs.len() {
-				root_store.add(&full_chain_certs[i]).map_err(|e| {
-					let error: Error = ErrorKind::Rustls(format!(
-						"adding certificate to root store generated error: {}",
-						e.to_string()
-					))
-					.into();
-					error
-				})?;
+				map_err!(
+					root_store.add(&full_chain_certs[i]),
+					ErrKind::IllegalArgument,
+					"adding certificate to root store generated error"
+				)?;
 			}
 		}
 		None => {}
 	}
+
 	let config = ClientConfig::builder()
-		.with_safe_defaults()
+		.with_safe_default_cipher_suites()
+		.with_safe_default_kx_groups()
+		.with_safe_default_protocol_versions()?
 		.with_root_certificates(root_store)
 		.with_no_client_auth();
 
@@ -2596,6 +2603,16 @@ fn load_certs(filename: &str) -> Result<Vec<Certificate>, Error> {
 	let mut reader = BufReader::new(certfile);
 	let certs = certs(&mut reader)?;
 	Ok(certs.iter().map(|v| Certificate(v.clone())).collect())
+}
+
+fn load_ocsp(filename: &Option<String>) -> Result<Vec<u8>, Error> {
+	let mut ret = vec![];
+
+	if let &Some(ref name) = filename {
+		File::open(name)?.read_to_end(&mut ret)?;
+	}
+
+	Ok(ret)
 }
 
 fn load_private_key(filename: &str) -> Result<PrivateKey, Error> {
@@ -2613,7 +2630,7 @@ fn load_private_key(filename: &str) -> Result<PrivateKey, Error> {
 #[cfg(test)]
 mod test {
 	use crate::evh::{create_listeners, read_bytes};
-	use crate::evh::{load_private_key, READ_SLAB_NEXT_OFFSET, READ_SLAB_SIZE};
+	use crate::evh::{load_ocsp, load_private_key, READ_SLAB_NEXT_OFFSET, READ_SLAB_SIZE};
 	use crate::types::{
 		ConnectionInfo, Event, EventHandlerContext, EventHandlerImpl, EventType, ListenerInfo,
 		StreamInfo, Wakeup, WriteState,
@@ -3222,10 +3239,7 @@ mod test {
 
 			evh.set_on_read(move |_conn_data, _thread_context, _attachment| Ok(()))?;
 			evh.set_on_accept(move |_conn_data, _thread_context| Ok(()))?;
-			evh.set_on_close(move |_conn_data, _thread_context| {
-				info!("on close")?;
-				Ok(())
-			})?;
+			evh.set_on_close(move |_conn_data, _thread_context| Ok(()))?;
 			evh.set_on_panic(move |_thread_context, _e| Ok(()))?;
 			evh.set_housekeeper(move |_thread_context| Ok(()))?;
 			evh.start()?;
@@ -3250,9 +3264,9 @@ mod test {
 			let mut connection = TcpStream::connect(addr)?;
 			connection.write(b"test")?;
 			sleep(Duration::from_millis(1000));
-			let _ = connection.write(b"test"); // error is ok it just means the connection has correctly been closed.
+			connection.write(b"test")?;
 			sleep(Duration::from_millis(1000));
-			let _ = connection.write(b"test"); // error is ok it just means the connection has correctly been closed.
+			connection.write(b"test")?;
 			evh.stop()?;
 		}
 
@@ -5991,7 +6005,7 @@ mod test {
 	}
 
 	#[test]
-	fn test_evh_tls_multi_chunk1() -> Result<(), Error> {
+	fn test_evh_tls_multi_chunk() -> Result<(), Error> {
 		let port = pick_free_port()?;
 		info!("eventhandler tls_multi_chunk Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
@@ -6207,6 +6221,10 @@ mod test {
 
 		// eckey
 		assert!(load_private_key("./resources/ec256.pem").is_ok());
+
+		// load ocsp
+		assert!(load_ocsp(&Some("./resources/emptykey.pem".to_string())).is_ok());
+		assert!(load_ocsp(&Some("./resources/emptykey.pem1".to_string())).is_err());
 
 		Ok(())
 	}
@@ -6998,7 +7016,7 @@ mod test {
 		let found_clone = found.clone();
 
 		evh.set_on_read(move |conn_data, _thread_context, _attachment| {
-			info!("examplecom read slab_offset = {}", conn_data.slab_offset())?;
+			debug!("examplecom read slab_offset = {}", conn_data.slab_offset())?;
 			let first_slab = conn_data.first_slab();
 			let last_slab = conn_data.last_slab();
 			let slab_offset = conn_data.slab_offset();
@@ -7041,7 +7059,7 @@ mod test {
 			is_reuse_port: true,
 		};
 		evh.add_server(sc, Box::new(""))?;
-		sleep(Duration::from_millis(15_000));
+		sleep(Duration::from_millis(5_000));
 
 		let connection = TcpStream::connect("example.com:443")?;
 		connection.set_nonblocking(true)?;
