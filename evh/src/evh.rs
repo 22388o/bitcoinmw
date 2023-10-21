@@ -26,11 +26,9 @@ use crate::{
 };
 use bmw_deps::errno::{errno, set_errno, Errno};
 use bmw_deps::rand::random;
-use bmw_deps::rustls::server::{NoClientAuth, ResolvesServerCertUsingSni};
-use bmw_deps::rustls::sign::{any_supported_type, CertifiedKey};
 use bmw_deps::rustls::{
 	Certificate, ClientConfig, ClientConnection as RCConn, OwnedTrustAnchor, PrivateKey,
-	RootCertStore, ServerConfig, ServerConnection as RSConn, ALL_CIPHER_SUITES, ALL_VERSIONS,
+	RootCertStore, ServerConfig, ServerConnection as RSConn,
 };
 use bmw_deps::rustls_pemfile::{certs, read_one, Item};
 use bmw_deps::webpki_roots::TLS_SERVER_ROOTS;
@@ -2445,22 +2443,13 @@ where
 		let tls_config = if connection.tls_config.len() == 0 {
 			None
 		} else {
-			let mut cert_resolver = ResolvesServerCertUsingSni::new();
-
-			for tls_config in connection.tls_config {
-				let pk = load_private_key(&tls_config.private_key_file)?;
-				let signingkey = any_supported_type(&pk)?;
-				let certs = load_certs(&tls_config.certificates_file)?;
-				let mut certified_key = CertifiedKey::new(certs, signingkey);
-				certified_key.ocsp = Some(load_ocsp(&tls_config.ocsp_file)?);
-				cert_resolver.add(&tls_config.sni_host, certified_key)?;
-			}
 			let config = ServerConfig::builder()
-				.with_cipher_suites(&ALL_CIPHER_SUITES.to_vec())
-				.with_safe_default_kx_groups()
-				.with_protocol_versions(&ALL_VERSIONS.to_vec())?
-				.with_client_cert_verifier(NoClientAuth::new())
-				.with_cert_resolver(Arc::new(cert_resolver));
+				.with_safe_defaults()
+				.with_no_client_auth()
+				.with_single_cert(
+					load_certs(&connection.tls_config[0].certificates_file)?,
+					load_private_key(&connection.tls_config[0].private_key_file)?,
+				)?;
 
 			Some(Arc::new(config))
 		};
@@ -2605,16 +2594,6 @@ fn load_certs(filename: &str) -> Result<Vec<Certificate>, Error> {
 	Ok(certs.iter().map(|v| Certificate(v.clone())).collect())
 }
 
-fn load_ocsp(filename: &Option<String>) -> Result<Vec<u8>, Error> {
-	let mut ret = vec![];
-
-	if let &Some(ref name) = filename {
-		File::open(name)?.read_to_end(&mut ret)?;
-	}
-
-	Ok(ret)
-}
-
 fn load_private_key(filename: &str) -> Result<PrivateKey, Error> {
 	match read_one(&mut BufReader::new(File::open(filename)?)) {
 		Ok(Some(Item::RSAKey(key))) => Ok(PrivateKey(key)),
@@ -2630,7 +2609,7 @@ fn load_private_key(filename: &str) -> Result<PrivateKey, Error> {
 #[cfg(test)]
 mod test {
 	use crate::evh::{create_listeners, read_bytes};
-	use crate::evh::{load_ocsp, load_private_key, READ_SLAB_NEXT_OFFSET, READ_SLAB_SIZE};
+	use crate::evh::{load_private_key, READ_SLAB_NEXT_OFFSET, READ_SLAB_SIZE};
 	use crate::types::{
 		ConnectionInfo, Event, EventHandlerContext, EventHandlerImpl, EventType, ListenerInfo,
 		StreamInfo, Wakeup, WriteState,
@@ -6221,10 +6200,6 @@ mod test {
 
 		// eckey
 		assert!(load_private_key("./resources/ec256.pem").is_ok());
-
-		// load ocsp
-		assert!(load_ocsp(&Some("./resources/emptykey.pem".to_string())).is_ok());
-		assert!(load_ocsp(&Some("./resources/emptykey.pem1".to_string())).is_err());
 
 		Ok(())
 	}

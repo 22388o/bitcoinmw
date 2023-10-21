@@ -61,8 +61,7 @@ impl Default for HttpConfig {
 				..Default::default()
 			}],
 			debug: false,
-			//cache_slab_count: 10_000,
-			cache_slab_count: 64,
+			cache_slab_count: 10_000,
 		}
 	}
 }
