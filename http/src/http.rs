@@ -874,7 +874,7 @@ impl HttpServer for HttpServerImpl {
 			let handles = create_listeners(self.config.evh_config.threads, &addr, 10, false)?;
 
 			let sc = ServerConnection {
-				tls_config: vec![],
+				tls_config: None,
 				handles,
 				is_reuse_port: false,
 			};

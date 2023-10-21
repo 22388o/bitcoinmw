@@ -2440,18 +2440,17 @@ where
 		debug!("type in add_ser = {:?}", Self::type_of(attachment.clone()))?;
 		debug!("add server: {:?}", attachment)?;
 
-		let tls_config = if connection.tls_config.len() == 0 {
-			None
-		} else {
-			let config = ServerConfig::builder()
-				.with_safe_defaults()
-				.with_no_client_auth()
-				.with_single_cert(
-					load_certs(&connection.tls_config[0].certificates_file)?,
-					load_private_key(&connection.tls_config[0].private_key_file)?,
-				)?;
-
-			Some(Arc::new(config))
+		let tls_config = match connection.tls_config {
+			Some(tls_config) => Some(Arc::new(
+				ServerConfig::builder()
+					.with_safe_defaults()
+					.with_no_client_auth()
+					.with_single_cert(
+						load_certs(&tls_config.certificates_file)?,
+						load_private_key(&tls_config.private_key_file)?,
+					)?,
+			)),
+			None => None,
 		};
 
 		if connection.handles.size() != self.data.size() {
@@ -2745,7 +2744,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: false,
 		};
@@ -2758,7 +2757,7 @@ mod test {
 		let handles = create_listeners(threads + 1, addr2, 10, false)?;
 		info!("handles={:?}", handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: false,
 		};
@@ -2771,7 +2770,7 @@ mod test {
 		handles[0] = 0;
 		info!("handles={:?}", handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: false,
 		};
@@ -2825,12 +2824,10 @@ mod test {
 			let handles = create_listeners(threads, addr, 10, false)?;
 			info!("handles.size={},handles={:?}", handles.size(), handles)?;
 			let sc = ServerConnection {
-				tls_config: vec![TlsServerConfig {
-					sni_host: "localhost".to_string(),
+				tls_config: Some(TlsServerConfig {
 					certificates_file: "./resources/cert.pem".to_string(),
 					private_key_file: "./resources/key.pem".to_string(),
-					ocsp_file: None,
-				}],
+				}),
 				handles,
 				is_reuse_port: false,
 			};
@@ -2880,12 +2877,10 @@ mod test {
 			evhserver.start()?;
 			let handles = create_listeners(threads, addr2, 10, false)?;
 			let sc = ServerConnection {
-				tls_config: vec![TlsServerConfig {
-					sni_host: "localhost".to_string(),
+				tls_config: Some(TlsServerConfig {
 					certificates_file: "./resources/cert.pem".to_string(),
 					private_key_file: "./resources/key.pem".to_string(),
-					ocsp_file: None,
-				}],
+				}),
 				handles,
 				is_reuse_port: false,
 			};
@@ -2943,12 +2938,10 @@ mod test {
 			let handles = create_listeners(threads, addr, 10, false)?;
 			info!("handles.size={},handles={:?}", handles.size(), handles)?;
 			let sc = ServerConnection {
-				tls_config: vec![TlsServerConfig {
-					sni_host: "localhost".to_string(),
+				tls_config: Some(TlsServerConfig {
 					certificates_file: "./resources/cert.pem".to_string(),
 					private_key_file: "./resources/key.pem".to_string(),
-					ocsp_file: None,
-				}],
+				}),
 				handles,
 				is_reuse_port: false,
 			};
@@ -3059,12 +3052,10 @@ mod test {
 			let handles = create_listeners(threads, addr, 10, false)?;
 			info!("handles.size={},handles={:?}", handles.size(), handles)?;
 			let sc = ServerConnection {
-				tls_config: vec![TlsServerConfig {
-					sni_host: "localhost".to_string(),
+				tls_config: Some(TlsServerConfig {
 					certificates_file: "./resources/cert.pem".to_string(),
 					private_key_file: "./resources/key.pem".to_string(),
-					ocsp_file: None,
-				}],
+				}),
 				handles,
 				is_reuse_port: false,
 			};
@@ -3164,7 +3155,7 @@ mod test {
 			let handles = create_listeners(threads, addr, 10, false)?;
 			info!("handles.size={},handles={:?}", handles.size(), handles)?;
 			let sc = ServerConnection {
-				tls_config: vec![],
+				tls_config: None,
 				handles,
 				is_reuse_port: false,
 			};
@@ -3226,12 +3217,10 @@ mod test {
 			let handles = create_listeners(threads, addr, 10, false)?;
 			info!("handles.size={},handles={:?}", handles.size(), handles)?;
 			let sc = ServerConnection {
-				tls_config: vec![TlsServerConfig {
-					sni_host: "localhost".to_string(),
+				tls_config: Some(TlsServerConfig {
 					certificates_file: "./resources/cert.pem".to_string(),
 					private_key_file: "./resources/key.pem".to_string(),
-					ocsp_file: None,
-				}],
+				}),
 				handles,
 				is_reuse_port: false,
 			};
@@ -3314,7 +3303,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: false,
 		};
@@ -3464,7 +3453,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: false,
 		};
@@ -3559,7 +3548,7 @@ mod test {
 		evh.start()?;
 		let handles = create_listeners(threads, addr, 10, false)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: false,
 		};
@@ -3664,7 +3653,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: false,
 		};
@@ -3774,7 +3763,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: false,
 		};
@@ -3860,7 +3849,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: true,
 		};
@@ -3946,7 +3935,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: true,
 		};
@@ -4052,7 +4041,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: true,
 		};
@@ -4134,7 +4123,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		debug!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: true,
 		};
@@ -4287,7 +4276,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: true,
 		};
@@ -4384,7 +4373,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: true,
 		};
@@ -4444,7 +4433,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: true,
 		};
@@ -4512,7 +4501,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: true,
 		};
@@ -4606,7 +4595,7 @@ mod test {
 		evh.start()?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: true,
 		};
@@ -4698,7 +4687,7 @@ mod test {
 		evh.start()?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: true,
 		};
@@ -4800,7 +4789,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: true,
 		};
@@ -4939,7 +4928,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: true,
 		};
@@ -5041,7 +5030,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: false,
 		};
@@ -5107,7 +5096,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: true,
 		};
@@ -5175,7 +5164,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: true,
 		};
@@ -5239,7 +5228,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: true,
 		};
@@ -5345,7 +5334,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: true,
 		};
@@ -5472,7 +5461,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: true,
 		};
@@ -5742,12 +5731,10 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![TlsServerConfig {
-				sni_host: "localhost".to_string(),
+			tls_config: Some(TlsServerConfig {
 				certificates_file: "./resources/cert.pem".to_string(),
 				private_key_file: "./resources/key.pem".to_string(),
-				ocsp_file: None,
-			}],
+			}),
 			handles,
 			is_reuse_port: true,
 		};
@@ -5922,12 +5909,10 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![TlsServerConfig {
-				sni_host: "localhost".to_string(),
+			tls_config: Some(TlsServerConfig {
 				certificates_file: "./resources/cert.pem".to_string(),
 				private_key_file: "./resources/key.pem".to_string(),
-				ocsp_file: None,
-			}],
+			}),
 			handles,
 			is_reuse_port: false,
 		};
@@ -6099,12 +6084,10 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![TlsServerConfig {
-				sni_host: "localhost".to_string(),
+			tls_config: Some(TlsServerConfig {
 				certificates_file: "./resources/cert.pem".to_string(),
 				private_key_file: "./resources/key.pem".to_string(),
-				ocsp_file: None,
-			}],
+			}),
 			handles,
 			is_reuse_port: true,
 		};
@@ -6253,7 +6236,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: false,
 		};
@@ -6328,7 +6311,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: false,
 		};
@@ -6436,7 +6419,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: false,
 		};
@@ -6454,7 +6437,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: false,
 		};
@@ -6643,7 +6626,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: false,
 		};
@@ -6679,7 +6662,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: false,
 		};
@@ -6739,12 +6722,10 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![TlsServerConfig {
-				sni_host: "localhost".to_string(),
+			tls_config: Some(TlsServerConfig {
 				certificates_file: "./resources/cert.pem".to_string(),
 				private_key_file: "./resources/key.pem".to_string(),
-				ocsp_file: None,
-			}],
+			}),
 			handles,
 			is_reuse_port: true,
 		};
@@ -6771,12 +6752,10 @@ mod test {
 		let handles = create_listeners(threads, addr2, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![TlsServerConfig {
-				sni_host: "localhost".to_string(),
+			tls_config: Some(TlsServerConfig {
 				certificates_file: "./resources/cert.pem".to_string(),
 				private_key_file: "./resources/key.pem".to_string(),
-				ocsp_file: None,
-			}],
+			}),
 			handles,
 			is_reuse_port: true,
 		};
@@ -6836,7 +6815,7 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: false,
 		};
@@ -6849,7 +6828,7 @@ mod test {
 		let handles = create_listeners(threads + 1, addr2, 10, false)?;
 		info!("handles={:?}", handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: false,
 		};
@@ -6862,7 +6841,7 @@ mod test {
 		handles[0] = 0;
 		info!("handles={:?}", handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![],
+			tls_config: None,
 			handles,
 			is_reuse_port: false,
 		};
@@ -7024,12 +7003,10 @@ mod test {
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
-			tls_config: vec![TlsServerConfig {
-				sni_host: "localhost".to_string(),
+			tls_config: Some(TlsServerConfig {
 				certificates_file: "./resources/cert.pem".to_string(),
 				private_key_file: "./resources/key.pem".to_string(),
-				ocsp_file: None,
-			}],
+			}),
 			handles,
 			is_reuse_port: true,
 		};

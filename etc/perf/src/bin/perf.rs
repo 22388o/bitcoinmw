@@ -85,7 +85,7 @@ fn run_eventhandler(args: ArgMatches) -> Result<(), Error> {
 	};
 	let mut evh = bmw_evh::Builder::build_evh(config)?;
 
-	evh.set_on_read(move |conn_data, _thread_context| {
+	evh.set_on_read(move |conn_data, _thread_context, _| {
 		debug!("on read slab_offset= {}", conn_data.slab_offset())?;
 		let first_slab = conn_data.first_slab();
 		let last_slab = conn_data.last_slab();
@@ -173,11 +173,11 @@ fn run_eventhandler(args: ArgMatches) -> Result<(), Error> {
 	let handles = create_listeners(threads, addr, 10, reuse_port)?;
 	debug!("handles.size={},handles={:?}", handles.size(), handles)?;
 	let sc = ServerConnection {
-		tls_config: vec![],
+		tls_config: None,
 		handles,
 		is_reuse_port: true,
 	};
-	evh.add_server(sc)?;
+	evh.add_server(sc, Box::new(""))?;
 
 	std::thread::park();
 
@@ -291,7 +291,7 @@ fn run_thread(
 	let (tx, rx) = sync_channel(1);
 	let sender = lock_box!(tx)?;
 
-	evh.set_on_read(move |conn_data, _thread_context| {
+	evh.set_on_read(move |conn_data, _thread_context, _| {
 		debug!("on read offset = {}", conn_data.slab_offset())?;
 		let first_slab = conn_data.first_slab();
 		let slab_offset = conn_data.slab_offset();
@@ -435,7 +435,7 @@ fn run_thread(
 			handle: connection_handle,
 			tls_config: None,
 		};
-		let wh = evh.add_client(client)?;
+		let wh = evh.add_client(client, Box::new(""))?;
 		whs.push(wh);
 	}
 

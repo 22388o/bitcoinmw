@@ -44,10 +44,6 @@ pub struct TlsServerConfig {
 	pub private_key_file: String,
 	/// The location of the certificates file (fullchain.pem).
 	pub certificates_file: String,
-	/// The sni_host to use with the cert/key pair.
-	pub sni_host: String,
-	/// The location of the optional ocsp file.
-	pub ocsp_file: Option<String>,
 }
 
 /// TlsClientConfig specifies the configuration for a tls client.
@@ -79,10 +75,9 @@ pub struct ServerConnection {
 	/// An array of handles. The size of this array must be equal to the number of threads that
 	/// the [`crate::EventHandler`] has configured.
 	pub handles: Array<Handle>,
-	/// This is a list of TlsServerConfigs for this connection. If none are specified, plain
-	/// text is used. Multiple tls configurations allow for multiple domains to be used in the
-	/// same connection.
-	pub tls_config: Vec<TlsServerConfig>,
+	/// This is an optional TlsServerConfig for this connection. If none is specified, plain
+	/// text is used.
+	pub tls_config: Option<TlsServerConfig>,
 	pub is_reuse_port: bool,
 }
 

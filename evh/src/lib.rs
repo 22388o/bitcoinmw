@@ -177,7 +177,7 @@
 //!     // create a ServerConnection with no tls configurations so it will be plain
 //!     // text.
 //!     let sc = ServerConnection {
-//!         tls_config: vec![],
+//!         tls_config: None,
 //!         handles,
 //!         is_reuse_port: true,
 //!     };
