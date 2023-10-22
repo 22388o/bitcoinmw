@@ -17,6 +17,7 @@
 
 use crate::constants::*;
 use crate::types::{HttpCacheImpl, HttpContext, HttpServerImpl};
+use crate::HttpInstanceType::{Plain, Tls};
 use crate::{
 	HttpCache, HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType,
 	HttpRequestType, HttpServer, HttpVersion, PlainConfig,
@@ -28,17 +29,18 @@ use bmw_deps::substring::Substring;
 use bmw_err::*;
 use bmw_evh::{
 	create_listeners, AttachmentHolder, Builder, ConnData, ConnectionData, EventHandler,
-	EventHandlerConfig, ServerConnection, ThreadContext, READ_SLAB_DATA_SIZE,
+	EventHandlerConfig, ServerConnection, ThreadContext, TlsServerConfig, READ_SLAB_DATA_SIZE,
 };
 use bmw_log::*;
 use bmw_util::*;
 use std::any::{type_name, Any};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs::{File, Metadata};
 use std::io::BufReader;
 use std::io::Read;
 use std::path::PathBuf;
 use std::path::{Component, Path};
+use std::str::from_utf8;
 
 info!();
 
@@ -68,14 +70,13 @@ impl Default for HttpConfig {
 
 impl Default for HttpInstance {
 	fn default() -> Self {
+		let mut http_dir_map = HashMap::new();
+		http_dir_map.insert("*".to_string(), "~/.bmw/www".to_string());
 		Self {
 			port: 8080,
 			addr: "127.0.0.1".to_string(),
 			listen_queue_size: 100,
-			http_dir: "~/.bmw/www".to_string(),
-			instance_type: HttpInstanceType::Plain(PlainConfig {
-				domainnames: vec![],
-			}),
+			instance_type: HttpInstanceType::Plain(PlainConfig { http_dir_map }),
 			default_file: vec!["index.html".to_string(), "index.htm".to_string()],
 			error_400file: "error.html".to_string(),
 			error_403file: "error.html".to_string(),
@@ -141,6 +142,10 @@ impl HttpHeaders<'_> {
 		.to_string();
 		Ok(ret)
 	}
+
+	pub fn host(&self) -> Result<&String, Error> {
+		Ok(&self.host)
+	}
 }
 
 impl HttpServerImpl {
@@ -199,6 +204,32 @@ impl HttpServerImpl {
 		})
 	}
 
+	fn find_http_dir(host: &String, map: &HashMap<String, String>) -> Result<String, Error> {
+		match map.get(host) {
+			Some(http_dir) => Ok(http_dir.clone()),
+			None => match map.get("*") {
+				Some(http_dir) => Ok(http_dir.clone()),
+				None => Err(err!(ErrKind::Http, "could not find http_dir".to_string())),
+			},
+		}
+	}
+
+	fn http_dir(instance: &HttpInstance, headers: &HttpHeaders) -> Result<String, Error> {
+		let mut host = headers.host()?.clone();
+		if host.contains(":") {
+			let pos = host
+				.as_bytes()
+				.iter()
+				.position(|&s| s == b':')
+				.unwrap_or(host.len());
+			host = host.clone().substring(0, pos).to_string();
+		}
+		Ok(match &instance.instance_type {
+			Plain(config) => Self::find_http_dir(&host, &config.http_dir_map)?,
+			Tls(config) => Self::find_http_dir(&host, &config.http_dir_map)?,
+		})
+	}
+
 	fn process_error(
 		_config: &HttpConfig,
 		_path: String,
@@ -207,18 +238,16 @@ impl HttpServerImpl {
 		code: u16,
 		message: &str,
 		cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
+		headers: &HttpHeaders,
 	) -> Result<(), Error> {
-		let slash = if instance.http_dir.ends_with("/") {
-			""
-		} else {
-			"/"
-		};
+		let http_dir = Self::http_dir(instance, headers)?;
+		let slash = if http_dir.ends_with("/") { "" } else { "/" };
 		let fpath = if code == 404 {
-			format!("{}{}{}", instance.http_dir, slash, instance.error_404file)
+			format!("{}{}{}", http_dir, slash, instance.error_404file)
 		} else if code == 403 {
-			format!("{}{}{}", instance.http_dir, slash, instance.error_403file)
+			format!("{}{}{}", http_dir, slash, instance.error_403file)
 		} else {
-			format!("{}{}{}", instance.http_dir, slash, instance.error_400file)
+			format!("{}{}{}", http_dir, slash, instance.error_400file)
 		};
 
 		debug!("error page location: {}", fpath)?;
@@ -284,16 +313,27 @@ Content-Length: {}\r\n\r\n{}\n",
 		path: String,
 		conn_data: &mut ConnectionData,
 		instance: &HttpInstance,
+		headers: &HttpHeaders,
 	) -> Result<bool, Error> {
-		let fpath = format!("{}{}", instance.http_dir, path);
+		let http_dir = Self::http_dir(instance, headers)?;
+		let fpath = format!("{}{}", http_dir, path);
 
 		let fpath = Self::normalize_path(fpath)
 			.into_os_string()
 			.into_string()
-			.unwrap_or(format!("{}/", instance.http_dir));
+			.unwrap_or(format!("{}/", http_dir));
 
-		if !fpath.starts_with(&instance.http_dir) || !path.starts_with("/") {
-			Self::process_error(config, path, conn_data, instance, 403, "Forbidden", cache)?;
+		if !fpath.starts_with(&http_dir) || !path.starts_with("/") {
+			Self::process_error(
+				config,
+				path,
+				conn_data,
+				instance,
+				403,
+				"Forbidden",
+				cache,
+				headers,
+			)?;
 			return Ok(false);
 		}
 
@@ -302,8 +342,17 @@ Content-Length: {}\r\n\r\n{}\n",
 		let metadata = match metadata {
 			Ok(metadata) => metadata,
 			Err(_e) => {
-				debug!("404path={},dir={}", fpath, instance.http_dir)?;
-				Self::process_error(config, path, conn_data, instance, 404, "Not Found", cache)?;
+				debug!("404path={},dir={}", fpath, http_dir)?;
+				Self::process_error(
+					config,
+					path,
+					conn_data,
+					instance,
+					404,
+					"Not Found",
+					cache,
+					headers,
+				)?;
 				return Ok(false);
 			}
 		};
@@ -331,14 +380,23 @@ Content-Length: {}\r\n\r\n{}\n",
 			if fpath_ret.is_some() && metadata_ret.is_some() {
 				(fpath_ret.unwrap(), metadata_ret.unwrap())
 			} else {
-				Self::process_error(config, path, conn_data, instance, 404, "Not Found", cache)?;
+				Self::process_error(
+					config,
+					path,
+					conn_data,
+					instance,
+					404,
+					"Not Found",
+					cache,
+					headers,
+				)?;
 				return Ok(false);
 			}
 		} else {
 			(fpath, metadata)
 		};
 
-		debug!("path={},dir={}", fpath, instance.http_dir)?;
+		debug!("path={},dir={}", fpath, http_dir)?;
 
 		let hit: bool;
 		{
@@ -473,6 +531,7 @@ Content-Length: ",
 		let mut headers = [HttpHeader::default(); 100];
 
 		debug!("count={}", count)?;
+		let mut host = "".to_string();
 		for i in 0..count {
 			debug!("c[{}]={:?}", i, matches[i])?;
 			let end = matches[i].end();
@@ -566,6 +625,17 @@ Content-Length: ",
 							> headers[header_count].start_header_value
 						&& headers[header_count].start_header_value < req.len()
 					{
+						if &req[headers[header_count].start_header_name
+							..headers[header_count].end_header_name]
+							== HOST_BYTES
+						{
+							host = from_utf8(
+								&req[headers[header_count].start_header_value
+									..headers[header_count].end_header_value],
+							)
+							.unwrap_or("")
+							.to_string();
+						}
 						header_count += 1;
 					}
 				}
@@ -587,6 +657,7 @@ Content-Length: ",
 				version,
 				headers,
 				header_count,
+				host,
 			})
 		}
 	}
@@ -602,6 +673,7 @@ Content-Length: ",
 		instance: &HttpInstance,
 		err: Error,
 		cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
+		headers: &HttpHeaders,
 	) -> Result<(), Error> {
 		debug!("Err: {:?}", err.inner())?;
 		let err_text = err.inner();
@@ -614,9 +686,19 @@ Content-Length: ",
 				501,
 				"Unknown Request Type",
 				cache,
+				headers,
 			)?;
 		} else {
-			Self::process_error(config, path, conn_data, instance, 400, "Bad Request", cache)?;
+			Self::process_error(
+				config,
+				path,
+				conn_data,
+				instance,
+				400,
+				"Bad Request",
+				cache,
+				headers,
+			)?;
 		}
 		conn_data.write_handle().close()?;
 		Ok(())
@@ -700,7 +782,39 @@ Content-Length: ",
 			let headers = match headers {
 				Ok(headers) => headers,
 				Err(e) => {
-					Self::header_error(config, "".to_string(), conn_data, attachment, e, cache)?;
+					// build a mock header. only thing that matters is host and we
+					// can put something that triggers the default instance.
+					let termination_point = 0;
+					let start = 0;
+					let req = &"Host_".to_string().as_bytes().to_vec();
+					let start_uri = 0;
+					let end_uri = 0;
+					let http_request_type = HttpRequestType::GET;
+					let headers = [HttpHeader::default(); 100];
+					let header_count = 0;
+					let version = HttpVersion::UNKNOWN;
+					let host = "".to_string();
+					let headers = HttpHeaders {
+						termination_point,
+						start,
+						req,
+						start_uri,
+						end_uri,
+						http_request_type,
+						version,
+						headers,
+						header_count,
+						host,
+					};
+					Self::header_error(
+						config,
+						"".to_string(),
+						conn_data,
+						attachment,
+						e,
+						cache,
+						&headers,
+					)?;
 					return Ok(());
 				}
 			};
@@ -723,6 +837,7 @@ Content-Length: ",
 							attachment,
 							e,
 							cache,
+							&headers,
 						)?;
 						return Ok(());
 					}
@@ -758,6 +873,7 @@ Content-Length: ",
 						path.clone(),
 						conn_data,
 						attachment,
+						&headers,
 					)?;
 				}
 
@@ -844,10 +960,31 @@ impl HttpServer for HttpServerImpl {
 		.to_string();
 
 		for i in 0..self.config.instances.len() {
-			self.config.instances[i].http_dir =
-				Self::normalize_path(self.config.instances[i].http_dir.replace("~", &home_dir))
-					.into_os_string()
-					.into_string()?;
+			let mut nmap = HashMap::new();
+			match &mut self.config.instances[i].instance_type {
+				Plain(instance_type) => {
+					for (hostname, http_dir) in &instance_type.http_dir_map {
+						nmap.insert(
+							hostname.clone(),
+							Self::normalize_path(http_dir.replace("~", &home_dir))
+								.into_os_string()
+								.into_string()?,
+						);
+					}
+					instance_type.http_dir_map = nmap;
+				}
+				Tls(instance_type) => {
+					for (hostname, http_dir) in &instance_type.http_dir_map {
+						nmap.insert(
+							hostname.clone(),
+							Self::normalize_path(http_dir.replace("~", &home_dir))
+								.into_os_string()
+								.into_string()?,
+						);
+					}
+					instance_type.http_dir_map = nmap;
+				}
+			}
 		}
 
 		let mut evh = Builder::build_evh(self.config.evh_config.clone())?;
@@ -873,8 +1010,20 @@ impl HttpServer for HttpServerImpl {
 			let addr = format!("{}:{}", addr, port);
 			let handles = create_listeners(self.config.evh_config.threads, &addr, 10, false)?;
 
+			let tls_config = match &instance.instance_type {
+				Plain(_) => None,
+				Tls(config) => {
+					let certificates_file = config.cert_file.clone();
+					let private_key_file = config.privkey_file.clone();
+					Some(TlsServerConfig {
+						certificates_file,
+						private_key_file,
+					})
+				}
+			};
+
 			let sc = ServerConnection {
-				tls_config: None,
+				tls_config,
 				handles,
 				is_reuse_port: false,
 			};
@@ -893,11 +1042,12 @@ impl HttpServer for HttpServerImpl {
 #[cfg(test)]
 mod test {
 	use crate::types::HttpServerImpl;
-	use crate::{HttpConfig, HttpInstance, HttpServer};
+	use crate::{HttpConfig, HttpInstance, HttpInstanceType, HttpServer, PlainConfig};
 	use bmw_err::*;
 	use bmw_log::*;
 	use bmw_test::port::pick_free_port;
 	use bmw_test::testdir::{setup_test_dir, tear_down_test_dir};
+	use std::collections::HashMap;
 	use std::fs::File;
 	use std::io::Read;
 	use std::io::Write;
@@ -919,7 +1069,9 @@ mod test {
 		let config = HttpConfig {
 			instances: vec![HttpInstance {
 				port,
-				http_dir: test_dir.to_string(),
+				instance_type: HttpInstanceType::Plain(PlainConfig {
+					http_dir_map: HashMap::from([("*".to_string(), test_dir.to_string())]),
+				}),
 				..Default::default()
 			}],
 			..Default::default()
@@ -974,7 +1126,9 @@ mod test {
 		let config = HttpConfig {
 			instances: vec![HttpInstance {
 				port,
-				http_dir: test_dir.to_string(),
+				instance_type: HttpInstanceType::Plain(PlainConfig {
+					http_dir_map: HashMap::from([("*".to_string(), test_dir.to_string())]),
+				}),
 				..Default::default()
 			}],
 			..Default::default()

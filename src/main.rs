@@ -18,9 +18,11 @@
 
 use bmw_err::{err, ErrKind, Error};
 use bmw_evh::{ConnData, ConnectionData};
+use bmw_http::HttpInstanceType::Plain;
+use bmw_http::PlainConfig;
 use bmw_http::{Builder, HttpConfig, HttpHeaders, HttpInstance};
 use bmw_log::*;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::mem::size_of;
 #[cfg(not(test))]
 use std::thread::park;
@@ -81,6 +83,12 @@ fn real_main(debug_startup_32: bool) -> Result<(), Error> {
 			callback_mappings,
 			callback_extensions,
 			callback: Some(callback),
+			instance_type: Plain(PlainConfig {
+				http_dir_map: HashMap::from([
+					("*".to_string(), "~/.bmw/www".to_string()),
+					("37miners.com".to_string(), "~/abc".to_string()),
+				]),
+			}),
 			..Default::default()
 		}],
 		debug: true,

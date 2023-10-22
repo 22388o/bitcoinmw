@@ -19,7 +19,7 @@ use crate::constants::*;
 use bmw_err::*;
 use bmw_evh::{ConnectionData, EventHandlerConfig};
 use bmw_util::*;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, PartialEq)]
 pub enum HttpRequestType {
@@ -55,6 +55,7 @@ pub struct HttpHeaders<'a> {
 	pub(crate) headers: [HttpHeader; 100],
 	pub(crate) header_count: usize,
 	pub(crate) version: HttpVersion,
+	pub(crate) host: String,
 }
 
 pub trait HttpCache {
@@ -82,14 +83,14 @@ pub trait HttpServer {
 
 #[derive(Clone, Debug)]
 pub struct PlainConfig {
-	pub domainnames: Vec<String>,
+	pub http_dir_map: HashMap<String, String>,
 }
 
 #[derive(Clone, Debug)]
 pub struct TlsConfig {
 	pub cert_file: String,
 	pub privkey_file: String,
-	pub domainnames: Vec<String>,
+	pub http_dir_map: HashMap<String, String>,
 }
 
 #[derive(Clone, Debug)]
@@ -103,7 +104,6 @@ pub struct HttpInstance {
 	pub port: u16,
 	pub addr: String,
 	pub listen_queue_size: usize,
-	pub http_dir: String,
 	pub instance_type: HttpInstanceType,
 	pub default_file: Vec<String>,
 	pub error_400file: String,

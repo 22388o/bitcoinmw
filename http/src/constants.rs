@@ -30,3 +30,4 @@ pub(crate) const SEPARATOR_LINE: &str =
 	"--------------------------------------------------------------------------------";
 
 pub(crate) const ERROR_CONTENT: &str = "Error ERROR_CODE: \"ERROR_MESSAGE\" occurred.";
+pub(crate) const HOST_BYTES: &[u8] = "Host".as_bytes();
