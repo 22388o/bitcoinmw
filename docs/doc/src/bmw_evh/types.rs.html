@@ -428,6 +428,18 @@
 <a href="#428" id="428">428</a>
 <a href="#429" id="429">429</a>
 <a href="#430" id="430">430</a>
+<a href="#431" id="431">431</a>
+<a href="#432" id="432">432</a>
+<a href="#433" id="433">433</a>
+<a href="#434" id="434">434</a>
+<a href="#435" id="435">435</a>
+<a href="#436" id="436">436</a>
+<a href="#437" id="437">437</a>
+<a href="#438" id="438">438</a>
+<a href="#439" id="439">439</a>
+<a href="#440" id="440">440</a>
+<a href="#441" id="441">441</a>
+<a href="#442" id="442">442</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -539,6 +551,14 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_suspended: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) tls_server: <span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;RustlsServerConnection&gt;&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) tls_client: <span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;RustlsClientConnection&gt;&gt;&gt;,
+}
+
+<span class="doccomment">/// A struct which can be used to close a connection (note: if writing is needed as well use
+/// WriteHandle, but this is a minimal structure needed to close the connection
+</span><span class="kw">pub struct </span>CloseHandle {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) write_state: Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) id: u128,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) event_handler_data: Box&lt;<span class="kw">dyn </span>LockBox&lt;EventHandlerData&gt;&gt;,
 }
 
 <span class="doccomment">/// This trait which is implemented by [`crate::ConnectionData`]. This trait is used to interact
@@ -669,6 +689,8 @@
 		connection: ServerConnection,
 		attachment: Box&lt;<span class="kw">dyn </span>Any + Send + Sync&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+	<span class="doccomment">/// Get the eventhandler data array
+	</span><span class="kw">fn </span>event_handler_data(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Array&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;EventHandlerData&gt;&gt;&gt;, Error&gt;;
 }
 
 <span class="doccomment">/// The structure that builds eventhandlers.
@@ -681,12 +703,13 @@
 
 <span class="comment">// pub(crate) types
 
-</span><span class="attr">#[derive(Clone)]
+</span><span class="attr">#[derive(Clone, Debug)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum </span>LastProcessType {
 	OnRead,
 	OnClose,
 	OnAccept,
 	Housekeeper,
+	OnAcceptOutOfBand,
 }
 
 <span class="attr">#[derive(Clone)]
@@ -712,6 +735,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) count: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) last_process_type: LastProcessType,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) last_rw: <span class="prelude-ty">Option</span>&lt;StreamInfo&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) last_handle_oob: Handle,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) buffer: Vec&lt;u8&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) do_write_back: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) attachments: HashMap&lt;u128, AttachmentHolder&gt;,
@@ -812,14 +836,14 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) tls_client: <span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;RustlsClientConnection&gt;&gt;&gt;,
 }
 
-<span class="attr">#[derive(Clone, Debug)]
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>WriteState {
+<span class="attr">#[derive(Clone, Debug, Serializable)]
+</span><span class="kw">pub struct </span>WriteState {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) write_buffer: Vec&lt;u8&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) flags: u8,
 }
 
 <span class="attr">#[derive(Clone)]
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>EventHandlerData {
+</span><span class="kw">pub struct </span>EventHandlerData {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) write_queue: Box&lt;<span class="kw">dyn </span>Queue&lt;u128&gt; + Send + Sync&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) nhandles: Box&lt;<span class="kw">dyn </span>Queue&lt;ConnectionInfo&gt; + Send + Sync&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) stop: bool,

@@ -393,6 +393,17 @@
 <a href="#393" id="393">393</a>
 <a href="#394" id="394">394</a>
 <a href="#395" id="395">395</a>
+<a href="#396" id="396">396</a>
+<a href="#397" id="397">397</a>
+<a href="#398" id="398">398</a>
+<a href="#399" id="399">399</a>
+<a href="#400" id="400">400</a>
+<a href="#401" id="401">401</a>
+<a href="#402" id="402">402</a>
+<a href="#403" id="403">403</a>
+<a href="#404" id="404">404</a>
+<a href="#405" id="405">405</a>
+<a href="#406" id="406">406</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -512,7 +523,7 @@
 	}
 
 	<span class="kw">fn </span>rlock(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RwLockReadGuardWrapper&lt;<span class="lifetime">&#39;_</span>, T&gt;, Error&gt; {
-		<span class="self">self</span>.do_rlock()
+		<span class="self">self</span>.do_rlock(<span class="bool-val">false</span>)
 	}
 
 	<span class="kw">fn </span>clone(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self </span>{
@@ -532,7 +543,11 @@
 	}
 
 	<span class="kw">fn </span>rlock(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RwLockReadGuardWrapper&lt;<span class="lifetime">&#39;_</span>, T&gt;, Error&gt; {
-		<span class="self">self</span>.do_rlock()
+		<span class="self">self</span>.do_rlock(<span class="bool-val">false</span>)
+	}
+
+	<span class="kw">fn </span>rlock_ignore_poison(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RwLockReadGuardWrapper&lt;<span class="lifetime">&#39;_</span>, T&gt;, Error&gt; {
+		<span class="self">self</span>.do_rlock(<span class="bool-val">true</span>)
 	}
 
 	<span class="kw">fn </span>wlock_ignore_poison(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RwLockWriteGuardWrapper&lt;<span class="lifetime">&#39;_</span>, T&gt;, Error&gt; {
@@ -589,7 +604,7 @@
 		}
 	}
 
-	<span class="kw">fn </span>do_rlock(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RwLockReadGuardWrapper&lt;<span class="lifetime">&#39;_</span>, T&gt;, Error&gt; {
+	<span class="kw">fn </span>do_rlock(<span class="kw-2">&amp;</span><span class="self">self</span>, ignore_poison: bool) -&gt; <span class="prelude-ty">Result</span>&lt;RwLockReadGuardWrapper&lt;<span class="lifetime">&#39;_</span>, T&gt;, Error&gt; {
 		<span class="kw">let </span>contains = LOCKS.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 			<span class="kw">let </span>ret = (<span class="kw-2">*</span>f.borrow()).contains(<span class="kw-2">&amp;</span><span class="self">self</span>.id);
 			(<span class="kw-2">*</span>f.borrow_mut()).insert(<span class="self">self</span>.id);
@@ -599,7 +614,14 @@
 		<span class="kw">if </span>contains {
 			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Poison, <span class="string">&quot;would deadlock&quot;</span>))
 		} <span class="kw">else </span>{
-			<span class="kw">let </span>guard = <span class="macro">map_err!</span>(<span class="self">self</span>.t.read(), ErrKind::Poison)<span class="question-mark">?</span>;
+			<span class="kw">let </span>guard = <span class="kw">if </span>ignore_poison {
+				<span class="kw">match </span><span class="self">self</span>.t.read() {
+					<span class="prelude-val">Ok</span>(guard) =&gt; guard,
+					<span class="prelude-val">Err</span>(e) =&gt; e.into_inner(),
+				}
+			} <span class="kw">else </span>{
+				<span class="macro">map_err!</span>(<span class="self">self</span>.t.read(), ErrKind::Poison)<span class="question-mark">?
+			</span>};
 			<span class="kw">let </span>id = <span class="self">self</span>.id;
 			<span class="kw">let </span>debug_err = <span class="bool-val">false</span>;
 			<span class="kw">let </span>ret = RwLockReadGuardWrapper {

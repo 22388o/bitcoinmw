@@ -142,6 +142,8 @@
 <a href="#142" id="142">142</a>
 <a href="#143" id="143">143</a>
 <a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -161,9 +163,9 @@
 
 </span><span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
-<span class="kw">use </span>bmw_evh::{ConnectionData, EventHandlerConfig};
+<span class="kw">use </span>bmw_evh::{ConnectionData, EventHandlerConfig, WriteState};
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
-<span class="kw">use </span>std::collections::HashSet;
+<span class="kw">use </span>std::collections::{HashMap, HashSet};
 
 <span class="attr">#[derive(Debug, PartialEq)]
 </span><span class="kw">pub enum </span>HttpRequestType {
@@ -199,6 +201,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) headers: [HttpHeader; <span class="number">100</span>],
 	<span class="kw">pub</span>(<span class="kw">crate</span>) header_count: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) version: HttpVersion,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) host: String,
 }
 
 <span class="kw">pub trait </span>HttpCache {
@@ -226,14 +229,14 @@
 
 <span class="attr">#[derive(Clone, Debug)]
 </span><span class="kw">pub struct </span>PlainConfig {
-	<span class="kw">pub </span>domainnames: Vec&lt;String&gt;,
+	<span class="kw">pub </span>http_dir_map: HashMap&lt;String, String&gt;,
 }
 
 <span class="attr">#[derive(Clone, Debug)]
 </span><span class="kw">pub struct </span>TlsConfig {
 	<span class="kw">pub </span>cert_file: String,
 	<span class="kw">pub </span>privkey_file: String,
-	<span class="kw">pub </span>domainnames: Vec&lt;String&gt;,
+	<span class="kw">pub </span>http_dir_map: HashMap&lt;String, String&gt;,
 }
 
 <span class="attr">#[derive(Clone, Debug)]
@@ -247,7 +250,6 @@
 	<span class="kw">pub </span>port: u16,
 	<span class="kw">pub </span>addr: String,
 	<span class="kw">pub </span>listen_queue_size: usize,
-	<span class="kw">pub </span>http_dir: String,
 	<span class="kw">pub </span>instance_type: HttpInstanceType,
 	<span class="kw">pub </span>default_file: Vec&lt;String&gt;,
 	<span class="kw">pub </span>error_400file: String,
@@ -264,6 +266,7 @@
 	<span class="kw">pub </span>instances: Vec&lt;HttpInstance&gt;,
 	<span class="kw">pub </span>debug: bool,
 	<span class="kw">pub </span>cache_slab_count: usize,
+	<span class="kw">pub </span>idle_timeout: u128,
 }
 
 <span class="kw">pub struct </span>Builder {}
@@ -282,6 +285,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) suffix_tree: Box&lt;<span class="kw">dyn </span>SuffixTree + Send + Sync&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) matches: [Match; <span class="number">1_000</span>],
 	<span class="kw">pub</span>(<span class="kw">crate</span>) offset: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) connections: HashMap&lt;u128, (Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;, u128, usize)&gt;,
 }
 
 <span class="kw">type </span>HttpCallback =

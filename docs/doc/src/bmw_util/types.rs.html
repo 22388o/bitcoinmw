@@ -1375,6 +1375,9 @@
 <a href="#1375" id="1375">1375</a>
 <a href="#1376" id="1376">1376</a>
 <a href="#1377" id="1377">1377</a>
+<a href="#1378" id="1378">1378</a>
+<a href="#1379" id="1379">1379</a>
+<a href="#1380" id="1380">1380</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1504,6 +1507,9 @@
 	<span class="doccomment">/// Same as [`crate::LockBox::wlock`] except that any poison errors are ignored
 	/// by calling the underlying into_inner() fn.
 	</span><span class="kw">fn </span>wlock_ignore_poison(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RwLockWriteGuardWrapper&lt;<span class="lifetime">&#39;_</span>, T&gt;, Error&gt;;
+	<span class="doccomment">/// Same as [`crate::LockBox::rlock`] except that any poison errors are ignored
+	/// by calling the underlying into_inner() fn.
+	</span><span class="kw">fn </span>rlock_ignore_poison(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RwLockReadGuardWrapper&lt;<span class="lifetime">&#39;_</span>, T&gt;, Error&gt;;
 	<span class="doccomment">/// consume the inner Arc and return a usize value. This function is dangerous
 	/// because it potentially leaks memory. The usize must be rebuilt into a lockbox
 	/// that can then be dropped via the [`crate::lock_box_from_usize`] function.
