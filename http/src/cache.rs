@@ -16,9 +16,8 @@
 // limitations under the License.
 
 use crate::constants::*;
-use crate::types::HttpCacheImpl;
-use crate::{HttpCache, HttpConfig};
-use bmw_deps::chrono::Utc;
+use crate::types::{HttpCacheImpl, HttpContext, HttpServerImpl};
+use crate::{HttpCache, HttpConfig, HttpHeaders};
 use bmw_err::*;
 use bmw_evh::ConnData;
 use bmw_evh::ConnectionData;
@@ -44,6 +43,9 @@ impl HttpCache for HttpCacheImpl {
 		conn_data: &mut ConnectionData,
 		code: u16,
 		message: &str,
+		ctx: &HttpContext,
+		config: &HttpConfig,
+		headers: &HttpHeaders,
 	) -> Result<bool, Error> {
 		let mut data = [0u8; CACHE_BUFFER_SIZE];
 		debug!("try cache {}", fpath)?;
@@ -58,24 +60,24 @@ impl HttpCache for HttpCacheImpl {
 				found
 			)?;
 
-			let dt = Utc::now();
-			let res = dt
-				.format(
-					&format!(
-						"HTTP/1.1 {} {}\r\n\
-                                                Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
-                                                Content-Length: ",
-						code, message
-					)
-					.to_string(),
-				)
-				.to_string();
-
-			let res = format!("{}{}\r\n\r\n", res, len);
+			let (keep_alive, res) = HttpServerImpl::build_response_headers(
+				config,
+				code,
+				message,
+				len,
+				None,
+				match ctx.mime_map.get(&headers.extension()?) {
+					Some(mime_type) => Some(mime_type.clone()),
+					None => Some("text/html".to_string()),
+				},
+				ctx,
+				headers,
+			)?;
 
 			debug!("writing {}", res)?;
 
-			conn_data.write_handle().write(&res.as_bytes()[..])?;
+			let mut write_handle = conn_data.write_handle();
+			write_handle.write(&res.as_bytes()[..])?;
 			let mut rem = len;
 			let mut i = 0;
 			loop {
@@ -87,13 +89,17 @@ impl HttpCache for HttpCacheImpl {
 					rem
 				};
 				debug!("read wlen={},rem={},data={:?}", wlen, rem, data)?;
-				conn_data.write_handle().write(&data[0..wlen])?;
+				write_handle.write(&data[0..wlen])?;
 
 				rem = rem.saturating_sub(wlen);
 				if rem == 0 {
 					break;
 				}
 				i += 1;
+			}
+
+			if !keep_alive {
+				write_handle.close()?;
 			}
 		}
 		Ok(found)

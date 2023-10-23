@@ -37,6 +37,12 @@ pub enum HttpVersion {
 	OTHER,
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum ConnectionType {
+	KeepAlive,
+	CLOSE,
+}
+
 #[derive(Clone, Copy)]
 pub struct HttpHeader {
 	pub start_header_name: usize,
@@ -56,6 +62,7 @@ pub struct HttpHeaders<'a> {
 	pub(crate) header_count: usize,
 	pub(crate) version: HttpVersion,
 	pub(crate) host: String,
+	pub(crate) connection: ConnectionType,
 }
 
 pub trait HttpCache {
@@ -65,6 +72,9 @@ pub trait HttpCache {
 		conn_data: &mut ConnectionData,
 		code: u16,
 		message: &str,
+		ctx: &HttpContext,
+		config: &HttpConfig,
+		headers: &HttpHeaders,
 	) -> Result<bool, Error>;
 	fn write_len(&mut self, path: &String, len: usize) -> Result<bool, Error>;
 	fn write_block(
@@ -121,6 +131,9 @@ pub struct HttpConfig {
 	pub debug: bool,
 	pub cache_slab_count: usize,
 	pub idle_timeout: u128,
+	pub server_name: String,
+	pub server_version: String,
+	pub mime_map: Vec<(String, String)>,
 }
 
 pub struct Builder {}
@@ -135,11 +148,12 @@ pub(crate) struct HttpCacheImpl {
 	pub(crate) hashtable: Box<dyn Hashtable<String, usize> + Send + Sync>,
 }
 
-pub(crate) struct HttpContext {
+pub struct HttpContext {
 	pub(crate) suffix_tree: Box<dyn SuffixTree + Send + Sync>,
 	pub(crate) matches: [Match; 1_000],
 	pub(crate) offset: usize,
 	pub(crate) connections: HashMap<u128, (Box<dyn LockBox<WriteState>>, u128, usize)>,
+	pub(crate) mime_map: HashMap<String, String>,
 }
 
 type HttpCallback =

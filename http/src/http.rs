@@ -19,7 +19,7 @@ use crate::constants::*;
 use crate::types::{HttpCacheImpl, HttpContext, HttpServerImpl};
 use crate::HttpInstanceType::{Plain, Tls};
 use crate::{
-	HttpCache, HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType,
+	ConnectionType, HttpCache, HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType,
 	HttpRequestType, HttpServer, HttpVersion, PlainConfig,
 };
 use bmw_deps::chrono::Utc;
@@ -67,6 +67,176 @@ impl Default for HttpConfig {
 			debug: false,
 			cache_slab_count: 10_000,
 			idle_timeout: 60_000,
+			server_name: "BitcoinMW HTTP Server".to_string(),
+			server_version: "0.0.0".to_string(),
+			mime_map: vec![
+				("html".to_string(), "text/html".to_string()),
+				("htm".to_string(), "text/html".to_string()),
+				("shtml".to_string(), "text/html".to_string()),
+				("txt".to_string(), "text/plain".to_string()),
+				("css".to_string(), "text/css".to_string()),
+				("xml".to_string(), "text/xml".to_string()),
+				("gif".to_string(), "image/gif".to_string()),
+				("jpeg".to_string(), "image/jpeg".to_string()),
+				("jpg".to_string(), "image/jpeg".to_string()),
+				("js".to_string(), "application/javascript".to_string()),
+				("atom".to_string(), "application/atom+xml".to_string()),
+				("rss".to_string(), "application/rss+xml".to_string()),
+				("mml".to_string(), "text/mathml".to_string()),
+				(
+					"jad".to_string(),
+					"text/vnd.sun.j2me.app-descriptor".to_string(),
+				),
+				("wml".to_string(), "text/vnd.wap.wml".to_string()),
+				("htc".to_string(), "text/x-component".to_string()),
+				("avif".to_string(), "image/avif".to_string()),
+				("png".to_string(), "image/png".to_string()),
+				("svg".to_string(), "image/svg+xml".to_string()),
+				("svgz".to_string(), "image/svg+xml".to_string()),
+				("tif".to_string(), "image/tiff".to_string()),
+				("tiff".to_string(), "image/tiff".to_string()),
+				("wbmp".to_string(), "image/vnd.wap.wbmp".to_string()),
+				("webp".to_string(), "image/webp".to_string()),
+				("ico".to_string(), "image/x-icon".to_string()),
+				("jng".to_string(), "image/x-jng".to_string()),
+				("bmp".to_string(), "image/x-ms-bmp".to_string()),
+				("woff".to_string(), "font/woff".to_string()),
+				("woff2".to_string(), "font/woff2".to_string()),
+				("jar".to_string(), "application/java-archive".to_string()),
+				("war".to_string(), "application/java-archive".to_string()),
+				("ear".to_string(), "application/java-archive".to_string()),
+				("json".to_string(), "application/json".to_string()),
+				("hqx".to_string(), "application/mac-binhex40".to_string()),
+				("doc".to_string(), "application/msword".to_string()),
+				("pdf".to_string(), "application/pdf".to_string()),
+				("ps".to_string(), "application/postscript".to_string()),
+				("eps".to_string(), "application/postscript".to_string()),
+				("ai".to_string(), "application/postscript".to_string()),
+				("rtf".to_string(), "application/rtf".to_string()),
+				(
+					"m3u8".to_string(),
+					"application/vnd.apple.mpegurl".to_string(),
+				),
+				(
+					"kml".to_string(),
+					"application/vnd.google-earth.kml+xml".to_string(),
+				),
+				(
+					"kmz".to_string(),
+					"application/vnd.google-earth.kmz".to_string(),
+				),
+				("xls".to_string(), "application/vnd.ms-excel".to_string()),
+				(
+					"eot".to_string(),
+					"application/vnd.ms-fontobject".to_string(),
+				),
+				(
+					"ppt".to_string(),
+					"application/vnd.ms-powerpoint".to_string(),
+				),
+				(
+					"odg".to_string(),
+					"application/vnd.oasis.opendocument.graphics".to_string(),
+				),
+				(
+					"odp".to_string(),
+					"application/vnd.oasis.opendocument.presentation".to_string(),
+				),
+				(
+					"ods".to_string(),
+					"application/vnd.oasis.opendocument.spreadsheet".to_string(),
+				),
+				(
+					"odt".to_string(),
+					"application/vnd.oasis.opendocument.text".to_string(),
+				),
+				(
+					"pptx".to_string(),
+					"application/vnd.openxmlformats-officedocument.presentationml.presentation"
+						.to_string(),
+				),
+				(
+					"xlsx".to_string(),
+					"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".to_string(),
+				),
+				(
+					"docx".to_string(),
+					"application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+						.to_string(),
+				),
+				("wmlc".to_string(), "application/vnd.wap.wmlc".to_string()),
+				("wasm".to_string(), "application/wasm".to_string()),
+				("7z".to_string(), "application/x-7z-compressed".to_string()),
+				("cco".to_string(), "application/x-cocoa".to_string()),
+				(
+					"jardiff".to_string(),
+					"application/x-java-archive-diff".to_string(),
+				),
+				(
+					"jnlp".to_string(),
+					"application/x-java-jnlp-file".to_string(),
+				),
+				("run".to_string(), "application/x-makeself".to_string()),
+				("pl".to_string(), "application/x-perl".to_string()),
+				("pm".to_string(), "application/x-perl".to_string()),
+				("prc".to_string(), "application/x-pilot".to_string()),
+				("pbd".to_string(), "application/x-pilot".to_string()),
+				(
+					"rar".to_string(),
+					"application/x-rar-compressed".to_string(),
+				),
+				(
+					"rpm".to_string(),
+					"application/x-redhat-package-manager".to_string(),
+				),
+				("sea".to_string(), "application/x-sea".to_string()),
+				(
+					"swf".to_string(),
+					"application/x-shockwave-flash".to_string(),
+				),
+				("sit".to_string(), "application/x-stuffit".to_string()),
+				("tcl".to_string(), "application/x-tcl".to_string()),
+				("tk".to_string(), "application/x-tcl".to_string()),
+				("der".to_string(), "application/x-x509-ca-cert".to_string()),
+				("pem".to_string(), "application/x-x509-ca-cert".to_string()),
+				("crt".to_string(), "application/x-x509-ca-cert".to_string()),
+				("xpi".to_string(), "application/x-xpinstall".to_string()),
+				("xhtml".to_string(), "application/xhtml+xml".to_string()),
+				("xspf".to_string(), "application/xspf+xml".to_string()),
+				("zip".to_string(), "application/zip".to_string()),
+				("bin".to_string(), "application/octet-stream".to_string()),
+				("exe".to_string(), "application/octet-stream".to_string()),
+				("dll".to_string(), "application/octet-stream".to_string()),
+				("deb".to_string(), "application/octet-stream".to_string()),
+				("dmg".to_string(), "application/octet-stream".to_string()),
+				("iso".to_string(), "application/octet-stream".to_string()),
+				("img".to_string(), "application/octet-stream".to_string()),
+				("msi".to_string(), "application/octet-stream".to_string()),
+				("msp".to_string(), "application/octet-stream".to_string()),
+				("msm".to_string(), "application/octet-stream".to_string()),
+				("mid".to_string(), "audio/midi".to_string()),
+				("midi".to_string(), "audio/midi".to_string()),
+				("kar".to_string(), "audio/midi".to_string()),
+				("mp3".to_string(), "audio/mpeg".to_string()),
+				("ogg".to_string(), "audio/ogg".to_string()),
+				("m4a".to_string(), "audio/x-m4a".to_string()),
+				("ra".to_string(), "audio/x-realaudio".to_string()),
+				("3gpg".to_string(), "video/3gpp".to_string()),
+				("3gp".to_string(), "video/mp2t".to_string()),
+				("ts".to_string(), "video/mp2t".to_string()),
+				("mp4".to_string(), "video/mp4".to_string()),
+				("mpeg".to_string(), "video/mpeg".to_string()),
+				("mpg".to_string(), "video/mpeg".to_string()),
+				("mov".to_string(), "video/quicktime".to_string()),
+				("webm".to_string(), "video/webm".to_string()),
+				("flv".to_string(), "video/x-flv".to_string()),
+				("m4v".to_string(), "video/x-m4v".to_string()),
+				("mng".to_string(), "video/x-mng".to_string()),
+				("asx".to_string(), "video/x-ms-asf".to_string()),
+				("asf".to_string(), "video/x-ms-asf".to_string()),
+				("wmv".to_string(), "video/x-ms-wmv".to_string()),
+				("avi".to_string(), "video/x-msvideo".to_string()),
+			],
 		}
 	}
 }
@@ -149,6 +319,43 @@ impl HttpHeaders<'_> {
 	pub fn host(&self) -> Result<&String, Error> {
 		Ok(&self.host)
 	}
+
+	pub fn extension(&self) -> Result<String, Error> {
+		let path = if self.start_uri > 0 && self.end_uri > self.start_uri {
+			let path = std::str::from_utf8(&self.req[self.start_uri..self.end_uri])?.to_string();
+			if path.contains("?") {
+				let pos = path.chars().position(|c| c == '?').unwrap();
+				let path = path.substring(0, pos);
+				path.to_string()
+			} else {
+				path
+			}
+		} else {
+			return Err(err!(ErrKind::Http, "no path"));
+		};
+
+		let path_len = path.len();
+
+		Ok(match Self::rfind_utf8(&path, '.') {
+			Some(pos) => match pos + 1 < path_len {
+				true => path.substring(pos + 1, path_len).to_string(),
+				false => "".to_string(),
+			},
+			None => "".to_string(),
+		})
+	}
+
+	pub fn connection(&self) -> Result<ConnectionType, Error> {
+		Ok(self.connection)
+	}
+
+	fn rfind_utf8(s: &str, chr: char) -> Option<usize> {
+		if let Some(rev_pos) = s.chars().rev().position(|c| c == chr) {
+			Some(s.chars().count() - rev_pos - 1)
+		} else {
+			None
+		}
+	}
 }
 
 impl HttpServerImpl {
@@ -160,18 +367,21 @@ impl HttpServerImpl {
 		})
 	}
 
-	fn build_ctx<'a>(ctx: &'a mut ThreadContext) -> Result<&'a mut HttpContext, Error> {
+	fn build_ctx<'a>(
+		ctx: &'a mut ThreadContext,
+		config: &HttpConfig,
+	) -> Result<&'a mut HttpContext, Error> {
 		match ctx.user_data.downcast_ref::<HttpContext>() {
 			Some(_) => {}
 			None => {
-				ctx.user_data = Box::new(Self::build_http_context()?);
+				ctx.user_data = Box::new(Self::build_http_context(config)?);
 			}
 		}
 
 		Ok(ctx.user_data.downcast_mut::<HttpContext>().unwrap())
 	}
 
-	fn build_http_context() -> Result<HttpContext, Error> {
+	fn build_http_context(config: &HttpConfig) -> Result<HttpContext, Error> {
 		debug!("build ctx")?;
 		global_slab_allocator!(SlabSize(128), SlabCount(1_000))?;
 
@@ -201,12 +411,71 @@ impl HttpServerImpl {
 		let matches = [bmw_util::Builder::build_match_default(); 1_000];
 		let offset = 0;
 		let connections = HashMap::new();
+		let mut mime_map = HashMap::new();
+
+		for i in 0..config.mime_map.len() {
+			mime_map.insert(config.mime_map[i].0.clone(), config.mime_map[i].1.clone());
+		}
+
 		Ok(HttpContext {
 			suffix_tree,
 			matches,
 			offset,
 			connections,
+			mime_map,
 		})
+	}
+
+	pub(crate) fn build_response_headers(
+		config: &HttpConfig,
+		code: u16,
+		message: &str,
+		content_len: usize,
+		content: Option<String>,
+		content_type: Option<String>,
+		_ctx: &HttpContext,
+		headers: &HttpHeaders,
+	) -> Result<(bool, String), Error> {
+		let dt = Utc::now();
+		let mut connection_type = headers.connection()?;
+		let version = headers.version()?;
+		let mut keep_alive = connection_type == ConnectionType::KeepAlive;
+		if version != &HttpVersion::HTTP11 {
+			keep_alive = false;
+			connection_type = ConnectionType::CLOSE;
+		}
+		let res = dt
+			.format(&format!(
+				"HTTP/{} {} {}\r\n\
+			Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
+			Server: {} {}\r\n{}\
+			Connection: {}\r\n\
+			Content-Length: {}\r\n\r\n{}",
+				match version {
+					HttpVersion::HTTP11 => "1.1",
+					_ => "1.0",
+				},
+				code,
+				message,
+				config.server_name,
+				config.server_version,
+				match content_type {
+					Some(content_type) => format!("Content-Type: {}\r\n", content_type),
+					None => "".to_string(),
+				},
+				match connection_type {
+					ConnectionType::KeepAlive => "keep-alive",
+					_ => "close",
+				},
+				content_len,
+				match content {
+					Some(content) => content,
+					None => "".to_string(),
+				}
+			))
+			.to_string();
+
+		Ok((keep_alive, res))
 	}
 
 	fn find_http_dir(host: &String, map: &HashMap<String, String>) -> Result<String, Error> {
@@ -236,7 +505,7 @@ impl HttpServerImpl {
 	}
 
 	fn process_error(
-		_config: &HttpConfig,
+		config: &HttpConfig,
 		_path: String,
 		conn_data: &mut ConnectionData,
 		instance: &HttpInstance,
@@ -244,6 +513,7 @@ impl HttpServerImpl {
 		message: &str,
 		cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
 		headers: &HttpHeaders,
+		ctx: &HttpContext,
 	) -> Result<(), Error> {
 		let http_dir = Self::http_dir(instance, headers)?;
 		let slash = if http_dir.ends_with("/") { "" } else { "/" };
@@ -260,31 +530,38 @@ impl HttpServerImpl {
 
 		match metadata {
 			Ok(metadata) => {
-				Self::stream_file(fpath, metadata.len(), conn_data, code, message, cache)?;
+				Self::stream_file(
+					config,
+					fpath,
+					metadata.len(),
+					conn_data,
+					code,
+					message,
+					cache,
+					ctx,
+					headers,
+				)?;
 			}
 			Err(_) => {
-				let dt = Utc::now();
-
 				let error_content = ERROR_CONTENT
 					.replace("ERROR_MESSAGE", message)
 					.replace("ERROR_CODE", &format!("{}", code));
+				let (keep_alive, res) = Self::build_response_headers(
+					config,
+					code,
+					message,
+					error_content.len(),
+					Some(error_content),
+					Some("text/html".to_string()),
+					ctx,
+					headers,
+				)?;
 
-				let res = dt
-					.format(
-						&format!(
-							"HTTP/1.1 {} {}\r\n\
-Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
-Content-Length: {}\r\n\r\n{}\n",
-							code,
-							message,
-							error_content.len(),
-							error_content
-						)
-						.to_string(),
-					)
-					.to_string();
-
-				conn_data.write_handle().write(&res.as_bytes()[..])?;
+				let mut write_handle = conn_data.write_handle();
+				write_handle.write(&res.as_bytes()[..])?;
+				if !keep_alive {
+					write_handle.close()?;
+				}
 			}
 		}
 
@@ -319,6 +596,7 @@ Content-Length: {}\r\n\r\n{}\n",
 		conn_data: &mut ConnectionData,
 		instance: &HttpInstance,
 		headers: &HttpHeaders,
+		ctx: &HttpContext,
 	) -> Result<bool, Error> {
 		let http_dir = Self::http_dir(instance, headers)?;
 		let fpath = format!("{}{}", http_dir, path);
@@ -338,6 +616,7 @@ Content-Length: {}\r\n\r\n{}\n",
 				"Forbidden",
 				cache,
 				headers,
+				ctx,
 			)?;
 			return Ok(false);
 		}
@@ -357,6 +636,7 @@ Content-Length: {}\r\n\r\n{}\n",
 					"Not Found",
 					cache,
 					headers,
+					ctx,
 				)?;
 				return Ok(false);
 			}
@@ -394,6 +674,7 @@ Content-Length: {}\r\n\r\n{}\n",
 					"Not Found",
 					cache,
 					headers,
+					ctx,
 				)?;
 				return Ok(false);
 			}
@@ -407,7 +688,8 @@ Content-Length: {}\r\n\r\n{}\n",
 		{
 			{
 				let cache = cache.rlock()?;
-				hit = (**cache.guard()).stream_file(&fpath, conn_data, 200, "OK")?;
+				hit = (**cache.guard())
+					.stream_file(&fpath, conn_data, 200, "OK", ctx, config, headers)?;
 			}
 			let r = random::<u64>();
 			debug!("r={}", r)?;
@@ -418,37 +700,49 @@ Content-Length: {}\r\n\r\n{}\n",
 		}
 
 		if !hit {
-			Self::stream_file(fpath, metadata.len(), conn_data, 200, "OK", cache)?;
+			Self::stream_file(
+				config,
+				fpath,
+				metadata.len(),
+				conn_data,
+				200,
+				"OK",
+				cache,
+				ctx,
+				headers,
+			)?;
 		}
 
 		Ok(hit)
 	}
 
 	fn stream_file(
+		config: &HttpConfig,
 		fpath: String,
 		len: u64,
 		conn_data: &mut ConnectionData,
 		code: u16,
 		message: &str,
 		mut cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
+		ctx: &HttpContext,
+		headers: &HttpHeaders,
 	) -> Result<(), Error> {
 		let file = File::open(fpath.clone())?;
 		let mut buf_reader = BufReader::new(file);
 
-		let dt = Utc::now();
-		let res = dt
-			.format(
-				&format!(
-					"HTTP/1.1 {} {}\r\n\
-Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
-Content-Length: ",
-					code, message
-				)
-				.to_string(),
-			)
-			.to_string();
-
-		let res = format!("{}{}\r\n\r\n", res, len);
+		let (keep_alive, res) = Self::build_response_headers(
+			config,
+			code,
+			message,
+			try_into!(len)?,
+			None,
+			match ctx.mime_map.get(&headers.extension()?) {
+				Some(mime_type) => Some(mime_type.clone()),
+				None => Some("text/html".to_string()),
+			},
+			ctx,
+			headers,
+		)?;
 
 		debug!("writing {}", res)?;
 
@@ -508,12 +802,17 @@ Content-Length: ",
 
 			i += 1;
 		}
+
 		debug!("write_error={}", write_error)?;
+
+		if !keep_alive {
+			write_handle.close()?;
+		}
 
 		Ok(())
 	}
 
-	fn build_headers<'a>(
+	fn build_request_headers<'a>(
 		req: &'a Vec<u8>,
 		start: usize,
 		mut matches: [bmw_util::Match; 1_000],
@@ -534,6 +833,7 @@ Content-Length: ",
 		let mut version = HttpVersion::UNKNOWN;
 		let mut header_count = 0;
 		let mut headers = [HttpHeader::default(); 100];
+		let mut connection = ConnectionType::KeepAlive;
 
 		debug!("count={}", count)?;
 		let mut host = "".to_string();
@@ -640,6 +940,16 @@ Content-Length: ",
 							)
 							.unwrap_or("")
 							.to_string();
+						} else if &req[headers[header_count].start_header_name
+							..headers[header_count].end_header_name]
+							== CONNECTION_BYTES
+						{
+							if &req[headers[header_count].start_header_value
+								..headers[header_count].end_header_value]
+								!= KEEP_ALIVE_BYTES
+							{
+								connection = ConnectionType::CLOSE;
+							}
 						}
 						header_count += 1;
 					}
@@ -663,6 +973,7 @@ Content-Length: ",
 				headers,
 				header_count,
 				host,
+				connection,
 			})
 		}
 	}
@@ -679,6 +990,7 @@ Content-Length: ",
 		err: Error,
 		cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
 		headers: &HttpHeaders,
+		ctx: &HttpContext,
 	) -> Result<(), Error> {
 		debug!("Err: {:?}", err.inner())?;
 		let err_text = err.inner();
@@ -692,6 +1004,7 @@ Content-Length: ",
 				"Unknown Request Type",
 				cache,
 				headers,
+				ctx,
 			)?;
 		} else {
 			Self::process_error(
@@ -703,6 +1016,7 @@ Content-Length: ",
 				"Bad Request",
 				cache,
 				headers,
+				ctx,
 			)?;
 		}
 		conn_data.write_handle().close()?;
@@ -750,7 +1064,7 @@ Content-Length: ",
 			}
 		};
 		debug!("conn_data.tid={},att={:?}", conn_data.tid(), attachment)?;
-		let ctx = Self::build_ctx(ctx)?;
+		let ctx = Self::build_ctx(ctx, config)?;
 		let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
 		Self::update_time(now, ctx, conn_data)?;
 
@@ -795,7 +1109,7 @@ Content-Length: ",
 
 		loop {
 			debug!("slab_count={}", slab_count)?;
-			let headers = Self::build_headers(
+			let headers = Self::build_request_headers(
 				&req,
 				start,
 				ctx.matches,
@@ -818,6 +1132,7 @@ Content-Length: ",
 					let header_count = 0;
 					let version = HttpVersion::UNKNOWN;
 					let host = "".to_string();
+					let connection = ConnectionType::KeepAlive;
 					let headers = HttpHeaders {
 						termination_point,
 						start,
@@ -829,6 +1144,7 @@ Content-Length: ",
 						headers,
 						header_count,
 						host,
+						connection,
 					};
 					Self::header_error(
 						config,
@@ -838,6 +1154,7 @@ Content-Length: ",
 						e,
 						cache,
 						&headers,
+						ctx,
 					)?;
 					return Ok(());
 				}
@@ -851,6 +1168,19 @@ Content-Length: ",
 			if headers.termination_point == 0 {
 				break;
 			} else {
+				if headers.version != HttpVersion::HTTP10 && headers.host()?.len() == 0 {
+					Self::header_error(
+						config,
+						"".to_string(),
+						conn_data,
+						attachment,
+						err!(ErrKind::Http, "Host not specified on HTTP/1.1+"),
+						cache.clone(),
+						&headers,
+						ctx,
+					)?;
+					return Ok(());
+				}
 				let path = match headers.path() {
 					Ok(path) => path,
 					Err(e) => {
@@ -862,6 +1192,7 @@ Content-Length: ",
 							e,
 							cache,
 							&headers,
+							ctx,
 						)?;
 						return Ok(());
 					}
@@ -898,16 +1229,20 @@ Content-Length: ",
 						conn_data,
 						attachment,
 						&headers,
+						ctx,
 					)?;
 				}
 
 				if config.debug {
+					let empty = "".to_string();
 					let query = headers.query().unwrap_or("".to_string());
+					let extension = headers.extension().unwrap_or(empty);
 					let header_count = headers.header_count().unwrap_or(0);
 					info!(
-						"uri={},query={},method={:?},version={:?},header_count={},cache_hit={}",
+						"uri={},query={},extension={},method={:?},version={:?},header_count={},cache_hit={}",
 						path,
 						query,
+                                                extension,
 						headers.http_request_type().unwrap_or(&HttpRequestType::GET),
 						headers.version().unwrap_or(&HttpVersion::UNKNOWN),
 						header_count,
@@ -946,9 +1281,10 @@ Content-Length: ",
 	fn process_on_accept(
 		conn_data: &mut ConnectionData,
 		ctx: &mut ThreadContext,
+		config: &HttpConfig,
 	) -> Result<(), Error> {
 		let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
-		let ctx = Self::build_ctx(ctx)?;
+		let ctx = Self::build_ctx(ctx, config)?;
 		Self::update_time(now, ctx, conn_data)?;
 		Ok(())
 	}
@@ -956,6 +1292,7 @@ Content-Length: ",
 	fn process_on_close(
 		_conn_data: &mut ConnectionData,
 		_ctx: &mut ThreadContext,
+		_config: &HttpConfig,
 	) -> Result<(), Error> {
 		Ok(())
 	}
@@ -969,7 +1306,7 @@ Content-Length: ",
 		mut event_handler_data: Array<Box<dyn LockBox<EventHandlerData>>>,
 		config: &HttpConfig,
 	) -> Result<(), Error> {
-		let ctx = Self::build_ctx(ctx)?;
+		let ctx = Self::build_ctx(ctx, config)?;
 		let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
 		let mut to_remove = vec![];
 		for (k, v) in &ctx.connections {
@@ -1038,16 +1375,18 @@ impl HttpServer for HttpServerImpl {
 		let config = &self.config;
 		let config = config.clone();
 		let config2 = config.clone();
+		let config3 = config.clone();
+		let config4 = config.clone();
 		let cache = self.cache.clone();
 
 		evh.set_on_read(move |conn_data, ctx, attach| {
 			Self::process_on_read(&config, cache.clone(), conn_data, ctx, attach)
 		})?;
-		evh.set_on_accept(move |conn_data, ctx| Self::process_on_accept(conn_data, ctx))?;
-		evh.set_on_close(move |conn_data, ctx| Self::process_on_close(conn_data, ctx))?;
+		evh.set_on_accept(move |conn_data, ctx| Self::process_on_accept(conn_data, ctx, &config2))?;
+		evh.set_on_close(move |conn_data, ctx| Self::process_on_close(conn_data, ctx, &config3))?;
 		evh.set_on_panic(move |ctx, e| Self::process_on_panic(ctx, e))?;
 		evh.set_housekeeper(move |ctx| {
-			Self::process_housekeeper(ctx, event_handler_data.clone(), &config2)
+			Self::process_housekeeper(ctx, event_handler_data.clone(), &config4)
 		})?;
 
 		evh.start()?;
@@ -1138,25 +1477,25 @@ mod test {
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 		client.write(b"\r\n\r\n")?;
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
-		let mut buf = [0; 128];
+		let mut buf = [0; 512];
 		let len = client.read(&mut buf)?;
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
-		assert_eq!(len, 89);
+		assert_eq!(len, 175);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 
 		let mut client = TcpStream::connect(addr)?;
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 		client.write(b"POST /def1.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n")?;
-		let mut buf = [0; 128];
+		let mut buf = [0; 512];
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 		let len = client.read(&mut buf)?;
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
-		assert_eq!(len, 90);
+		assert_eq!(len, 176);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 
@@ -1181,6 +1520,7 @@ mod test {
 				}),
 				..Default::default()
 			}],
+			server_version: "test1".to_string(),
 			..Default::default()
 		};
 		let mut http = HttpServerImpl::new(&config)?;
@@ -1193,12 +1533,12 @@ mod test {
 
 		client.write(b"GET /foo.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n")?;
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
-		let mut buf = [0; 128];
+		let mut buf = [0; 512];
 		let len = client.read(&mut buf)?;
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
-		assert_eq!(len, 89);
+		assert_eq!(len, 175);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 
@@ -1206,12 +1546,12 @@ mod test {
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 		client.write(b"POST /foo.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n")?;
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
-		let mut buf = [0; 128];
+		let mut buf = [0; 512];
 		let len = client.read(&mut buf)?;
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
-		assert_eq!(len, 89);
+		assert_eq!(len, 175);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 

@@ -22,6 +22,6 @@ mod http;
 mod types;
 
 pub use crate::types::{
-	Builder, HttpCache, HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType,
-	HttpRequestType, HttpServer, HttpVersion, PlainConfig,
+	Builder, ConnectionType, HttpCache, HttpConfig, HttpHeader, HttpHeaders, HttpInstance,
+	HttpInstanceType, HttpRequestType, HttpServer, HttpVersion, PlainConfig,
 };
