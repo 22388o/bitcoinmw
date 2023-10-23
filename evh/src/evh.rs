@@ -2060,10 +2060,10 @@ where
 
 		if li.is_reuse_port {
 			self.process_accepted_connection(ctx, handle, rwi, id, callback_context)?;
-			info!("process acc: {},tid={}", handle, ctx.tid)?;
+			debug!("process acc: {},tid={}", handle, ctx.tid)?;
 		} else {
 			let tid = random::<usize>() % self.config.threads;
-			info!("tid={},threads={}", tid, self.config.threads)?;
+			debug!("tid={},threads={}", tid, self.config.threads)?;
 
 			ctx.last_process_type = LastProcessType::OnAccept;
 			{
