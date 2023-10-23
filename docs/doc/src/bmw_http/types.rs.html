@@ -144,6 +144,20 @@
 <a href="#144" id="144">144</a>
 <a href="#145" id="145">145</a>
 <a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -183,6 +197,12 @@
 	OTHER,
 }
 
+<span class="attr">#[derive(Debug, PartialEq, Clone, Copy)]
+</span><span class="kw">pub enum </span>ConnectionType {
+	KeepAlive,
+	CLOSE,
+}
+
 <span class="attr">#[derive(Clone, Copy)]
 </span><span class="kw">pub struct </span>HttpHeader {
 	<span class="kw">pub </span>start_header_name: usize,
@@ -202,6 +222,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) header_count: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) version: HttpVersion,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) host: String,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) connection: ConnectionType,
 }
 
 <span class="kw">pub trait </span>HttpCache {
@@ -211,6 +232,9 @@
 		conn_data: <span class="kw-2">&amp;mut </span>ConnectionData,
 		code: u16,
 		message: <span class="kw-2">&amp;</span>str,
+		ctx: <span class="kw-2">&amp;</span>HttpContext,
+		config: <span class="kw-2">&amp;</span>HttpConfig,
+		headers: <span class="kw-2">&amp;</span>HttpHeaders,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt;;
 	<span class="kw">fn </span>write_len(<span class="kw-2">&amp;mut </span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>String, len: usize) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt;;
 	<span class="kw">fn </span>write_block(
@@ -267,6 +291,9 @@
 	<span class="kw">pub </span>debug: bool,
 	<span class="kw">pub </span>cache_slab_count: usize,
 	<span class="kw">pub </span>idle_timeout: u128,
+	<span class="kw">pub </span>server_name: String,
+	<span class="kw">pub </span>server_version: String,
+	<span class="kw">pub </span>mime_map: Vec&lt;(String, String)&gt;,
 }
 
 <span class="kw">pub struct </span>Builder {}
@@ -281,11 +308,12 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) hashtable: Box&lt;<span class="kw">dyn </span>Hashtable&lt;String, usize&gt; + Send + Sync&gt;,
 }
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpContext {
+<span class="kw">pub struct </span>HttpContext {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) suffix_tree: Box&lt;<span class="kw">dyn </span>SuffixTree + Send + Sync&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) matches: [Match; <span class="number">1_000</span>],
 	<span class="kw">pub</span>(<span class="kw">crate</span>) offset: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) connections: HashMap&lt;u128, (Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;, u128, usize)&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) mime_map: HashMap&lt;String, String&gt;,
 }
 
 <span class="kw">type </span>HttpCallback =

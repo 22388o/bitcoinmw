@@ -175,6 +175,12 @@
 <a href="#175" id="175">175</a>
 <a href="#176" id="176">176</a>
 <a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -193,9 +199,8 @@
 // limitations under the License.
 
 </span><span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
-<span class="kw">use </span><span class="kw">crate</span>::types::HttpCacheImpl;
-<span class="kw">use crate</span>::{HttpCache, HttpConfig};
-<span class="kw">use </span>bmw_deps::chrono::Utc;
+<span class="kw">use </span><span class="kw">crate</span>::types::{HttpCacheImpl, HttpContext, HttpServerImpl};
+<span class="kw">use crate</span>::{HttpCache, HttpConfig, HttpHeaders};
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_evh::ConnData;
 <span class="kw">use </span>bmw_evh::ConnectionData;
@@ -221,6 +226,9 @@
 		conn_data: <span class="kw-2">&amp;mut </span>ConnectionData,
 		code: u16,
 		message: <span class="kw-2">&amp;</span>str,
+		ctx: <span class="kw-2">&amp;</span>HttpContext,
+		config: <span class="kw-2">&amp;</span>HttpConfig,
+		headers: <span class="kw-2">&amp;</span>HttpHeaders,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>data = [<span class="number">0u8</span>; CACHE_BUFFER_SIZE];
 		<span class="macro">debug!</span>(<span class="string">&quot;try cache {}&quot;</span>, fpath)<span class="question-mark">?</span>;
@@ -235,24 +243,24 @@
 				found
 			)<span class="question-mark">?</span>;
 
-			<span class="kw">let </span>dt = Utc::now();
-			<span class="kw">let </span>res = dt
-				.format(
-					<span class="kw-2">&amp;</span><span class="macro">format!</span>(
-						<span class="string">&quot;HTTP/1.1 {} {}\r\n\
-                                                Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
-                                                Content-Length: &quot;</span>,
-						code, message
-					)
-					.to_string(),
-				)
-				.to_string();
-
-			<span class="kw">let </span>res = <span class="macro">format!</span>(<span class="string">&quot;{}{}\r\n\r\n&quot;</span>, res, len);
+			<span class="kw">let </span>(keep_alive, res) = HttpServerImpl::build_response_headers(
+				config,
+				code,
+				message,
+				len,
+				<span class="prelude-val">None</span>,
+				<span class="kw">match </span>ctx.mime_map.get(<span class="kw-2">&amp;</span>headers.extension()<span class="question-mark">?</span>) {
+					<span class="prelude-val">Some</span>(mime_type) =&gt; <span class="prelude-val">Some</span>(mime_type.clone()),
+					<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Some</span>(<span class="string">&quot;text/html&quot;</span>.to_string()),
+				},
+				ctx,
+				headers,
+			)<span class="question-mark">?</span>;
 
 			<span class="macro">debug!</span>(<span class="string">&quot;writing {}&quot;</span>, res)<span class="question-mark">?</span>;
 
-			conn_data.write_handle().write(<span class="kw-2">&amp;</span>res.as_bytes()[..])<span class="question-mark">?</span>;
+			<span class="kw">let </span><span class="kw-2">mut </span>write_handle = conn_data.write_handle();
+			write_handle.write(<span class="kw-2">&amp;</span>res.as_bytes()[..])<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>rem = len;
 			<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
 			<span class="kw">loop </span>{
@@ -264,13 +272,17 @@
 					rem
 				};
 				<span class="macro">debug!</span>(<span class="string">&quot;read wlen={},rem={},data={:?}&quot;</span>, wlen, rem, data)<span class="question-mark">?</span>;
-				conn_data.write_handle().write(<span class="kw-2">&amp;</span>data[<span class="number">0</span>..wlen])<span class="question-mark">?</span>;
+				write_handle.write(<span class="kw-2">&amp;</span>data[<span class="number">0</span>..wlen])<span class="question-mark">?</span>;
 
 				rem = rem.saturating_sub(wlen);
 				<span class="kw">if </span>rem == <span class="number">0 </span>{
 					<span class="kw">break</span>;
 				}
 				i += <span class="number">1</span>;
+			}
+
+			<span class="kw">if </span>!keep_alive {
+				write_handle.close()<span class="question-mark">?</span>;
 			}
 		}
 		<span class="prelude-val">Ok</span>(found)
