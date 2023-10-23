@@ -17,7 +17,7 @@
 
 use crate::constants::*;
 use bmw_err::*;
-use bmw_evh::{ConnectionData, EventHandlerConfig};
+use bmw_evh::{ConnectionData, EventHandlerConfig, WriteState};
 use bmw_util::*;
 use std::collections::{HashMap, HashSet};
 
@@ -120,6 +120,7 @@ pub struct HttpConfig {
 	pub instances: Vec<HttpInstance>,
 	pub debug: bool,
 	pub cache_slab_count: usize,
+	pub idle_timeout: u128,
 }
 
 pub struct Builder {}
@@ -138,6 +139,7 @@ pub(crate) struct HttpContext {
 	pub(crate) suffix_tree: Box<dyn SuffixTree + Send + Sync>,
 	pub(crate) matches: [Match; 1_000],
 	pub(crate) offset: usize,
+	pub(crate) connections: HashMap<u128, (Box<dyn LockBox<WriteState>>, u128, usize)>,
 }
 
 type HttpCallback =

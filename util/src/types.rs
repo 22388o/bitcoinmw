@@ -127,6 +127,9 @@ where
 	/// Same as [`crate::LockBox::wlock`] except that any poison errors are ignored
 	/// by calling the underlying into_inner() fn.
 	fn wlock_ignore_poison(&mut self) -> Result<RwLockWriteGuardWrapper<'_, T>, Error>;
+	/// Same as [`crate::LockBox::rlock`] except that any poison errors are ignored
+	/// by calling the underlying into_inner() fn.
+	fn rlock_ignore_poison(&self) -> Result<RwLockReadGuardWrapper<'_, T>, Error>;
 	/// consume the inner Arc and return a usize value. This function is dangerous
 	/// because it potentially leaks memory. The usize must be rebuilt into a lockbox
 	/// that can then be dropped via the [`crate::lock_box_from_usize`] function.

@@ -16,7 +16,7 @@
 // limitations under the License.
 
 use crate::types::{
-	AttachmentHolder, ConnectionInfo, Event, EventHandlerContext, EventHandlerData,
+	AttachmentHolder, CloseHandle, ConnectionInfo, Event, EventHandlerContext, EventHandlerData,
 	EventHandlerImpl, EventIn, EventType, EventTypeIn, Handle, LastProcessType, ListenerInfo,
 	StreamInfo, Wakeup, WriteState,
 };
@@ -415,6 +415,7 @@ impl EventHandlerContext {
 			count: 0,
 			last_process_type: LastProcessType::OnRead,
 			last_rw: None,
+			last_handle_oob: 0,
 			#[cfg(target_os = "linux")]
 			filter_set,
 			#[cfg(target_os = "windows")]
@@ -479,6 +480,11 @@ impl WriteHandle {
 		}
 	}
 
+	/// Return the write state for this write_handle.
+	pub fn write_state(&self) -> Result<Box<dyn LockBox<WriteState>>, Error> {
+		Ok(self.write_state.clone())
+	}
+
 	/// Suspend any reads/writes in the [`crate::EventHandler`] for the connection associated
 	/// with this [`crate::WriteHandle`]. This can be used to transfer large amounts of data in
 	/// a separate thread while suspending reads/writes in the evh.
@@ -530,24 +536,7 @@ impl WriteHandle {
 
 	/// Close the connection associated with this [`crate::WriteHandle`].
 	pub fn close(&mut self) -> Result<(), Error> {
-		{
-			debug!("wlock for {}", self.id)?;
-			let mut write_state = self.write_state.wlock()?;
-			let guard = write_state.guard();
-			if (**guard).is_set(WRITE_STATE_FLAG_CLOSE) {
-				// it's already closed no double closes
-				return Ok(());
-			}
-			(**guard).set_flag(WRITE_STATE_FLAG_CLOSE);
-			debug!("unlockwlock for {}", self.id)?;
-		}
-		{
-			let mut event_handler_data = self.event_handler_data.wlock()?;
-			let guard = event_handler_data.guard();
-			(**guard).write_queue.enqueue(self.id)?;
-		}
-		self.wakeup.wakeup()?;
-		Ok(())
+		handle_close(&mut self.write_state, self.id, &mut self.event_handler_data)
 	}
 
 	/// Write data to the connection associated with this [`crate::WriteHandle`].
@@ -695,6 +684,24 @@ impl WriteHandle {
 		self.wakeup.wakeup()?;
 
 		Ok(())
+	}
+}
+
+impl CloseHandle {
+	pub fn new(
+		write_state: &mut Box<dyn LockBox<WriteState>>,
+		id: u128,
+		event_handler_data: &mut Box<dyn LockBox<EventHandlerData>>,
+	) -> Self {
+		Self {
+			write_state: write_state.clone(),
+			id,
+			event_handler_data: event_handler_data.clone(),
+		}
+	}
+	/// Close the connection associated with this [`crate::CloseHandle`].
+	pub fn close(&mut self) -> Result<(), Error> {
+		handle_close(&mut self.write_state, self.id, &mut self.event_handler_data)
 	}
 }
 
@@ -957,6 +964,7 @@ where
 			ctx.events_in.push(e);
 		} else {
 			// we have to do different cleanup for each type.
+			debug!("last_proc_type={:?}", ctx.last_process_type)?;
 			match ctx.last_process_type {
 				LastProcessType::OnRead => {
 					// unwrap is ok because last_rw always set before on_read
@@ -967,6 +975,10 @@ where
 				LastProcessType::OnAccept => {
 					close_impl(ctx, ctx.events[ctx.counter].handle, false)?;
 					ctx.counter += 1;
+				}
+				LastProcessType::OnAcceptOutOfBand => {
+					debug!("close impl handle = {}", ctx.last_handle_oob)?;
+					close_impl(ctx, ctx.last_handle_oob, false)?;
 				}
 				LastProcessType::OnClose => {
 					ctx.counter += 1;
@@ -994,7 +1006,12 @@ where
 
 		loop {
 			debug!("start loop")?;
-			let stop = self.process_new_connections(ctx)?;
+
+			// if there's an error in process_new connections, we shouldn't try to
+			// execute anything.
+			ctx.counter = 0;
+			ctx.count = 0;
+			let stop = self.process_new_connections(ctx, callback_context)?;
 			if stop {
 				break;
 			}
@@ -1023,7 +1040,7 @@ where
 		debug!("thread {} stop ", ctx.tid)?;
 		self.close_handles(ctx)?;
 		{
-			let mut data = self.data[ctx.tid].wlock()?;
+			let mut data = self.data[ctx.tid].wlock_ignore_poison()?;
 			let guard = data.guard();
 			(**guard).stopped = true;
 		}
@@ -1092,7 +1109,7 @@ where
 	#[cfg(not(tarpaulin_include))]
 	fn process_write_queue(&mut self, ctx: &mut EventHandlerContext) -> Result<(), Error> {
 		debug!("process write queue")?;
-		let mut data = self.data[ctx.tid].wlock()?;
+		let mut data = self.data[ctx.tid].wlock_ignore_poison()?;
 		loop {
 			let guard = data.guard();
 			match (**guard).write_queue.dequeue() {
@@ -1173,17 +1190,22 @@ where
 	}
 
 	#[cfg(not(tarpaulin_include))]
-	fn process_new_connections(&mut self, ctx: &mut EventHandlerContext) -> Result<bool, Error> {
-		let mut data = self.data[ctx.tid].wlock()?;
+	fn process_new_connections(
+		&mut self,
+		ctx: &mut EventHandlerContext,
+		callback_context: &mut ThreadContext,
+	) -> Result<bool, Error> {
+		let data2 = self.data.clone();
+		let mut data = self.data[ctx.tid].wlock_ignore_poison()?;
 		let guard = data.guard();
 		if (**guard).stop {
 			return Ok(true);
 		}
-		debug!("handles={},tid={}", (**guard).nhandles.length(), ctx.tid)?;
 		loop {
-			let mut next = (**guard).nhandles.dequeue();
-			let id;
 			let mut attachment: Option<AttachmentHolder>;
+			let id;
+
+			let mut next = (**guard).nhandles.dequeue();
 			match next {
 				Some(ref mut nhandle) => {
 					debug!("handle={:?} on tid={}", nhandle, ctx.tid)?;
@@ -1206,22 +1228,49 @@ where
 							attachment = (**guard).attachments.remove(&id);
 							debug!("id={},att={:?}", id, attachment)?;
 						}
-						ConnectionInfo::StreamInfo(rw) => {
-							match Self::insert_hashtables(ctx, rw.id, rw.handle, nhandle) {
+						ConnectionInfo::StreamInfo(rwi) => {
+							match &mut self.on_accept {
+								Some(on_accept) => {
+									let tid = ctx.tid;
+									let rslabs = &mut ctx.read_slabs;
+									let wakeup = self.wakeup[tid].clone();
+									let data = data2[tid].clone();
+									let q = self.debug_write_queue;
+									let p = self.debug_pending;
+									let we = self.debug_write_error;
+									let s = self.debug_suspended;
+									let mut rwi = rwi.clone();
+									let handle = rwi.handle;
+									let mut cd = ConnectionData::new(
+										&mut rwi, tid, rslabs, wakeup, data, q, p, we, s,
+									);
+									ctx.last_process_type = LastProcessType::OnAcceptOutOfBand;
+									ctx.last_handle_oob = handle;
+									match on_accept(&mut cd, callback_context) {
+										Ok(_) => {}
+										Err(e) => {
+											warn!("Callback on_accept generated error: {}", e)?;
+										}
+									}
+								}
+								None => {}
+							}
+
+							match Self::insert_hashtables(ctx, rwi.id, rwi.handle, nhandle) {
 								Ok(_) => {
 									let ev_in = EventIn {
-										handle: rw.handle,
+										handle: rwi.handle,
 										etype: EventTypeIn::Read,
 									};
 									ctx.events_in.push(ev_in);
 								}
 								Err(e) => {
 									warn!("inshash rw generated error: {}. Closing.", e)?;
-									close_impl(ctx, rw.handle, true)?;
+									close_impl(ctx, rwi.handle, true)?;
 								}
 							}
-							id = rw.id;
-							let acc_id = rw.accept_id;
+							id = rwi.id;
+							let acc_id = rwi.accept_id;
 							attachment = (**guard).attachments.remove(&id);
 							if attachment.is_none() {
 								match acc_id {
@@ -1983,7 +2032,7 @@ where
 		}
 
 		let id = random();
-		let mut rwi = StreamInfo {
+		let rwi = StreamInfo {
 			id,
 			handle,
 			accept_handle: Some(li.handle),
@@ -2011,33 +2060,12 @@ where
 
 		if li.is_reuse_port {
 			self.process_accepted_connection(ctx, handle, rwi, id, callback_context)?;
-			debug!("process acc: {},tid={}", handle, ctx.tid)?;
+			info!("process acc: {},tid={}", handle, ctx.tid)?;
 		} else {
 			let tid = random::<usize>() % self.config.threads;
-			debug!("tid={},threads={}", tid, self.config.threads)?;
+			info!("tid={},threads={}", tid, self.config.threads)?;
 
 			ctx.last_process_type = LastProcessType::OnAccept;
-			match &mut self.on_accept {
-				Some(on_accept) => {
-					let rwi = &mut rwi;
-					let rslabs = &mut ctx.read_slabs;
-					let wakeup = self.wakeup[tid].clone();
-					let data = self.data[tid].clone();
-					let q = self.debug_write_queue;
-					let p = self.debug_pending;
-					let we = self.debug_write_error;
-					let s = self.debug_suspended;
-					let mut cd = ConnectionData::new(rwi, tid, rslabs, wakeup, data, q, p, we, s);
-					match on_accept(&mut cd, callback_context) {
-						Ok(_) => {}
-						Err(e) => {
-							warn!("Callback on_accept generated error: {}", e)?;
-						}
-					}
-				}
-				None => {}
-			}
-
 			{
 				let id = if rwi.accept_id.is_some() {
 					rwi.accept_id.unwrap()
@@ -2049,7 +2077,7 @@ where
 				} else {
 					None
 				};
-				let mut data = self.data[tid].wlock()?;
+				let mut data = self.data[tid].wlock_ignore_poison()?;
 				let guard = data.guard();
 				let ci = ConnectionInfo::StreamInfo(rwi);
 				(**guard).nhandles.enqueue(ci)?;
@@ -2198,7 +2226,7 @@ where
 			return Err(err);
 		}
 		for i in 0..self.wakeup.size() {
-			let mut data = self.data[i].wlock()?;
+			let mut data = self.data[i].wlock_ignore_poison()?;
 			let guard = data.guard();
 			(**guard).stop = true;
 			self.wakeup[i].wakeup()?;
@@ -2209,7 +2237,7 @@ where
 			for i in 0..self.data.size() {
 				sleep(Duration::from_millis(10));
 				{
-					let mut data = self.data[i].wlock()?;
+					let mut data = self.data[i].wlock_ignore_poison()?;
 					let guard = data.guard();
 					if !(**guard).stopped {
 						stopped = false;
@@ -2418,7 +2446,7 @@ where
 		};
 
 		{
-			let mut data = self.data[tid].wlock()?;
+			let mut data = self.data[tid].wlock_ignore_poison()?;
 			let guard = data.guard();
 			let ci = ConnectionInfo::StreamInfo(rwi);
 			(**guard).nhandles.enqueue(ci)?;
@@ -2465,7 +2493,7 @@ where
 			let handle = connection.handles[i];
 			// check for 0 which means to skip this handle (port not reused)
 			if handle != 0 {
-				let mut data = self.data[i].wlock()?;
+				let mut data = self.data[i].wlock_ignore_poison()?;
 				let wakeup = &mut self.wakeup[i];
 				let guard = data.guard();
 				let id = random();
@@ -2490,6 +2518,10 @@ where
 			}
 		}
 		Ok(())
+	}
+
+	fn event_handler_data(&self) -> Result<Array<Box<dyn LockBox<EventHandlerData>>>, Error> {
+		Ok(self.data.clone())
 	}
 }
 
@@ -2603,6 +2635,30 @@ fn load_private_key(filename: &str) -> Result<PrivateKey, Error> {
 			Err(err!(ErrKind::IllegalArgument, fmt))
 		}
 	}
+}
+
+fn handle_close(
+	write_state: &mut Box<dyn LockBox<WriteState>>,
+	id: u128,
+	event_handler_data: &mut Box<dyn LockBox<EventHandlerData>>,
+) -> Result<(), Error> {
+	{
+		debug!("wlock for {}", id)?;
+		let mut write_state = write_state.wlock()?;
+		let guard = write_state.guard();
+		if (**guard).is_set(WRITE_STATE_FLAG_CLOSE) {
+			// it's already closed no double closes
+			return Ok(());
+		}
+		(**guard).set_flag(WRITE_STATE_FLAG_CLOSE);
+		debug!("unlockwlock for {}", id)?;
+	}
+	{
+		let mut event_handler_data = event_handler_data.wlock()?;
+		let guard = event_handler_data.guard();
+		(**guard).write_queue.enqueue(id)?;
+	}
+	Ok(())
 }
 
 #[cfg(test)]
@@ -4532,6 +4588,88 @@ mod test {
 	}
 
 	#[test]
+	fn test_evh_oob_panic() -> Result<(), Error> {
+		let port = pick_free_port()?;
+		info!("other_situations Using port: {}", port)?;
+		let addr = &format!("127.0.0.1:{}", port)[..];
+		let threads = 1;
+		let config = EventHandlerConfig {
+			threads,
+			housekeeping_frequency_millis: 100,
+			read_slab_count: 20,
+			max_handles_per_thread: 30,
+			..Default::default()
+		};
+		let mut evh = EventHandlerImpl::new(config)?;
+		evh.set_debug_fatal_error(true);
+
+		evh.set_on_read(move |conn_data, _thread_context, _attachment| {
+			debug!("on read slab_offset = {}", conn_data.slab_offset())?;
+			let first_slab = conn_data.first_slab();
+			let last_slab = conn_data.last_slab();
+			let slab_offset = conn_data.slab_offset();
+			debug!("first_slab={}", first_slab)?;
+			let res = conn_data.borrow_slab_allocator(move |sa| {
+				let slab = sa.get(first_slab.try_into()?)?;
+				assert_eq!(first_slab, last_slab);
+				info!("read bytes = {:?}", &slab.get()[0..slab_offset as usize])?;
+				let mut ret: Vec<u8> = vec![];
+				ret.extend(&slab.get()[0..slab_offset as usize]);
+				Ok(ret)
+			})?;
+			conn_data.clear_through(first_slab)?;
+			conn_data.write_handle().write(&res)?;
+			info!("res={:?}", res)?;
+			Ok(())
+		})?;
+
+		let mut acc_count = lock_box!(0)?;
+
+		evh.set_on_accept(move |_conn_data, _thread_context| {
+			let count = {
+				let mut acc_count = acc_count.wlock()?;
+				let count = **acc_count.guard();
+				**acc_count.guard() += 1;
+				count
+			};
+			if count == 0 {
+				panic!("on acc panic");
+			}
+			Ok(())
+		})?;
+		evh.set_on_close(move |_conn_data, _thread_context| Ok(()))?;
+		evh.set_on_panic(move |_thread_context, _e| Ok(()))?;
+
+		evh.set_housekeeper(move |_thread_context| Ok(()))?;
+
+		evh.start()?;
+		let handles = create_listeners(threads, addr, 10, false)?;
+		info!("handles.size={},handles={:?}", handles.size(), handles)?;
+		let sc = ServerConnection {
+			tls_config: None,
+			handles,
+			is_reuse_port: false,
+		};
+		info!("adding server")?;
+		evh.add_server(sc, Box::new(""))?;
+		info!("server added - sleep 10 secs")?;
+		sleep(Duration::from_millis(10_000));
+		info!("5 second sleep complete connect now")?;
+
+		let _connection = TcpStream::connect(addr)?;
+		info!("sleeping 10 seconds")?;
+		sleep(Duration::from_millis(10_000));
+		info!("10 seconds sleep complete")?;
+		// connection should be ok because the listener is still open we just close the
+		// accepted handle
+		assert!(TcpStream::connect(addr).is_ok());
+
+		evh.stop()?;
+
+		Ok(())
+	}
+
+	#[test]
 	fn test_evh_thread_panic1() -> Result<(), Error> {
 		let port = pick_free_port()?;
 		info!("thread_panic Using port: {}", port)?;
@@ -6410,7 +6548,7 @@ mod test {
 				count
 			};
 			if count == 0 {
-				panic!("on close panic");
+				panic!("on housekeeper panic");
 			}
 			Ok(())
 		})?;
@@ -6421,7 +6559,7 @@ mod test {
 		let sc = ServerConnection {
 			tls_config: None,
 			handles,
-			is_reuse_port: false,
+			is_reuse_port: true,
 		};
 		evh.add_server(sc, Box::new(""))?;
 		sleep(Duration::from_millis(5_000));
@@ -6439,7 +6577,7 @@ mod test {
 		let sc = ServerConnection {
 			tls_config: None,
 			handles,
-			is_reuse_port: false,
+			is_reuse_port: true,
 		};
 		evh.add_server(sc, Box::new(""))?;
 		sleep(Duration::from_millis(5_000));
@@ -6520,7 +6658,7 @@ mod test {
 		// enqueue an invalid handle. the function should just print the warning and still
 		// succeed
 		{
-			let mut data = evh.data[0].wlock()?;
+			let mut data = evh.data[0].wlock_ignore_poison()?;
 			let guard = data.guard();
 			(**guard).write_queue.enqueue(100)?;
 		}
@@ -6536,7 +6674,7 @@ mod test {
 		let ci = ConnectionInfo::ListenerInfo(li.clone());
 		ctx.connection_hashtable.insert(&1_000, &ci)?;
 		{
-			let mut data = evh.data[0].wlock()?;
+			let mut data = evh.data[0].wlock_ignore_poison()?;
 			let guard = data.guard();
 			(**guard).write_queue.enqueue(1_000)?;
 		}

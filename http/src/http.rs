@@ -28,8 +28,9 @@ use bmw_deps::rand::random;
 use bmw_deps::substring::Substring;
 use bmw_err::*;
 use bmw_evh::{
-	create_listeners, AttachmentHolder, Builder, ConnData, ConnectionData, EventHandler,
-	EventHandlerConfig, ServerConnection, ThreadContext, TlsServerConfig, READ_SLAB_DATA_SIZE,
+	create_listeners, AttachmentHolder, Builder, CloseHandle, ConnData, ConnectionData,
+	EventHandler, EventHandlerConfig, EventHandlerData, ServerConnection, ThreadContext,
+	TlsServerConfig, READ_SLAB_DATA_SIZE,
 };
 use bmw_log::*;
 use bmw_util::*;
@@ -41,6 +42,7 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::path::{Component, Path};
 use std::str::from_utf8;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 info!();
 
@@ -64,6 +66,7 @@ impl Default for HttpConfig {
 			}],
 			debug: false,
 			cache_slab_count: 10_000,
+			idle_timeout: 60_000,
 		}
 	}
 }
@@ -197,10 +200,12 @@ impl HttpServerImpl {
 		)?);
 		let matches = [bmw_util::Builder::build_match_default(); 1_000];
 		let offset = 0;
+		let connections = HashMap::new();
 		Ok(HttpContext {
 			suffix_tree,
 			matches,
 			offset,
+			connections,
 		})
 	}
 
@@ -704,6 +709,22 @@ Content-Length: ",
 		Ok(())
 	}
 
+	fn update_time(
+		now: u128,
+		ctx: &mut HttpContext,
+		conn_data: &mut ConnectionData,
+	) -> Result<(), Error> {
+		ctx.connections.insert(
+			conn_data.get_connection_id(),
+			(
+				conn_data.write_handle().write_state()?,
+				now,
+				conn_data.tid(),
+			),
+		);
+		Ok(())
+	}
+
 	fn process_on_read(
 		config: &HttpConfig,
 		cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
@@ -730,6 +751,9 @@ Content-Length: ",
 		};
 		debug!("conn_data.tid={},att={:?}", conn_data.tid(), attachment)?;
 		let ctx = Self::build_ctx(ctx)?;
+		let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
+		Self::update_time(now, ctx, conn_data)?;
+
 		debug!("on read slab_offset = {}", conn_data.slab_offset())?;
 		let first_slab = conn_data.first_slab();
 		let last_slab = conn_data.last_slab();
@@ -920,9 +944,12 @@ Content-Length: ",
 	}
 
 	fn process_on_accept(
-		_conn_data: &mut ConnectionData,
-		_ctx: &mut ThreadContext,
+		conn_data: &mut ConnectionData,
+		ctx: &mut ThreadContext,
 	) -> Result<(), Error> {
+		let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
+		let ctx = Self::build_ctx(ctx)?;
+		Self::update_time(now, ctx, conn_data)?;
 		Ok(())
 	}
 
@@ -937,7 +964,26 @@ Content-Length: ",
 		Ok(())
 	}
 
-	fn process_housekeeper(_ctx: &mut ThreadContext) -> Result<(), Error> {
+	fn process_housekeeper(
+		ctx: &mut ThreadContext,
+		mut event_handler_data: Array<Box<dyn LockBox<EventHandlerData>>>,
+		config: &HttpConfig,
+	) -> Result<(), Error> {
+		let ctx = Self::build_ctx(ctx)?;
+		let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
+		let mut to_remove = vec![];
+		for (k, v) in &ctx.connections {
+			let diff = now.saturating_sub(v.1);
+			if diff >= config.idle_timeout {
+				to_remove.push((k.clone(), v.0.clone(), v.2.clone()));
+			}
+		}
+
+		for mut rem in to_remove {
+			ctx.connections.remove(&rem.0);
+			let mut ch = CloseHandle::new(&mut rem.1, rem.0, &mut event_handler_data[rem.2]);
+			ch.close()?;
+		}
 		Ok(())
 	}
 }
@@ -988,8 +1034,10 @@ impl HttpServer for HttpServerImpl {
 		}
 
 		let mut evh = Builder::build_evh(self.config.evh_config.clone())?;
+		let event_handler_data = evh.event_handler_data()?;
 		let config = &self.config;
 		let config = config.clone();
+		let config2 = config.clone();
 		let cache = self.cache.clone();
 
 		evh.set_on_read(move |conn_data, ctx, attach| {
@@ -998,7 +1046,9 @@ impl HttpServer for HttpServerImpl {
 		evh.set_on_accept(move |conn_data, ctx| Self::process_on_accept(conn_data, ctx))?;
 		evh.set_on_close(move |conn_data, ctx| Self::process_on_close(conn_data, ctx))?;
 		evh.set_on_panic(move |ctx, e| Self::process_on_panic(ctx, e))?;
-		evh.set_housekeeper(move |ctx| Self::process_housekeeper(ctx))?;
+		evh.set_housekeeper(move |ctx| {
+			Self::process_housekeeper(ctx, event_handler_data.clone(), &config2)
+		})?;
 
 		evh.start()?;
 

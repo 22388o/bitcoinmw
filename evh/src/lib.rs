@@ -224,9 +224,9 @@ mod types;
 mod win;
 
 pub use crate::types::{
-	AttachmentHolder, Builder, ClientConnection, ConnData, ConnectionData, EventHandler,
-	EventHandlerConfig, ServerConnection, ThreadContext, TlsClientConfig, TlsServerConfig,
-	WriteHandle,
+	AttachmentHolder, Builder, ClientConnection, CloseHandle, ConnData, ConnectionData,
+	EventHandler, EventHandlerConfig, EventHandlerData, ServerConnection, ThreadContext,
+	TlsClientConfig, TlsServerConfig, WriteHandle, WriteState,
 };
 
 pub use crate::evh::{create_listeners, READ_SLAB_DATA_SIZE};

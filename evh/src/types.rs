@@ -111,6 +111,14 @@ pub struct WriteHandle {
 	pub(crate) tls_client: Option<Box<dyn LockBox<RustlsClientConnection>>>,
 }
 
+/// A struct which can be used to close a connection (note: if writing is needed as well use
+/// WriteHandle, but this is a minimal structure needed to close the connection
+pub struct CloseHandle {
+	pub(crate) write_state: Box<dyn LockBox<WriteState>>,
+	pub(crate) id: u128,
+	pub(crate) event_handler_data: Box<dyn LockBox<EventHandlerData>>,
+}
+
 /// This trait which is implemented by [`crate::ConnectionData`]. This trait is used to interact
 /// with a connection.
 pub trait ConnData {
@@ -239,6 +247,8 @@ where
 		connection: ServerConnection,
 		attachment: Box<dyn Any + Send + Sync>,
 	) -> Result<(), Error>;
+	/// Get the eventhandler data array
+	fn event_handler_data(&self) -> Result<Array<Box<dyn LockBox<EventHandlerData>>>, Error>;
 }
 
 /// The structure that builds eventhandlers.
@@ -251,12 +261,13 @@ pub struct AttachmentHolder {
 
 // pub(crate) types
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) enum LastProcessType {
 	OnRead,
 	OnClose,
 	OnAccept,
 	Housekeeper,
+	OnAcceptOutOfBand,
 }
 
 #[derive(Clone)]
@@ -282,6 +293,7 @@ pub(crate) struct EventHandlerContext {
 	pub(crate) count: usize,
 	pub(crate) last_process_type: LastProcessType,
 	pub(crate) last_rw: Option<StreamInfo>,
+	pub(crate) last_handle_oob: Handle,
 	pub(crate) buffer: Vec<u8>,
 	pub(crate) do_write_back: bool,
 	pub(crate) attachments: HashMap<u128, AttachmentHolder>,
@@ -382,14 +394,14 @@ pub(crate) struct StreamInfo {
 	pub(crate) tls_client: Option<Box<dyn LockBox<RustlsClientConnection>>>,
 }
 
-#[derive(Clone, Debug)]
-pub(crate) struct WriteState {
+#[derive(Clone, Debug, Serializable)]
+pub struct WriteState {
 	pub(crate) write_buffer: Vec<u8>,
 	pub(crate) flags: u8,
 }
 
 #[derive(Clone)]
-pub(crate) struct EventHandlerData {
+pub struct EventHandlerData {
 	pub(crate) write_queue: Box<dyn Queue<u128> + Send + Sync>,
 	pub(crate) nhandles: Box<dyn Queue<ConnectionInfo> + Send + Sync>,
 	pub(crate) stop: bool,

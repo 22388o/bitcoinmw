@@ -117,7 +117,7 @@ where
 	}
 
 	fn rlock(&self) -> Result<RwLockReadGuardWrapper<'_, T>, Error> {
-		self.do_rlock()
+		self.do_rlock(false)
 	}
 
 	fn clone(&self) -> Self {
@@ -137,7 +137,11 @@ where
 	}
 
 	fn rlock(&self) -> Result<RwLockReadGuardWrapper<'_, T>, Error> {
-		self.do_rlock()
+		self.do_rlock(false)
+	}
+
+	fn rlock_ignore_poison(&self) -> Result<RwLockReadGuardWrapper<'_, T>, Error> {
+		self.do_rlock(true)
 	}
 
 	fn wlock_ignore_poison(&mut self) -> Result<RwLockWriteGuardWrapper<'_, T>, Error> {
@@ -194,7 +198,7 @@ impl<T> LockImpl<T> {
 		}
 	}
 
-	fn do_rlock(&self) -> Result<RwLockReadGuardWrapper<'_, T>, Error> {
+	fn do_rlock(&self, ignore_poison: bool) -> Result<RwLockReadGuardWrapper<'_, T>, Error> {
 		let contains = LOCKS.with(|f| -> Result<bool, Error> {
 			let ret = (*f.borrow()).contains(&self.id);
 			(*f.borrow_mut()).insert(self.id);
@@ -204,7 +208,14 @@ impl<T> LockImpl<T> {
 		if contains {
 			Err(err!(ErrKind::Poison, "would deadlock"))
 		} else {
-			let guard = map_err!(self.t.read(), ErrKind::Poison)?;
+			let guard = if ignore_poison {
+				match self.t.read() {
+					Ok(guard) => guard,
+					Err(e) => e.into_inner(),
+				}
+			} else {
+				map_err!(self.t.read(), ErrKind::Poison)?
+			};
 			let id = self.id;
 			let debug_err = false;
 			let ret = RwLockReadGuardWrapper {
