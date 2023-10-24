@@ -65,6 +65,7 @@ pub struct HttpHeaders<'a> {
 	pub(crate) connection: ConnectionType,
 	pub(crate) range_start: usize,
 	pub(crate) range_end: usize,
+	pub(crate) if_none_match: String,
 }
 
 pub trait HttpCache {

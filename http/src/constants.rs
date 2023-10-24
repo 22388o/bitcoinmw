@@ -32,6 +32,7 @@ pub(crate) const SEPARATOR_LINE: &str =
 pub(crate) const ERROR_CONTENT: &str = "Error ERROR_CODE: \"ERROR_MESSAGE\" occurred.\n";
 pub(crate) const TEXT_PLAIN: &str = "text/plain";
 pub(crate) const HOST_BYTES: &[u8] = "Host".as_bytes();
+pub(crate) const IF_NONE_MATCH_BYTES: &[u8] = "If-None-Match".as_bytes();
 pub(crate) const CONNECTION_BYTES: &[u8] = "Connection".as_bytes();
 pub(crate) const KEEP_ALIVE_BYTES: &[u8] = "keep-alive".as_bytes();
 pub(crate) const RANGE_BYTES: &[u8] = "Range".as_bytes();

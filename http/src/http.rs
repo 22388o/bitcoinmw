@@ -328,6 +328,10 @@ impl HttpHeaders<'_> {
 		Ok(&self.host)
 	}
 
+	pub fn if_none_match(&self) -> Result<&String, Error> {
+		Ok(&self.if_none_match)
+	}
+
 	pub fn extension(&self) -> Result<String, Error> {
 		let path = if self.start_uri > 0 && self.end_uri > self.start_uri {
 			let path = std::str::from_utf8(&self.req[self.start_uri..self.end_uri])?.to_string();
@@ -457,6 +461,7 @@ impl HttpServerImpl {
 		headers: &HttpHeaders,
 		error: bool,
 		last_modified: u64,
+		etag: String,
 	) -> Result<(bool, String), Error> {
 		let dt = Utc::now();
 		let mut connection_type = headers.connection()?;
@@ -475,12 +480,12 @@ impl HttpServerImpl {
 		let res = dt
 			.format(&format!(
 				"HTTP/{} {} {}\r\n\
-			Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
-			Server: {} {}\r\n{}{}\
-			Connection: {}\r\n\
-                        Last-Modified: {}\r\n\
-                        ETag: \"{}\"\r\n\
-			Content-Length: {}\r\n\r\n{}",
+Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
+Server: {} {}\r\n{}{}\
+Connection: {}\r\n\
+Last-Modified: {}\r\n\
+ETag: {}\r\n\
+Content-Length: {}\r\n\r\n{}",
 				match version {
 					HttpVersion::HTTP11 => "1.1",
 					_ => "1.0",
@@ -507,7 +512,7 @@ impl HttpServerImpl {
 				DateTime::from_timestamp(try_into!(last_modified / 1000)?, 0)
 					.unwrap_or(UNIX_EPOCH.into())
 					.format("%a, %d %h %C%y %H:%M:%S GMT"),
-				format!("{}-{:01x}", last_modified, content_len),
+				etag,
 				content_len,
 				match content {
 					Some(content) => content,
@@ -589,6 +594,8 @@ impl HttpServerImpl {
 					.replace("ERROR_MESSAGE", message)
 					.replace("ERROR_CODE", &format!("{}", code));
 				let last_modified = try_into!(ctx.now)?;
+				let etag = format!("{}-{:01x}", last_modified, error_content.len());
+
 				let (keep_alive, res) = Self::build_response_headers(
 					config,
 					code,
@@ -601,6 +608,7 @@ impl HttpServerImpl {
 					headers,
 					true,
 					last_modified,
+					etag,
 				)?;
 
 				let mut write_handle = conn_data.write_handle();
@@ -798,8 +806,8 @@ impl HttpServerImpl {
 		fpath: String,
 		len: u64,
 		conn_data: &mut ConnectionData,
-		code: u16,
-		message: &str,
+		mut code: u16,
+		mut message: &str,
 		mut cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
 		ctx: &HttpContext,
 		headers: &HttpHeaders,
@@ -827,6 +835,13 @@ impl HttpServerImpl {
 			None => "".to_string(),
 		};
 
+		let etag = format!("{}-{:01x}", last_modified, content_len);
+
+		if &etag == headers.if_none_match()? {
+			code = 304;
+			message = "Not Modified";
+		}
+
 		let (keep_alive, res) = Self::build_response_headers(
 			config,
 			match headers.has_range()? {
@@ -848,6 +863,7 @@ impl HttpServerImpl {
 			headers,
 			false,
 			last_modified,
+			etag,
 		)?;
 
 		debug!("writing {}", res)?;
@@ -866,60 +882,63 @@ impl HttpServerImpl {
 		let mut len_sum = 0;
 		debug!("rangestart={},rangeend={}", range_start, range_end)?;
 		let mime_type = ctx.mime_rev_lookup.get(&extension).unwrap_or(&u32::MAX);
-		loop {
-			let mut blen = 0;
+
+		if code != 304 {
 			loop {
-				let cur = buf_reader.read(&mut buf[blen..])?;
-				if cur <= 0 {
-					term = true;
+				let mut blen = 0;
+				loop {
+					let cur = buf_reader.read(&mut buf[blen..])?;
+					if cur <= 0 {
+						term = true;
+						break;
+					}
+					blen += cur;
+
+					if blen == CACHE_BUFFER_SIZE {
+						break;
+					}
+				}
+
+				debug!("i={},blen={}", i, blen)?;
+
+				if !write_error {
+					Self::range_write(
+						range_start,
+						range_end,
+						&buf,
+						len_sum,
+						blen,
+						&mut write_handle,
+					)?;
+					len_sum += blen;
+				}
+
+				if blen > 0 {
+					let mut cache = cache.wlock()?;
+					if i == 0 {
+						write_to_cache = (**cache.guard()).write_metadata(
+							&fpath,
+							try_into!(len)?,
+							last_modified,
+							*mime_type,
+						)?;
+					}
+
+					if write_to_cache {
+						(**cache.guard()).write_block(
+							&fpath,
+							i,
+							&try_into!(buf[0..CACHE_BUFFER_SIZE])?,
+						)?;
+					}
+				}
+
+				if term {
 					break;
 				}
-				blen += cur;
 
-				if blen == CACHE_BUFFER_SIZE {
-					break;
-				}
+				i += 1;
 			}
-
-			debug!("i={},blen={}", i, blen)?;
-
-			if !write_error {
-				Self::range_write(
-					range_start,
-					range_end,
-					&buf,
-					len_sum,
-					blen,
-					&mut write_handle,
-				)?;
-				len_sum += blen;
-			}
-
-			if blen > 0 {
-				let mut cache = cache.wlock()?;
-				if i == 0 {
-					write_to_cache = (**cache.guard()).write_metadata(
-						&fpath,
-						try_into!(len)?,
-						last_modified,
-						*mime_type,
-					)?;
-				}
-
-				if write_to_cache {
-					(**cache.guard()).write_block(
-						&fpath,
-						i,
-						&try_into!(buf[0..CACHE_BUFFER_SIZE])?,
-					)?;
-				}
-			}
-
-			if term {
-				break;
-			}
-
-			i += 1;
 		}
 
 		debug!("write_error={}", write_error)?;
@@ -990,6 +1009,7 @@ impl HttpServerImpl {
 		let mut connection = ConnectionType::KeepAlive;
 		let mut range_start = 0;
 		let mut range_end = usize::MAX;
+		let mut if_none_match = "".to_string();
 
 		debug!("count={}", count)?;
 		let mut host = "".to_string();
@@ -1123,6 +1143,16 @@ impl HttpServerImpl {
 								range_end = range_split[1].parse()?;
 								range_end += 1;
 							}
+						} else if &req[headers[header_count].start_header_name
+							..headers[header_count].end_header_name]
+							== IF_NONE_MATCH_BYTES
+						{
+							if_none_match = from_utf8(
+								&req[headers[header_count].start_header_value
+									..headers[header_count].end_header_value],
+							)
+							.unwrap_or("")
+							.to_string();
 						}
 						header_count += 1;
 					}
@@ -1149,6 +1179,7 @@ impl HttpServerImpl {
 				connection,
 				range_start,
 				range_end,
+				if_none_match,
 			})
 		}
 	}
@@ -1322,6 +1353,7 @@ impl HttpServerImpl {
 						connection,
 						range_start: 0,
 						range_end: usize::MAX,
+						if_none_match: "".to_string(),
 					};
 					Self::header_error(
 						config,
@@ -1416,7 +1448,7 @@ impl HttpServerImpl {
 					let extension = headers.extension().unwrap_or(empty);
 					let header_count = headers.header_count().unwrap_or(0);
 					info!(
-						"uri={},query={},extension={},method={:?},version={:?},header_count={},cache_hit={},has_range={},range_start={},range_end={}",
+						"uri={},query={},extension={},method={:?},version={:?},header_count={},cache_hit={},has_range={},range_start={},range_end={},if_none_match={}",
 						path,
 						query,
                                                 extension,
@@ -1427,6 +1459,7 @@ impl HttpServerImpl {
                                                 headers.has_range().unwrap_or(false),
                                                 headers.range_start().unwrap_or(0),
                                                 headers.range_end().unwrap_or(usize::MAX),
+                                                headers.if_none_match().unwrap_or(&"".to_string()),
 					)?;
 					info!("{}", SEPARATOR_LINE)?;
 
@@ -1662,7 +1695,7 @@ mod test {
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
-		assert_eq!(len, 268);
+		assert_eq!(len, 266);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 
@@ -1675,7 +1708,7 @@ mod test {
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
-		assert_eq!(len, 269);
+		assert_eq!(len, 267);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 
@@ -1718,7 +1751,7 @@ mod test {
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
-		assert_eq!(len, 268);
+		assert_eq!(len, 266);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 
@@ -1731,7 +1764,7 @@ mod test {
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
-		assert_eq!(len, 268);
+		assert_eq!(len, 266);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 

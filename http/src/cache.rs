@@ -41,8 +41,8 @@ impl HttpCache for HttpCacheImpl {
 		&self,
 		fpath: &String,
 		conn_data: &mut ConnectionData,
-		code: u16,
-		message: &str,
+		mut code: u16,
+		mut message: &str,
 		ctx: &HttpContext,
 		config: &HttpConfig,
 		headers: &HttpHeaders,
@@ -69,6 +69,13 @@ impl HttpCache for HttpCacheImpl {
 			let range_end_content = if range_end > len { len } else { range_end };
 			let content_len = range_end_content.saturating_sub(range_start);
 
+			let etag = format!("{}-{:01x}", last_modified, content_len);
+
+			if &etag == headers.if_none_match()? {
+				code = 304;
+				message = "Not Modified";
+			}
+
 			let (keep_alive, res) = HttpServerImpl::build_response_headers(
 				config,
 				match headers.has_range()? {
@@ -87,40 +94,44 @@ impl HttpCache for HttpCacheImpl {
 				headers,
 				false,
 				try_into!(last_modified)?,
+				etag,
 			)?;
 
 			debug!("writing {}", res)?;
 
 			let mut write_handle = conn_data.write_handle();
 			write_handle.write(&res.as_bytes()[..])?;
-			let mut rem = len;
-			let mut i = 0;
-			let mut len_sum = 0;
-			loop {
-				self.hashtable
-					.raw_read(fpath, 20 + i * CACHE_BUFFER_SIZE, &mut data)?;
-				let blen = if rem > CACHE_BUFFER_SIZE {
-					CACHE_BUFFER_SIZE
-				} else {
-					rem
-				};
-				debug!("read blen={},rem={},data={:?}", blen, rem, data)?;
 
-				HttpServerImpl::range_write(
-					range_start,
-					range_end,
-					&data.to_vec(),
-					len_sum,
-					blen,
-					&mut write_handle,
-				)?;
-				len_sum += blen;
+			if code != 304 {
+				let mut rem = len;
+				let mut i = 0;
+				let mut len_sum = 0;
+				loop {
+					self.hashtable
+						.raw_read(fpath, 20 + i * CACHE_BUFFER_SIZE, &mut data)?;
+					let blen = if rem > CACHE_BUFFER_SIZE {
+						CACHE_BUFFER_SIZE
+					} else {
+						rem
+					};
+					debug!("read blen={},rem={},data={:?}", blen, rem, data)?;
 
-				rem = rem.saturating_sub(blen);
-				if rem == 0 {
-					break;
+					HttpServerImpl::range_write(
+						range_start,
+						range_end,
+						&data.to_vec(),
+						len_sum,
+						blen,
+						&mut write_handle,
+					)?;
+					len_sum += blen;
+
+					rem = rem.saturating_sub(blen);
+					if rem == 0 {
+						break;
+					}
+					i += 1;
 				}
-				i += 1;
 			}
 
 			if !keep_alive {
