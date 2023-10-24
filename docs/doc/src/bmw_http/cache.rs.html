@@ -214,6 +214,17 @@
 <a href="#214" id="214">214</a>
 <a href="#215" id="215">215</a>
 <a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a>
+<a href="#227" id="227">227</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -257,8 +268,8 @@
 		<span class="kw-2">&amp;</span><span class="self">self</span>,
 		fpath: <span class="kw-2">&amp;</span>String,
 		conn_data: <span class="kw-2">&amp;mut </span>ConnectionData,
-		code: u16,
-		message: <span class="kw-2">&amp;</span>str,
+		<span class="kw-2">mut </span>code: u16,
+		<span class="kw-2">mut </span>message: <span class="kw-2">&amp;</span>str,
 		ctx: <span class="kw-2">&amp;</span>HttpContext,
 		config: <span class="kw-2">&amp;</span>HttpConfig,
 		headers: <span class="kw-2">&amp;</span>HttpHeaders,
@@ -285,6 +296,13 @@
 			<span class="kw">let </span>range_end_content = <span class="kw">if </span>range_end &gt; len { len } <span class="kw">else </span>{ range_end };
 			<span class="kw">let </span>content_len = range_end_content.saturating_sub(range_start);
 
+			<span class="kw">let </span>etag = <span class="macro">format!</span>(<span class="string">&quot;{}-{:01x}&quot;</span>, last_modified, content_len);
+
+			<span class="kw">if </span><span class="kw-2">&amp;</span>etag == headers.if_none_match()<span class="question-mark">? </span>{
+				code = <span class="number">304</span>;
+				message = <span class="string">&quot;Not Modified&quot;</span>;
+			}
+
 			<span class="kw">let </span>(keep_alive, res) = HttpServerImpl::build_response_headers(
 				config,
 				<span class="kw">match </span>headers.has_range()<span class="question-mark">? </span>{
@@ -303,40 +321,44 @@
 				headers,
 				<span class="bool-val">false</span>,
 				<span class="macro">try_into!</span>(last_modified)<span class="question-mark">?</span>,
+				etag,
 			)<span class="question-mark">?</span>;
 
 			<span class="macro">debug!</span>(<span class="string">&quot;writing {}&quot;</span>, res)<span class="question-mark">?</span>;
 
 			<span class="kw">let </span><span class="kw-2">mut </span>write_handle = conn_data.write_handle();
 			write_handle.write(<span class="kw-2">&amp;</span>res.as_bytes()[..])<span class="question-mark">?</span>;
-			<span class="kw">let </span><span class="kw-2">mut </span>rem = len;
-			<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
-			<span class="kw">let </span><span class="kw-2">mut </span>len_sum = <span class="number">0</span>;
-			<span class="kw">loop </span>{
-				<span class="self">self</span>.hashtable
-					.raw_read(fpath, <span class="number">20 </span>+ i * CACHE_BUFFER_SIZE, <span class="kw-2">&amp;mut </span>data)<span class="question-mark">?</span>;
-				<span class="kw">let </span>blen = <span class="kw">if </span>rem &gt; CACHE_BUFFER_SIZE {
-					CACHE_BUFFER_SIZE
-				} <span class="kw">else </span>{
-					rem
-				};
-				<span class="macro">debug!</span>(<span class="string">&quot;read blen={},rem={},data={:?}&quot;</span>, blen, rem, data)<span class="question-mark">?</span>;
 
-				HttpServerImpl::range_write(
-					range_start,
-					range_end,
-					<span class="kw-2">&amp;</span>data.to_vec(),
-					len_sum,
-					blen,
-					<span class="kw-2">&amp;mut </span>write_handle,
-				)<span class="question-mark">?</span>;
-				len_sum += blen;
+			<span class="kw">if </span>code != <span class="number">304 </span>{
+				<span class="kw">let </span><span class="kw-2">mut </span>rem = len;
+				<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
+				<span class="kw">let </span><span class="kw-2">mut </span>len_sum = <span class="number">0</span>;
+				<span class="kw">loop </span>{
+					<span class="self">self</span>.hashtable
+						.raw_read(fpath, <span class="number">20 </span>+ i * CACHE_BUFFER_SIZE, <span class="kw-2">&amp;mut </span>data)<span class="question-mark">?</span>;
+					<span class="kw">let </span>blen = <span class="kw">if </span>rem &gt; CACHE_BUFFER_SIZE {
+						CACHE_BUFFER_SIZE
+					} <span class="kw">else </span>{
+						rem
+					};
+					<span class="macro">debug!</span>(<span class="string">&quot;read blen={},rem={},data={:?}&quot;</span>, blen, rem, data)<span class="question-mark">?</span>;
 
-				rem = rem.saturating_sub(blen);
-				<span class="kw">if </span>rem == <span class="number">0 </span>{
-					<span class="kw">break</span>;
+					HttpServerImpl::range_write(
+						range_start,
+						range_end,
+						<span class="kw-2">&amp;</span>data.to_vec(),
+						len_sum,
+						blen,
+						<span class="kw-2">&amp;mut </span>write_handle,
+					)<span class="question-mark">?</span>;
+					len_sum += blen;
+
+					rem = rem.saturating_sub(blen);
+					<span class="kw">if </span>rem == <span class="number">0 </span>{
+						<span class="kw">break</span>;
+					}
+					i += <span class="number">1</span>;
 				}
-				i += <span class="number">1</span>;
 			}
 
 			<span class="kw">if </span>!keep_alive {

@@ -1740,6 +1740,39 @@
 <a href="#1740" id="1740">1740</a>
 <a href="#1741" id="1741">1741</a>
 <a href="#1742" id="1742">1742</a>
+<a href="#1743" id="1743">1743</a>
+<a href="#1744" id="1744">1744</a>
+<a href="#1745" id="1745">1745</a>
+<a href="#1746" id="1746">1746</a>
+<a href="#1747" id="1747">1747</a>
+<a href="#1748" id="1748">1748</a>
+<a href="#1749" id="1749">1749</a>
+<a href="#1750" id="1750">1750</a>
+<a href="#1751" id="1751">1751</a>
+<a href="#1752" id="1752">1752</a>
+<a href="#1753" id="1753">1753</a>
+<a href="#1754" id="1754">1754</a>
+<a href="#1755" id="1755">1755</a>
+<a href="#1756" id="1756">1756</a>
+<a href="#1757" id="1757">1757</a>
+<a href="#1758" id="1758">1758</a>
+<a href="#1759" id="1759">1759</a>
+<a href="#1760" id="1760">1760</a>
+<a href="#1761" id="1761">1761</a>
+<a href="#1762" id="1762">1762</a>
+<a href="#1763" id="1763">1763</a>
+<a href="#1764" id="1764">1764</a>
+<a href="#1765" id="1765">1765</a>
+<a href="#1766" id="1766">1766</a>
+<a href="#1767" id="1767">1767</a>
+<a href="#1768" id="1768">1768</a>
+<a href="#1769" id="1769">1769</a>
+<a href="#1770" id="1770">1770</a>
+<a href="#1771" id="1771">1771</a>
+<a href="#1772" id="1772">1772</a>
+<a href="#1773" id="1773">1773</a>
+<a href="#1774" id="1774">1774</a>
+<a href="#1775" id="1775">1775</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2070,6 +2103,10 @@
 		<span class="prelude-val">Ok</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.host)
 	}
 
+	<span class="kw">pub fn </span>if_none_match(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>String, Error&gt; {
+		<span class="prelude-val">Ok</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.if_none_match)
+	}
+
 	<span class="kw">pub fn </span>extension(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;String, Error&gt; {
 		<span class="kw">let </span>path = <span class="kw">if </span><span class="self">self</span>.start_uri &gt; <span class="number">0 </span>&amp;&amp; <span class="self">self</span>.end_uri &gt; <span class="self">self</span>.start_uri {
 			<span class="kw">let </span>path = std::str::from_utf8(<span class="kw-2">&amp;</span><span class="self">self</span>.req[<span class="self">self</span>.start_uri..<span class="self">self</span>.end_uri])<span class="question-mark">?</span>.to_string();
@@ -2199,6 +2236,7 @@
 		headers: <span class="kw-2">&amp;</span>HttpHeaders,
 		error: bool,
 		last_modified: u64,
+		etag: String,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(bool, String), Error&gt; {
 		<span class="kw">let </span>dt = Utc::now();
 		<span class="kw">let </span><span class="kw-2">mut </span>connection_type = headers.connection()<span class="question-mark">?</span>;
@@ -2217,12 +2255,12 @@
 		<span class="kw">let </span>res = dt
 			.format(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
 				<span class="string">&quot;HTTP/{} {} {}\r\n\
-			Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
-			Server: {} {}\r\n{}{}\
-			Connection: {}\r\n\
-                        Last-Modified: {}\r\n\
-                        ETag: \&quot;{}\&quot;\r\n\
-			Content-Length: {}\r\n\r\n{}&quot;</span>,
+Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
+Server: {} {}\r\n{}{}\
+Connection: {}\r\n\
+Last-Modified: {}\r\n\
+ETag: {}\r\n\
+Content-Length: {}\r\n\r\n{}&quot;</span>,
 				<span class="kw">match </span>version {
 					HttpVersion::HTTP11 =&gt; <span class="string">&quot;1.1&quot;</span>,
 					<span class="kw">_ </span>=&gt; <span class="string">&quot;1.0&quot;</span>,
@@ -2249,7 +2287,7 @@
 				DateTime::from_timestamp(<span class="macro">try_into!</span>(last_modified / <span class="number">1000</span>)<span class="question-mark">?</span>, <span class="number">0</span>)
 					.unwrap_or(UNIX_EPOCH.into())
 					.format(<span class="string">&quot;%a, %d %h %C%y %H:%M:%S GMT&quot;</span>),
-				<span class="macro">format!</span>(<span class="string">&quot;{}-{:01x}&quot;</span>, last_modified, content_len),
+				etag,
 				content_len,
 				<span class="kw">match </span>content {
 					<span class="prelude-val">Some</span>(content) =&gt; content,
@@ -2331,6 +2369,8 @@
 					.replace(<span class="string">&quot;ERROR_MESSAGE&quot;</span>, message)
 					.replace(<span class="string">&quot;ERROR_CODE&quot;</span>, <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, code));
 				<span class="kw">let </span>last_modified = <span class="macro">try_into!</span>(ctx.now)<span class="question-mark">?</span>;
+				<span class="kw">let </span>etag = <span class="macro">format!</span>(<span class="string">&quot;{}-{:01x}&quot;</span>, last_modified, error_content.len());
+
 				<span class="kw">let </span>(keep_alive, res) = <span class="self">Self</span>::build_response_headers(
 					config,
 					code,
@@ -2343,6 +2383,7 @@
 					headers,
 					<span class="bool-val">true</span>,
 					last_modified,
+					etag,
 				)<span class="question-mark">?</span>;
 
 				<span class="kw">let </span><span class="kw-2">mut </span>write_handle = conn_data.write_handle();
@@ -2540,8 +2581,8 @@
 		fpath: String,
 		len: u64,
 		conn_data: <span class="kw-2">&amp;mut </span>ConnectionData,
-		code: u16,
-		message: <span class="kw-2">&amp;</span>str,
+		<span class="kw-2">mut </span>code: u16,
+		<span class="kw-2">mut </span>message: <span class="kw-2">&amp;</span>str,
 		<span class="kw-2">mut </span>cache: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>HttpCache + Send + Sync&gt;&gt;&gt;,
 		ctx: <span class="kw-2">&amp;</span>HttpContext,
 		headers: <span class="kw-2">&amp;</span>HttpHeaders,
@@ -2569,6 +2610,13 @@
 			<span class="prelude-val">None </span>=&gt; <span class="string">&quot;&quot;</span>.to_string(),
 		};
 
+		<span class="kw">let </span>etag = <span class="macro">format!</span>(<span class="string">&quot;{}-{:01x}&quot;</span>, last_modified, content_len);
+
+		<span class="kw">if </span><span class="kw-2">&amp;</span>etag == headers.if_none_match()<span class="question-mark">? </span>{
+			code = <span class="number">304</span>;
+			message = <span class="string">&quot;Not Modified&quot;</span>;
+		}
+
 		<span class="kw">let </span>(keep_alive, res) = <span class="self">Self</span>::build_response_headers(
 			config,
 			<span class="kw">match </span>headers.has_range()<span class="question-mark">? </span>{
@@ -2590,6 +2638,7 @@
 			headers,
 			<span class="bool-val">false</span>,
 			last_modified,
+			etag,
 		)<span class="question-mark">?</span>;
 
 		<span class="macro">debug!</span>(<span class="string">&quot;writing {}&quot;</span>, res)<span class="question-mark">?</span>;
@@ -2608,60 +2657,63 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>len_sum = <span class="number">0</span>;
 		<span class="macro">debug!</span>(<span class="string">&quot;rangestart={},rangeend={}&quot;</span>, range_start, range_end)<span class="question-mark">?</span>;
 		<span class="kw">let </span>mime_type = ctx.mime_rev_lookup.get(<span class="kw-2">&amp;</span>extension).unwrap_or(<span class="kw-2">&amp;</span>u32::MAX);
-		<span class="kw">loop </span>{
-			<span class="kw">let </span><span class="kw-2">mut </span>blen = <span class="number">0</span>;
+
+		<span class="kw">if </span>code != <span class="number">304 </span>{
 			<span class="kw">loop </span>{
-				<span class="kw">let </span>cur = buf_reader.read(<span class="kw-2">&amp;mut </span>buf[blen..])<span class="question-mark">?</span>;
-				<span class="kw">if </span>cur &lt;= <span class="number">0 </span>{
-					term = <span class="bool-val">true</span>;
+				<span class="kw">let </span><span class="kw-2">mut </span>blen = <span class="number">0</span>;
+				<span class="kw">loop </span>{
+					<span class="kw">let </span>cur = buf_reader.read(<span class="kw-2">&amp;mut </span>buf[blen..])<span class="question-mark">?</span>;
+					<span class="kw">if </span>cur &lt;= <span class="number">0 </span>{
+						term = <span class="bool-val">true</span>;
+						<span class="kw">break</span>;
+					}
+					blen += cur;
+
+					<span class="kw">if </span>blen == CACHE_BUFFER_SIZE {
+						<span class="kw">break</span>;
+					}
+				}
+
+				<span class="macro">debug!</span>(<span class="string">&quot;i={},blen={}&quot;</span>, i, blen)<span class="question-mark">?</span>;
+
+				<span class="kw">if </span>!write_error {
+					<span class="self">Self</span>::range_write(
+						range_start,
+						range_end,
+						<span class="kw-2">&amp;</span>buf,
+						len_sum,
+						blen,
+						<span class="kw-2">&amp;mut </span>write_handle,
+					)<span class="question-mark">?</span>;
+					len_sum += blen;
+				}
+
+				<span class="kw">if </span>blen &gt; <span class="number">0 </span>{
+					<span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
+					<span class="kw">if </span>i == <span class="number">0 </span>{
+						write_to_cache = (<span class="kw-2">**</span>cache.guard()).write_metadata(
+							<span class="kw-2">&amp;</span>fpath,
+							<span class="macro">try_into!</span>(len)<span class="question-mark">?</span>,
+							last_modified,
+							<span class="kw-2">*</span>mime_type,
+						)<span class="question-mark">?</span>;
+					}
+
+					<span class="kw">if </span>write_to_cache {
+						(<span class="kw-2">**</span>cache.guard()).write_block(
+							<span class="kw-2">&amp;</span>fpath,
+							i,
+							<span class="kw-2">&amp;</span><span class="macro">try_into!</span>(buf[<span class="number">0</span>..CACHE_BUFFER_SIZE])<span class="question-mark">?</span>,
+						)<span class="question-mark">?</span>;
+					}
+				}
+
+				<span class="kw">if </span>term {
 					<span class="kw">break</span>;
 				}
-				blen += cur;
 
-				<span class="kw">if </span>blen == CACHE_BUFFER_SIZE {
-					<span class="kw">break</span>;
-				}
+				i += <span class="number">1</span>;
 			}
-
-			<span class="macro">debug!</span>(<span class="string">&quot;i={},blen={}&quot;</span>, i, blen)<span class="question-mark">?</span>;
-
-			<span class="kw">if </span>!write_error {
-				<span class="self">Self</span>::range_write(
-					range_start,
-					range_end,
-					<span class="kw-2">&amp;</span>buf,
-					len_sum,
-					blen,
-					<span class="kw-2">&amp;mut </span>write_handle,
-				)<span class="question-mark">?</span>;
-				len_sum += blen;
-			}
-
-			<span class="kw">if </span>blen &gt; <span class="number">0 </span>{
-				<span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
-				<span class="kw">if </span>i == <span class="number">0 </span>{
-					write_to_cache = (<span class="kw-2">**</span>cache.guard()).write_metadata(
-						<span class="kw-2">&amp;</span>fpath,
-						<span class="macro">try_into!</span>(len)<span class="question-mark">?</span>,
-						last_modified,
-						<span class="kw-2">*</span>mime_type,
-					)<span class="question-mark">?</span>;
-				}
-
-				<span class="kw">if </span>write_to_cache {
-					(<span class="kw-2">**</span>cache.guard()).write_block(
-						<span class="kw-2">&amp;</span>fpath,
-						i,
-						<span class="kw-2">&amp;</span><span class="macro">try_into!</span>(buf[<span class="number">0</span>..CACHE_BUFFER_SIZE])<span class="question-mark">?</span>,
-					)<span class="question-mark">?</span>;
-				}
-			}
-
-			<span class="kw">if </span>term {
-				<span class="kw">break</span>;
-			}
-
-			i += <span class="number">1</span>;
 		}
 
 		<span class="macro">debug!</span>(<span class="string">&quot;write_error={}&quot;</span>, write_error)<span class="question-mark">?</span>;
@@ -2732,6 +2784,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>connection = ConnectionType::KeepAlive;
 		<span class="kw">let </span><span class="kw-2">mut </span>range_start = <span class="number">0</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>range_end = usize::MAX;
+		<span class="kw">let </span><span class="kw-2">mut </span>if_none_match = <span class="string">&quot;&quot;</span>.to_string();
 
 		<span class="macro">debug!</span>(<span class="string">&quot;count={}&quot;</span>, count)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>host = <span class="string">&quot;&quot;</span>.to_string();
@@ -2865,6 +2918,16 @@
 								range_end = range_split[<span class="number">1</span>].parse()<span class="question-mark">?</span>;
 								range_end += <span class="number">1</span>;
 							}
+						} <span class="kw">else if </span><span class="kw-2">&amp;</span>req[headers[header_count].start_header_name
+							..headers[header_count].end_header_name]
+							== IF_NONE_MATCH_BYTES
+						{
+							if_none_match = from_utf8(
+								<span class="kw-2">&amp;</span>req[headers[header_count].start_header_value
+									..headers[header_count].end_header_value],
+							)
+							.unwrap_or(<span class="string">&quot;&quot;</span>)
+							.to_string();
 						}
 						header_count += <span class="number">1</span>;
 					}
@@ -2891,6 +2954,7 @@
 				connection,
 				range_start,
 				range_end,
+				if_none_match,
 			})
 		}
 	}
@@ -3064,6 +3128,7 @@
 						connection,
 						range_start: <span class="number">0</span>,
 						range_end: usize::MAX,
+						if_none_match: <span class="string">&quot;&quot;</span>.to_string(),
 					};
 					<span class="self">Self</span>::header_error(
 						config,
@@ -3158,7 +3223,7 @@
 					<span class="kw">let </span>extension = headers.extension().unwrap_or(empty);
 					<span class="kw">let </span>header_count = headers.header_count().unwrap_or(<span class="number">0</span>);
 					<span class="macro">info!</span>(
-						<span class="string">&quot;uri={},query={},extension={},method={:?},version={:?},header_count={},cache_hit={},has_range={},range_start={},range_end={}&quot;</span>,
+						<span class="string">&quot;uri={},query={},extension={},method={:?},version={:?},header_count={},cache_hit={},has_range={},range_start={},range_end={},if_none_match={}&quot;</span>,
 						path,
 						query,
                                                 extension,
@@ -3169,6 +3234,7 @@
                                                 headers.has_range().unwrap_or(<span class="bool-val">false</span>),
                                                 headers.range_start().unwrap_or(<span class="number">0</span>),
                                                 headers.range_end().unwrap_or(usize::MAX),
+                                                headers.if_none_match().unwrap_or(<span class="kw-2">&amp;</span><span class="string">&quot;&quot;</span>.to_string()),
 					)<span class="question-mark">?</span>;
 					<span class="macro">info!</span>(<span class="string">&quot;{}&quot;</span>, SEPARATOR_LINE)<span class="question-mark">?</span>;
 
@@ -3404,7 +3470,7 @@
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">268</span>);
+		<span class="macro">assert_eq!</span>(len, <span class="number">266</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
@@ -3417,7 +3483,7 @@
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">269</span>);
+		<span class="macro">assert_eq!</span>(len, <span class="number">267</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
@@ -3460,7 +3526,7 @@
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">268</span>);
+		<span class="macro">assert_eq!</span>(len, <span class="number">266</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
@@ -3473,7 +3539,7 @@
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">268</span>);
+		<span class="macro">assert_eq!</span>(len, <span class="number">266</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
