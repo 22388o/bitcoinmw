@@ -349,6 +349,18 @@ impl HttpHeaders<'_> {
 		Ok(self.connection)
 	}
 
+	pub fn range_start(&self) -> Result<usize, Error> {
+		Ok(self.range_start)
+	}
+
+	pub fn range_end(&self) -> Result<usize, Error> {
+		Ok(self.range_end)
+	}
+
+	pub fn has_range(&self) -> Result<bool, Error> {
+		Ok(self.range_start != 0 || self.range_end != usize::MAX)
+	}
+
 	fn rfind_utf8(s: &str, chr: char) -> Option<usize> {
 		if let Some(rev_pos) = s.chars().rev().position(|c| c == chr) {
 			Some(s.chars().count() - rev_pos - 1)
@@ -621,6 +633,10 @@ impl HttpServerImpl {
 			return Ok(false);
 		}
 
+		if Self::try_cache(cache.clone(), &fpath, conn_data, ctx, config, headers)? {
+			return Ok(true);
+		}
+
 		let metadata = std::fs::metadata(fpath.clone());
 
 		let metadata = match metadata {
@@ -716,6 +732,32 @@ impl HttpServerImpl {
 		Ok(hit)
 	}
 
+	fn try_cache(
+		mut cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
+		path: &String,
+		conn_data: &mut ConnectionData,
+		ctx: &HttpContext,
+		config: &HttpConfig,
+		headers: &HttpHeaders,
+	) -> Result<bool, Error> {
+		debug!("try cache: {}", path)?;
+		let hit: bool;
+		{
+			let cache = cache.rlock()?;
+			hit =
+				(**cache.guard()).stream_file(path, conn_data, 200, "OK", ctx, config, headers)?;
+		}
+		let r = random::<u64>();
+		debug!("cache hit={}", hit)?;
+
+		if hit && r % 2 == 0 {
+			let mut cache = cache.wlock()?;
+			(**cache.guard()).bring_to_front(path)?;
+		}
+
+		Ok(hit)
+	}
+
 	fn stream_file(
 		config: &HttpConfig,
 		fpath: String,
@@ -757,6 +799,7 @@ impl HttpServerImpl {
 		let mut i = 0;
 		let mut write_to_cache = true;
 		let mut term = false;
+		let mut len_sum = 0;
 		loop {
 			let mut blen = 0;
 			loop {
@@ -775,6 +818,7 @@ impl HttpServerImpl {
 			debug!("i={},blen={}", i, blen)?;
 
 			if !write_error {
+				len_sum += blen;
 				match write_handle.write(&buf[0..blen]) {
 					Ok(_) => {}
 					Err(_) => write_error = true,
@@ -834,6 +878,8 @@ impl HttpServerImpl {
 		let mut header_count = 0;
 		let mut headers = [HttpHeader::default(); 100];
 		let mut connection = ConnectionType::KeepAlive;
+		let mut range_start = 0;
+		let mut range_end = usize::MAX;
 
 		debug!("count={}", count)?;
 		let mut host = "".to_string();
@@ -950,6 +996,22 @@ impl HttpServerImpl {
 							{
 								connection = ConnectionType::CLOSE;
 							}
+						} else if &req[headers[header_count].start_header_name
+							..headers[header_count].end_header_name]
+							== RANGE_BYTES
+						{
+							let range_value = from_utf8(
+								&req[headers[header_count].start_header_value
+									..headers[header_count].end_header_value],
+							)
+							.unwrap_or("");
+
+							if range_value.starts_with("range=") {
+								let range_split: Vec<&str> = range_value.split('=').collect();
+								let range_split: Vec<&str> = range_split[1].split('-').collect();
+								range_start = range_split[0].parse()?;
+								range_end = range_split[1].parse()?;
+							}
 						}
 						header_count += 1;
 					}
@@ -974,6 +1036,8 @@ impl HttpServerImpl {
 				header_count,
 				host,
 				connection,
+				range_start,
+				range_end,
 			})
 		}
 	}
@@ -1145,6 +1209,8 @@ impl HttpServerImpl {
 						header_count,
 						host,
 						connection,
+						range_start: 0,
+						range_end: usize::MAX,
 					};
 					Self::header_error(
 						config,
@@ -1239,14 +1305,17 @@ impl HttpServerImpl {
 					let extension = headers.extension().unwrap_or(empty);
 					let header_count = headers.header_count().unwrap_or(0);
 					info!(
-						"uri={},query={},extension={},method={:?},version={:?},header_count={},cache_hit={}",
+						"uri={},query={},extension={},method={:?},version={:?},header_count={},cache_hit={},has_range={},range_start={},range_end={}",
 						path,
 						query,
                                                 extension,
 						headers.http_request_type().unwrap_or(&HttpRequestType::GET),
 						headers.version().unwrap_or(&HttpVersion::UNKNOWN),
 						header_count,
-						cache_hit
+						cache_hit,
+                                                headers.has_range().unwrap_or(false),
+                                                headers.range_start().unwrap_or(0),
+                                                headers.range_end().unwrap_or(usize::MAX),
 					)?;
 					info!("{}", SEPARATOR_LINE)?;
 

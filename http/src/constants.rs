@@ -33,3 +33,4 @@ pub(crate) const ERROR_CONTENT: &str = "Error ERROR_CODE: \"ERROR_MESSAGE\" occu
 pub(crate) const HOST_BYTES: &[u8] = "Host".as_bytes();
 pub(crate) const CONNECTION_BYTES: &[u8] = "Connection".as_bytes();
 pub(crate) const KEEP_ALIVE_BYTES: &[u8] = "keep-alive".as_bytes();
+pub(crate) const RANGE_BYTES: &[u8] = "Range".as_bytes();

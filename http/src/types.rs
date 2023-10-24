@@ -63,6 +63,8 @@ pub struct HttpHeaders<'a> {
 	pub(crate) version: HttpVersion,
 	pub(crate) host: String,
 	pub(crate) connection: ConnectionType,
+	pub(crate) range_start: usize,
+	pub(crate) range_end: usize,
 }
 
 pub trait HttpCache {
