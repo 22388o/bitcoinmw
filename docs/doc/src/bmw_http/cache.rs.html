@@ -181,6 +181,29 @@
 <a href="#181" id="181">181</a>
 <a href="#182" id="182">182</a>
 <a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -243,10 +266,22 @@
 				found
 			)<span class="question-mark">?</span>;
 
+			<span class="kw">let </span>range_start = headers.range_start()<span class="question-mark">?</span>;
+			<span class="kw">let </span>range_end = headers.range_end()<span class="question-mark">?</span>;
+			<span class="kw">let </span>range_end_content = <span class="kw">if </span>range_end &gt; len { len } <span class="kw">else </span>{ range_end };
+			<span class="kw">let </span>content_len = range_end_content.saturating_sub(range_start);
+
 			<span class="kw">let </span>(keep_alive, res) = HttpServerImpl::build_response_headers(
 				config,
-				code,
-				message,
+				<span class="kw">match </span>headers.has_range()<span class="question-mark">? </span>{
+					<span class="bool-val">true </span>=&gt; <span class="number">206</span>,
+					<span class="bool-val">false </span>=&gt; code,
+				},
+				<span class="kw">match </span>headers.has_range()<span class="question-mark">? </span>{
+					<span class="bool-val">true </span>=&gt; <span class="string">&quot;Partial Content&quot;</span>,
+					<span class="bool-val">false </span>=&gt; message,
+				},
+				content_len,
 				len,
 				<span class="prelude-val">None</span>,
 				<span class="kw">match </span>ctx.mime_map.get(<span class="kw-2">&amp;</span>headers.extension()<span class="question-mark">?</span>) {
@@ -255,6 +290,7 @@
 				},
 				ctx,
 				headers,
+				<span class="bool-val">false</span>,
 			)<span class="question-mark">?</span>;
 
 			<span class="macro">debug!</span>(<span class="string">&quot;writing {}&quot;</span>, res)<span class="question-mark">?</span>;
@@ -263,18 +299,28 @@
 			write_handle.write(<span class="kw-2">&amp;</span>res.as_bytes()[..])<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>rem = len;
 			<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
+			<span class="kw">let </span><span class="kw-2">mut </span>len_sum = <span class="number">0</span>;
 			<span class="kw">loop </span>{
 				<span class="self">self</span>.hashtable
 					.raw_read(fpath, <span class="number">8 </span>+ i * CACHE_BUFFER_SIZE, <span class="kw-2">&amp;mut </span>data)<span class="question-mark">?</span>;
-				<span class="kw">let </span>wlen = <span class="kw">if </span>rem &gt; CACHE_BUFFER_SIZE {
+				<span class="kw">let </span>blen = <span class="kw">if </span>rem &gt; CACHE_BUFFER_SIZE {
 					CACHE_BUFFER_SIZE
 				} <span class="kw">else </span>{
 					rem
 				};
-				<span class="macro">debug!</span>(<span class="string">&quot;read wlen={},rem={},data={:?}&quot;</span>, wlen, rem, data)<span class="question-mark">?</span>;
-				write_handle.write(<span class="kw-2">&amp;</span>data[<span class="number">0</span>..wlen])<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">&quot;read blen={},rem={},data={:?}&quot;</span>, blen, rem, data)<span class="question-mark">?</span>;
 
-				rem = rem.saturating_sub(wlen);
+				HttpServerImpl::range_write(
+					range_start,
+					range_end,
+					<span class="kw-2">&amp;</span>data.to_vec(),
+					len_sum,
+					blen,
+					<span class="kw-2">&amp;mut </span>write_handle,
+				)<span class="question-mark">?</span>;
+				len_sum += blen;
+
+				rem = rem.saturating_sub(blen);
 				<span class="kw">if </span>rem == <span class="number">0 </span>{
 					<span class="kw">break</span>;
 				}

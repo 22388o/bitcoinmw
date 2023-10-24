@@ -1629,6 +1629,82 @@
 <a href="#1629" id="1629">1629</a>
 <a href="#1630" id="1630">1630</a>
 <a href="#1631" id="1631">1631</a>
+<a href="#1632" id="1632">1632</a>
+<a href="#1633" id="1633">1633</a>
+<a href="#1634" id="1634">1634</a>
+<a href="#1635" id="1635">1635</a>
+<a href="#1636" id="1636">1636</a>
+<a href="#1637" id="1637">1637</a>
+<a href="#1638" id="1638">1638</a>
+<a href="#1639" id="1639">1639</a>
+<a href="#1640" id="1640">1640</a>
+<a href="#1641" id="1641">1641</a>
+<a href="#1642" id="1642">1642</a>
+<a href="#1643" id="1643">1643</a>
+<a href="#1644" id="1644">1644</a>
+<a href="#1645" id="1645">1645</a>
+<a href="#1646" id="1646">1646</a>
+<a href="#1647" id="1647">1647</a>
+<a href="#1648" id="1648">1648</a>
+<a href="#1649" id="1649">1649</a>
+<a href="#1650" id="1650">1650</a>
+<a href="#1651" id="1651">1651</a>
+<a href="#1652" id="1652">1652</a>
+<a href="#1653" id="1653">1653</a>
+<a href="#1654" id="1654">1654</a>
+<a href="#1655" id="1655">1655</a>
+<a href="#1656" id="1656">1656</a>
+<a href="#1657" id="1657">1657</a>
+<a href="#1658" id="1658">1658</a>
+<a href="#1659" id="1659">1659</a>
+<a href="#1660" id="1660">1660</a>
+<a href="#1661" id="1661">1661</a>
+<a href="#1662" id="1662">1662</a>
+<a href="#1663" id="1663">1663</a>
+<a href="#1664" id="1664">1664</a>
+<a href="#1665" id="1665">1665</a>
+<a href="#1666" id="1666">1666</a>
+<a href="#1667" id="1667">1667</a>
+<a href="#1668" id="1668">1668</a>
+<a href="#1669" id="1669">1669</a>
+<a href="#1670" id="1670">1670</a>
+<a href="#1671" id="1671">1671</a>
+<a href="#1672" id="1672">1672</a>
+<a href="#1673" id="1673">1673</a>
+<a href="#1674" id="1674">1674</a>
+<a href="#1675" id="1675">1675</a>
+<a href="#1676" id="1676">1676</a>
+<a href="#1677" id="1677">1677</a>
+<a href="#1678" id="1678">1678</a>
+<a href="#1679" id="1679">1679</a>
+<a href="#1680" id="1680">1680</a>
+<a href="#1681" id="1681">1681</a>
+<a href="#1682" id="1682">1682</a>
+<a href="#1683" id="1683">1683</a>
+<a href="#1684" id="1684">1684</a>
+<a href="#1685" id="1685">1685</a>
+<a href="#1686" id="1686">1686</a>
+<a href="#1687" id="1687">1687</a>
+<a href="#1688" id="1688">1688</a>
+<a href="#1689" id="1689">1689</a>
+<a href="#1690" id="1690">1690</a>
+<a href="#1691" id="1691">1691</a>
+<a href="#1692" id="1692">1692</a>
+<a href="#1693" id="1693">1693</a>
+<a href="#1694" id="1694">1694</a>
+<a href="#1695" id="1695">1695</a>
+<a href="#1696" id="1696">1696</a>
+<a href="#1697" id="1697">1697</a>
+<a href="#1698" id="1698">1698</a>
+<a href="#1699" id="1699">1699</a>
+<a href="#1700" id="1700">1700</a>
+<a href="#1701" id="1701">1701</a>
+<a href="#1702" id="1702">1702</a>
+<a href="#1703" id="1703">1703</a>
+<a href="#1704" id="1704">1704</a>
+<a href="#1705" id="1705">1705</a>
+<a href="#1706" id="1706">1706</a>
+<a href="#1707" id="1707">1707</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1661,7 +1737,7 @@
 <span class="kw">use </span>bmw_evh::{
 	create_listeners, AttachmentHolder, Builder, CloseHandle, ConnData, ConnectionData,
 	EventHandler, EventHandlerConfig, EventHandlerData, ServerConnection, ThreadContext,
-	TlsServerConfig, READ_SLAB_DATA_SIZE,
+	TlsServerConfig, WriteHandle, READ_SLAB_DATA_SIZE,
 };
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
@@ -2074,10 +2150,12 @@
 		code: u16,
 		message: <span class="kw-2">&amp;</span>str,
 		content_len: usize,
+		file_len: usize,
 		content: <span class="prelude-ty">Option</span>&lt;String&gt;,
 		content_type: <span class="prelude-ty">Option</span>&lt;String&gt;,
 		_ctx: <span class="kw-2">&amp;</span>HttpContext,
 		headers: <span class="kw-2">&amp;</span>HttpHeaders,
+		error: bool,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(bool, String), Error&gt; {
 		<span class="kw">let </span>dt = Utc::now();
 		<span class="kw">let </span><span class="kw-2">mut </span>connection_type = headers.connection()<span class="question-mark">?</span>;
@@ -2087,11 +2165,17 @@
 			keep_alive = <span class="bool-val">false</span>;
 			connection_type = ConnectionType::CLOSE;
 		}
+
+		<span class="kw">let </span><span class="kw-2">mut </span>range_end = headers.range_end()<span class="question-mark">?</span>;
+		<span class="kw">if </span>range_end &gt; file_len.saturating_sub(<span class="number">1</span>) {
+			range_end = file_len.saturating_sub(<span class="number">1</span>);
+		}
+		<span class="kw">let </span>range_start = headers.range_start()<span class="question-mark">?</span>;
 		<span class="kw">let </span>res = dt
 			.format(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
 				<span class="string">&quot;HTTP/{} {} {}\r\n\
 			Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
-			Server: {} {}\r\n{}\
+			Server: {} {}\r\n{}{}\
 			Connection: {}\r\n\
 			Content-Length: {}\r\n\r\n{}&quot;</span>,
 				<span class="kw">match </span>version {
@@ -2105,6 +2189,13 @@
 				<span class="kw">match </span>content_type {
 					<span class="prelude-val">Some</span>(content_type) =&gt; <span class="macro">format!</span>(<span class="string">&quot;Content-Type: {}\r\n&quot;</span>, content_type),
 					<span class="prelude-val">None </span>=&gt; <span class="string">&quot;&quot;</span>.to_string(),
+				},
+				<span class="kw">match </span>headers.has_range()<span class="question-mark">? </span>&amp;&amp; !error {
+					<span class="bool-val">true </span>=&gt; <span class="macro">format!</span>(
+						<span class="string">&quot;Content-Range: bytes {}-{}/{}\r\n&quot;</span>,
+						range_start, range_end, file_len
+					),
+					<span class="bool-val">false </span>=&gt; <span class="string">&quot;Accept-Ranges: bytes\r\n&quot;</span>.to_string(),
 				},
 				<span class="kw">match </span>connection_type {
 					ConnectionType::KeepAlive =&gt; <span class="string">&quot;keep-alive&quot;</span>,
@@ -2194,10 +2285,12 @@
 					code,
 					message,
 					error_content.len(),
+					error_content.len(),
 					<span class="prelude-val">Some</span>(error_content),
 					<span class="prelude-val">Some</span>(<span class="string">&quot;text/html&quot;</span>.to_string()),
 					ctx,
 					headers,
+					<span class="bool-val">true</span>,
 				)<span class="question-mark">?</span>;
 
 				<span class="kw">let </span><span class="kw-2">mut </span>write_handle = conn_data.write_handle();
@@ -2402,11 +2495,28 @@
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>file = File::open(fpath.clone())<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>buf_reader = BufReader::new(file);
+		<span class="kw">let </span>len_usize: usize = <span class="macro">try_into!</span>(len)<span class="question-mark">?</span>;
+
+		<span class="kw">let </span>range_start = headers.range_start()<span class="question-mark">?</span>;
+		<span class="kw">let </span>range_end = headers.range_end()<span class="question-mark">?</span>;
+		<span class="kw">let </span>range_end_content = <span class="kw">if </span>range_end &gt; len_usize {
+			len_usize
+		} <span class="kw">else </span>{
+			range_end
+		};
+		<span class="kw">let </span>content_len = range_end_content.saturating_sub(range_start);
 
 		<span class="kw">let </span>(keep_alive, res) = <span class="self">Self</span>::build_response_headers(
 			config,
-			code,
-			message,
+			<span class="kw">match </span>headers.has_range()<span class="question-mark">? </span>{
+				<span class="bool-val">true </span>=&gt; <span class="number">206</span>,
+				<span class="bool-val">false </span>=&gt; code,
+			},
+			<span class="kw">match </span>headers.has_range()<span class="question-mark">? </span>{
+				<span class="bool-val">true </span>=&gt; <span class="string">&quot;Partial Content&quot;</span>,
+				<span class="bool-val">false </span>=&gt; message,
+			},
+			<span class="macro">try_into!</span>(content_len)<span class="question-mark">?</span>,
 			<span class="macro">try_into!</span>(len)<span class="question-mark">?</span>,
 			<span class="prelude-val">None</span>,
 			<span class="kw">match </span>ctx.mime_map.get(<span class="kw-2">&amp;</span>headers.extension()<span class="question-mark">?</span>) {
@@ -2415,6 +2525,7 @@
 			},
 			ctx,
 			headers,
+			<span class="bool-val">false</span>,
 		)<span class="question-mark">?</span>;
 
 		<span class="macro">debug!</span>(<span class="string">&quot;writing {}&quot;</span>, res)<span class="question-mark">?</span>;
@@ -2431,6 +2542,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>write_to_cache = <span class="bool-val">true</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>term = <span class="bool-val">false</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>len_sum = <span class="number">0</span>;
+		<span class="macro">debug!</span>(<span class="string">&quot;rangestart={},rangeend={}&quot;</span>, range_start, range_end)<span class="question-mark">?</span>;
 		<span class="kw">loop </span>{
 			<span class="kw">let </span><span class="kw-2">mut </span>blen = <span class="number">0</span>;
 			<span class="kw">loop </span>{
@@ -2449,11 +2561,15 @@
 			<span class="macro">debug!</span>(<span class="string">&quot;i={},blen={}&quot;</span>, i, blen)<span class="question-mark">?</span>;
 
 			<span class="kw">if </span>!write_error {
+				<span class="self">Self</span>::range_write(
+					range_start,
+					range_end,
+					<span class="kw-2">&amp;</span>buf,
+					len_sum,
+					blen,
+					<span class="kw-2">&amp;mut </span>write_handle,
+				)<span class="question-mark">?</span>;
 				len_sum += blen;
-				<span class="kw">match </span>write_handle.write(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..blen]) {
-					<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
-					<span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; write_error = <span class="bool-val">true</span>,
-				}
 			}
 
 			<span class="kw">if </span>blen &gt; <span class="number">0 </span>{
@@ -2485,6 +2601,41 @@
 		}
 
 		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>range_write(
+		range_start: usize,
+		range_end: usize,
+		buf: <span class="kw-2">&amp;</span>Vec&lt;u8&gt;,
+		len_sum: usize,
+		blen: usize,
+		write_handle: <span class="kw-2">&amp;mut </span>WriteHandle,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>write_error = <span class="bool-val">false</span>;
+		<span class="kw">let </span>start = <span class="kw">if </span>len_sum &gt;= range_start {
+			<span class="number">0
+		</span>} <span class="kw">else </span>{
+			range_start - len_sum
+		};
+		<span class="kw">let </span>end = <span class="kw">if </span>range_end &lt; len_sum + blen {
+			range_end - len_sum
+		} <span class="kw">else </span>{
+			blen
+		};
+
+		<span class="macro">debug!</span>(
+			<span class="string">&quot;start={},end={},blen={},len_sum={},range_end={}&quot;</span>,
+			start, end, blen, len_sum, range_end
+		)<span class="question-mark">?</span>;
+
+		<span class="kw">if </span>start &lt; end {
+			<span class="kw">match </span>write_handle.write(<span class="kw-2">&amp;</span>buf[start..end]) {
+				<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
+				<span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; write_error = <span class="bool-val">true</span>,
+			}
+		}
+
+		<span class="prelude-val">Ok</span>(write_error)
 	}
 
 	<span class="kw">fn </span>build_request_headers&lt;<span class="lifetime">&#39;a</span>&gt;(
@@ -2637,11 +2788,12 @@
 							)
 							.unwrap_or(<span class="string">&quot;&quot;</span>);
 
-							<span class="kw">if </span>range_value.starts_with(<span class="string">&quot;range=&quot;</span>) {
+							<span class="kw">if </span>range_value.starts_with(<span class="string">&quot;bytes=&quot;</span>) {
 								<span class="kw">let </span>range_split: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = range_value.split(<span class="string">&#39;=&#39;</span>).collect();
 								<span class="kw">let </span>range_split: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = range_split[<span class="number">1</span>].split(<span class="string">&#39;-&#39;</span>).collect();
 								range_start = range_split[<span class="number">0</span>].parse()<span class="question-mark">?</span>;
 								range_end = range_split[<span class="number">1</span>].parse()<span class="question-mark">?</span>;
+								range_end += <span class="number">1</span>;
 							}
 						}
 						header_count += <span class="number">1</span>;
@@ -3182,7 +3334,7 @@
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">175</span>);
+		<span class="macro">assert_eq!</span>(len, <span class="number">197</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
@@ -3195,7 +3347,7 @@
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">176</span>);
+		<span class="macro">assert_eq!</span>(len, <span class="number">198</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
@@ -3238,7 +3390,7 @@
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">175</span>);
+		<span class="macro">assert_eq!</span>(len, <span class="number">197</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
@@ -3251,7 +3403,7 @@
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">175</span>);
+		<span class="macro">assert_eq!</span>(len, <span class="number">197</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
