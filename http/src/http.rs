@@ -22,7 +22,7 @@ use crate::{
 	ConnectionType, HttpCache, HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType,
 	HttpRequestType, HttpServer, HttpVersion, PlainConfig,
 };
-use bmw_deps::chrono::Utc;
+use bmw_deps::chrono::{DateTime, Utc};
 use bmw_deps::dirs;
 use bmw_deps::rand::random;
 use bmw_deps::substring::Substring;
@@ -45,6 +45,14 @@ use std::str::from_utf8;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 info!();
+
+fn rfind_utf8(s: &str, chr: char) -> Option<usize> {
+	if let Some(rev_pos) = s.chars().rev().position(|c| c == chr) {
+		Some(s.chars().count() - rev_pos - 1)
+	} else {
+		None
+	}
+}
 
 impl Default for HttpHeader {
 	fn default() -> Self {
@@ -336,7 +344,7 @@ impl HttpHeaders<'_> {
 
 		let path_len = path.len();
 
-		Ok(match Self::rfind_utf8(&path, '.') {
+		Ok(match rfind_utf8(&path, '.') {
 			Some(pos) => match pos + 1 < path_len {
 				true => path.substring(pos + 1, path_len).to_string(),
 				false => "".to_string(),
@@ -359,14 +367,6 @@ impl HttpHeaders<'_> {
 
 	pub fn has_range(&self) -> Result<bool, Error> {
 		Ok(self.range_start != 0 || self.range_end != usize::MAX)
-	}
-
-	fn rfind_utf8(s: &str, chr: char) -> Option<usize> {
-		if let Some(rev_pos) = s.chars().rev().position(|c| c == chr) {
-			Some(s.chars().count() - rev_pos - 1)
-		} else {
-			None
-		}
 	}
 }
 
@@ -424,8 +424,12 @@ impl HttpServerImpl {
 		let offset = 0;
 		let connections = HashMap::new();
 		let mut mime_map = HashMap::new();
+		let mut mime_lookup = HashMap::new();
+		let mut mime_rev_lookup = HashMap::new();
 
 		for i in 0..config.mime_map.len() {
+			mime_lookup.insert(i as u32, config.mime_map[i].1.clone());
+			mime_rev_lookup.insert(config.mime_map[i].0.clone(), i as u32);
 			mime_map.insert(config.mime_map[i].0.clone(), config.mime_map[i].1.clone());
 		}
 
@@ -435,6 +439,9 @@ impl HttpServerImpl {
 			offset,
 			connections,
 			mime_map,
+			mime_lookup,
+			mime_rev_lookup,
+			now: 0,
 		})
 	}
 
@@ -449,12 +456,13 @@ impl HttpServerImpl {
 		_ctx: &HttpContext,
 		headers: &HttpHeaders,
 		error: bool,
+		last_modified: u64,
 	) -> Result<(bool, String), Error> {
 		let dt = Utc::now();
 		let mut connection_type = headers.connection()?;
 		let version = headers.version()?;
 		let mut keep_alive = connection_type == ConnectionType::KeepAlive;
-		if version != &HttpVersion::HTTP11 {
+		if version != &HttpVersion::HTTP11 || error {
 			keep_alive = false;
 			connection_type = ConnectionType::CLOSE;
 		}
@@ -470,6 +478,7 @@ impl HttpServerImpl {
 			Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
 			Server: {} {}\r\n{}{}\
 			Connection: {}\r\n\
+                        Last-Modified: {}\r\n\
 			Content-Length: {}\r\n\r\n{}",
 				match version {
 					HttpVersion::HTTP11 => "1.1",
@@ -494,6 +503,9 @@ impl HttpServerImpl {
 					ConnectionType::KeepAlive => "keep-alive",
 					_ => "close",
 				},
+				DateTime::from_timestamp(try_into!(last_modified / 1000)?, 0)
+					.unwrap_or(UNIX_EPOCH.into())
+					.format("%a, %d %h %C%y %H:%M:%S GMT"),
 				content_len,
 				match content {
 					Some(content) => content,
@@ -567,12 +579,14 @@ impl HttpServerImpl {
 					cache,
 					ctx,
 					headers,
+					try_into!(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_millis())?,
 				)?;
 			}
 			Err(_) => {
 				let error_content = ERROR_CONTENT
 					.replace("ERROR_MESSAGE", message)
 					.replace("ERROR_CODE", &format!("{}", code));
+				let last_modified = try_into!(ctx.now)?;
 				let (keep_alive, res) = Self::build_response_headers(
 					config,
 					code,
@@ -584,6 +598,7 @@ impl HttpServerImpl {
 					ctx,
 					headers,
 					true,
+					last_modified,
 				)?;
 
 				let mut write_handle = conn_data.write_handle();
@@ -743,6 +758,7 @@ impl HttpServerImpl {
 				cache,
 				ctx,
 				headers,
+				try_into!(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_millis())?,
 			)?;
 		}
 
@@ -785,6 +801,7 @@ impl HttpServerImpl {
 		mut cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
 		ctx: &HttpContext,
 		headers: &HttpHeaders,
+		last_modified: u64,
 	) -> Result<(), Error> {
 		let file = File::open(fpath.clone())?;
 		let mut buf_reader = BufReader::new(file);
@@ -799,6 +816,15 @@ impl HttpServerImpl {
 		};
 		let content_len = range_end_content.saturating_sub(range_start);
 
+		let path_len = fpath.len();
+		let extension = match rfind_utf8(&fpath, '.') {
+			Some(pos) => match pos + 1 < path_len {
+				true => fpath.substring(pos + 1, path_len).to_string(),
+				false => "".to_string(),
+			},
+			None => "".to_string(),
+		};
+
 		let (keep_alive, res) = Self::build_response_headers(
 			config,
 			match headers.has_range()? {
@@ -812,13 +838,14 @@ impl HttpServerImpl {
 			try_into!(content_len)?,
 			try_into!(len)?,
 			None,
-			match ctx.mime_map.get(&headers.extension()?) {
+			match ctx.mime_map.get(&extension) {
 				Some(mime_type) => Some(mime_type.clone()),
-				None => Some("text/html".to_string()),
+				None => Some("text/plain".to_string()),
 			},
 			ctx,
 			headers,
 			false,
+			last_modified,
 		)?;
 
 		debug!("writing {}", res)?;
@@ -836,6 +863,7 @@ impl HttpServerImpl {
 		let mut term = false;
 		let mut len_sum = 0;
 		debug!("rangestart={},rangeend={}", range_start, range_end)?;
+		let mime_type = ctx.mime_rev_lookup.get(&extension).unwrap_or(&u32::MAX);
 		loop {
 			let mut blen = 0;
 			loop {
@@ -868,7 +896,12 @@ impl HttpServerImpl {
 			if blen > 0 {
 				let mut cache = cache.wlock()?;
 				if i == 0 {
-					write_to_cache = (**cache.guard()).write_len(&fpath, try_into!(len)?)?;
+					write_to_cache = (**cache.guard()).write_metadata(
+						&fpath,
+						try_into!(len)?,
+						last_modified,
+						*mime_type,
+					)?;
 				}
 
 				if write_to_cache {
@@ -1205,8 +1238,8 @@ impl HttpServerImpl {
 		};
 		debug!("conn_data.tid={},att={:?}", conn_data.tid(), attachment)?;
 		let ctx = Self::build_ctx(ctx, config)?;
-		let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
-		Self::update_time(now, ctx, conn_data)?;
+		ctx.now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
+		Self::update_time(ctx.now, ctx, conn_data)?;
 
 		debug!("on read slab_offset = {}", conn_data.slab_offset())?;
 		let first_slab = conn_data.first_slab();
@@ -1428,9 +1461,9 @@ impl HttpServerImpl {
 		ctx: &mut ThreadContext,
 		config: &HttpConfig,
 	) -> Result<(), Error> {
-		let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
 		let ctx = Self::build_ctx(ctx, config)?;
-		Self::update_time(now, ctx, conn_data)?;
+		ctx.now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
+		Self::update_time(ctx.now, ctx, conn_data)?;
 		Ok(())
 	}
 
@@ -1627,7 +1660,7 @@ mod test {
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
-		assert_eq!(len, 197);
+		assert_eq!(len, 243);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 
@@ -1640,7 +1673,7 @@ mod test {
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
-		assert_eq!(len, 198);
+		assert_eq!(len, 244);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 
@@ -1683,7 +1716,7 @@ mod test {
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
-		assert_eq!(len, 197);
+		assert_eq!(len, 243);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 
@@ -1696,7 +1729,7 @@ mod test {
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
-		assert_eq!(len, 197);
+		assert_eq!(len, 243);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 

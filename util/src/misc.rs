@@ -59,6 +59,55 @@ pub fn slice_to_usize(slice: &[u8]) -> Result<usize, Error> {
 	Ok(ret)
 }
 
+/// Utility to convert a u64 to an arbitrary length slice (up to 8 bytes).
+pub fn u64_to_slice(n: u64, slice: &mut [u8]) -> Result<(), Error> {
+	usize_to_slice(try_into!(n)?, slice)
+}
+
+/// Utility to convert an arbitrary length slice (up to 8 bytes) to a u64.
+pub fn slice_to_u64(slice: &[u8]) -> Result<usize, Error> {
+	try_into!(slice_to_usize(slice)?)
+}
+
+/// Utility to convert a u32 to an arbitrary length slice (up to 4 bytes).
+pub fn u32_to_slice(mut n: u32, slice: &mut [u8]) -> Result<(), Error> {
+	let len = slice.len();
+	if len > 4 {
+		let fmt = format!("slice must be equal to or less than 4 bytes ({})", len);
+		return Err(err!(ErrKind::IllegalArgument, fmt));
+	}
+
+	for i in (0..len).rev() {
+		slice[i] = (n & 0xFF) as u8;
+		n >>= 8;
+	}
+
+	if n != 0 {
+		// this is an overflow, but for our purposes we return "MAX".
+		for i in 0..len {
+			slice[i] = 0xFF;
+		}
+	}
+
+	Ok(())
+}
+
+/// Utility to convert an arbitrary length slice (up to 8 bytes) to a u32.
+pub fn slice_to_u32(slice: &[u8]) -> Result<u32, Error> {
+	let len = slice.len();
+	if len > 4 {
+		let fmt = format!("slice must be equal to or less than 4 bytes ({})", len);
+		return Err(err!(ErrKind::IllegalArgument, fmt));
+	}
+	let mut ret = 0;
+	for i in 0..len {
+		ret <<= 8;
+		ret |= (slice[i] & 0xFF) as u32;
+	}
+
+	Ok(ret)
+}
+
 /// Set the maximum possible value in this slice
 pub(crate) fn set_max(slice: &mut [u8]) {
 	for i in 0..slice.len() {

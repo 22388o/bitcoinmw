@@ -51,8 +51,12 @@ impl HttpCache for HttpCacheImpl {
 		debug!("try cache {}", fpath)?;
 		let found = self.hashtable.raw_read(fpath, 0, &mut data)?;
 		debug!("raw read complete")?;
+		let text_plain = TEXT_PLAIN.to_string();
 		if found {
 			let len = slice_to_usize(&data[0..8])?;
+			let last_modified = slice_to_u64(&data[8..16])?;
+			let mime_code = slice_to_u32(&data[16..20])?;
+			let mime_type = ctx.mime_lookup.get(&mime_code).unwrap_or(&text_plain);
 			debug!(
 				"cache found len = {}, data = {:?}, found={}",
 				len,
@@ -78,13 +82,11 @@ impl HttpCache for HttpCacheImpl {
 				content_len,
 				len,
 				None,
-				match ctx.mime_map.get(&headers.extension()?) {
-					Some(mime_type) => Some(mime_type.clone()),
-					None => Some("text/html".to_string()),
-				},
+				Some(mime_type.clone()),
 				ctx,
 				headers,
 				false,
+				try_into!(last_modified)?,
 			)?;
 
 			debug!("writing {}", res)?;
@@ -96,7 +98,7 @@ impl HttpCache for HttpCacheImpl {
 			let mut len_sum = 0;
 			loop {
 				self.hashtable
-					.raw_read(fpath, 8 + i * CACHE_BUFFER_SIZE, &mut data)?;
+					.raw_read(fpath, 20 + i * CACHE_BUFFER_SIZE, &mut data)?;
 				let blen = if rem > CACHE_BUFFER_SIZE {
 					CACHE_BUFFER_SIZE
 				} else {
@@ -128,7 +130,13 @@ impl HttpCache for HttpCacheImpl {
 		Ok(found)
 	}
 
-	fn write_len(&mut self, path: &String, len: usize) -> Result<bool, Error> {
+	fn write_metadata(
+		&mut self,
+		path: &String,
+		len: usize,
+		last_modified: u64,
+		mime_type: u32,
+	) -> Result<bool, Error> {
 		let mut free_count;
 		let slab_count;
 		(free_count, slab_count) = {
@@ -160,6 +168,8 @@ impl HttpCache for HttpCacheImpl {
 			debug!("write_len {} = {}", path, len)?;
 			let mut data = [0u8; CACHE_BUFFER_SIZE];
 			usize_to_slice(len, &mut data[0..8])?;
+			u64_to_slice(last_modified, &mut data[8..16])?;
+			u32_to_slice(mime_type, &mut data[16..20])?;
 			debug!("write_len {:?}", &data[0..8])?;
 			self.hashtable.raw_write(path, 0, &data)?;
 			debug!("====================================write_len complete")?;
@@ -179,7 +189,7 @@ impl HttpCache for HttpCacheImpl {
 		)?;
 		let ret = self
 			.hashtable
-			.raw_write(path, 8 + block_num * CACHE_BUFFER_SIZE, data);
+			.raw_write(path, 20 + block_num * CACHE_BUFFER_SIZE, data);
 		debug!(
 			"=====================================write block complete: {:?}",
 			ret

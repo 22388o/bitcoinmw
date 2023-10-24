@@ -78,7 +78,13 @@ pub trait HttpCache {
 		config: &HttpConfig,
 		headers: &HttpHeaders,
 	) -> Result<bool, Error>;
-	fn write_len(&mut self, path: &String, len: usize) -> Result<bool, Error>;
+	fn write_metadata(
+		&mut self,
+		path: &String,
+		len: usize,
+		last_modified: u64,
+		mime_type: u32,
+	) -> Result<bool, Error>;
 	fn write_block(
 		&mut self,
 		path: &String,
@@ -156,6 +162,9 @@ pub struct HttpContext {
 	pub(crate) offset: usize,
 	pub(crate) connections: HashMap<u128, (Box<dyn LockBox<WriteState>>, u128, usize)>,
 	pub(crate) mime_map: HashMap<String, String>,
+	pub(crate) mime_lookup: HashMap<u32, String>,
+	pub(crate) mime_rev_lookup: HashMap<String, u32>,
+	pub(crate) now: u128,
 }
 
 type HttpCallback =
