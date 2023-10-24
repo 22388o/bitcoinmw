@@ -1738,6 +1738,8 @@
 <a href="#1738" id="1738">1738</a>
 <a href="#1739" id="1739">1739</a>
 <a href="#1740" id="1740">1740</a>
+<a href="#1741" id="1741">1741</a>
+<a href="#1742" id="1742">1742</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2219,6 +2221,7 @@
 			Server: {} {}\r\n{}{}\
 			Connection: {}\r\n\
                         Last-Modified: {}\r\n\
+                        ETag: \&quot;{}\&quot;\r\n\
 			Content-Length: {}\r\n\r\n{}&quot;</span>,
 				<span class="kw">match </span>version {
 					HttpVersion::HTTP11 =&gt; <span class="string">&quot;1.1&quot;</span>,
@@ -2246,6 +2249,7 @@
 				DateTime::from_timestamp(<span class="macro">try_into!</span>(last_modified / <span class="number">1000</span>)<span class="question-mark">?</span>, <span class="number">0</span>)
 					.unwrap_or(UNIX_EPOCH.into())
 					.format(<span class="string">&quot;%a, %d %h %C%y %H:%M:%S GMT&quot;</span>),
+				<span class="macro">format!</span>(<span class="string">&quot;{}-{:01x}&quot;</span>, last_modified, content_len),
 				content_len,
 				<span class="kw">match </span>content {
 					<span class="prelude-val">Some</span>(content) =&gt; content,
@@ -3400,7 +3404,7 @@
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">243</span>);
+		<span class="macro">assert_eq!</span>(len, <span class="number">268</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
@@ -3413,7 +3417,7 @@
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">244</span>);
+		<span class="macro">assert_eq!</span>(len, <span class="number">269</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
@@ -3456,7 +3460,7 @@
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">243</span>);
+		<span class="macro">assert_eq!</span>(len, <span class="number">268</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
@@ -3469,7 +3473,7 @@
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">243</span>);
+		<span class="macro">assert_eq!</span>(len, <span class="number">268</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
