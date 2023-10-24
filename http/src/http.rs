@@ -479,6 +479,7 @@ impl HttpServerImpl {
 			Server: {} {}\r\n{}{}\
 			Connection: {}\r\n\
                         Last-Modified: {}\r\n\
+                        ETag: \"{}\"\r\n\
 			Content-Length: {}\r\n\r\n{}",
 				match version {
 					HttpVersion::HTTP11 => "1.1",
@@ -506,6 +507,7 @@ impl HttpServerImpl {
 				DateTime::from_timestamp(try_into!(last_modified / 1000)?, 0)
 					.unwrap_or(UNIX_EPOCH.into())
 					.format("%a, %d %h %C%y %H:%M:%S GMT"),
+				format!("{}-{:01x}", last_modified, content_len),
 				content_len,
 				match content {
 					Some(content) => content,
