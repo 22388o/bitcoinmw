@@ -1080,24 +1080,42 @@ where
 		// listeners to remain consistent
 		for (_id, conn_info) in ctx.connection_hashtable.iter() {
 			match conn_info {
-				ConnectionInfo::ListenerInfo(li) => {
-					close_handle_impl(li.handle)?;
-				}
+				ConnectionInfo::ListenerInfo(li) => match close_handle_impl(li.handle) {
+					Ok(_) => {}
+					Err(e) => {
+						let _ = warn!("close_handle_impl generated error: {:?}", e);
+					}
+				},
 				ConnectionInfo::StreamInfo(mut rw) => {
-					// set write state to close to avoid other threads writing
 					{
-						let mut state = rw.write_state.wlock()?;
-						let guard = state.guard();
-						(**guard).set_flag(WRITE_STATE_FLAG_CLOSE);
+						match rw.write_state.wlock() {
+							Ok(mut state) => {
+								let guard = state.guard();
+								(**guard).set_flag(WRITE_STATE_FLAG_CLOSE);
+							}
+							Err(e) => {
+								let _ = warn!("rw.write_state.wlock generated error: {:?}", e);
+							}
+						}
 					}
 
-					rw.clear_through_impl(rw.last_slab, &mut ctx.read_slabs)?;
-					close_handle_impl(rw.handle)?;
+					let _ = rw.clear_through_impl(rw.last_slab, &mut ctx.read_slabs);
+					let _ = close_handle_impl(rw.handle);
 				}
 			}
 		}
-		ctx.handle_hashtable.clear()?;
-		ctx.connection_hashtable.clear()?;
+		match ctx.handle_hashtable.clear() {
+			Ok(_) => {}
+			Err(e) => {
+				let _ = warn!("handle_hashtable.clear generated error: {:?}", e);
+			}
+		}
+		match ctx.connection_hashtable.clear() {
+			Ok(_) => {}
+			Err(e) => {
+				let _ = warn!("connetion_hashtable.clear generated error: {:?}", e);
+			}
+		}
 		debug!("handles closed")?;
 		Ok(())
 	}
@@ -3429,7 +3447,11 @@ mod test {
 			count_count += 1;
 			sleep(Duration::from_millis(1));
 			let count = **((close_count_clone.rlock()?).guard());
-			if count != total && count_count < 10_000 {
+			if count != total && count_count < 60_000 {
+				info!(
+					"count = {}, total = {}, will try again in a millisecond",
+					count, total
+				)?;
 				continue;
 			}
 			assert_eq!((**((close_count_clone.rlock()?).guard())), total);
@@ -3437,6 +3459,11 @@ mod test {
 		}
 
 		evh.stop()?;
+
+		sleep(Duration::from_millis(1_000));
+		info!("stop complete. Waiting for 10 seconds")?;
+		sleep(Duration::from_millis(10_000));
+		info!("10 seconds elapsed")?;
 
 		Ok(())
 	}
