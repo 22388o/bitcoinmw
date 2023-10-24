@@ -1662,7 +1662,7 @@ mod test {
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
-		assert_eq!(len, 243);
+		assert_eq!(len, 268);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 
@@ -1675,7 +1675,7 @@ mod test {
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
-		assert_eq!(len, 244);
+		assert_eq!(len, 269);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 
@@ -1718,7 +1718,7 @@ mod test {
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
-		assert_eq!(len, 243);
+		assert_eq!(len, 268);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 
@@ -1731,7 +1731,7 @@ mod test {
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
-		assert_eq!(len, 243);
+		assert_eq!(len, 268);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 
