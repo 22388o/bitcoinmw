@@ -30,7 +30,7 @@ use bmw_err::*;
 use bmw_evh::{
 	create_listeners, AttachmentHolder, Builder, CloseHandle, ConnData, ConnectionData,
 	EventHandler, EventHandlerConfig, EventHandlerData, ServerConnection, ThreadContext,
-	TlsServerConfig, READ_SLAB_DATA_SIZE,
+	TlsServerConfig, WriteHandle, READ_SLAB_DATA_SIZE,
 };
 use bmw_log::*;
 use bmw_util::*;
@@ -443,10 +443,12 @@ impl HttpServerImpl {
 		code: u16,
 		message: &str,
 		content_len: usize,
+		file_len: usize,
 		content: Option<String>,
 		content_type: Option<String>,
 		_ctx: &HttpContext,
 		headers: &HttpHeaders,
+		error: bool,
 	) -> Result<(bool, String), Error> {
 		let dt = Utc::now();
 		let mut connection_type = headers.connection()?;
@@ -456,11 +458,17 @@ impl HttpServerImpl {
 			keep_alive = false;
 			connection_type = ConnectionType::CLOSE;
 		}
+
+		let mut range_end = headers.range_end()?;
+		if range_end > file_len.saturating_sub(1) {
+			range_end = file_len.saturating_sub(1);
+		}
+		let range_start = headers.range_start()?;
 		let res = dt
 			.format(&format!(
 				"HTTP/{} {} {}\r\n\
 			Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
-			Server: {} {}\r\n{}\
+			Server: {} {}\r\n{}{}\
 			Connection: {}\r\n\
 			Content-Length: {}\r\n\r\n{}",
 				match version {
@@ -474,6 +482,13 @@ impl HttpServerImpl {
 				match content_type {
 					Some(content_type) => format!("Content-Type: {}\r\n", content_type),
 					None => "".to_string(),
+				},
+				match headers.has_range()? && !error {
+					true => format!(
+						"Content-Range: bytes {}-{}/{}\r\n",
+						range_start, range_end, file_len
+					),
+					false => "Accept-Ranges: bytes\r\n".to_string(),
 				},
 				match connection_type {
 					ConnectionType::KeepAlive => "keep-alive",
@@ -563,10 +578,12 @@ impl HttpServerImpl {
 					code,
 					message,
 					error_content.len(),
+					error_content.len(),
 					Some(error_content),
 					Some("text/html".to_string()),
 					ctx,
 					headers,
+					true,
 				)?;
 
 				let mut write_handle = conn_data.write_handle();
@@ -771,11 +788,28 @@ impl HttpServerImpl {
 	) -> Result<(), Error> {
 		let file = File::open(fpath.clone())?;
 		let mut buf_reader = BufReader::new(file);
+		let len_usize: usize = try_into!(len)?;
+
+		let range_start = headers.range_start()?;
+		let range_end = headers.range_end()?;
+		let range_end_content = if range_end > len_usize {
+			len_usize
+		} else {
+			range_end
+		};
+		let content_len = range_end_content.saturating_sub(range_start);
 
 		let (keep_alive, res) = Self::build_response_headers(
 			config,
-			code,
-			message,
+			match headers.has_range()? {
+				true => 206,
+				false => code,
+			},
+			match headers.has_range()? {
+				true => "Partial Content",
+				false => message,
+			},
+			try_into!(content_len)?,
 			try_into!(len)?,
 			None,
 			match ctx.mime_map.get(&headers.extension()?) {
@@ -784,6 +818,7 @@ impl HttpServerImpl {
 			},
 			ctx,
 			headers,
+			false,
 		)?;
 
 		debug!("writing {}", res)?;
@@ -800,6 +835,7 @@ impl HttpServerImpl {
 		let mut write_to_cache = true;
 		let mut term = false;
 		let mut len_sum = 0;
+		info!("rangestart={},rangeend={}", range_start, range_end);
 		loop {
 			let mut blen = 0;
 			loop {
@@ -818,11 +854,15 @@ impl HttpServerImpl {
 			debug!("i={},blen={}", i, blen)?;
 
 			if !write_error {
+				Self::range_write(
+					range_start,
+					range_end,
+					&buf,
+					len_sum,
+					blen,
+					&mut write_handle,
+				)?;
 				len_sum += blen;
-				match write_handle.write(&buf[0..blen]) {
-					Ok(_) => {}
-					Err(_) => write_error = true,
-				}
 			}
 
 			if blen > 0 {
@@ -854,6 +894,43 @@ impl HttpServerImpl {
 		}
 
 		Ok(())
+	}
+
+	pub(crate) fn range_write(
+		range_start: usize,
+		range_end: usize,
+		buf: &Vec<u8>,
+		len_sum: usize,
+		blen: usize,
+		write_handle: &mut WriteHandle,
+	) -> Result<bool, Error> {
+		let mut write_error = false;
+		let start = if len_sum >= range_start {
+			0
+		} else {
+			range_start - len_sum
+		};
+		let end = if range_end < len_sum + blen {
+			info!("a");
+			range_end - len_sum
+		} else {
+			info!("b");
+			blen
+		};
+
+		info!(
+			"start={},end={},blen={},len_sum={},range_end={}",
+			start, end, blen, len_sum, range_end
+		);
+
+		if start < end {
+			match write_handle.write(&buf[start..end]) {
+				Ok(_) => {}
+				Err(_) => write_error = true,
+			}
+		}
+
+		Ok(write_error)
 	}
 
 	fn build_request_headers<'a>(
@@ -1006,11 +1083,12 @@ impl HttpServerImpl {
 							)
 							.unwrap_or("");
 
-							if range_value.starts_with("range=") {
+							if range_value.starts_with("bytes=") {
 								let range_split: Vec<&str> = range_value.split('=').collect();
 								let range_split: Vec<&str> = range_split[1].split('-').collect();
 								range_start = range_split[0].parse()?;
 								range_end = range_split[1].parse()?;
+								range_end += 1;
 							}
 						}
 						header_count += 1;

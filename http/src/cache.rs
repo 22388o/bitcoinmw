@@ -60,10 +60,22 @@ impl HttpCache for HttpCacheImpl {
 				found
 			)?;
 
+			let range_start = headers.range_start()?;
+			let range_end = headers.range_end()?;
+			let range_end_content = if range_end > len { len } else { range_end };
+			let content_len = range_end_content.saturating_sub(range_start);
+
 			let (keep_alive, res) = HttpServerImpl::build_response_headers(
 				config,
-				code,
-				message,
+				match headers.has_range()? {
+					true => 206,
+					false => code,
+				},
+				match headers.has_range()? {
+					true => "Partial Content",
+					false => message,
+				},
+				content_len,
 				len,
 				None,
 				match ctx.mime_map.get(&headers.extension()?) {
@@ -72,6 +84,7 @@ impl HttpCache for HttpCacheImpl {
 				},
 				ctx,
 				headers,
+				false,
 			)?;
 
 			debug!("writing {}", res)?;
@@ -80,18 +93,28 @@ impl HttpCache for HttpCacheImpl {
 			write_handle.write(&res.as_bytes()[..])?;
 			let mut rem = len;
 			let mut i = 0;
+			let mut len_sum = 0;
 			loop {
 				self.hashtable
 					.raw_read(fpath, 8 + i * CACHE_BUFFER_SIZE, &mut data)?;
-				let wlen = if rem > CACHE_BUFFER_SIZE {
+				let blen = if rem > CACHE_BUFFER_SIZE {
 					CACHE_BUFFER_SIZE
 				} else {
 					rem
 				};
-				debug!("read wlen={},rem={},data={:?}", wlen, rem, data)?;
-				write_handle.write(&data[0..wlen])?;
+				debug!("read blen={},rem={},data={:?}", blen, rem, data)?;
 
-				rem = rem.saturating_sub(wlen);
+				HttpServerImpl::range_write(
+					range_start,
+					range_end,
+					&data.to_vec(),
+					len_sum,
+					blen,
+					&mut write_handle,
+				)?;
+				len_sum += blen;
+
+				rem = rem.saturating_sub(blen);
 				if rem == 0 {
 					break;
 				}
