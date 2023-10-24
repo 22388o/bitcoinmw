@@ -1705,6 +1705,39 @@
 <a href="#1705" id="1705">1705</a>
 <a href="#1706" id="1706">1706</a>
 <a href="#1707" id="1707">1707</a>
+<a href="#1708" id="1708">1708</a>
+<a href="#1709" id="1709">1709</a>
+<a href="#1710" id="1710">1710</a>
+<a href="#1711" id="1711">1711</a>
+<a href="#1712" id="1712">1712</a>
+<a href="#1713" id="1713">1713</a>
+<a href="#1714" id="1714">1714</a>
+<a href="#1715" id="1715">1715</a>
+<a href="#1716" id="1716">1716</a>
+<a href="#1717" id="1717">1717</a>
+<a href="#1718" id="1718">1718</a>
+<a href="#1719" id="1719">1719</a>
+<a href="#1720" id="1720">1720</a>
+<a href="#1721" id="1721">1721</a>
+<a href="#1722" id="1722">1722</a>
+<a href="#1723" id="1723">1723</a>
+<a href="#1724" id="1724">1724</a>
+<a href="#1725" id="1725">1725</a>
+<a href="#1726" id="1726">1726</a>
+<a href="#1727" id="1727">1727</a>
+<a href="#1728" id="1728">1728</a>
+<a href="#1729" id="1729">1729</a>
+<a href="#1730" id="1730">1730</a>
+<a href="#1731" id="1731">1731</a>
+<a href="#1732" id="1732">1732</a>
+<a href="#1733" id="1733">1733</a>
+<a href="#1734" id="1734">1734</a>
+<a href="#1735" id="1735">1735</a>
+<a href="#1736" id="1736">1736</a>
+<a href="#1737" id="1737">1737</a>
+<a href="#1738" id="1738">1738</a>
+<a href="#1739" id="1739">1739</a>
+<a href="#1740" id="1740">1740</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1729,7 +1762,7 @@
 	ConnectionType, HttpCache, HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType,
 	HttpRequestType, HttpServer, HttpVersion, PlainConfig,
 };
-<span class="kw">use </span>bmw_deps::chrono::Utc;
+<span class="kw">use </span>bmw_deps::chrono::{DateTime, Utc};
 <span class="kw">use </span>bmw_deps::dirs;
 <span class="kw">use </span>bmw_deps::rand::random;
 <span class="kw">use </span>bmw_deps::substring::Substring;
@@ -1752,6 +1785,14 @@
 <span class="kw">use </span>std::time::{SystemTime, UNIX_EPOCH};
 
 <span class="macro">info!</span>();
+
+<span class="kw">fn </span>rfind_utf8(s: <span class="kw-2">&amp;</span>str, chr: char) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
+	<span class="kw">if let </span><span class="prelude-val">Some</span>(rev_pos) = s.chars().rev().position(|c| c == chr) {
+		<span class="prelude-val">Some</span>(s.chars().count() - rev_pos - <span class="number">1</span>)
+	} <span class="kw">else </span>{
+		<span class="prelude-val">None
+	</span>}
+}
 
 <span class="kw">impl </span>Default <span class="kw">for </span>HttpHeader {
 	<span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
@@ -2043,7 +2084,7 @@
 
 		<span class="kw">let </span>path_len = path.len();
 
-		<span class="prelude-val">Ok</span>(<span class="kw">match </span><span class="self">Self</span>::rfind_utf8(<span class="kw-2">&amp;</span>path, <span class="string">&#39;.&#39;</span>) {
+		<span class="prelude-val">Ok</span>(<span class="kw">match </span>rfind_utf8(<span class="kw-2">&amp;</span>path, <span class="string">&#39;.&#39;</span>) {
 			<span class="prelude-val">Some</span>(pos) =&gt; <span class="kw">match </span>pos + <span class="number">1 </span>&lt; path_len {
 				<span class="bool-val">true </span>=&gt; path.substring(pos + <span class="number">1</span>, path_len).to_string(),
 				<span class="bool-val">false </span>=&gt; <span class="string">&quot;&quot;</span>.to_string(),
@@ -2066,14 +2107,6 @@
 
 	<span class="kw">pub fn </span>has_range(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="prelude-val">Ok</span>(<span class="self">self</span>.range_start != <span class="number">0 </span>|| <span class="self">self</span>.range_end != usize::MAX)
-	}
-
-	<span class="kw">fn </span>rfind_utf8(s: <span class="kw-2">&amp;</span>str, chr: char) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
-		<span class="kw">if let </span><span class="prelude-val">Some</span>(rev_pos) = s.chars().rev().position(|c| c == chr) {
-			<span class="prelude-val">Some</span>(s.chars().count() - rev_pos - <span class="number">1</span>)
-		} <span class="kw">else </span>{
-			<span class="prelude-val">None
-		</span>}
 	}
 }
 
@@ -2131,8 +2164,12 @@
 		<span class="kw">let </span>offset = <span class="number">0</span>;
 		<span class="kw">let </span>connections = HashMap::new();
 		<span class="kw">let </span><span class="kw-2">mut </span>mime_map = HashMap::new();
+		<span class="kw">let </span><span class="kw-2">mut </span>mime_lookup = HashMap::new();
+		<span class="kw">let </span><span class="kw-2">mut </span>mime_rev_lookup = HashMap::new();
 
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..config.mime_map.len() {
+			mime_lookup.insert(i <span class="kw">as </span>u32, config.mime_map[i].<span class="number">1</span>.clone());
+			mime_rev_lookup.insert(config.mime_map[i].<span class="number">0</span>.clone(), i <span class="kw">as </span>u32);
 			mime_map.insert(config.mime_map[i].<span class="number">0</span>.clone(), config.mime_map[i].<span class="number">1</span>.clone());
 		}
 
@@ -2142,6 +2179,9 @@
 			offset,
 			connections,
 			mime_map,
+			mime_lookup,
+			mime_rev_lookup,
+			now: <span class="number">0</span>,
 		})
 	}
 
@@ -2156,12 +2196,13 @@
 		_ctx: <span class="kw-2">&amp;</span>HttpContext,
 		headers: <span class="kw-2">&amp;</span>HttpHeaders,
 		error: bool,
+		last_modified: u64,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(bool, String), Error&gt; {
 		<span class="kw">let </span>dt = Utc::now();
 		<span class="kw">let </span><span class="kw-2">mut </span>connection_type = headers.connection()<span class="question-mark">?</span>;
 		<span class="kw">let </span>version = headers.version()<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>keep_alive = connection_type == ConnectionType::KeepAlive;
-		<span class="kw">if </span>version != <span class="kw-2">&amp;</span>HttpVersion::HTTP11 {
+		<span class="kw">if </span>version != <span class="kw-2">&amp;</span>HttpVersion::HTTP11 || error {
 			keep_alive = <span class="bool-val">false</span>;
 			connection_type = ConnectionType::CLOSE;
 		}
@@ -2177,6 +2218,7 @@
 			Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
 			Server: {} {}\r\n{}{}\
 			Connection: {}\r\n\
+                        Last-Modified: {}\r\n\
 			Content-Length: {}\r\n\r\n{}&quot;</span>,
 				<span class="kw">match </span>version {
 					HttpVersion::HTTP11 =&gt; <span class="string">&quot;1.1&quot;</span>,
@@ -2201,6 +2243,9 @@
 					ConnectionType::KeepAlive =&gt; <span class="string">&quot;keep-alive&quot;</span>,
 					<span class="kw">_ </span>=&gt; <span class="string">&quot;close&quot;</span>,
 				},
+				DateTime::from_timestamp(<span class="macro">try_into!</span>(last_modified / <span class="number">1000</span>)<span class="question-mark">?</span>, <span class="number">0</span>)
+					.unwrap_or(UNIX_EPOCH.into())
+					.format(<span class="string">&quot;%a, %d %h %C%y %H:%M:%S GMT&quot;</span>),
 				content_len,
 				<span class="kw">match </span>content {
 					<span class="prelude-val">Some</span>(content) =&gt; content,
@@ -2274,12 +2319,14 @@
 					cache,
 					ctx,
 					headers,
+					<span class="macro">try_into!</span>(metadata.modified()<span class="question-mark">?</span>.duration_since(UNIX_EPOCH)<span class="question-mark">?</span>.as_millis())<span class="question-mark">?</span>,
 				)<span class="question-mark">?</span>;
 			}
 			<span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; {
 				<span class="kw">let </span>error_content = ERROR_CONTENT
 					.replace(<span class="string">&quot;ERROR_MESSAGE&quot;</span>, message)
 					.replace(<span class="string">&quot;ERROR_CODE&quot;</span>, <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, code));
+				<span class="kw">let </span>last_modified = <span class="macro">try_into!</span>(ctx.now)<span class="question-mark">?</span>;
 				<span class="kw">let </span>(keep_alive, res) = <span class="self">Self</span>::build_response_headers(
 					config,
 					code,
@@ -2291,6 +2338,7 @@
 					ctx,
 					headers,
 					<span class="bool-val">true</span>,
+					last_modified,
 				)<span class="question-mark">?</span>;
 
 				<span class="kw">let </span><span class="kw-2">mut </span>write_handle = conn_data.write_handle();
@@ -2450,6 +2498,7 @@
 				cache,
 				ctx,
 				headers,
+				<span class="macro">try_into!</span>(metadata.modified()<span class="question-mark">?</span>.duration_since(UNIX_EPOCH)<span class="question-mark">?</span>.as_millis())<span class="question-mark">?</span>,
 			)<span class="question-mark">?</span>;
 		}
 
@@ -2492,6 +2541,7 @@
 		<span class="kw-2">mut </span>cache: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>HttpCache + Send + Sync&gt;&gt;&gt;,
 		ctx: <span class="kw-2">&amp;</span>HttpContext,
 		headers: <span class="kw-2">&amp;</span>HttpHeaders,
+		last_modified: u64,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>file = File::open(fpath.clone())<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>buf_reader = BufReader::new(file);
@@ -2506,6 +2556,15 @@
 		};
 		<span class="kw">let </span>content_len = range_end_content.saturating_sub(range_start);
 
+		<span class="kw">let </span>path_len = fpath.len();
+		<span class="kw">let </span>extension = <span class="kw">match </span>rfind_utf8(<span class="kw-2">&amp;</span>fpath, <span class="string">&#39;.&#39;</span>) {
+			<span class="prelude-val">Some</span>(pos) =&gt; <span class="kw">match </span>pos + <span class="number">1 </span>&lt; path_len {
+				<span class="bool-val">true </span>=&gt; fpath.substring(pos + <span class="number">1</span>, path_len).to_string(),
+				<span class="bool-val">false </span>=&gt; <span class="string">&quot;&quot;</span>.to_string(),
+			},
+			<span class="prelude-val">None </span>=&gt; <span class="string">&quot;&quot;</span>.to_string(),
+		};
+
 		<span class="kw">let </span>(keep_alive, res) = <span class="self">Self</span>::build_response_headers(
 			config,
 			<span class="kw">match </span>headers.has_range()<span class="question-mark">? </span>{
@@ -2519,13 +2578,14 @@
 			<span class="macro">try_into!</span>(content_len)<span class="question-mark">?</span>,
 			<span class="macro">try_into!</span>(len)<span class="question-mark">?</span>,
 			<span class="prelude-val">None</span>,
-			<span class="kw">match </span>ctx.mime_map.get(<span class="kw-2">&amp;</span>headers.extension()<span class="question-mark">?</span>) {
+			<span class="kw">match </span>ctx.mime_map.get(<span class="kw-2">&amp;</span>extension) {
 				<span class="prelude-val">Some</span>(mime_type) =&gt; <span class="prelude-val">Some</span>(mime_type.clone()),
-				<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Some</span>(<span class="string">&quot;text/html&quot;</span>.to_string()),
+				<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Some</span>(<span class="string">&quot;text/plain&quot;</span>.to_string()),
 			},
 			ctx,
 			headers,
 			<span class="bool-val">false</span>,
+			last_modified,
 		)<span class="question-mark">?</span>;
 
 		<span class="macro">debug!</span>(<span class="string">&quot;writing {}&quot;</span>, res)<span class="question-mark">?</span>;
@@ -2543,6 +2603,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>term = <span class="bool-val">false</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>len_sum = <span class="number">0</span>;
 		<span class="macro">debug!</span>(<span class="string">&quot;rangestart={},rangeend={}&quot;</span>, range_start, range_end)<span class="question-mark">?</span>;
+		<span class="kw">let </span>mime_type = ctx.mime_rev_lookup.get(<span class="kw-2">&amp;</span>extension).unwrap_or(<span class="kw-2">&amp;</span>u32::MAX);
 		<span class="kw">loop </span>{
 			<span class="kw">let </span><span class="kw-2">mut </span>blen = <span class="number">0</span>;
 			<span class="kw">loop </span>{
@@ -2575,7 +2636,12 @@
 			<span class="kw">if </span>blen &gt; <span class="number">0 </span>{
 				<span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
 				<span class="kw">if </span>i == <span class="number">0 </span>{
-					write_to_cache = (<span class="kw-2">**</span>cache.guard()).write_len(<span class="kw-2">&amp;</span>fpath, <span class="macro">try_into!</span>(len)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+					write_to_cache = (<span class="kw-2">**</span>cache.guard()).write_metadata(
+						<span class="kw-2">&amp;</span>fpath,
+						<span class="macro">try_into!</span>(len)<span class="question-mark">?</span>,
+						last_modified,
+						<span class="kw-2">*</span>mime_type,
+					)<span class="question-mark">?</span>;
 				}
 
 				<span class="kw">if </span>write_to_cache {
@@ -2912,8 +2978,8 @@
 		};
 		<span class="macro">debug!</span>(<span class="string">&quot;conn_data.tid={},att={:?}&quot;</span>, conn_data.tid(), attachment)<span class="question-mark">?</span>;
 		<span class="kw">let </span>ctx = <span class="self">Self</span>::build_ctx(ctx, config)<span class="question-mark">?</span>;
-		<span class="kw">let </span>now = SystemTime::now().duration_since(UNIX_EPOCH)<span class="question-mark">?</span>.as_millis();
-		<span class="self">Self</span>::update_time(now, ctx, conn_data)<span class="question-mark">?</span>;
+		ctx.now = SystemTime::now().duration_since(UNIX_EPOCH)<span class="question-mark">?</span>.as_millis();
+		<span class="self">Self</span>::update_time(ctx.now, ctx, conn_data)<span class="question-mark">?</span>;
 
 		<span class="macro">debug!</span>(<span class="string">&quot;on read slab_offset = {}&quot;</span>, conn_data.slab_offset())<span class="question-mark">?</span>;
 		<span class="kw">let </span>first_slab = conn_data.first_slab();
@@ -3135,9 +3201,9 @@
 		ctx: <span class="kw-2">&amp;mut </span>ThreadContext,
 		config: <span class="kw-2">&amp;</span>HttpConfig,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>now = SystemTime::now().duration_since(UNIX_EPOCH)<span class="question-mark">?</span>.as_millis();
 		<span class="kw">let </span>ctx = <span class="self">Self</span>::build_ctx(ctx, config)<span class="question-mark">?</span>;
-		<span class="self">Self</span>::update_time(now, ctx, conn_data)<span class="question-mark">?</span>;
+		ctx.now = SystemTime::now().duration_since(UNIX_EPOCH)<span class="question-mark">?</span>.as_millis();
+		<span class="self">Self</span>::update_time(ctx.now, ctx, conn_data)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 
@@ -3334,7 +3400,7 @@
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">197</span>);
+		<span class="macro">assert_eq!</span>(len, <span class="number">243</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
@@ -3347,7 +3413,7 @@
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">198</span>);
+		<span class="macro">assert_eq!</span>(len, <span class="number">244</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
@@ -3390,7 +3456,7 @@
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">197</span>);
+		<span class="macro">assert_eq!</span>(len, <span class="number">243</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
@@ -3403,7 +3469,7 @@
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">197</span>);
+		<span class="macro">assert_eq!</span>(len, <span class="number">243</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
