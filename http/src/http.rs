@@ -835,7 +835,7 @@ impl HttpServerImpl {
 		let mut write_to_cache = true;
 		let mut term = false;
 		let mut len_sum = 0;
-		info!("rangestart={},rangeend={}", range_start, range_end);
+		debug!("rangestart={},rangeend={}", range_start, range_end)?;
 		loop {
 			let mut blen = 0;
 			loop {
@@ -911,17 +911,15 @@ impl HttpServerImpl {
 			range_start - len_sum
 		};
 		let end = if range_end < len_sum + blen {
-			info!("a");
 			range_end - len_sum
 		} else {
-			info!("b");
 			blen
 		};
 
-		info!(
+		debug!(
 			"start={},end={},blen={},len_sum={},range_end={}",
 			start, end, blen, len_sum, range_end
-		);
+		)?;
 
 		if start < end {
 			match write_handle.write(&buf[start..end]) {
