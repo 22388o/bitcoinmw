@@ -78,7 +78,7 @@ impl Default for HttpConfig {
 			idle_timeout: 60_000,
 			server_name: "BitcoinMW HTTP Server".to_string(),
 			server_version: "0.0.0".to_string(),
-			bring_to_front_weight: 0.5,
+			bring_to_front_weight: 0.1,
 			mime_map: vec![
 				("html".to_string(), "text/html".to_string()),
 				("htm".to_string(), "text/html".to_string()),
