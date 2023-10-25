@@ -144,6 +144,7 @@ pub struct HttpConfig {
 	pub server_name: String,
 	pub server_version: String,
 	pub mime_map: Vec<(String, String)>,
+	pub bring_to_front_weight: f64,
 }
 
 pub struct Builder {}

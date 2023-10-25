@@ -24,7 +24,8 @@ use crate::{
 };
 use bmw_deps::chrono::{DateTime, TimeZone, Utc};
 use bmw_deps::dirs;
-use bmw_deps::rand::random;
+use bmw_deps::math::round::floor;
+use bmw_deps::rand::{self, random, Rng};
 use bmw_deps::substring::Substring;
 use bmw_err::*;
 use bmw_evh::{
@@ -77,6 +78,7 @@ impl Default for HttpConfig {
 			idle_timeout: 60_000,
 			server_name: "BitcoinMW HTTP Server".to_string(),
 			server_version: "0.0.0".to_string(),
+			bring_to_front_weight: 0.5,
 			mime_map: vec![
 				("html".to_string(), "text/html".to_string()),
 				("htm".to_string(), "text/html".to_string()),
@@ -380,11 +382,24 @@ impl HttpHeaders<'_> {
 
 impl HttpServerImpl {
 	pub(crate) fn new(config: &HttpConfig) -> Result<HttpServerImpl, Error> {
+		Self::check_config(config)?;
+
 		let cache = lock_box!(HttpCacheImpl::new(config)?)?;
 		Ok(Self {
 			config: config.clone(),
 			cache,
 		})
+	}
+
+	fn check_config(config: &HttpConfig) -> Result<(), Error> {
+		if config.bring_to_front_weight > 1.0 || config.bring_to_front_weight < 0.0 {
+			return Err(err!(
+				ErrKind::IllegalArgument,
+				"bring_to_front_weight must be between 0.0 and 1.0 inclusive."
+			));
+		}
+
+		Ok(())
 	}
 
 	fn build_ctx<'a>(
@@ -753,9 +768,11 @@ Content-Length: {}\r\n\r\n{}",
 				hit = (**cache.guard())
 					.stream_file(&fpath, conn_data, 200, "OK", ctx, config, headers)?;
 			}
-			let r = random::<u64>();
-			debug!("r={}", r)?;
-			if hit && r % 2 == 0 {
+			let weight: f64 = config.bring_to_front_weight;
+			let threshold: f64 = weight * 10_000_000.0;
+			let r: u64 = rand::thread_rng().gen_range(0..10_000_000);
+			let threshold: u64 = floor(threshold, 0) as u64;
+			if hit && r < threshold as u64 {
 				let mut cache = cache.wlock()?;
 				(**cache.guard()).bring_to_front(&fpath)?;
 			}

@@ -37,6 +37,7 @@ pub use failure_derive;
 pub use futures;
 pub use lazy_static;
 pub use libc;
+pub use math;
 pub use nix;
 pub use path_clean;
 pub use portpicker;
