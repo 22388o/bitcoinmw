@@ -1524,10 +1524,12 @@ Content-Length: {}\r\n\r\n{}",
 	}
 
 	fn process_on_close(
-		_conn_data: &mut ConnectionData,
-		_ctx: &mut ThreadContext,
-		_config: &HttpConfig,
+		conn_data: &mut ConnectionData,
+		ctx: &mut ThreadContext,
+		config: &HttpConfig,
 	) -> Result<(), Error> {
+		let ctx = Self::build_ctx(ctx, config)?;
+		ctx.connections.remove(&conn_data.get_connection_id());
 		Ok(())
 	}
 
