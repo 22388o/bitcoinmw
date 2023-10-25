@@ -225,6 +225,10 @@
 <a href="#225" id="225">225</a>
 <a href="#226" id="226">226</a>
 <a href="#227" id="227">227</a>
+<a href="#228" id="228">228</a>
+<a href="#229" id="229">229</a>
+<a href="#230" id="230">230</a>
+<a href="#231" id="231">231</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -245,6 +249,7 @@
 </span><span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
 <span class="kw">use </span><span class="kw">crate</span>::types::{HttpCacheImpl, HttpContext, HttpServerImpl};
 <span class="kw">use crate</span>::{HttpCache, HttpConfig, HttpHeaders};
+<span class="kw">use </span>bmw_deps::chrono::{DateTime, TimeZone, Utc};
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_evh::ConnData;
 <span class="kw">use </span>bmw_evh::ConnectionData;
@@ -297,8 +302,11 @@
 			<span class="kw">let </span>content_len = range_end_content.saturating_sub(range_start);
 
 			<span class="kw">let </span>etag = <span class="macro">format!</span>(<span class="string">&quot;{}-{:01x}&quot;</span>, last_modified, content_len);
+			<span class="kw">let </span>modified_since = DateTime::parse_from_rfc2822(headers.if_modified_since()<span class="question-mark">?</span>)
+				.unwrap_or(Utc.with_ymd_and_hms(<span class="number">1970</span>, <span class="number">1</span>, <span class="number">1</span>, <span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>).unwrap().into());
+			<span class="kw">let </span>modified_since = modified_since.timestamp_millis();
 
-			<span class="kw">if </span><span class="kw-2">&amp;</span>etag == headers.if_none_match()<span class="question-mark">? </span>{
+			<span class="kw">if </span><span class="kw-2">&amp;</span>etag == headers.if_none_match()<span class="question-mark">? </span>|| last_modified &lt; <span class="macro">try_into!</span>(modified_since)<span class="question-mark">? </span>{
 				code = <span class="number">304</span>;
 				message = <span class="string">&quot;Not Modified&quot;</span>;
 			}

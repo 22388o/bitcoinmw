@@ -170,6 +170,7 @@
 <a href="#170" id="170">170</a>
 <a href="#171" id="171">171</a>
 <a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -238,6 +239,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) range_start: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) range_end: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) if_none_match: String,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) if_modified_since: String,
 }
 
 <span class="kw">pub trait </span>HttpCache {
