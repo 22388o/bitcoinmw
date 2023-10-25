@@ -1794,6 +1794,25 @@
 <a href="#1794" id="1794">1794</a>
 <a href="#1795" id="1795">1795</a>
 <a href="#1796" id="1796">1796</a>
+<a href="#1797" id="1797">1797</a>
+<a href="#1798" id="1798">1798</a>
+<a href="#1799" id="1799">1799</a>
+<a href="#1800" id="1800">1800</a>
+<a href="#1801" id="1801">1801</a>
+<a href="#1802" id="1802">1802</a>
+<a href="#1803" id="1803">1803</a>
+<a href="#1804" id="1804">1804</a>
+<a href="#1805" id="1805">1805</a>
+<a href="#1806" id="1806">1806</a>
+<a href="#1807" id="1807">1807</a>
+<a href="#1808" id="1808">1808</a>
+<a href="#1809" id="1809">1809</a>
+<a href="#1810" id="1810">1810</a>
+<a href="#1811" id="1811">1811</a>
+<a href="#1812" id="1812">1812</a>
+<a href="#1813" id="1813">1813</a>
+<a href="#1814" id="1814">1814</a>
+<a href="#1815" id="1815">1815</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1820,7 +1839,8 @@
 };
 <span class="kw">use </span>bmw_deps::chrono::{DateTime, TimeZone, Utc};
 <span class="kw">use </span>bmw_deps::dirs;
-<span class="kw">use </span>bmw_deps::rand::random;
+<span class="kw">use </span>bmw_deps::math::round::floor;
+<span class="kw">use </span>bmw_deps::rand::{<span class="self">self</span>, random, Rng};
 <span class="kw">use </span>bmw_deps::substring::Substring;
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_evh::{
@@ -1873,6 +1893,7 @@
 			idle_timeout: <span class="number">60_000</span>,
 			server_name: <span class="string">&quot;BitcoinMW HTTP Server&quot;</span>.to_string(),
 			server_version: <span class="string">&quot;0.0.0&quot;</span>.to_string(),
+			bring_to_front_weight: <span class="number">0.1</span>,
 			mime_map: <span class="macro">vec!</span>[
 				(<span class="string">&quot;html&quot;</span>.to_string(), <span class="string">&quot;text/html&quot;</span>.to_string()),
 				(<span class="string">&quot;htm&quot;</span>.to_string(), <span class="string">&quot;text/html&quot;</span>.to_string()),
@@ -2176,11 +2197,24 @@
 
 <span class="kw">impl </span>HttpServerImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(config: <span class="kw-2">&amp;</span>HttpConfig) -&gt; <span class="prelude-ty">Result</span>&lt;HttpServerImpl, Error&gt; {
+		<span class="self">Self</span>::check_config(config)<span class="question-mark">?</span>;
+
 		<span class="kw">let </span>cache = <span class="macro">lock_box!</span>(HttpCacheImpl::new(config)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
 			config: config.clone(),
 			cache,
 		})
+	}
+
+	<span class="kw">fn </span>check_config(config: <span class="kw-2">&amp;</span>HttpConfig) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">if </span>config.bring_to_front_weight &gt; <span class="number">1.0 </span>|| config.bring_to_front_weight &lt; <span class="number">0.0 </span>{
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
+				ErrKind::IllegalArgument,
+				<span class="string">&quot;bring_to_front_weight must be between 0.0 and 1.0 inclusive.&quot;
+			</span>));
+		}
+
+		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="kw">fn </span>build_ctx&lt;<span class="lifetime">&#39;a</span>&gt;(
@@ -2549,9 +2583,11 @@ Content-Length: {}\r\n\r\n{}&quot;</span>,
 				hit = (<span class="kw-2">**</span>cache.guard())
 					.stream_file(<span class="kw-2">&amp;</span>fpath, conn_data, <span class="number">200</span>, <span class="string">&quot;OK&quot;</span>, ctx, config, headers)<span class="question-mark">?</span>;
 			}
-			<span class="kw">let </span>r = random::&lt;u64&gt;();
-			<span class="macro">debug!</span>(<span class="string">&quot;r={}&quot;</span>, r)<span class="question-mark">?</span>;
-			<span class="kw">if </span>hit &amp;&amp; r % <span class="number">2 </span>== <span class="number">0 </span>{
+			<span class="kw">let </span>weight: f64 = config.bring_to_front_weight;
+			<span class="kw">let </span>threshold: f64 = weight * <span class="number">10_000_000.0</span>;
+			<span class="kw">let </span>r: u64 = rand::thread_rng().gen_range(<span class="number">0</span>..<span class="number">10_000_000</span>);
+			<span class="kw">let </span>threshold: u64 = floor(threshold, <span class="number">0</span>) <span class="kw">as </span>u64;
+			<span class="kw">if </span>hit &amp;&amp; r &lt; threshold <span class="kw">as </span>u64 {
 				<span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
 				(<span class="kw-2">**</span>cache.guard()).bring_to_front(<span class="kw-2">&amp;</span>fpath)<span class="question-mark">?</span>;
 			}
@@ -3320,10 +3356,12 @@ Content-Length: {}\r\n\r\n{}&quot;</span>,
 	}
 
 	<span class="kw">fn </span>process_on_close(
-		_conn_data: <span class="kw-2">&amp;mut </span>ConnectionData,
-		_ctx: <span class="kw-2">&amp;mut </span>ThreadContext,
-		_config: <span class="kw-2">&amp;</span>HttpConfig,
+		conn_data: <span class="kw-2">&amp;mut </span>ConnectionData,
+		ctx: <span class="kw-2">&amp;mut </span>ThreadContext,
+		config: <span class="kw-2">&amp;</span>HttpConfig,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span>ctx = <span class="self">Self</span>::build_ctx(ctx, config)<span class="question-mark">?</span>;
+		ctx.connections.remove(<span class="kw-2">&amp;</span>conn_data.get_connection_id());
 		<span class="prelude-val">Ok</span>(())
 	}
 
