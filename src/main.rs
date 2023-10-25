@@ -17,7 +17,7 @@
 // limitations under the License.
 
 use bmw_err::{err, ErrKind, Error};
-use bmw_evh::{ConnData, ConnectionData};
+use bmw_evh::{ConnData, ConnectionData, EventHandlerConfig};
 use bmw_http::HttpInstanceType::Plain;
 use bmw_http::PlainConfig;
 use bmw_http::{Builder, HttpConfig, HttpHeaders, HttpInstance};
@@ -92,6 +92,10 @@ fn real_main(debug_startup_32: bool) -> Result<(), Error> {
 			..Default::default()
 		}],
 		debug: true,
+		evh_config: EventHandlerConfig {
+			threads: 2,
+			..Default::default()
+		},
 		..Default::default()
 	};
 

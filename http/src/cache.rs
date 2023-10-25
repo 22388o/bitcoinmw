@@ -73,12 +73,7 @@ impl HttpCache for HttpCacheImpl {
 			let etag = format!("{}-{:01x}", last_modified, content_len);
 			let modified_since = DateTime::parse_from_rfc2822(headers.if_modified_since()?)
 				.unwrap_or(Utc.with_ymd_and_hms(1970, 1, 1, 0, 1, 1).unwrap().into());
-			info!("formated if_modified_since = {:?}", modified_since);
 			let modified_since = modified_since.timestamp_millis();
-			info!(
-				"modified since = {:?}, last_mod={:?}",
-				modified_since, last_modified
-			);
 
 			if &etag == headers.if_none_match()? || last_modified < try_into!(modified_since)? {
 				code = 304;
