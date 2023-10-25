@@ -22,7 +22,7 @@ use crate::{
 	ConnectionType, HttpCache, HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType,
 	HttpRequestType, HttpServer, HttpVersion, PlainConfig,
 };
-use bmw_deps::chrono::{DateTime, Utc};
+use bmw_deps::chrono::{DateTime, TimeZone, Utc};
 use bmw_deps::dirs;
 use bmw_deps::rand::random;
 use bmw_deps::substring::Substring;
@@ -330,6 +330,10 @@ impl HttpHeaders<'_> {
 
 	pub fn if_none_match(&self) -> Result<&String, Error> {
 		Ok(&self.if_none_match)
+	}
+
+	pub fn if_modified_since(&self) -> Result<&String, Error> {
+		Ok(&self.if_modified_since)
 	}
 
 	pub fn extension(&self) -> Result<String, Error> {
@@ -836,8 +840,16 @@ Content-Length: {}\r\n\r\n{}",
 		};
 
 		let etag = format!("{}-{:01x}", last_modified, content_len);
+		let modified_since = DateTime::parse_from_rfc2822(headers.if_modified_since()?)
+			.unwrap_or(Utc.with_ymd_and_hms(1970, 1, 1, 0, 1, 1).unwrap().into());
+		info!("formated if_modified_since = {:?}", modified_since);
+		let modified_since = modified_since.timestamp_millis();
+		info!(
+			"modified since = {:?}, last_mod={:?}",
+			modified_since, last_modified
+		);
 
-		if &etag == headers.if_none_match()? {
+		if &etag == headers.if_none_match()? || last_modified < try_into!(modified_since)? {
 			code = 304;
 			message = "Not Modified";
 		}
@@ -1010,6 +1022,7 @@ Content-Length: {}\r\n\r\n{}",
 		let mut range_start = 0;
 		let mut range_end = usize::MAX;
 		let mut if_none_match = "".to_string();
+		let mut if_modified_since = "".to_string();
 
 		debug!("count={}", count)?;
 		let mut host = "".to_string();
@@ -1153,6 +1166,16 @@ Content-Length: {}\r\n\r\n{}",
 							)
 							.unwrap_or("")
 							.to_string();
+						} else if &req[headers[header_count].start_header_name
+							..headers[header_count].end_header_name]
+							== IF_MODIFIED_SINCE_BYTES
+						{
+							if_modified_since = from_utf8(
+								&req[headers[header_count].start_header_value
+									..headers[header_count].end_header_value],
+							)
+							.unwrap_or("")
+							.to_string();
 						}
 						header_count += 1;
 					}
@@ -1180,6 +1203,7 @@ Content-Length: {}\r\n\r\n{}",
 				range_start,
 				range_end,
 				if_none_match,
+				if_modified_since,
 			})
 		}
 	}
@@ -1354,6 +1378,7 @@ Content-Length: {}\r\n\r\n{}",
 						range_start: 0,
 						range_end: usize::MAX,
 						if_none_match: "".to_string(),
+						if_modified_since: "".to_string(),
 					};
 					Self::header_error(
 						config,
@@ -1448,7 +1473,7 @@ Content-Length: {}\r\n\r\n{}",
 					let extension = headers.extension().unwrap_or(empty);
 					let header_count = headers.header_count().unwrap_or(0);
 					info!(
-						"uri={},query={},extension={},method={:?},version={:?},header_count={},cache_hit={},has_range={},range_start={},range_end={},if_none_match={}",
+						"uri={},query={},extension={},method={:?},version={:?},header_count={},cache_hit={},has_range={},range_start={},range_end={},if_none_match={},if_modified_since={}",
 						path,
 						query,
                                                 extension,
@@ -1460,6 +1485,7 @@ Content-Length: {}\r\n\r\n{}",
                                                 headers.range_start().unwrap_or(0),
                                                 headers.range_end().unwrap_or(usize::MAX),
                                                 headers.if_none_match().unwrap_or(&"".to_string()),
+                                                headers.if_modified_since().unwrap_or(&"".to_string()),
 					)?;
 					info!("{}", SEPARATOR_LINE)?;
 
