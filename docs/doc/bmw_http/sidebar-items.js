@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ConnectionType","HttpInstanceType","HttpRequestType","HttpVersion"],"struct":["Builder","HttpConfig","HttpHeader","HttpHeaders","HttpInstance","PlainConfig"],"trait":["HttpCache","HttpServer"]};
+window.SIDEBAR_ITEMS = {"enum":["ConnectionType","HttpInstanceType","HttpRequestType","HttpVersion","WebSocketMessageType"],"struct":["Builder","HttpConfig","HttpHeader","HttpHeaders","HttpInstance","PlainConfig","WebSocketData","WebSocketHandle","WebSocketMessage"],"trait":["HttpCache","HttpServer"]};

@@ -172,6 +172,76 @@
 <a href="#172" id="172">172</a>
 <a href="#173" id="173">173</a>
 <a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a>
+<a href="#227" id="227">227</a>
+<a href="#228" id="228">228</a>
+<a href="#229" id="229">229</a>
+<a href="#230" id="230">230</a>
+<a href="#231" id="231">231</a>
+<a href="#232" id="232">232</a>
+<a href="#233" id="233">233</a>
+<a href="#234" id="234">234</a>
+<a href="#235" id="235">235</a>
+<a href="#236" id="236">236</a>
+<a href="#237" id="237">237</a>
+<a href="#238" id="238">238</a>
+<a href="#239" id="239">239</a>
+<a href="#240" id="240">240</a>
+<a href="#241" id="241">241</a>
+<a href="#242" id="242">242</a>
+<a href="#243" id="243">243</a>
+<a href="#244" id="244">244</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -191,7 +261,7 @@
 
 </span><span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
-<span class="kw">use </span>bmw_evh::{ConnectionData, EventHandlerConfig, WriteState};
+<span class="kw">use </span>bmw_evh::{ConnectionData, EventHandlerConfig, WriteHandle, WriteState};
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
 <span class="kw">use </span>std::collections::{HashMap, HashSet};
 
@@ -241,7 +311,67 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) range_end: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) if_none_match: String,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) if_modified_since: String,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) is_websocket_upgrade: bool,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) sec_websocket_key: String,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) sec_websocket_protocol: String,
 }
+
+<span class="attr">#[derive(Debug)]
+</span><span class="kw">pub struct </span>HttpConnectionData {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) last_active: u128,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) write_state: Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) tid: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) websocket_data: <span class="prelude-ty">Option</span>&lt;WebSocketData&gt;,
+}
+
+<span class="attr">#[derive(Debug, Clone)]
+</span><span class="kw">pub struct </span>WebSocketData {
+	<span class="kw">pub </span>uri: String,
+	<span class="kw">pub </span>query: String,
+	<span class="kw">pub </span>negotiated_protocol: <span class="prelude-ty">Option</span>&lt;String&gt;,
+}
+
+<span class="attr">#[derive(Debug, PartialEq, Clone)]
+</span><span class="kw">pub enum </span>WebSocketMessageType {
+	Text,
+	Binary,
+	Close,
+	Ping,
+	Pong,
+	Open,
+	Accept,
+}
+
+<span class="attr">#[derive(Debug, PartialEq, Clone)]
+</span><span class="kw">pub struct </span>WebSocketMessage {
+	<span class="kw">pub </span>mtype: WebSocketMessageType,
+	<span class="kw">pub </span>payload: Vec&lt;u8&gt;,
+}
+
+<span class="attr">#[derive(Clone)]
+</span><span class="kw">pub struct </span>WebSocketHandle {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) write_handle: WriteHandle,
+}
+
+<span class="attr">#[derive(Debug, PartialEq)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum </span>FrameType {
+	Continuation,
+	Text,
+	Binary,
+	Close,
+	Ping,
+	Pong,
+}
+
+<span class="attr">#[derive(Debug, PartialEq)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>FrameHeader {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) ftype: FrameType,     <span class="comment">// which type of frame is this?
+	</span><span class="kw">pub</span>(<span class="kw">crate</span>) mask: bool,           <span class="comment">// is this frame masked?
+	</span><span class="kw">pub</span>(<span class="kw">crate</span>) fin: bool,            <span class="comment">// is this the last piece of data in the frame?
+	</span><span class="kw">pub</span>(<span class="kw">crate</span>) payload_len: usize,   <span class="comment">// size of the payload
+	</span><span class="kw">pub</span>(<span class="kw">crate</span>) masking_key: u32,     <span class="comment">// masking key
+	</span><span class="kw">pub</span>(<span class="kw">crate</span>) start_content: usize, <span class="comment">// start of the content of the message
+</span>}
 
 <span class="kw">pub trait </span>HttpCache {
 	<span class="kw">fn </span>stream_file(
@@ -306,6 +436,8 @@
 	<span class="kw">pub </span>callback: <span class="prelude-ty">Option</span>&lt;HttpCallback&gt;,
 	<span class="kw">pub </span>callback_mappings: HashSet&lt;String&gt;,
 	<span class="kw">pub </span>callback_extensions: HashSet&lt;String&gt;,
+	<span class="kw">pub </span>websocket_mappings: HashMap&lt;String, HashSet&lt;String&gt;&gt;,
+	<span class="kw">pub </span>websocket_handler: <span class="prelude-ty">Option</span>&lt;WebsocketHandler&gt;,
 }
 
 <span class="attr">#[derive(Clone)]
@@ -323,6 +455,17 @@
 
 <span class="kw">pub struct </span>Builder {}
 
+<span class="kw">type </span>HttpCallback =
+	<span class="kw">fn</span>(<span class="kw-2">&amp;</span>HttpHeaders, <span class="kw-2">&amp;</span>HttpConfig, <span class="kw-2">&amp;</span>HttpInstance, <span class="kw-2">&amp;mut </span>WriteHandle) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+
+<span class="kw">type </span>WebsocketHandler = <span class="kw">fn</span>(
+	<span class="kw-2">&amp;</span>WebSocketMessage,
+	<span class="kw-2">&amp;</span>HttpConfig,
+	<span class="kw-2">&amp;</span>HttpInstance,
+	<span class="kw-2">&amp;mut </span>WebSocketHandle,
+	<span class="kw-2">&amp;</span>WebSocketData,
+) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+
 <span class="comment">// Crate local types
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpServerImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) config: HttpConfig,
@@ -337,13 +480,10 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) suffix_tree: Box&lt;<span class="kw">dyn </span>SuffixTree + Send + Sync&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) matches: [Match; <span class="number">1_000</span>],
 	<span class="kw">pub</span>(<span class="kw">crate</span>) offset: usize,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) connections: HashMap&lt;u128, (Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;, u128, usize)&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) connections: HashMap&lt;u128, HttpConnectionData&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) mime_map: HashMap&lt;String, String&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) mime_lookup: HashMap&lt;u32, String&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) mime_rev_lookup: HashMap&lt;String, u32&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) now: u128,
 }
-
-<span class="kw">type </span>HttpCallback =
-	<span class="kw">fn</span>(<span class="kw-2">&amp;</span>HttpHeaders, <span class="kw-2">&amp;</span>HttpConfig, <span class="kw-2">&amp;</span>HttpInstance, <span class="kw-2">&amp;mut </span>ConnectionData) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 </code></pre></div></section></main></body></html>

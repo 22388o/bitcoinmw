@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["LOG_LEVEL"],"fn":["callback","main","real_main"]};
+window.SIDEBAR_ITEMS = {"constant":["LOG_LEVEL"],"fn":["callback","main","real_main","ws_handler"]};

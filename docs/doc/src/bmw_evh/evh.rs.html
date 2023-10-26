@@ -7211,6 +7211,88 @@
 <a href="#7211" id="7211">7211</a>
 <a href="#7212" id="7212">7212</a>
 <a href="#7213" id="7213">7213</a>
+<a href="#7214" id="7214">7214</a>
+<a href="#7215" id="7215">7215</a>
+<a href="#7216" id="7216">7216</a>
+<a href="#7217" id="7217">7217</a>
+<a href="#7218" id="7218">7218</a>
+<a href="#7219" id="7219">7219</a>
+<a href="#7220" id="7220">7220</a>
+<a href="#7221" id="7221">7221</a>
+<a href="#7222" id="7222">7222</a>
+<a href="#7223" id="7223">7223</a>
+<a href="#7224" id="7224">7224</a>
+<a href="#7225" id="7225">7225</a>
+<a href="#7226" id="7226">7226</a>
+<a href="#7227" id="7227">7227</a>
+<a href="#7228" id="7228">7228</a>
+<a href="#7229" id="7229">7229</a>
+<a href="#7230" id="7230">7230</a>
+<a href="#7231" id="7231">7231</a>
+<a href="#7232" id="7232">7232</a>
+<a href="#7233" id="7233">7233</a>
+<a href="#7234" id="7234">7234</a>
+<a href="#7235" id="7235">7235</a>
+<a href="#7236" id="7236">7236</a>
+<a href="#7237" id="7237">7237</a>
+<a href="#7238" id="7238">7238</a>
+<a href="#7239" id="7239">7239</a>
+<a href="#7240" id="7240">7240</a>
+<a href="#7241" id="7241">7241</a>
+<a href="#7242" id="7242">7242</a>
+<a href="#7243" id="7243">7243</a>
+<a href="#7244" id="7244">7244</a>
+<a href="#7245" id="7245">7245</a>
+<a href="#7246" id="7246">7246</a>
+<a href="#7247" id="7247">7247</a>
+<a href="#7248" id="7248">7248</a>
+<a href="#7249" id="7249">7249</a>
+<a href="#7250" id="7250">7250</a>
+<a href="#7251" id="7251">7251</a>
+<a href="#7252" id="7252">7252</a>
+<a href="#7253" id="7253">7253</a>
+<a href="#7254" id="7254">7254</a>
+<a href="#7255" id="7255">7255</a>
+<a href="#7256" id="7256">7256</a>
+<a href="#7257" id="7257">7257</a>
+<a href="#7258" id="7258">7258</a>
+<a href="#7259" id="7259">7259</a>
+<a href="#7260" id="7260">7260</a>
+<a href="#7261" id="7261">7261</a>
+<a href="#7262" id="7262">7262</a>
+<a href="#7263" id="7263">7263</a>
+<a href="#7264" id="7264">7264</a>
+<a href="#7265" id="7265">7265</a>
+<a href="#7266" id="7266">7266</a>
+<a href="#7267" id="7267">7267</a>
+<a href="#7268" id="7268">7268</a>
+<a href="#7269" id="7269">7269</a>
+<a href="#7270" id="7270">7270</a>
+<a href="#7271" id="7271">7271</a>
+<a href="#7272" id="7272">7272</a>
+<a href="#7273" id="7273">7273</a>
+<a href="#7274" id="7274">7274</a>
+<a href="#7275" id="7275">7275</a>
+<a href="#7276" id="7276">7276</a>
+<a href="#7277" id="7277">7277</a>
+<a href="#7278" id="7278">7278</a>
+<a href="#7279" id="7279">7279</a>
+<a href="#7280" id="7280">7280</a>
+<a href="#7281" id="7281">7281</a>
+<a href="#7282" id="7282">7282</a>
+<a href="#7283" id="7283">7283</a>
+<a href="#7284" id="7284">7284</a>
+<a href="#7285" id="7285">7285</a>
+<a href="#7286" id="7286">7286</a>
+<a href="#7287" id="7287">7287</a>
+<a href="#7288" id="7288">7288</a>
+<a href="#7289" id="7289">7289</a>
+<a href="#7290" id="7290">7290</a>
+<a href="#7291" id="7291">7291</a>
+<a href="#7292" id="7292">7292</a>
+<a href="#7293" id="7293">7293</a>
+<a href="#7294" id="7294">7294</a>
+<a href="#7295" id="7295">7295</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -8611,9 +8693,10 @@
 						<span class="prelude-val">None </span>=&gt; <span class="macro">warn!</span>(<span class="string">&quot;Couldn&#39;t look up conn info for {}&quot;</span>, id)<span class="question-mark">?</span>,
 					}
 				}
-				<span class="prelude-val">None </span>=&gt; <span class="macro">warn!</span>(
+				<span class="comment">// normal because we can try to write to a closed connection
+				</span><span class="prelude-val">None </span>=&gt; <span class="macro">debug!</span>(
 					<span class="string">&quot;Couldn&#39;t look up id for handle {}, tid={}&quot;</span>,
-					ctx.events[ctx.counter].handle, ctx.tid
+					ctx.events[ctx.counter].handle, ctx.tid,
 				)<span class="question-mark">?</span>,
 			}
 			ctx.counter += <span class="number">1</span>;
@@ -14420,6 +14503,87 @@
 			<span class="macro">assert!</span>(<span class="kw-2">**</span>(found_clone.rlock()<span class="question-mark">?</span>.guard()));
 			<span class="kw">break</span>;
 		}
+
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="attr">#[test]
+	</span><span class="kw">fn </span>test_evh_trigger_on_read2() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">&quot;eventhandler trigger_on_read none Using port: {}&quot;</span>, port)<span class="question-mark">?</span>;
+		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;127.0.0.1:{}&quot;</span>, port)[..];
+		<span class="kw">let </span>threads = <span class="number">1</span>;
+		<span class="kw">let </span>config = EventHandlerConfig {
+			threads,
+			housekeeping_frequency_millis: <span class="number">100_000</span>,
+			read_slab_count: <span class="number">2</span>,
+			max_handles_per_thread: <span class="number">5</span>,
+			..Default::default()
+		};
+		<span class="kw">let </span><span class="kw-2">mut </span>evh = EventHandlerImpl::new(config)<span class="question-mark">?</span>;
+
+		<span class="kw">let </span><span class="kw-2">mut </span>on_read_count = <span class="macro">lock_box!</span>(<span class="number">0</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span>on_read_count_clone = on_read_count.clone();
+
+		evh.set_on_read(<span class="kw">move </span>|conn_data, _thread_context, _attachment| {
+			<span class="macro">info!</span>(<span class="string">&quot;in on read&quot;</span>)<span class="question-mark">?</span>;
+			<span class="kw">let </span><span class="kw-2">mut </span>wh = conn_data.write_handle();
+
+			<span class="kw">let </span><span class="kw-2">mut </span>on_read_count = on_read_count.wlock()<span class="question-mark">?</span>;
+			<span class="kw">let </span>guard = on_read_count.guard();
+			<span class="kw-2">**</span>guard += <span class="number">1</span>;
+
+			<span class="comment">// only trigger on on read for the first request
+			</span><span class="kw">if </span><span class="kw-2">**</span>guard == <span class="number">1 </span>{
+				spawn(<span class="kw">move </span>|| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+					<span class="macro">info!</span>(<span class="string">&quot;spawned thread&quot;</span>)<span class="question-mark">?</span>;
+					sleep(Duration::from_millis(<span class="number">1000</span>));
+					<span class="macro">info!</span>(<span class="string">&quot;trigger on read&quot;</span>)<span class="question-mark">?</span>;
+					wh.trigger_on_read()<span class="question-mark">?</span>;
+					<span class="prelude-val">Ok</span>(())
+				});
+			}
+			<span class="prelude-val">Ok</span>(())
+		})<span class="question-mark">?</span>;
+		evh.set_on_accept(<span class="kw">move </span>|_conn_data, _thread_context| {
+			<span class="macro">info!</span>(<span class="string">&quot;on accept&quot;</span>)<span class="question-mark">?</span>;
+			<span class="prelude-val">Ok</span>(())
+		})<span class="question-mark">?</span>;
+		evh.set_on_close(<span class="kw">move </span>|_conn_data, _thread_context| <span class="prelude-val">Ok</span>(()))<span class="question-mark">?</span>;
+		evh.set_on_panic(<span class="kw">move </span>|_thread_context, _e| <span class="prelude-val">Ok</span>(()))<span class="question-mark">?</span>;
+		evh.set_housekeeper(<span class="kw">move </span>|_thread_context| <span class="prelude-val">Ok</span>(()))<span class="question-mark">?</span>;
+		evh.start()<span class="question-mark">?</span>;
+
+		<span class="kw">let </span>handles = create_listeners(threads, addr, <span class="number">10</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">&quot;handles.size={},handles={:?}&quot;</span>, handles.size(), handles)<span class="question-mark">?</span>;
+		<span class="kw">let </span>sc = ServerConnection {
+			tls_config: <span class="prelude-val">None</span>,
+			handles,
+			is_reuse_port: <span class="bool-val">false</span>,
+		};
+		evh.add_server(sc, Box::new(<span class="string">&quot;&quot;</span>))<span class="question-mark">?</span>;
+		sleep(Duration::from_millis(<span class="number">5_000</span>));
+		<span class="kw">let </span><span class="kw-2">mut </span>connection = TcpStream::connect(addr)<span class="question-mark">?</span>;
+		connection.write(<span class="string">b&quot;test1&quot;</span>)<span class="question-mark">?</span>;
+
+		<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
+		<span class="kw">loop </span>{
+			<span class="kw">let </span>on_read_count_clone = on_read_count_clone.rlock()<span class="question-mark">?</span>;
+			<span class="kw">let </span>guard = on_read_count_clone.guard();
+			<span class="kw">if </span><span class="kw-2">**</span>guard == <span class="number">2 </span>|| count &gt; <span class="number">10_000 </span>{
+				<span class="kw">break</span>;
+			} <span class="kw">else </span>{
+				<span class="macro">info!</span>(<span class="string">&quot;sleep {}&quot;</span>, count)<span class="question-mark">?</span>;
+				sleep(Duration::from_millis(<span class="number">5</span>));
+				count += <span class="number">1</span>;
+			}
+		}
+
+		sleep(Duration::from_millis(<span class="number">1_000</span>));
+
+		<span class="kw">let </span>on_read_count_clone = on_read_count_clone.rlock()<span class="question-mark">?</span>;
+		<span class="kw">let </span>guard = on_read_count_clone.guard();
+		<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>guard, <span class="number">2</span>);
 
 		<span class="prelude-val">Ok</span>(())
 	}
