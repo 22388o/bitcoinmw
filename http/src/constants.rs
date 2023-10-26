@@ -37,3 +37,15 @@ pub(crate) const IF_MODIFIED_SINCE_BYTES: &[u8] = "If-Modified-Since".as_bytes()
 pub(crate) const CONNECTION_BYTES: &[u8] = "Connection".as_bytes();
 pub(crate) const KEEP_ALIVE_BYTES: &[u8] = "keep-alive".as_bytes();
 pub(crate) const RANGE_BYTES: &[u8] = "Range".as_bytes();
+pub(crate) const UPGRADE_BYTES: &[u8] = "Upgrade".as_bytes();
+pub(crate) const WEBSOCKET_BYTES: &[u8] = "websocket".as_bytes();
+pub(crate) const WEBSOCKET_GUID: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+pub(crate) const SEC_WEBSOCKET_KEY_BYTES: &[u8] = "Sec-WebSocket-Key".as_bytes();
+pub(crate) const SEC_WEBSOCKET_PROTOCOL_BYTES: &[u8] = "Sec-WebSocket-Protocol".as_bytes();
+
+pub(crate) const FIN_BIT: u8 = 0x1 << 7;
+pub(crate) const MASK_BIT: u8 = 0x1 << 7;
+pub(crate) const OP_CODE_MASK1: u8 = 0x1 << 3;
+pub(crate) const OP_CODE_MASK2: u8 = 0x1 << 2;
+pub(crate) const OP_CODE_MASK3: u8 = 0x1 << 1;
+pub(crate) const OP_CODE_MASK4: u8 = 0x1 << 0;

@@ -34,6 +34,10 @@ rustls = "0.20.9"
 rustls-pemfile = "1.0.3"
 webpki-roots = "0.25.2"
 libmath = "0.2.1"
+sha-1 = "0.10.0"
+base64 = "0.13.0"
+byteorder = "1.4.2"
+rand_core = "0.6.4"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 kqueue-sys = "1.0.2"

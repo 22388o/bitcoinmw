@@ -16,7 +16,8 @@
 // limitations under the License.
 
 use crate::constants::*;
-use crate::types::{HttpCacheImpl, HttpContext, HttpServerImpl};
+use crate::types::{HttpCacheImpl, HttpConnectionData, HttpContext, HttpServerImpl, WebSocketData};
+use crate::ws::{process_websocket_data, send_websocket_handshake_response};
 use crate::HttpInstanceType::{Plain, Tls};
 use crate::{
 	ConnectionType, HttpCache, HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType,
@@ -26,6 +27,7 @@ use bmw_deps::chrono::{DateTime, TimeZone, Utc};
 use bmw_deps::dirs;
 use bmw_deps::math::round::floor;
 use bmw_deps::rand::{self, random, Rng};
+use bmw_deps::sha1::{Digest, Sha1};
 use bmw_deps::substring::Substring;
 use bmw_err::*;
 use bmw_evh::{
@@ -266,7 +268,9 @@ impl Default for HttpInstance {
 			error_404file: "error.html".to_string(),
 			callback_extensions: HashSet::new(),
 			callback_mappings: HashSet::new(),
+			websocket_mappings: HashMap::new(),
 			callback: None,
+			websocket_handler: None,
 		}
 	}
 }
@@ -336,6 +340,18 @@ impl HttpHeaders<'_> {
 
 	pub fn if_modified_since(&self) -> Result<&String, Error> {
 		Ok(&self.if_modified_since)
+	}
+
+	pub fn is_websocket_upgrade(&self) -> Result<bool, Error> {
+		Ok(self.is_websocket_upgrade)
+	}
+
+	pub fn sec_websocket_key(&self) -> Result<&String, Error> {
+		Ok(&self.sec_websocket_key)
+	}
+
+	pub fn sec_websocket_protocol(&self) -> Result<&String, Error> {
+		Ok(&self.sec_websocket_protocol)
 	}
 
 	pub fn extension(&self) -> Result<String, Error> {
@@ -1035,6 +1051,9 @@ Content-Length: {}\r\n\r\n{}",
 		let mut range_end = usize::MAX;
 		let mut if_none_match = "".to_string();
 		let mut if_modified_since = "".to_string();
+		let mut is_websocket_upgrade = false;
+		let mut sec_websocket_key = "".to_string();
+		let mut sec_websocket_protocol = "".to_string();
 
 		debug!("count={}", count)?;
 		let mut host = "".to_string();
@@ -1188,6 +1207,33 @@ Content-Length: {}\r\n\r\n{}",
 							)
 							.unwrap_or("")
 							.to_string();
+						} else if &req[headers[header_count].start_header_name
+							..headers[header_count].end_header_name]
+							== UPGRADE_BYTES && &req[headers[header_count].start_header_value
+							..headers[header_count].end_header_value]
+							== WEBSOCKET_BYTES
+						{
+							is_websocket_upgrade = true;
+						} else if &req[headers[header_count].start_header_name
+							..headers[header_count].end_header_name]
+							== SEC_WEBSOCKET_KEY_BYTES
+						{
+							sec_websocket_key = from_utf8(
+								&req[headers[header_count].start_header_value
+									..headers[header_count].end_header_value],
+							)
+							.unwrap_or("")
+							.to_string();
+						} else if &req[headers[header_count].start_header_name
+							..headers[header_count].end_header_name]
+							== SEC_WEBSOCKET_PROTOCOL_BYTES
+						{
+							sec_websocket_protocol = from_utf8(
+								&req[headers[header_count].start_header_value
+									..headers[header_count].end_header_value],
+							)
+							.unwrap_or("")
+							.to_string();
 						}
 						header_count += 1;
 					}
@@ -1216,6 +1262,9 @@ Content-Length: {}\r\n\r\n{}",
 				range_end,
 				if_none_match,
 				if_modified_since,
+				is_websocket_upgrade,
+				sec_websocket_key,
+				sec_websocket_protocol,
 			})
 		}
 	}
@@ -1248,6 +1297,18 @@ Content-Length: {}\r\n\r\n{}",
 				headers,
 				ctx,
 			)?;
+		} else if err_text == "http_error: Cannot upgrade to websocket for this URI" {
+			Self::process_error(
+				config,
+				path,
+				conn_data,
+				instance,
+				403,
+				"Forbidden",
+				cache,
+				headers,
+				ctx,
+			)?;
 		} else {
 			Self::process_error(
 				config,
@@ -1265,20 +1326,97 @@ Content-Length: {}\r\n\r\n{}",
 		Ok(())
 	}
 
-	fn update_time(
+	fn insert_connections_hashtable(
+		last_active: u128,
+		ctx: &mut HttpContext,
+		conn_data: &mut ConnectionData,
+	) -> Result<(), Error> {
+		let connection_data = HttpConnectionData {
+			last_active,
+			write_state: conn_data.write_handle().write_state()?,
+			tid: conn_data.tid(),
+			websocket_data: None,
+		};
+		debug!(
+			"insert handle={}, id={}",
+			conn_data.get_handle(),
+			conn_data.get_connection_id()
+		)?;
+		ctx.connections
+			.insert(conn_data.get_connection_id(), connection_data);
+		Ok(())
+	}
+
+	fn update_connections_hashtable(
 		now: u128,
 		ctx: &mut HttpContext,
 		conn_data: &mut ConnectionData,
 	) -> Result<(), Error> {
-		ctx.connections.insert(
-			conn_data.get_connection_id(),
-			(
-				conn_data.write_handle().write_state()?,
-				now,
-				conn_data.tid(),
-			),
-		);
+		match ctx.connections.get_mut(&conn_data.get_connection_id()) {
+			Some(connection_data) => connection_data.last_active = now,
+			None => warn!(
+				"Expected there to be connection data for this id, but there was none. Id = {}",
+				conn_data.get_connection_id()
+			)?,
+		}
 		Ok(())
+	}
+
+	fn upgrade_websocket(
+		conn_data: &mut ConnectionData,
+		headers: &HttpHeaders,
+		ctx: &mut HttpContext,
+		mapping: &HashSet<String>,
+	) -> Result<(), Error> {
+		let mut write_handle = conn_data.write_handle();
+		let sha1 = Sha1::new();
+		let sec_websocket_key = headers.sec_websocket_key()?.to_string();
+		let sec_websocket_protocol = headers.sec_websocket_protocol()?.to_string();
+		let client_protos: Vec<&str> = sec_websocket_protocol.split(',').collect();
+		let mut negotiated_protocol = None;
+		for proto in client_protos {
+			let proto = proto.trim();
+			if mapping.contains(proto) {
+				negotiated_protocol = Some(proto.to_string());
+				break;
+			}
+		}
+
+		debug!("matched proto = {:?}", negotiated_protocol)?;
+
+		send_websocket_handshake_response(
+			&mut write_handle,
+			sec_websocket_key,
+			sha1,
+			negotiated_protocol.clone(),
+			mapping.len() > 0,
+		)?;
+
+		match ctx.connections.get_mut(&conn_data.get_connection_id()) {
+			Some(connection_data) => {
+				connection_data.websocket_data = Some(WebSocketData {
+					uri: headers.path()?,
+					query: headers.query()?,
+					negotiated_protocol,
+				})
+			}
+			None => warn!(
+				"Expected there to be connection data for this id, but there was none. Id = {}",
+				conn_data.get_connection_id()
+			)?,
+		}
+
+		Ok(())
+	}
+
+	fn websocket_data(
+		conn_data: &mut ConnectionData,
+		ctx: &HttpContext,
+	) -> Result<Option<WebSocketData>, Error> {
+		Ok(match ctx.connections.get(&conn_data.get_connection_id()) {
+			Some(http_connection_data) => http_connection_data.websocket_data.clone(),
+			None => None,
+		})
 	}
 
 	fn process_on_read(
@@ -1308,7 +1446,7 @@ Content-Length: {}\r\n\r\n{}",
 		debug!("conn_data.tid={},att={:?}", conn_data.tid(), attachment)?;
 		let ctx = Self::build_ctx(ctx, config)?;
 		ctx.now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
-		Self::update_time(ctx.now, ctx, conn_data)?;
+		Self::update_connections_hashtable(ctx.now, ctx, conn_data)?;
 
 		debug!("on read slab_offset = {}", conn_data.slab_offset())?;
 		let first_slab = conn_data.first_slab();
@@ -1349,143 +1487,203 @@ Content-Length: {}\r\n\r\n{}",
 		let mut last_term = 0;
 		let mut termination_sum = 0;
 
-		loop {
-			debug!("slab_count={}", slab_count)?;
-			let headers = Self::build_request_headers(
-				&req,
-				start,
-				ctx.matches,
-				&mut ctx.suffix_tree,
-				(slab_offset as usize + (slab_count - 1) * READ_SLAB_DATA_SIZE).into(),
-			);
-
-			let headers = match headers {
-				Ok(headers) => headers,
-				Err(e) => {
-					// build a mock header. only thing that matters is host and we
-					// can put something that triggers the default instance.
-					let termination_point = 0;
-					let start = 0;
-					let req = &"Host_".to_string().as_bytes().to_vec();
-					let start_uri = 0;
-					let end_uri = 0;
-					let http_request_type = HttpRequestType::GET;
-					let headers = [HttpHeader::default(); 100];
-					let header_count = 0;
-					let version = HttpVersion::UNKNOWN;
-					let host = "".to_string();
-					let connection = ConnectionType::KeepAlive;
-					let headers = HttpHeaders {
-						termination_point,
-						start,
-						req,
-						start_uri,
-						end_uri,
-						http_request_type,
-						version,
-						headers,
-						header_count,
-						host,
-						connection,
-						range_start: 0,
-						range_end: usize::MAX,
-						if_none_match: "".to_string(),
-						if_modified_since: "".to_string(),
-					};
-					Self::header_error(
-						config,
-						"".to_string(),
-						conn_data,
-						attachment,
-						e,
-						cache,
-						&headers,
-						ctx,
-					)?;
-					return Ok(());
-				}
-			};
-
-			debug!("Request type = {:?}", headers.http_request_type)?;
-
-			termination_sum += headers.termination_point;
-
-			debug!("term point = {}", headers.termination_point)?;
-			if headers.termination_point == 0 {
-				break;
-			} else {
-				if headers.version != HttpVersion::HTTP10 && headers.host()?.len() == 0 {
-					Self::header_error(
-						config,
-						"".to_string(),
-						conn_data,
-						attachment,
-						err!(ErrKind::Http, "Host not specified on HTTP/1.1+"),
-						cache.clone(),
-						&headers,
-						ctx,
-					)?;
-					return Ok(());
-				}
-				let path = match headers.path() {
-					Ok(path) => path,
+		match Self::websocket_data(conn_data, ctx)? {
+			Some(websocket_data) => {
+				termination_sum = match process_websocket_data(
+					&req,
+					conn_data,
+					attachment,
+					config,
+					&websocket_data,
+				) {
+					Ok(termination_sum) => termination_sum,
 					Err(e) => {
-						Self::header_error(
-							config,
-							"".to_string(),
-							conn_data,
-							attachment,
-							e,
-							cache,
-							&headers,
-							ctx,
-						)?;
-						return Ok(());
+						// invalid data sent to the websocket connection.
+						// close it.
+						warn!("Websocket Error [closing connection]: {}", e.to_string())?;
+						conn_data.write_handle().close()?;
+						req.len()
 					}
 				};
+			}
+			None => {
+				loop {
+					debug!("slab_count={}", slab_count)?;
+					let headers = Self::build_request_headers(
+						&req,
+						start,
+						ctx.matches,
+						&mut ctx.suffix_tree,
+						(slab_offset as usize + (slab_count - 1) * READ_SLAB_DATA_SIZE).into(),
+					);
 
-				start = headers.termination_point;
-				last_term = headers.termination_point;
+					let headers = match headers {
+						Ok(headers) => headers,
+						Err(e) => {
+							// build a mock header. only thing that matters is host and we
+							// can put something that triggers the default instance.
+							let termination_point = 0;
+							let start = 0;
+							let req = &"Host_".to_string().as_bytes().to_vec();
+							let start_uri = 0;
+							let end_uri = 0;
+							let http_request_type = HttpRequestType::GET;
+							let headers = [HttpHeader::default(); 100];
+							let header_count = 0;
+							let version = HttpVersion::UNKNOWN;
+							let host = "".to_string();
+							let connection = ConnectionType::KeepAlive;
+							let headers = HttpHeaders {
+								termination_point,
+								start,
+								req,
+								start_uri,
+								end_uri,
+								http_request_type,
+								version,
+								headers,
+								header_count,
+								host,
+								connection,
+								range_start: 0,
+								range_end: usize::MAX,
+								if_none_match: "".to_string(),
+								if_modified_since: "".to_string(),
+								is_websocket_upgrade: false,
+								sec_websocket_key: "".to_string(),
+								sec_websocket_protocol: "".to_string(),
+							};
+							Self::header_error(
+								config,
+								"".to_string(),
+								conn_data,
+								attachment,
+								e,
+								cache,
+								&headers,
+								ctx,
+							)?;
+							return Ok(());
+						}
+					};
 
-				let mut is_callback = false;
-				match attachment.callback {
-					Some(callback) => {
-						if attachment.callback_mappings.contains(&path) {
-							is_callback = true;
-							callback(&headers, &config, &attachment, conn_data)?;
-						} else if path.contains(r".") {
-							let pos = path.chars().rev().position(|c| c == '.').unwrap();
-							let len = path.len();
-							let suffix = path.substring(len - pos, len).to_string();
-							if attachment.callback_extensions.contains(&suffix) {
-								is_callback = true;
-								callback(&headers, &config, &attachment, conn_data)?;
+					debug!("Request type = {:?}", headers.http_request_type)?;
+
+					termination_sum += headers.termination_point;
+
+					debug!("term point = {}", headers.termination_point)?;
+					if headers.termination_point == 0 {
+						break;
+					} else {
+						if headers.version != HttpVersion::HTTP10 && headers.host()?.len() == 0 {
+							Self::header_error(
+								config,
+								"".to_string(),
+								conn_data,
+								attachment,
+								err!(ErrKind::Http, "Host not specified on HTTP/1.1+"),
+								cache.clone(),
+								&headers,
+								ctx,
+							)?;
+							return Ok(());
+						}
+
+						let path = match headers.path() {
+							Ok(path) => path,
+							Err(e) => {
+								Self::header_error(
+									config,
+									"".to_string(),
+									conn_data,
+									attachment,
+									e,
+									cache,
+									&headers,
+									ctx,
+								)?;
+								break;
+							}
+						};
+
+						if headers.is_websocket_upgrade()? {
+							match attachment.websocket_mappings.get(&path) {
+								Some(mapping) => {
+									// valid upgrade return switching response
+									Self::upgrade_websocket(conn_data, &headers, ctx, mapping)?;
+									break;
+								}
+								None => {
+									Self::header_error(
+										config,
+										path,
+										conn_data,
+										attachment,
+										err!(
+											ErrKind::Http,
+											"Cannot upgrade to websocket for this URI"
+										),
+										cache,
+										&headers,
+										ctx,
+									)?;
+									return Ok(());
+								}
 							}
 						}
-					}
-					None => {}
-				}
 
-				let mut cache_hit = false;
-				if !is_callback {
-					cache_hit = Self::process_file(
-						config,
-						cache.clone(),
-						path.clone(),
-						conn_data,
-						attachment,
-						&headers,
-						ctx,
-					)?;
-				}
+						start = headers.termination_point;
+						last_term = headers.termination_point;
 
-				if config.debug {
-					let empty = "".to_string();
-					let query = headers.query().unwrap_or("".to_string());
-					let extension = headers.extension().unwrap_or(empty);
-					let header_count = headers.header_count().unwrap_or(0);
-					info!(
-						"uri={},query={},extension={},method={:?},version={:?},header_count={},cache_hit={},has_range={},range_start={},range_end={},if_none_match={},if_modified_since={}",
+						let mut is_callback = false;
+						match attachment.callback {
+							Some(callback) => {
+								if attachment.callback_mappings.contains(&path) {
+									is_callback = true;
+									callback(
+										&headers,
+										&config,
+										&attachment,
+										&mut conn_data.write_handle(),
+									)?;
+								} else if path.contains(r".") {
+									let pos = path.chars().rev().position(|c| c == '.').unwrap();
+									let len = path.len();
+									let suffix = path.substring(len - pos, len).to_string();
+									if attachment.callback_extensions.contains(&suffix) {
+										is_callback = true;
+										callback(
+											&headers,
+											&config,
+											&attachment,
+											&mut conn_data.write_handle(),
+										)?;
+									}
+								}
+							}
+							None => {}
+						}
+
+						let mut cache_hit = false;
+						if !is_callback {
+							cache_hit = Self::process_file(
+								config,
+								cache.clone(),
+								path.clone(),
+								conn_data,
+								attachment,
+								&headers,
+								ctx,
+							)?;
+						}
+
+						if config.debug {
+							let empty = "".to_string();
+							let query = headers.query().unwrap_or("".to_string());
+							let extension = headers.extension().unwrap_or(empty);
+							let header_count = headers.header_count().unwrap_or(0);
+							info!(
+						"uri={},query={},extension={},method={:?},version={:?},header_count={},cache_hit={},has_range={},range_start={},range_end={},if_none_match={},if_modified_since={},is_websocket_upgrade={}",
 						path,
 						query,
                                                 extension,
@@ -1498,26 +1696,40 @@ Content-Length: {}\r\n\r\n{}",
                                                 headers.range_end().unwrap_or(usize::MAX),
                                                 headers.if_none_match().unwrap_or(&"".to_string()),
                                                 headers.if_modified_since().unwrap_or(&"".to_string()),
+                                                headers.is_websocket_upgrade().unwrap_or(false),
 					)?;
-					info!("{}", SEPARATOR_LINE)?;
+							info!("{}", SEPARATOR_LINE)?;
 
-					for i in 0..header_count {
-						info!(
-							"   header[{}] = ['{}']",
-							headers.header_name(i).unwrap_or("".to_string()),
-							headers.header_value(i).unwrap_or("".to_string())
-						)?;
+							for i in 0..header_count {
+								info!(
+									"   header[{}] = ['{}']",
+									headers.header_name(i).unwrap_or("".to_string()),
+									headers.header_value(i).unwrap_or("".to_string())
+								)?;
+							}
+							info!("{}", SEPARATOR_LINE)?;
+						}
 					}
-					info!("{}", SEPARATOR_LINE)?;
+
+					debug!("start={}", headers.start)?;
 				}
 			}
-
-			debug!("start={}", headers.start)?;
 		}
 
 		debug!("last term = {}", last_term)?;
+		Self::clean_slabs(termination_sum, req.len(), ctx, &slab_id_vec, conn_data)?;
 
-		if termination_sum != req.len() {
+		Ok(())
+	}
+
+	fn clean_slabs(
+		termination_sum: usize,
+		req_len: usize,
+		ctx: &mut HttpContext,
+		slab_id_vec: &Vec<u32>,
+		conn_data: &mut ConnectionData,
+	) -> Result<(), Error> {
+		if termination_sum != req_len {
 			ctx.offset = termination_sum % READ_SLAB_DATA_SIZE;
 		}
 		let del_slab = slab_id_vec[termination_sum / READ_SLAB_DATA_SIZE];
@@ -1536,7 +1748,7 @@ Content-Length: {}\r\n\r\n{}",
 	) -> Result<(), Error> {
 		let ctx = Self::build_ctx(ctx, config)?;
 		ctx.now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
-		Self::update_time(ctx.now, ctx, conn_data)?;
+		Self::insert_connections_hashtable(ctx.now, ctx, conn_data)?;
 		Ok(())
 	}
 
@@ -1563,9 +1775,10 @@ Content-Length: {}\r\n\r\n{}",
 		let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
 		let mut to_remove = vec![];
 		for (k, v) in &ctx.connections {
-			let diff = now.saturating_sub(v.1);
+			debug!("connection: {:?} {:?}", k, v)?;
+			let diff = now.saturating_sub(v.last_active);
 			if diff >= config.idle_timeout {
-				to_remove.push((k.clone(), v.0.clone(), v.2.clone()));
+				to_remove.push((k.clone(), v.write_state.clone(), v.tid.clone()));
 			}
 		}
 

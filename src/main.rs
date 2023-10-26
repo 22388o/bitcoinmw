@@ -17,10 +17,13 @@
 // limitations under the License.
 
 use bmw_err::{err, ErrKind, Error};
-use bmw_evh::{ConnData, ConnectionData, EventHandlerConfig};
+use bmw_evh::{EventHandlerConfig, WriteHandle};
 use bmw_http::HttpInstanceType::Plain;
 use bmw_http::PlainConfig;
-use bmw_http::{Builder, HttpConfig, HttpHeaders, HttpInstance};
+use bmw_http::{
+	Builder, HttpConfig, HttpHeaders, HttpInstance, WebSocketData, WebSocketHandle,
+	WebSocketMessage, WebSocketMessageType,
+};
 use bmw_log::*;
 use std::collections::{HashMap, HashSet};
 use std::mem::size_of;
@@ -33,11 +36,11 @@ fn callback(
 	_headers: &HttpHeaders,
 	_config: &HttpConfig,
 	_instance: &HttpInstance,
-	connection_data: &mut ConnectionData,
+	write_handle: &mut WriteHandle,
 ) -> Result<(), Error> {
 	info!("in callback!")?;
 
-	connection_data.write_handle().write(
+	write_handle.write(
 		"\
 HTTP/1.1 200 OK\r\n\
 Date: Thu, 12 Oct 2023 22:52:16 GMT\r\n\
@@ -47,6 +50,27 @@ callbk\n"
 			.as_bytes(),
 	)?;
 
+	Ok(())
+}
+
+fn ws_handler(
+	message: &WebSocketMessage,
+	_config: &HttpConfig,
+	_instance: &HttpInstance,
+	wsh: &mut WebSocketHandle,
+	websocket_data: &WebSocketData,
+) -> Result<(), Error> {
+	let text = std::str::from_utf8(&message.payload[..]).unwrap_or("utf8err");
+	info!(
+		"in ws handler in main.rs. got message [proto='{:?}'] [path='{}'] [query='{}'] = '{}'",
+		websocket_data.negotiated_protocol, websocket_data.uri, websocket_data.query, text
+	)?;
+
+	let wsm = WebSocketMessage {
+		mtype: WebSocketMessageType::Text,
+		payload: "abcd".as_bytes().to_vec(),
+	};
+	wsh.send_message(&wsm, false)?;
 	Ok(())
 }
 
@@ -70,6 +94,13 @@ fn real_main(debug_startup_32: bool) -> Result<(), Error> {
 		..Default::default()
 	})?;
 
+	let mut websocket_mappings = HashMap::new();
+	let mut test_ws_protos = HashSet::new();
+	test_ws_protos.insert("test".to_string());
+	test_ws_protos.insert("testv2".to_string());
+	websocket_mappings.insert("/chat".to_string(), HashSet::new());
+	websocket_mappings.insert("/testws".to_string(), test_ws_protos);
+
 	let port = 8080;
 	let mut callback_mappings = HashSet::new();
 	let mut callback_extensions = HashSet::new();
@@ -89,6 +120,8 @@ fn real_main(debug_startup_32: bool) -> Result<(), Error> {
 					("37miners.com".to_string(), "~/abc".to_string()),
 				]),
 			}),
+			websocket_handler: Some(ws_handler),
+			websocket_mappings,
 			..Default::default()
 		}],
 		debug: true,

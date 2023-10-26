@@ -17,7 +17,7 @@
 
 use crate::constants::*;
 use bmw_err::*;
-use bmw_evh::{ConnectionData, EventHandlerConfig, WriteState};
+use bmw_evh::{ConnectionData, EventHandlerConfig, WriteHandle, WriteState};
 use bmw_util::*;
 use std::collections::{HashMap, HashSet};
 
@@ -67,6 +67,66 @@ pub struct HttpHeaders<'a> {
 	pub(crate) range_end: usize,
 	pub(crate) if_none_match: String,
 	pub(crate) if_modified_since: String,
+	pub(crate) is_websocket_upgrade: bool,
+	pub(crate) sec_websocket_key: String,
+	pub(crate) sec_websocket_protocol: String,
+}
+
+#[derive(Debug)]
+pub struct HttpConnectionData {
+	pub(crate) last_active: u128,
+	pub(crate) write_state: Box<dyn LockBox<WriteState>>,
+	pub(crate) tid: usize,
+	pub(crate) websocket_data: Option<WebSocketData>,
+}
+
+#[derive(Debug, Clone)]
+pub struct WebSocketData {
+	pub uri: String,
+	pub query: String,
+	pub negotiated_protocol: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum WebSocketMessageType {
+	Text,
+	Binary,
+	Close,
+	Ping,
+	Pong,
+	Open,
+	Accept,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct WebSocketMessage {
+	pub mtype: WebSocketMessageType,
+	pub payload: Vec<u8>,
+}
+
+#[derive(Clone)]
+pub struct WebSocketHandle {
+	pub(crate) write_handle: WriteHandle,
+}
+
+#[derive(Debug, PartialEq)]
+pub(crate) enum FrameType {
+	Continuation,
+	Text,
+	Binary,
+	Close,
+	Ping,
+	Pong,
+}
+
+#[derive(Debug, PartialEq)]
+pub(crate) struct FrameHeader {
+	pub(crate) ftype: FrameType,     // which type of frame is this?
+	pub(crate) mask: bool,           // is this frame masked?
+	pub(crate) fin: bool,            // is this the last piece of data in the frame?
+	pub(crate) payload_len: usize,   // size of the payload
+	pub(crate) masking_key: u32,     // masking key
+	pub(crate) start_content: usize, // start of the content of the message
 }
 
 pub trait HttpCache {
@@ -132,6 +192,8 @@ pub struct HttpInstance {
 	pub callback: Option<HttpCallback>,
 	pub callback_mappings: HashSet<String>,
 	pub callback_extensions: HashSet<String>,
+	pub websocket_mappings: HashMap<String, HashSet<String>>,
+	pub websocket_handler: Option<WebsocketHandler>,
 }
 
 #[derive(Clone)]
@@ -149,6 +211,17 @@ pub struct HttpConfig {
 
 pub struct Builder {}
 
+type HttpCallback =
+	fn(&HttpHeaders, &HttpConfig, &HttpInstance, &mut WriteHandle) -> Result<(), Error>;
+
+type WebsocketHandler = fn(
+	&WebSocketMessage,
+	&HttpConfig,
+	&HttpInstance,
+	&mut WebSocketHandle,
+	&WebSocketData,
+) -> Result<(), Error>;
+
 // Crate local types
 pub(crate) struct HttpServerImpl {
 	pub(crate) config: HttpConfig,
@@ -163,12 +236,9 @@ pub struct HttpContext {
 	pub(crate) suffix_tree: Box<dyn SuffixTree + Send + Sync>,
 	pub(crate) matches: [Match; 1_000],
 	pub(crate) offset: usize,
-	pub(crate) connections: HashMap<u128, (Box<dyn LockBox<WriteState>>, u128, usize)>,
+	pub(crate) connections: HashMap<u128, HttpConnectionData>,
 	pub(crate) mime_map: HashMap<String, String>,
 	pub(crate) mime_lookup: HashMap<u32, String>,
 	pub(crate) mime_rev_lookup: HashMap<String, u32>,
 	pub(crate) now: u128,
 }
-
-type HttpCallback =
-	fn(&HttpHeaders, &HttpConfig, &HttpInstance, &mut ConnectionData) -> Result<(), Error>;

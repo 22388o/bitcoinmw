@@ -1398,9 +1398,10 @@ where
 						None => warn!("Couldn't look up conn info for {}", id)?,
 					}
 				}
-				None => warn!(
+				// normal because we can try to write to a closed connection
+				None => debug!(
 					"Couldn't look up id for handle {}, tid={}",
-					ctx.events[ctx.counter].handle, ctx.tid
+					ctx.events[ctx.counter].handle, ctx.tid,
 				)?,
 			}
 			ctx.counter += 1;
@@ -7207,6 +7208,87 @@ mod test {
 			assert!(**(found_clone.rlock()?.guard()));
 			break;
 		}
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_trigger_on_read2() -> Result<(), Error> {
+		let port = pick_free_port()?;
+		info!("eventhandler trigger_on_read none Using port: {}", port)?;
+		let addr = &format!("127.0.0.1:{}", port)[..];
+		let threads = 1;
+		let config = EventHandlerConfig {
+			threads,
+			housekeeping_frequency_millis: 100_000,
+			read_slab_count: 2,
+			max_handles_per_thread: 5,
+			..Default::default()
+		};
+		let mut evh = EventHandlerImpl::new(config)?;
+
+		let mut on_read_count = lock_box!(0)?;
+		let on_read_count_clone = on_read_count.clone();
+
+		evh.set_on_read(move |conn_data, _thread_context, _attachment| {
+			info!("in on read")?;
+			let mut wh = conn_data.write_handle();
+
+			let mut on_read_count = on_read_count.wlock()?;
+			let guard = on_read_count.guard();
+			**guard += 1;
+
+			// only trigger on on read for the first request
+			if **guard == 1 {
+				spawn(move || -> Result<(), Error> {
+					info!("spawned thread")?;
+					sleep(Duration::from_millis(1000));
+					info!("trigger on read")?;
+					wh.trigger_on_read()?;
+					Ok(())
+				});
+			}
+			Ok(())
+		})?;
+		evh.set_on_accept(move |_conn_data, _thread_context| {
+			info!("on accept")?;
+			Ok(())
+		})?;
+		evh.set_on_close(move |_conn_data, _thread_context| Ok(()))?;
+		evh.set_on_panic(move |_thread_context, _e| Ok(()))?;
+		evh.set_housekeeper(move |_thread_context| Ok(()))?;
+		evh.start()?;
+
+		let handles = create_listeners(threads, addr, 10, false)?;
+		info!("handles.size={},handles={:?}", handles.size(), handles)?;
+		let sc = ServerConnection {
+			tls_config: None,
+			handles,
+			is_reuse_port: false,
+		};
+		evh.add_server(sc, Box::new(""))?;
+		sleep(Duration::from_millis(5_000));
+		let mut connection = TcpStream::connect(addr)?;
+		connection.write(b"test1")?;
+
+		let mut count = 0;
+		loop {
+			let on_read_count_clone = on_read_count_clone.rlock()?;
+			let guard = on_read_count_clone.guard();
+			if **guard == 2 || count > 10_000 {
+				break;
+			} else {
+				info!("sleep {}", count)?;
+				sleep(Duration::from_millis(5));
+				count += 1;
+			}
+		}
+
+		sleep(Duration::from_millis(1_000));
+
+		let on_read_count_clone = on_read_count_clone.rlock()?;
+		let guard = on_read_count_clone.guard();
+		assert_eq!(**guard, 2);
 
 		Ok(())
 	}
