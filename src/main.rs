@@ -32,6 +32,11 @@ use std::thread::park;
 
 info!();
 
+// include build information
+pub mod built_info {
+	include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}
+
 fn callback(
 	_headers: &HttpHeaders,
 	_config: &HttpConfig,
@@ -124,6 +129,7 @@ fn real_main(debug_startup_32: bool) -> Result<(), Error> {
 			websocket_mappings,
 			..Default::default()
 		}],
+		server_version: built_info::PKG_VERSION.to_string(),
 		debug: true,
 		evh_config: EventHandlerConfig {
 			threads: 2,

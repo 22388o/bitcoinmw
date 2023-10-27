@@ -207,6 +207,7 @@ pub struct HttpConfig {
 	pub server_version: String,
 	pub mime_map: Vec<(String, String)>,
 	pub bring_to_front_weight: f64,
+	pub restat_file_frequency_in_millis: usize,
 }
 
 pub struct Builder {}

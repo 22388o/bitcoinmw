@@ -39,6 +39,7 @@ use bmw_log::*;
 use bmw_util::*;
 use std::any::{type_name, Any};
 use std::collections::{HashMap, HashSet};
+use std::fs::metadata;
 use std::fs::{File, Metadata};
 use std::io::BufReader;
 use std::io::Read;
@@ -81,6 +82,7 @@ impl Default for HttpConfig {
 			server_name: "BitcoinMW HTTP Server".to_string(),
 			server_version: "0.0.0".to_string(),
 			bring_to_front_weight: 0.1,
+			restat_file_frequency_in_millis: 3_000, // 3 seconds
 			mime_map: vec![
 				("html".to_string(), "text/html".to_string()),
 				("htm".to_string(), "text/html".to_string()),
@@ -515,8 +517,8 @@ impl HttpServerImpl {
 		let res = dt
 			.format(&format!(
 				"HTTP/{} {} {}\r\n\
-Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
-Server: {} {}\r\n{}{}\
+Server: {} {}\r\n\
+Date: %a, %d %h %C%y %H:%M:%S GMT\r\n{}{}\
 Connection: {}\r\n\
 Last-Modified: {}\r\n\
 ETag: {}\r\n\
@@ -607,7 +609,8 @@ Content-Length: {}\r\n\r\n{}",
 		};
 
 		debug!("error page location: {}", fpath)?;
-		let metadata = std::fs::metadata(fpath.clone());
+
+		let metadata = metadata(fpath.clone());
 
 		match metadata {
 			Ok(metadata) => {
@@ -713,10 +716,24 @@ Content-Length: {}\r\n\r\n{}",
 		if Self::try_cache(cache.clone(), &fpath, conn_data, ctx, config, headers)? {
 			return Ok(true);
 		}
+		for default_file in instance.default_file.clone() {
+			let slash = if fpath.ends_with("/") { "" } else { "/" };
+			let fpath_default_file = format!("{}{}{}", fpath, slash, default_file);
+			if Self::try_cache(
+				cache.clone(),
+				&fpath_default_file,
+				conn_data,
+				ctx,
+				config,
+				headers,
+			)? {
+				return Ok(true);
+			}
+		}
 
-		let metadata = std::fs::metadata(fpath.clone());
+		let metadata_value = metadata(fpath.clone());
 
-		let metadata = match metadata {
+		let metadata_value = match metadata_value {
 			Ok(metadata) => metadata,
 			Err(_e) => {
 				debug!("404path={},dir={}", fpath, http_dir)?;
@@ -735,14 +752,14 @@ Content-Length: {}\r\n\r\n{}",
 			}
 		};
 
-		let (fpath, metadata) = if metadata.is_dir() {
+		let (fpath, metadata) = if metadata_value.is_dir() {
 			let mut fpath_ret: Option<String> = None;
 			let mut metadata_ret: Option<Metadata> = None;
 			let slash = if fpath.ends_with("/") { "" } else { "/" };
 
 			for default_file in instance.default_file.clone() {
 				let fpath_res = format!("{}{}{}", fpath, slash, default_file);
-				let metadata_res = std::fs::metadata(fpath_res.clone());
+				let metadata_res = metadata(fpath_res.clone());
 				match metadata_res {
 					Ok(metadata) => {
 						fpath_ret = Some(fpath_res);
@@ -772,7 +789,7 @@ Content-Length: {}\r\n\r\n{}",
 				return Ok(false);
 			}
 		} else {
-			(fpath, metadata)
+			(fpath, metadata_value)
 		};
 
 		debug!("path={},dir={}", fpath, http_dir)?;
