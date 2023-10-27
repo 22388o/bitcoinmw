@@ -16,17 +16,20 @@
 // limitations under the License.
 
 use crate::constants::*;
-use crate::types::{HttpCacheImpl, HttpConnectionData, HttpContext, HttpServerImpl, WebSocketData};
+use crate::types::{
+	CacheStreamResult, HttpCache, HttpCacheImpl, HttpConnectionData, HttpContext, HttpServerImpl,
+	WebSocketData,
+};
 use crate::ws::{process_websocket_data, send_websocket_handshake_response};
 use crate::HttpInstanceType::{Plain, Tls};
 use crate::{
-	ConnectionType, HttpCache, HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType,
+	ConnectionType, HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType,
 	HttpRequestType, HttpServer, HttpVersion, PlainConfig,
 };
 use bmw_deps::chrono::{DateTime, TimeZone, Utc};
 use bmw_deps::dirs;
 use bmw_deps::math::round::floor;
-use bmw_deps::rand::{self, random, Rng};
+use bmw_deps::rand::{self, Rng};
 use bmw_deps::sha1::{Digest, Sha1};
 use bmw_deps::substring::Substring;
 use bmw_err::*;
@@ -683,7 +686,7 @@ Content-Length: {}\r\n\r\n{}",
 
 	fn process_file(
 		config: &HttpConfig,
-		mut cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
+		cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
 		path: String,
 		conn_data: &mut ConnectionData,
 		instance: &HttpInstance,
@@ -794,39 +797,20 @@ Content-Length: {}\r\n\r\n{}",
 
 		debug!("path={},dir={}", fpath, http_dir)?;
 
-		let hit: bool;
-		{
-			{
-				let cache = cache.rlock()?;
-				hit = (**cache.guard())
-					.stream_file(&fpath, conn_data, 200, "OK", ctx, config, headers)?;
-			}
-			let weight: f64 = config.bring_to_front_weight;
-			let threshold: f64 = weight * 10_000_000.0;
-			let r: u64 = rand::thread_rng().gen_range(0..10_000_000);
-			let threshold: u64 = floor(threshold, 0) as u64;
-			if hit && r < threshold as u64 {
-				let mut cache = cache.wlock()?;
-				(**cache.guard()).bring_to_front(&fpath)?;
-			}
-		}
+		Self::stream_file(
+			config,
+			fpath,
+			metadata.len(),
+			conn_data,
+			200,
+			"OK",
+			cache,
+			ctx,
+			headers,
+			try_into!(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_millis())?,
+		)?;
 
-		if !hit {
-			Self::stream_file(
-				config,
-				fpath,
-				metadata.len(),
-				conn_data,
-				200,
-				"OK",
-				cache,
-				ctx,
-				headers,
-				try_into!(metadata.modified()?.duration_since(UNIX_EPOCH)?.as_millis())?,
-			)?;
-		}
-
-		Ok(hit)
+		Ok(false)
 	}
 
 	fn try_cache(
@@ -838,21 +822,37 @@ Content-Length: {}\r\n\r\n{}",
 		headers: &HttpHeaders,
 	) -> Result<bool, Error> {
 		debug!("try cache: {}", path)?;
-		let hit: bool;
+		let hit: CacheStreamResult;
 		{
 			let cache = cache.rlock()?;
 			hit =
 				(**cache.guard()).stream_file(path, conn_data, 200, "OK", ctx, config, headers)?;
 		}
-		let r = random::<u64>();
-		debug!("cache hit={}", hit)?;
 
-		if hit && r % 2 == 0 {
+		let weight: f64 = config.bring_to_front_weight;
+		let threshold: f64 = weight * 10_000_000.0;
+		let r: u64 = rand::thread_rng().gen_range(0..10_000_000);
+		let threshold: u64 = floor(threshold, 0) as u64;
+		if hit == CacheStreamResult::Hit
+			|| hit == CacheStreamResult::NotModified && r < threshold as u64
+		{
 			let mut cache = cache.wlock()?;
-			(**cache.guard()).bring_to_front(path)?;
+			(**cache.guard()).bring_to_front(&path)?;
 		}
 
-		Ok(hit)
+		if hit == CacheStreamResult::Modified {
+			// the file has been modified. Delete it.
+			let mut cache = cache.wlock()?;
+			(**cache.guard()).remove(&path)?;
+		}
+
+		if hit == CacheStreamResult::NotModified {
+			// the file is not modified, but we need to update the last checked timestamp.
+			let mut cache = cache.wlock()?;
+			(**cache.guard()).update_last_checked_if_needed(&path, ctx, config)?;
+		}
+
+		Ok(hit == CacheStreamResult::Hit || hit == CacheStreamResult::NotModified)
 	}
 
 	fn stream_file(
@@ -978,6 +978,7 @@ Content-Length: {}\r\n\r\n{}",
 							try_into!(len)?,
 							last_modified,
 							*mime_type,
+							try_into!(ctx.now)?,
 						)?;
 					}
 

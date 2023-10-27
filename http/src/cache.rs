@@ -16,14 +16,16 @@
 // limitations under the License.
 
 use crate::constants::*;
-use crate::types::{HttpCacheImpl, HttpContext, HttpServerImpl};
-use crate::{HttpCache, HttpConfig, HttpHeaders};
+use crate::types::{CacheStreamResult, HttpCache, HttpCacheImpl, HttpContext, HttpServerImpl};
+use crate::{HttpConfig, HttpHeaders};
 use bmw_deps::chrono::{DateTime, TimeZone, Utc};
 use bmw_err::*;
 use bmw_evh::ConnData;
 use bmw_evh::ConnectionData;
 use bmw_log::*;
 use bmw_util::*;
+use std::fs::metadata;
+use std::time::UNIX_EPOCH;
 
 info!();
 
@@ -47,16 +49,45 @@ impl HttpCache for HttpCacheImpl {
 		ctx: &HttpContext,
 		config: &HttpConfig,
 		headers: &HttpHeaders,
-	) -> Result<bool, Error> {
+	) -> Result<CacheStreamResult, Error> {
 		let mut data = [0u8; CACHE_BUFFER_SIZE];
 		debug!("try cache {}", fpath)?;
 		let found = self.hashtable.raw_read(fpath, 0, &mut data)?;
 		debug!("raw read complete")?;
 		let text_plain = TEXT_PLAIN.to_string();
+		let mut ret = CacheStreamResult::Miss;
 		if found {
+			ret = CacheStreamResult::Hit;
 			let len = slice_to_usize(&data[0..8])?;
 			let last_modified = slice_to_u64(&data[8..16])?;
 			let mime_code = slice_to_u32(&data[16..20])?;
+			let last_check = slice_to_u64(&data[20..28])?;
+			let now_u64: u64 = try_into!(ctx.now)?;
+			let diff = now_u64.saturating_sub(last_check);
+			if diff > config.restat_file_frequency_in_millis {
+				match metadata(&fpath) {
+					Ok(md) => {
+						let last_modified_metadata: u64 =
+							try_into!(md.modified()?.duration_since(UNIX_EPOCH)?.as_millis())?;
+
+						if last_modified_metadata != last_modified {
+							// file has been updated or has changed
+							// in some way. Return false so that
+							// the file can be re-read.
+							return Ok(CacheStreamResult::Modified);
+						} else {
+							ret = CacheStreamResult::NotModified;
+						}
+					}
+					Err(_) => {
+						// presumably something's differt on the file
+						// system. Just say it's modified, it will be
+						// re-read and any error reported as the file is
+						// streamed.
+						return Ok(CacheStreamResult::Modified);
+					}
+				}
+			}
 			let mime_type = ctx.mime_lookup.get(&mime_code).unwrap_or(&text_plain);
 			debug!(
 				"cache found len = {}, data = {:?}, found={}",
@@ -112,7 +143,7 @@ impl HttpCache for HttpCacheImpl {
 				let mut len_sum = 0;
 				loop {
 					self.hashtable
-						.raw_read(fpath, 20 + i * CACHE_BUFFER_SIZE, &mut data)?;
+						.raw_read(fpath, 28 + i * CACHE_BUFFER_SIZE, &mut data)?;
 					let blen = if rem > CACHE_BUFFER_SIZE {
 						CACHE_BUFFER_SIZE
 					} else {
@@ -142,7 +173,33 @@ impl HttpCache for HttpCacheImpl {
 				write_handle.close()?;
 			}
 		}
-		Ok(found)
+		Ok(ret)
+	}
+
+	fn remove(&mut self, fpath: &String) -> Result<(), Error> {
+		self.hashtable.remove(fpath)?;
+		Ok(())
+	}
+
+	fn update_last_checked_if_needed(
+		&mut self,
+		fpath: &String,
+		ctx: &HttpContext,
+		config: &HttpConfig,
+	) -> Result<(), Error> {
+		let mut data = [0u8; CACHE_BUFFER_SIZE];
+		let found = self.hashtable.raw_read(fpath, 0, &mut data)?;
+		if found {
+			let last_check = slice_to_u64(&data[20..28])?;
+			let now_u64: u64 = try_into!(ctx.now)?;
+			let diff = now_u64.saturating_sub(last_check);
+			if diff > config.restat_file_frequency_in_millis {
+				u64_to_slice(now_u64, &mut data[20..28])?;
+				self.hashtable.raw_write(fpath, 0, &data)?;
+			}
+		}
+
+		Ok(())
 	}
 
 	fn write_metadata(
@@ -151,6 +208,7 @@ impl HttpCache for HttpCacheImpl {
 		len: usize,
 		last_modified: u64,
 		mime_type: u32,
+		now: u64,
 	) -> Result<bool, Error> {
 		let mut free_count;
 		let slab_count;
@@ -185,6 +243,7 @@ impl HttpCache for HttpCacheImpl {
 			usize_to_slice(len, &mut data[0..8])?;
 			u64_to_slice(last_modified, &mut data[8..16])?;
 			u32_to_slice(mime_type, &mut data[16..20])?;
+			u64_to_slice(now, &mut data[20..28])?;
 			debug!("write_len {:?}", &data[0..8])?;
 			self.hashtable.raw_write(path, 0, &data)?;
 			debug!("====================================write_len complete")?;
@@ -204,7 +263,7 @@ impl HttpCache for HttpCacheImpl {
 		)?;
 		let ret = self
 			.hashtable
-			.raw_write(path, 20 + block_num * CACHE_BUFFER_SIZE, data);
+			.raw_write(path, 28 + block_num * CACHE_BUFFER_SIZE, data);
 		debug!(
 			"=====================================write block complete: {:?}",
 			ret

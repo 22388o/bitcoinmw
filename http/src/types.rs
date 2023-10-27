@@ -109,53 +109,6 @@ pub struct WebSocketHandle {
 	pub(crate) write_handle: WriteHandle,
 }
 
-#[derive(Debug, PartialEq)]
-pub(crate) enum FrameType {
-	Continuation,
-	Text,
-	Binary,
-	Close,
-	Ping,
-	Pong,
-}
-
-#[derive(Debug, PartialEq)]
-pub(crate) struct FrameHeader {
-	pub(crate) ftype: FrameType,     // which type of frame is this?
-	pub(crate) mask: bool,           // is this frame masked?
-	pub(crate) fin: bool,            // is this the last piece of data in the frame?
-	pub(crate) payload_len: usize,   // size of the payload
-	pub(crate) masking_key: u32,     // masking key
-	pub(crate) start_content: usize, // start of the content of the message
-}
-
-pub trait HttpCache {
-	fn stream_file(
-		&self,
-		path: &String,
-		conn_data: &mut ConnectionData,
-		code: u16,
-		message: &str,
-		ctx: &HttpContext,
-		config: &HttpConfig,
-		headers: &HttpHeaders,
-	) -> Result<bool, Error>;
-	fn write_metadata(
-		&mut self,
-		path: &String,
-		len: usize,
-		last_modified: u64,
-		mime_type: u32,
-	) -> Result<bool, Error>;
-	fn write_block(
-		&mut self,
-		path: &String,
-		offset: usize,
-		data: &[u8; CACHE_BUFFER_SIZE],
-	) -> Result<(), Error>;
-	fn bring_to_front(&mut self, path: &String) -> Result<(), Error>;
-}
-
 pub trait HttpServer {
 	fn start(&mut self) -> Result<(), Error>;
 	fn stop(&mut self) -> Result<(), Error>;
@@ -207,7 +160,7 @@ pub struct HttpConfig {
 	pub server_version: String,
 	pub mime_map: Vec<(String, String)>,
 	pub bring_to_front_weight: f64,
-	pub restat_file_frequency_in_millis: usize,
+	pub restat_file_frequency_in_millis: u64,
 }
 
 pub struct Builder {}
@@ -233,7 +186,7 @@ pub(crate) struct HttpCacheImpl {
 	pub(crate) hashtable: Box<dyn Hashtable<String, usize> + Send + Sync>,
 }
 
-pub struct HttpContext {
+pub(crate) struct HttpContext {
 	pub(crate) suffix_tree: Box<dyn SuffixTree + Send + Sync>,
 	pub(crate) matches: [Match; 1_000],
 	pub(crate) offset: usize,
@@ -242,4 +195,67 @@ pub struct HttpContext {
 	pub(crate) mime_lookup: HashMap<u32, String>,
 	pub(crate) mime_rev_lookup: HashMap<String, u32>,
 	pub(crate) now: u128,
+}
+
+#[derive(PartialEq, Debug)]
+pub(crate) enum CacheStreamResult {
+	Hit,
+	Miss,
+	Modified,
+	NotModified,
+}
+
+#[derive(Debug, PartialEq)]
+pub(crate) enum FrameType {
+	Continuation,
+	Text,
+	Binary,
+	Close,
+	Ping,
+	Pong,
+}
+
+#[derive(Debug, PartialEq)]
+pub(crate) struct FrameHeader {
+	pub(crate) ftype: FrameType,     // which type of frame is this?
+	pub(crate) mask: bool,           // is this frame masked?
+	pub(crate) fin: bool,            // is this the last piece of data in the frame?
+	pub(crate) payload_len: usize,   // size of the payload
+	pub(crate) masking_key: u32,     // masking key
+	pub(crate) start_content: usize, // start of the content of the message
+}
+
+pub(crate) trait HttpCache {
+	fn stream_file(
+		&self,
+		path: &String,
+		conn_data: &mut ConnectionData,
+		code: u16,
+		message: &str,
+		ctx: &HttpContext,
+		config: &HttpConfig,
+		headers: &HttpHeaders,
+	) -> Result<CacheStreamResult, Error>;
+	fn write_metadata(
+		&mut self,
+		path: &String,
+		len: usize,
+		last_modified: u64,
+		mime_type: u32,
+		now: u64,
+	) -> Result<bool, Error>;
+	fn write_block(
+		&mut self,
+		path: &String,
+		offset: usize,
+		data: &[u8; CACHE_BUFFER_SIZE],
+	) -> Result<(), Error>;
+	fn bring_to_front(&mut self, path: &String) -> Result<(), Error>;
+	fn remove(&mut self, path: &String) -> Result<(), Error>;
+	fn update_last_checked_if_needed(
+		&mut self,
+		fpath: &String,
+		ctx: &HttpContext,
+		config: &HttpConfig,
+	) -> Result<(), Error>;
 }

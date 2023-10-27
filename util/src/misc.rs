@@ -65,7 +65,7 @@ pub fn u64_to_slice(n: u64, slice: &mut [u8]) -> Result<(), Error> {
 }
 
 /// Utility to convert an arbitrary length slice (up to 8 bytes) to a u64.
-pub fn slice_to_u64(slice: &[u8]) -> Result<usize, Error> {
+pub fn slice_to_u64(slice: &[u8]) -> Result<u64, Error> {
 	try_into!(slice_to_usize(slice)?)
 }
 
