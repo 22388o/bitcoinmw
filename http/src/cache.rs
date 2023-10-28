@@ -17,7 +17,7 @@
 
 use crate::constants::*;
 use crate::types::{CacheStreamResult, HttpCache, HttpCacheImpl, HttpContext, HttpServerImpl};
-use crate::{HttpConfig, HttpHeaders};
+use crate::{HttpConfig, HttpHeaders, HttpRequestType};
 use bmw_deps::chrono::{DateTime, TimeZone, Utc};
 use bmw_err::*;
 use bmw_evh::ConnData;
@@ -141,6 +141,7 @@ impl HttpCache for HttpCacheImpl {
 				let mut rem = len;
 				let mut i = 0;
 				let mut len_sum = 0;
+				let http_request_type = headers.http_request_type()?;
 				loop {
 					self.hashtable
 						.raw_read(fpath, 28 + i * CACHE_BUFFER_SIZE, &mut data)?;
@@ -151,14 +152,16 @@ impl HttpCache for HttpCacheImpl {
 					};
 					debug!("read blen={},rem={},data={:?}", blen, rem, data)?;
 
-					HttpServerImpl::range_write(
-						range_start,
-						range_end,
-						&data.to_vec(),
-						len_sum,
-						blen,
-						&mut write_handle,
-					)?;
+					if http_request_type != &HttpRequestType::HEAD {
+						HttpServerImpl::range_write(
+							range_start,
+							range_end,
+							&data.to_vec(),
+							len_sum,
+							blen,
+							&mut write_handle,
+						)?;
+					}
 					len_sum += blen;
 
 					rem = rem.saturating_sub(blen);

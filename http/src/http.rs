@@ -941,6 +941,7 @@ Content-Length: {}\r\n\r\n{}",
 		let mime_type = ctx.mime_rev_lookup.get(&extension).unwrap_or(&u32::MAX);
 
 		if code != 304 {
+			let http_request_type = headers.http_request_type()?;
 			loop {
 				let mut blen = 0;
 				loop {
@@ -958,7 +959,7 @@ Content-Length: {}\r\n\r\n{}",
 
 				debug!("i={},blen={}", i, blen)?;
 
-				if !write_error {
+				if !write_error && http_request_type != &HttpRequestType::HEAD {
 					Self::range_write(
 						range_start,
 						range_end,
