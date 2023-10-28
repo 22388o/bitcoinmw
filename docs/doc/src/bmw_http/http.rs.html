@@ -2104,6 +2104,11 @@
 <a href="#2104" id="2104">2104</a>
 <a href="#2105" id="2105">2105</a>
 <a href="#2106" id="2106">2106</a>
+<a href="#2107" id="2107">2107</a>
+<a href="#2108" id="2108">2108</a>
+<a href="#2109" id="2109">2109</a>
+<a href="#2110" id="2110">2110</a>
+<a href="#2111" id="2111">2111</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2130,7 +2135,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::HttpInstanceType::{Plain, Tls};
 <span class="kw">use crate</span>::{
 	ConnectionType, HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType,
-	HttpRequestType, HttpServer, HttpVersion, PlainConfig,
+	HttpRequestType, HttpServer, HttpStats, HttpVersion, PlainConfig,
 };
 <span class="kw">use </span>bmw_deps::chrono::{DateTime, TimeZone, Utc};
 <span class="kw">use </span>bmw_deps::dirs;
@@ -2192,7 +2197,8 @@
 			server_version: <span class="string">&quot;0.0.0&quot;</span>.to_string(),
 			bring_to_front_weight: <span class="number">0.1</span>,
 			restat_file_frequency_in_millis: <span class="number">3_000</span>, <span class="comment">// 3 seconds
-			</span>mime_map: <span class="macro">vec!</span>[
+			</span>request_callback: <span class="prelude-val">None</span>,
+			mime_map: <span class="macro">vec!</span>[
 				(<span class="string">&quot;html&quot;</span>.to_string(), <span class="string">&quot;text/html&quot;</span>.to_string()),
 				(<span class="string">&quot;htm&quot;</span>.to_string(), <span class="string">&quot;text/html&quot;</span>.to_string()),
 				(<span class="string">&quot;shtml&quot;</span>.to_string(), <span class="string">&quot;text/html&quot;</span>.to_string()),
@@ -4076,6 +4082,10 @@ Content-Length: {}\r\n\r\n{}&quot;</span>,
 	<span class="kw">fn </span>stop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="prelude-val">Ok</span>(())
 	}
+
+	<span class="kw">fn </span>stats(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;HttpStats, Error&gt; {
+		<span class="prelude-val">Ok</span>(HttpStats {})
+	}
 }
 
 <span class="attr">#[cfg(test)]
@@ -4138,7 +4148,7 @@ Content-Length: {}\r\n\r\n{}&quot;</span>,
 
 		<span class="kw">let </span><span class="kw-2">mut </span>client = TcpStream::connect(addr)<span class="question-mark">?</span>;
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
-		client.write(<span class="string">b&quot;POST /def1.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n&quot;</span>)<span class="question-mark">?</span>;
+		client.write(<span class="string">b&quot;GET /def1.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n&quot;</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0</span>; <span class="number">512</span>];
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 		<span class="kw">let </span>len = client.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
@@ -4194,7 +4204,7 @@ Content-Length: {}\r\n\r\n{}&quot;</span>,
 
 		<span class="kw">let </span><span class="kw-2">mut </span>client = TcpStream::connect(addr)<span class="question-mark">?</span>;
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
-		client.write(<span class="string">b&quot;POST /foo.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n&quot;</span>)<span class="question-mark">?</span>;
+		client.write(<span class="string">b&quot;GET /foo.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n&quot;</span>)<span class="question-mark">?</span>;
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0</span>; <span class="number">512</span>];
 		<span class="kw">let </span>len = client.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
