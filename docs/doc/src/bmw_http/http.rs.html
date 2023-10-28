@@ -2045,6 +2045,65 @@
 <a href="#2045" id="2045">2045</a>
 <a href="#2046" id="2046">2046</a>
 <a href="#2047" id="2047">2047</a>
+<a href="#2048" id="2048">2048</a>
+<a href="#2049" id="2049">2049</a>
+<a href="#2050" id="2050">2050</a>
+<a href="#2051" id="2051">2051</a>
+<a href="#2052" id="2052">2052</a>
+<a href="#2053" id="2053">2053</a>
+<a href="#2054" id="2054">2054</a>
+<a href="#2055" id="2055">2055</a>
+<a href="#2056" id="2056">2056</a>
+<a href="#2057" id="2057">2057</a>
+<a href="#2058" id="2058">2058</a>
+<a href="#2059" id="2059">2059</a>
+<a href="#2060" id="2060">2060</a>
+<a href="#2061" id="2061">2061</a>
+<a href="#2062" id="2062">2062</a>
+<a href="#2063" id="2063">2063</a>
+<a href="#2064" id="2064">2064</a>
+<a href="#2065" id="2065">2065</a>
+<a href="#2066" id="2066">2066</a>
+<a href="#2067" id="2067">2067</a>
+<a href="#2068" id="2068">2068</a>
+<a href="#2069" id="2069">2069</a>
+<a href="#2070" id="2070">2070</a>
+<a href="#2071" id="2071">2071</a>
+<a href="#2072" id="2072">2072</a>
+<a href="#2073" id="2073">2073</a>
+<a href="#2074" id="2074">2074</a>
+<a href="#2075" id="2075">2075</a>
+<a href="#2076" id="2076">2076</a>
+<a href="#2077" id="2077">2077</a>
+<a href="#2078" id="2078">2078</a>
+<a href="#2079" id="2079">2079</a>
+<a href="#2080" id="2080">2080</a>
+<a href="#2081" id="2081">2081</a>
+<a href="#2082" id="2082">2082</a>
+<a href="#2083" id="2083">2083</a>
+<a href="#2084" id="2084">2084</a>
+<a href="#2085" id="2085">2085</a>
+<a href="#2086" id="2086">2086</a>
+<a href="#2087" id="2087">2087</a>
+<a href="#2088" id="2088">2088</a>
+<a href="#2089" id="2089">2089</a>
+<a href="#2090" id="2090">2090</a>
+<a href="#2091" id="2091">2091</a>
+<a href="#2092" id="2092">2092</a>
+<a href="#2093" id="2093">2093</a>
+<a href="#2094" id="2094">2094</a>
+<a href="#2095" id="2095">2095</a>
+<a href="#2096" id="2096">2096</a>
+<a href="#2097" id="2097">2097</a>
+<a href="#2098" id="2098">2098</a>
+<a href="#2099" id="2099">2099</a>
+<a href="#2100" id="2100">2100</a>
+<a href="#2101" id="2101">2101</a>
+<a href="#2102" id="2102">2102</a>
+<a href="#2103" id="2103">2103</a>
+<a href="#2104" id="2104">2104</a>
+<a href="#2105" id="2105">2105</a>
+<a href="#2106" id="2106">2106</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2500,12 +2559,30 @@
 				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^GET .* &quot;</span>), Id(SUFFIX_TREE_GET_ID))<span class="question-mark">?</span>,
 				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^POST .* &quot;</span>), Id(SUFFIX_TREE_POST_ID))<span class="question-mark">?</span>,
 				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^HEAD .* &quot;</span>), Id(SUFFIX_TREE_HEAD_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^PUT .* &quot;</span>), Id(SUFFIX_TREE_PUT_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^DELETE .* &quot;</span>), Id(SUFFIX_TREE_DELETE_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^OPTIONS .* &quot;</span>), Id(SUFFIX_TREE_OPTIONS_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^CONNECT .* &quot;</span>), Id(SUFFIX_TREE_CONNECT_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^TRACE .* &quot;</span>), Id(SUFFIX_TREE_TRACE_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^PATCH .* &quot;</span>), Id(SUFFIX_TREE_PATCH_ID))<span class="question-mark">?</span>,
 				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^GET .*\n&quot;</span>), Id(SUFFIX_TREE_GET_ID))<span class="question-mark">?</span>,
 				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^POST .*\n&quot;</span>), Id(SUFFIX_TREE_POST_ID))<span class="question-mark">?</span>,
 				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^HEAD .*\n&quot;</span>), Id(SUFFIX_TREE_HEAD_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^PUT .*\n&quot;</span>), Id(SUFFIX_TREE_PUT_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^DELETE .*\n&quot;</span>), Id(SUFFIX_TREE_DELETE_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^OPTIONS .*\n&quot;</span>), Id(SUFFIX_TREE_OPTIONS_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^CONNECT .*\n&quot;</span>), Id(SUFFIX_TREE_CONNECT_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^TRACE .*\n&quot;</span>), Id(SUFFIX_TREE_TRACE_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^PATCH .*\n&quot;</span>), Id(SUFFIX_TREE_PATCH_ID))<span class="question-mark">?</span>,
 				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^GET .*\r&quot;</span>), Id(SUFFIX_TREE_GET_ID))<span class="question-mark">?</span>,
 				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^POST .*\r&quot;</span>), Id(SUFFIX_TREE_POST_ID))<span class="question-mark">?</span>,
 				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^HEAD .*\r&quot;</span>), Id(SUFFIX_TREE_HEAD_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^PUT .*\r&quot;</span>), Id(SUFFIX_TREE_PUT_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^DELETE .*\r&quot;</span>), Id(SUFFIX_TREE_DELETE_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^OPTIONS .*\r&quot;</span>), Id(SUFFIX_TREE_OPTIONS_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^CONNECT .*\r&quot;</span>), Id(SUFFIX_TREE_CONNECT_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^TRACE .*\r&quot;</span>), Id(SUFFIX_TREE_TRACE_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^PATCH .*\r&quot;</span>), Id(SUFFIX_TREE_PATCH_ID))<span class="question-mark">?</span>,
 				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;\r\n.*: &quot;</span>), Id(SUFFIX_TREE_HEADER_ID))<span class="question-mark">?
 			</span>],
 			TerminationLength(<span class="number">100_000</span>),
@@ -2756,6 +2833,23 @@ Content-Length: {}\r\n\r\n{}&quot;</span>,
 				instance,
 				<span class="number">403</span>,
 				<span class="string">&quot;Forbidden&quot;</span>,
+				cache,
+				headers,
+				ctx,
+			)<span class="question-mark">?</span>;
+			<span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>);
+		}
+
+		<span class="kw">let </span>request_type = headers.http_request_type()<span class="question-mark">?</span>;
+
+		<span class="kw">if </span>request_type != <span class="kw-2">&amp;</span>HttpRequestType::GET &amp;&amp; request_type != <span class="kw-2">&amp;</span>HttpRequestType::HEAD {
+			<span class="self">Self</span>::process_error(
+				config,
+				path,
+				conn_data,
+				instance,
+				<span class="number">405</span>,
+				<span class="string">&quot;Not Allowed&quot;</span>,
 				cache,
 				headers,
 				ctx,
@@ -3156,11 +3250,35 @@ Content-Length: {}\r\n\r\n{}&quot;</span>,
 			} <span class="kw">else if </span>id == SUFFIX_TREE_GET_ID
 				|| id == SUFFIX_TREE_POST_ID
 				|| id == SUFFIX_TREE_HEAD_ID
+				|| id == SUFFIX_TREE_PUT_ID
+				|| id == SUFFIX_TREE_DELETE_ID
+				|| id == SUFFIX_TREE_OPTIONS_ID
+				|| id == SUFFIX_TREE_CONNECT_ID
+				|| id == SUFFIX_TREE_TRACE_ID
+				|| id == SUFFIX_TREE_PATCH_ID
 			{
 				<span class="macro">debug!</span>(<span class="string">&quot;id is GET/POST = {}&quot;</span>, id)<span class="question-mark">?</span>;
 				<span class="kw">if </span>id == SUFFIX_TREE_GET_ID {
 					start_uri = start + <span class="number">4</span>;
 					http_request_type = HttpRequestType::GET;
+				} <span class="kw">else if </span>id == SUFFIX_TREE_PUT_ID {
+					start_uri = start + <span class="number">4</span>;
+					http_request_type = HttpRequestType::PUT;
+				} <span class="kw">else if </span>id == SUFFIX_TREE_DELETE_ID {
+					start_uri = start + <span class="number">7</span>;
+					http_request_type = HttpRequestType::DELETE;
+				} <span class="kw">else if </span>id == SUFFIX_TREE_OPTIONS_ID {
+					start_uri = start + <span class="number">8</span>;
+					http_request_type = HttpRequestType::OPTIONS;
+				} <span class="kw">else if </span>id == SUFFIX_TREE_CONNECT_ID {
+					start_uri = start + <span class="number">8</span>;
+					http_request_type = HttpRequestType::CONNECT;
+				} <span class="kw">else if </span>id == SUFFIX_TREE_TRACE_ID {
+					start_uri = start + <span class="number">6</span>;
+					http_request_type = HttpRequestType::TRACE;
+				} <span class="kw">else if </span>id == SUFFIX_TREE_PATCH_ID {
+					start_uri = start + <span class="number">6</span>;
+					http_request_type = HttpRequestType::PATCH;
 				} <span class="kw">else </span>{
 					<span class="kw">if </span>id == SUFFIX_TREE_POST_ID {
 						http_request_type = HttpRequestType::POST;

@@ -49,6 +49,12 @@
 <a href="#49" id="49">49</a>
 <a href="#50" id="50">50</a>
 <a href="#51" id="51">51</a>
+<a href="#52" id="52">52</a>
+<a href="#53" id="53">53</a>
+<a href="#54" id="54">54</a>
+<a href="#55" id="55">55</a>
+<a href="#56" id="56">56</a>
+<a href="#57" id="57">57</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -71,6 +77,12 @@
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>SUFFIX_TREE_POST_ID: usize = <span class="number">2</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>SUFFIX_TREE_HEAD_ID: usize = <span class="number">3</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>SUFFIX_TREE_HEADER_ID: usize = <span class="number">4</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>SUFFIX_TREE_PUT_ID: usize = <span class="number">5</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>SUFFIX_TREE_DELETE_ID: usize = <span class="number">6</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>SUFFIX_TREE_OPTIONS_ID: usize = <span class="number">7</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>SUFFIX_TREE_CONNECT_ID: usize = <span class="number">8</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>SUFFIX_TREE_TRACE_ID: usize = <span class="number">9</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>SUFFIX_TREE_PATCH_ID: usize = <span class="number">10</span>;
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>CACHE_BUFFER_SIZE: usize = <span class="number">412</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>CACHE_OVERHEAD_BYTES: usize = <span class="number">100</span>;
