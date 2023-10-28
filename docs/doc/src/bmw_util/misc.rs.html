@@ -239,7 +239,7 @@
 }
 
 <span class="doccomment">/// Utility to convert an arbitrary length slice (up to 8 bytes) to a u64.
-</span><span class="kw">pub fn </span>slice_to_u64(slice: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
+</span><span class="kw">pub fn </span>slice_to_u64(slice: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;u64, Error&gt; {
 	<span class="macro">try_into!</span>(slice_to_usize(slice)<span class="question-mark">?</span>)
 }
 

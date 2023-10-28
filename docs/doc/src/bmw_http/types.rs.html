@@ -242,6 +242,23 @@
 <a href="#242" id="242">242</a>
 <a href="#243" id="243">243</a>
 <a href="#244" id="244">244</a>
+<a href="#245" id="245">245</a>
+<a href="#246" id="246">246</a>
+<a href="#247" id="247">247</a>
+<a href="#248" id="248">248</a>
+<a href="#249" id="249">249</a>
+<a href="#250" id="250">250</a>
+<a href="#251" id="251">251</a>
+<a href="#252" id="252">252</a>
+<a href="#253" id="253">253</a>
+<a href="#254" id="254">254</a>
+<a href="#255" id="255">255</a>
+<a href="#256" id="256">256</a>
+<a href="#257" id="257">257</a>
+<a href="#258" id="258">258</a>
+<a href="#259" id="259">259</a>
+<a href="#260" id="260">260</a>
+<a href="#261" id="261">261</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -353,53 +370,6 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) write_handle: WriteHandle,
 }
 
-<span class="attr">#[derive(Debug, PartialEq)]
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum </span>FrameType {
-	Continuation,
-	Text,
-	Binary,
-	Close,
-	Ping,
-	Pong,
-}
-
-<span class="attr">#[derive(Debug, PartialEq)]
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>FrameHeader {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) ftype: FrameType,     <span class="comment">// which type of frame is this?
-	</span><span class="kw">pub</span>(<span class="kw">crate</span>) mask: bool,           <span class="comment">// is this frame masked?
-	</span><span class="kw">pub</span>(<span class="kw">crate</span>) fin: bool,            <span class="comment">// is this the last piece of data in the frame?
-	</span><span class="kw">pub</span>(<span class="kw">crate</span>) payload_len: usize,   <span class="comment">// size of the payload
-	</span><span class="kw">pub</span>(<span class="kw">crate</span>) masking_key: u32,     <span class="comment">// masking key
-	</span><span class="kw">pub</span>(<span class="kw">crate</span>) start_content: usize, <span class="comment">// start of the content of the message
-</span>}
-
-<span class="kw">pub trait </span>HttpCache {
-	<span class="kw">fn </span>stream_file(
-		<span class="kw-2">&amp;</span><span class="self">self</span>,
-		path: <span class="kw-2">&amp;</span>String,
-		conn_data: <span class="kw-2">&amp;mut </span>ConnectionData,
-		code: u16,
-		message: <span class="kw-2">&amp;</span>str,
-		ctx: <span class="kw-2">&amp;</span>HttpContext,
-		config: <span class="kw-2">&amp;</span>HttpConfig,
-		headers: <span class="kw-2">&amp;</span>HttpHeaders,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt;;
-	<span class="kw">fn </span>write_metadata(
-		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
-		path: <span class="kw-2">&amp;</span>String,
-		len: usize,
-		last_modified: u64,
-		mime_type: u32,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt;;
-	<span class="kw">fn </span>write_block(
-		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
-		path: <span class="kw-2">&amp;</span>String,
-		offset: usize,
-		data: <span class="kw-2">&amp;</span>[u8; CACHE_BUFFER_SIZE],
-	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
-	<span class="kw">fn </span>bring_to_front(<span class="kw-2">&amp;mut </span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
-}
-
 <span class="kw">pub trait </span>HttpServer {
 	<span class="kw">fn </span>start(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="kw">fn </span>stop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
@@ -451,6 +421,7 @@
 	<span class="kw">pub </span>server_version: String,
 	<span class="kw">pub </span>mime_map: Vec&lt;(String, String)&gt;,
 	<span class="kw">pub </span>bring_to_front_weight: f64,
+	<span class="kw">pub </span>restat_file_frequency_in_millis: u64,
 }
 
 <span class="kw">pub struct </span>Builder {}
@@ -476,7 +447,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) hashtable: Box&lt;<span class="kw">dyn </span>Hashtable&lt;String, usize&gt; + Send + Sync&gt;,
 }
 
-<span class="kw">pub struct </span>HttpContext {
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpContext {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) suffix_tree: Box&lt;<span class="kw">dyn </span>SuffixTree + Send + Sync&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) matches: [Match; <span class="number">1_000</span>],
 	<span class="kw">pub</span>(<span class="kw">crate</span>) offset: usize,
@@ -485,5 +456,68 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) mime_lookup: HashMap&lt;u32, String&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) mime_rev_lookup: HashMap&lt;String, u32&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) now: u128,
+}
+
+<span class="attr">#[derive(PartialEq, Debug)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum </span>CacheStreamResult {
+	Hit,
+	Miss,
+	Modified,
+	NotModified,
+}
+
+<span class="attr">#[derive(Debug, PartialEq)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum </span>FrameType {
+	Continuation,
+	Text,
+	Binary,
+	Close,
+	Ping,
+	Pong,
+}
+
+<span class="attr">#[derive(Debug, PartialEq)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>FrameHeader {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) ftype: FrameType,     <span class="comment">// which type of frame is this?
+	</span><span class="kw">pub</span>(<span class="kw">crate</span>) mask: bool,           <span class="comment">// is this frame masked?
+	</span><span class="kw">pub</span>(<span class="kw">crate</span>) fin: bool,            <span class="comment">// is this the last piece of data in the frame?
+	</span><span class="kw">pub</span>(<span class="kw">crate</span>) payload_len: usize,   <span class="comment">// size of the payload
+	</span><span class="kw">pub</span>(<span class="kw">crate</span>) masking_key: u32,     <span class="comment">// masking key
+	</span><span class="kw">pub</span>(<span class="kw">crate</span>) start_content: usize, <span class="comment">// start of the content of the message
+</span>}
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">trait </span>HttpCache {
+	<span class="kw">fn </span>stream_file(
+		<span class="kw-2">&amp;</span><span class="self">self</span>,
+		path: <span class="kw-2">&amp;</span>String,
+		conn_data: <span class="kw-2">&amp;mut </span>ConnectionData,
+		code: u16,
+		message: <span class="kw-2">&amp;</span>str,
+		ctx: <span class="kw-2">&amp;</span>HttpContext,
+		config: <span class="kw-2">&amp;</span>HttpConfig,
+		headers: <span class="kw-2">&amp;</span>HttpHeaders,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;CacheStreamResult, Error&gt;;
+	<span class="kw">fn </span>write_metadata(
+		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
+		path: <span class="kw-2">&amp;</span>String,
+		len: usize,
+		last_modified: u64,
+		mime_type: u32,
+		now: u64,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt;;
+	<span class="kw">fn </span>write_block(
+		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
+		path: <span class="kw-2">&amp;</span>String,
+		offset: usize,
+		data: <span class="kw-2">&amp;</span>[u8; CACHE_BUFFER_SIZE],
+	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+	<span class="kw">fn </span>bring_to_front(<span class="kw-2">&amp;mut </span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+	<span class="kw">fn </span>remove(<span class="kw-2">&amp;mut </span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+	<span class="kw">fn </span>update_last_checked_if_needed(
+		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
+		fpath: <span class="kw-2">&amp;</span>String,
+		ctx: <span class="kw-2">&amp;</span>HttpContext,
+		config: <span class="kw-2">&amp;</span>HttpConfig,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 }
 </code></pre></div></section></main></body></html>

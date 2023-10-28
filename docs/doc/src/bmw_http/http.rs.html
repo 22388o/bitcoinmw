@@ -2026,6 +2026,25 @@
 <a href="#2026" id="2026">2026</a>
 <a href="#2027" id="2027">2027</a>
 <a href="#2028" id="2028">2028</a>
+<a href="#2029" id="2029">2029</a>
+<a href="#2030" id="2030">2030</a>
+<a href="#2031" id="2031">2031</a>
+<a href="#2032" id="2032">2032</a>
+<a href="#2033" id="2033">2033</a>
+<a href="#2034" id="2034">2034</a>
+<a href="#2035" id="2035">2035</a>
+<a href="#2036" id="2036">2036</a>
+<a href="#2037" id="2037">2037</a>
+<a href="#2038" id="2038">2038</a>
+<a href="#2039" id="2039">2039</a>
+<a href="#2040" id="2040">2040</a>
+<a href="#2041" id="2041">2041</a>
+<a href="#2042" id="2042">2042</a>
+<a href="#2043" id="2043">2043</a>
+<a href="#2044" id="2044">2044</a>
+<a href="#2045" id="2045">2045</a>
+<a href="#2046" id="2046">2046</a>
+<a href="#2047" id="2047">2047</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2044,17 +2063,20 @@
 // limitations under the License.
 
 </span><span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
-<span class="kw">use </span><span class="kw">crate</span>::types::{HttpCacheImpl, HttpConnectionData, HttpContext, HttpServerImpl, WebSocketData};
+<span class="kw">use </span><span class="kw">crate</span>::types::{
+	CacheStreamResult, HttpCache, HttpCacheImpl, HttpConnectionData, HttpContext, HttpServerImpl,
+	WebSocketData,
+};
 <span class="kw">use </span><span class="kw">crate</span>::ws::{process_websocket_data, send_websocket_handshake_response};
 <span class="kw">use </span><span class="kw">crate</span>::HttpInstanceType::{Plain, Tls};
 <span class="kw">use crate</span>::{
-	ConnectionType, HttpCache, HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType,
+	ConnectionType, HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType,
 	HttpRequestType, HttpServer, HttpVersion, PlainConfig,
 };
 <span class="kw">use </span>bmw_deps::chrono::{DateTime, TimeZone, Utc};
 <span class="kw">use </span>bmw_deps::dirs;
 <span class="kw">use </span>bmw_deps::math::round::floor;
-<span class="kw">use </span>bmw_deps::rand::{<span class="self">self</span>, random, Rng};
+<span class="kw">use </span>bmw_deps::rand::{<span class="self">self</span>, Rng};
 <span class="kw">use </span>bmw_deps::sha1::{Digest, Sha1};
 <span class="kw">use </span>bmw_deps::substring::Substring;
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
@@ -2067,6 +2089,7 @@
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
 <span class="kw">use </span>std::any::{type_name, Any};
 <span class="kw">use </span>std::collections::{HashMap, HashSet};
+<span class="kw">use </span>std::fs::metadata;
 <span class="kw">use </span>std::fs::{File, Metadata};
 <span class="kw">use </span>std::io::BufReader;
 <span class="kw">use </span>std::io::Read;
@@ -2109,7 +2132,8 @@
 			server_name: <span class="string">&quot;BitcoinMW HTTP Server&quot;</span>.to_string(),
 			server_version: <span class="string">&quot;0.0.0&quot;</span>.to_string(),
 			bring_to_front_weight: <span class="number">0.1</span>,
-			mime_map: <span class="macro">vec!</span>[
+			restat_file_frequency_in_millis: <span class="number">3_000</span>, <span class="comment">// 3 seconds
+			</span>mime_map: <span class="macro">vec!</span>[
 				(<span class="string">&quot;html&quot;</span>.to_string(), <span class="string">&quot;text/html&quot;</span>.to_string()),
 				(<span class="string">&quot;htm&quot;</span>.to_string(), <span class="string">&quot;text/html&quot;</span>.to_string()),
 				(<span class="string">&quot;shtml&quot;</span>.to_string(), <span class="string">&quot;text/html&quot;</span>.to_string()),
@@ -2543,8 +2567,8 @@
 		<span class="kw">let </span>res = dt
 			.format(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
 				<span class="string">&quot;HTTP/{} {} {}\r\n\
-Date: %a, %d %h %C%y %H:%M:%S GMT\r\n\
-Server: {} {}\r\n{}{}\
+Server: {} {}\r\n\
+Date: %a, %d %h %C%y %H:%M:%S GMT\r\n{}{}\
 Connection: {}\r\n\
 Last-Modified: {}\r\n\
 ETag: {}\r\n\
@@ -2635,7 +2659,8 @@ Content-Length: {}\r\n\r\n{}&quot;</span>,
 		};
 
 		<span class="macro">debug!</span>(<span class="string">&quot;error page location: {}&quot;</span>, fpath)<span class="question-mark">?</span>;
-		<span class="kw">let </span>metadata = std::fs::metadata(fpath.clone());
+
+		<span class="kw">let </span>metadata = metadata(fpath.clone());
 
 		<span class="kw">match </span>metadata {
 			<span class="prelude-val">Ok</span>(metadata) =&gt; {
@@ -2708,7 +2733,7 @@ Content-Length: {}\r\n\r\n{}&quot;</span>,
 
 	<span class="kw">fn </span>process_file(
 		config: <span class="kw-2">&amp;</span>HttpConfig,
-		<span class="kw-2">mut </span>cache: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>HttpCache + Send + Sync&gt;&gt;&gt;,
+		cache: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>HttpCache + Send + Sync&gt;&gt;&gt;,
 		path: String,
 		conn_data: <span class="kw-2">&amp;mut </span>ConnectionData,
 		instance: <span class="kw-2">&amp;</span>HttpInstance,
@@ -2741,10 +2766,24 @@ Content-Length: {}\r\n\r\n{}&quot;</span>,
 		<span class="kw">if </span><span class="self">Self</span>::try_cache(cache.clone(), <span class="kw-2">&amp;</span>fpath, conn_data, ctx, config, headers)<span class="question-mark">? </span>{
 			<span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">true</span>);
 		}
+		<span class="kw">for </span>default_file <span class="kw">in </span>instance.default_file.clone() {
+			<span class="kw">let </span>slash = <span class="kw">if </span>fpath.ends_with(<span class="string">&quot;/&quot;</span>) { <span class="string">&quot;&quot; </span>} <span class="kw">else </span>{ <span class="string">&quot;/&quot; </span>};
+			<span class="kw">let </span>fpath_default_file = <span class="macro">format!</span>(<span class="string">&quot;{}{}{}&quot;</span>, fpath, slash, default_file);
+			<span class="kw">if </span><span class="self">Self</span>::try_cache(
+				cache.clone(),
+				<span class="kw-2">&amp;</span>fpath_default_file,
+				conn_data,
+				ctx,
+				config,
+				headers,
+			)<span class="question-mark">? </span>{
+				<span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">true</span>);
+			}
+		}
 
-		<span class="kw">let </span>metadata = std::fs::metadata(fpath.clone());
+		<span class="kw">let </span>metadata_value = metadata(fpath.clone());
 
-		<span class="kw">let </span>metadata = <span class="kw">match </span>metadata {
+		<span class="kw">let </span>metadata_value = <span class="kw">match </span>metadata_value {
 			<span class="prelude-val">Ok</span>(metadata) =&gt; metadata,
 			<span class="prelude-val">Err</span>(_e) =&gt; {
 				<span class="macro">debug!</span>(<span class="string">&quot;404path={},dir={}&quot;</span>, fpath, http_dir)<span class="question-mark">?</span>;
@@ -2763,14 +2802,14 @@ Content-Length: {}\r\n\r\n{}&quot;</span>,
 			}
 		};
 
-		<span class="kw">let </span>(fpath, metadata) = <span class="kw">if </span>metadata.is_dir() {
+		<span class="kw">let </span>(fpath, metadata) = <span class="kw">if </span>metadata_value.is_dir() {
 			<span class="kw">let </span><span class="kw-2">mut </span>fpath_ret: <span class="prelude-ty">Option</span>&lt;String&gt; = <span class="prelude-val">None</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>metadata_ret: <span class="prelude-ty">Option</span>&lt;Metadata&gt; = <span class="prelude-val">None</span>;
 			<span class="kw">let </span>slash = <span class="kw">if </span>fpath.ends_with(<span class="string">&quot;/&quot;</span>) { <span class="string">&quot;&quot; </span>} <span class="kw">else </span>{ <span class="string">&quot;/&quot; </span>};
 
 			<span class="kw">for </span>default_file <span class="kw">in </span>instance.default_file.clone() {
 				<span class="kw">let </span>fpath_res = <span class="macro">format!</span>(<span class="string">&quot;{}{}{}&quot;</span>, fpath, slash, default_file);
-				<span class="kw">let </span>metadata_res = std::fs::metadata(fpath_res.clone());
+				<span class="kw">let </span>metadata_res = metadata(fpath_res.clone());
 				<span class="kw">match </span>metadata_res {
 					<span class="prelude-val">Ok</span>(metadata) =&gt; {
 						fpath_ret = <span class="prelude-val">Some</span>(fpath_res);
@@ -2800,44 +2839,25 @@ Content-Length: {}\r\n\r\n{}&quot;</span>,
 				<span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>);
 			}
 		} <span class="kw">else </span>{
-			(fpath, metadata)
+			(fpath, metadata_value)
 		};
 
 		<span class="macro">debug!</span>(<span class="string">&quot;path={},dir={}&quot;</span>, fpath, http_dir)<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>hit: bool;
-		{
-			{
-				<span class="kw">let </span>cache = cache.rlock()<span class="question-mark">?</span>;
-				hit = (<span class="kw-2">**</span>cache.guard())
-					.stream_file(<span class="kw-2">&amp;</span>fpath, conn_data, <span class="number">200</span>, <span class="string">&quot;OK&quot;</span>, ctx, config, headers)<span class="question-mark">?</span>;
-			}
-			<span class="kw">let </span>weight: f64 = config.bring_to_front_weight;
-			<span class="kw">let </span>threshold: f64 = weight * <span class="number">10_000_000.0</span>;
-			<span class="kw">let </span>r: u64 = rand::thread_rng().gen_range(<span class="number">0</span>..<span class="number">10_000_000</span>);
-			<span class="kw">let </span>threshold: u64 = floor(threshold, <span class="number">0</span>) <span class="kw">as </span>u64;
-			<span class="kw">if </span>hit &amp;&amp; r &lt; threshold <span class="kw">as </span>u64 {
-				<span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
-				(<span class="kw-2">**</span>cache.guard()).bring_to_front(<span class="kw-2">&amp;</span>fpath)<span class="question-mark">?</span>;
-			}
-		}
+		<span class="self">Self</span>::stream_file(
+			config,
+			fpath,
+			metadata.len(),
+			conn_data,
+			<span class="number">200</span>,
+			<span class="string">&quot;OK&quot;</span>,
+			cache,
+			ctx,
+			headers,
+			<span class="macro">try_into!</span>(metadata.modified()<span class="question-mark">?</span>.duration_since(UNIX_EPOCH)<span class="question-mark">?</span>.as_millis())<span class="question-mark">?</span>,
+		)<span class="question-mark">?</span>;
 
-		<span class="kw">if </span>!hit {
-			<span class="self">Self</span>::stream_file(
-				config,
-				fpath,
-				metadata.len(),
-				conn_data,
-				<span class="number">200</span>,
-				<span class="string">&quot;OK&quot;</span>,
-				cache,
-				ctx,
-				headers,
-				<span class="macro">try_into!</span>(metadata.modified()<span class="question-mark">?</span>.duration_since(UNIX_EPOCH)<span class="question-mark">?</span>.as_millis())<span class="question-mark">?</span>,
-			)<span class="question-mark">?</span>;
-		}
-
-		<span class="prelude-val">Ok</span>(hit)
+		<span class="prelude-val">Ok</span>(<span class="bool-val">false</span>)
 	}
 
 	<span class="kw">fn </span>try_cache(
@@ -2849,21 +2869,37 @@ Content-Length: {}\r\n\r\n{}&quot;</span>,
 		headers: <span class="kw-2">&amp;</span>HttpHeaders,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="macro">debug!</span>(<span class="string">&quot;try cache: {}&quot;</span>, path)<span class="question-mark">?</span>;
-		<span class="kw">let </span>hit: bool;
+		<span class="kw">let </span>hit: CacheStreamResult;
 		{
 			<span class="kw">let </span>cache = cache.rlock()<span class="question-mark">?</span>;
 			hit =
 				(<span class="kw-2">**</span>cache.guard()).stream_file(path, conn_data, <span class="number">200</span>, <span class="string">&quot;OK&quot;</span>, ctx, config, headers)<span class="question-mark">?</span>;
 		}
-		<span class="kw">let </span>r = random::&lt;u64&gt;();
-		<span class="macro">debug!</span>(<span class="string">&quot;cache hit={}&quot;</span>, hit)<span class="question-mark">?</span>;
 
-		<span class="kw">if </span>hit &amp;&amp; r % <span class="number">2 </span>== <span class="number">0 </span>{
+		<span class="kw">let </span>weight: f64 = config.bring_to_front_weight;
+		<span class="kw">let </span>threshold: f64 = weight * <span class="number">10_000_000.0</span>;
+		<span class="kw">let </span>r: u64 = rand::thread_rng().gen_range(<span class="number">0</span>..<span class="number">10_000_000</span>);
+		<span class="kw">let </span>threshold: u64 = floor(threshold, <span class="number">0</span>) <span class="kw">as </span>u64;
+		<span class="kw">if </span>hit == CacheStreamResult::Hit
+			|| hit == CacheStreamResult::NotModified &amp;&amp; r &lt; threshold <span class="kw">as </span>u64
+		{
 			<span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>cache.guard()).bring_to_front(path)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>cache.guard()).bring_to_front(<span class="kw-2">&amp;</span>path)<span class="question-mark">?</span>;
 		}
 
-		<span class="prelude-val">Ok</span>(hit)
+		<span class="kw">if </span>hit == CacheStreamResult::Modified {
+			<span class="comment">// the file has been modified. Delete it.
+			</span><span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>cache.guard()).remove(<span class="kw-2">&amp;</span>path)<span class="question-mark">?</span>;
+		}
+
+		<span class="kw">if </span>hit == CacheStreamResult::NotModified {
+			<span class="comment">// the file is not modified, but we need to update the last checked timestamp.
+			</span><span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>cache.guard()).update_last_checked_if_needed(<span class="kw-2">&amp;</span>path, ctx, config)<span class="question-mark">?</span>;
+		}
+
+		<span class="prelude-val">Ok</span>(hit == CacheStreamResult::Hit || hit == CacheStreamResult::NotModified)
 	}
 
 	<span class="kw">fn </span>stream_file(
@@ -2952,6 +2988,7 @@ Content-Length: {}\r\n\r\n{}&quot;</span>,
 		<span class="kw">let </span>mime_type = ctx.mime_rev_lookup.get(<span class="kw-2">&amp;</span>extension).unwrap_or(<span class="kw-2">&amp;</span>u32::MAX);
 
 		<span class="kw">if </span>code != <span class="number">304 </span>{
+			<span class="kw">let </span>http_request_type = headers.http_request_type()<span class="question-mark">?</span>;
 			<span class="kw">loop </span>{
 				<span class="kw">let </span><span class="kw-2">mut </span>blen = <span class="number">0</span>;
 				<span class="kw">loop </span>{
@@ -2969,7 +3006,7 @@ Content-Length: {}\r\n\r\n{}&quot;</span>,
 
 				<span class="macro">debug!</span>(<span class="string">&quot;i={},blen={}&quot;</span>, i, blen)<span class="question-mark">?</span>;
 
-				<span class="kw">if </span>!write_error {
+				<span class="kw">if </span>!write_error &amp;&amp; http_request_type != <span class="kw-2">&amp;</span>HttpRequestType::HEAD {
 					<span class="self">Self</span>::range_write(
 						range_start,
 						range_end,
@@ -2989,6 +3026,7 @@ Content-Length: {}\r\n\r\n{}&quot;</span>,
 							<span class="macro">try_into!</span>(len)<span class="question-mark">?</span>,
 							last_modified,
 							<span class="kw-2">*</span>mime_type,
+							<span class="macro">try_into!</span>(ctx.now)<span class="question-mark">?</span>,
 						)<span class="question-mark">?</span>;
 					}
 
