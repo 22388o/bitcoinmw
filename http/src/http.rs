@@ -453,12 +453,30 @@ impl HttpServerImpl {
 				pattern!(Regex("^GET .* "), Id(SUFFIX_TREE_GET_ID))?,
 				pattern!(Regex("^POST .* "), Id(SUFFIX_TREE_POST_ID))?,
 				pattern!(Regex("^HEAD .* "), Id(SUFFIX_TREE_HEAD_ID))?,
+				pattern!(Regex("^PUT .* "), Id(SUFFIX_TREE_PUT_ID))?,
+				pattern!(Regex("^DELETE .* "), Id(SUFFIX_TREE_DELETE_ID))?,
+				pattern!(Regex("^OPTIONS .* "), Id(SUFFIX_TREE_OPTIONS_ID))?,
+				pattern!(Regex("^CONNECT .* "), Id(SUFFIX_TREE_CONNECT_ID))?,
+				pattern!(Regex("^TRACE .* "), Id(SUFFIX_TREE_TRACE_ID))?,
+				pattern!(Regex("^PATCH .* "), Id(SUFFIX_TREE_PATCH_ID))?,
 				pattern!(Regex("^GET .*\n"), Id(SUFFIX_TREE_GET_ID))?,
 				pattern!(Regex("^POST .*\n"), Id(SUFFIX_TREE_POST_ID))?,
 				pattern!(Regex("^HEAD .*\n"), Id(SUFFIX_TREE_HEAD_ID))?,
+				pattern!(Regex("^PUT .*\n"), Id(SUFFIX_TREE_PUT_ID))?,
+				pattern!(Regex("^DELETE .*\n"), Id(SUFFIX_TREE_DELETE_ID))?,
+				pattern!(Regex("^OPTIONS .*\n"), Id(SUFFIX_TREE_OPTIONS_ID))?,
+				pattern!(Regex("^CONNECT .*\n"), Id(SUFFIX_TREE_CONNECT_ID))?,
+				pattern!(Regex("^TRACE .*\n"), Id(SUFFIX_TREE_TRACE_ID))?,
+				pattern!(Regex("^PATCH .*\n"), Id(SUFFIX_TREE_PATCH_ID))?,
 				pattern!(Regex("^GET .*\r"), Id(SUFFIX_TREE_GET_ID))?,
 				pattern!(Regex("^POST .*\r"), Id(SUFFIX_TREE_POST_ID))?,
 				pattern!(Regex("^HEAD .*\r"), Id(SUFFIX_TREE_HEAD_ID))?,
+				pattern!(Regex("^PUT .*\r"), Id(SUFFIX_TREE_PUT_ID))?,
+				pattern!(Regex("^DELETE .*\r"), Id(SUFFIX_TREE_DELETE_ID))?,
+				pattern!(Regex("^OPTIONS .*\r"), Id(SUFFIX_TREE_OPTIONS_ID))?,
+				pattern!(Regex("^CONNECT .*\r"), Id(SUFFIX_TREE_CONNECT_ID))?,
+				pattern!(Regex("^TRACE .*\r"), Id(SUFFIX_TREE_TRACE_ID))?,
+				pattern!(Regex("^PATCH .*\r"), Id(SUFFIX_TREE_PATCH_ID))?,
 				pattern!(Regex("\r\n.*: "), Id(SUFFIX_TREE_HEADER_ID))?
 			],
 			TerminationLength(100_000),
@@ -709,6 +727,23 @@ Content-Length: {}\r\n\r\n{}",
 				instance,
 				403,
 				"Forbidden",
+				cache,
+				headers,
+				ctx,
+			)?;
+			return Ok(false);
+		}
+
+		let request_type = headers.http_request_type()?;
+
+		if request_type != &HttpRequestType::GET && request_type != &HttpRequestType::HEAD {
+			Self::process_error(
+				config,
+				path,
+				conn_data,
+				instance,
+				405,
+				"Not Allowed",
 				cache,
 				headers,
 				ctx,
@@ -1109,11 +1144,35 @@ Content-Length: {}\r\n\r\n{}",
 			} else if id == SUFFIX_TREE_GET_ID
 				|| id == SUFFIX_TREE_POST_ID
 				|| id == SUFFIX_TREE_HEAD_ID
+				|| id == SUFFIX_TREE_PUT_ID
+				|| id == SUFFIX_TREE_DELETE_ID
+				|| id == SUFFIX_TREE_OPTIONS_ID
+				|| id == SUFFIX_TREE_CONNECT_ID
+				|| id == SUFFIX_TREE_TRACE_ID
+				|| id == SUFFIX_TREE_PATCH_ID
 			{
 				debug!("id is GET/POST = {}", id)?;
 				if id == SUFFIX_TREE_GET_ID {
 					start_uri = start + 4;
 					http_request_type = HttpRequestType::GET;
+				} else if id == SUFFIX_TREE_PUT_ID {
+					start_uri = start + 4;
+					http_request_type = HttpRequestType::PUT;
+				} else if id == SUFFIX_TREE_DELETE_ID {
+					start_uri = start + 7;
+					http_request_type = HttpRequestType::DELETE;
+				} else if id == SUFFIX_TREE_OPTIONS_ID {
+					start_uri = start + 8;
+					http_request_type = HttpRequestType::OPTIONS;
+				} else if id == SUFFIX_TREE_CONNECT_ID {
+					start_uri = start + 8;
+					http_request_type = HttpRequestType::CONNECT;
+				} else if id == SUFFIX_TREE_TRACE_ID {
+					start_uri = start + 6;
+					http_request_type = HttpRequestType::TRACE;
+				} else if id == SUFFIX_TREE_PATCH_ID {
+					start_uri = start + 6;
+					http_request_type = HttpRequestType::PATCH;
 				} else {
 					if id == SUFFIX_TREE_POST_ID {
 						http_request_type = HttpRequestType::POST;

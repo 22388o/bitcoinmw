@@ -26,6 +26,12 @@ pub enum HttpRequestType {
 	GET,
 	POST,
 	HEAD,
+	PUT,
+	DELETE,
+	OPTIONS,
+	CONNECT,
+	TRACE,
+	PATCH,
 	UNKNOWN,
 }
 

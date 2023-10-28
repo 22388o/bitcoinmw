@@ -20,6 +20,12 @@ pub(crate) const SUFFIX_TREE_GET_ID: usize = 1;
 pub(crate) const SUFFIX_TREE_POST_ID: usize = 2;
 pub(crate) const SUFFIX_TREE_HEAD_ID: usize = 3;
 pub(crate) const SUFFIX_TREE_HEADER_ID: usize = 4;
+pub(crate) const SUFFIX_TREE_PUT_ID: usize = 5;
+pub(crate) const SUFFIX_TREE_DELETE_ID: usize = 6;
+pub(crate) const SUFFIX_TREE_OPTIONS_ID: usize = 7;
+pub(crate) const SUFFIX_TREE_CONNECT_ID: usize = 8;
+pub(crate) const SUFFIX_TREE_TRACE_ID: usize = 9;
+pub(crate) const SUFFIX_TREE_PATCH_ID: usize = 10;
 
 pub(crate) const CACHE_BUFFER_SIZE: usize = 412;
 pub(crate) const CACHE_OVERHEAD_BYTES: usize = 100;
