@@ -2032,7 +2032,7 @@ mod test {
 
 		let mut client = TcpStream::connect(addr)?;
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
-		client.write(b"POST /def1.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n")?;
+		client.write(b"GET /def1.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n")?;
 		let mut buf = [0; 512];
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 		let len = client.read(&mut buf)?;
@@ -2088,7 +2088,7 @@ mod test {
 
 		let mut client = TcpStream::connect(addr)?;
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
-		client.write(b"POST /foo.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n")?;
+		client.write(b"GET /foo.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n")?;
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 		let mut buf = [0; 512];
 		let len = client.read(&mut buf)?;
