@@ -24,7 +24,7 @@ use crate::ws::{process_websocket_data, send_websocket_handshake_response};
 use crate::HttpInstanceType::{Plain, Tls};
 use crate::{
 	ConnectionType, HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType,
-	HttpRequestType, HttpServer, HttpVersion, PlainConfig,
+	HttpRequestType, HttpServer, HttpStats, HttpVersion, PlainConfig,
 };
 use bmw_deps::chrono::{DateTime, TimeZone, Utc};
 use bmw_deps::dirs;
@@ -86,6 +86,7 @@ impl Default for HttpConfig {
 			server_version: "0.0.0".to_string(),
 			bring_to_front_weight: 0.1,
 			restat_file_frequency_in_millis: 3_000, // 3 seconds
+			request_callback: None,
 			mime_map: vec![
 				("html".to_string(), "text/html".to_string()),
 				("htm".to_string(), "text/html".to_string()),
@@ -1969,6 +1970,10 @@ impl HttpServer for HttpServerImpl {
 
 	fn stop(&mut self) -> Result<(), Error> {
 		Ok(())
+	}
+
+	fn stats(&self) -> Result<HttpStats, Error> {
+		Ok(HttpStats {})
 	}
 }
 

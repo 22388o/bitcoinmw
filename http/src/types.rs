@@ -118,7 +118,11 @@ pub struct WebSocketHandle {
 pub trait HttpServer {
 	fn start(&mut self) -> Result<(), Error>;
 	fn stop(&mut self) -> Result<(), Error>;
+	fn stats(&self) -> Result<HttpStats, Error>;
 }
+
+pub struct HttpStats {}
+pub struct HttpRequest {}
 
 #[derive(Clone, Debug)]
 pub struct PlainConfig {
@@ -167,12 +171,15 @@ pub struct HttpConfig {
 	pub mime_map: Vec<(String, String)>,
 	pub bring_to_front_weight: f64,
 	pub restat_file_frequency_in_millis: u64,
+	pub request_callback: Option<RequestCallback>,
 }
 
 pub struct Builder {}
 
 type HttpCallback =
 	fn(&HttpHeaders, &HttpConfig, &HttpInstance, &mut WriteHandle) -> Result<(), Error>;
+
+pub(crate) type RequestCallback = fn(&HttpRequest) -> Result<(), Error>;
 
 type WebsocketHandler = fn(
 	&WebSocketMessage,
