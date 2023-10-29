@@ -291,6 +291,15 @@
 <a href="#291" id="291">291</a>
 <a href="#292" id="292">292</a>
 <a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -453,6 +462,8 @@
 							len_sum,
 							blen,
 							<span class="kw-2">&amp;mut </span>write_handle,
+							headers.accept_gzip()<span class="question-mark">?</span>,
+							headers.has_range()<span class="question-mark">?</span>,
 						)<span class="question-mark">?</span>;
 					}
 					len_sum += blen;
@@ -462,6 +473,13 @@
 						<span class="kw">break</span>;
 					}
 					i += <span class="number">1</span>;
+				}
+
+				<span class="kw">if </span>headers.accept_gzip()<span class="question-mark">? </span>&amp;&amp; !headers.has_range()<span class="question-mark">? </span>{
+					<span class="macro">debug!</span>(<span class="string">&quot;write term bytes&quot;</span>)<span class="question-mark">?</span>;
+					<span class="comment">// write termination bytes
+					</span><span class="kw">let </span>term = [<span class="string">&#39;0&#39; </span><span class="kw">as </span>u8, <span class="string">&#39;\r&#39; </span><span class="kw">as </span>u8, <span class="string">&#39;\n&#39; </span><span class="kw">as </span>u8, <span class="string">&#39;\r&#39; </span><span class="kw">as </span>u8, <span class="string">&#39;\n&#39; </span><span class="kw">as </span>u8];
+					write_handle.write(<span class="kw-2">&amp;</span>term)<span class="question-mark">?</span>;
 				}
 			}
 
