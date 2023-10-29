@@ -36,6 +36,7 @@ pub use dyn_clone;
 pub use errno;
 pub use failure;
 pub use failure_derive;
+pub use flate2;
 pub use futures;
 pub use lazy_static;
 pub use libc;

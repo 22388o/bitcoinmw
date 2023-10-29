@@ -160,6 +160,8 @@ impl HttpCache for HttpCacheImpl {
 							len_sum,
 							blen,
 							&mut write_handle,
+							headers.accept_gzip()?,
+							headers.has_range()?,
 						)?;
 					}
 					len_sum += blen;
@@ -169,6 +171,13 @@ impl HttpCache for HttpCacheImpl {
 						break;
 					}
 					i += 1;
+				}
+
+				if headers.accept_gzip()? && !headers.has_range()? {
+					debug!("write term bytes")?;
+					// write termination bytes
+					let term = ['0' as u8, '\r' as u8, '\n' as u8, '\r' as u8, '\n' as u8];
+					write_handle.write(&term)?;
 				}
 			}
 

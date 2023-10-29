@@ -76,6 +76,7 @@ pub struct HttpHeaders<'a> {
 	pub(crate) is_websocket_upgrade: bool,
 	pub(crate) sec_websocket_key: String,
 	pub(crate) sec_websocket_protocol: String,
+	pub(crate) accept_gzip: bool,
 }
 
 #[derive(Debug)]

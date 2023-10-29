@@ -44,10 +44,8 @@ use std::any::{type_name, Any};
 use std::collections::{HashMap, HashSet};
 use std::fs::metadata;
 use std::fs::{File, Metadata};
-use std::io::BufReader;
-use std::io::Read;
-use std::path::PathBuf;
-use std::path::{Component, Path};
+use std::io::{BufReader, Read};
+use std::path::{Component, Path, PathBuf};
 use std::str::from_utf8;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -360,6 +358,10 @@ impl HttpHeaders<'_> {
 		Ok(&self.sec_websocket_protocol)
 	}
 
+	pub fn accept_gzip(&self) -> Result<bool, Error> {
+		Ok(self.accept_gzip)
+	}
+
 	pub fn extension(&self) -> Result<String, Error> {
 		let path = if self.start_uri > 0 && self.end_uri > self.start_uri {
 			let path = std::str::from_utf8(&self.req[self.start_uri..self.end_uri])?.to_string();
@@ -539,12 +541,12 @@ impl HttpServerImpl {
 		let res = dt
 			.format(&format!(
 				"HTTP/{} {} {}\r\n\
-Server: {} {}\r\n\
-Date: %a, %d %h %C%y %H:%M:%S GMT\r\n{}{}\
-Connection: {}\r\n\
-Last-Modified: {}\r\n\
-ETag: {}\r\n\
-Content-Length: {}\r\n\r\n{}",
+			Server: {} {}\r\n\
+			Date: %a, %d %h %C%y %H:%M:%S GMT\r\n{}{}\
+			Connection: {}\r\n\
+			Last-Modified: {}\r\n\
+			ETag: {}\r\n\
+			{}\r\n\r\n{}",
 				match version {
 					HttpVersion::HTTP11 => "1.1",
 					_ => "1.0",
@@ -572,7 +574,11 @@ Content-Length: {}\r\n\r\n{}",
 					.unwrap_or(UNIX_EPOCH.into())
 					.format("%a, %d %h %C%y %H:%M:%S GMT"),
 				etag,
-				content_len,
+				if !headers.has_range()? && headers.accept_gzip()? {
+					"Transfer-Encoding: chunked".to_string()
+				} else {
+					format!("Content-Length: {}", content_len)
+				},
 				match content {
 					Some(content) => content,
 					None => "".to_string(),
@@ -673,6 +679,7 @@ Content-Length: {}\r\n\r\n{}",
 
 				let mut write_handle = conn_data.write_handle();
 				write_handle.write(&res.as_bytes()[..])?;
+
 				if !keep_alive {
 					write_handle.close()?;
 				}
@@ -1003,6 +1010,8 @@ Content-Length: {}\r\n\r\n{}",
 						len_sum,
 						blen,
 						&mut write_handle,
+						headers.accept_gzip()?,
+						headers.has_range()?,
 					)?;
 					len_sum += blen;
 				}
@@ -1034,6 +1043,14 @@ Content-Length: {}\r\n\r\n{}",
 
 				i += 1;
 			}
+
+			debug!("write error = {}", write_error)?;
+			if !write_error && headers.accept_gzip()? && !headers.has_range()? {
+				debug!("write term bytes")?;
+				// write termination bytes
+				let term = ['0' as u8, '\r' as u8, '\n' as u8, '\r' as u8, '\n' as u8];
+				write_handle.write(&term)?;
+			}
 		}
 
 		debug!("write_error={}", write_error)?;
@@ -1052,6 +1069,8 @@ Content-Length: {}\r\n\r\n{}",
 		len_sum: usize,
 		blen: usize,
 		write_handle: &mut WriteHandle,
+		accept_gzip: bool,
+		has_range: bool,
 	) -> Result<bool, Error> {
 		let mut write_error = false;
 		let start = if len_sum >= range_start {
@@ -1071,9 +1090,57 @@ Content-Length: {}\r\n\r\n{}",
 		)?;
 
 		if start < end {
-			match write_handle.write(&buf[start..end]) {
+			if accept_gzip && !has_range {
+				//let mut e = GzEncoder::new(Vec::new(), Compression::default());
+				//e.write_all(&buf[start..end])?;
+				//let mut res = e.finish()?;
+				//let len = res.len();
+				let len = end - start;
+
+				match write_handle.write(&format!("{:X}\r\n", len).as_bytes()[..]) {
+					Ok(_) => {}
+					Err(_) => write_error = true,
+				}
+
+				if !write_error {
+					match write_handle.write(&buf[start..end]) {
+						Ok(_) => {}
+						Err(_) => write_error = true,
+					}
+				}
+
+				if !write_error {
+					let nl = ['\r' as u8, '\n' as u8];
+					match write_handle.write(&nl[..]) {
+						Ok(_) => {}
+						Err(_) => write_error = true,
+					}
+				}
+			/*
+			let mut e = GzEncoder::new(Vec::new(), Compression::default());
+			e.write_all(&buf[start..end])?;
+			let mut res = e.finish()?;
+			let len = res.len();
+			res.push('\r' as u8);
+			res.push('\n' as u8);
+
+			match write_handle.write(&format!("{}\r\n", len).as_bytes()[..]) {
 				Ok(_) => {}
 				Err(_) => write_error = true,
+			}
+
+			if !write_error {
+				match write_handle.write(&res) {
+					Ok(_) => {}
+					Err(_) => write_error = true,
+				}
+			}
+							*/
+			} else {
+				match write_handle.write(&buf[start..end]) {
+					Ok(_) => {}
+					Err(_) => write_error = true,
+				}
 			}
 		}
 
@@ -1109,6 +1176,7 @@ Content-Length: {}\r\n\r\n{}",
 		let mut is_websocket_upgrade = false;
 		let mut sec_websocket_key = "".to_string();
 		let mut sec_websocket_protocol = "".to_string();
+		let mut accept_gzip = false;
 
 		debug!("count={}", count)?;
 		let mut host = "".to_string();
@@ -1313,6 +1381,23 @@ Content-Length: {}\r\n\r\n{}",
 							)
 							.unwrap_or("")
 							.to_string();
+						} else if &req[headers[header_count].start_header_name
+							..headers[header_count].end_header_name]
+							== ACCEPT_ENCODING_BYTES
+						{
+							let accept_encoding = from_utf8(
+								&req[headers[header_count].start_header_value
+									..headers[header_count].end_header_value],
+							)
+							.unwrap_or("")
+							.to_string();
+							let accept_encodings: Vec<&str> = accept_encoding.split(',').collect();
+							for accept_encoding in accept_encodings {
+								let accept_encoding = accept_encoding.trim();
+								if accept_encoding == "gzip" {
+									accept_gzip = true;
+								}
+							}
 						}
 						header_count += 1;
 					}
@@ -1344,6 +1429,7 @@ Content-Length: {}\r\n\r\n{}",
 				is_websocket_upgrade,
 				sec_websocket_key,
 				sec_websocket_protocol,
+				accept_gzip,
 			})
 		}
 	}
@@ -1631,6 +1717,7 @@ Content-Length: {}\r\n\r\n{}",
 								is_websocket_upgrade: false,
 								sec_websocket_key: "".to_string(),
 								sec_websocket_protocol: "".to_string(),
+								accept_gzip: false,
 							};
 							Self::header_error(
 								config,
@@ -1762,7 +1849,7 @@ Content-Length: {}\r\n\r\n{}",
 							let extension = headers.extension().unwrap_or(empty);
 							let header_count = headers.header_count().unwrap_or(0);
 							info!(
-						"uri={},query={},extension={},method={:?},version={:?},header_count={},cache_hit={},has_range={},range_start={},range_end={},if_none_match={},if_modified_since={},is_websocket_upgrade={}",
+						"uri={},query={},extension={},method={:?},version={:?},header_count={},cache_hit={},has_range={},range_start={},range_end={},if_none_match={},if_modified_since={},is_websocket_upgrade={},accept_gzip={}",
 						path,
 						query,
                                                 extension,
@@ -1776,6 +1863,7 @@ Content-Length: {}\r\n\r\n{}",
                                                 headers.if_none_match().unwrap_or(&"".to_string()),
                                                 headers.if_modified_since().unwrap_or(&"".to_string()),
                                                 headers.is_websocket_upgrade().unwrap_or(false),
+                                                headers.accept_gzip().unwrap_or(false),
 					)?;
 							info!("{}", SEPARATOR_LINE)?;
 

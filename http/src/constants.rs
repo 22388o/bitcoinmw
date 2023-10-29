@@ -48,6 +48,7 @@ pub(crate) const WEBSOCKET_BYTES: &[u8] = "websocket".as_bytes();
 pub(crate) const WEBSOCKET_GUID: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 pub(crate) const SEC_WEBSOCKET_KEY_BYTES: &[u8] = "Sec-WebSocket-Key".as_bytes();
 pub(crate) const SEC_WEBSOCKET_PROTOCOL_BYTES: &[u8] = "Sec-WebSocket-Protocol".as_bytes();
+pub(crate) const ACCEPT_ENCODING_BYTES: &[u8] = "Accept-Encoding".as_bytes();
 
 pub(crate) const FIN_BIT: u8 = 0x1 << 7;
 pub(crate) const MASK_BIT: u8 = 0x1 << 7;
