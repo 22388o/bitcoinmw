@@ -28,6 +28,8 @@ use crate::{
 };
 use bmw_deps::chrono::{DateTime, TimeZone, Utc};
 use bmw_deps::dirs;
+use bmw_deps::flate2::bufread::GzEncoder;
+use bmw_deps::flate2::Compression;
 use bmw_deps::math::round::floor;
 use bmw_deps::rand::{self, Rng};
 use bmw_deps::sha1::{Digest, Sha1};
@@ -575,7 +577,9 @@ impl HttpServerImpl {
 					.unwrap_or(UNIX_EPOCH.into())
 					.format("%a, %d %h %C%y %H:%M:%S GMT"),
 				etag,
-				if !headers.has_range()? && !is_error {
+				if !headers.has_range()? && !is_error && headers.accept_gzip()? {
+					"Content-Encoding: gzip\r\nTransfer-Encoding: chunked, gzip".to_string()
+				} else if !headers.has_range()? && !is_error {
 					"Transfer-Encoding: chunked".to_string()
 				} else {
 					format!("Content-Length: {}", content_len)
@@ -870,8 +874,16 @@ impl HttpServerImpl {
 		let hit: CacheStreamResult;
 		{
 			let cache = cache.rlock()?;
-			hit =
-				(**cache.guard()).stream_file(path, conn_data, 200, "OK", ctx, config, headers)?;
+			hit = (**cache.guard()).stream_file(
+				path,
+				conn_data,
+				200,
+				"OK",
+				ctx,
+				config,
+				headers,
+				headers.accept_gzip()?,
+			)?;
 		}
 
 		let weight: f64 = config.bring_to_front_weight;
@@ -882,19 +894,24 @@ impl HttpServerImpl {
 			|| hit == CacheStreamResult::NotModified && r < threshold as u64
 		{
 			let mut cache = cache.wlock()?;
-			(**cache.guard()).bring_to_front(&path)?;
+			(**cache.guard()).bring_to_front(&path, headers.accept_gzip()?)?;
 		}
 
 		if hit == CacheStreamResult::Modified {
 			// the file has been modified. Delete it.
 			let mut cache = cache.wlock()?;
-			(**cache.guard()).remove(&path)?;
+			(**cache.guard()).remove(&path, headers.accept_gzip()?)?;
 		}
 
 		if hit == CacheStreamResult::NotModified {
 			// the file is not modified, but we need to update the last checked timestamp.
 			let mut cache = cache.wlock()?;
-			(**cache.guard()).update_last_checked_if_needed(&path, ctx, config)?;
+			(**cache.guard()).update_last_checked_if_needed(
+				&path,
+				ctx,
+				config,
+				headers.accept_gzip()?,
+			)?;
 		}
 
 		Ok(hit == CacheStreamResult::Hit || hit == CacheStreamResult::NotModified)
@@ -913,7 +930,14 @@ impl HttpServerImpl {
 		last_modified: u64,
 	) -> Result<(), Error> {
 		let file = File::open(fpath.clone())?;
-		let mut buf_reader = BufReader::new(file);
+		let (mut enc, mut buf_reader) = if headers.accept_gzip()? {
+			let buf_reader = BufReader::new(file);
+			(Some(GzEncoder::new(buf_reader, Compression::fast())), None)
+		} else {
+			let buf_reader = BufReader::new(file);
+			(None, Some(buf_reader))
+		};
+
 		let len_usize: usize = try_into!(len)?;
 
 		let range_start = headers.range_start()?;
@@ -985,13 +1009,24 @@ impl HttpServerImpl {
 		let mut len_sum = 0;
 		debug!("rangestart={},rangeend={}", range_start, range_end)?;
 		let mime_type = ctx.mime_rev_lookup.get(&extension).unwrap_or(&u32::MAX);
+		let accept_gzip = headers.accept_gzip()?;
 
 		if code != 304 {
 			let http_request_type = headers.http_request_type()?;
 			loop {
 				let mut blen = 0;
 				loop {
-					let cur = buf_reader.read(&mut buf[blen..])?;
+					let cur = match enc {
+						Some(ref mut enc) => enc.read(&mut buf[blen..])?,
+
+						None => match buf_reader {
+							Some(ref mut buf_reader) => buf_reader.read(&mut buf[blen..])?,
+							None => {
+								warn!("none when a buf_reader was expected!")?;
+								break;
+							}
+						},
+					};
 					if cur <= 0 {
 						term = true;
 						break;
@@ -1013,30 +1048,43 @@ impl HttpServerImpl {
 						len_sum,
 						blen,
 						&mut write_handle,
-						headers.accept_gzip()?,
 						headers.has_range()?,
 					)?;
-					len_sum += blen;
 				}
+				len_sum += blen;
 
 				if blen > 0 {
 					let mut cache = cache.wlock()?;
 					if i == 0 {
 						write_to_cache = (**cache.guard()).write_metadata(
 							&fpath,
-							try_into!(len)?,
+							0,
 							last_modified,
 							*mime_type,
 							try_into!(ctx.now)?,
+							accept_gzip,
 						)?;
 					}
 
 					if write_to_cache {
-						(**cache.guard()).write_block(
+						match (**cache.guard()).write_block(
 							&fpath,
 							i,
 							&try_into!(buf[0..CACHE_BUFFER_SIZE])?,
-						)?;
+							accept_gzip,
+						) {
+							Ok(_) => {}
+							Err(_e) => {
+								// we have an error. It could be
+								// capacity exceeded. We delete the
+								// entry and wet write_to_cache to
+								// false. Things continue on but
+								// the data is not written to
+								// cache.
+								(**cache.guard()).remove(&fpath, accept_gzip)?;
+								write_to_cache = false;
+							}
+						}
 					}
 				}
 
@@ -1045,6 +1093,18 @@ impl HttpServerImpl {
 				}
 
 				i += 1;
+			}
+
+			if write_to_cache {
+				let mut cache = cache.wlock()?;
+				(**cache.guard()).write_metadata(
+					&fpath,
+					try_into!(len_sum)?,
+					last_modified,
+					*mime_type,
+					try_into!(ctx.now)?,
+					headers.accept_gzip()?,
+				)?;
 			}
 
 			debug!("write error = {}", write_error)?;
@@ -1072,7 +1132,6 @@ impl HttpServerImpl {
 		len_sum: usize,
 		blen: usize,
 		write_handle: &mut WriteHandle,
-		accept_gzip: bool,
 		has_range: bool,
 	) -> Result<bool, Error> {
 		let mut write_error = false;
@@ -2102,7 +2161,7 @@ mod test {
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
-		assert_eq!(len, 266);
+		assert_eq!(len, 284);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 
@@ -2115,7 +2174,7 @@ mod test {
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
-		assert_eq!(len, 267);
+		assert_eq!(len, 285);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 
@@ -2158,7 +2217,7 @@ mod test {
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
-		assert_eq!(len, 266);
+		assert_eq!(len, 284);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 
@@ -2171,7 +2230,7 @@ mod test {
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
-		assert_eq!(len, 266);
+		assert_eq!(len, 284);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 

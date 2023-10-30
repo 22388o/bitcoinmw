@@ -448,6 +448,7 @@ where
 		key: &K,
 		offset: usize,
 		data: &[u8; CACHE_BUFFER_SIZE],
+		len: usize,
 	) -> Result<(), Error>
 	where
 		V: Clone,
@@ -456,7 +457,7 @@ where
 		key.hash(&mut hasher);
 		let hash = hasher.finish() as usize;
 		self.static_impl
-			.raw_write_impl::<V>(key, hash, offset, data)
+			.raw_write_impl::<V>(key, hash, offset, data, len)
 	}
 	fn slabs(&self) -> Result<Option<Rc<RefCell<dyn SlabAllocator>>>, Error> {
 		self.static_impl.slabs_impl()
@@ -928,12 +929,13 @@ where
 		hash: usize,
 		offset: usize,
 		data: &[u8; CACHE_BUFFER_SIZE],
+		len: usize,
 	) -> Result<(), Error>
 	where
 		K: PartialEq,
 		V: Clone + Serializable,
 	{
-		self.insert_hash_impl::<V>(Some(key), None, Some((offset, data)), hash)?;
+		self.insert_hash_impl::<V>(Some(key), None, Some((offset, data, len)), hash)?;
 
 		Ok(())
 	}
@@ -987,7 +989,7 @@ where
 		&mut self,
 		key: Option<&K>,
 		value: Option<&V>,
-		raw_chunk: Option<(usize, &[u8; CACHE_BUFFER_SIZE])>,
+		raw_chunk: Option<(usize, &[u8; CACHE_BUFFER_SIZE], usize)>,
 		hash: usize,
 	) -> Result<(), Error>
 	where
@@ -1070,7 +1072,7 @@ where
 		&mut self,
 		key: Option<&K>,
 		value: Option<&V>,
-		raw_value: Option<(usize, &[u8; CACHE_BUFFER_SIZE])>,
+		raw_value: Option<(usize, &[u8; CACHE_BUFFER_SIZE], usize)>,
 		entry: Option<usize>,
 		slab_id_allocated: Option<usize>,
 		raw_exists: bool,
@@ -1142,7 +1144,8 @@ where
 			debug!("skip bytes {}", raw_value.0)?;
 			self.slab_writer.skip_bytes(raw_value.0)?;
 			debug!("write fixed bytes {:?}", raw_value.1)?;
-			self.slab_writer.write_fixed_bytes(raw_value.1)?;
+			self.slab_writer
+				.write_fixed_bytes(&raw_value.1[..raw_value.2])?;
 		}
 
 		debug!("array update")?;
@@ -1442,11 +1445,12 @@ where
 		key: &K,
 		chunk: usize,
 		data: &[u8; CACHE_BUFFER_SIZE],
+		len: usize,
 	) -> Result<(), Error> {
 		let mut hasher = DefaultHasher::new();
 		key.hash(&mut hasher);
 		let hash = hasher.finish() as usize;
-		self.raw_write_impl::<V>(key, hash, chunk, data)
+		self.raw_write_impl::<V>(key, hash, chunk, data, len)
 	}
 	fn slabs(&self) -> Result<Option<Rc<RefCell<dyn SlabAllocator>>>, Error> {
 		self.slabs_impl()
@@ -2732,12 +2736,12 @@ mod test {
 
 		let mut data2 = [0u8; CACHE_BUFFER_SIZE];
 		let data = [8u8; CACHE_BUFFER_SIZE];
-		hashtable.raw_write(&0, 0, &data)?;
+		hashtable.raw_write(&0, 0, &data, CACHE_BUFFER_SIZE)?;
 		hashtable.raw_read(&0, 0, &mut data2)?;
 		assert_eq!(data, data2);
 
 		let data = [10u8; CACHE_BUFFER_SIZE];
-		hashtable.raw_write(&7, 383, &data)?;
+		hashtable.raw_write(&7, 383, &data, CACHE_BUFFER_SIZE)?;
 		hashtable.raw_read(&7, 383, &mut data2)?;
 		assert_eq!(data, data2);
 
@@ -2755,9 +2759,9 @@ mod test {
 		let data = [10u8; CACHE_BUFFER_SIZE];
 
 		info!("raw_write at 1383")?;
-		hashtable.raw_write(&7, 1383, &data)?;
+		hashtable.raw_write(&7, 1383, &data, CACHE_BUFFER_SIZE)?;
 		info!("raw write at 0")?;
-		hashtable.raw_write(&7, 0, &empty)?;
+		hashtable.raw_write(&7, 0, &empty, CACHE_BUFFER_SIZE)?;
 		info!("raw read at 1383")?;
 		hashtable.raw_read(&7, 1383, &mut data2)?;
 		assert_eq!(data, data2);
@@ -2936,9 +2940,9 @@ mod test {
 		let mut hashtable =
 			Builder::build_hashtable::<u32, String>(HashtableConfig::default(), &Some(&slabs))?;
 
-		let bytes = [3u8; 412];
-		hashtable.raw_write(&1, 0, &bytes)?;
-		hashtable.raw_write(&1, 4, &bytes)?;
+		let bytes = [3u8; CACHE_BUFFER_SIZE];
+		hashtable.raw_write(&1, 0, &bytes, CACHE_BUFFER_SIZE)?;
+		hashtable.raw_write(&1, 4, &bytes, CACHE_BUFFER_SIZE)?;
 		hashtable.remove_oldest()?;
 
 		Ok(())

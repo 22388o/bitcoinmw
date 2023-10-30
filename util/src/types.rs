@@ -519,6 +519,7 @@ where
 		key: &K,
 		offset: usize,
 		data: &[u8; CACHE_BUFFER_SIZE],
+		len: usize,
 	) -> Result<(), Error>;
 	/// Gets the slab allocator associated with this Hashtable or None if the global slab
 	/// allocator is used.

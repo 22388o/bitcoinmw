@@ -39,6 +39,12 @@ impl HttpCacheImpl {
 	}
 }
 
+impl HttpCacheImpl {
+	fn hash_path(gzip: bool, path: &String) -> String {
+		format!("{}{}", gzip, path)
+	}
+}
+
 impl HttpCache for HttpCacheImpl {
 	fn stream_file(
 		&self,
@@ -49,16 +55,24 @@ impl HttpCache for HttpCacheImpl {
 		ctx: &HttpContext,
 		config: &HttpConfig,
 		headers: &HttpHeaders,
+		gzip: bool,
 	) -> Result<CacheStreamResult, Error> {
 		let mut data = [0u8; CACHE_BUFFER_SIZE];
 		debug!("try cache {}", fpath)?;
-		let found = self.hashtable.raw_read(fpath, 0, &mut data)?;
+		let found = self
+			.hashtable
+			.raw_read(&Self::hash_path(gzip, fpath), 0, &mut data)?;
 		debug!("raw read complete")?;
 		let text_plain = TEXT_PLAIN.to_string();
 		let mut ret = CacheStreamResult::Miss;
 		if found {
 			ret = CacheStreamResult::Hit;
 			let len = slice_to_usize(&data[0..8])?;
+
+			if len == 0 {
+				// still being written so we return as a MISS.
+				return Ok(CacheStreamResult::Miss);
+			}
 			let last_modified = slice_to_u64(&data[8..16])?;
 			let mime_code = slice_to_u32(&data[16..20])?;
 			let last_check = slice_to_u64(&data[20..28])?;
@@ -144,8 +158,11 @@ impl HttpCache for HttpCacheImpl {
 				let mut len_sum = 0;
 				let http_request_type = headers.http_request_type()?;
 				loop {
-					self.hashtable
-						.raw_read(fpath, 28 + i * CACHE_BUFFER_SIZE, &mut data)?;
+					self.hashtable.raw_read(
+						&Self::hash_path(gzip, fpath),
+						28 + i * CACHE_BUFFER_SIZE,
+						&mut data,
+					)?;
 					let blen = if rem > CACHE_BUFFER_SIZE {
 						CACHE_BUFFER_SIZE
 					} else {
@@ -161,7 +178,6 @@ impl HttpCache for HttpCacheImpl {
 							len_sum,
 							blen,
 							&mut write_handle,
-							headers.accept_gzip()?,
 							headers.has_range()?,
 						)?;
 					}
@@ -189,8 +205,8 @@ impl HttpCache for HttpCacheImpl {
 		Ok(ret)
 	}
 
-	fn remove(&mut self, fpath: &String) -> Result<(), Error> {
-		self.hashtable.remove(fpath)?;
+	fn remove(&mut self, fpath: &String, gzip: bool) -> Result<(), Error> {
+		self.hashtable.remove(&Self::hash_path(gzip, fpath))?;
 		Ok(())
 	}
 
@@ -199,16 +215,20 @@ impl HttpCache for HttpCacheImpl {
 		fpath: &String,
 		ctx: &HttpContext,
 		config: &HttpConfig,
+		gzip: bool,
 	) -> Result<(), Error> {
 		let mut data = [0u8; CACHE_BUFFER_SIZE];
-		let found = self.hashtable.raw_read(fpath, 0, &mut data)?;
+		let found = self
+			.hashtable
+			.raw_read(&Self::hash_path(gzip, fpath), 0, &mut data)?;
 		if found {
 			let last_check = slice_to_u64(&data[20..28])?;
 			let now_u64: u64 = try_into!(ctx.now)?;
 			let diff = now_u64.saturating_sub(last_check);
 			if diff > config.restat_file_frequency_in_millis {
 				u64_to_slice(now_u64, &mut data[20..28])?;
-				self.hashtable.raw_write(fpath, 0, &data)?;
+				self.hashtable
+					.raw_write(&Self::hash_path(gzip, fpath), 0, &data, 28)?;
 			}
 		}
 
@@ -222,6 +242,7 @@ impl HttpCache for HttpCacheImpl {
 		last_modified: u64,
 		mime_type: u32,
 		now: u64,
+		gzip: bool,
 	) -> Result<bool, Error> {
 		let mut free_count;
 		let slab_count;
@@ -258,7 +279,8 @@ impl HttpCache for HttpCacheImpl {
 			u32_to_slice(mime_type, &mut data[16..20])?;
 			u64_to_slice(now, &mut data[20..28])?;
 			debug!("write_len {:?}", &data[0..8])?;
-			self.hashtable.raw_write(path, 0, &data)?;
+			self.hashtable
+				.raw_write(&Self::hash_path(gzip, path), 0, &data, 28)?;
 			debug!("====================================write_len complete")?;
 			Ok(true)
 		}
@@ -269,14 +291,18 @@ impl HttpCache for HttpCacheImpl {
 		path: &String,
 		block_num: usize,
 		data: &[u8; CACHE_BUFFER_SIZE],
+		gzip: bool,
 	) -> Result<(), Error> {
 		debug!(
 			"write block num = {}, path = {}, data={:?}",
 			block_num, path, data
 		)?;
-		let ret = self
-			.hashtable
-			.raw_write(path, 28 + block_num * CACHE_BUFFER_SIZE, data);
+		let ret = self.hashtable.raw_write(
+			&Self::hash_path(gzip, path),
+			28 + block_num * CACHE_BUFFER_SIZE,
+			data,
+			CACHE_BUFFER_SIZE,
+		)?;
 		debug!(
 			"=====================================write block complete: {:?}",
 			ret
@@ -284,8 +310,8 @@ impl HttpCache for HttpCacheImpl {
 		Ok(())
 	}
 
-	fn bring_to_front(&mut self, path: &String) -> Result<(), Error> {
-		self.hashtable.bring_to_front(path)
+	fn bring_to_front(&mut self, path: &String, gzip: bool) -> Result<(), Error> {
+		self.hashtable.bring_to_front(&Self::hash_path(gzip, path))
 	}
 }
 

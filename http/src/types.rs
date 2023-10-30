@@ -249,6 +249,7 @@ pub(crate) trait HttpCache {
 		ctx: &HttpContext,
 		config: &HttpConfig,
 		headers: &HttpHeaders,
+		gzip: bool,
 	) -> Result<CacheStreamResult, Error>;
 	fn write_metadata(
 		&mut self,
@@ -257,19 +258,22 @@ pub(crate) trait HttpCache {
 		last_modified: u64,
 		mime_type: u32,
 		now: u64,
+		gzip: bool,
 	) -> Result<bool, Error>;
 	fn write_block(
 		&mut self,
 		path: &String,
 		offset: usize,
 		data: &[u8; CACHE_BUFFER_SIZE],
+		gzip: bool,
 	) -> Result<(), Error>;
-	fn bring_to_front(&mut self, path: &String) -> Result<(), Error>;
-	fn remove(&mut self, path: &String) -> Result<(), Error>;
+	fn bring_to_front(&mut self, path: &String, gzip: bool) -> Result<(), Error>;
+	fn remove(&mut self, path: &String, gzip: bool) -> Result<(), Error>;
 	fn update_last_checked_if_needed(
 		&mut self,
 		fpath: &String,
 		ctx: &HttpContext,
 		config: &HttpConfig,
+		gzip: bool,
 	) -> Result<(), Error>;
 }
