@@ -523,12 +523,13 @@ impl HttpServerImpl {
 		error: bool,
 		last_modified: u64,
 		etag: String,
+		is_error: bool,
 	) -> Result<(bool, String), Error> {
 		let dt = Utc::now();
 		let mut connection_type = headers.connection()?;
 		let version = headers.version()?;
 		let mut keep_alive = connection_type == ConnectionType::KeepAlive;
-		if version != &HttpVersion::HTTP11 || error {
+		if version == &HttpVersion::HTTP10 || error {
 			keep_alive = false;
 			connection_type = ConnectionType::CLOSE;
 		}
@@ -574,7 +575,7 @@ impl HttpServerImpl {
 					.unwrap_or(UNIX_EPOCH.into())
 					.format("%a, %d %h %C%y %H:%M:%S GMT"),
 				etag,
-				if !headers.has_range()? && headers.accept_gzip()? {
+				if !headers.has_range()? && !is_error {
 					"Transfer-Encoding: chunked".to_string()
 				} else {
 					format!("Content-Length: {}", content_len)
@@ -675,6 +676,7 @@ impl HttpServerImpl {
 					true,
 					last_modified,
 					etag,
+					true,
 				)?;
 
 				let mut write_handle = conn_data.write_handle();
@@ -964,6 +966,7 @@ impl HttpServerImpl {
 			false,
 			last_modified,
 			etag,
+			false,
 		)?;
 
 		debug!("writing {}", res)?;
@@ -1045,7 +1048,7 @@ impl HttpServerImpl {
 			}
 
 			debug!("write error = {}", write_error)?;
-			if !write_error && headers.accept_gzip()? && !headers.has_range()? {
+			if !write_error && !headers.has_range()? {
 				debug!("write term bytes")?;
 				// write termination bytes
 				let term = ['0' as u8, '\r' as u8, '\n' as u8, '\r' as u8, '\n' as u8];
@@ -1090,7 +1093,7 @@ impl HttpServerImpl {
 		)?;
 
 		if start < end {
-			if accept_gzip && !has_range {
+			if !has_range {
 				//let mut e = GzEncoder::new(Vec::new(), Compression::default());
 				//e.write_all(&buf[start..end])?;
 				//let mut res = e.finish()?;
@@ -1116,26 +1119,6 @@ impl HttpServerImpl {
 						Err(_) => write_error = true,
 					}
 				}
-			/*
-			let mut e = GzEncoder::new(Vec::new(), Compression::default());
-			e.write_all(&buf[start..end])?;
-			let mut res = e.finish()?;
-			let len = res.len();
-			res.push('\r' as u8);
-			res.push('\n' as u8);
-
-			match write_handle.write(&format!("{}\r\n", len).as_bytes()[..]) {
-				Ok(_) => {}
-				Err(_) => write_error = true,
-			}
-
-			if !write_error {
-				match write_handle.write(&res) {
-					Ok(_) => {}
-					Err(_) => write_error = true,
-				}
-			}
-							*/
 			} else {
 				match write_handle.write(&buf[start..end]) {
 					Ok(_) => {}
