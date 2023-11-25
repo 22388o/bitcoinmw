@@ -7233,13 +7233,14 @@ mod test {
 		evh.set_on_read(move |conn_data, _thread_context, _attachment| {
 			info!("in on read")?;
 			let mut wh = conn_data.write_handle();
-
 			let mut on_read_count = on_read_count.wlock()?;
 			let guard = on_read_count.guard();
 			**guard += 1;
 
 			// only trigger on on read for the first request
 			if **guard == 1 {
+				info!("about to spawn thread")?;
+
 				spawn(move || -> Result<(), Error> {
 					info!("spawned thread")?;
 					sleep(Duration::from_millis(1000));
@@ -7273,15 +7274,17 @@ mod test {
 
 		let mut count = 0;
 		loop {
-			let on_read_count_clone = on_read_count_clone.rlock()?;
-			let guard = on_read_count_clone.guard();
-			if **guard == 2 || count > 10_000 {
-				break;
-			} else {
-				info!("sleep {}", count)?;
-				sleep(Duration::from_millis(5));
-				count += 1;
+			{
+				let on_read_count_clone = on_read_count_clone.rlock()?;
+				let guard = on_read_count_clone.guard();
+				if **guard == 2 || count > 10_000 {
+					break;
+				} else {
+					info!("sleep {}", count)?;
+					count += 1;
+				}
 			}
+			sleep(Duration::from_millis(5));
 		}
 
 		sleep(Duration::from_millis(1_000));
