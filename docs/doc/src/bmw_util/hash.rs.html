@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/hash.rs`."><title>hash.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../bmw_util/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/hash.rs`."><title>hash.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-fa3bb1812debf86c.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.74.0 (79e9716c9 2023-11-13)" data-channel="1.74.0" data-search-js="search-8be46b629f5f14a8.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-c5bd66d33317d69f.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../bmw_util/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -2944,6 +2944,10 @@
 <a href="#2944" id="2944">2944</a>
 <a href="#2945" id="2945">2945</a>
 <a href="#2946" id="2946">2946</a>
+<a href="#2947" id="2947">2947</a>
+<a href="#2948" id="2948">2948</a>
+<a href="#2949" id="2949">2949</a>
+<a href="#2950" id="2950">2950</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -3394,6 +3398,7 @@
 		key: <span class="kw-2">&amp;</span>K,
 		offset: usize,
 		data: <span class="kw-2">&amp;</span>[u8; CACHE_BUFFER_SIZE],
+		len: usize,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 	<span class="kw">where
 		</span>V: Clone,
@@ -3402,7 +3407,7 @@
 		key.hash(<span class="kw-2">&amp;mut </span>hasher);
 		<span class="kw">let </span>hash = hasher.finish() <span class="kw">as </span>usize;
 		<span class="self">self</span>.static_impl
-			.raw_write_impl::&lt;V&gt;(key, hash, offset, data)
+			.raw_write_impl::&lt;V&gt;(key, hash, offset, data, len)
 	}
 	<span class="kw">fn </span>slabs(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Rc&lt;RefCell&lt;<span class="kw">dyn </span>SlabAllocator&gt;&gt;&gt;, Error&gt; {
 		<span class="self">self</span>.static_impl.slabs_impl()
@@ -3874,12 +3879,13 @@
 		hash: usize,
 		offset: usize,
 		data: <span class="kw-2">&amp;</span>[u8; CACHE_BUFFER_SIZE],
+		len: usize,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 	<span class="kw">where
 		</span>K: PartialEq,
 		V: Clone + Serializable,
 	{
-		<span class="self">self</span>.insert_hash_impl::&lt;V&gt;(<span class="prelude-val">Some</span>(key), <span class="prelude-val">None</span>, <span class="prelude-val">Some</span>((offset, data)), hash)<span class="question-mark">?</span>;
+		<span class="self">self</span>.insert_hash_impl::&lt;V&gt;(<span class="prelude-val">Some</span>(key), <span class="prelude-val">None</span>, <span class="prelude-val">Some</span>((offset, data, len)), hash)<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -3933,7 +3939,7 @@
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		key: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>K&gt;,
 		value: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>V&gt;,
-		raw_chunk: <span class="prelude-ty">Option</span>&lt;(usize, <span class="kw-2">&amp;</span>[u8; CACHE_BUFFER_SIZE])&gt;,
+		raw_chunk: <span class="prelude-ty">Option</span>&lt;(usize, <span class="kw-2">&amp;</span>[u8; CACHE_BUFFER_SIZE], usize)&gt;,
 		hash: usize,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 	<span class="kw">where
@@ -4016,7 +4022,7 @@
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		key: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>K&gt;,
 		value: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>V&gt;,
-		raw_value: <span class="prelude-ty">Option</span>&lt;(usize, <span class="kw-2">&amp;</span>[u8; CACHE_BUFFER_SIZE])&gt;,
+		raw_value: <span class="prelude-ty">Option</span>&lt;(usize, <span class="kw-2">&amp;</span>[u8; CACHE_BUFFER_SIZE], usize)&gt;,
 		entry: <span class="prelude-ty">Option</span>&lt;usize&gt;,
 		slab_id_allocated: <span class="prelude-ty">Option</span>&lt;usize&gt;,
 		raw_exists: bool,
@@ -4088,7 +4094,8 @@
 			<span class="macro">debug!</span>(<span class="string">&quot;skip bytes {}&quot;</span>, raw_value.<span class="number">0</span>)<span class="question-mark">?</span>;
 			<span class="self">self</span>.slab_writer.skip_bytes(raw_value.<span class="number">0</span>)<span class="question-mark">?</span>;
 			<span class="macro">debug!</span>(<span class="string">&quot;write fixed bytes {:?}&quot;</span>, raw_value.<span class="number">1</span>)<span class="question-mark">?</span>;
-			<span class="self">self</span>.slab_writer.write_fixed_bytes(raw_value.<span class="number">1</span>)<span class="question-mark">?</span>;
+			<span class="self">self</span>.slab_writer
+				.write_fixed_bytes(<span class="kw-2">&amp;</span>raw_value.<span class="number">1</span>[..raw_value.<span class="number">2</span>])<span class="question-mark">?</span>;
 		}
 
 		<span class="macro">debug!</span>(<span class="string">&quot;array update&quot;</span>)<span class="question-mark">?</span>;
@@ -4388,11 +4395,12 @@
 		key: <span class="kw-2">&amp;</span>K,
 		chunk: usize,
 		data: <span class="kw-2">&amp;</span>[u8; CACHE_BUFFER_SIZE],
+		len: usize,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>hasher = DefaultHasher::new();
 		key.hash(<span class="kw-2">&amp;mut </span>hasher);
 		<span class="kw">let </span>hash = hasher.finish() <span class="kw">as </span>usize;
-		<span class="self">self</span>.raw_write_impl::&lt;V&gt;(key, hash, chunk, data)
+		<span class="self">self</span>.raw_write_impl::&lt;V&gt;(key, hash, chunk, data, len)
 	}
 	<span class="kw">fn </span>slabs(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Rc&lt;RefCell&lt;<span class="kw">dyn </span>SlabAllocator&gt;&gt;&gt;, Error&gt; {
 		<span class="self">self</span>.slabs_impl()
@@ -5678,12 +5686,12 @@
 
 		<span class="kw">let </span><span class="kw-2">mut </span>data2 = [<span class="number">0u8</span>; CACHE_BUFFER_SIZE];
 		<span class="kw">let </span>data = [<span class="number">8u8</span>; CACHE_BUFFER_SIZE];
-		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">0</span>, <span class="number">0</span>, <span class="kw-2">&amp;</span>data)<span class="question-mark">?</span>;
+		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">0</span>, <span class="number">0</span>, <span class="kw-2">&amp;</span>data, CACHE_BUFFER_SIZE)<span class="question-mark">?</span>;
 		hashtable.raw_read(<span class="kw-2">&amp;</span><span class="number">0</span>, <span class="number">0</span>, <span class="kw-2">&amp;mut </span>data2)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(data, data2);
 
 		<span class="kw">let </span>data = [<span class="number">10u8</span>; CACHE_BUFFER_SIZE];
-		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">7</span>, <span class="number">383</span>, <span class="kw-2">&amp;</span>data)<span class="question-mark">?</span>;
+		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">7</span>, <span class="number">383</span>, <span class="kw-2">&amp;</span>data, CACHE_BUFFER_SIZE)<span class="question-mark">?</span>;
 		hashtable.raw_read(<span class="kw-2">&amp;</span><span class="number">7</span>, <span class="number">383</span>, <span class="kw-2">&amp;mut </span>data2)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(data, data2);
 
@@ -5701,9 +5709,9 @@
 		<span class="kw">let </span>data = [<span class="number">10u8</span>; CACHE_BUFFER_SIZE];
 
 		<span class="macro">info!</span>(<span class="string">&quot;raw_write at 1383&quot;</span>)<span class="question-mark">?</span>;
-		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">7</span>, <span class="number">1383</span>, <span class="kw-2">&amp;</span>data)<span class="question-mark">?</span>;
+		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">7</span>, <span class="number">1383</span>, <span class="kw-2">&amp;</span>data, CACHE_BUFFER_SIZE)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;raw write at 0&quot;</span>)<span class="question-mark">?</span>;
-		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">7</span>, <span class="number">0</span>, <span class="kw-2">&amp;</span>empty)<span class="question-mark">?</span>;
+		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">7</span>, <span class="number">0</span>, <span class="kw-2">&amp;</span>empty, CACHE_BUFFER_SIZE)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;raw read at 1383&quot;</span>)<span class="question-mark">?</span>;
 		hashtable.raw_read(<span class="kw-2">&amp;</span><span class="number">7</span>, <span class="number">1383</span>, <span class="kw-2">&amp;mut </span>data2)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(data, data2);
@@ -5882,9 +5890,9 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>hashtable =
 			Builder::build_hashtable::&lt;u32, String&gt;(HashtableConfig::default(), <span class="kw-2">&amp;</span><span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>slabs))<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>bytes = [<span class="number">3u8</span>; <span class="number">412</span>];
-		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="number">0</span>, <span class="kw-2">&amp;</span>bytes)<span class="question-mark">?</span>;
-		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="number">4</span>, <span class="kw-2">&amp;</span>bytes)<span class="question-mark">?</span>;
+		<span class="kw">let </span>bytes = [<span class="number">3u8</span>; CACHE_BUFFER_SIZE];
+		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="number">0</span>, <span class="kw-2">&amp;</span>bytes, CACHE_BUFFER_SIZE)<span class="question-mark">?</span>;
+		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="number">4</span>, <span class="kw-2">&amp;</span>bytes, CACHE_BUFFER_SIZE)<span class="question-mark">?</span>;
 		hashtable.remove_oldest()<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())

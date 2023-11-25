@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `http/src/http.rs`."><title>http.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_http" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0 (cc66ad468 2023-10-03)" data-channel="1.73.0" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../bmw_http/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `http/src/http.rs`."><title>http.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-fa3bb1812debf86c.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_http" data-themes="" data-resource-suffix="" data-rustdoc-version="1.74.0 (79e9716c9 2023-11-13)" data-channel="1.74.0" data-search-js="search-8be46b629f5f14a8.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-c5bd66d33317d69f.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../bmw_http/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -2197,6 +2197,48 @@
 <a href="#2197" id="2197">2197</a>
 <a href="#2198" id="2198">2198</a>
 <a href="#2199" id="2199">2199</a>
+<a href="#2200" id="2200">2200</a>
+<a href="#2201" id="2201">2201</a>
+<a href="#2202" id="2202">2202</a>
+<a href="#2203" id="2203">2203</a>
+<a href="#2204" id="2204">2204</a>
+<a href="#2205" id="2205">2205</a>
+<a href="#2206" id="2206">2206</a>
+<a href="#2207" id="2207">2207</a>
+<a href="#2208" id="2208">2208</a>
+<a href="#2209" id="2209">2209</a>
+<a href="#2210" id="2210">2210</a>
+<a href="#2211" id="2211">2211</a>
+<a href="#2212" id="2212">2212</a>
+<a href="#2213" id="2213">2213</a>
+<a href="#2214" id="2214">2214</a>
+<a href="#2215" id="2215">2215</a>
+<a href="#2216" id="2216">2216</a>
+<a href="#2217" id="2217">2217</a>
+<a href="#2218" id="2218">2218</a>
+<a href="#2219" id="2219">2219</a>
+<a href="#2220" id="2220">2220</a>
+<a href="#2221" id="2221">2221</a>
+<a href="#2222" id="2222">2222</a>
+<a href="#2223" id="2223">2223</a>
+<a href="#2224" id="2224">2224</a>
+<a href="#2225" id="2225">2225</a>
+<a href="#2226" id="2226">2226</a>
+<a href="#2227" id="2227">2227</a>
+<a href="#2228" id="2228">2228</a>
+<a href="#2229" id="2229">2229</a>
+<a href="#2230" id="2230">2230</a>
+<a href="#2231" id="2231">2231</a>
+<a href="#2232" id="2232">2232</a>
+<a href="#2233" id="2233">2233</a>
+<a href="#2234" id="2234">2234</a>
+<a href="#2235" id="2235">2235</a>
+<a href="#2236" id="2236">2236</a>
+<a href="#2237" id="2237">2237</a>
+<a href="#2238" id="2238">2238</a>
+<a href="#2239" id="2239">2239</a>
+<a href="#2240" id="2240">2240</a>
+<a href="#2241" id="2241">2241</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2227,6 +2269,8 @@
 };
 <span class="kw">use </span>bmw_deps::chrono::{DateTime, TimeZone, Utc};
 <span class="kw">use </span>bmw_deps::dirs;
+<span class="kw">use </span>bmw_deps::flate2::bufread::GzEncoder;
+<span class="kw">use </span>bmw_deps::flate2::Compression;
 <span class="kw">use </span>bmw_deps::math::round::floor;
 <span class="kw">use </span>bmw_deps::rand::{<span class="self">self</span>, Rng};
 <span class="kw">use </span>bmw_deps::sha1::{Digest, Sha1};
@@ -2722,12 +2766,13 @@
 		error: bool,
 		last_modified: u64,
 		etag: String,
+		is_error: bool,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(bool, String), Error&gt; {
 		<span class="kw">let </span>dt = Utc::now();
 		<span class="kw">let </span><span class="kw-2">mut </span>connection_type = headers.connection()<span class="question-mark">?</span>;
 		<span class="kw">let </span>version = headers.version()<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>keep_alive = connection_type == ConnectionType::KeepAlive;
-		<span class="kw">if </span>version != <span class="kw-2">&amp;</span>HttpVersion::HTTP11 || error {
+		<span class="kw">if </span>version == <span class="kw-2">&amp;</span>HttpVersion::HTTP10 || error {
 			keep_alive = <span class="bool-val">false</span>;
 			connection_type = ConnectionType::CLOSE;
 		}
@@ -2773,7 +2818,9 @@
 					.unwrap_or(UNIX_EPOCH.into())
 					.format(<span class="string">&quot;%a, %d %h %C%y %H:%M:%S GMT&quot;</span>),
 				etag,
-				<span class="kw">if </span>!headers.has_range()<span class="question-mark">? </span>&amp;&amp; headers.accept_gzip()<span class="question-mark">? </span>{
+				<span class="kw">if </span>!headers.has_range()<span class="question-mark">? </span>&amp;&amp; !is_error &amp;&amp; headers.accept_gzip()<span class="question-mark">? </span>{
+					<span class="string">&quot;Content-Encoding: gzip\r\nTransfer-Encoding: chunked, gzip&quot;</span>.to_string()
+				} <span class="kw">else if </span>!headers.has_range()<span class="question-mark">? </span>&amp;&amp; !is_error {
 					<span class="string">&quot;Transfer-Encoding: chunked&quot;</span>.to_string()
 				} <span class="kw">else </span>{
 					<span class="macro">format!</span>(<span class="string">&quot;Content-Length: {}&quot;</span>, content_len)
@@ -2874,6 +2921,7 @@
 					<span class="bool-val">true</span>,
 					last_modified,
 					etag,
+					<span class="bool-val">true</span>,
 				)<span class="question-mark">?</span>;
 
 				<span class="kw">let </span><span class="kw-2">mut </span>write_handle = conn_data.write_handle();
@@ -3067,8 +3115,16 @@
 		<span class="kw">let </span>hit: CacheStreamResult;
 		{
 			<span class="kw">let </span>cache = cache.rlock()<span class="question-mark">?</span>;
-			hit =
-				(<span class="kw-2">**</span>cache.guard()).stream_file(path, conn_data, <span class="number">200</span>, <span class="string">&quot;OK&quot;</span>, ctx, config, headers)<span class="question-mark">?</span>;
+			hit = (<span class="kw-2">**</span>cache.guard()).stream_file(
+				path,
+				conn_data,
+				<span class="number">200</span>,
+				<span class="string">&quot;OK&quot;</span>,
+				ctx,
+				config,
+				headers,
+				headers.accept_gzip()<span class="question-mark">?</span>,
+			)<span class="question-mark">?</span>;
 		}
 
 		<span class="kw">let </span>weight: f64 = config.bring_to_front_weight;
@@ -3079,19 +3135,24 @@
 			|| hit == CacheStreamResult::NotModified &amp;&amp; r &lt; threshold <span class="kw">as </span>u64
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>cache.guard()).bring_to_front(<span class="kw-2">&amp;</span>path)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>cache.guard()).bring_to_front(<span class="kw-2">&amp;</span>path, headers.accept_gzip()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 		}
 
 		<span class="kw">if </span>hit == CacheStreamResult::Modified {
 			<span class="comment">// the file has been modified. Delete it.
 			</span><span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>cache.guard()).remove(<span class="kw-2">&amp;</span>path)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>cache.guard()).remove(<span class="kw-2">&amp;</span>path, headers.accept_gzip()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 		}
 
 		<span class="kw">if </span>hit == CacheStreamResult::NotModified {
 			<span class="comment">// the file is not modified, but we need to update the last checked timestamp.
 			</span><span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>cache.guard()).update_last_checked_if_needed(<span class="kw-2">&amp;</span>path, ctx, config)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>cache.guard()).update_last_checked_if_needed(
+				<span class="kw-2">&amp;</span>path,
+				ctx,
+				config,
+				headers.accept_gzip()<span class="question-mark">?</span>,
+			)<span class="question-mark">?</span>;
 		}
 
 		<span class="prelude-val">Ok</span>(hit == CacheStreamResult::Hit || hit == CacheStreamResult::NotModified)
@@ -3110,7 +3171,14 @@
 		last_modified: u64,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>file = File::open(fpath.clone())<span class="question-mark">?</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>buf_reader = BufReader::new(file);
+		<span class="kw">let </span>(<span class="kw-2">mut </span>enc, <span class="kw-2">mut </span>buf_reader) = <span class="kw">if </span>headers.accept_gzip()<span class="question-mark">? </span>{
+			<span class="kw">let </span>buf_reader = BufReader::new(file);
+			(<span class="prelude-val">Some</span>(GzEncoder::new(buf_reader, Compression::fast())), <span class="prelude-val">None</span>)
+		} <span class="kw">else </span>{
+			<span class="kw">let </span>buf_reader = BufReader::new(file);
+			(<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(buf_reader))
+		};
+
 		<span class="kw">let </span>len_usize: usize = <span class="macro">try_into!</span>(len)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>range_start = headers.range_start()<span class="question-mark">?</span>;
@@ -3163,6 +3231,7 @@
 			<span class="bool-val">false</span>,
 			last_modified,
 			etag,
+			<span class="bool-val">false</span>,
 		)<span class="question-mark">?</span>;
 
 		<span class="macro">debug!</span>(<span class="string">&quot;writing {}&quot;</span>, res)<span class="question-mark">?</span>;
@@ -3181,13 +3250,24 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>len_sum = <span class="number">0</span>;
 		<span class="macro">debug!</span>(<span class="string">&quot;rangestart={},rangeend={}&quot;</span>, range_start, range_end)<span class="question-mark">?</span>;
 		<span class="kw">let </span>mime_type = ctx.mime_rev_lookup.get(<span class="kw-2">&amp;</span>extension).unwrap_or(<span class="kw-2">&amp;</span>u32::MAX);
+		<span class="kw">let </span>accept_gzip = headers.accept_gzip()<span class="question-mark">?</span>;
 
 		<span class="kw">if </span>code != <span class="number">304 </span>{
 			<span class="kw">let </span>http_request_type = headers.http_request_type()<span class="question-mark">?</span>;
 			<span class="kw">loop </span>{
 				<span class="kw">let </span><span class="kw-2">mut </span>blen = <span class="number">0</span>;
 				<span class="kw">loop </span>{
-					<span class="kw">let </span>cur = buf_reader.read(<span class="kw-2">&amp;mut </span>buf[blen..])<span class="question-mark">?</span>;
+					<span class="kw">let </span>cur = <span class="kw">match </span>enc {
+						<span class="prelude-val">Some</span>(<span class="kw-2">ref mut </span>enc) =&gt; enc.read(<span class="kw-2">&amp;mut </span>buf[blen..])<span class="question-mark">?</span>,
+
+						<span class="prelude-val">None </span>=&gt; <span class="kw">match </span>buf_reader {
+							<span class="prelude-val">Some</span>(<span class="kw-2">ref mut </span>buf_reader) =&gt; buf_reader.read(<span class="kw-2">&amp;mut </span>buf[blen..])<span class="question-mark">?</span>,
+							<span class="prelude-val">None </span>=&gt; {
+								<span class="macro">warn!</span>(<span class="string">&quot;none when a buf_reader was expected!&quot;</span>)<span class="question-mark">?</span>;
+								<span class="kw">break</span>;
+							}
+						},
+					};
 					<span class="kw">if </span>cur &lt;= <span class="number">0 </span>{
 						term = <span class="bool-val">true</span>;
 						<span class="kw">break</span>;
@@ -3209,30 +3289,43 @@
 						len_sum,
 						blen,
 						<span class="kw-2">&amp;mut </span>write_handle,
-						headers.accept_gzip()<span class="question-mark">?</span>,
 						headers.has_range()<span class="question-mark">?</span>,
 					)<span class="question-mark">?</span>;
-					len_sum += blen;
 				}
+				len_sum += blen;
 
 				<span class="kw">if </span>blen &gt; <span class="number">0 </span>{
 					<span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
 					<span class="kw">if </span>i == <span class="number">0 </span>{
 						write_to_cache = (<span class="kw-2">**</span>cache.guard()).write_metadata(
 							<span class="kw-2">&amp;</span>fpath,
-							<span class="macro">try_into!</span>(len)<span class="question-mark">?</span>,
+							<span class="number">0</span>,
 							last_modified,
 							<span class="kw-2">*</span>mime_type,
 							<span class="macro">try_into!</span>(ctx.now)<span class="question-mark">?</span>,
+							accept_gzip,
 						)<span class="question-mark">?</span>;
 					}
 
 					<span class="kw">if </span>write_to_cache {
-						(<span class="kw-2">**</span>cache.guard()).write_block(
+						<span class="kw">match </span>(<span class="kw-2">**</span>cache.guard()).write_block(
 							<span class="kw-2">&amp;</span>fpath,
 							i,
 							<span class="kw-2">&amp;</span><span class="macro">try_into!</span>(buf[<span class="number">0</span>..CACHE_BUFFER_SIZE])<span class="question-mark">?</span>,
-						)<span class="question-mark">?</span>;
+							accept_gzip,
+						) {
+							<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
+							<span class="prelude-val">Err</span>(_e) =&gt; {
+								<span class="comment">// we have an error. It could be
+								// capacity exceeded. We delete the
+								// entry and wet write_to_cache to
+								// false. Things continue on but
+								// the data is not written to
+								// cache.
+								</span>(<span class="kw-2">**</span>cache.guard()).remove(<span class="kw-2">&amp;</span>fpath, accept_gzip)<span class="question-mark">?</span>;
+								write_to_cache = <span class="bool-val">false</span>;
+							}
+						}
 					}
 				}
 
@@ -3243,8 +3336,20 @@
 				i += <span class="number">1</span>;
 			}
 
+			<span class="kw">if </span>write_to_cache {
+				<span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
+				(<span class="kw-2">**</span>cache.guard()).write_metadata(
+					<span class="kw-2">&amp;</span>fpath,
+					<span class="macro">try_into!</span>(len_sum)<span class="question-mark">?</span>,
+					last_modified,
+					<span class="kw-2">*</span>mime_type,
+					<span class="macro">try_into!</span>(ctx.now)<span class="question-mark">?</span>,
+					headers.accept_gzip()<span class="question-mark">?</span>,
+				)<span class="question-mark">?</span>;
+			}
+
 			<span class="macro">debug!</span>(<span class="string">&quot;write error = {}&quot;</span>, write_error)<span class="question-mark">?</span>;
-			<span class="kw">if </span>!write_error &amp;&amp; headers.accept_gzip()<span class="question-mark">? </span>&amp;&amp; !headers.has_range()<span class="question-mark">? </span>{
+			<span class="kw">if </span>!write_error &amp;&amp; !headers.has_range()<span class="question-mark">? </span>{
 				<span class="macro">debug!</span>(<span class="string">&quot;write term bytes&quot;</span>)<span class="question-mark">?</span>;
 				<span class="comment">// write termination bytes
 				</span><span class="kw">let </span>term = [<span class="string">&#39;0&#39; </span><span class="kw">as </span>u8, <span class="string">&#39;\r&#39; </span><span class="kw">as </span>u8, <span class="string">&#39;\n&#39; </span><span class="kw">as </span>u8, <span class="string">&#39;\r&#39; </span><span class="kw">as </span>u8, <span class="string">&#39;\n&#39; </span><span class="kw">as </span>u8];
@@ -3268,7 +3373,6 @@
 		len_sum: usize,
 		blen: usize,
 		write_handle: <span class="kw-2">&amp;mut </span>WriteHandle,
-		accept_gzip: bool,
 		has_range: bool,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>write_error = <span class="bool-val">false</span>;
@@ -3289,7 +3393,7 @@
 		)<span class="question-mark">?</span>;
 
 		<span class="kw">if </span>start &lt; end {
-			<span class="kw">if </span>accept_gzip &amp;&amp; !has_range {
+			<span class="kw">if </span>!has_range {
 				<span class="comment">//let mut e = GzEncoder::new(Vec::new(), Compression::default());
 				//e.write_all(&amp;buf[start..end])?;
 				//let mut res = e.finish()?;
@@ -3315,27 +3419,7 @@
 						<span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; write_error = <span class="bool-val">true</span>,
 					}
 				}
-			<span class="comment">/*
-			let mut e = GzEncoder::new(Vec::new(), Compression::default());
-			e.write_all(&amp;buf[start..end])?;
-			let mut res = e.finish()?;
-			let len = res.len();
-			res.push(&#39;\r&#39; as u8);
-			res.push(&#39;\n&#39; as u8);
-
-			match write_handle.write(&amp;format!(&quot;{}\r\n&quot;, len).as_bytes()[..]) {
-				Ok(_) =&gt; {}
-				Err(_) =&gt; write_error = true,
-			}
-
-			if !write_error {
-				match write_handle.write(&amp;res) {
-					Ok(_) =&gt; {}
-					Err(_) =&gt; write_error = true,
-				}
-			}
-							*/
-			</span>} <span class="kw">else </span>{
+			} <span class="kw">else </span>{
 				<span class="kw">match </span>write_handle.write(<span class="kw-2">&amp;</span>buf[start..end]) {
 					<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
 					<span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; write_error = <span class="bool-val">true</span>,
@@ -4318,7 +4402,7 @@
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">266</span>);
+		<span class="macro">assert_eq!</span>(len, <span class="number">284</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
@@ -4331,7 +4415,7 @@
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">267</span>);
+		<span class="macro">assert_eq!</span>(len, <span class="number">285</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
@@ -4374,7 +4458,7 @@
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">266</span>);
+		<span class="macro">assert_eq!</span>(len, <span class="number">284</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
@@ -4387,7 +4471,7 @@
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">266</span>);
+		<span class="macro">assert_eq!</span>(len, <span class="number">284</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
