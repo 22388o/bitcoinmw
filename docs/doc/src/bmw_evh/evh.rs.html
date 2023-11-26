@@ -7296,6 +7296,22 @@
 <a href="#7296" id="7296">7296</a>
 <a href="#7297" id="7297">7297</a>
 <a href="#7298" id="7298">7298</a>
+<a href="#7299" id="7299">7299</a>
+<a href="#7300" id="7300">7300</a>
+<a href="#7301" id="7301">7301</a>
+<a href="#7302" id="7302">7302</a>
+<a href="#7303" id="7303">7303</a>
+<a href="#7304" id="7304">7304</a>
+<a href="#7305" id="7305">7305</a>
+<a href="#7306" id="7306">7306</a>
+<a href="#7307" id="7307">7307</a>
+<a href="#7308" id="7308">7308</a>
+<a href="#7309" id="7309">7309</a>
+<a href="#7310" id="7310">7310</a>
+<a href="#7311" id="7311">7311</a>
+<a href="#7312" id="7312">7312</a>
+<a href="#7313" id="7313">7313</a>
+<a href="#7314" id="7314">7314</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -8267,7 +8283,7 @@
 				LastProcessType::OnRead =&gt; {
 					<span class="comment">// unwrap is ok because last_rw always set before on_read
 					</span><span class="kw">let </span><span class="kw-2">mut </span>rw = ctx.last_rw.clone().unwrap();
-					<span class="self">self</span>.process_close(ctx, <span class="kw-2">&amp;mut </span>rw, callback_context)<span class="question-mark">?</span>;
+					<span class="self">self</span>.process_close(ctx, <span class="kw-2">&amp;mut </span>rw, callback_context, <span class="bool-val">true</span>)<span class="question-mark">?</span>;
 					ctx.counter += <span class="number">1</span>;
 				}
 				LastProcessType::OnAccept =&gt; {
@@ -8715,6 +8731,7 @@
 		callback_context: <span class="kw-2">&amp;mut </span>ThreadContext,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>do_close = <span class="bool-val">false</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>close_handle = <span class="bool-val">false</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>trigger_on_read = <span class="bool-val">false</span>;
 
 		{
@@ -8726,6 +8743,7 @@
 				<span class="kw">if </span>len == <span class="number">0 </span>{
 					(<span class="kw-2">**</span>guard).unset_flag(WRITE_STATE_FLAG_PENDING);
 					<span class="kw">if </span>(<span class="kw-2">**</span>guard).is_set(WRITE_STATE_FLAG_CLOSE) {
+						close_handle = <span class="bool-val">true</span>;
 						do_close = <span class="bool-val">true</span>;
 					} <span class="kw">else if </span>(<span class="kw-2">**</span>guard).is_set(WRITE_STATE_FLAG_TRIGGER_ON_READ) {
 						(<span class="kw-2">**</span>guard).unset_flag(WRITE_STATE_FLAG_TRIGGER_ON_READ);
@@ -8746,6 +8764,7 @@
 						&amp;&amp; errno().<span class="number">0 </span>!= ETEMPUNAVAILABLE
 						&amp;&amp; errno().<span class="number">0 </span>!= WINNONBLOCKING
 					{
+						close_handle = <span class="bool-val">false</span>;
 						do_close = <span class="bool-val">true</span>;
 					}
 
@@ -8800,7 +8819,7 @@
 		}
 
 		<span class="kw">if </span>do_close {
-			<span class="self">self</span>.process_close(ctx, rw, callback_context)<span class="question-mark">?</span>;
+			<span class="self">self</span>.process_close(ctx, rw, callback_context, close_handle)<span class="question-mark">?</span>;
 		} <span class="kw">else </span>{
 			<span class="attr">#[cfg(target_os = <span class="string">&quot;windows&quot;</span>)]
 			</span>{
@@ -8943,7 +8962,7 @@
 							&amp;&amp; raw_len != -<span class="number">2</span>) || <span class="self">self</span>.debug_tls_read
 						{
 							<span class="macro">debug!</span>(<span class="string">&quot;proc close: {} {}&quot;</span>, rw.handle, <span class="self">self</span>.debug_tls_read)<span class="question-mark">?</span>;
-							<span class="self">self</span>.process_close(ctx, rw, callback_context)<span class="question-mark">?</span>;
+							<span class="self">self</span>.process_close(ctx, rw, callback_context, <span class="bool-val">true</span>)<span class="question-mark">?</span>;
 						} <span class="kw">else if </span>raw_len == -<span class="number">2 </span>{
 							<span class="attr">#[cfg(target_os = <span class="string">&quot;windows&quot;</span>)]
 							</span>{
@@ -8992,7 +9011,7 @@
 								&amp;&amp; raw_len != -<span class="number">2</span>) || <span class="self">self</span>.debug_tls_read
 							{
 								<span class="macro">debug!</span>(<span class="string">&quot;proc close client&quot;</span>)<span class="question-mark">?</span>;
-								<span class="self">self</span>.process_close(ctx, rw, callback_context)<span class="question-mark">?</span>;
+								<span class="self">self</span>.process_close(ctx, rw, callback_context, <span class="bool-val">true</span>)<span class="question-mark">?</span>;
 							} <span class="kw">else if </span>raw_len == -<span class="number">2 </span>{
 								<span class="attr">#[cfg(target_os = <span class="string">&quot;windows&quot;</span>)]
 								</span>{
@@ -9044,6 +9063,7 @@
 		tls: bool,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>do_close = <span class="bool-val">false</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>close_handle = <span class="bool-val">false</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>total_len = <span class="number">0</span>;
 		<span class="kw">loop </span>{
 			<span class="comment">// read as many slabs as we can
@@ -9057,6 +9077,7 @@
 						</span><span class="macro">warn!</span>(<span class="string">&quot;slabs.allocate1 generated error: {}&quot;</span>, e)<span class="question-mark">?</span>;
 						total_len = <span class="number">0</span>;
 						do_close = <span class="bool-val">true</span>;
+						close_handle = <span class="bool-val">true</span>;
 						<span class="kw">break</span>;
 					}
 				};
@@ -9080,6 +9101,7 @@
 							</span><span class="macro">warn!</span>(<span class="string">&quot;slabs.allocate2 generated error: {}&quot;</span>, e)<span class="question-mark">?</span>;
 							total_len = <span class="number">0</span>;
 							do_close = <span class="bool-val">true</span>;
+							close_handle = <span class="bool-val">true</span>;
 							<span class="kw">break</span>;
 						}
 					};
@@ -9135,6 +9157,7 @@
 			<span class="macro">debug!</span>(<span class="string">&quot;len = {},handle={},e.0={}&quot;</span>, len, rw.handle, errno().<span class="number">0</span>)<span class="question-mark">?</span>;
 			<span class="kw">if </span>len == <span class="number">0 </span>&amp;&amp; !tls {
 				do_close = <span class="bool-val">true</span>;
+				close_handle = <span class="self">self</span>.debug_read_error;
 			}
 			<span class="kw">if </span>len &lt; <span class="number">0 </span>|| <span class="self">self</span>.debug_read_error {
 				<span class="comment">// EAGAIN is would block. -2 is would block for windows
@@ -9144,6 +9167,7 @@
 					&amp;&amp; len != -<span class="number">2</span>) || <span class="self">self</span>.debug_read_error
 				{
 					do_close = <span class="bool-val">true</span>;
+					close_handle = <span class="self">self</span>.debug_read_error;
 				}
 
 				<span class="kw">if </span>len == -<span class="number">2 </span>{
@@ -9239,7 +9263,7 @@
 		}
 
 		<span class="kw">if </span>do_close {
-			<span class="self">self</span>.process_close(ctx, rw, callback_context)<span class="question-mark">?</span>;
+			<span class="self">self</span>.process_close(ctx, rw, callback_context, close_handle)<span class="question-mark">?</span>;
 		}
 
 		<span class="prelude-val">Ok</span>(())
@@ -9251,8 +9275,12 @@
 		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
 		rw: <span class="kw-2">&amp;mut </span>StreamInfo,
 		callback_context: <span class="kw-2">&amp;mut </span>ThreadContext,
+		close_handle: bool,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">debug!</span>(<span class="string">&quot;proc close {}&quot;</span>, rw.handle)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(
+			<span class="string">&quot;proc close {} with close handle = {}&quot;</span>,
+			rw.handle, close_handle
+		)<span class="question-mark">?</span>;
 
 		<span class="comment">// set the close flag to true so if another thread tries to
 		// write there will be an error
@@ -9269,7 +9297,9 @@
 		ctx.attachments.remove(<span class="kw-2">&amp;</span>rw.id);
 		ctx.handle_hashtable.remove(<span class="kw-2">&amp;</span>rw.handle)<span class="question-mark">?</span>;
 		rw.clear_through_impl(rw.last_slab, <span class="kw-2">&amp;mut </span>ctx.read_slabs)<span class="question-mark">?</span>;
-		close_impl(ctx, rw.handle, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
+		<span class="kw">if </span>close_handle {
+			close_impl(ctx, rw.handle, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
+		}
 		ctx.do_write_back = <span class="bool-val">false</span>;
 
 		<span class="kw">match </span><span class="kw-2">&amp;mut </span><span class="self">self</span>.on_close {
@@ -10802,8 +10832,10 @@
 			})<span class="question-mark">?</span>;
 			conn_data.clear_through(first_slab)<span class="question-mark">?</span>;
 			<span class="kw">if </span>res.len() &gt; <span class="number">0 </span>{
+				<span class="macro">info!</span>(<span class="string">&quot;write back data&quot;</span>)<span class="question-mark">?</span>;
 				conn_data.write_handle().write(<span class="kw-2">&amp;</span>res)<span class="question-mark">?</span>;
 			} <span class="kw">else </span>{
+				<span class="macro">info!</span>(<span class="string">&quot;do the close&quot;</span>)<span class="question-mark">?</span>;
 				conn_data.write_handle().close()<span class="question-mark">?</span>;
 				<span class="macro">assert!</span>(conn_data.write_handle().write(<span class="string">b&quot;test&quot;</span>).is_err());
 				<span class="macro">assert!</span>(conn_data.write_handle().suspend().is_ok());
@@ -14051,7 +14083,7 @@
 		ctx.connection_hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1_000</span>, <span class="kw-2">&amp;</span>ci)<span class="question-mark">?</span>;
 
 		<span class="comment">// call on close to trigger the none on close. No error should return.
-		</span>evh.process_close(<span class="kw-2">&amp;mut </span>ctx, <span class="kw-2">&amp;mut </span>rwi, <span class="kw-2">&amp;mut </span>ThreadContext::new())<span class="question-mark">?</span>;
+		</span>evh.process_close(<span class="kw-2">&amp;mut </span>ctx, <span class="kw-2">&amp;mut </span>rwi, <span class="kw-2">&amp;mut </span>ThreadContext::new(), <span class="bool-val">false</span>)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 
