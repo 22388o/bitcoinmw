@@ -969,7 +969,7 @@ where
 				LastProcessType::OnRead => {
 					// unwrap is ok because last_rw always set before on_read
 					let mut rw = ctx.last_rw.clone().unwrap();
-					self.process_close(ctx, &mut rw, callback_context)?;
+					self.process_close(ctx, &mut rw, callback_context, true)?;
 					ctx.counter += 1;
 				}
 				LastProcessType::OnAccept => {
@@ -1417,6 +1417,7 @@ where
 		callback_context: &mut ThreadContext,
 	) -> Result<(), Error> {
 		let mut do_close = false;
+		let mut close_handle = false;
 		let mut trigger_on_read = false;
 
 		{
@@ -1428,6 +1429,7 @@ where
 				if len == 0 {
 					(**guard).unset_flag(WRITE_STATE_FLAG_PENDING);
 					if (**guard).is_set(WRITE_STATE_FLAG_CLOSE) {
+						close_handle = true;
 						do_close = true;
 					} else if (**guard).is_set(WRITE_STATE_FLAG_TRIGGER_ON_READ) {
 						(**guard).unset_flag(WRITE_STATE_FLAG_TRIGGER_ON_READ);
@@ -1448,6 +1450,7 @@ where
 						&& errno().0 != ETEMPUNAVAILABLE
 						&& errno().0 != WINNONBLOCKING
 					{
+						close_handle = false;
 						do_close = true;
 					}
 
@@ -1502,7 +1505,7 @@ where
 		}
 
 		if do_close {
-			self.process_close(ctx, rw, callback_context)?;
+			self.process_close(ctx, rw, callback_context, close_handle)?;
 		} else {
 			#[cfg(target_os = "windows")]
 			{
@@ -1645,7 +1648,7 @@ where
 							&& raw_len != -2) || self.debug_tls_read
 						{
 							debug!("proc close: {} {}", rw.handle, self.debug_tls_read)?;
-							self.process_close(ctx, rw, callback_context)?;
+							self.process_close(ctx, rw, callback_context, true)?;
 						} else if raw_len == -2 {
 							#[cfg(target_os = "windows")]
 							{
@@ -1694,7 +1697,7 @@ where
 								&& raw_len != -2) || self.debug_tls_read
 							{
 								debug!("proc close client")?;
-								self.process_close(ctx, rw, callback_context)?;
+								self.process_close(ctx, rw, callback_context, true)?;
 							} else if raw_len == -2 {
 								#[cfg(target_os = "windows")]
 								{
@@ -1746,6 +1749,7 @@ where
 		tls: bool,
 	) -> Result<(), Error> {
 		let mut do_close = false;
+		let mut close_handle = false;
 		let mut total_len = 0;
 		loop {
 			// read as many slabs as we can
@@ -1759,6 +1763,7 @@ where
 						warn!("slabs.allocate1 generated error: {}", e)?;
 						total_len = 0;
 						do_close = true;
+						close_handle = true;
 						break;
 					}
 				};
@@ -1782,6 +1787,7 @@ where
 							warn!("slabs.allocate2 generated error: {}", e)?;
 							total_len = 0;
 							do_close = true;
+							close_handle = true;
 							break;
 						}
 					};
@@ -1837,6 +1843,7 @@ where
 			debug!("len = {},handle={},e.0={}", len, rw.handle, errno().0)?;
 			if len == 0 && !tls {
 				do_close = true;
+				close_handle = self.debug_read_error;
 			}
 			if len < 0 || self.debug_read_error {
 				// EAGAIN is would block. -2 is would block for windows
@@ -1846,6 +1853,7 @@ where
 					&& len != -2) || self.debug_read_error
 				{
 					do_close = true;
+					close_handle = self.debug_read_error;
 				}
 
 				if len == -2 {
@@ -1941,7 +1949,7 @@ where
 		}
 
 		if do_close {
-			self.process_close(ctx, rw, callback_context)?;
+			self.process_close(ctx, rw, callback_context, close_handle)?;
 		}
 
 		Ok(())
@@ -1953,8 +1961,12 @@ where
 		ctx: &mut EventHandlerContext,
 		rw: &mut StreamInfo,
 		callback_context: &mut ThreadContext,
+		close_handle: bool,
 	) -> Result<(), Error> {
-		debug!("proc close {}", rw.handle)?;
+		debug!(
+			"proc close {} with close handle = {}",
+			rw.handle, close_handle
+		)?;
 
 		// set the close flag to true so if another thread tries to
 		// write there will be an error
@@ -1971,7 +1983,9 @@ where
 		ctx.attachments.remove(&rw.id);
 		ctx.handle_hashtable.remove(&rw.handle)?;
 		rw.clear_through_impl(rw.last_slab, &mut ctx.read_slabs)?;
-		close_impl(ctx, rw.handle, false)?;
+		if close_handle {
+			close_impl(ctx, rw.handle, false)?;
+		}
 		ctx.do_write_back = false;
 
 		match &mut self.on_close {
@@ -3504,8 +3518,10 @@ mod test {
 			})?;
 			conn_data.clear_through(first_slab)?;
 			if res.len() > 0 {
+				info!("write back data")?;
 				conn_data.write_handle().write(&res)?;
 			} else {
+				info!("do the close")?;
 				conn_data.write_handle().close()?;
 				assert!(conn_data.write_handle().write(b"test").is_err());
 				assert!(conn_data.write_handle().suspend().is_ok());
@@ -6753,7 +6769,7 @@ mod test {
 		ctx.connection_hashtable.insert(&1_000, &ci)?;
 
 		// call on close to trigger the none on close. No error should return.
-		evh.process_close(&mut ctx, &mut rwi, &mut ThreadContext::new())?;
+		evh.process_close(&mut ctx, &mut rwi, &mut ThreadContext::new(), false)?;
 		Ok(())
 	}
 
