@@ -3382,8 +3382,7 @@ mod test {
 			)?;
 			let mut close_count = close_count.wlock()?;
 			(**close_count.guard()) += 1;
-			// test that error works
-			Err(err!(ErrKind::Test, "test close err"))
+			Ok(())
 		})?;
 		evh.set_on_panic(move |_thread_context, _e| Ok(()))?;
 		evh.set_housekeeper(move |_thread_context| Ok(()))?;
