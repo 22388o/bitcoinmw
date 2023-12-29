@@ -1080,12 +1080,7 @@ where
 		// listeners to remain consistent
 		for (_id, conn_info) in ctx.connection_hashtable.iter() {
 			match conn_info {
-				ConnectionInfo::ListenerInfo(li) => match close_handle_impl(li.handle) {
-					Ok(_) => {}
-					Err(e) => {
-						let _ = warn!("close_handle_impl generated error: {:?}", e);
-					}
-				},
+				ConnectionInfo::ListenerInfo(_) => {} // don't close listeners
 				ConnectionInfo::StreamInfo(mut rw) => {
 					{
 						match rw.write_state.wlock() {
