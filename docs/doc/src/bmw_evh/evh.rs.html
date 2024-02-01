@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `evh/src/evh.rs`."><title>evh.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-fa3bb1812debf86c.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_evh" data-themes="" data-resource-suffix="" data-rustdoc-version="1.74.0 (79e9716c9 2023-11-13)" data-channel="1.74.0" data-search-js="search-8be46b629f5f14a8.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-c5bd66d33317d69f.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../bmw_evh/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `evh/src/evh.rs`."><title>evh.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_evh" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -7214,104 +7214,6 @@
 <a href="#7214" id="7214">7214</a>
 <a href="#7215" id="7215">7215</a>
 <a href="#7216" id="7216">7216</a>
-<a href="#7217" id="7217">7217</a>
-<a href="#7218" id="7218">7218</a>
-<a href="#7219" id="7219">7219</a>
-<a href="#7220" id="7220">7220</a>
-<a href="#7221" id="7221">7221</a>
-<a href="#7222" id="7222">7222</a>
-<a href="#7223" id="7223">7223</a>
-<a href="#7224" id="7224">7224</a>
-<a href="#7225" id="7225">7225</a>
-<a href="#7226" id="7226">7226</a>
-<a href="#7227" id="7227">7227</a>
-<a href="#7228" id="7228">7228</a>
-<a href="#7229" id="7229">7229</a>
-<a href="#7230" id="7230">7230</a>
-<a href="#7231" id="7231">7231</a>
-<a href="#7232" id="7232">7232</a>
-<a href="#7233" id="7233">7233</a>
-<a href="#7234" id="7234">7234</a>
-<a href="#7235" id="7235">7235</a>
-<a href="#7236" id="7236">7236</a>
-<a href="#7237" id="7237">7237</a>
-<a href="#7238" id="7238">7238</a>
-<a href="#7239" id="7239">7239</a>
-<a href="#7240" id="7240">7240</a>
-<a href="#7241" id="7241">7241</a>
-<a href="#7242" id="7242">7242</a>
-<a href="#7243" id="7243">7243</a>
-<a href="#7244" id="7244">7244</a>
-<a href="#7245" id="7245">7245</a>
-<a href="#7246" id="7246">7246</a>
-<a href="#7247" id="7247">7247</a>
-<a href="#7248" id="7248">7248</a>
-<a href="#7249" id="7249">7249</a>
-<a href="#7250" id="7250">7250</a>
-<a href="#7251" id="7251">7251</a>
-<a href="#7252" id="7252">7252</a>
-<a href="#7253" id="7253">7253</a>
-<a href="#7254" id="7254">7254</a>
-<a href="#7255" id="7255">7255</a>
-<a href="#7256" id="7256">7256</a>
-<a href="#7257" id="7257">7257</a>
-<a href="#7258" id="7258">7258</a>
-<a href="#7259" id="7259">7259</a>
-<a href="#7260" id="7260">7260</a>
-<a href="#7261" id="7261">7261</a>
-<a href="#7262" id="7262">7262</a>
-<a href="#7263" id="7263">7263</a>
-<a href="#7264" id="7264">7264</a>
-<a href="#7265" id="7265">7265</a>
-<a href="#7266" id="7266">7266</a>
-<a href="#7267" id="7267">7267</a>
-<a href="#7268" id="7268">7268</a>
-<a href="#7269" id="7269">7269</a>
-<a href="#7270" id="7270">7270</a>
-<a href="#7271" id="7271">7271</a>
-<a href="#7272" id="7272">7272</a>
-<a href="#7273" id="7273">7273</a>
-<a href="#7274" id="7274">7274</a>
-<a href="#7275" id="7275">7275</a>
-<a href="#7276" id="7276">7276</a>
-<a href="#7277" id="7277">7277</a>
-<a href="#7278" id="7278">7278</a>
-<a href="#7279" id="7279">7279</a>
-<a href="#7280" id="7280">7280</a>
-<a href="#7281" id="7281">7281</a>
-<a href="#7282" id="7282">7282</a>
-<a href="#7283" id="7283">7283</a>
-<a href="#7284" id="7284">7284</a>
-<a href="#7285" id="7285">7285</a>
-<a href="#7286" id="7286">7286</a>
-<a href="#7287" id="7287">7287</a>
-<a href="#7288" id="7288">7288</a>
-<a href="#7289" id="7289">7289</a>
-<a href="#7290" id="7290">7290</a>
-<a href="#7291" id="7291">7291</a>
-<a href="#7292" id="7292">7292</a>
-<a href="#7293" id="7293">7293</a>
-<a href="#7294" id="7294">7294</a>
-<a href="#7295" id="7295">7295</a>
-<a href="#7296" id="7296">7296</a>
-<a href="#7297" id="7297">7297</a>
-<a href="#7298" id="7298">7298</a>
-<a href="#7299" id="7299">7299</a>
-<a href="#7300" id="7300">7300</a>
-<a href="#7301" id="7301">7301</a>
-<a href="#7302" id="7302">7302</a>
-<a href="#7303" id="7303">7303</a>
-<a href="#7304" id="7304">7304</a>
-<a href="#7305" id="7305">7305</a>
-<a href="#7306" id="7306">7306</a>
-<a href="#7307" id="7307">7307</a>
-<a href="#7308" id="7308">7308</a>
-<a href="#7309" id="7309">7309</a>
-<a href="#7310" id="7310">7310</a>
-<a href="#7311" id="7311">7311</a>
-<a href="#7312" id="7312">7312</a>
-<a href="#7313" id="7313">7313</a>
-<a href="#7314" id="7314">7314</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -7477,7 +7379,8 @@
 // The same applies to the TLS data structures.
 
 </span><span class="kw">impl </span>Serializable <span class="kw">for </span>ConnectionInfo {
-	<span class="kw">fn </span>read&lt;R&gt;(reader: <span class="kw-2">&amp;mut </span>R) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt;
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">fn </span>read&lt;R&gt;(reader: <span class="kw-2">&amp;mut </span>R) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt;
 	<span class="kw">where
 		</span>R: Reader,
 	{
@@ -7553,7 +7456,8 @@
 			<span class="prelude-val">Err</span>(err)
 		}
 	}
-	<span class="kw">fn </span>write&lt;W&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, writer: <span class="kw-2">&amp;mut </span>W) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">fn </span>write&lt;W&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, writer: <span class="kw-2">&amp;mut </span>W) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 	<span class="kw">where
 		</span>W: Writer,
 	{
@@ -7629,9 +7533,9 @@
 				<span class="kw">break</span>;
 			}
 
-			<span class="kw">let </span>next_slab: u32 = u32::from_be_bytes(<span class="macro">try_into!</span>(
-				<span class="kw-2">&amp;</span>slabs.get(next.try_into()<span class="question-mark">?</span>)<span class="question-mark">?</span>.get()[READ_SLAB_NEXT_OFFSET..READ_SLAB_SIZE]
-			)<span class="question-mark">?</span>);
+			<span class="kw">let </span>n = next.try_into()<span class="question-mark">?</span>;
+			<span class="kw">let </span>next_slab = <span class="macro">try_into!</span>(<span class="kw-2">&amp;</span>slabs.get(n)<span class="question-mark">?</span>.get()[READ_SLAB_NEXT_OFFSET..READ_SLAB_SIZE])<span class="question-mark">?</span>;
+			<span class="kw">let </span>next_slab: u32 = u32::from_be_bytes(next_slab);
 			slabs.free(next.try_into()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 			<span class="macro">debug!</span>(<span class="string">&quot;free {}&quot;</span>, next)<span class="question-mark">?</span>;
 
@@ -7802,6 +7706,7 @@
 	<span class="doccomment">/// Suspend any reads/writes in the [`crate::EventHandler`] for the connection associated
 	/// with this [`crate::WriteHandle`]. This can be used to transfer large amounts of data in
 	/// a separate thread while suspending reads/writes in the evh.
+	</span><span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
 	</span><span class="kw">pub fn </span>suspend(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		{
 			<span class="macro">debug!</span>(<span class="string">&quot;wlock for {}&quot;</span>, <span class="self">self</span>.id)<span class="question-mark">?</span>;
@@ -7826,6 +7731,7 @@
 
 	<span class="doccomment">/// Resume reads/writes in the [`crate::EventHandler`]. This must be called after
 	/// [`crate::WriteHandle::suspend`].
+	</span><span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
 	</span><span class="kw">pub fn </span>resume(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		{
 			<span class="macro">debug!</span>(<span class="string">&quot;wlock for {}&quot;</span>, <span class="self">self</span>.id)<span class="question-mark">?</span>;
@@ -7957,7 +7863,9 @@
 		}
 		<span class="prelude-val">Ok</span>(())
 	}
-	<span class="kw">pub fn </span>trigger_on_read(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">pub fn </span>trigger_on_read(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		{
 			<span class="macro">debug!</span>(<span class="string">&quot;wlock for {}&quot;</span>, <span class="self">self</span>.id)<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>write_state = <span class="self">self</span>.write_state.wlock()<span class="question-mark">?</span>;
@@ -8257,8 +8165,7 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>execute_thread(
+	<span class="kw">fn </span>execute_thread(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		wakeup: <span class="kw-2">&amp;mut </span>Wakeup,
 		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
@@ -8361,8 +8268,7 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>process_housekeeper(
+	<span class="kw">fn </span>process_housekeeper(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
 		callback_context: <span class="kw-2">&amp;mut </span>ThreadContext,
@@ -8394,13 +8300,8 @@
 		// listeners to remain consistent
 		</span><span class="kw">for </span>(_id, conn_info) <span class="kw">in </span>ctx.connection_hashtable.iter() {
 			<span class="kw">match </span>conn_info {
-				ConnectionInfo::ListenerInfo(li) =&gt; <span class="kw">match </span>close_handle_impl(li.handle) {
-					<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
-					<span class="prelude-val">Err</span>(e) =&gt; {
-						<span class="kw">let _ </span>= <span class="macro">warn!</span>(<span class="string">&quot;close_handle_impl generated error: {:?}&quot;</span>, e);
-					}
-				},
-				ConnectionInfo::StreamInfo(<span class="kw-2">mut </span>rw) =&gt; {
+				ConnectionInfo::ListenerInfo(<span class="kw">_</span>) =&gt; {} <span class="comment">// don&#39;t close listeners
+				</span>ConnectionInfo::StreamInfo(<span class="kw-2">mut </span>rw) =&gt; {
 					{
 						<span class="kw">match </span>rw.write_state.wlock() {
 							<span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>state) =&gt; {
@@ -8438,8 +8339,7 @@
 		type_name::&lt;T&gt;()
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>process_write_queue(<span class="kw-2">&amp;mut </span><span class="self">self</span>, ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">fn </span>process_write_queue(<span class="kw-2">&amp;mut </span><span class="self">self</span>, ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="macro">debug!</span>(<span class="string">&quot;process write queue&quot;</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[ctx.tid].wlock_ignore_poison()<span class="question-mark">?</span>;
 		<span class="kw">loop </span>{
@@ -8521,8 +8421,7 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>process_new_connections(
+	<span class="kw">fn </span>process_new_connections(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
 		callback_context: <span class="kw-2">&amp;mut </span>ThreadContext,
@@ -8638,8 +8537,7 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>process_events(
+	<span class="kw">fn </span>process_events(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
 		wakeup: <span class="kw-2">&amp;</span>Wakeup,
@@ -8723,8 +8621,7 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>process_write(
+	<span class="kw">fn </span>process_write(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		rw: <span class="kw-2">&amp;mut </span>StreamInfo,
 		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
@@ -8943,8 +8840,7 @@
 		<span class="prelude-val">Ok</span>((len, pt_len))
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>process_read(
+	<span class="kw">fn </span>process_read(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		rw: <span class="kw-2">&amp;mut </span>StreamInfo,
 		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
@@ -9054,8 +8950,7 @@
 		}
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>process_read_result(
+	<span class="kw">fn </span>process_read_result(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		rw: <span class="kw-2">&amp;mut </span>StreamInfo,
 		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
@@ -9269,8 +9164,7 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>process_close(
+	<span class="kw">fn </span>process_close(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
 		rw: <span class="kw-2">&amp;mut </span>StreamInfo,
@@ -9331,8 +9225,7 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>process_accept(
+	<span class="kw">fn </span>process_accept(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		li: <span class="kw-2">&amp;</span>ListenerInfo,
 		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
@@ -9443,8 +9336,7 @@
 		<span class="prelude-val">Ok</span>(handle)
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>process_accepted_connection(
+	<span class="kw">fn </span>process_accepted_connection(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
 		handle: Handle,
@@ -9498,7 +9390,6 @@
 	}
 
 	<span class="attr">#[cfg(target_os = <span class="string">&quot;macos&quot;</span>)]
-	#[cfg(not(tarpaulin_include))]
 	</span><span class="kw">fn </span>get_events(
 		<span class="kw-2">&amp;</span><span class="self">self</span>,
 		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
@@ -9566,8 +9457,7 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>stop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">fn </span>stop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">if </span><span class="self">self</span>.thread_pool_stopper.is_none() {
 			<span class="kw">let </span>err = <span class="macro">err!</span>(ErrKind::IllegalState, <span class="string">&quot;start must be called before stop&quot;</span>);
 			<span class="kw">return </span><span class="prelude-val">Err</span>(err);
@@ -9600,6 +9490,7 @@
 
 		<span class="prelude-val">Ok</span>(())
 	}
+
 	<span class="kw">fn </span>start(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>config = ThreadPoolConfig {
 			max_size: <span class="self">self</span>.config.threads,
@@ -9737,7 +9628,7 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))]
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
 	</span><span class="kw">fn </span>add_client(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		connection: ClientConnection,
@@ -9804,7 +9695,8 @@
 		<span class="prelude-val">Ok</span>(wh)
 	}
 
-	<span class="kw">fn </span>add_server(
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">fn </span>add_server(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		connection: ServerConnection,
 		attachment: Box&lt;<span class="kw">dyn </span>Any + Send + Sync&gt;,
@@ -9876,13 +9768,15 @@
 	<span class="kw">fn </span>new() -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
 		set_errno(Errno(<span class="number">0</span>));
 		<span class="kw">let </span>(reader, writer, _tcp_stream, _tcp_listener) = get_reader_writer()<span class="question-mark">?</span>;
+		<span class="kw">let </span>requested = <span class="macro">lock_box!</span>(<span class="bool-val">false</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span>needed = <span class="macro">lock_box!</span>(<span class="bool-val">false</span>)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
 			_tcp_stream,
 			_tcp_listener,
 			reader,
 			writer,
-			requested: <span class="macro">lock_box!</span>(<span class="bool-val">false</span>)<span class="question-mark">?</span>,
-			needed: <span class="macro">lock_box!</span>(<span class="bool-val">false</span>)<span class="question-mark">?</span>,
+			requested,
+			needed,
 		})
 	}
 
@@ -9945,11 +9839,7 @@
 		<span class="prelude-val">Some</span>(trusted_cert_full_chain_file) =&gt; {
 			<span class="kw">let </span>full_chain_certs = load_certs(<span class="kw-2">&amp;</span>trusted_cert_full_chain_file)<span class="question-mark">?</span>;
 			<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..full_chain_certs.len() {
-				<span class="macro">map_err!</span>(
-					root_store.add(<span class="kw-2">&amp;</span>full_chain_certs[i]),
-					ErrKind::IllegalArgument,
-					<span class="string">&quot;adding certificate to root store generated error&quot;
-				</span>)<span class="question-mark">?</span>;
+				root_store.add(<span class="kw-2">&amp;</span>full_chain_certs[i])<span class="question-mark">?</span>;
 			}
 		}
 		<span class="prelude-val">None </span>=&gt; {}
@@ -9984,7 +9874,8 @@
 	}
 }
 
-<span class="kw">fn </span>handle_close(
+<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+</span><span class="kw">fn </span>handle_close(
 	write_state: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;,
 	id: u128,
 	event_handler_data: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>LockBox&lt;EventHandlerData&gt;&gt;,
@@ -10010,7 +9901,7 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
-	<span class="kw">use </span><span class="kw">crate</span>::evh::{create_listeners, read_bytes};
+	<span class="kw">use </span><span class="kw">crate</span>::evh::{create_listeners, make_config, read_bytes};
 	<span class="kw">use </span><span class="kw">crate</span>::evh::{load_private_key, READ_SLAB_NEXT_OFFSET, READ_SLAB_SIZE};
 	<span class="kw">use </span><span class="kw">crate</span>::types::{
 		ConnectionInfo, Event, EventHandlerContext, EventHandlerImpl, EventType, ListenerInfo,
@@ -10020,6 +9911,7 @@
 		ClientConnection, ConnData, EventHandler, EventHandlerConfig, ServerConnection,
 		ThreadContext, TlsClientConfig, TlsServerConfig, READ_SLAB_DATA_SIZE,
 	};
+
 	<span class="kw">use </span>bmw_deps::rand::random;
 	<span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
@@ -10304,6 +10196,7 @@
 				}),
 			};
 			<span class="kw">let </span><span class="kw-2">mut </span>wh = evh.add_client(client, Box::new(<span class="string">&quot;&quot;</span>))<span class="question-mark">?</span>;
+			<span class="macro">assert!</span>(evh.event_handler_data().is_ok());
 			wh.write(<span class="string">b&quot;test&quot;</span>)<span class="question-mark">?</span>;
 			sleep(Duration::from_millis(<span class="number">2000</span>));
 
@@ -10696,8 +10589,7 @@
 			)<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>close_count = close_count.wlock()<span class="question-mark">?</span>;
 			(<span class="kw-2">**</span>close_count.guard()) += <span class="number">1</span>;
-			<span class="comment">// test that error works
-			</span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Test, <span class="string">&quot;test close err&quot;</span>))
+			<span class="prelude-val">Ok</span>(())
 		})<span class="question-mark">?</span>;
 		evh.set_on_panic(<span class="kw">move </span>|_thread_context, _e| <span class="prelude-val">Ok</span>(()))<span class="question-mark">?</span>;
 		evh.set_housekeeper(<span class="kw">move </span>|_thread_context| <span class="prelude-val">Ok</span>(()))<span class="question-mark">?</span>;
@@ -14448,101 +14340,6 @@
 	}
 
 	<span class="attr">#[test]
-	</span><span class="kw">fn </span>test_evh_example_com() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;eventhandler tls_examplecom Using port: {}&quot;</span>, port)<span class="question-mark">?</span>;
-		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;127.0.0.1:{}&quot;</span>, port)[..];
-		<span class="kw">let </span>threads = <span class="number">1</span>;
-		<span class="kw">let </span>config = EventHandlerConfig {
-			threads,
-			housekeeping_frequency_millis: <span class="number">100_000</span>,
-			read_slab_count: <span class="number">100</span>,
-			max_handles_per_thread: <span class="number">10</span>,
-			..Default::default()
-		};
-		<span class="kw">let </span><span class="kw-2">mut </span>evh = EventHandlerImpl::new(config)<span class="question-mark">?</span>;
-
-		<span class="kw">let </span><span class="kw-2">mut </span>found = <span class="macro">lock_box!</span>(<span class="bool-val">false</span>)<span class="question-mark">?</span>;
-		<span class="kw">let </span>found_clone = found.clone();
-
-		evh.set_on_read(<span class="kw">move </span>|conn_data, _thread_context, _attachment| {
-			<span class="macro">debug!</span>(<span class="string">&quot;examplecom read slab_offset = {}&quot;</span>, conn_data.slab_offset())<span class="question-mark">?</span>;
-			<span class="kw">let </span>first_slab = conn_data.first_slab();
-			<span class="kw">let </span>last_slab = conn_data.last_slab();
-			<span class="kw">let </span>slab_offset = conn_data.slab_offset();
-			<span class="macro">debug!</span>(<span class="string">&quot;first_slab={}&quot;</span>, first_slab)<span class="question-mark">?</span>;
-			<span class="kw">let </span>res = conn_data.borrow_slab_allocator(<span class="kw">move </span>|sa| {
-				<span class="kw">let </span>slab = sa.get(first_slab.try_into()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-				<span class="macro">assert_eq!</span>(first_slab, last_slab);
-				<span class="kw">let </span><span class="kw-2">mut </span>ret: Vec&lt;u8&gt; = <span class="macro">vec!</span>[];
-				ret.extend(<span class="kw-2">&amp;</span>slab.get()[<span class="number">0</span>..slab_offset <span class="kw">as </span>usize]);
-				<span class="prelude-val">Ok</span>(ret)
-			})<span class="question-mark">?</span>;
-			conn_data.clear_through(first_slab)<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>(res[<span class="number">0</span>], <span class="string">&#39;H&#39; </span><span class="kw">as </span>u8);
-			<span class="kw">let </span>res = std::str::from_utf8(<span class="kw-2">&amp;</span>res)<span class="question-mark">?</span>;
-			<span class="macro">info!</span>(<span class="string">&quot;res=&#39;{}&#39;&quot;</span>, res)<span class="question-mark">?</span>;
-
-			<span class="kw">let </span><span class="kw-2">mut </span>found = found.wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = found.guard();
-			<span class="kw-2">**</span>guard = <span class="bool-val">true</span>;
-
-			<span class="prelude-val">Ok</span>(())
-		})<span class="question-mark">?</span>;
-		evh.set_on_accept(<span class="kw">move </span>|_conn_data, _thread_context| <span class="prelude-val">Ok</span>(()))<span class="question-mark">?</span>;
-
-		evh.set_on_close(<span class="kw">move </span>|_conn_data, _thread_context| <span class="prelude-val">Ok</span>(()))<span class="question-mark">?</span>;
-		evh.set_on_panic(<span class="kw">move </span>|_thread_context, _e| <span class="prelude-val">Ok</span>(()))<span class="question-mark">?</span>;
-		evh.set_housekeeper(<span class="kw">move </span>|_thread_context| <span class="prelude-val">Ok</span>(()))<span class="question-mark">?</span>;
-		evh.start()<span class="question-mark">?</span>;
-
-		<span class="kw">let </span>handles = create_listeners(threads, addr, <span class="number">10</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;handles.size={},handles={:?}&quot;</span>, handles.size(), handles)<span class="question-mark">?</span>;
-		<span class="kw">let </span>sc = ServerConnection {
-			tls_config: <span class="prelude-val">Some</span>(TlsServerConfig {
-				certificates_file: <span class="string">&quot;./resources/cert.pem&quot;</span>.to_string(),
-				private_key_file: <span class="string">&quot;./resources/key.pem&quot;</span>.to_string(),
-			}),
-			handles,
-			is_reuse_port: <span class="bool-val">true</span>,
-		};
-		evh.add_server(sc, Box::new(<span class="string">&quot;&quot;</span>))<span class="question-mark">?</span>;
-		sleep(Duration::from_millis(<span class="number">5_000</span>));
-
-		<span class="kw">let </span>connection = TcpStream::connect(<span class="string">&quot;example.com:443&quot;</span>)<span class="question-mark">?</span>;
-		connection.set_nonblocking(<span class="bool-val">true</span>)<span class="question-mark">?</span>;
-		<span class="attr">#[cfg(unix)]
-		</span><span class="kw">let </span>connection_handle = connection.into_raw_fd();
-		<span class="attr">#[cfg(windows)]
-		</span><span class="kw">let </span>connection_handle = connection.into_raw_socket().try_into()<span class="question-mark">?</span>;
-
-		<span class="kw">let </span>client = ClientConnection {
-			handle: connection_handle,
-			tls_config: <span class="prelude-val">Some</span>(TlsClientConfig {
-				sni_host: <span class="string">&quot;example.com&quot;</span>.to_string(),
-				trusted_cert_full_chain_file: <span class="prelude-val">None</span>,
-			}),
-		};
-
-		<span class="kw">let </span><span class="kw-2">mut </span>wh = evh.add_client(client, Box::new(<span class="string">&quot;&quot;</span>))<span class="question-mark">?</span>;
-
-		wh.write(<span class="string">b&quot;GET / HTTP/1.0\r\n\r\n&quot;</span>)<span class="question-mark">?</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
-		<span class="kw">loop </span>{
-			count = count + <span class="number">1</span>;
-			sleep(Duration::from_millis(<span class="number">1</span>));
-			<span class="kw">if </span><span class="kw-2">**</span>(found_clone.rlock()<span class="question-mark">?</span>.guard()) == <span class="bool-val">false </span>&amp;&amp; count &lt; <span class="number">10_000 </span>{
-				<span class="kw">continue</span>;
-			}
-
-			<span class="macro">assert!</span>(<span class="kw-2">**</span>(found_clone.rlock()<span class="question-mark">?</span>.guard()));
-			<span class="kw">break</span>;
-		}
-
-		<span class="prelude-val">Ok</span>(())
-	}
-
-	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_trigger_on_read2() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">&quot;eventhandler trigger_on_read none Using port: {}&quot;</span>, port)<span class="question-mark">?</span>;
@@ -14563,6 +14360,7 @@
 		evh.set_on_read(<span class="kw">move </span>|conn_data, _thread_context, _attachment| {
 			<span class="macro">info!</span>(<span class="string">&quot;in on read&quot;</span>)<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>wh = conn_data.write_handle();
+			<span class="macro">assert!</span>(wh.write_state().is_ok());
 			<span class="kw">let </span><span class="kw-2">mut </span>on_read_count = on_read_count.wlock()<span class="question-mark">?</span>;
 			<span class="kw">let </span>guard = on_read_count.guard();
 			<span class="kw-2">**</span>guard += <span class="number">1</span>;
@@ -14623,6 +14421,12 @@
 		<span class="kw">let </span>guard = on_read_count_clone.guard();
 		<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>guard, <span class="number">2</span>);
 
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="attr">#[test]
+	</span><span class="kw">fn </span>test_evh_make_config() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="macro">assert!</span>(make_config(<span class="prelude-val">None</span>).is_ok());
 		<span class="prelude-val">Ok</span>(())
 	}
 }
