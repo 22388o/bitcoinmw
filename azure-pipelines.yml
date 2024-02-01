@@ -69,7 +69,4 @@ jobs:
         CI_JOB: all
         PLATFORM: win-x64
   steps:
-    - script: |
-        choco install -y openssl
-      displayName: Windows Install Dependencies
     - template: '.ci/all.yml'

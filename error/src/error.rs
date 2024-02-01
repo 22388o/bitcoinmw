@@ -19,6 +19,7 @@
 use bmw_deps::failure::{Backtrace, Context, Fail};
 use bmw_deps::rustls::client::InvalidDnsNameError;
 use bmw_deps::rustls::sign::SignError;
+use bmw_deps::webpki::Error as WebpkiError;
 use std::alloc::LayoutError;
 use std::array::TryFromSliceError;
 use std::convert::Infallible;
@@ -227,6 +228,14 @@ impl From<TryFromIntError> for Error {
 	fn from(e: TryFromIntError) -> Error {
 		Error {
 			inner: Context::new(ErrorKind::Misc(format!("TryFromIntError: {}", e))),
+		}
+	}
+}
+
+impl From<WebpkiError> for Error {
+	fn from(e: WebpkiError) -> Error {
+		Error {
+			inner: Context::new(ErrorKind::Misc(format!("webpkiError: {}", e))),
 		}
 	}
 }

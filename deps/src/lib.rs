@@ -51,5 +51,6 @@ pub use rustls;
 pub use rustls_pemfile;
 pub use sha1;
 pub use substring;
+pub use webpki;
 pub use webpki_roots;
 pub use winapi;
