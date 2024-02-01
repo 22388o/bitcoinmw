@@ -43,8 +43,6 @@ use std::fs::File;
 use std::io::{BufReader, Read, Write};
 use std::net::TcpStream;
 use std::sync::Arc;
-use std::thread::sleep;
-use std::time::Duration;
 
 #[cfg(target_os = "linux")]
 use crate::linux::*;
@@ -405,6 +403,7 @@ impl EventHandlerContext {
 		})?;
 
 		Ok(EventHandlerContext {
+			debug_bypass_acc_err: false,
 			connection_hashtable,
 			handle_hashtable,
 			read_slabs,
@@ -1968,9 +1967,9 @@ where
 			(**guard).set_flag(WRITE_STATE_FLAG_CLOSE);
 		}
 
+		let ci = ConnectionInfo::StreamInfo(rw.clone());
 		// we must do an insert before removing to keep our arc's consistent
-		ctx.connection_hashtable
-			.insert(&rw.id, &ConnectionInfo::StreamInfo(rw.clone()))?;
+		ctx.connection_hashtable.insert(&rw.id, &ci)?;
 		ctx.connection_hashtable.remove(&rw.id)?;
 		ctx.attachments.remove(&rw.id);
 		ctx.handle_hashtable.remove(&rw.handle)?;
@@ -2009,6 +2008,20 @@ where
 		Ok(())
 	}
 
+	fn handle_invalid(handle: Handle) -> Result<Handle, Error> {
+		#[cfg(unix)]
+		if handle < 0 {
+			return Err(err!(ErrKind::IllegalArgument, "invalid handle"));
+		}
+		#[cfg(windows)]
+		if handle == usize::MAX {
+			return Err(err!(ErrKind::IllegalArgument, "invalid handle"));
+		}
+
+		Ok(handle)
+	}
+
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn process_accept(
 		&mut self,
 		li: &ListenerInfo,
@@ -2026,15 +2039,18 @@ where
 				return Ok(usize::MAX);
 			}
 		};
-		// this is a would block and means no more accepts to process
-		#[cfg(unix)]
-		if handle < 0 {
-			return Ok(handle);
-		}
-		#[cfg(windows)]
-		if handle == usize::MAX {
-			return Ok(handle);
-		}
+		debug!("handle: {}, li.handle: {}", handle, li.handle)?;
+
+		let handle = if ctx.debug_bypass_acc_err {
+			handle
+		} else {
+			match Self::handle_invalid(handle) {
+				Ok(handle) => handle,
+				Err(_e) => {
+					return Ok(handle);
+				}
+			}
+		};
 
 		let mut tls_server = None;
 		if li.tls_config.is_some() {
@@ -2091,27 +2107,20 @@ where
 
 			ctx.last_process_type = LastProcessType::OnAccept;
 			{
-				let id = if rwi.accept_id.is_some() {
-					rwi.accept_id.unwrap()
-				} else {
-					0
-				};
-				let attachment = if id != 0 {
-					ctx.attachments.get(&rwi.accept_id.unwrap())
-				} else {
-					None
-				};
 				let mut data = self.data[tid].wlock_ignore_poison()?;
 				let guard = data.guard();
-				let ci = ConnectionInfo::StreamInfo(rwi);
-				(**guard).nhandles.enqueue(ci)?;
 
-				match attachment {
+				// unwrap is ok because accept_id is always set above
+				let id = rwi.accept_id.unwrap();
+				match ctx.attachments.get(&id) {
 					Some(attachment) => {
 						(**guard).attachments.insert(id, attachment.clone());
 					}
 					None => {}
-				}
+				};
+
+				let ci = ConnectionInfo::StreamInfo(rwi);
+				(**guard).nhandles.enqueue(ci)?;
 			}
 
 			debug!("wakeup called on tid = {}", tid)?;
@@ -2169,11 +2178,13 @@ where
 	}
 
 	#[cfg(not(target_os = "macos"))]
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn get_events(&self, ctx: &mut EventHandlerContext, requested: bool) -> Result<usize, Error> {
 		get_events_impl(&self.config, ctx, requested, false)
 	}
 
 	#[cfg(target_os = "macos")]
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn get_events(
 		&self,
 		ctx: &mut EventHandlerContext,
@@ -2241,6 +2252,7 @@ where
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn stop(&mut self) -> Result<(), Error> {
 		if self.thread_pool_stopper.is_none() {
 			let err = err!(ErrKind::IllegalState, "start must be called before stop");
@@ -2256,7 +2268,6 @@ where
 		loop {
 			let mut stopped = true;
 			for i in 0..self.data.size() {
-				sleep(Duration::from_millis(10));
 				{
 					let mut data = self.data[i].wlock_ignore_poison()?;
 					let guard = data.guard();
@@ -2275,6 +2286,7 @@ where
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn start(&mut self) -> Result<(), Error> {
 		let config = ThreadPoolConfig {
 			max_size: self.config.threads,
@@ -2353,15 +2365,8 @@ where
 					let ctx = &mut *ctx;
 					let thc = &mut *thread_context;
 					let isr = true;
-					let ex = Self::execute_thread(evh, wakeup, ctx, thc, isr);
-					match ex {
-						Ok(_) => {}
-						Err(e) => {
-							fatal!("execute_thread generated error: {}", e)?;
-						}
-					}
 
-					Ok(())
+					Self::execute_thread(evh, wakeup, ctx, thc, isr)
 				},
 				id.try_into()?,
 			)?;
@@ -2396,14 +2401,7 @@ where
 				let ctx = &mut *ctx;
 				let thc = &mut *thread_context;
 				let isr = false;
-				let ex = Self::execute_thread(evh, wakeup, ctx, thc, isr);
-				match ex {
-					Ok(_) => {}
-					Err(e) => {
-						fatal!("execute_thread generated error: {}", e)?;
-					}
-				}
-				Ok(())
+				Self::execute_thread(evh, wakeup, ctx, thc, isr)
 			})?;
 		}
 
@@ -6510,7 +6508,7 @@ mod test {
 	}
 
 	#[test]
-	fn test_evh_other_panics() -> Result<(), Error> {
+	fn test_evh_other_panics_wo_err() -> Result<(), Error> {
 		let port = pick_free_port()?;
 		info!("other_situations Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
@@ -6574,6 +6572,141 @@ mod test {
 			Ok(())
 		})?;
 		evh.set_on_panic(move |_thread_context, _e| Ok(()))?;
+		evh.set_housekeeper(move |_thread_context| {
+			let count = {
+				let mut housekeeper_count = housekeeper_count.wlock()?;
+				let count = **housekeeper_count.guard();
+				**housekeeper_count.guard() += 1;
+				count
+			};
+			if count == 0 {
+				panic!("on housekeeper panic");
+			}
+			Ok(())
+		})?;
+
+		evh.start()?;
+		let handles = create_listeners(threads, addr, 10, false)?;
+		info!("handles.size={},handles={:?}", handles.size(), handles)?;
+		let sc = ServerConnection {
+			tls_config: None,
+			handles,
+			is_reuse_port: true,
+		};
+		evh.add_server(sc, Box::new(""))?;
+		sleep(Duration::from_millis(5_000));
+
+		let _connection = TcpStream::connect(addr)?;
+		sleep(Duration::from_millis(1_000));
+		// listener should be closed so this will fail
+		assert!(TcpStream::connect(addr).is_err());
+
+		let port = pick_free_port()?;
+		info!("other_situations2 Using port: {}", port)?;
+		let addr = &format!("127.0.0.1:{}", port)[..];
+		let handles = create_listeners(threads, addr, 10, false)?;
+		info!("handles.size={},handles={:?}", handles.size(), handles)?;
+		let sc = ServerConnection {
+			tls_config: None,
+			handles,
+			is_reuse_port: true,
+		};
+		evh.add_server(sc, Box::new(""))?;
+		sleep(Duration::from_millis(5_000));
+
+		{
+			let _connection = TcpStream::connect(addr)?;
+		}
+		sleep(Duration::from_millis(5_000));
+
+		// last connection on close handler panics, but we should be able to still send
+		// requests.
+		{
+			let mut connection = TcpStream::connect(addr)?;
+			info!("about to write")?;
+			connection.write(b"test1")?;
+			let mut buf = vec![];
+			buf.resize(100, 0u8);
+			info!("about to read")?;
+			let len = connection.read(&mut buf)?;
+			assert_eq!(&buf[0..len], b"test1");
+			info!("read back buf[{}] = {:?}", len, buf)?;
+			connection.write(b"test2")?;
+			let len = connection.read(&mut buf)?;
+			assert_eq!(&buf[0..len], b"test2");
+		}
+		sleep(Duration::from_millis(1_000));
+
+		evh.stop()?;
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_other_panics_w_err() -> Result<(), Error> {
+		let port = pick_free_port()?;
+		info!("other_situations Using port: {}", port)?;
+		let addr = &format!("127.0.0.1:{}", port)[..];
+		let threads = 1;
+		let config = EventHandlerConfig {
+			threads,
+			housekeeping_frequency_millis: 100,
+			read_slab_count: 20,
+			max_handles_per_thread: 30,
+			..Default::default()
+		};
+		let mut evh = EventHandlerImpl::new(config)?;
+		evh.set_debug_fatal_error(true);
+
+		evh.set_on_read(move |conn_data, _thread_context, _attachment| {
+			debug!("on read slab_offset = {}", conn_data.slab_offset())?;
+			let first_slab = conn_data.first_slab();
+			let last_slab = conn_data.last_slab();
+			let slab_offset = conn_data.slab_offset();
+			debug!("first_slab={}", first_slab)?;
+			let res = conn_data.borrow_slab_allocator(move |sa| {
+				let slab = sa.get(first_slab.try_into()?)?;
+				assert_eq!(first_slab, last_slab);
+				info!("read bytes = {:?}", &slab.get()[0..slab_offset as usize])?;
+				let mut ret: Vec<u8> = vec![];
+				ret.extend(&slab.get()[0..slab_offset as usize]);
+				Ok(ret)
+			})?;
+			conn_data.clear_through(first_slab)?;
+			conn_data.write_handle().write(&res)?;
+			info!("res={:?}", res)?;
+			Ok(())
+		})?;
+
+		let mut acc_count = lock_box!(0)?;
+		let mut close_count = lock_box!(0)?;
+		let mut housekeeper_count = lock_box!(0)?;
+
+		evh.set_on_accept(move |_conn_data, _thread_context| {
+			let count = {
+				let mut acc_count = acc_count.wlock()?;
+				let count = **acc_count.guard();
+				**acc_count.guard() += 1;
+				count
+			};
+			if count == 0 {
+				panic!("on acc panic");
+			}
+			Ok(())
+		})?;
+		evh.set_on_close(move |_conn_data, _thread_context| {
+			let count = {
+				let mut close_count = close_count.wlock()?;
+				let count = **close_count.guard();
+				**close_count.guard() += 1;
+				count
+			};
+			if count == 0 {
+				panic!("on close panic");
+			}
+			Ok(())
+		})?;
+		evh.set_on_panic(move |_thread_context, _e| Err(err!(ErrKind::Test, "")))?;
 		evh.set_housekeeper(move |_thread_context| {
 			let count = {
 				let mut housekeeper_count = housekeeper_count.wlock()?;
@@ -7204,6 +7337,92 @@ mod test {
 		let on_read_count_clone = on_read_count_clone.rlock()?;
 		let guard = on_read_count_clone.guard();
 		assert_eq!(**guard, 2);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_process_accept_no_attachment() -> Result<(), Error> {
+		let port = pick_free_port()?;
+		info!("eventhandler trigger_on_read none Using port: {}", port)?;
+		let addr = &format!("127.0.0.1:{}", port)[..];
+		let threads = 1;
+		let config = EventHandlerConfig {
+			threads,
+			housekeeping_frequency_millis: 100_000,
+			read_slab_count: 2,
+			max_handles_per_thread: 5,
+			..Default::default()
+		};
+		let mut evh = EventHandlerImpl::new(config)?;
+
+		let mut on_read_count = lock_box!(0)?;
+
+		evh.set_on_read(move |conn_data, _thread_context, _attachment| {
+			info!("in on read")?;
+			let mut wh = conn_data.write_handle();
+			assert!(wh.write_state().is_ok());
+			let mut on_read_count = on_read_count.wlock()?;
+			let guard = on_read_count.guard();
+			**guard += 1;
+
+			// only trigger on on read for the first request
+			if **guard == 1 {
+				info!("about to spawn thread")?;
+
+				spawn(move || -> Result<(), Error> {
+					info!("spawned thread")?;
+					sleep(Duration::from_millis(1000));
+					info!("trigger on read")?;
+					wh.trigger_on_read()?;
+					Ok(())
+				});
+			}
+			Ok(())
+		})?;
+		evh.set_on_accept(move |_conn_data, _thread_context| {
+			info!("on accept")?;
+			Ok(())
+		})?;
+		evh.set_on_close(move |_conn_data, _thread_context| Ok(()))?;
+		evh.set_on_panic(move |_thread_context, _e| Ok(()))?;
+		evh.set_housekeeper(move |_thread_context| Ok(()))?;
+		evh.start()?;
+
+		let mut ctx = EventHandlerContext::new(0, 10, 10, 10, 100)?;
+		let mut tc = ThreadContext::new();
+		let li = ListenerInfo {
+			handle: 0,
+			id: 0,
+			is_reuse_port: false,
+			tls_config: None,
+		};
+		let ret = evh.process_accept(&li, &mut ctx, &mut tc)?;
+
+		#[cfg(unix)]
+		assert_eq!(ret, -1);
+		#[cfg(windows)]
+		assert_eq!(ret, usize::MAX);
+
+		info!("about to call create listeners")?;
+		// try with an actual socket
+		let handles = create_listeners(threads, addr, 1, false)?;
+		let li = ListenerInfo {
+			handle: handles[0],
+			id: 1,
+			is_reuse_port: false,
+			tls_config: None,
+		};
+		ctx.debug_bypass_acc_err = true;
+
+		info!("about to call process_accept")?;
+		let ret = evh.process_accept(&li, &mut ctx, &mut tc)?;
+		info!("ret={}", ret)?;
+
+		#[cfg(unix)]
+		assert_eq!(ret, -1);
+		#[cfg(windows)]
+		assert_eq!(ret, usize::MAX);
 
 		Ok(())
 	}
