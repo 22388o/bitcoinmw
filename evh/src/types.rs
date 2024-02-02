@@ -273,6 +273,7 @@ pub(crate) enum LastProcessType {
 #[derive(Clone)]
 pub(crate) struct EventHandlerContext {
 	pub(crate) debug_bypass_acc_err: bool,
+	pub(crate) debug_trigger_on_read: bool,
 	pub(crate) events: Array<Event>,
 	pub(crate) events_in: Vec<EventIn>,
 	pub(crate) tid: usize,
@@ -351,6 +352,8 @@ where
 	pub(crate) debug_tls_server_error: bool,
 	pub(crate) debug_read_error: bool,
 	pub(crate) debug_tls_read: bool,
+	pub(crate) debug_attachment_none: bool,
+	pub(crate) debug_rw_accept_id_none: bool,
 }
 
 #[derive(Clone)]

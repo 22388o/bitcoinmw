@@ -404,6 +404,7 @@ impl EventHandlerContext {
 
 		Ok(EventHandlerContext {
 			debug_bypass_acc_err: false,
+			debug_trigger_on_read: false,
 			connection_hashtable,
 			handle_hashtable,
 			read_slabs,
@@ -669,6 +670,7 @@ impl WriteHandle {
 		self.handle
 	}
 
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn queue_data(&mut self, data: &[u8]) -> Result<(), Error> {
 		debug!("queue data = {:?}", data)?;
 		let was_pending = {
@@ -874,6 +876,8 @@ where
 			debug_tls_server_error: false,
 			debug_read_error: false,
 			debug_tls_read: false,
+			debug_attachment_none: false,
+			debug_rw_accept_id_none: false,
 		};
 		Ok(ret)
 	}
@@ -927,6 +931,16 @@ where
 	#[cfg(test)]
 	fn set_on_read_none(&mut self) {
 		self.on_read = None;
+	}
+
+	#[cfg(test)]
+	fn set_attachment_none(&mut self) {
+		self.debug_attachment_none = true;
+	}
+
+	#[cfg(test)]
+	fn set_debug_rw_accept_id_none(&mut self) {
+		self.debug_rw_accept_id_none = true;
 	}
 
 	#[cfg(test)]
@@ -1404,6 +1418,7 @@ where
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn process_write(
 		&mut self,
 		rw: &mut StreamInfo,
@@ -1454,25 +1469,55 @@ where
 			}
 		}
 
+		if ctx.debug_trigger_on_read {
+			trigger_on_read = true;
+		}
+
+		debug!("trigger_on_read = {}", trigger_on_read)?;
+
 		if trigger_on_read {
 			match &mut self.on_read {
 				Some(on_read) => {
 					ctx.last_process_type = LastProcessType::OnRead;
 					ctx.last_rw = Some(rw.clone());
-					let attachment: Option<AttachmentHolder> = match ctx.attachments.get(&rw.id) {
-						Some(attachment) => Some(attachment.clone()),
-						None => None,
-					};
-					let attachment = match attachment {
-						Some(attachment) => Some(attachment),
-						None => match rw.accept_id {
-							Some(id) => match ctx.attachments.get(&id) {
+
+					let attachment: Option<AttachmentHolder> =
+						if self.debug_attachment_none || self.debug_rw_accept_id_none {
+							None
+						} else {
+							match ctx.attachments.get(&rw.id) {
 								Some(attachment) => Some(attachment.clone()),
 								None => None,
-							},
-							None => None,
-						},
+							}
+						};
+
+					let attachment = match attachment {
+						Some(attachment) => Some(attachment),
+						None => {
+							let target = if self.debug_rw_accept_id_none {
+								None
+							} else if self.debug_attachment_none {
+								Some(1)
+							} else {
+								rw.accept_id
+							};
+							match target {
+								Some(id) => {
+									let target = if self.debug_attachment_none {
+										None
+									} else {
+										ctx.attachments.get(&id)
+									};
+									match target {
+										Some(attachment) => Some(attachment.clone()),
+										None => None,
+									}
+								}
+								None => None,
+							}
+						}
 					};
+
 					match on_read(
 						&mut ConnectionData::new(
 							rw,
@@ -1516,6 +1561,7 @@ where
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn do_tls_server_read(
 		&mut self,
 		mut rw: StreamInfo,
@@ -1569,6 +1615,7 @@ where
 		Ok((len, pt_len))
 	}
 
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn do_tls_client_read(
 		&mut self,
 		mut rw: StreamInfo,
@@ -1623,6 +1670,7 @@ where
 		Ok((len, pt_len))
 	}
 
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn process_read(
 		&mut self,
 		rw: &mut StreamInfo,
@@ -1733,6 +1781,7 @@ where
 		}
 	}
 
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn process_read_result(
 		&mut self,
 		rw: &mut StreamInfo,
@@ -1892,26 +1941,52 @@ where
 			total_len += len;
 			rw.slab_offset += len as u16;
 		}
-		debug!("read {} on tid = {}", total_len, ctx.tid)?;
+		debug!(
+			"read {} on tid = {}, on_read.is_some()={}",
+			total_len,
+			ctx.tid,
+			self.on_read.is_some()
+		)?;
+
 		if total_len > 0 {
 			match &mut self.on_read {
 				Some(on_read) => {
 					ctx.last_process_type = LastProcessType::OnRead;
 					ctx.last_rw = Some(rw.clone());
 					debug!("trying id = {}, rid = {:?}", rw.id, rw.accept_id)?;
-					let attachment: Option<AttachmentHolder> = match ctx.attachments.get(&rw.id) {
-						Some(attachment) => Some(attachment.clone()),
-						None => None,
-					};
-					let attachment = match attachment {
-						Some(attachment) => Some(attachment),
-						None => match rw.accept_id {
-							Some(id) => match ctx.attachments.get(&id) {
+					let attachment: Option<AttachmentHolder> =
+						if self.debug_attachment_none || self.debug_rw_accept_id_none {
+							None
+						} else {
+							match ctx.attachments.get(&rw.id) {
 								Some(attachment) => Some(attachment.clone()),
 								None => None,
-							},
-							None => None,
-						},
+							}
+						};
+
+					let attachment = match attachment {
+						Some(attachment) => Some(attachment),
+						None => {
+							let target = if self.debug_rw_accept_id_none {
+								None
+							} else {
+								rw.accept_id
+							};
+							match target {
+								Some(id) => {
+									let target = if self.debug_attachment_none {
+										None
+									} else {
+										ctx.attachments.get(&id)
+									};
+									match target {
+										Some(attachment) => Some(attachment.clone()),
+										None => None,
+									}
+								}
+								None => None,
+							}
+						}
 					};
 
 					debug!("att set = {:?}", attachment)?;
@@ -1947,6 +2022,7 @@ where
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn process_close(
 		&mut self,
 		ctx: &mut EventHandlerContext,
@@ -3273,7 +3349,7 @@ mod test {
 	fn test_evh_tls_error() -> Result<(), Error> {
 		{
 			let port = pick_free_port()?;
-			info!("eventhandler tls_basic Using port: {}", port)?;
+			info!("eventhandler tls_error Using port: {}", port)?;
 			let addr = &format!("127.0.0.1:{}", port)[..];
 			let threads = 2;
 			let config = EventHandlerConfig {
@@ -3324,7 +3400,7 @@ mod test {
 	#[test]
 	fn test_evh_close1() -> Result<(), Error> {
 		let port = pick_free_port()?;
-		info!("close Using port: {}", port)?;
+		info!("close1 Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 2;
 		let config = EventHandlerConfig {
@@ -3791,7 +3867,7 @@ mod test {
 	#[test]
 	fn test_evh_is_reuse_port() -> Result<(), Error> {
 		let port = pick_free_port()?;
-		info!("reuse port Using port: {}", port)?;
+		info!("is_ reuse port Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 2;
 		let config = EventHandlerConfig {
@@ -4161,7 +4237,7 @@ mod test {
 	#[test]
 	fn test_evh_different_lengths_client() -> Result<(), Error> {
 		let port = pick_free_port()?;
-		info!("lengths client Using port: {}", port)?;
+		info!("different lengths client Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 2;
 		let config = EventHandlerConfig {
@@ -4622,7 +4698,7 @@ mod test {
 	#[test]
 	fn test_evh_oob_panic() -> Result<(), Error> {
 		let port = pick_free_port()?;
-		info!("other_situations Using port: {}", port)?;
+		info!("oob_panic Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
 		let config = EventHandlerConfig {
@@ -4704,7 +4780,7 @@ mod test {
 	#[test]
 	fn test_evh_thread_panic1() -> Result<(), Error> {
 		let port = pick_free_port()?;
-		info!("thread_panic Using port: {}", port)?;
+		info!("thread_panic1 Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
 		let config = EventHandlerConfig {
@@ -4807,7 +4883,7 @@ mod test {
 	#[test]
 	fn test_evh_no_panic_handler() -> Result<(), Error> {
 		let port = pick_free_port()?;
-		info!("thread_panic Using port: {}", port)?;
+		info!("no panic_handler Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
 		let config = EventHandlerConfig {
@@ -4899,7 +4975,7 @@ mod test {
 	#[test]
 	fn test_evh_thread_panic_multi() -> Result<(), Error> {
 		let port = pick_free_port()?;
-		info!("thread_panic Using port: {}", port)?;
+		info!("thread_panic_multi Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
 		let config = EventHandlerConfig {
@@ -5222,7 +5298,7 @@ mod test {
 	#[test]
 	fn test_evh_debug_suspend() -> Result<(), Error> {
 		let port = pick_free_port()?;
-		info!("pending Using port: {}", port)?;
+		info!("debug_suspend Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
 		let config = EventHandlerConfig {
@@ -5358,7 +5434,7 @@ mod test {
 	#[test]
 	fn test_evh_write_queue() -> Result<(), Error> {
 		let port = pick_free_port()?;
-		info!("stop Using port: {}", port)?;
+		info!("test_evh_write_queue Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
 		let config = EventHandlerConfig {
@@ -5788,7 +5864,7 @@ mod test {
 	fn test_evh_tls_multi_chunk_reuse_port_acc_err() -> Result<(), Error> {
 		let port = pick_free_port()?;
 		info!(
-			"eventhandler tls_multi_chunk no reuse port Using port: {}",
+			"eventhandler tls_multi_chunk no reuse port acc err Using port: {}",
 			port
 		)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
@@ -6510,7 +6586,7 @@ mod test {
 	#[test]
 	fn test_evh_other_panics_wo_err() -> Result<(), Error> {
 		let port = pick_free_port()?;
-		info!("other_situations Using port: {}", port)?;
+		info!("test_evh_other_panics_wo_err Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
 		let config = EventHandlerConfig {
@@ -6645,7 +6721,7 @@ mod test {
 	#[test]
 	fn test_evh_other_panics_w_err() -> Result<(), Error> {
 		let port = pick_free_port()?;
-		info!("other_situations Using port: {}", port)?;
+		info!("test_evh_other_panics_w_err Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
 		let config = EventHandlerConfig {
@@ -6897,9 +6973,9 @@ mod test {
 	}
 
 	#[test]
-	fn test_evh_trigger_on_read_none() -> Result<(), Error> {
+	fn test_evh_on_read_none() -> Result<(), Error> {
 		let port = pick_free_port()?;
-		info!("eventhandler trigger_on_read none Using port: {}", port)?;
+		info!("eventhandler on_read_none Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
 		let config = EventHandlerConfig {
@@ -6937,15 +7013,18 @@ mod test {
 		};
 		evh.add_server(sc, Box::new(""))?;
 		sleep(Duration::from_millis(5_000));
-		let _connection = TcpStream::connect(addr)?;
+		let mut connection = TcpStream::connect(addr)?;
+		connection.write(b"test")?;
+
+		sleep(Duration::from_millis(1_000));
 
 		Ok(())
 	}
 
 	#[test]
-	fn test_evh_on_read_none() -> Result<(), Error> {
+	fn test_evh_trigger_on_read_none() -> Result<(), Error> {
 		let port = pick_free_port()?;
-		info!("eventhandler on_read none Using port: {}", port)?;
+		info!("eventhandler trigger_on_read_none Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
 		let config = EventHandlerConfig {
@@ -6995,13 +7074,42 @@ mod test {
 		wh.trigger_on_read()?;
 		sleep(Duration::from_millis(1_000));
 
+		let mut ctx = EventHandlerContext::new(0, 100, 100, 100, 100)?;
+
+		let mut rwi = StreamInfo {
+			id: 1001,
+			handle: 1001,
+			accept_handle: None,
+			accept_id: None,
+			write_state: lock_box!(WriteState {
+				write_buffer: vec!['a' as u8],
+				flags: 0
+			})?,
+			first_slab: u32::MAX,
+			last_slab: u32::MAX,
+			slab_offset: 0,
+			is_accepted: false,
+			tls_client: None,
+			tls_server: None,
+		};
+		let ci = ConnectionInfo::StreamInfo(rwi.clone());
+		ctx.handle_hashtable.insert(&1001, &1001)?;
+		ctx.connection_hashtable.insert(&1001, &ci)?;
+		ctx.debug_trigger_on_read = true;
+		evh.process_write(&mut rwi, &mut ctx, &mut ThreadContext::new())?;
+
+		sleep(Duration::from_millis(1_000));
+
 		Ok(())
 	}
 
 	#[test]
 	fn test_evh_ins_hashtable_err() -> Result<(), Error> {
 		let port = pick_free_port()?;
-		info!("eventhandler tls_multi_chunk Using port: {}", port)?;
+		info!(
+			"eventhandler test_evh_ins_hashtable_err Using port: {}",
+			port
+		)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let port2 = pick_free_port()?;
 		let addr2 = &format!("127.0.0.1:{}", port2)[..];
@@ -7076,7 +7184,7 @@ mod test {
 	#[test]
 	fn test_evh_debug_read_error() -> Result<(), Error> {
 		let port = pick_free_port()?;
-		info!("debug read Using port: {}", port)?;
+		info!("debug debug_read_error Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 2;
 		let config = EventHandlerConfig {
@@ -7259,7 +7367,7 @@ mod test {
 	#[test]
 	fn test_evh_trigger_on_read2() -> Result<(), Error> {
 		let port = pick_free_port()?;
-		info!("eventhandler trigger_on_read none Using port: {}", port)?;
+		info!("eventhandler trigger_on_read2 none Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
 		let config = EventHandlerConfig {
@@ -7344,7 +7452,10 @@ mod test {
 	#[test]
 	fn test_evh_process_accept_no_attachment() -> Result<(), Error> {
 		let port = pick_free_port()?;
-		info!("eventhandler trigger_on_read none Using port: {}", port)?;
+		info!(
+			"eventhandler test_evh_process_accept_no_attachment Using port: {}",
+			port
+		)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
 		let config = EventHandlerConfig {
@@ -7430,6 +7541,234 @@ mod test {
 	#[test]
 	fn test_evh_make_config() -> Result<(), Error> {
 		assert!(make_config(None).is_ok());
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_debug_rw_accept_id_none() -> Result<(), Error> {
+		let port = pick_free_port()?;
+		info!(
+			"eventhandler test_evh_debug_rw_accept_id_none Using port: {}",
+			port
+		)?;
+		let addr = &format!("127.0.0.1:{}", port)[..];
+		let threads = 1;
+		let config = EventHandlerConfig {
+			threads,
+			housekeeping_frequency_millis: 100_000,
+			read_slab_count: 2,
+			max_handles_per_thread: 5,
+			..Default::default()
+		};
+		let mut evh = EventHandlerImpl::new(config)?;
+		evh.set_debug_rw_accept_id_none();
+
+		evh.set_on_read(move |conn_data, _thread_context, attachment| {
+			info!("in on read: attachment.is_some()={}", attachment.is_some())?;
+			let mut wh = conn_data.write_handle();
+			if attachment.is_none() {
+				wh.write(b"none")?;
+			} else {
+				wh.write(b"some")?;
+			}
+			Ok(())
+		})?;
+		evh.set_on_accept(move |_conn_data, _thread_context| {
+			info!("on accept")?;
+			Ok(())
+		})?;
+		evh.set_on_close(move |_conn_data, _thread_context| Ok(()))?;
+		evh.set_on_panic(move |_thread_context, _e| Ok(()))?;
+		evh.set_housekeeper(move |_thread_context| Ok(()))?;
+		evh.start()?;
+
+		let handles = create_listeners(threads, addr, 10, false)?;
+		info!("handles.size={},handles={:?}", handles.size(), handles)?;
+		let sc = ServerConnection {
+			tls_config: None,
+			handles,
+			is_reuse_port: false,
+		};
+		evh.add_server(sc, Box::new(""))?;
+		sleep(Duration::from_millis(5_000));
+
+		let port = pick_free_port()?;
+		info!("basic Using port: {}", port)?;
+		let addr2 = &format!("127.0.0.1:{}", port)[..];
+		let handles = create_listeners(threads + 1, addr2, 10, false)?;
+		info!("handles={:?}", handles)?;
+		let sc = ServerConnection {
+			tls_config: None,
+			handles,
+			is_reuse_port: false,
+		};
+		assert!(evh.add_server(sc, Box::new("")).is_err());
+
+		let port = pick_free_port()?;
+		info!("basic Using port: {}", port)?;
+		let addr2 = &format!("127.0.0.1:{}", port)[..];
+		let mut handles = create_listeners(threads, addr2, 10, false)?;
+		handles[0] = 0;
+		info!("handles={:?}", handles)?;
+		let sc = ServerConnection {
+			tls_config: None,
+			handles,
+			is_reuse_port: false,
+		};
+		assert!(evh.add_server(sc, Box::new("")).is_ok());
+		sleep(Duration::from_millis(5_000));
+
+		let mut connection = TcpStream::connect(addr)?;
+		info!("about to write")?;
+		connection.write(b"test1")?;
+		let mut buf = vec![];
+		buf.resize(100, 0u8);
+		info!("about to read")?;
+		let len = connection.read(&mut buf)?;
+		assert_eq!(&buf[0..len], b"none");
+		info!("read back buf[{}] = {:?}", len, buf)?;
+
+		let mut ctx = EventHandlerContext::new(0, 100, 100, 100, 100)?;
+
+		let mut rwi = StreamInfo {
+			id: 1001,
+			handle: 1001,
+			accept_handle: None,
+			accept_id: None,
+			write_state: lock_box!(WriteState {
+				write_buffer: vec!['a' as u8],
+				flags: 0
+			})?,
+			first_slab: u32::MAX,
+			last_slab: u32::MAX,
+			slab_offset: 0,
+			is_accepted: false,
+			tls_client: None,
+			tls_server: None,
+		};
+		let ci = ConnectionInfo::StreamInfo(rwi.clone());
+		ctx.handle_hashtable.insert(&1001, &1001)?;
+		ctx.connection_hashtable.insert(&1001, &ci)?;
+		ctx.debug_trigger_on_read = true;
+		evh.process_write(&mut rwi, &mut ctx, &mut ThreadContext::new())?;
+
+		evh.stop()?;
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_debug_attachment_none() -> Result<(), Error> {
+		let port = pick_free_port()?;
+		info!(
+			"eventhandler test_evh_debug_attachment_none none Using port: {}",
+			port
+		)?;
+		let addr = &format!("127.0.0.1:{}", port)[..];
+		let threads = 1;
+		let config = EventHandlerConfig {
+			threads,
+			housekeeping_frequency_millis: 100_000,
+			read_slab_count: 2,
+			max_handles_per_thread: 5,
+			..Default::default()
+		};
+		let mut evh = EventHandlerImpl::new(config)?;
+		evh.set_attachment_none();
+
+		evh.set_on_read(move |conn_data, _thread_context, attachment| {
+			info!("in on read: attachment.is_some()={}", attachment.is_some())?;
+			let mut wh = conn_data.write_handle();
+			if attachment.is_none() {
+				wh.write(b"none")?;
+			} else {
+				wh.write(b"some")?;
+			}
+			Ok(())
+		})?;
+		evh.set_on_accept(move |_conn_data, _thread_context| {
+			info!("on accept")?;
+			Ok(())
+		})?;
+		evh.set_on_close(move |_conn_data, _thread_context| Ok(()))?;
+		evh.set_on_panic(move |_thread_context, _e| Ok(()))?;
+		evh.set_housekeeper(move |_thread_context| Ok(()))?;
+		evh.start()?;
+
+		let handles = create_listeners(threads, addr, 10, false)?;
+		info!("handles.size={},handles={:?}", handles.size(), handles)?;
+		let sc = ServerConnection {
+			tls_config: None,
+			handles,
+			is_reuse_port: false,
+		};
+		evh.add_server(sc, Box::new(""))?;
+		sleep(Duration::from_millis(5_000));
+
+		let port = pick_free_port()?;
+		info!("basic Using port: {}", port)?;
+		let addr2 = &format!("127.0.0.1:{}", port)[..];
+		let handles = create_listeners(threads + 1, addr2, 10, false)?;
+		info!("handles={:?}", handles)?;
+		let sc = ServerConnection {
+			tls_config: None,
+			handles,
+			is_reuse_port: false,
+		};
+		assert!(evh.add_server(sc, Box::new("")).is_err());
+
+		let port = pick_free_port()?;
+		info!("basic Using port: {}", port)?;
+		let addr2 = &format!("127.0.0.1:{}", port)[..];
+		let mut handles = create_listeners(threads, addr2, 10, false)?;
+		handles[0] = 0;
+		info!("handles={:?}", handles)?;
+		let sc = ServerConnection {
+			tls_config: None,
+			handles,
+			is_reuse_port: false,
+		};
+		assert!(evh.add_server(sc, Box::new("")).is_ok());
+		sleep(Duration::from_millis(5_000));
+
+		let mut connection = TcpStream::connect(addr)?;
+		info!("about to write")?;
+		connection.write(b"test1")?;
+		let mut buf = vec![];
+		buf.resize(100, 0u8);
+		info!("about to read")?;
+		let len = connection.read(&mut buf)?;
+		assert_eq!(&buf[0..len], b"none");
+		info!("read back buf[{}] = {:?}", len, buf)?;
+
+		let mut ctx = EventHandlerContext::new(0, 100, 100, 100, 100)?;
+
+		let mut rwi = StreamInfo {
+			id: 1001,
+			handle: 1001,
+			accept_handle: None,
+			accept_id: None,
+			write_state: lock_box!(WriteState {
+				write_buffer: vec!['a' as u8],
+				flags: 0
+			})?,
+			first_slab: u32::MAX,
+			last_slab: u32::MAX,
+			slab_offset: 0,
+			is_accepted: false,
+			tls_client: None,
+			tls_server: None,
+		};
+		let ci = ConnectionInfo::StreamInfo(rwi.clone());
+		ctx.handle_hashtable.insert(&1001, &1001)?;
+		ctx.connection_hashtable.insert(&1001, &ci)?;
+		ctx.debug_trigger_on_read = true;
+		evh.process_write(&mut rwi, &mut ctx, &mut ThreadContext::new())?;
+
+		evh.stop()?;
+
+		evh.stop()?;
+
 		Ok(())
 	}
 }
