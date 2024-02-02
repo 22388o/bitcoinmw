@@ -20,6 +20,7 @@ bmw_err = { path = "../../error" }
 bmw_evh = { path = "../../evh" }
 
 clap = { version = "2.33", features = ["yaml"] }
+num-format = "0.4.4"
 
 [build-dependencies]
-built = { version = "0.4", features = ["git2"]}
+built = { version = "0.5.1", features = ["git2"]}
