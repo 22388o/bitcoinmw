@@ -170,7 +170,7 @@ fn run_eventhandler(args: ArgMatches) -> Result<(), Error> {
 	evh.set_housekeeper(move |_thread_context| Ok(()))?;
 
 	evh.start()?;
-	let handles = create_listeners(threads, addr, 10, reuse_port)?;
+	let handles = create_listeners(threads, addr, 10_000, reuse_port)?;
 	debug!("handles.size={},handles={:?}", handles.size(), handles)?;
 	let sc = ServerConnection {
 		tls_config: None,
