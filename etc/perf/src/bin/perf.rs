@@ -185,6 +185,8 @@ fn run_eventhandler(args: ArgMatches) -> Result<(), Error> {
 }
 
 fn run_client(args: ArgMatches) -> Result<(), Error> {
+	let start = Instant::now();
+
 	let port = match args.is_present("port") {
 		true => args.value_of("port").unwrap().parse()?,
 		false => 8081,
@@ -235,16 +237,7 @@ fn run_client(args: ArgMatches) -> Result<(), Error> {
 		let addr = addr.clone();
 		let config = config.clone();
 		completions.push(execute!(pool, {
-			let res = run_thread(
-				&config,
-				addr,
-				itt,
-				count,
-				clients,
-				i,
-				local_state,
-				sleep_mod,
-			);
+			let res = run_thread(&config, addr, itt, count, clients, local_state, sleep_mod);
 			match res {
 				Ok(_) => {}
 				Err(e) => error!("run_thread generated error: {}", e)?,
@@ -257,17 +250,42 @@ fn run_client(args: ArgMatches) -> Result<(), Error> {
 		loop {
 			sleep(Duration::from_millis(3000));
 			info_plain!("--------------------------------------------------------------------------------------------------------------------------------")?;
+
+			let mut messages = 0;
 			for i in 0..threads {
 				let state = state_clone[i].rlock()?;
 				let guard = state.guard();
-				info!("state[{}]={:?}", i, **guard)?;
+				messages += (**guard).itt * count + (**guard).count;
 			}
+
+			let elapsed = start.elapsed();
+			let elapsed_nanos = elapsed.as_nanos() as f64;
+			let qps = (messages as f64 / elapsed_nanos) * 1_000_000_000.0;
+
+			info!(
+				"Time elapsed={} seconds,Requests per second={}",
+				elapsed.as_secs(),
+				(qps.round() as u64).to_formatted_string(&Locale::en)
+			)?;
 		}
 	});
 
 	for i in 0..completions.len() {
 		block_on!(completions[i]);
 	}
+
+	info_plain!("--------------------------------------------------------------------------------------------------------------------------------")?;
+	info!("Complete!")?;
+
+	let elapsed = start.elapsed();
+	let elapsed_nanos = elapsed.as_nanos() as f64;
+	let qps = ((threads * itt * count * clients) as f64 / elapsed_nanos) * 1_000_000_000.0;
+
+	info!(
+		"Total time elapsed={} seconds,Requests per second={}",
+		elapsed.as_secs(),
+		(qps.round() as u64).to_formatted_string(&Locale::en)
+	)?;
 
 	Ok(())
 }
@@ -278,12 +296,10 @@ fn run_thread(
 	itt: usize,
 	count: usize,
 	clients: usize,
-	tid: usize,
 	mut state: Box<dyn LockBox<ThreadState>>,
 	sleep_mod: usize,
 ) -> Result<(), Error> {
 	let state_clone = state.clone();
-	let total = count * itt * clients;
 	let mut evh = bmw_evh::Builder::build_evh(config.clone())?;
 
 	let recv_count = lock_box!((0usize, 0u8))?;
@@ -439,7 +455,6 @@ fn run_thread(
 		whs.push(wh);
 	}
 
-	let now = Instant::now();
 	let dictionary_len = DICTIONARY.len();
 	let mut sleep_counter = 0;
 	for _ in 0..itt {
@@ -450,7 +465,7 @@ fn run_thread(
 			}
 			sleep_counter += 1;
 			if sleep_counter % sleep_mod == 0 {
-				sleep(Duration::from_millis(1));
+				//sleep(Duration::from_millis(1));
 			}
 			dict_offset += 4;
 			if dict_offset >= dictionary_len {
@@ -471,16 +486,6 @@ fn run_thread(
 			(**guard) = (0, 0);
 		}
 	}
-	let elapsed = now.elapsed();
-	let elapsed_nanos = elapsed.as_nanos() as f64;
-	let qps = ((itt * count * clients) as f64 / elapsed_nanos) * 1_000_000_000.0;
-	info!(
-		"thread {} received {} messages in {:?}, QPS = {:.2}",
-		tid,
-		total.to_formatted_string(&Locale::en),
-		elapsed,
-		qps,
-	)?;
 
 	Ok(())
 }
