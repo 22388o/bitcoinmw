@@ -23,6 +23,7 @@ use bmw_log::*;
 use bmw_util::*;
 use clap::{load_yaml, App, ArgMatches};
 use num_format::{Locale, ToFormattedString};
+use std::collections::HashMap;
 use std::net::TcpStream;
 use std::sync::mpsc::sync_channel;
 use std::thread::{sleep, spawn};
@@ -187,6 +188,11 @@ fn run_eventhandler(args: ArgMatches) -> Result<(), Error> {
 fn run_client(args: ArgMatches) -> Result<(), Error> {
 	let start = Instant::now();
 
+	let debug = match args.is_present("debug") {
+		true => true,
+		_ => false,
+	};
+
 	let port = match args.is_present("port") {
 		true => args.value_of("port").unwrap().parse()?,
 		false => 8081,
@@ -206,11 +212,6 @@ fn run_client(args: ArgMatches) -> Result<(), Error> {
 	let threads: usize = match args.is_present("threads") {
 		true => args.value_of("threads").unwrap().parse()?,
 		false => 1,
-	};
-
-	let sleep_mod = match args.is_present("sleep_mod") {
-		true => args.value_of("sleep_mod").unwrap().parse()?,
-		false => 100,
 	};
 
 	info!("itt={},count={},clients={}", itt, count, clients)?;
@@ -237,7 +238,16 @@ fn run_client(args: ArgMatches) -> Result<(), Error> {
 		let addr = addr.clone();
 		let config = config.clone();
 		completions.push(execute!(pool, {
-			let res = run_thread(&config, addr, itt, count, clients, local_state, sleep_mod);
+			let res = run_thread(
+				&config,
+				addr,
+				itt,
+				count,
+				clients,
+				local_state,
+				debug,
+				start,
+			);
 			match res {
 				Ok(_) => {}
 				Err(e) => error!("run_thread generated error: {}", e)?,
@@ -255,7 +265,7 @@ fn run_client(args: ArgMatches) -> Result<(), Error> {
 			for i in 0..threads {
 				let state = state_clone[i].rlock()?;
 				let guard = state.guard();
-				messages += (**guard).itt * count + (**guard).count;
+				messages += (**guard).itt * count * clients + (**guard).count * clients;
 			}
 
 			let elapsed = start.elapsed();
@@ -297,18 +307,23 @@ fn run_thread(
 	count: usize,
 	clients: usize,
 	mut state: Box<dyn LockBox<ThreadState>>,
-	sleep_mod: usize,
+	debug: bool,
+	start: Instant,
 ) -> Result<(), Error> {
 	let state_clone = state.clone();
 	let mut evh = bmw_evh::Builder::build_evh(config.clone())?;
 
-	let recv_count = lock_box!((0usize, 0u8))?;
-	let mut recv_count_clone = recv_count.clone();
+	let map: HashMap<u128, (usize, u8)> = HashMap::new();
+
+	let recv_count = lock_box!((map, 0usize))?;
 	let (tx, rx) = sync_channel(1);
 	let sender = lock_box!(tx)?;
 
 	evh.set_on_read(move |conn_data, _thread_context, _| {
-		debug!("on read offset = {}", conn_data.slab_offset())?;
+		let id = conn_data.get_connection_id();
+		if debug {
+			info!("on read offset = {}, id={}", conn_data.slab_offset(), id)?;
+		}
 		let first_slab = conn_data.first_slab();
 		let slab_offset = conn_data.slab_offset();
 		let last_slab = conn_data.last_slab();
@@ -326,74 +341,83 @@ fn run_thread(
 					READ_SLAB_DATA_SIZE
 				};
 
-				debug!("read bytes[{}] = {:?}", offset, &slab_bytes[0..offset])?;
+				if debug {
+					info!("read bytes[{}] = {:?}", offset, &slab_bytes[0..offset])?;
+				}
 				{
 					let mut recv_count = recv_count.wlock()?;
-					let guard = recv_count.guard();
+					{
+						let guard = recv_count.guard();
+						let item: &mut (usize, u8) = match (**guard).0.get_mut(&id) {
+							Some(item) => item,
+							None => {
+								(**guard).0.insert(id, (0, 0));
+								(**guard).0.get_mut(&id).unwrap()
+							}
+						};
 
-					if offset != 0 {
-						if (**guard).1 != 0 {
-							if (**guard).1 != 'x' as u8 {
-								if slab_bytes[0] != (**guard).1 + 1 {
-									info!(
-										"ne. o={},rc={},si={},f={},l={}",
-										offset,
-										(**guard).0,
-										slab_id,
-										first_slab,
-										last_slab
-									)?;
+						if offset != 0 {
+							if item.1 != 0 {
+								if item.1 != 'x' as u8 {
+									if slab_bytes[0] != item.1 + 1 {
+										info!(
+											"ne. o={},rc={},si={},f={},l={}",
+											offset, item.0, slab_id, first_slab, last_slab
+										)?;
+									}
+									assert_eq!(slab_bytes[0], item.1 + 1);
+								} else {
+									if slab_bytes[0] != 'a' as u8 {
+										info!(
+											"ne. o={},r={},s={},f={},l={}",
+											offset, item.0, slab_id, first_slab, last_slab
+										)?;
+									}
+									assert_eq!(slab_bytes[0], 'a' as u8);
 								}
-								assert_eq!(slab_bytes[0], (**guard).1 + 1);
-							} else {
-								if slab_bytes[0] != 'a' as u8 {
-									info!(
-										"ne. o={},r={},s={},f={},l={}",
-										offset,
-										(**guard).0,
-										slab_id,
-										first_slab,
-										last_slab
-									)?;
-								}
-								assert_eq!(slab_bytes[0], 'a' as u8);
 							}
-						}
-						for i in 1..offset {
-							if slab_bytes[i - 1] != 'x' as u8 {
-								if slab_bytes[i - 1] + 1 != slab_bytes[i] {
-									info!(
-										"ne. o={},rc={},si={},f={},l={},i={}",
-										offset,
-										(**guard).0,
-										slab_id,
-										first_slab,
-										last_slab,
-										i
-									)?;
+							for i in 1..offset {
+								if slab_bytes[i - 1] != 'x' as u8 {
+									if slab_bytes[i - 1] + 1 != slab_bytes[i] {
+										info!(
+											"ne. o={},rc={},si={},f={},l={},i={}",
+											offset, item.0, slab_id, first_slab, last_slab, i
+										)?;
+									}
+									assert_eq!(slab_bytes[i - 1] + 1, slab_bytes[i]);
+								} else {
+									if slab_bytes[i] != 'a' as u8 {
+										info!(
+											"ne. o={},rc={},si={},f={},l={},i={}",
+											offset, item.0, slab_id, first_slab, last_slab, i
+										)?;
+									}
+									assert_eq!(slab_bytes[i], 'a' as u8);
 								}
-								assert_eq!(slab_bytes[i - 1] + 1, slab_bytes[i]);
-							} else {
-								if slab_bytes[i] != 'a' as u8 {
-									info!(
-										"ne. o={},rc={},si={},f={},l={},i={}",
-										offset,
-										(**guard).0,
-										slab_id,
-										first_slab,
-										last_slab,
-										i
-									)?;
-								}
-								assert_eq!(slab_bytes[i], 'a' as u8);
 							}
+							item.0 += offset as usize;
+							item.1 = slab_bytes[offset - 1];
 						}
-						(**guard).0 += offset as usize;
-						(**guard).1 = slab_bytes[offset - 1];
-					}
-					if (**guard).0 == count * 4 * clients {
-						let mut tx = sender.wlock()?;
-						(**tx.guard()).send(1)?;
+
+						let guard = recv_count.guard();
+						(**guard).1 += offset as usize;
+						if debug {
+							info!(
+								"guard.1={},count={},clients={}",
+								(**guard).1,
+								count,
+								clients
+							)?;
+						}
+						if (**guard).1 == count * 4 * clients {
+							(**guard).1 = 0;
+							(**guard).0.clear();
+							if debug {
+								info!("send is true")?;
+							}
+							let mut tx = sender.wlock()?;
+							(**tx.guard()).send(1)?;
+						}
 					}
 				}
 
@@ -456,16 +480,15 @@ fn run_thread(
 	}
 
 	let dictionary_len = DICTIONARY.len();
-	let mut sleep_counter = 0;
 	for _ in 0..itt {
 		let mut dict_offset = 0;
 		for _ in 0..count {
 			for wh in &mut whs {
-				wh.write(&DICTIONARY[dict_offset..dict_offset + 4])?;
-			}
-			sleep_counter += 1;
-			if sleep_counter % sleep_mod == 0 {
-				//sleep(Duration::from_millis(1));
+				let mut buf = [0u8; 12];
+				usize_to_slice(try_into!(start.elapsed().as_nanos())?, &mut buf[0..8])?;
+				buf[8..12].copy_from_slice(&DICTIONARY[dict_offset..dict_offset + 4]);
+				wh.write(&buf[8..12])?;
+				debug!("wh.write")?;
 			}
 			dict_offset += 4;
 			if dict_offset >= dictionary_len {
@@ -480,11 +503,6 @@ fn run_thread(
 			(**guard).itt += 1;
 			(**guard).count = 0;
 		}
-		{
-			let mut recv_count = recv_count_clone.wlock()?;
-			let guard = recv_count.guard();
-			(**guard) = (0, 0);
-		}
 	}
 
 	Ok(())
@@ -494,6 +512,7 @@ fn main() -> Result<(), Error> {
 	global_slab_allocator!()?;
 	log_init!(LogConfig {
 		show_bt: ShowBt(false),
+		line_num: LineNum(false),
 		..Default::default()
 	})?;
 
