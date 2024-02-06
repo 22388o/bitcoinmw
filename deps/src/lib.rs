@@ -38,6 +38,7 @@ pub use failure;
 pub use failure_derive;
 pub use flate2;
 pub use futures;
+pub use itertools;
 pub use lazy_static;
 pub use libc;
 pub use math;

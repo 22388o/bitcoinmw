@@ -1,4 +1,4 @@
-name: ds_perf
+name: evh_perf
 author: The BitcoinMW Developers
 
 args:
@@ -13,23 +13,23 @@ args:
         short: c
         takes_value: false
     - count:
-        help: number of requests to send at a time for the client
+        help: number of requests to send at a time for the client (CLIENT ONLY)
         long: count
         takes_value: true
         value_name: count
     - itt:
-        help: number of iterations for the client
+        help: number of iterations for the client (CLIENT ONLY)
         long: itt
         short: i
         takes_value: true
         value_name: itt
     - clients:
-        help: number of clients
+        help: number of clients per thread (CLIENT ONLY)
         long: clients
         takes_value: true
         value_name: clients
     - threads:
-        help: number of threads for server
+        help: number of threads for server (EVENT_HANDLER ONLY)
         long: threads
         short: t
         takes_value: true
@@ -47,7 +47,7 @@ args:
         takes_value: true
         value_name: slabs
     - reuse_port:
-        help: If true, the SO_REUSEPORT socket option is set (linux only) and each thread may accept connections, otherwise a single thread accepts connections
+        help: If true, the SO_REUSEPORT socket option is set (linux only) and each thread may accept connections, otherwise a single thread accepts connections (EVENT_HANDLER ONLY)
         long: reuse_port
         takes_value: false
     - debug:
@@ -56,31 +56,31 @@ args:
         short: d
         takes_value: false
     - reconns:
-        help: Number of times to reconnect
+        help: Number of times to reconnect (CLIENT ONLY)
         long: reconns
         short: r
         takes_value: true
         value_name: reconns
     - max_handles_per_thread:
-        help: The maximum handles per thread for the eventhandler
+        help: The maximum handles per thread for the eventhandler (both CLIENT and EVENT_HANDLER)
         long: max_handles_per_thread
         short: h
         takes_value: true
         value_name: max_handles_per_thread
     - max:
-        help: The maximum length in bytes of the test messages
+        help: The maximum length in bytes of the test messages (CLIENT ONLY)
         long: max
         short: m
         takes_value: true
         value_name: max
     - min:
-        help: The minimum length in bytes of the test messages
+        help: The minimum length in bytes of the test messages (CLIENT ONLY)
         long: min
         short: n
         takes_value: true
         value_name: min
     - sleep:
-        help: The time in milliseconds to sleep between reconnections. The default value is 0 (or no sleep)
+        help: The time in milliseconds to sleep between reconnections. The default value is 0 (or no sleep) (CLIENT ONLY)
         long: sleep
         short: x
         takes_value: true

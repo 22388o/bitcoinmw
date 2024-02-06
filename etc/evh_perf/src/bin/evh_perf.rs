@@ -16,6 +16,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bmw_deps::colored::Colorize;
+use bmw_deps::itertools::Itertools;
 use bmw_deps::num_format::{Locale, ToFormattedString};
 use bmw_deps::rand::random;
 use bmw_err::*;
@@ -34,6 +36,9 @@ use std::time::{Duration, Instant};
 use std::os::unix::io::IntoRawFd;
 #[cfg(windows)]
 use std::os::windows::io::IntoRawSocket;
+
+const SPACER: &str =
+	"------------------------------------------------------------------------------";
 
 info!();
 
@@ -57,7 +62,27 @@ impl GlobalStats {
 	}
 }
 
-fn run_eventhandler(args: ArgMatches) -> Result<(), Error> {
+fn print_configs(configs: HashMap<String, String>) -> Result<(), Error> {
+	let mut max_len = 0;
+	for (k, _v) in &configs {
+		if k.len() > max_len {
+			max_len = k.len();
+		}
+	}
+
+	info_plain!(SPACER)?;
+	for (k, v) in configs.iter().sorted() {
+		let mut spaces = ":".to_string();
+		for _ in k.len()..max_len {
+			spaces = format!("{} ", spaces).to_string();
+		}
+		info!("{} '{}'", format!("{}{}", k.yellow(), spaces), v)?;
+	}
+	info_plain!(SPACER)?;
+	Ok(())
+}
+
+fn run_eventhandler(args: ArgMatches, start: Instant) -> Result<(), Error> {
 	let threads: usize = match args.is_present("threads") {
 		true => args.value_of("threads").unwrap().parse()?,
 		false => 1,
@@ -79,7 +104,28 @@ fn run_eventhandler(args: ArgMatches) -> Result<(), Error> {
 
 	let debug = args.is_present("debug");
 
-	info!("Using port: {},reuse_port={}", port, reuse_port)?;
+	let mut configs = HashMap::new();
+	configs.insert("debug".to_string(), debug.to_string());
+	configs.insert("port".to_string(), port.to_string());
+	configs.insert("reuse_port".to_string(), reuse_port.to_string());
+	configs.insert(
+		"max_handles_per_thread".to_string(),
+		max_handles_per_thread.to_formatted_string(&Locale::en),
+	);
+	configs.insert(
+		"threads".to_string(),
+		threads.to_formatted_string(&Locale::en),
+	);
+
+	configs.insert(
+		"read_slab_count".to_string(),
+		read_slab_count.to_formatted_string(&Locale::en),
+	);
+	print_configs(configs)?;
+
+	set_log_option!(LogConfigOption::Level(true))?;
+	info!("Server started in {} ms.", start.elapsed().as_millis())?;
+
 	let addr = &format!("127.0.0.1:{}", port)[..];
 	let config = EventHandlerConfig {
 		threads,
@@ -165,9 +211,7 @@ fn run_eventhandler(args: ArgMatches) -> Result<(), Error> {
 	Ok(())
 }
 
-fn run_client(args: ArgMatches) -> Result<(), Error> {
-	let start = Instant::now();
-
+fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 	let debug = match args.is_present("debug") {
 		true => true,
 		_ => false,
@@ -280,7 +324,7 @@ fn run_client(args: ArgMatches) -> Result<(), Error> {
 	spawn(move || -> Result<(), Error> {
 		loop {
 			sleep(Duration::from_millis(3000));
-			info_plain!("----------------------------------------------------------------------------------------------------------------------------------------------------")?;
+			info_plain!(SPACER)?;
 
 			let elapsed = start.elapsed();
 			let elapsed_nanos = elapsed.as_nanos() as f64;
@@ -342,8 +386,7 @@ fn run_client(args: ArgMatches) -> Result<(), Error> {
 		block_on!(completions[i]);
 	}
 
-	info_plain!("----------------------------------------------------------------------------------------------------------------------------------------------------")?;
-
+	info_plain!(SPACER)?;
 	let elapsed = start.elapsed();
 	let elapsed_nanos = elapsed.as_nanos() as f64;
 
@@ -357,7 +400,11 @@ fn run_client(args: ArgMatches) -> Result<(), Error> {
 	};
 	let qps = (messages as f64 / elapsed_nanos) * 1_000_000_000.0;
 
-	let avg_lat = lat_sum / messages as u128;
+	let avg_lat = if messages > 0 {
+		lat_sum / messages as u128
+	} else {
+		0
+	};
 	let seconds = (elapsed_nanos as f64) / 1_000_000_000.0;
 
 	info!("Perf test complete!")?;
@@ -648,14 +695,17 @@ fn run_thread(
 }
 
 fn main() -> Result<(), Error> {
+	let start = Instant::now();
+
 	global_slab_allocator!()?;
 	log_init!(LogConfig {
 		show_bt: ShowBt(false),
 		line_num: LineNum(false),
+		level: Level(false),
 		..Default::default()
 	})?;
 
-	let yml = load_yaml!("perf.yml");
+	let yml = load_yaml!("evh_perf.yml");
 	let args = App::from_yaml(yml)
 		.version(built_info::PKG_VERSION)
 		.get_matches();
@@ -665,10 +715,16 @@ fn main() -> Result<(), Error> {
 
 	if client {
 		info!("Starting perf client")?;
-		run_client(args)?;
+		run_client(args, start)?;
 	} else if eventhandler {
-		info!("Starting eventhandler")?;
-		run_eventhandler(args)?;
+		info!(
+			"{}",
+			format!("evh_perf EventHandler/{}", built_info::PKG_VERSION).green()
+		)?;
+		run_eventhandler(args, start)?;
+	} else {
+		set_log_option!(LogConfigOption::Level(true))?;
+		error!("Must specify either -c (client) or -e (eventhandler). For additional information: evh_perf --help")?;
 	}
 
 	Ok(())
