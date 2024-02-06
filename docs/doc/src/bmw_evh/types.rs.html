@@ -440,6 +440,10 @@
 <a href="#440" id="440">440</a>
 <a href="#441" id="441">441</a>
 <a href="#442" id="442">442</a>
+<a href="#443" id="443">443</a>
+<a href="#444" id="444">444</a>
+<a href="#445" id="445">445</a>
+<a href="#446" id="446">446</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -714,6 +718,8 @@
 
 <span class="attr">#[derive(Clone)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>EventHandlerContext {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_bypass_acc_err: bool,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_trigger_on_read: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) events: Array&lt;Event&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) events_in: Vec&lt;EventIn&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) tid: usize,
@@ -792,6 +798,8 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_tls_server_error: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_read_error: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_tls_read: bool,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_attachment_none: bool,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_rw_accept_id_none: bool,
 }
 
 <span class="attr">#[derive(Clone)]

@@ -556,6 +556,7 @@
 <a href="#556" id="556">556</a>
 <a href="#557" id="557">557</a>
 <a href="#558" id="558">558</a>
+<a href="#559" id="559">559</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers // Some code and concepts from: // * Grin: https://github.com/mimblewimble/grin // * Arti: https://gitlab.torproject.org/tpo/core/arti // * BitcoinMW: https://github.com/bitcoinmw/bitcoinmw //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
 // you may not use this file except in compliance with the License.
@@ -1096,7 +1097,8 @@
 <span class="kw">mod </span>types;
 
 <span class="kw">pub use </span><span class="kw">crate</span>::misc::{
-	slice_to_u32, slice_to_u64, slice_to_usize, u32_to_slice, u64_to_slice, usize_to_slice,
+	slice_to_u128, slice_to_u32, slice_to_u64, slice_to_usize, u128_to_slice, u32_to_slice,
+	u64_to_slice, usize_to_slice,
 };
 <span class="kw">pub use </span><span class="kw">crate</span>::ser::{deserialize, serialize};
 <span class="kw">pub use </span><span class="kw">crate</span>::slabs::GLOBAL_SLAB_ALLOCATOR;
