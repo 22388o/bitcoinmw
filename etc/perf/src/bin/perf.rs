@@ -95,9 +95,10 @@ fn run_eventhandler(args: ArgMatches) -> Result<(), Error> {
 		let last_slab = conn_data.last_slab();
 		let slab_offset = conn_data.slab_offset();
 		let id = conn_data.get_connection_id();
-		let res = conn_data.borrow_slab_allocator(move |sa| {
+		let mut wh = conn_data.write_handle();
+		let byte_count = conn_data.borrow_slab_allocator(move |sa| {
 			let mut slab_id = first_slab;
-			let mut ret: Vec<u8> = vec![];
+			let mut byte_count = 0;
 			loop {
 				let slab = sa.get(slab_id.try_into()?)?;
 				let slab_bytes = slab.get();
@@ -106,7 +107,9 @@ fn run_eventhandler(args: ArgMatches) -> Result<(), Error> {
 				} else {
 					slab_offset as usize
 				};
-				ret.extend(&slab_bytes[0..offset as usize]);
+
+				wh.write(&slab_bytes[0..offset as usize])?;
+				byte_count += offset;
 
 				if slab_id == last_slab {
 					break;
@@ -115,15 +118,13 @@ fn run_eventhandler(args: ArgMatches) -> Result<(), Error> {
 					slab_bytes[READ_SLAB_DATA_SIZE..READ_SLAB_DATA_SIZE + 4]
 				)?);
 			}
-			info!("ret.len={}", ret.len());
-			Ok(ret)
+			Ok(byte_count)
 		})?;
 
 		conn_data.clear_through(last_slab)?;
 		if debug {
-			info!("Writing back {} bytes on connection {}", res.len(), id)?;
+			info!("Wrote back {} bytes on connection {}", byte_count, id)?;
 		}
-		conn_data.write_handle().write(&res)?;
 
 		Ok(())
 	})?;

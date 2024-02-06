@@ -1469,6 +1469,7 @@ where
 					break;
 				}
 				(**guard).write_buffer.drain(0..wlen as usize);
+				(**guard).write_buffer.shrink_to_fit();
 			}
 		}
 
@@ -1860,6 +1861,7 @@ where
 				slab.get_mut()[slab_offset..clen + slab_offset]
 					.clone_from_slice(&ctx.buffer[0..clen]);
 				ctx.buffer.drain(0..clen);
+				ctx.buffer.shrink_to_fit();
 				clen.try_into()?
 			} else {
 				// clear text read
