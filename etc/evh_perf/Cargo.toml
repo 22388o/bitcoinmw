@@ -1,8 +1,8 @@
 [package]
-name = "perf"
+name = "evh_perf"
 version = "0.0.3-beta.1"
 edition = "2021"
-description = "Utility to test performance of data structurs"
+description = "Utility to test performance of the eventhandler"
 license = "Apache-2.0"
 repository = "https://github.com/cgilliard/bitcoinmw"
 readme = "README.md"
@@ -10,7 +10,7 @@ exclude = ["**/*.bmw", "**/*.bmw"]
 build = "src/build/build.rs"
 
 [[bin]]
-name = "perf"
+name = "evh_perf"
 
 [dependencies]
 bmw_deps = { path = "../../deps" }
@@ -20,7 +20,6 @@ bmw_err = { path = "../../error" }
 bmw_evh = { path = "../../evh" }
 
 clap = { version = "2.33", features = ["yaml"] }
-num-format = "0.4.4"
 
 [build-dependencies]
 built = { version = "0.5.1", features = ["git2"]}

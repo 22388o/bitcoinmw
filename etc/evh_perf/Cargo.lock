@@ -146,6 +146,7 @@ dependencies = [
  "libc",
  "libmath",
  "nix",
+ "num-format",
  "path-clean",
  "portpicker",
  "rand 0.8.5",
@@ -409,6 +410,19 @@ checksum = "aa68f1b12764fab894d2755d2518754e71b4fd80ecfb822714a1206c2aab39bf"
 dependencies = [
  "cc",
  "libc",
+]
+
+[[package]]
+name = "evh_perf"
+version = "0.0.3-beta.1"
+dependencies = [
+ "bmw_deps",
+ "bmw_err",
+ "bmw_evh",
+ "bmw_log",
+ "bmw_util",
+ "built",
+ "clap",
 ]
 
 [[package]]
@@ -849,20 +863,6 @@ name = "percent-encoding"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b2a4787296e9989611394c33f193f676704af1686e70b8f8033ab5ba9a35a94"
-
-[[package]]
-name = "perf"
-version = "0.0.3-beta.1"
-dependencies = [
- "bmw_deps",
- "bmw_err",
- "bmw_evh",
- "bmw_log",
- "bmw_util",
- "built",
- "clap",
- "num-format",
-]
 
 [[package]]
 name = "pin-project-lite"

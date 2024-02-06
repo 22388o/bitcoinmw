@@ -16,6 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bmw_deps::num_format::{Locale, ToFormattedString};
 use bmw_deps::rand::random;
 use bmw_err::*;
 use bmw_evh::*;
@@ -23,7 +24,6 @@ use bmw_log::LogConfigOption::*;
 use bmw_log::*;
 use bmw_util::*;
 use clap::{load_yaml, App, ArgMatches};
-use num_format::{Locale, ToFormattedString};
 use std::collections::HashMap;
 use std::net::TcpStream;
 use std::sync::mpsc::sync_channel;

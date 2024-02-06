@@ -42,6 +42,7 @@ pub use lazy_static;
 pub use libc;
 pub use math;
 pub use nix;
+pub use num_format;
 pub use path_clean;
 pub use portpicker;
 pub use rand;
