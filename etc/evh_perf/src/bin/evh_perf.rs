@@ -275,6 +275,8 @@ fn run_client(args: ArgMatches) -> Result<(), Error> {
 	}
 
 	let state_clone = state.clone();
+	let mut messages_last = 0;
+	let mut lat_sum_last = 0;
 	spawn(move || -> Result<(), Error> {
 		loop {
 			sleep(Duration::from_millis(3000));
@@ -301,11 +303,27 @@ fn run_client(args: ArgMatches) -> Result<(), Error> {
 			let seconds = (elapsed_nanos as f64) / 1_000_000_000.0;
 
 			info!(
-				"Summary for {} of {} messages. [{:.2}% complete]",
+				"{} of {} messages received. [{:.2}% complete]",
 				messages.to_formatted_string(&Locale::en),
 				(clients * count * itt * threads * reconns).to_formatted_string(&Locale::en),
 				((100.0 * messages as f64) / (clients * count * itt * threads * reconns) as f64)
 			)?;
+
+			let incremental_messages = messages.saturating_sub(messages_last);
+			let incremental_qps = (incremental_messages as f64 / 3_000_000_000.0) * 1_000_000_000.0;
+			let incremental_latsum = lat_sum.saturating_sub(lat_sum_last);
+
+			let avg_incremental_lat = if incremental_messages > 0 {
+				incremental_latsum / incremental_messages as u128
+			} else {
+				0
+			};
+
+			info!("incremental_messages=[{}],elapsed_time=[3.00s],requests_per_second=[{}],average_latency=[{:.2}µs]",
+                            incremental_messages.to_formatted_string(&Locale::en),
+                            (incremental_qps.round() as u64).to_formatted_string(&Locale::en),
+                            ((avg_incremental_lat as f64) / 1_000.0)
+                        )?;
 
 			info!(
                             "total_messages=[{}],elapsed_time=[{:.2}s],requests_per_second=[{}],average_latency=[{:.2}µs]",
@@ -314,6 +332,9 @@ fn run_client(args: ArgMatches) -> Result<(), Error> {
                             (qps.round() as u64).to_formatted_string(&Locale::en),
                             ((avg_lat as f64) / 1_000.0)
                         )?;
+
+			messages_last = messages;
+			lat_sum_last = lat_sum;
 		}
 	});
 
