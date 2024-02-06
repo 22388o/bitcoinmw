@@ -79,3 +79,9 @@ args:
         short: n
         takes_value: true
         value_name: min
+    - sleep:
+        help: The time in milliseconds to sleep between reconnections. The default value is 0 (or no sleep)
+        long: sleep
+        short: x
+        takes_value: true
+        value_name: sleep

@@ -1448,6 +1448,7 @@ where
 						(**guard).unset_flag(WRITE_STATE_FLAG_TRIGGER_ON_READ);
 						trigger_on_read = true;
 					}
+					(**guard).write_buffer.shrink_to_fit();
 					break;
 				}
 				let wlen = write_bytes(rw.handle, &(**guard).write_buffer);
@@ -2038,6 +2039,8 @@ where
 			let mut state = rw.write_state.wlock()?;
 			let guard = state.guard();
 			(**guard).set_flag(WRITE_STATE_FLAG_CLOSE);
+			(**guard).write_buffer.clear();
+			(**guard).write_buffer.shrink_to_fit();
 		}
 
 		let ci = ConnectionInfo::StreamInfo(rw.clone());

@@ -219,6 +219,11 @@ fn run_client(args: ArgMatches) -> Result<(), Error> {
 		false => 20,
 	};
 
+	let sleep_time = match args.is_present("sleep") {
+		true => args.value_of("sleep").unwrap().parse()?,
+		false => 0,
+	};
+
 	info!(
 		"iterations={},count={},clients={},threads={},reconns={},port={}",
 		itt.to_formatted_string(&Locale::en),
@@ -259,6 +264,7 @@ fn run_client(args: ArgMatches) -> Result<(), Error> {
 				reconns,
 				max,
 				min,
+				sleep_time,
 			);
 			match res {
 				Ok(_) => {}
@@ -358,6 +364,7 @@ fn run_thread(
 	reconns: usize,
 	max: usize,
 	min: usize,
+	sleep_time: u64,
 ) -> Result<(), Error> {
 	let mut dictionary = vec![];
 	for i in 0..max {
@@ -608,6 +615,11 @@ fn run_thread(
 
 		for mut wh in whs {
 			wh.close()?;
+		}
+
+		if sleep_time > 0 {
+			info!("sleeping for {} ms.", sleep_time)?;
+			sleep(Duration::from_millis(sleep_time));
 		}
 	}
 
