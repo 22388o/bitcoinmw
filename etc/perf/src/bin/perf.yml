@@ -55,3 +55,27 @@ args:
         long: debug
         short: d
         takes_value: false
+    - reconns:
+        help: Number of times to reconnect
+        long: reconns
+        short: r
+        takes_value: true
+        value_name: reconns
+    - max_handles_per_thread:
+        help: The maximum handles per thread for the eventhandler
+        long: max_handles_per_thread
+        short: h
+        takes_value: true
+        value_name: max_handles_per_thread
+    - max:
+        help: The maximum length in bytes of the test messages
+        long: max
+        short: m
+        takes_value: true
+        value_name: max
+    - min:
+        help: The minimum length in bytes of the test messages
+        long: min
+        short: n
+        takes_value: true
+        value_name: min

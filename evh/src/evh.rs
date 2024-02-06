@@ -670,6 +670,10 @@ impl WriteHandle {
 		self.handle
 	}
 
+	pub fn id(&self) -> u128 {
+		self.id
+	}
+
 	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn queue_data(&mut self, data: &[u8]) -> Result<(), Error> {
 		debug!("queue data = {:?}", data)?;
@@ -1143,7 +1147,7 @@ where
 			let guard = data.guard();
 			match (**guard).write_queue.dequeue() {
 				Some(next) => {
-					debug!("write q chashtable.get({})", next)?;
+					debug!("write q hashtable.get({})", next)?;
 					match ctx.connection_hashtable.get(&next)? {
 						Some(mut ci) => match &mut ci {
 							ConnectionInfo::StreamInfo(ref mut rwi) => {
@@ -1209,7 +1213,8 @@ where
 								ctx.connection_hashtable.insert(&next, &ci)?;
 							}
 						},
-						None => warn!("Couldn't look up conn info for {}", next)?,
+						// already closed connection
+						None => debug!("Couldn't look up conn info for (2) {}", next)?,
 					}
 				}
 				None => break,
@@ -1404,7 +1409,8 @@ where
 								}
 							}
 						},
-						None => warn!("Couldn't look up conn info for {}", id)?,
+						// already closed connection
+						None => debug!("Couldn't look up conn info for (1) {}", id)?,
 					}
 				}
 				// normal because we can try to write to a closed connection
@@ -1862,6 +1868,7 @@ where
 					&mut slab.get_mut()[usize!(rw.slab_offset)..READ_SLAB_NEXT_OFFSET],
 				)
 			};
+
 			if self.debug_fatal_error {
 				if len > 0 {
 					let index = usize!(rw.slab_offset);

@@ -20,6 +20,45 @@ use bmw_log::*;
 
 info!();
 
+/// Utility to convert a u128 to an arbitrary length slice (up to 16 bytes).
+pub fn u128_to_slice(mut n: u128, slice: &mut [u8]) -> Result<(), Error> {
+	let len = slice.len();
+	if len > 16 {
+		let fmt = format!("slice must be equal to or less than 16 bytes ({})", len);
+		return Err(err!(ErrKind::IllegalArgument, fmt));
+	}
+
+	for i in (0..len).rev() {
+		slice[i] = (n & 0xFF) as u8;
+		n >>= 8;
+	}
+
+	if n != 0 {
+		// this is an overflow, but for our purposes we return "MAX".
+		for i in 0..len {
+			slice[i] = 0xFF;
+		}
+	}
+
+	Ok(())
+}
+
+/// Utility to convert an arbitrary length slice (up to 16 bytes) to a u128.
+pub fn slice_to_u128(slice: &[u8]) -> Result<u128, Error> {
+	let len = slice.len();
+	if len > 16 {
+		let fmt = format!("slice must be equal to or less than 16 bytes ({})", len);
+		return Err(err!(ErrKind::IllegalArgument, fmt));
+	}
+	let mut ret = 0;
+	for i in 0..len {
+		ret <<= 8;
+		ret |= (slice[i] & 0xFF) as u128;
+	}
+
+	Ok(ret)
+}
+
 /// Utility to convert a usize to an arbitrary length slice (up to 8 bytes).
 pub fn usize_to_slice(mut n: usize, slice: &mut [u8]) -> Result<(), Error> {
 	let len = slice.len();

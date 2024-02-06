@@ -16,6 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bmw_deps::rand::random;
 use bmw_err::*;
 use bmw_evh::*;
 use bmw_log::LogConfigOption::*;
@@ -41,21 +42,17 @@ pub mod built_info {
 	include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
 
-const DICTIONARY: &[u8] = b"abcdefghijklmnopqrstuvwx";
-
-#[derive(Clone, Debug)]
-struct ThreadState {
-	itt: usize,
-	count: usize,
-	last: usize,
+#[derive(Clone)]
+struct GlobalStats {
+	messages: usize,
+	lat_sum: u128,
 }
 
-impl ThreadState {
+impl GlobalStats {
 	fn new() -> Self {
 		Self {
-			itt: 0,
-			count: 0,
-			last: 0,
+			messages: 0,
+			lat_sum: 0,
 		}
 	}
 }
@@ -75,22 +72,29 @@ fn run_eventhandler(args: ArgMatches) -> Result<(), Error> {
 	};
 	let reuse_port = args.is_present("reuse_port");
 
-	info!("Using port: {}", port)?;
+	let max_handles_per_thread = match args.is_present("max_handles_per_thread") {
+		true => args.value_of("max_handles_per_thread").unwrap().parse()?,
+		false => 300,
+	};
+
+	let debug = args.is_present("debug");
+
+	info!("Using port: {},reuse_port={}", port, reuse_port)?;
 	let addr = &format!("127.0.0.1:{}", port)[..];
 	let config = EventHandlerConfig {
 		threads,
 		housekeeping_frequency_millis: 10_000,
 		read_slab_count,
-		max_handles_per_thread: 300,
+		max_handles_per_thread,
 		..Default::default()
 	};
 	let mut evh = bmw_evh::Builder::build_evh(config)?;
 
 	evh.set_on_read(move |conn_data, _thread_context, _| {
-		debug!("on read slab_offset= {}", conn_data.slab_offset())?;
 		let first_slab = conn_data.first_slab();
 		let last_slab = conn_data.last_slab();
 		let slab_offset = conn_data.slab_offset();
+		let id = conn_data.get_connection_id();
 		let res = conn_data.borrow_slab_allocator(move |sa| {
 			let mut slab_id = first_slab;
 			let mut ret: Vec<u8> = vec![];
@@ -104,22 +108,6 @@ fn run_eventhandler(args: ArgMatches) -> Result<(), Error> {
 				};
 				ret.extend(&slab_bytes[0..offset as usize]);
 
-				for i in 1..offset {
-					if slab_bytes[i - 1] == 'x' as u8 {
-						if slab_bytes[i] != 'a' as u8 {
-							info!("res={:?}, i={}", slab_bytes, i)?;
-						}
-						assert_eq!(slab_bytes[i], 'a' as u8);
-					} else {
-						if slab_bytes[i - 1] + 1 != slab_bytes[i] {
-							info!("res={:?}, i={}", slab_bytes, i)?;
-							for j in 0..slab_bytes.len() {
-								info!("res[{}]={}", j, slab_bytes[j])?;
-							}
-						}
-						assert_eq!(slab_bytes[i - 1] + 1, slab_bytes[i]);
-					}
-				}
 				if slab_id == last_slab {
 					break;
 				}
@@ -127,27 +115,16 @@ fn run_eventhandler(args: ArgMatches) -> Result<(), Error> {
 					slab_bytes[READ_SLAB_DATA_SIZE..READ_SLAB_DATA_SIZE + 4]
 				)?);
 			}
+			info!("ret.len={}", ret.len());
 			Ok(ret)
 		})?;
+
 		conn_data.clear_through(last_slab)?;
-		for i in 1..res.len() {
-			if res[i - 1] == 'x' as u8 {
-				if res[i] != 'a' as u8 {
-					info!("res={:?}, i={}", res, i)?;
-				}
-				assert_eq!(res[i], 'a' as u8);
-			} else {
-				if res[i - 1] + 1 != res[i] {
-					info!("res={:?}, i={}", res, i)?;
-					for j in 0..res.len() {
-						info!("res[{}]={}", j, res[j])?;
-					}
-				}
-				assert_eq!(res[i - 1] + 1, res[i]);
-			}
+		if debug {
+			info!("Writing back {} bytes on connection {}", res.len(), id)?;
 		}
 		conn_data.write_handle().write(&res)?;
-		debug!("res={:?}", res)?;
+
 		Ok(())
 	})?;
 
@@ -160,11 +137,13 @@ fn run_eventhandler(args: ArgMatches) -> Result<(), Error> {
 		Ok(())
 	})?;
 	evh.set_on_close(move |conn_data, _thread_context| {
-		debug!(
-			"on close: {}/{}",
-			conn_data.get_handle(),
-			conn_data.get_connection_id()
-		)?;
+		if debug {
+			info!(
+				"on close: {}/{}",
+				conn_data.get_handle(),
+				conn_data.get_connection_id()
+			)?;
+		}
 		Ok(())
 	})?;
 	evh.set_on_panic(move |_, _| Ok(()))?;
@@ -176,7 +155,7 @@ fn run_eventhandler(args: ArgMatches) -> Result<(), Error> {
 	let sc = ServerConnection {
 		tls_config: None,
 		handles,
-		is_reuse_port: true,
+		is_reuse_port: reuse_port,
 	};
 	evh.add_server(sc, Box::new(""))?;
 
@@ -214,29 +193,58 @@ fn run_client(args: ArgMatches) -> Result<(), Error> {
 		false => 1,
 	};
 
-	info!("itt={},count={},clients={}", itt, count, clients)?;
+	let reconns: usize = match args.is_present("reconns") {
+		true => args.value_of("reconns").unwrap().parse()?,
+		false => 1,
+	};
 
-	info!("Using port: {}", port)?;
+	let max_handles_per_thread = match args.is_present("max_handles_per_thread") {
+		true => args.value_of("max_handles_per_thread").unwrap().parse()?,
+		false => 300,
+	};
+
+	let min = match args.is_present("min") {
+		true => args.value_of("min").unwrap().parse()?,
+		false => 3,
+	};
+
+	let max = match args.is_present("max") {
+		true => args.value_of("max").unwrap().parse()?,
+		false => 10,
+	};
+
+	let read_slab_count = match args.is_present("slabs") {
+		true => args.value_of("slabs").unwrap().parse()?,
+		false => 20,
+	};
+
+	info!(
+		"iterations={},count={},clients={},threads={},reconns={},port={}",
+		itt.to_formatted_string(&Locale::en),
+		count.to_formatted_string(&Locale::en),
+		clients.to_formatted_string(&Locale::en),
+		threads,
+		reconns.to_formatted_string(&Locale::en),
+		port
+	)?;
+
 	let addr = format!("127.0.0.1:{}", port);
 	let config = EventHandlerConfig {
 		threads: 1,
 		housekeeping_frequency_millis: 10_000,
-		read_slab_count: 10000,
-		max_handles_per_thread: 300,
+		read_slab_count,
+		max_handles_per_thread,
 		..Default::default()
 	};
 
 	let mut pool = thread_pool!(MinSize(threads), MaxSize(threads))?;
 	pool.set_on_panic(move |_, _| Ok(()))?;
 	let mut completions = vec![];
-	let mut state = array!(threads, &lock_box!(ThreadState::new())?)?;
-	let mut state_clone = state.clone();
-	for i in 0..threads {
-		state[i] = lock_box!(ThreadState::new())?;
-		state_clone[i] = state[i].clone();
-		let local_state = state[i].clone();
+	let state = lock_box!(GlobalStats::new())?;
+	for _ in 0..threads {
 		let addr = addr.clone();
 		let config = config.clone();
+		let state_clone = state.clone();
 		completions.push(execute!(pool, {
 			let res = run_thread(
 				&config,
@@ -244,9 +252,12 @@ fn run_client(args: ArgMatches) -> Result<(), Error> {
 				itt,
 				count,
 				clients,
-				local_state,
+				state_clone,
 				debug,
 				start,
+				reconns,
+				max,
+				min,
 			);
 			match res {
 				Ok(_) => {}
@@ -256,27 +267,46 @@ fn run_client(args: ArgMatches) -> Result<(), Error> {
 		})?);
 	}
 
+	let state_clone = state.clone();
 	spawn(move || -> Result<(), Error> {
 		loop {
 			sleep(Duration::from_millis(3000));
-			info_plain!("--------------------------------------------------------------------------------------------------------------------------------")?;
-
-			let mut messages = 0;
-			for i in 0..threads {
-				let state = state_clone[i].rlock()?;
-				let guard = state.guard();
-				messages += (**guard).itt * count * clients + (**guard).count * clients;
-			}
+			info_plain!("----------------------------------------------------------------------------------------------------------------------------------------------------")?;
 
 			let elapsed = start.elapsed();
 			let elapsed_nanos = elapsed.as_nanos() as f64;
+
+			let (messages, lat_sum) = {
+				let state = state_clone.rlock()?;
+				let guard = state.guard();
+				let messages = (**guard).messages;
+				let lat_sum = (**guard).lat_sum;
+
+				(messages, lat_sum)
+			};
 			let qps = (messages as f64 / elapsed_nanos) * 1_000_000_000.0;
 
+			let avg_lat = if messages > 0 {
+				lat_sum / messages as u128
+			} else {
+				0
+			};
+			let seconds = (elapsed_nanos as f64) / 1_000_000_000.0;
+
 			info!(
-				"Time elapsed={} seconds,Requests per second={}",
-				elapsed.as_secs(),
-				(qps.round() as u64).to_formatted_string(&Locale::en)
+				"Summary for {} of {} messages. [{:.2}% complete]",
+				messages.to_formatted_string(&Locale::en),
+				(clients * count * itt * threads * reconns).to_formatted_string(&Locale::en),
+				((100.0 * messages as f64) / (clients * count * itt * threads * reconns) as f64)
 			)?;
+
+			info!(
+                            "total_messages=[{}],elapsed_time=[{:.2}s],requests_per_second=[{}],average_latency=[{:.2}µs]",
+                            messages.to_formatted_string(&Locale::en),
+                            seconds,
+                            (qps.round() as u64).to_formatted_string(&Locale::en),
+                            ((avg_lat as f64) / 1_000.0)
+                        )?;
 		}
 	});
 
@@ -284,17 +314,32 @@ fn run_client(args: ArgMatches) -> Result<(), Error> {
 		block_on!(completions[i]);
 	}
 
-	info_plain!("--------------------------------------------------------------------------------------------------------------------------------")?;
-	info!("Complete!")?;
+	info_plain!("----------------------------------------------------------------------------------------------------------------------------------------------------")?;
 
 	let elapsed = start.elapsed();
 	let elapsed_nanos = elapsed.as_nanos() as f64;
-	let qps = ((threads * itt * count * clients) as f64 / elapsed_nanos) * 1_000_000_000.0;
+
+	let (messages, lat_sum) = {
+		let state = state.rlock()?;
+		let guard = state.guard();
+		let messages = (**guard).messages;
+		let lat_sum = (**guard).lat_sum;
+
+		(messages, lat_sum)
+	};
+	let qps = (messages as f64 / elapsed_nanos) * 1_000_000_000.0;
+
+	let avg_lat = lat_sum / messages as u128;
+	let seconds = (elapsed_nanos as f64) / 1_000_000_000.0;
+
+	info!("Perf test complete!")?;
 
 	info!(
-		"Total time elapsed={} seconds,Requests per second={}",
-		elapsed.as_secs(),
-		(qps.round() as u64).to_formatted_string(&Locale::en)
+		"total_messages=[{}],elapsed_time=[{:.2}s],requests_per_second=[{}],average_latency=[{:.2}µs]",
+		messages.to_formatted_string(&Locale::en),
+                seconds,
+		(qps.round() as u64).to_formatted_string(&Locale::en),
+		((avg_lat as f64) / 1_000.0),
 	)?;
 
 	Ok(())
@@ -306,32 +351,58 @@ fn run_thread(
 	itt: usize,
 	count: usize,
 	clients: usize,
-	mut state: Box<dyn LockBox<ThreadState>>,
+	state: Box<dyn LockBox<GlobalStats>>,
 	debug: bool,
 	start: Instant,
+	reconns: usize,
+	max: usize,
+	min: usize,
 ) -> Result<(), Error> {
+	let mut dictionary = vec![];
+	for i in 0..max {
+		dictionary.push(('a' as usize + (i % 26)) as u8);
+	}
 	let state_clone = state.clone();
 	let mut evh = bmw_evh::Builder::build_evh(config.clone())?;
 
-	let map: HashMap<u128, (usize, u8)> = HashMap::new();
-
-	let recv_count = lock_box!((map, 0usize))?;
 	let (tx, rx) = sync_channel(1);
 	let sender = lock_box!(tx)?;
 
+	let map: HashMap<u128, Vec<u8>> = HashMap::new();
+	let partial_data = lock_box!(map)?;
+	let mut recv_count = lock_box!(0usize)?;
+	let mut recv_count_clone = recv_count.clone();
+
 	evh.set_on_read(move |conn_data, _thread_context, _| {
-		let id = conn_data.get_connection_id();
 		if debug {
-			info!("on read offset = {}, id={}", conn_data.slab_offset(), id)?;
+			info!("evh on read")?;
 		}
+		let id = conn_data.get_connection_id();
 		let first_slab = conn_data.first_slab();
 		let slab_offset = conn_data.slab_offset();
 		let last_slab = conn_data.last_slab();
 		let mut sender = sender.clone();
-		let mut recv_count = recv_count.clone();
 		let mut state_clone = state_clone.clone();
-		conn_data.borrow_slab_allocator(move |sa| {
+		let partial_data = partial_data.clone();
+		let mut partial_data_clone = partial_data.clone();
+		let res = conn_data.borrow_slab_allocator(move |sa| {
 			let mut slab_id = first_slab;
+			let mut ret: Vec<u8> = vec![];
+			let mut data_extended = false;
+
+			let partial_data = partial_data.rlock()?;
+			let guard = partial_data.guard();
+			match (**guard).get(&id) {
+				Some(data) => {
+					if debug {
+						info!("extend data with {:?}", data)?;
+					}
+					ret.extend(data);
+					data_extended = true;
+				}
+				_ => {}
+			}
+
 			loop {
 				let slab = sa.get(slab_id.try_into()?)?;
 				let slab_bytes = slab.get();
@@ -341,92 +412,13 @@ fn run_thread(
 					READ_SLAB_DATA_SIZE
 				};
 
-				if debug {
-					info!("read bytes[{}] = {:?}", offset, &slab_bytes[0..offset])?;
-				}
-				{
-					let mut recv_count = recv_count.wlock()?;
-					{
-						let guard = recv_count.guard();
-						let item: &mut (usize, u8) = match (**guard).0.get_mut(&id) {
-							Some(item) => item,
-							None => {
-								(**guard).0.insert(id, (0, 0));
-								(**guard).0.get_mut(&id).unwrap()
-							}
-						};
+				debug!("read bytes[{}] = {:?}", offset, &slab_bytes[0..offset])?;
+				ret.extend(&slab_bytes[0..offset]);
 
-						if offset != 0 {
-							if item.1 != 0 {
-								if item.1 != 'x' as u8 {
-									if slab_bytes[0] != item.1 + 1 {
-										info!(
-											"ne. o={},rc={},si={},f={},l={}",
-											offset, item.0, slab_id, first_slab, last_slab
-										)?;
-									}
-									assert_eq!(slab_bytes[0], item.1 + 1);
-								} else {
-									if slab_bytes[0] != 'a' as u8 {
-										info!(
-											"ne. o={},r={},s={},f={},l={}",
-											offset, item.0, slab_id, first_slab, last_slab
-										)?;
-									}
-									assert_eq!(slab_bytes[0], 'a' as u8);
-								}
-							}
-							for i in 1..offset {
-								if slab_bytes[i - 1] != 'x' as u8 {
-									if slab_bytes[i - 1] + 1 != slab_bytes[i] {
-										info!(
-											"ne. o={},rc={},si={},f={},l={},i={}",
-											offset, item.0, slab_id, first_slab, last_slab, i
-										)?;
-									}
-									assert_eq!(slab_bytes[i - 1] + 1, slab_bytes[i]);
-								} else {
-									if slab_bytes[i] != 'a' as u8 {
-										info!(
-											"ne. o={},rc={},si={},f={},l={},i={}",
-											offset, item.0, slab_id, first_slab, last_slab, i
-										)?;
-									}
-									assert_eq!(slab_bytes[i], 'a' as u8);
-								}
-							}
-							item.0 += offset as usize;
-							item.1 = slab_bytes[offset - 1];
-						}
-
-						let guard = recv_count.guard();
-						(**guard).1 += offset as usize;
-						if debug {
-							info!(
-								"guard.1={},count={},clients={}",
-								(**guard).1,
-								count,
-								clients
-							)?;
-						}
-						if (**guard).1 == count * 4 * clients {
-							(**guard).1 = 0;
-							(**guard).0.clear();
-							if debug {
-								info!("send is true")?;
-							}
-							let mut tx = sender.wlock()?;
-							(**tx.guard()).send(1)?;
-						}
-					}
+				if debug && data_extended {
+					info!("slab extend data with {:?}", &slab_bytes[0..offset])?;
 				}
 
-				{
-					let mut state = state_clone.wlock()?;
-					let guard = state.guard();
-					(**guard).count += offset as usize;
-					(**guard).last = offset as usize;
-				}
 				if slab_id == last_slab {
 					break;
 				} else {
@@ -435,10 +427,118 @@ fn run_thread(
 					)?);
 				}
 			}
-			Ok(())
+			Ok(ret)
 		})?;
 
 		conn_data.clear_through(last_slab)?;
+
+		if debug {
+			info!("evh read {} bytes", res.len())?;
+		}
+
+		let res_len = res.len();
+
+		let mut itt = 0;
+		let mut inserted = false;
+		loop {
+			if itt == res_len {
+				if debug {
+					info!("clean break")?;
+				}
+				break;
+			}
+
+			if itt + 28 > res_len {
+				let mut partial_data = partial_data_clone.wlock()?;
+				let guard = partial_data.guard();
+				(**guard).insert(id, (&res[itt..]).to_vec());
+				inserted = true;
+				if debug {
+					info!(
+						"unclean break, itt={},res_len={},append={:?}",
+						itt,
+						res_len,
+						&res[itt..]
+					)?;
+				}
+				break;
+			}
+
+			let len = slice_to_usize(&res[itt..itt + 4])?;
+
+			if len + itt + 28 > res_len {
+				let mut partial_data = partial_data_clone.wlock()?;
+				let guard = partial_data.guard();
+				(**guard).insert(id, (&res[itt..]).to_vec());
+				inserted = true;
+				if debug {
+					info!(
+						"unclean break, itt={},res_len={},append={:?}",
+						itt,
+						res_len,
+						&res[itt..]
+					)?;
+				}
+				break;
+			}
+
+			let id_read = slice_to_u128(&res[itt + 4..itt + 20])?;
+			let nanos = slice_to_usize(&res[itt + 20..itt + 28])?;
+			let elapsed: usize = try_into!(start.elapsed().as_nanos())?;
+			let diff = elapsed.saturating_sub(nanos);
+
+			if debug {
+				info!("on_read len={},id={},lat_nanos={}", res_len, id, diff)?;
+			}
+
+			if id != id_read {
+				let mut state = state_clone.wlock()?;
+				let guard = state.guard();
+				info!(
+					"messages={},lat_sum={}",
+					(**guard).messages,
+					(**guard).lat_sum
+				)?;
+				break;
+			}
+			assert_eq!(id, id_read);
+
+			for i in 29..(28 + len) {
+				if res[itt + (i - 1)] == 'z' as u8 {
+					assert_eq!(res[itt + i], 'a' as u8);
+				} else {
+					assert_eq!(res[itt + (i - 1)], res[itt + i] - 1);
+				}
+			}
+
+			{
+				let mut state = state_clone.wlock()?;
+				let guard = state.guard();
+				(**guard).messages += 1;
+				(**guard).lat_sum += diff as u128;
+			}
+
+			{
+				let mut recv_count = recv_count_clone.wlock()?;
+				let guard = recv_count.guard();
+				**guard += 1;
+
+				if **guard == clients * count {
+					let mut sender = sender.wlock()?;
+					let guard = sender.guard();
+					(**guard).send(1)?;
+				}
+			}
+
+			itt += len + 28;
+		}
+
+		if !inserted {
+			let mut partial_data = partial_data_clone.wlock()?;
+			let guard = partial_data.guard();
+			(**guard).remove(&id);
+		}
+
 		Ok(())
 	})?;
 
@@ -462,46 +562,51 @@ fn run_thread(
 	evh.set_housekeeper(move |_thread_context| Ok(()))?;
 	evh.start()?;
 
-	let mut whs = vec![];
-	for _ in 0..clients {
-		let connection = TcpStream::connect(addr.clone())?;
-		connection.set_nonblocking(true)?;
-		#[cfg(unix)]
-		let connection_handle = connection.into_raw_fd();
-		#[cfg(windows)]
-		let connection_handle = connection.into_raw_socket().try_into()?;
+	for _ in 0..reconns {
+		let mut whs = vec![];
+		for _ in 0..clients {
+			let connection = TcpStream::connect(addr.clone())?;
+			connection.set_nonblocking(true)?;
+			#[cfg(unix)]
+			let connection_handle = connection.into_raw_fd();
+			#[cfg(windows)]
+			let connection_handle = connection.into_raw_socket().try_into()?;
 
-		let client = ClientConnection {
-			handle: connection_handle,
-			tls_config: None,
-		};
-		let wh = evh.add_client(client, Box::new(""))?;
-		whs.push(wh);
-	}
-
-	let dictionary_len = DICTIONARY.len();
-	for _ in 0..itt {
-		let mut dict_offset = 0;
-		for _ in 0..count {
-			for wh in &mut whs {
-				let mut buf = [0u8; 12];
-				usize_to_slice(try_into!(start.elapsed().as_nanos())?, &mut buf[0..8])?;
-				buf[8..12].copy_from_slice(&DICTIONARY[dict_offset..dict_offset + 4]);
-				wh.write(&buf[8..12])?;
-				debug!("wh.write")?;
-			}
-			dict_offset += 4;
-			if dict_offset >= dictionary_len {
-				dict_offset = 0;
-			}
+			let client = ClientConnection {
+				handle: connection_handle,
+				tls_config: None,
+			};
+			let wh = evh.add_client(client, Box::new(""))?;
+			whs.push(wh);
 		}
 
-		rx.recv()?;
-		{
-			let mut state = state.wlock()?;
-			let guard = state.guard();
-			(**guard).itt += 1;
-			(**guard).count = 0;
+		for _ in 0..itt {
+			{
+				let mut recv_count = recv_count.wlock()?;
+				let guard = recv_count.guard();
+				(**guard) = 0;
+			}
+
+			for _ in 0..count {
+				for wh in &mut whs {
+					let mut buf = vec![];
+					let rfloat = random::<f64>();
+					let rfloat = rfloat - rfloat.floor();
+					let len = min + (rfloat * (max.saturating_sub(min)) as f64).round() as usize;
+					buf.resize(len + 28, 0);
+					u32_to_slice(len as u32, &mut buf[0..4])?; // length of data
+					u128_to_slice(wh.id(), &mut buf[4..20])?; // connection id
+					usize_to_slice(try_into!(start.elapsed().as_nanos())?, &mut buf[20..28])?; // start time for request
+					buf[28..(28 + len)].copy_from_slice(&dictionary[0..len]); // data
+					wh.write(&buf)?;
+				}
+			}
+
+			rx.recv()?;
+		}
+
+		for mut wh in whs {
+			wh.close()?;
 		}
 	}
 
