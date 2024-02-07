@@ -232,11 +232,11 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 	};
 	let itt: usize = match args.is_present("itt") {
 		true => args.value_of("itt").unwrap().parse()?,
-		false => 1_000,
+		false => 1,
 	};
 	let count: usize = match args.is_present("count") {
 		true => args.value_of("count").unwrap().parse()?,
-		false => 10,
+		false => 1,
 	};
 	let clients: usize = match args.is_present("clients") {
 		true => args.value_of("clients").unwrap().parse()?,
