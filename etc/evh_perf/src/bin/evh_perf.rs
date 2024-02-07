@@ -100,6 +100,8 @@ fn run_eventhandler(args: ArgMatches, start: Instant) -> Result<(), Error> {
 	};
 	let reuse_port = args.is_present("reuse_port");
 
+	let tls = args.is_present("tls");
+
 	let max_handles_per_thread = match args.is_present("max_handles_per_thread") {
 		true => args.value_of("max_handles_per_thread").unwrap().parse()?,
 		false => 300,
@@ -124,6 +126,7 @@ fn run_eventhandler(args: ArgMatches, start: Instant) -> Result<(), Error> {
 		"read_slab_count".to_string(),
 		read_slab_count.to_formatted_string(&Locale::en),
 	);
+	configs.insert("tls".to_string(), tls.to_string());
 	print_configs(configs)?;
 
 	set_log_option!(LogConfigOption::Level(true))?;
@@ -206,7 +209,13 @@ fn run_eventhandler(args: ArgMatches, start: Instant) -> Result<(), Error> {
 	let handles = create_listeners(threads, addr, 10_000, reuse_port)?;
 	debug!("handles.size={},handles={:?}", handles.size(), handles)?;
 	let sc = ServerConnection {
-		tls_config: None,
+		tls_config: match tls {
+			true => Some(TlsServerConfig {
+				certificates_file: "./resources/cert.pem".to_string(),
+				private_key_file: "./resources/key.pem".to_string(),
+			}),
+			false => None,
+		},
 		handles,
 		is_reuse_port: reuse_port,
 	};
@@ -232,6 +241,8 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 		true => args.value_of("histo_delta_micros").unwrap().parse()?,
 		false => 10,
 	};
+
+	let tls = args.is_present("tls");
 
 	let port = match args.is_present("port") {
 		true => args.value_of("port").unwrap().parse()?,
@@ -325,6 +336,7 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 		"read_slab_count".to_string(),
 		read_slab_count.to_formatted_string(&Locale::en),
 	);
+	configs.insert("tls".to_string(), tls.to_string());
 	print_configs(configs)?;
 
 	let addr = format!("127.0.0.1:{}", port);
@@ -359,6 +371,7 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 				min,
 				sleep_time,
 				histo_delta_micros,
+				tls,
 			);
 			match res {
 				Ok(_) => {}
@@ -549,7 +562,11 @@ fn print_histo(data: Vec<u64>, delta_micros: usize) -> Result<(), Error> {
 				"{}{} {}",
 				format!("[{} - {}]", start_str, end_str),
 				bar.cyan(),
-				format!("{} ({:.2}%)", data[i], percent)
+				format!(
+					"{} ({:.2}%)",
+					data[i].to_formatted_string(&Locale::en),
+					percent
+				)
 			)?;
 		}
 		start += delta_micros;
@@ -587,6 +604,7 @@ fn run_thread(
 	min: usize,
 	sleep_time: u64,
 	histo_delta_micros: usize,
+	tls: bool,
 ) -> Result<(), Error> {
 	let mut dictionary = vec![];
 	for i in 0..max {
@@ -809,7 +827,13 @@ fn run_thread(
 
 			let client = ClientConnection {
 				handle: connection_handle,
-				tls_config: None,
+				tls_config: match tls {
+					true => Some(TlsClientConfig {
+						sni_host: "localhost".to_string(),
+						trusted_cert_full_chain_file: Some("./resources/cert.pem".to_string()),
+					}),
+					false => None,
+				},
 			};
 			let wh = evh.add_client(client, Box::new(""))?;
 			whs.push(wh);

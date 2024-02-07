@@ -96,3 +96,8 @@ args:
         long: histo
         short: z
         takes_value: false
+    - tls:
+        help: Run the client/eventhandler using TLS (i.e. ssl)
+        long: tls
+        short: l
+        takes_value: false
