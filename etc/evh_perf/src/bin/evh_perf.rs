@@ -141,6 +141,7 @@ fn run_eventhandler(args: ArgMatches, start: Instant) -> Result<(), Error> {
 		let last_slab = conn_data.last_slab();
 		let slab_offset = conn_data.slab_offset();
 		let id = conn_data.get_connection_id();
+		let tid = conn_data.tid();
 		let mut wh = conn_data.write_handle();
 		let byte_count = conn_data.borrow_slab_allocator(move |sa| {
 			let mut slab_id = first_slab;
@@ -169,7 +170,10 @@ fn run_eventhandler(args: ArgMatches, start: Instant) -> Result<(), Error> {
 
 		conn_data.clear_through(last_slab)?;
 		if debug {
-			info!("Wrote back {} bytes on connection {}", byte_count, id)?;
+			info!(
+				"[tid={}] Wrote back {} bytes on connection {}",
+				tid, byte_count, id
+			)?;
 		}
 
 		Ok(())
