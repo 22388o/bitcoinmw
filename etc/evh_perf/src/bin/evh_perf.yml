@@ -29,7 +29,7 @@ args:
         takes_value: true
         value_name: clients
     - threads:
-        help: number of threads for server (EVENT_HANDLER ONLY)
+        help: number of threads for server or client
         long: threads
         short: t
         takes_value: true

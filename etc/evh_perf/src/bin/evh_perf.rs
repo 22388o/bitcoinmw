@@ -779,12 +779,44 @@ fn main() -> Result<(), Error> {
 	let client = args.is_present("client");
 	let eventhandler = args.is_present("eventhandler");
 
-	if client {
+	if client && args.is_present("reuse_port") {
+		set_log_option!(LogConfigOption::Level(true))?;
+		error!("--reuse_port must only be used with the -e option")?;
+		exit(-1);
+	} else if client {
 		info!(
 			"{}",
 			format!("evh_perf Client/{}", built_info::PKG_VERSION).green()
 		)?;
 		run_client(args, start)?;
+	} else if eventhandler && args.is_present("reconns") {
+		set_log_option!(LogConfigOption::Level(true))?;
+		error!("--reconns must only be used with the -c option")?;
+		exit(-1);
+	} else if eventhandler && args.is_present("clients") {
+		set_log_option!(LogConfigOption::Level(true))?;
+		error!("--clients must only be used with the -c option")?;
+		exit(-1);
+	} else if eventhandler && args.is_present("count") {
+		set_log_option!(LogConfigOption::Level(true))?;
+		error!("--count must only be used with the -c option")?;
+		exit(-1);
+	} else if eventhandler && args.is_present("itt") {
+		set_log_option!(LogConfigOption::Level(true))?;
+		error!("--itt must only be used with the -c option")?;
+		exit(-1);
+	} else if eventhandler && args.is_present("max") {
+		set_log_option!(LogConfigOption::Level(true))?;
+		error!("--min must only be used with the -c option")?;
+		exit(-1);
+	} else if eventhandler && args.is_present("min") {
+		set_log_option!(LogConfigOption::Level(true))?;
+		error!("--min must only be used with the -c option")?;
+		exit(-1);
+	} else if eventhandler && args.is_present("sleep") {
+		set_log_option!(LogConfigOption::Level(true))?;
+		error!("--sleep must only be used with the -c option")?;
+		exit(-1);
 	} else if eventhandler {
 		info!(
 			"{}",
@@ -794,6 +826,7 @@ fn main() -> Result<(), Error> {
 	} else {
 		set_log_option!(LogConfigOption::Level(true))?;
 		error!("Must specify either -c (client) or -e (eventhandler). For additional information: evh_perf --help")?;
+		exit(-1);
 	}
 
 	Ok(())
