@@ -28,6 +28,7 @@ use bmw_util::*;
 use clap::{load_yaml, App, ArgMatches};
 use std::collections::HashMap;
 use std::net::TcpStream;
+use std::process::exit;
 use std::sync::mpsc::sync_channel;
 use std::thread::{sleep, spawn};
 use std::time::{Duration, Instant};
@@ -38,7 +39,7 @@ use std::os::unix::io::IntoRawFd;
 use std::os::windows::io::IntoRawSocket;
 
 const SPACER: &str =
-	"------------------------------------------------------------------------------";
+	"--------------------------------------------------------------------------------------------------";
 
 info!();
 
@@ -91,8 +92,8 @@ fn run_eventhandler(args: ArgMatches, start: Instant) -> Result<(), Error> {
 		true => args.value_of("port").unwrap().parse()?,
 		false => 8081,
 	};
-	let read_slab_count = match args.is_present("slabs") {
-		true => args.value_of("slabs").unwrap().parse()?,
+	let read_slab_count = match args.is_present("read_slab_count") {
+		true => args.value_of("read_slab_count").unwrap().parse()?,
 		false => 20,
 	};
 	let reuse_port = args.is_present("reuse_port");
@@ -124,7 +125,6 @@ fn run_eventhandler(args: ArgMatches, start: Instant) -> Result<(), Error> {
 	print_configs(configs)?;
 
 	set_log_option!(LogConfigOption::Level(true))?;
-	info!("Server started in {} ms.", start.elapsed().as_millis())?;
 
 	let addr = &format!("127.0.0.1:{}", port)[..];
 	let config = EventHandlerConfig {
@@ -206,6 +206,11 @@ fn run_eventhandler(args: ArgMatches, start: Instant) -> Result<(), Error> {
 	};
 	evh.add_server(sc, Box::new(""))?;
 
+	info!(
+		"{}",
+		format!("Server started in {} ms.", start.elapsed().as_millis()).cyan()
+	)?;
+
 	std::thread::park();
 
 	Ok(())
@@ -258,8 +263,8 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 		false => 10,
 	};
 
-	let read_slab_count = match args.is_present("slabs") {
-		true => args.value_of("slabs").unwrap().parse()?,
+	let read_slab_count = match args.is_present("read_slab_count") {
+		true => args.value_of("read_slab_count").unwrap().parse()?,
 		false => 20,
 	};
 
@@ -268,15 +273,42 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 		false => 0,
 	};
 
-	info!(
-		"iterations={},count={},clients={},threads={},reconns={},port={}",
-		itt.to_formatted_string(&Locale::en),
-		count.to_formatted_string(&Locale::en),
+	let mut configs = HashMap::new();
+	configs.insert("count".to_string(), count.to_formatted_string(&Locale::en));
+	configs.insert(
+		"clients".to_string(),
 		clients.to_formatted_string(&Locale::en),
-		threads,
+	);
+	configs.insert("min".to_string(), min.to_formatted_string(&Locale::en));
+	configs.insert("max".to_string(), max.to_formatted_string(&Locale::en));
+	configs.insert(
+		"sleep".to_string(),
+		sleep_time.to_formatted_string(&Locale::en),
+	);
+	configs.insert(
+		"iterations".to_string(),
+		itt.to_formatted_string(&Locale::en),
+	);
+	configs.insert("debug".to_string(), debug.to_string());
+	configs.insert("port".to_string(), port.to_string());
+	configs.insert(
+		"reconns".to_string(),
 		reconns.to_formatted_string(&Locale::en),
-		port
-	)?;
+	);
+	configs.insert(
+		"max_handles_per_thread".to_string(),
+		max_handles_per_thread.to_formatted_string(&Locale::en),
+	);
+	configs.insert(
+		"threads".to_string(),
+		threads.to_formatted_string(&Locale::en),
+	);
+
+	configs.insert(
+		"read_slab_count".to_string(),
+		read_slab_count.to_formatted_string(&Locale::en),
+	);
+	print_configs(configs)?;
 
 	let addr = format!("127.0.0.1:{}", port);
 	let config = EventHandlerConfig {
@@ -317,6 +349,13 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 			Ok(())
 		})?);
 	}
+
+	set_log_option!(LogConfigOption::Level(true))?;
+
+	info!(
+		"{}",
+		format!("Client started in {} ms.", start.elapsed().as_millis()).cyan()
+	)?;
 
 	let state_clone = state.clone();
 	let mut messages_last = 0;
@@ -363,19 +402,26 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 				0
 			};
 
-			info!("incremental_messages=[{}],elapsed_time=[3.00s],requests_per_second=[{}],average_latency=[{:.2}µs]",
-                            incremental_messages.to_formatted_string(&Locale::en),
-                            (incremental_qps.round() as u64).to_formatted_string(&Locale::en),
-                            ((avg_incremental_lat as f64) / 1_000.0)
-                        )?;
+			info!(
+				"incremental_messages=[{}],elapsed_time=[3.00s]",
+				incremental_messages.to_formatted_string(&Locale::en),
+			)?;
+			info!(
+				"incremental_mps=[{}],incremental_avg_latency=[{:.2}µs]",
+				(incremental_qps.round() as u64).to_formatted_string(&Locale::en),
+				((avg_incremental_lat as f64) / 1_000.0)
+			)?;
 
 			info!(
-                            "total_messages=[{}],elapsed_time=[{:.2}s],requests_per_second=[{}],average_latency=[{:.2}µs]",
-                            messages.to_formatted_string(&Locale::en),
-                            seconds,
-                            (qps.round() as u64).to_formatted_string(&Locale::en),
-                            ((avg_lat as f64) / 1_000.0)
-                        )?;
+				"total_messages=[{}],elapsed_time=[{:.2}s]",
+				messages.to_formatted_string(&Locale::en),
+				seconds,
+			)?;
+			info!(
+				"total_mps=[{}],total_avg_latency=[{:.2}µs]",
+				(qps.round() as u64).to_formatted_string(&Locale::en),
+				((avg_lat as f64) / 1_000.0)
+			)?;
 
 			messages_last = messages;
 			lat_sum_last = lat_sum;
@@ -407,15 +453,35 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 	};
 	let seconds = (elapsed_nanos as f64) / 1_000_000_000.0;
 
-	info!("Perf test complete!")?;
+	if messages == count * itt * threads * clients * reconns {
+		info!("{}", "Perf test completed successfully!".cyan())?;
+	} else {
+		error!(
+			"{}",
+			format!(
+				"Perf test failed! Expected {} messages. Received {}.",
+				count * itt * threads * clients * reconns,
+				messages
+			)
+			.red()
+		)?;
+	}
 
 	info!(
-		"total_messages=[{}],elapsed_time=[{:.2}s],requests_per_second=[{}],average_latency=[{:.2}µs]",
+		"total_messages=[{}],elapsed_time=[{:.2}s]",
 		messages.to_formatted_string(&Locale::en),
-                seconds,
+		seconds,
+	)?;
+
+	info!(
+		"messages_per_second=[{}],average_latency=[{:.2}µs]",
 		(qps.round() as u64).to_formatted_string(&Locale::en),
 		((avg_lat as f64) / 1_000.0),
 	)?;
+
+	if messages != itt * threads * clients * reconns {
+		exit(-1);
+	}
 
 	Ok(())
 }
@@ -714,7 +780,10 @@ fn main() -> Result<(), Error> {
 	let eventhandler = args.is_present("eventhandler");
 
 	if client {
-		info!("Starting perf client")?;
+		info!(
+			"{}",
+			format!("evh_perf Client/{}", built_info::PKG_VERSION).green()
+		)?;
 		run_client(args, start)?;
 	} else if eventhandler {
 		info!(

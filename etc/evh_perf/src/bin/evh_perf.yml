@@ -40,12 +40,12 @@ args:
         short: p
         takes_value: true
         value_name: port
-    - slabs:
+    - read_slab_count:
         help: read slabs for eventhandler
-        long: slabs
+        long: read_slab_count
         short: s
         takes_value: true
-        value_name: slabs
+        value_name: read_slab_count
     - reuse_port:
         help: If true, the SO_REUSEPORT socket option is set (linux only) and each thread may accept connections, otherwise a single thread accepts connections (EVENT_HANDLER ONLY)
         long: reuse_port
