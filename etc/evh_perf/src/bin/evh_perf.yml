@@ -85,3 +85,14 @@ args:
         short: x
         takes_value: true
         value_name: sleep
+    - histo_delta_micros:
+        help: The number of microseconds between each bucket within the histogram. The default value is 10 (CLIENT ONLY)
+        long: histo_delta_micros
+        short: v
+        takes_value: true
+        value_name: histo_delta_micros
+    - histo:
+        help: Display latency histogram after program execution (CLIENT ONLY)
+        long: histo
+        short: z
+        takes_value: false

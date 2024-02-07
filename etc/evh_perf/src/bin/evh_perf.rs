@@ -39,7 +39,7 @@ use std::os::unix::io::IntoRawFd;
 use std::os::windows::io::IntoRawSocket;
 
 const SPACER: &str =
-	"--------------------------------------------------------------------------------------------------";
+	"----------------------------------------------------------------------------------------------------";
 
 info!();
 
@@ -52,6 +52,7 @@ pub mod built_info {
 struct GlobalStats {
 	messages: usize,
 	lat_sum: u128,
+	histo_data: Vec<u64>,
 }
 
 impl GlobalStats {
@@ -59,6 +60,7 @@ impl GlobalStats {
 		Self {
 			messages: 0,
 			lat_sum: 0,
+			histo_data: vec![],
 		}
 	}
 }
@@ -226,6 +228,11 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 		_ => false,
 	};
 
+	let histo_delta_micros = match args.is_present("histo_delta_micros") {
+		true => args.value_of("histo_delta_micros").unwrap().parse()?,
+		false => 10,
+	};
+
 	let port = match args.is_present("port") {
 		true => args.value_of("port").unwrap().parse()?,
 		false => 8081,
@@ -277,6 +284,8 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 		false => 0,
 	};
 
+	let histo = args.is_present("histo");
+
 	let mut configs = HashMap::new();
 	configs.insert("count".to_string(), count.to_formatted_string(&Locale::en));
 	configs.insert(
@@ -288,6 +297,10 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 	configs.insert(
 		"sleep".to_string(),
 		sleep_time.to_formatted_string(&Locale::en),
+	);
+	configs.insert(
+		"histo_delta_micros".to_string(),
+		histo_delta_micros.to_formatted_string(&Locale::en),
 	);
 	configs.insert(
 		"iterations".to_string(),
@@ -345,6 +358,7 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 				max,
 				min,
 				sleep_time,
+				histo_delta_micros,
 			);
 			match res {
 				Ok(_) => {}
@@ -483,9 +497,78 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 		((avg_lat as f64) / 1_000.0),
 	)?;
 
-	if messages != itt * threads * clients * reconns {
+	if messages != itt * threads * clients * reconns * count {
 		exit(-1);
 	}
+
+	let state = state.rlock()?;
+	let guard = state.guard();
+	if histo {
+		print_histo((**guard).histo_data.clone(), histo_delta_micros)?;
+	}
+
+	Ok(())
+}
+
+fn print_histo(data: Vec<u64>, delta_micros: usize) -> Result<(), Error> {
+	let mut sum = 0;
+	let len = data.len();
+	for i in 0..len {
+		sum += data[i];
+	}
+	if sum == 0 {
+		sum += 1;
+	}
+	info_plain!("{}", SPACER)?;
+	info_plain!("Latency Histogram")?;
+	info_plain!("{}", SPACER)?;
+
+	let first_digit_len = format!("{}", len * (delta_micros - 1)).len();
+	let last_digit_len = format!("{}", len * delta_micros).len();
+
+	let mut start = 0;
+	for i in 0..len {
+		if data[i] > 0 {
+			let percent = (data[i] as f64 / sum as f64) * 100 as f64;
+			let percent_rounded = percent.round() as usize;
+			let mut bar = "".to_string();
+			for _ in 0..percent_rounded {
+				bar = format!("{}{}", bar, "=");
+			}
+			bar = format!("{}>", bar);
+
+			let mut start_str = format!("{}µs", start);
+			for _ in start_str.len()..(first_digit_len + 3) {
+				start_str = format!("{}{}", start_str, " ");
+			}
+			let mut end_str = format!("{}µs", start + delta_micros);
+			for _ in end_str.len()..(last_digit_len + 3) {
+				end_str = format!("{}{}", end_str, " ");
+			}
+			info_plain!(
+				"{}{} {}",
+				format!("[{} - {}]", start_str, end_str),
+				bar.cyan(),
+				format!("{} ({:.2}%)", data[i], percent)
+			)?;
+		}
+		start += delta_micros;
+	}
+	info_plain!("{}", SPACER)?;
+
+	/*
+	info_plain!("====================>")?;
+	info_plain!("==============================>")?;
+	info_plain!("========================================>")?;
+	info_plain!("==================================================>")?;
+	info_plain!("============================================================>")?;
+	info_plain!("======================================================================>")?;
+	info_plain!(
+		"================================================================================>"
+	)?;
+	info_plain!("==========================================================================================>")?;
+	info_plain!("====================================================================================================>")?;
+		*/
 
 	Ok(())
 }
@@ -503,6 +586,7 @@ fn run_thread(
 	max: usize,
 	min: usize,
 	sleep_time: u64,
+	histo_delta_micros: usize,
 ) -> Result<(), Error> {
 	let mut dictionary = vec![];
 	for i in 0..max {
@@ -662,6 +746,11 @@ fn run_thread(
 				let guard = state.guard();
 				(**guard).messages += 1;
 				(**guard).lat_sum += diff as u128;
+				update_histo_vec(
+					&mut (**guard).histo_data,
+					try_into!(diff / 1000)?,
+					try_into!(histo_delta_micros)?,
+				)?;
 			}
 
 			{
@@ -764,6 +853,20 @@ fn run_thread(
 	Ok(())
 }
 
+fn update_histo_vec(
+	histo_data: &mut Vec<u64>,
+	diff: u64,
+	histo_delta_micros: u64,
+) -> Result<(), Error> {
+	let bucket = try_into!(diff / histo_delta_micros)?;
+	if histo_data.len() <= bucket {
+		histo_data.resize(bucket + 1, 0);
+	}
+	histo_data[bucket] += 1;
+
+	Ok(())
+}
+
 fn main() -> Result<(), Error> {
 	let start = Instant::now();
 
@@ -793,6 +896,14 @@ fn main() -> Result<(), Error> {
 			format!("evh_perf Client/{}", built_info::PKG_VERSION).green()
 		)?;
 		run_client(args, start)?;
+	} else if eventhandler && args.is_present("histo_delta_micros") {
+		set_log_option!(LogConfigOption::Level(true))?;
+		error!("--histo_delta_micros must only be used with the -c option")?;
+		exit(-1);
+	} else if eventhandler && args.is_present("histo") {
+		set_log_option!(LogConfigOption::Level(true))?;
+		error!("--histo must only be used with the -c option")?;
+		exit(-1);
 	} else if eventhandler && args.is_present("reconns") {
 		set_log_option!(LogConfigOption::Level(true))?;
 		error!("--reconns must only be used with the -c option")?;
