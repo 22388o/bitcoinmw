@@ -1,6 +1,6 @@
 # EVH Perf
 
-EVH Perf is a tool that tests the performance of the eventhandler. The tool can be run in either `eventhandler` mode or `client` mode. The --help option lists all available configuration options. The output of the tool running in eventhandler mode might look like this:
+EVH Perf is a tool that tests the performance of the eventhandler. The tool can be run in either `eventhandler` mode or `client` mode. Both modes may be run at the same time as well by specifying both the -c and the -e option. The --help option lists all available configuration options. The output of the tool running in eventhandler mode might look like this:
 
 ```
 $ ./target/release/evh_perf -e --debug --host 0.0.0.0 --max_handles_per_thread 1000 --port 8082 --read_slab_count 500 --reuse_port --threads 10 --tls
