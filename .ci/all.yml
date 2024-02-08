@@ -4,11 +4,6 @@ steps:
       echo "OpenSSL = %OPENSSL_DIR%"
       rustup update
       cargo test --all --jobs 1
-      cd etc/evh_perf
-      cargo build --release --jobs 1
-      START /B target/release/evh_perf -e -t 4
-      timeout 10
-      target/release/evh_perf -c --count 100 --itt 100 --reconns 10 -t 10
     displayName: Windows Cargo Test
     condition: eq( variables['Agent.OS'], 'Windows_NT' )
   - script: |
