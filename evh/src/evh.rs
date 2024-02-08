@@ -2063,6 +2063,9 @@ where
 			(**guard).write_buffer.shrink_to_fit();
 		}
 
+		rw.tls_server = None;
+		rw.tls_client = None;
+
 		let ci = ConnectionInfo::StreamInfo(rw.clone());
 		// we must do an insert before removing to keep our arc's consistent
 		ctx.connection_hashtable.insert(&rw.id, &ci)?;

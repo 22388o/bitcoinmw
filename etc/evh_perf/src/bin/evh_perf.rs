@@ -107,11 +107,17 @@ fn run_eventhandler(args: ArgMatches, start: Instant) -> Result<(), Error> {
 		false => 300,
 	};
 
+	let host = match args.is_present("host") {
+		true => args.value_of("host").unwrap(),
+		false => "127.0.0.1",
+	};
+
 	let debug = args.is_present("debug");
 
 	let mut configs = HashMap::new();
 	configs.insert("debug".to_string(), debug.to_string());
 	configs.insert("port".to_string(), port.to_string());
+	configs.insert("host".to_string(), host.to_string());
 	configs.insert("reuse_port".to_string(), reuse_port.to_string());
 	configs.insert(
 		"max_handles_per_thread".to_string(),
@@ -131,7 +137,7 @@ fn run_eventhandler(args: ArgMatches, start: Instant) -> Result<(), Error> {
 
 	set_log_option!(LogConfigOption::Level(true))?;
 
-	let addr = &format!("127.0.0.1:{}", port)[..];
+	let addr = &format!("{}:{}", host, port)[..];
 	let config = EventHandlerConfig {
 		threads,
 		housekeeping_frequency_millis: 10_000,
@@ -295,9 +301,15 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 		false => 0,
 	};
 
+	let host = match args.is_present("host") {
+		true => args.value_of("host").unwrap(),
+		false => "127.0.0.1",
+	};
+
 	let histo = args.is_present("histo");
 
 	let mut configs = HashMap::new();
+	configs.insert("host".to_string(), host.to_string());
 	configs.insert("count".to_string(), count.to_formatted_string(&Locale::en));
 	configs.insert(
 		"clients".to_string(),
@@ -339,7 +351,7 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 	configs.insert("tls".to_string(), tls.to_string());
 	print_configs(configs)?;
 
-	let addr = format!("127.0.0.1:{}", port);
+	let addr = format!("{}:{}", host, port);
 	let config = EventHandlerConfig {
 		threads: 1,
 		housekeeping_frequency_millis: 10_000,

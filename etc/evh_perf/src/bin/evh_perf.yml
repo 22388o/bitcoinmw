@@ -101,3 +101,9 @@ args:
         long: tls
         short: l
         takes_value: false
+    - host:
+        help: The tcp host to connect to
+        long: host
+        short: w
+        takes_value: true
+        value_name: host
