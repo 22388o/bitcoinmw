@@ -30,6 +30,7 @@ use std::collections::HashMap;
 use std::net::TcpStream;
 use std::process::exit;
 use std::sync::mpsc::sync_channel;
+use std::sync::mpsc::SyncSender;
 use std::thread::{sleep, spawn};
 use std::time::{Duration, Instant};
 
@@ -85,7 +86,11 @@ fn print_configs(configs: HashMap<String, String>) -> Result<(), Error> {
 	Ok(())
 }
 
-fn run_eventhandler(args: ArgMatches, start: Instant) -> Result<(), Error> {
+fn run_eventhandler(
+	args: ArgMatches,
+	start: Instant,
+	ready_notifier: Option<SyncSender<u8>>,
+) -> Result<(), Error> {
 	let threads: usize = match args.is_present("threads") {
 		true => args.value_of("threads").unwrap().parse()?,
 		false => 1,
@@ -231,6 +236,11 @@ fn run_eventhandler(args: ArgMatches, start: Instant) -> Result<(), Error> {
 		"{}",
 		format!("Server started in {} ms.", start.elapsed().as_millis()).cyan()
 	)?;
+
+	match ready_notifier {
+		Some(ready_notifier) => ready_notifier.send(1)?,
+		None => {}
+	}
 
 	std::thread::park();
 
@@ -923,7 +933,27 @@ fn main() -> Result<(), Error> {
 	let client = args.is_present("client");
 	let eventhandler = args.is_present("eventhandler");
 
-	if client && args.is_present("reuse_port") {
+	if client && eventhandler {
+		info!(
+			"{}",
+			format!("evh_perf Client/{}", built_info::PKG_VERSION).green()
+		)?;
+
+		let (tx, rx) = sync_channel(1);
+		spawn(move || -> Result<(), Error> {
+			let yml = load_yaml!("evh_perf.yml");
+			let args = App::from_yaml(yml)
+				.version(built_info::PKG_VERSION)
+				.get_matches();
+
+			run_eventhandler(args, start, Some(tx))?;
+			Ok(())
+		});
+
+		rx.recv()?;
+		let start = Instant::now();
+		run_client(args, start)?;
+	} else if client && args.is_present("reuse_port") {
 		set_log_option!(LogConfigOption::Level(true))?;
 		error!("--reuse_port must only be used with the -e option")?;
 		exit(-1);
@@ -974,11 +1004,7 @@ fn main() -> Result<(), Error> {
 			"{}",
 			format!("evh_perf EventHandler/{}", built_info::PKG_VERSION).green()
 		)?;
-		run_eventhandler(args, start)?;
-	} else {
-		set_log_option!(LogConfigOption::Level(true))?;
-		error!("Must specify either -c (client) or -e (eventhandler). For additional information: evh_perf --help")?;
-		exit(-1);
+		run_eventhandler(args, start, None)?;
 	}
 
 	Ok(())
