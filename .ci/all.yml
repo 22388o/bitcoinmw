@@ -6,7 +6,7 @@ steps:
       cargo test --all --jobs 1
       cd etc\evh_perf
       cargo build --release --jobs 1
-      start target\release\evh_perf -e -c -i 100 --count 10 --clients 2 -t 10
+      start target\release\evh_perf -e -c -i 100 --count 10 --clients 2 -t 10 --min 10000
     displayName: Windows Cargo Test
     condition: eq( variables['Agent.OS'], 'Windows_NT' )
   - script: |
@@ -14,7 +14,7 @@ steps:
       cargo test --all
       cd etc/evh_perf
       cargo build --release
-      ./target/release/evh_perf -e -c -i 100 --count 10 --clients 2 -t 10
+      ./target/release/evh_perf -e -c -i 100 --count 10 --clients 2 -t 10 --min 10000
     displayName: macOS Cargo Test
     condition: eq( variables['Agent.OS'], 'Darwin' )
   - script: |
@@ -22,7 +22,7 @@ steps:
       cargo test --all
       cd etc/evh_perf
       cargo build --release
-      ./target/release/evh_perf -e -c -i 100 --count 10 --clients 2 -t 10
+      ./target/release/evh_perf -e -c -i 100 --count 10 --clients 2 -t 10 --min 10000
     displayName: Linux Cargo Test
     condition: eq( variables['Agent.OS'], 'Linux' )
   - script: 'cargo build --release --jobs 1'
