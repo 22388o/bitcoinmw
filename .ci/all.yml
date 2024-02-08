@@ -3,7 +3,7 @@ steps:
       SET OPENSSL_DIR=C:\Program Files\OpenSSL
       echo "OpenSSL = %OPENSSL_DIR%"
       rustup update
-      cargo test --all --jobs 1
+      cargo test --all
     displayName: Windows Cargo Test
     condition: eq( variables['Agent.OS'], 'Windows_NT' )
   - script: |
