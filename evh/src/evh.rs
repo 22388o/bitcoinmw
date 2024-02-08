@@ -1593,6 +1593,7 @@ where
 		let handle = rw.handle;
 
 		ctx.buffer.resize(TLS_CHUNKS, 0u8);
+		ctx.buffer.shrink_to_fit();
 		let len = read_bytes(handle, &mut ctx.buffer);
 		if len >= 0 {
 			ctx.buffer.truncate(len as usize);
@@ -1647,6 +1648,8 @@ where
 		let handle = rw.handle;
 
 		ctx.buffer.resize(TLS_CHUNKS, 0u8);
+		ctx.buffer.shrink_to_fit();
+
 		let len = read_bytes(handle, &mut ctx.buffer);
 		if len >= 0 {
 			ctx.buffer.truncate(len as usize);
@@ -2149,7 +2152,8 @@ where
 			if tls_conn.is_err() || self.debug_tls_server_error {
 				warn!("Error building tls_connection: {:?}", tls_conn)?;
 			} else {
-				let tls_conn = tls_conn.unwrap();
+				let mut tls_conn = tls_conn.unwrap();
+				tls_conn.set_buffer_limit(None);
 				tls_server = Some(lock_box!(tls_conn)?);
 			}
 
@@ -2523,7 +2527,9 @@ where
 			Some(tls_config) => {
 				let server_name: &str = &tls_config.sni_host;
 				let config = make_config(tls_config.trusted_cert_full_chain_file)?;
-				let tls_client = Some(lock_box!(RCConn::new(config, server_name.try_into()?,)?)?);
+				let mut rc_conn = RCConn::new(config, server_name.try_into()?)?;
+				rc_conn.set_buffer_limit(None);
+				let tls_client = Some(lock_box!(rc_conn)?);
 				tls_client
 			}
 			None => None,
