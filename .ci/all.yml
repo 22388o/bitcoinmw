@@ -21,7 +21,7 @@ steps:
     condition:  and(succeeded(), contains(variables['Build.SourceBranch'], 'refs/tags/'), ne( variables['Agent.OS'], 'Windows_NT' ))
   - script: |
       SET OPENSSL_DIR=C:\Program Files\OpenSSL
-      cargo build --release --jobs 1
+      cargo build --release
     displayName: Build Release
     condition:  and(succeeded(), contains(variables['Build.SourceBranch'], 'refs/tags/'), eq( variables['Agent.OS'], 'Windows_NT' ))
   - script: |
