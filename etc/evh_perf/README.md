@@ -83,6 +83,8 @@ Latency Histogram
 ----------------------------------------------------------------------------------------------------
 ```
 
+To build evh_perf, ensure you are in <project_subdirectory>/etc/evh_perf and then execute:
+
 ```text
 $ cargo build --release
 ```
