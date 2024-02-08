@@ -349,6 +349,7 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 		read_slab_count.to_formatted_string(&Locale::en),
 	);
 	configs.insert("tls".to_string(), tls.to_string());
+	configs.insert("histo".to_string(), histo.to_string());
 	print_configs(configs)?;
 
 	let addr = format!("{}:{}", host, port);
