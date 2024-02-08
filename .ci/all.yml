@@ -4,6 +4,9 @@ steps:
       echo "OpenSSL = %OPENSSL_DIR%"
       rustup update
       cargo test --all --jobs 1
+      cd etc\evh_perf
+      cargo build --release --jobs 1
+      start target\release\evh_perf -e -c -i 100 --count 10 --clients 2 -t 10
     displayName: Windows Cargo Test
     condition: eq( variables['Agent.OS'], 'Windows_NT' )
   - script: |
@@ -11,9 +14,7 @@ steps:
       cargo test --all
       cd etc/evh_perf
       cargo build --release
-      ./target/release/evh_perf -e -t 4 &
-      sleep 10
-      ./target/release/evh_perf -c --count 100 --itt 100 --reconns 10 -t 10
+      ./target/release/evh_perf -e -c -i 100 --count 10 --clients 2 -t 10
     displayName: macOS Cargo Test
     condition: eq( variables['Agent.OS'], 'Darwin' )
   - script: |
@@ -21,9 +22,7 @@ steps:
       cargo test --all
       cd etc/evh_perf
       cargo build --release
-      ./target/release/evh_perf -e -t 4 &
-      sleep 10
-      ./target/release/evh_perf -c --count 100 --itt 100 --reconns 10 -t 10
+      ./target/release/evh_perf -e -c -i 100 --count 10 --clients 2 -t 10
     displayName: Linux Cargo Test
     condition: eq( variables['Agent.OS'], 'Linux' )
   - script: 'cargo build --release --jobs 1'
