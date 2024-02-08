@@ -3,7 +3,7 @@
 EVH Perf is a tool that tests the performance of the eventhandler. The tool can be run in either `eventhandler` mode or `client` mode. The --help option lists all available configuration options. The output of the tool running in eventhandler mode might look like this:
 
 ```
-./target/release/evh_perf -e --debug --host 0.0.0.0 --max_handles_per_thread 1000 --port 8082 --read_slab_count 500 --reuse_port --threads 10 --tls
+$ ./target/release/evh_perf -e --debug --host 0.0.0.0 --max_handles_per_thread 1000 --port 8082 --read_slab_count 500 --reuse_port --threads 10 --tls
 [2024-02-08 10:27:00.583]: evh_perf EventHandler/0.0.3-beta.1
 ----------------------------------------------------------------------------------------------------
 [2024-02-08 10:27:00.583]: debug:                  'true'
@@ -21,7 +21,7 @@ EVH Perf is a tool that tests the performance of the eventhandler. The tool can 
 To run the evh_perf tool in client mode with the coresponding eventhandler (above), the following options might be specified:
 
 ```
-./target/release/evh_perf -c --host 127.0.0.1 --max_handles_per_thread 100 --port 8082 --tls --read_slab_count 500 --threads 2 --itt 2 --count 2 --clients 2 --histo --min 20 --max 30 --reconns 2 --sleep 10
+$ ./target/release/evh_perf -c --host 127.0.0.1 --max_handles_per_thread 100 --port 8082 --tls --read_slab_count 500 --threads 2 --itt 2 --count 2 --clients 2 --histo --min 20 --max 30 --reconns 2 --sleep 10
 [2024-02-08 10:33:19.613]: evh_perf Client/0.0.3-beta.1
 ----------------------------------------------------------------------------------------------------
 [2024-02-08 10:33:19.613]: clients:                '2'
