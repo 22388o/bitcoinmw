@@ -14,6 +14,11 @@ steps:
   - script: |
       rustup update
       cargo test --all
+      cd etc/evh_perf
+      cargo build --release
+      ./target/release/evh_perf -e &
+      sleep 10
+      ./target/release/evh_perf -c --count 100 --itt 100 --reconns 10 -t 1
     displayName: Linux Cargo Test
     condition: eq( variables['Agent.OS'], 'Linux' )
   - script: 'cargo build --release'
