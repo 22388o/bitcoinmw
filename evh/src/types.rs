@@ -81,21 +81,6 @@ pub struct ServerConnection {
 	pub is_reuse_port: bool,
 }
 
-/// This struct shows the statistical values for the [`crate::EventHandler`] for a given time frame
-/// and for the entire time it has been running.
-#[derive(Clone)]
-pub struct EventHandlerStats {
-	pub on_read_count: usize,
-	pub on_accept_count: usize,
-	pub on_close_count: usize,
-	pub on_panic_count: usize,
-
-	pub on_read_lat_sum: u128,
-	pub on_accept_lat_sum: u128,
-	pub on_close_lat_sum: u128,
-	pub on_panic_lat_sum: u128,
-}
-
 /// A struct which is passed to several of the callbacks in [`crate::EventHandler`]. It provides
 /// information on the connection from which data is read.
 pub struct ConnectionData<'a> {
@@ -264,10 +249,6 @@ where
 	) -> Result<(), Error>;
 	/// Get the eventhandler data array
 	fn event_handler_data(&self) -> Result<Array<Box<dyn LockBox<EventHandlerData>>>, Error>;
-	/// Get the statistical data with stats since the last time this function was called
-	fn stats_incremental(&self) -> Result<EventHandlerStats, Error>;
-	/// Get the statistical data with stats since the event handler was started
-	fn stats(&self) -> Result<EventHandlerStats, Error>;
 }
 
 /// The structure that builds eventhandlers.
@@ -363,8 +344,6 @@ where
 	pub(crate) data: Array<Box<dyn LockBox<EventHandlerData>>>,
 	pub(crate) wakeup: Array<Wakeup>,
 	pub(crate) thread_pool_stopper: Option<ThreadPoolStopper>,
-	pub(crate) full_stats: Box<dyn LockBox<EventHandlerStats>>,
-	pub(crate) last_stats: Box<dyn LockBox<EventHandlerStats>>,
 	pub(crate) debug_write_queue: bool,
 	pub(crate) debug_pending: bool,
 	pub(crate) debug_write_error: bool,

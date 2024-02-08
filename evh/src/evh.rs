@@ -21,8 +21,8 @@ use crate::types::{
 	StreamInfo, Wakeup, WriteState,
 };
 use crate::{
-	ClientConnection, ConnData, ConnectionData, EventHandler, EventHandlerConfig,
-	EventHandlerStats, ServerConnection, ThreadContext, WriteHandle,
+	ClientConnection, ConnData, ConnectionData, EventHandler, EventHandlerConfig, ServerConnection,
+	ThreadContext, WriteHandle,
 };
 use bmw_deps::errno::{errno, set_errno, Errno};
 use bmw_deps::rand::random;
@@ -298,21 +298,6 @@ impl Serializable for ConnectionInfo {
 		}
 
 		Ok(())
-	}
-}
-
-impl EventHandlerStats {
-	pub fn new() -> Self {
-		Self {
-			on_read_count: 0,
-			on_accept_count: 0,
-			on_close_count: 0,
-			on_panic_count: 0,
-			on_read_lat_sum: 0,
-			on_accept_lat_sum: 0,
-			on_close_lat_sum: 0,
-			on_panic_lat_sum: 0,
-		}
 	}
 }
 
@@ -897,8 +882,6 @@ where
 			debug_tls_read: false,
 			debug_attachment_none: false,
 			debug_rw_accept_id_none: false,
-			full_stats: lock_box!(EventHandlerStats::new())?,
-			last_stats: lock_box!(EventHandlerStats::new())?,
 		};
 		Ok(ret)
 	}
@@ -2643,20 +2626,6 @@ where
 
 	fn event_handler_data(&self) -> Result<Array<Box<dyn LockBox<EventHandlerData>>>, Error> {
 		Ok(self.data.clone())
-	}
-
-	fn stats_incremental(&self) -> Result<EventHandlerStats, Error> {
-		// TODO: implement stats
-		let last_stats = self.last_stats.rlock()?;
-		let guard = last_stats.guard();
-		Ok((**guard).clone())
-	}
-
-	fn stats(&self) -> Result<EventHandlerStats, Error> {
-		// TODO: implement stats
-		let full_stats = self.full_stats.rlock()?;
-		let guard = full_stats.guard();
-		Ok((**guard).clone())
 	}
 }
 
