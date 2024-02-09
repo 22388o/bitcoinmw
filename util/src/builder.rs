@@ -652,6 +652,8 @@ mod test {
 		assert_eq!(nmatch.end(), 1);
 		assert_eq!(nmatch.id(), 2);
 
+		assert!(!Builder::build_sync_slabs().is_init());
+
 		Ok(())
 	}
 
