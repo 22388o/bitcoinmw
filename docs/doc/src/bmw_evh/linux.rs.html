@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `evh/src/linux.rs`."><title>linux.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_evh" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `evh/src/linux.rs`."><title>linux.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_evh" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -416,13 +417,13 @@
 // * Arti: https://gitlab.torproject.org/tpo/core/arti
 // * BitcoinMW: https://github.com/bitcoinmw/bitcoinmw
 //
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -484,7 +485,7 @@
 	_partial: bool,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 	<span class="kw">let </span>handle_as_usize = handle.try_into()<span class="question-mark">?</span>;
-	<span class="macro">debug!</span>(<span class="string">&quot;filter set remove {}, tid={}&quot;</span>, handle_as_usize, ctx.tid)<span class="question-mark">?</span>;
+	<span class="macro">debug!</span>(<span class="string">"filter set remove {}, tid={}"</span>, handle_as_usize, ctx.tid)<span class="question-mark">?</span>;
 	<span class="kw">if </span>handle_as_usize &gt;= ctx.filter_set.len().try_into()<span class="question-mark">? </span>{
 		ctx.filter_set.resize(handle_as_usize + <span class="number">100</span>, <span class="bool-val">false</span>);
 	}
@@ -512,14 +513,14 @@
 		)
 	};
 
-	<span class="macro">debug!</span>(<span class="string">&quot;accept handle = {}&quot;</span>, handle)<span class="question-mark">?</span>;
+	<span class="macro">debug!</span>(<span class="string">"accept handle = {}"</span>, handle)<span class="question-mark">?</span>;
 
 	<span class="kw">if </span>handle &lt; <span class="number">0 </span>{
 		<span class="kw">if </span>errno().<span class="number">0 </span>== libc::EAGAIN {
 			<span class="comment">// would block, return the negative number
 			</span><span class="kw">return </span><span class="prelude-val">Ok</span>(handle);
 		}
-		<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">&quot;accept failed: {}&quot;</span>, errno());
+		<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">"accept failed: {}"</span>, errno());
 		<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IO, fmt));
 	}
 
@@ -630,7 +631,7 @@
 	wakeup_requested: bool,
 	debug_err: bool,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
-	<span class="macro">debug!</span>(<span class="string">&quot;in get_events_impl in_count={}&quot;</span>, ctx.events_in.len())<span class="question-mark">?</span>;
+	<span class="macro">debug!</span>(<span class="string">"in get_events_impl in_count={}"</span>, ctx.events_in.len())<span class="question-mark">?</span>;
 	<span class="kw">for </span>evt <span class="kw">in </span><span class="kw-2">&amp;</span>ctx.events_in {
 		<span class="kw">let </span><span class="kw-2">mut </span>interest = EpollFlags::empty();
 		<span class="kw">if </span>evt.etype == EventTypeIn::Read
@@ -638,7 +639,7 @@
 			|| evt.etype == EventTypeIn::Resume
 		{
 			<span class="kw">let </span>fd = evt.handle;
-			<span class="macro">debug!</span>(<span class="string">&quot;add in read fd = {},tid={}&quot;</span>, fd, ctx.tid)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"add in read fd = {},tid={}"</span>, fd, ctx.tid)<span class="question-mark">?</span>;
 			<span class="kw">if </span>fd &gt;= ctx.filter_set.len().try_into()<span class="question-mark">? </span>{
 				ctx.filter_set.resize((fd + <span class="number">100</span>).try_into()<span class="question-mark">?</span>, <span class="bool-val">false</span>);
 			}
@@ -650,29 +651,29 @@
 			<span class="kw">let </span>handle_as_usize: usize = fd.try_into()<span class="question-mark">?</span>;
 			<span class="comment">// unwrap is ok because we resize above
 			</span><span class="kw">let </span>op = <span class="kw">if </span><span class="kw-2">*</span>ctx.filter_set.get(handle_as_usize).unwrap() {
-				<span class="macro">debug!</span>(<span class="string">&quot;found {}. using mod&quot;</span>, handle_as_usize)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"found {}. using mod"</span>, handle_as_usize)<span class="question-mark">?</span>;
 				EpollOp::EpollCtlMod
 			} <span class="kw">else </span>{
-				<span class="macro">debug!</span>(<span class="string">&quot;not found {}. using add&quot;</span>, handle_as_usize)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"not found {}. using add"</span>, handle_as_usize)<span class="question-mark">?</span>;
 				EpollOp::EpollCtlAdd
 			};
 			ctx.filter_set.replace(handle_as_usize, <span class="bool-val">true</span>);
 			<span class="kw">let </span><span class="kw-2">mut </span>event = EpollEvent::new(interest, evt.handle.try_into()<span class="question-mark">?</span>);
 			<span class="macro">debug!</span>(
-				<span class="string">&quot;epoll_ctl selector={},op={:?},handle={}&quot;</span>,
+				<span class="string">"epoll_ctl selector={},op={:?},handle={}"</span>,
 				ctx.selector, op, evt.handle
 			)<span class="question-mark">?</span>;
-			<span class="macro">debug!</span>(<span class="string">&quot;fd={},op={:?},ctx.tid={}&quot;</span>, fd, op, ctx.tid)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"fd={},op={:?},ctx.tid={}"</span>, fd, op, ctx.tid)<span class="question-mark">?</span>;
 			<span class="kw">let </span>res = epoll_ctl(ctx.selector, op, evt.handle, <span class="kw-2">&amp;mut </span>event);
 			<span class="kw">if </span>res.is_err() || debug_err {
 				<span class="macro">warn!</span>(
-					<span class="string">&quot;Error epoll_ctl1: {:?}, fd={}, op={:?},tid={}&quot;</span>,
+					<span class="string">"Error epoll_ctl1: {:?}, fd={}, op={:?},tid={}"</span>,
 					res, fd, op, ctx.tid
 				)<span class="question-mark">?
 			</span>}
 		} <span class="kw">else if </span>evt.etype == EventTypeIn::Write {
 			<span class="kw">let </span>fd = evt.handle;
-			<span class="macro">debug!</span>(<span class="string">&quot;add in write fd = {},tid={}&quot;</span>, fd, ctx.tid)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"add in write fd = {},tid={}"</span>, fd, ctx.tid)<span class="question-mark">?</span>;
 			<span class="kw">if </span>fd &gt; ctx.filter_set.len().try_into()<span class="question-mark">? </span>{
 				ctx.filter_set.resize((fd + <span class="number">100</span>).try_into()<span class="question-mark">?</span>, <span class="bool-val">false</span>);
 			}
@@ -691,17 +692,17 @@
 			ctx.filter_set.replace(handle_as_usize, <span class="bool-val">true</span>);
 
 			<span class="kw">let </span><span class="kw-2">mut </span>event = EpollEvent::new(interest, evt.handle.try_into()<span class="question-mark">?</span>);
-			<span class="macro">debug!</span>(<span class="string">&quot;fd={},op={:?},ctx.tid={}&quot;</span>, fd, op, ctx.tid)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"fd={},op={:?},ctx.tid={}"</span>, fd, op, ctx.tid)<span class="question-mark">?</span>;
 			<span class="kw">let </span>res = epoll_ctl(ctx.selector, op, evt.handle, <span class="kw-2">&amp;mut </span>event);
 			<span class="kw">if </span>res.is_err() || debug_err {
 				<span class="macro">warn!</span>(
-					<span class="string">&quot;Error epoll_ctl2: {:?}, fd={}, op={:?},tid={}&quot;</span>,
+					<span class="string">"Error epoll_ctl2: {:?}, fd={}, op={:?},tid={}"</span>,
 					res, fd, op, ctx.tid
 				)<span class="question-mark">?
 			</span>}
 		} <span class="kw">else if </span>evt.etype == EventTypeIn::Suspend {
 			<span class="kw">let </span>fd = evt.handle;
-			<span class="macro">debug!</span>(<span class="string">&quot;add in write fd = {},tid={}&quot;</span>, fd, ctx.tid)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"add in write fd = {},tid={}"</span>, fd, ctx.tid)<span class="question-mark">?</span>;
 			<span class="kw">if </span>fd &gt; ctx.filter_set.len().try_into()<span class="question-mark">? </span>{
 				ctx.filter_set.resize((fd + <span class="number">100</span>).try_into()<span class="question-mark">?</span>, <span class="bool-val">false</span>);
 			}
@@ -711,11 +712,11 @@
 			<span class="kw">let </span>op = EpollOp::EpollCtlDel;
 
 			<span class="kw">let </span><span class="kw-2">mut </span>event = EpollEvent::new(interest, evt.handle.try_into()<span class="question-mark">?</span>);
-			<span class="macro">debug!</span>(<span class="string">&quot;fd={},op={:?},ctx.tid={}&quot;</span>, fd, op, ctx.tid)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"fd={},op={:?},ctx.tid={}"</span>, fd, op, ctx.tid)<span class="question-mark">?</span>;
 			<span class="kw">let </span>res = epoll_ctl(ctx.selector, op, evt.handle, <span class="kw-2">&amp;mut </span>event);
 			<span class="kw">if </span>res.is_err() || debug_err {
 				<span class="macro">warn!</span>(
-					<span class="string">&quot;Error epoll_ctl3: {:?}, fd={}, op={:?},tid={}&quot;</span>,
+					<span class="string">"Error epoll_ctl3: {:?}, fd={}, op={:?},tid={}"</span>,
 					res, fd, op, ctx.tid
 				)<span class="question-mark">?
 			</span>}
@@ -733,7 +734,7 @@
 	}
 	.try_into()<span class="question-mark">?</span>;
 
-	<span class="macro">debug!</span>(<span class="string">&quot;epoll_wait tid = {}&quot;</span>, ctx.tid)<span class="question-mark">?</span>;
+	<span class="macro">debug!</span>(<span class="string">"epoll_wait tid = {}"</span>, ctx.tid)<span class="question-mark">?</span>;
 	<span class="kw">let </span>results = epoll_wait(ctx.selector, <span class="kw-2">&amp;mut </span>ctx.epoll_events, sleep);
 
 	ctx.now = SystemTime::now().duration_since(UNIX_EPOCH)<span class="question-mark">?</span>.as_millis();
@@ -760,7 +761,7 @@
 			}
 		}
 	} <span class="kw">else </span>{
-		<span class="macro">warn!</span>(<span class="string">&quot;epoll wait generated error: {:?}&quot;</span>, results)<span class="question-mark">?</span>;
+		<span class="macro">warn!</span>(<span class="string">"epoll wait generated error: {:?}"</span>, results)<span class="question-mark">?</span>;
 	}
 
 	<span class="prelude-val">Ok</span>(res_count)
@@ -787,7 +788,7 @@
 		close_impl(<span class="kw-2">&amp;mut </span>ctx, handle, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(ctx.filter_set.len(), <span class="number">100 </span>+ handle <span class="kw">as </span>usize);
 		ctx.filter_set.resize(<span class="number">10_100</span>, <span class="bool-val">false</span>);
-		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;127.0.0.1:{}&quot;</span>, pick_free_port()<span class="question-mark">?</span>)[..];
+		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, pick_free_port()<span class="question-mark">?</span>)[..];
 		<span class="kw">let </span>ret = create_listeners_impl(<span class="number">1</span>, addr, <span class="number">10</span>, <span class="bool-val">true</span>)<span class="question-mark">?</span>;
 		ctx.filter_set.resize(<span class="number">1</span>, <span class="bool-val">false</span>);
 		ctx.events_in.push(EventIn {

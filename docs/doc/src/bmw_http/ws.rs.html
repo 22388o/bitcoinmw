@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `http/src/ws.rs`."><title>ws.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_http" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `http/src/ws.rs`."><title>ws.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_http" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -389,13 +390,13 @@
 // * Arti: https://gitlab.torproject.org/tpo/core/arti
 // * BitcoinMW: https://github.com/bitcoinmw/bitcoinmw
 //
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -511,20 +512,20 @@
 	proto: <span class="prelude-ty">Option</span>&lt;String&gt;,
 	proto_required: bool,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-	<span class="kw">let </span>hash = <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, key, WEBSOCKET_GUID);
+	<span class="kw">let </span>hash = <span class="macro">format!</span>(<span class="string">"{}{}"</span>, key, WEBSOCKET_GUID);
 	sha1.update(hash.as_bytes());
 	<span class="kw">let </span>msg = <span class="macro">format!</span>(
-		<span class="string">&quot;HTTP/1.1 101 Switching Protocols\r\n\
+		<span class="string">"HTTP/1.1 101 Switching Protocols\r\n\
 Upgrade: websocket\r\n\
 Connection: Upgrade\r\n{}\
-Sec-WebSocket-Accept: {}\r\n\r\n&quot;</span>,
+Sec-WebSocket-Accept: {}\r\n\r\n"</span>,
 		<span class="kw">match </span>proto {
-			<span class="prelude-val">Some</span>(proto) =&gt; <span class="macro">format!</span>(<span class="string">&quot;Sec-WebSocket-Protocol: {}\r\n&quot;</span>, proto),
+			<span class="prelude-val">Some</span>(proto) =&gt; <span class="macro">format!</span>(<span class="string">"Sec-WebSocket-Protocol: {}\r\n"</span>, proto),
 			<span class="prelude-val">None </span>=&gt;
 				<span class="kw">if </span>proto_required {
-					<span class="string">&quot;Sec-WebSocket-Protocol: nomatches\r\n&quot;</span>.to_string()
+					<span class="string">"Sec-WebSocket-Protocol: nomatches\r\n"</span>.to_string()
 				} <span class="kw">else </span>{
-					<span class="string">&quot;&quot;</span>.to_string()
+					<span class="string">""</span>.to_string()
 				},
 		},
 		base64::encode(<span class="kw-2">&amp;</span>sha1.finalize()[..]),
@@ -541,7 +542,7 @@ Sec-WebSocket-Accept: {}\r\n\r\n&quot;</span>,
 	config: <span class="kw-2">&amp;</span>HttpConfig,
 	websocket_data: <span class="kw-2">&amp;</span>WebSocketData,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
-	<span class="macro">debug!</span>(<span class="string">&quot;proc data: {:?}&quot;</span>, req)<span class="question-mark">?</span>;
+	<span class="macro">debug!</span>(<span class="string">"proc data: {:?}"</span>, req)<span class="question-mark">?</span>;
 	<span class="kw">let </span>(messages, termination_point) = build_messages(req)<span class="question-mark">?</span>;
 	<span class="kw">let </span><span class="kw-2">mut </span>ws_handle = WebSocketHandle {
 		write_handle: conn_data.write_handle(),
@@ -552,7 +553,7 @@ Sec-WebSocket-Accept: {}\r\n\r\n&quot;</span>,
 				ws_handler(message, config, instance, <span class="kw-2">&amp;mut </span>ws_handle, websocket_data)<span class="question-mark">?
 			</span>}
 			<span class="prelude-val">None </span>=&gt; {
-				<span class="macro">warn!</span>(<span class="string">&quot;got websocket request but no handler was specified!&quot;</span>)<span class="question-mark">?</span>;
+				<span class="macro">warn!</span>(<span class="string">"got websocket request but no handler was specified!"</span>)<span class="question-mark">?</span>;
 			}
 		}
 	}
@@ -564,7 +565,7 @@ Sec-WebSocket-Accept: {}\r\n\r\n&quot;</span>,
 	<span class="kw">let </span>start_content;
 	<span class="kw">if </span>len &lt; <span class="number">2 </span>{
 		<span class="comment">// not enough to even start parsing
-		</span><span class="macro">debug!</span>(<span class="string">&quot;return none 1, len = {}&quot;</span>, len)<span class="question-mark">?</span>;
+		</span><span class="macro">debug!</span>(<span class="string">"return none 1, len = {}"</span>, len)<span class="question-mark">?</span>;
 		<span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
 	}
 
@@ -576,7 +577,7 @@ Sec-WebSocket-Accept: {}\r\n\r\n&quot;</span>,
 	<span class="kw">let </span>op4 = (buffer[<span class="number">0</span>] &amp; OP_CODE_MASK4) != <span class="number">0</span>;
 
 	<span class="macro">debug!</span>(
-		<span class="string">&quot;fin={},op1={},op2={},op3={},op4={}&quot;</span>,
+		<span class="string">"fin={},op1={},op2={},op3={},op4={}"</span>,
 		fin, op1, op2, op3, op4
 	)<span class="question-mark">?</span>;
 
@@ -595,7 +596,7 @@ Sec-WebSocket-Accept: {}\r\n\r\n&quot;</span>,
 		FrameType::Pong
 	} <span class="kw">else </span>{
 		<span class="comment">// other op codes not supported
-		</span><span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IllegalArgument, <span class="string">&quot;invalid websocket opcode&quot;</span>));
+		</span><span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IllegalArgument, <span class="string">"invalid websocket opcode"</span>));
 	};
 
 	<span class="comment">// get bit indicating masking.
@@ -606,13 +607,13 @@ Sec-WebSocket-Accept: {}\r\n\r\n&quot;</span>,
 
 	<span class="kw">let </span>payload_len: usize = <span class="kw">if </span>first_payload_bits == <span class="number">126 </span>{
 		<span class="kw">if </span>len &lt; <span class="number">4 </span>{
-			<span class="macro">debug!</span>(<span class="string">&quot;return none 2&quot;</span>)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"return none 2"</span>)<span class="question-mark">?</span>;
 			<span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
 		}
 		BigEndian::read_u16(<span class="kw-2">&amp;</span>buffer[<span class="number">2</span>..<span class="number">4</span>]).try_into()<span class="question-mark">?
 	</span>} <span class="kw">else if </span>first_payload_bits == <span class="number">127 </span>{
 		<span class="kw">if </span>len &lt; <span class="number">10 </span>{
-			<span class="macro">debug!</span>(<span class="string">&quot;return none 3&quot;</span>)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"return none 3"</span>)<span class="question-mark">?</span>;
 			<span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
 		}
 		BigEndian::read_u64(<span class="kw-2">&amp;</span>buffer[<span class="number">2</span>..<span class="number">10</span>]).try_into()<span class="question-mark">?
@@ -626,19 +627,19 @@ Sec-WebSocket-Accept: {}\r\n\r\n&quot;</span>,
 		<span class="kw">if </span>first_payload_bits == <span class="number">126 </span>{
 			start_content = <span class="number">4</span>;
 			<span class="kw">if </span>len &lt; <span class="number">4 </span>+ payload_len {
-				<span class="macro">debug!</span>(<span class="string">&quot;return none 4&quot;</span>)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"return none 4"</span>)<span class="question-mark">?</span>;
 				<span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
 			}
 		} <span class="kw">else if </span>first_payload_bits == <span class="number">127 </span>{
 			start_content = <span class="number">10</span>;
 			<span class="kw">if </span>len &lt; <span class="number">10 </span>+ payload_len {
-				<span class="macro">debug!</span>(<span class="string">&quot;return none 5&quot;</span>)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"return none 5"</span>)<span class="question-mark">?</span>;
 				<span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
 			}
 		} <span class="kw">else </span>{
 			start_content = <span class="number">2</span>;
 			<span class="kw">if </span>len &lt; <span class="number">2 </span>+ payload_len {
-				<span class="macro">debug!</span>(<span class="string">&quot;return none 6&quot;</span>)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"return none 6"</span>)<span class="question-mark">?</span>;
 				<span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
 			}
 		}
@@ -646,21 +647,21 @@ Sec-WebSocket-Accept: {}\r\n\r\n&quot;</span>,
 	</span>} <span class="kw">else if </span>first_payload_bits == <span class="number">126 </span>{
 		start_content = <span class="number">8</span>;
 		<span class="kw">if </span>len &lt; <span class="number">8 </span>+ payload_len {
-			<span class="macro">debug!</span>(<span class="string">&quot;return none 7&quot;</span>)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"return none 7"</span>)<span class="question-mark">?</span>;
 			<span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
 		}
 		BigEndian::read_u32(<span class="kw-2">&amp;</span>buffer[<span class="number">4</span>..<span class="number">8</span>])
 	} <span class="kw">else if </span>first_payload_bits == <span class="number">127 </span>{
 		start_content = <span class="number">14</span>;
 		<span class="kw">if </span>len &lt; <span class="number">14 </span>+ payload_len {
-			<span class="macro">debug!</span>(<span class="string">&quot;return none 8: payload_len={},len={}&quot;</span>, payload_len, len)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"return none 8: payload_len={},len={}"</span>, payload_len, len)<span class="question-mark">?</span>;
 			<span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
 		}
 		BigEndian::read_u32(<span class="kw-2">&amp;</span>buffer[<span class="number">10</span>..<span class="number">14</span>])
 	} <span class="kw">else </span>{
 		start_content = <span class="number">6</span>;
 		<span class="kw">if </span>len &lt; <span class="number">6 </span>+ payload_len {
-			<span class="macro">debug!</span>(<span class="string">&quot;return none 9&quot;</span>)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"return none 9"</span>)<span class="question-mark">?</span>;
 			<span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
 		}
 		BigEndian::read_u32(<span class="kw-2">&amp;</span>buffer[<span class="number">2</span>..<span class="number">6</span>])
@@ -684,7 +685,7 @@ Sec-WebSocket-Accept: {}\r\n\r\n&quot;</span>,
 	<span class="kw">loop </span>{
 		<span class="kw">let </span>header = get_frame_header_info(<span class="kw-2">&amp;mut </span>buffer[offset..].to_vec())<span class="question-mark">?</span>;
 
-		<span class="macro">debug!</span>(<span class="string">&quot;found a header: {:?}&quot;</span>, header)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"found a header: {:?}"</span>, header)<span class="question-mark">?</span>;
 
 		<span class="kw">match </span>header {
 			<span class="prelude-val">Some</span>(header) =&gt; {
@@ -706,7 +707,7 @@ Sec-WebSocket-Accept: {}\r\n\r\n&quot;</span>,
 						FrameType::Ping =&gt; {
 							<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 								ErrKind::IllegalArgument,
-								<span class="macro">format!</span>(<span class="string">&quot;frametype &#39;{:?}&#39; must set fin = true.&quot;</span>, header.ftype)
+								<span class="macro">format!</span>(<span class="string">"frametype '{:?}' must set fin = true."</span>, header.ftype)
 							));
 						}
 						<span class="kw">_ </span>=&gt; {}
@@ -718,8 +719,8 @@ Sec-WebSocket-Accept: {}\r\n\r\n&quot;</span>,
 				offset += end_content;
 			}
 			<span class="prelude-val">None </span>=&gt; {
-				<span class="macro">debug!</span>(<span class="string">&quot;not enough data. Returning none&quot;</span>)<span class="question-mark">?</span>;
-				<span class="comment">// we don&#39;t have enough data to continue, so break
+				<span class="macro">debug!</span>(<span class="string">"not enough data. Returning none"</span>)<span class="question-mark">?</span>;
+				<span class="comment">// we don't have enough data to continue, so break
 				</span><span class="kw">break</span>;
 			}
 		}

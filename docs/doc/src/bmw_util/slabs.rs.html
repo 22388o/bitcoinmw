@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/slabs.rs`."><title>slabs.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/slabs.rs`."><title>slabs.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -473,13 +474,13 @@
 // * Arti: https://gitlab.torproject.org/tpo/core/arti
 // * BitcoinMW: https://github.com/bitcoinmw/bitcoinmw
 //
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -507,7 +508,7 @@
 		</span><span class="kw">pub static </span>GLOBAL_SLAB_ALLOCATOR: UnsafeCell&lt;Box&lt;<span class="kw">dyn </span>SlabAllocator&gt;&gt; = Builder::build_slabs_unsafe();
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; SlabMut&lt;<span class="lifetime">&#39;a</span>&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; SlabMut&lt;<span class="lifetime">'a</span>&gt; {
 	<span class="doccomment">/// get an immutable reference to the data held in this slab.
 	</span><span class="kw">pub fn </span>get(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>[u8] {
 		<span class="kw-2">&amp;</span><span class="self">self</span>.data
@@ -525,7 +526,7 @@
 	}
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; Slab&lt;<span class="lifetime">&#39;a</span>&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; Slab&lt;<span class="lifetime">'a</span>&gt; {
 	<span class="doccomment">/// get a mutable reference to the data held in this slab.
 	</span><span class="kw">pub fn </span>get(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>[u8] {
 		<span class="kw-2">&amp;</span><span class="self">self</span>.data
@@ -542,21 +543,21 @@
 	<span class="kw">fn </span>is_init(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
 		<span class="self">self</span>.config.is_some()
 	}
-	<span class="kw">fn </span>allocate&lt;<span class="lifetime">&#39;a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;SlabMut&lt;<span class="lifetime">&#39;a</span>&gt;, Error&gt; {
+	<span class="kw">fn </span>allocate&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;SlabMut&lt;<span class="lifetime">'a</span>&gt;, Error&gt; {
 		<span class="kw">if </span><span class="self">self</span>.config.is_none() {
-			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IllegalState, <span class="string">&quot;not initialized&quot;</span>));
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IllegalState, <span class="string">"not initialized"</span>));
 		}
 		<span class="kw">let </span>config = <span class="self">self</span>.config.as_ref().unwrap();
-		<span class="macro">debug!</span>(<span class="string">&quot;allocate:self.config={:?}&quot;</span>, config)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"allocate:self.config={:?}"</span>, config)<span class="question-mark">?</span>;
 		<span class="kw">if </span><span class="self">self</span>.first_free == <span class="self">self</span>.max_value {
-			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::CapacityExceeded, <span class="string">&quot;no more slabs available&quot;</span>));
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::CapacityExceeded, <span class="string">"no more slabs available"</span>));
 		}
 
 		<span class="kw">let </span>id = <span class="self">self</span>.first_free;
-		<span class="macro">debug!</span>(<span class="string">&quot;slab allocate id = {}&quot;</span>, id)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"slab allocate id = {}"</span>, id)<span class="question-mark">?</span>;
 		<span class="kw">let </span>offset = (<span class="self">self</span>.ptr_size + config.slab_size) * id;
 		<span class="self">self</span>.first_free = slice_to_usize(<span class="kw-2">&amp;</span><span class="self">self</span>.data.as_slice()[offset..offset + <span class="self">self</span>.ptr_size])<span class="question-mark">?</span>;
-		<span class="macro">debug!</span>(<span class="string">&quot;new firstfree={}&quot;</span>, <span class="self">self</span>.first_free)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"new firstfree={}"</span>, <span class="self">self</span>.first_free)<span class="question-mark">?</span>;
 		<span class="kw">let </span>offset = offset + <span class="self">self</span>.ptr_size;
 		<span class="comment">// mark it as not free we use max_value - 1 because max_value is used to
 		// terminate the free list
@@ -572,70 +573,70 @@
 		<span class="prelude-val">Ok</span>(SlabMut { data, id })
 	}
 	<span class="kw">fn </span>free(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">debug!</span>(<span class="string">&quot;slabs free id ={}&quot;</span>, id)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"slabs free id ={}"</span>, id)<span class="question-mark">?</span>;
 		<span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.config {
 			<span class="prelude-val">Some</span>(config) =&gt; {
 				<span class="kw">if </span>id &gt;= config.slab_count {
-					<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">&quot;slab.id = {}, total slabs = {}&quot;</span>, id, config.slab_count);
+					<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">"slab.id = {}, total slabs = {}"</span>, id, config.slab_count);
 					<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::ArrayIndexOutOfBounds, fmt));
 				}
 				<span class="kw">let </span>offset = (<span class="self">self</span>.ptr_size + config.slab_size) * id;
-				<span class="macro">debug!</span>(<span class="string">&quot;first_free={}&quot;</span>, <span class="self">self</span>.first_free)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"first_free={}"</span>, <span class="self">self</span>.first_free)<span class="question-mark">?</span>;
 
-				<span class="comment">// check that it&#39;s currently allocated
+				<span class="comment">// check that it's currently allocated
 				</span><span class="kw">let </span>slab_entry =
 					slice_to_usize(<span class="kw-2">&amp;</span><span class="self">self</span>.data.as_slice()[offset..offset + <span class="self">self</span>.ptr_size])<span class="question-mark">?</span>;
 
 				<span class="kw">if </span>slab_entry != <span class="self">self</span>.max_value - <span class="number">1 </span>{
-					<span class="macro">debug!</span>(<span class="string">&quot;double free&quot;</span>)<span class="question-mark">?</span>;
+					<span class="macro">debug!</span>(<span class="string">"double free"</span>)<span class="question-mark">?</span>;
 					<span class="comment">// double free error
-					</span><span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">&quot;slab.id = {} has been freed when not allocated&quot;</span>, id);
+					</span><span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">"slab.id = {} has been freed when not allocated"</span>, id);
 					<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IllegalState, fmt));
 				}
 
 				<span class="comment">// update free list
 				</span><span class="kw">let </span><span class="kw-2">mut </span>first_free_slice = [<span class="number">0u8</span>; <span class="number">8</span>];
 				usize_to_slice(<span class="self">self</span>.first_free, <span class="kw-2">&amp;mut </span>first_free_slice[<span class="number">0</span>..<span class="self">self</span>.ptr_size])<span class="question-mark">?</span>;
-				<span class="macro">debug!</span>(<span class="string">&quot;free:self.config={:?},id={}&quot;</span>, config, id)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"free:self.config={:?},id={}"</span>, config, id)<span class="question-mark">?</span>;
 				<span class="self">self</span>.data.as_mut()[offset..offset + <span class="self">self</span>.ptr_size]
 					.clone_from_slice(<span class="kw-2">&amp;</span>first_free_slice[<span class="number">0</span>..<span class="self">self</span>.ptr_size]);
 				<span class="self">self</span>.first_free = id;
-				<span class="macro">debug!</span>(<span class="string">&quot;update firstfree to {}&quot;</span>, <span class="self">self</span>.first_free)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"update firstfree to {}"</span>, <span class="self">self</span>.first_free)<span class="question-mark">?</span>;
 				<span class="self">self</span>.free_count += <span class="number">1</span>;
 				<span class="prelude-val">Ok</span>(())
 			}
 			<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 				ErrKind::IllegalState,
-				<span class="string">&quot;slab allocator has not been initialized&quot;
+				<span class="string">"slab allocator has not been initialized"
 			</span>)),
 		}
 	}
-	<span class="kw">fn </span>get&lt;<span class="lifetime">&#39;a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="self">self</span>, id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;Slab&lt;<span class="lifetime">&#39;a</span>&gt;, Error&gt; {
+	<span class="kw">fn </span>get&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>, id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;Slab&lt;<span class="lifetime">'a</span>&gt;, Error&gt; {
 		<span class="kw">if </span><span class="self">self</span>.config.is_none() {
-			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IllegalState, <span class="string">&quot;not initialized&quot;</span>));
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IllegalState, <span class="string">"not initialized"</span>));
 		}
 		<span class="kw">let </span>config = <span class="self">self</span>.config.as_ref().unwrap();
 		<span class="kw">if </span>id &gt;= config.slab_count {
-			<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">&quot;slab.id = {}, total slabs = {}&quot;</span>, id, config.slab_count);
+			<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">"slab.id = {}, total slabs = {}"</span>, id, config.slab_count);
 			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::ArrayIndexOutOfBounds, fmt));
 		}
-		<span class="macro">debug!</span>(<span class="string">&quot;get:self.config={:?},id={}&quot;</span>, config, id)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"get:self.config={:?},id={}"</span>, config, id)<span class="question-mark">?</span>;
 		<span class="comment">// calculate offset of this slab
 		</span><span class="kw">let </span>offset = <span class="self">self</span>.ptr_size + ((<span class="self">self</span>.ptr_size + config.slab_size) * id);
 		<span class="comment">// get data
 		</span><span class="kw">let </span>data = <span class="kw-2">&amp;</span><span class="self">self</span>.data.as_slice()[offset..offset + config.slab_size];
 		<span class="prelude-val">Ok</span>(Slab { data, id })
 	}
-	<span class="kw">fn </span>get_mut&lt;<span class="lifetime">&#39;a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span><span class="self">self</span>, id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;SlabMut&lt;<span class="lifetime">&#39;a</span>&gt;, Error&gt; {
+	<span class="kw">fn </span>get_mut&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>, id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;SlabMut&lt;<span class="lifetime">'a</span>&gt;, Error&gt; {
 		<span class="kw">if </span><span class="self">self</span>.config.is_none() {
-			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IllegalState, <span class="string">&quot;not initialized&quot;</span>));
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IllegalState, <span class="string">"not initialized"</span>));
 		}
 		<span class="kw">let </span>config = <span class="self">self</span>.config.as_ref().unwrap();
 		<span class="kw">if </span>id &gt;= config.slab_count {
-			<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">&quot;slab.id = {}, total slabs = {}&quot;</span>, id, config.slab_count);
+			<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">"slab.id = {}, total slabs = {}"</span>, id, config.slab_count);
 			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::ArrayIndexOutOfBounds, fmt));
 		}
-		<span class="macro">debug!</span>(<span class="string">&quot;get_mut:self.config={:?},id={}&quot;</span>, config, id)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"get_mut:self.config={:?},id={}"</span>, config, id)<span class="question-mark">?</span>;
 		<span class="comment">// calculate offset of this slab
 		</span><span class="kw">let </span>offset = <span class="self">self</span>.ptr_size + ((<span class="self">self</span>.ptr_size + config.slab_size) * id);
 		<span class="comment">// get data
@@ -645,31 +646,31 @@
 
 	<span class="kw">fn </span>free_count(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
 		<span class="kw">if </span><span class="self">self</span>.config.is_none() {
-			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IllegalState, <span class="string">&quot;not initialized&quot;</span>));
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IllegalState, <span class="string">"not initialized"</span>));
 		}
 		<span class="kw">let </span>config = <span class="self">self</span>.config.as_ref().unwrap();
-		<span class="macro">debug!</span>(<span class="string">&quot;free_count:self.config={:?}&quot;</span>, config)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"free_count:self.config={:?}"</span>, config)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(<span class="self">self</span>.free_count)
 	}
 
 	<span class="kw">fn </span>slab_size(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
-		<span class="macro">debug!</span>(<span class="string">&quot;slab_size:self.config={:?}&quot;</span>, <span class="self">self</span>.config)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"slab_size:self.config={:?}"</span>, <span class="self">self</span>.config)<span class="question-mark">?</span>;
 		<span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.config {
 			<span class="prelude-val">Some</span>(config) =&gt; <span class="prelude-val">Ok</span>(config.slab_size),
 			<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 				ErrKind::IllegalState,
-				<span class="string">&quot;slab allocator has not been initialized&quot;
+				<span class="string">"slab allocator has not been initialized"
 			</span>)),
 		}
 	}
 
 	<span class="kw">fn </span>slab_count(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
-		<span class="macro">debug!</span>(<span class="string">&quot;slab_size:self.config={:?}&quot;</span>, <span class="self">self</span>.config)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"slab_size:self.config={:?}"</span>, <span class="self">self</span>.config)<span class="question-mark">?</span>;
 		<span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.config {
 			<span class="prelude-val">Some</span>(config) =&gt; <span class="prelude-val">Ok</span>(config.slab_count),
 			<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 				ErrKind::IllegalState,
-				<span class="string">&quot;slab allocator has not been initialized&quot;
+				<span class="string">"slab allocator has not been initialized"
 			</span>)),
 		}
 	}
@@ -678,19 +679,19 @@
 		<span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.config {
 			<span class="prelude-val">Some</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 				ErrKind::IllegalState,
-				<span class="string">&quot;slab allocator has already been initialized&quot;
+				<span class="string">"slab allocator has already been initialized"
 			</span>)),
 			<span class="prelude-val">None </span>=&gt; {
 				<span class="kw">if </span>config.slab_size &lt; <span class="number">8 </span>{
 					<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 						ErrKind::IllegalArgument,
-						<span class="string">&quot;slab_size must be at least 8 bytes&quot;
+						<span class="string">"slab_size must be at least 8 bytes"
 					</span>));
 				}
 				<span class="kw">if </span>config.slab_count == <span class="number">0 </span>{
 					<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 						ErrKind::IllegalArgument,
-						<span class="string">&quot;slab_count must be greater than 0&quot;
+						<span class="string">"slab_count must be greater than 0"
 					</span>));
 				}
 
@@ -820,10 +821,10 @@
 				<span class="prelude-val">Ok</span>(())
 			}
 		})<span class="question-mark">?</span>;
-		<span class="kw">let </span>slab = <span class="kw">crate</span>::slabs::GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;SlabMut&lt;<span class="lifetime">&#39;_</span>&gt;, Error&gt; {
+		<span class="kw">let </span>slab = <span class="kw">crate</span>::slabs::GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;SlabMut&lt;<span class="lifetime">'_</span>&gt;, Error&gt; {
 			<span class="prelude-val">Ok</span>(<span class="kw">unsafe </span>{ f.get().as_mut().unwrap().allocate()<span class="question-mark">? </span>})
 		})<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;slab={:?}&quot;</span>, slab.get())<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"slab={:?}"</span>, slab.get())<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 
@@ -881,7 +882,7 @@
 		};
 		slabs.free(id2)<span class="question-mark">?</span>;
 		<span class="macro">assert!</span>(slabs.free(id2).is_err());
-		<span class="comment">// we know id and id2 are equal because when you free a slab it&#39;s added to the
+		<span class="comment">// we know id and id2 are equal because when you free a slab it's added to the
 		// front of the list
 		</span><span class="macro">assert_eq!</span>(id, id2);
 		<span class="prelude-val">Ok</span>(())

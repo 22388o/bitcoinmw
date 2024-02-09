@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `error/src/error.rs`."><title>error.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_err" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `error/src/error.rs`."><title>error.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_err" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -576,14 +577,14 @@
 // * Arti: https://gitlab.torproject.org/tpo/core/arti
 // * BitcoinMW: https://github.com/bitcoinmw/bitcoinmw
 //
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -622,72 +623,72 @@
 </span><span class="attr">#[derive(Clone, Eq, PartialEq, Debug, Fail)]
 </span><span class="kw">pub enum </span>ErrorKind {
 	<span class="doccomment">/// IO Error
-	</span><span class="attr">#[fail(display = <span class="string">&quot;IO Error: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"IO Error: {}"</span>, _0)]
 	</span>IO(String),
 	<span class="doccomment">/// Log Error
-	</span><span class="attr">#[fail(display = <span class="string">&quot;Log Error: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"Log Error: {}"</span>, _0)]
 	</span>Log(String),
 	<span class="doccomment">/// UTF8 Error
-	</span><span class="attr">#[fail(display = <span class="string">&quot;UTF8 Error: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"UTF8 Error: {}"</span>, _0)]
 	</span>Utf8(String),
 	<span class="doccomment">/// ArrayIndexOutOfBounds
-	</span><span class="attr">#[fail(display = <span class="string">&quot;ArrayIndexOutofBounds: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"ArrayIndexOutofBounds: {}"</span>, _0)]
 	</span>ArrayIndexOutOfBounds(String),
 	<span class="doccomment">/// Configuration Error
-	</span><span class="attr">#[fail(display = <span class="string">&quot;Configuration Error: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"Configuration Error: {}"</span>, _0)]
 	</span>Configuration(String),
 	<span class="doccomment">/// Poison error multiple locks
-	</span><span class="attr">#[fail(display = <span class="string">&quot;Poison Error: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"Poison Error: {}"</span>, _0)]
 	</span>Poison(String),
 	<span class="doccomment">/// CorruptedData
-	</span><span class="attr">#[fail(display = <span class="string">&quot;Corrupted Data Error: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"Corrupted Data Error: {}"</span>, _0)]
 	</span>CorruptedData(String),
 	<span class="doccomment">/// Timeout
-	</span><span class="attr">#[fail(display = <span class="string">&quot;Timeout: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"Timeout: {}"</span>, _0)]
 	</span>Timeout(String),
 	<span class="doccomment">/// Capacity Exceeded
-	</span><span class="attr">#[fail(display = <span class="string">&quot;Capacity Exceeded: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"Capacity Exceeded: {}"</span>, _0)]
 	</span>CapacityExceeded(String),
 	<span class="doccomment">/// UnexpectedEof Error
-	</span><span class="attr">#[fail(display = <span class="string">&quot;UnexpectedEOF: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"UnexpectedEOF: {}"</span>, _0)]
 	</span>UnexpectedEof(String),
 	<span class="doccomment">/// IllegalArgument
-	</span><span class="attr">#[fail(display = <span class="string">&quot;IllegalArgument: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"IllegalArgument: {}"</span>, _0)]
 	</span>IllegalArgument(String),
 	<span class="doccomment">/// Miscellaneous Error
-	</span><span class="attr">#[fail(display = <span class="string">&quot;Miscellaneous Error: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"Miscellaneous Error: {}"</span>, _0)]
 	</span>Misc(String),
 	<span class="doccomment">/// Illegal State
-	</span><span class="attr">#[fail(display = <span class="string">&quot;Illegal State Error: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"Illegal State Error: {}"</span>, _0)]
 	</span>IllegalState(String),
 	<span class="doccomment">/// Simulated Error used in testing
-	</span><span class="attr">#[fail(display = <span class="string">&quot;simulated test error: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"simulated test error: {}"</span>, _0)]
 	</span>Test(String),
 	<span class="doccomment">/// Overflow error
-	</span><span class="attr">#[fail(display = <span class="string">&quot;overflow error: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"overflow error: {}"</span>, _0)]
 	</span>Overflow(String),
 	<span class="doccomment">/// Thread Panic
-	</span><span class="attr">#[fail(display = <span class="string">&quot;thread panic: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"thread panic: {}"</span>, _0)]
 	</span>ThreadPanic(String),
 	<span class="doccomment">/// Memmory Allocation Error
-	</span><span class="attr">#[fail(display = <span class="string">&quot;memory allocation error: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"memory allocation error: {}"</span>, _0)]
 	</span>Alloc(String),
 	<span class="doccomment">/// Operation not supported
-	</span><span class="attr">#[fail(display = <span class="string">&quot;operation not supported error: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"operation not supported error: {}"</span>, _0)]
 	</span>OperationNotSupported(String),
 	<span class="doccomment">/// system time error
-	</span><span class="attr">#[fail(display = <span class="string">&quot;system time error: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"system time error: {}"</span>, _0)]
 	</span>SystemTime(String),
 	<span class="doccomment">/// Errno system error
-	</span><span class="attr">#[fail(display = <span class="string">&quot;errno error: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"errno error: {}"</span>, _0)]
 	</span>Errno(String),
 	<span class="doccomment">/// Rustls Error
-	</span><span class="attr">#[fail(display = <span class="string">&quot;rustls error: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"rustls error: {}"</span>, _0)]
 	</span>Rustls(String),
 	<span class="doccomment">/// BMW Crypt Error
-	</span><span class="attr">#[fail(display = <span class="string">&quot;bmw_crypt error: {}&quot;</span>, _0)]
+	</span><span class="attr">#[fail(display = <span class="string">"bmw_crypt error: {}"</span>, _0)]
 	</span>Crypt(String),
-	<span class="attr">#[fail(display = <span class="string">&quot;http_error: {}&quot;</span>, _0)]
+	<span class="attr">#[fail(display = <span class="string">"http_error: {}"</span>, _0)]
 	</span>Http(String),
 }
 
@@ -744,8 +745,8 @@
 }
 
 <span class="kw">impl </span>Display <span class="kw">for </span>Error {
-	<span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; <span class="prelude-ty">Result </span>{
-		<span class="kw">let </span>output = <span class="macro">format!</span>(<span class="string">&quot;{} \n Backtrace: {:?}&quot;</span>, <span class="self">self</span>.inner, <span class="self">self</span>.backtrace());
+	<span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; <span class="prelude-ty">Result </span>{
+		<span class="kw">let </span>output = <span class="macro">format!</span>(<span class="string">"{} \n Backtrace: {:?}"</span>, <span class="self">self</span>.inner, <span class="self">self</span>.backtrace());
 		Display::fmt(<span class="kw-2">&amp;</span>output, f)
 	}
 }
@@ -783,7 +784,7 @@
 <span class="kw">impl </span>From&lt;std::io::Error&gt; <span class="kw">for </span>Error {
 	<span class="kw">fn </span>from(e: std::io::Error) -&gt; Error {
 		Error {
-			inner: Context::new(ErrorKind::IO(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, e))),
+			inner: Context::new(ErrorKind::IO(<span class="macro">format!</span>(<span class="string">"{}"</span>, e))),
 		}
 	}
 }
@@ -791,7 +792,7 @@
 <span class="kw">impl </span>From&lt;OsString&gt; <span class="kw">for </span>Error {
 	<span class="kw">fn </span>from(e: OsString) -&gt; Error {
 		Error {
-			inner: Context::new(ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, e))),
+			inner: Context::new(ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">"{:?}"</span>, e))),
 		}
 	}
 }
@@ -799,7 +800,7 @@
 <span class="kw">impl </span>From&lt;TryFromIntError&gt; <span class="kw">for </span>Error {
 	<span class="kw">fn </span>from(e: TryFromIntError) -&gt; Error {
 		Error {
-			inner: Context::new(ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">&quot;TryFromIntError: {}&quot;</span>, e))),
+			inner: Context::new(ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">"TryFromIntError: {}"</span>, e))),
 		}
 	}
 }
@@ -807,7 +808,7 @@
 <span class="kw">impl </span>From&lt;WebpkiError&gt; <span class="kw">for </span>Error {
 	<span class="kw">fn </span>from(e: WebpkiError) -&gt; Error {
 		Error {
-			inner: Context::new(ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">&quot;webpkiError: {}&quot;</span>, e))),
+			inner: Context::new(ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">"webpkiError: {}"</span>, e))),
 		}
 	}
 }
@@ -815,7 +816,7 @@
 <span class="kw">impl </span>From&lt;ParseIntError&gt; <span class="kw">for </span>Error {
 	<span class="kw">fn </span>from(e: ParseIntError) -&gt; Error {
 		Error {
-			inner: Context::new(ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">&quot;ParseIntError: {}&quot;</span>, e))),
+			inner: Context::new(ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">"ParseIntError: {}"</span>, e))),
 		}
 	}
 }
@@ -823,31 +824,31 @@
 <span class="kw">impl </span>From&lt;Utf8Error&gt; <span class="kw">for </span>Error {
 	<span class="kw">fn </span>from(e: Utf8Error) -&gt; Error {
 		Error {
-			inner: Context::new(ErrorKind::Utf8(<span class="macro">format!</span>(<span class="string">&quot;Utf8 error: {}&quot;</span>, e))),
+			inner: Context::new(ErrorKind::Utf8(<span class="macro">format!</span>(<span class="string">"Utf8 error: {}"</span>, e))),
 		}
 	}
 }
 
-<span class="kw">impl</span>&lt;T&gt; From&lt;PoisonError&lt;RwLockWriteGuard&lt;<span class="lifetime">&#39;_</span>, T&gt;&gt;&gt; <span class="kw">for </span>Error {
-	<span class="kw">fn </span>from(e: PoisonError&lt;RwLockWriteGuard&lt;<span class="lifetime">&#39;_</span>, T&gt;&gt;) -&gt; Error {
+<span class="kw">impl</span>&lt;T&gt; From&lt;PoisonError&lt;RwLockWriteGuard&lt;<span class="lifetime">'_</span>, T&gt;&gt;&gt; <span class="kw">for </span>Error {
+	<span class="kw">fn </span>from(e: PoisonError&lt;RwLockWriteGuard&lt;<span class="lifetime">'_</span>, T&gt;&gt;) -&gt; Error {
 		Error {
-			inner: Context::new(ErrorKind::Poison(<span class="macro">format!</span>(<span class="string">&quot;Poison error: {}&quot;</span>, e))),
+			inner: Context::new(ErrorKind::Poison(<span class="macro">format!</span>(<span class="string">"Poison error: {}"</span>, e))),
 		}
 	}
 }
 
-<span class="kw">impl</span>&lt;T&gt; From&lt;PoisonError&lt;RwLockReadGuard&lt;<span class="lifetime">&#39;_</span>, T&gt;&gt;&gt; <span class="kw">for </span>Error {
-	<span class="kw">fn </span>from(e: PoisonError&lt;RwLockReadGuard&lt;<span class="lifetime">&#39;_</span>, T&gt;&gt;) -&gt; Error {
+<span class="kw">impl</span>&lt;T&gt; From&lt;PoisonError&lt;RwLockReadGuard&lt;<span class="lifetime">'_</span>, T&gt;&gt;&gt; <span class="kw">for </span>Error {
+	<span class="kw">fn </span>from(e: PoisonError&lt;RwLockReadGuard&lt;<span class="lifetime">'_</span>, T&gt;&gt;) -&gt; Error {
 		Error {
-			inner: Context::new(ErrorKind::Poison(<span class="macro">format!</span>(<span class="string">&quot;Poison error: {}&quot;</span>, e))),
+			inner: Context::new(ErrorKind::Poison(<span class="macro">format!</span>(<span class="string">"Poison error: {}"</span>, e))),
 		}
 	}
 }
 
-<span class="kw">impl</span>&lt;T&gt; From&lt;PoisonError&lt;MutexGuard&lt;<span class="lifetime">&#39;_</span>, T&gt;&gt;&gt; <span class="kw">for </span>Error {
-	<span class="kw">fn </span>from(e: PoisonError&lt;MutexGuard&lt;<span class="lifetime">&#39;_</span>, T&gt;&gt;) -&gt; Error {
+<span class="kw">impl</span>&lt;T&gt; From&lt;PoisonError&lt;MutexGuard&lt;<span class="lifetime">'_</span>, T&gt;&gt;&gt; <span class="kw">for </span>Error {
+	<span class="kw">fn </span>from(e: PoisonError&lt;MutexGuard&lt;<span class="lifetime">'_</span>, T&gt;&gt;) -&gt; Error {
 		Error {
-			inner: Context::new(ErrorKind::Poison(<span class="macro">format!</span>(<span class="string">&quot;Poison error: {}&quot;</span>, e))),
+			inner: Context::new(ErrorKind::Poison(<span class="macro">format!</span>(<span class="string">"Poison error: {}"</span>, e))),
 		}
 	}
 }
@@ -855,7 +856,7 @@
 <span class="kw">impl </span>From&lt;RecvError&gt; <span class="kw">for </span>Error {
 	<span class="kw">fn </span>from(e: RecvError) -&gt; Error {
 		Error {
-			inner: Context::new(ErrorKind::IllegalState(<span class="macro">format!</span>(<span class="string">&quot;Recv error: {}&quot;</span>, e))),
+			inner: Context::new(ErrorKind::IllegalState(<span class="macro">format!</span>(<span class="string">"Recv error: {}"</span>, e))),
 		}
 	}
 }
@@ -863,7 +864,7 @@
 <span class="kw">impl</span>&lt;T&gt; From&lt;SendError&lt;T&gt;&gt; <span class="kw">for </span>Error {
 	<span class="kw">fn </span>from(e: SendError&lt;T&gt;) -&gt; Error {
 		Error {
-			inner: Context::new(ErrorKind::IllegalState(<span class="macro">format!</span>(<span class="string">&quot;Send error: {}&quot;</span>, e))),
+			inner: Context::new(ErrorKind::IllegalState(<span class="macro">format!</span>(<span class="string">"Send error: {}"</span>, e))),
 		}
 	}
 }
@@ -871,7 +872,7 @@
 <span class="kw">impl </span>From&lt;LayoutError&gt; <span class="kw">for </span>Error {
 	<span class="kw">fn </span>from(e: LayoutError) -&gt; Error {
 		Error {
-			inner: Context::new(ErrorKind::Alloc(<span class="macro">format!</span>(<span class="string">&quot;Layout error: {}&quot;</span>, e))),
+			inner: Context::new(ErrorKind::Alloc(<span class="macro">format!</span>(<span class="string">"Layout error: {}"</span>, e))),
 		}
 	}
 }
@@ -879,7 +880,7 @@
 <span class="kw">impl </span>From&lt;SystemTimeError&gt; <span class="kw">for </span>Error {
 	<span class="kw">fn </span>from(e: SystemTimeError) -&gt; Error {
 		Error {
-			inner: Context::new(ErrorKind::SystemTime(<span class="macro">format!</span>(<span class="string">&quot;System Time error: {}&quot;</span>, e))),
+			inner: Context::new(ErrorKind::SystemTime(<span class="macro">format!</span>(<span class="string">"System Time error: {}"</span>, e))),
 		}
 	}
 }
@@ -889,7 +890,7 @@
 </span><span class="kw">impl </span>From&lt;Infallible&gt; <span class="kw">for </span>Error {
 	<span class="kw">fn </span>from(e: Infallible) -&gt; Error {
 		Error {
-			inner: Context::new(ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">&quot;Infallible: {}&quot;</span>, e))),
+			inner: Context::new(ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">"Infallible: {}"</span>, e))),
 		}
 	}
 }
@@ -898,7 +899,7 @@
 </span><span class="kw">impl </span>From&lt;bmw_deps::nix::errno::Errno&gt; <span class="kw">for </span>Error {
 	<span class="kw">fn </span>from(e: bmw_deps::nix::errno::Errno) -&gt; Error {
 		Error {
-			inner: Context::new(ErrorKind::Errno(<span class="macro">format!</span>(<span class="string">&quot;Errno system error: {}&quot;</span>, e))),
+			inner: Context::new(ErrorKind::Errno(<span class="macro">format!</span>(<span class="string">"Errno system error: {}"</span>, e))),
 		}
 	}
 }
@@ -906,7 +907,7 @@
 <span class="kw">impl </span>From&lt;bmw_deps::rustls::Error&gt; <span class="kw">for </span>Error {
 	<span class="kw">fn </span>from(e: bmw_deps::rustls::Error) -&gt; Error {
 		Error {
-			inner: Context::new(ErrorKind::Rustls(<span class="macro">format!</span>(<span class="string">&quot;Rustls error: {}&quot;</span>, e))),
+			inner: Context::new(ErrorKind::Rustls(<span class="macro">format!</span>(<span class="string">"Rustls error: {}"</span>, e))),
 		}
 	}
 }
@@ -914,7 +915,7 @@
 <span class="kw">impl </span>From&lt;SignError&gt; <span class="kw">for </span>Error {
 	<span class="kw">fn </span>from(e: SignError) -&gt; Error {
 		Error {
-			inner: Context::new(ErrorKind::Rustls(<span class="macro">format!</span>(<span class="string">&quot;Rustls Signing error: {}&quot;</span>, e))),
+			inner: Context::new(ErrorKind::Rustls(<span class="macro">format!</span>(<span class="string">"Rustls Signing error: {}"</span>, e))),
 		}
 	}
 }
@@ -923,7 +924,7 @@
 	<span class="kw">fn </span>from(e: InvalidDnsNameError) -&gt; Error {
 		Error {
 			inner: Context::new(ErrorKind::Rustls(<span class="macro">format!</span>(
-				<span class="string">&quot;Rustls Invalid DnsNameError: {}&quot;</span>,
+				<span class="string">"Rustls Invalid DnsNameError: {}"</span>,
 				e
 			))),
 		}
@@ -933,7 +934,7 @@
 <span class="kw">impl </span>From&lt;TryFromSliceError&gt; <span class="kw">for </span>Error {
 	<span class="kw">fn </span>from(e: TryFromSliceError) -&gt; Error {
 		Error {
-			inner: Context::new(ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">&quot;tryfromsliceerror: {}&quot;</span>, e))),
+			inner: Context::new(ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">"tryfromsliceerror: {}"</span>, e))),
 		}
 	}
 }
@@ -941,7 +942,7 @@
 <span class="kw">impl </span>From&lt;FromUtf8Error&gt; <span class="kw">for </span>Error {
 	<span class="kw">fn </span>from(e: FromUtf8Error) -&gt; Error {
 		Error {
-			inner: Context::new(ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">&quot;utf8 error: {}&quot;</span>, e))),
+			inner: Context::new(ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">"utf8 error: {}"</span>, e))),
 		}
 	}
 }
@@ -949,7 +950,7 @@
 <span class="kw">impl </span>From&lt;AddrParseError&gt; <span class="kw">for </span>Error {
 	<span class="kw">fn </span>from(e: AddrParseError) -&gt; Error {
 		Error {
-			inner: Context::new(ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">&quot;addr parse error: {}&quot;</span>, e))),
+			inner: Context::new(ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">"addr parse error: {}"</span>, e))),
 		}
 	}
 }
@@ -973,9 +974,9 @@
 	<span class="kw">use </span>std::sync::{Arc, Mutex, RwLock};
 	<span class="kw">use </span>std::time::{Duration, SystemTime, SystemTimeError};
 
-	<span class="attr">#[cfg(target_os = <span class="string">&quot;linux&quot;</span>)]
+	<span class="attr">#[cfg(target_os = <span class="string">"linux"</span>)]
 	</span><span class="kw">use </span>bmw_deps::nix::errno::Errno;
-	<span class="attr">#[cfg(target_os = <span class="string">&quot;linux&quot;</span>)]
+	<span class="attr">#[cfg(target_os = <span class="string">"linux"</span>)]
 	</span><span class="kw">use </span>bmw_deps::nix::sys::epoll::{epoll_ctl, EpollEvent, EpollFlags, EpollOp};
 
 	<span class="kw">fn </span>get_os_string() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
@@ -1005,8 +1006,8 @@
 				e.inner().substring(<span class="number">0</span>, <span class="number">10</span>),
 				ematch.to_string().substring(<span class="number">0</span>, <span class="number">10</span>),
 			);
-			<span class="macro">println!</span>(<span class="string">&quot;e.backtrace()={:?}&quot;</span>, e.backtrace());
-			<span class="macro">println!</span>(<span class="string">&quot;e={}&quot;</span>, e);
+			<span class="macro">println!</span>(<span class="string">"e.backtrace()={:?}"</span>, e.backtrace());
+			<span class="macro">println!</span>(<span class="string">"e={}"</span>, e);
 		}
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -1018,18 +1019,18 @@
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_errors() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		check_error(
-			std::fs::File::open(<span class="string">&quot;/no/path/here&quot;</span>),
-			ErrorKind::IO(<span class="string">&quot;No such file or directory (os error 2)&quot;</span>.to_string()).into(),
+			std::fs::File::open(<span class="string">"/no/path/here"</span>),
+			ErrorKind::IO(<span class="string">"No such file or directory (os error 2)"</span>.to_string()).into(),
 		)<span class="question-mark">?</span>;
 
-		check_error(get_os_string(), ErrorKind::Misc(<span class="string">&quot;&quot;</span>.to_string()).into())<span class="question-mark">?</span>;
+		check_error(get_os_string(), ErrorKind::Misc(<span class="string">""</span>.to_string()).into())<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>x: <span class="prelude-ty">Result</span>&lt;u32, <span class="kw">_</span>&gt; = u64::MAX.try_into();
-		check_error(x, ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">&quot;TryFromIntError..&quot;</span>)).into())<span class="question-mark">?</span>;
+		check_error(x, ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">"TryFromIntError.."</span>)).into())<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>x: <span class="prelude-ty">Result</span>&lt;u32, <span class="kw">_</span>&gt; = <span class="string">&quot;abc&quot;</span>.parse();
-		check_error(x, ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">&quot;ParseIntError..&quot;</span>)).into())<span class="question-mark">?</span>;
-		check_error(get_utf8(), ErrorKind::Utf8(<span class="macro">format!</span>(<span class="string">&quot;Utf8 Error..&quot;</span>)).into())<span class="question-mark">?</span>;
+		<span class="kw">let </span>x: <span class="prelude-ty">Result</span>&lt;u32, <span class="kw">_</span>&gt; = <span class="string">"abc"</span>.parse();
+		check_error(x, ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">"ParseIntError.."</span>)).into())<span class="question-mark">?</span>;
+		check_error(get_utf8(), ErrorKind::Utf8(<span class="macro">format!</span>(<span class="string">"Utf8 Error.."</span>)).into())<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -1061,19 +1062,19 @@
 
 		check_error(
 			lock_clone.write(),
-			ErrorKind::Poison(<span class="macro">format!</span>(<span class="string">&quot;Poison..&quot;</span>)).into(),
+			ErrorKind::Poison(<span class="macro">format!</span>(<span class="string">"Poison.."</span>)).into(),
 		)<span class="question-mark">?</span>;
 
 		check_error(
 			lock_clone.read(),
-			ErrorKind::Poison(<span class="macro">format!</span>(<span class="string">&quot;Poison..&quot;</span>)).into(),
+			ErrorKind::Poison(<span class="macro">format!</span>(<span class="string">"Poison.."</span>)).into(),
 		)<span class="question-mark">?</span>;
 
-		check_error(mutex.lock(), ErrorKind::Poison(<span class="macro">format!</span>(<span class="string">&quot;Poison..&quot;</span>)).into())<span class="question-mark">?</span>;
+		check_error(mutex.lock(), ErrorKind::Poison(<span class="macro">format!</span>(<span class="string">"Poison.."</span>)).into())<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>x = <span class="macro">err!</span>(ErrKind::Poison, <span class="string">&quot;&quot;</span>);
-		<span class="kw">let </span>y = <span class="macro">err!</span>(ErrKind::IllegalArgument, <span class="string">&quot;&quot;</span>);
-		<span class="kw">let </span>z = <span class="macro">err!</span>(ErrKind::Poison, <span class="string">&quot;&quot;</span>);
+		<span class="kw">let </span>x = <span class="macro">err!</span>(ErrKind::Poison, <span class="string">""</span>);
+		<span class="kw">let </span>y = <span class="macro">err!</span>(ErrKind::IllegalArgument, <span class="string">""</span>);
+		<span class="kw">let </span>z = <span class="macro">err!</span>(ErrKind::Poison, <span class="string">""</span>);
 
 		<span class="macro">assert_ne!</span>(x, y);
 		<span class="macro">assert_eq!</span>(x, z);
@@ -1090,7 +1091,7 @@
 		<span class="macro">assert!</span>(err.is_err());
 		check_error(
 			err,
-			ErrorKind::IllegalState(<span class="macro">format!</span>(<span class="string">&quot;IllegalState..&quot;</span>)).into(),
+			ErrorKind::IllegalState(<span class="macro">format!</span>(<span class="string">"IllegalState.."</span>)).into(),
 		)<span class="question-mark">?</span>;
 		<span class="kw">let </span>tx = {
 			<span class="kw">let </span>(tx, _rx) = channel();
@@ -1100,11 +1101,11 @@
 		<span class="kw">let </span>err = tx.send(<span class="number">1</span>);
 		check_error(
 			err,
-			ErrorKind::IllegalState(<span class="macro">format!</span>(<span class="string">&quot;IllegalState..&quot;</span>)).into(),
+			ErrorKind::IllegalState(<span class="macro">format!</span>(<span class="string">"IllegalState.."</span>)).into(),
 		)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>err = Layout::from_size_align(<span class="number">7</span>, <span class="number">7</span>);
-		check_error(err, ErrorKind::Alloc(<span class="macro">format!</span>(<span class="string">&quot;LayoutError..&quot;</span>)).into())<span class="question-mark">?</span>;
+		check_error(err, ErrorKind::Alloc(<span class="macro">format!</span>(<span class="string">"LayoutError.."</span>)).into())<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>now = SystemTime::now();
 		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;Duration, SystemTimeError&gt; = now
@@ -1113,15 +1114,15 @@
 			.duration_since(now.checked_add(Duration::from_millis(<span class="number">2_000_000</span>)).unwrap());
 		check_error(
 			err,
-			ErrorKind::SystemTime(<span class="string">&quot;System time error&quot;</span>.into()).into(),
+			ErrorKind::SystemTime(<span class="string">"System time error"</span>.into()).into(),
 		)<span class="question-mark">?</span>;
 
-		<span class="attr">#[cfg(target_os = <span class="string">&quot;linux&quot;</span>)]
+		<span class="attr">#[cfg(target_os = <span class="string">"linux"</span>)]
 		</span>{
 			<span class="kw">let </span><span class="kw-2">mut </span>event = EpollEvent::new(EpollFlags::empty(), u64::MAX);
 			<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;(), Errno&gt; =
 				epoll_ctl(i32::MAX, EpollOp::EpollCtlAdd, i32::MAX, <span class="kw-2">&amp;mut </span>event);
-			check_error(err, ErrorKind::Errno(<span class="string">&quot;Errno error: &quot;</span>.to_string()).into())<span class="question-mark">?</span>;
+			check_error(err, ErrorKind::Errno(<span class="string">"Errno error: "</span>.to_string()).into())<span class="question-mark">?</span>;
 		}
 
 		<span class="kw">let </span>err = ServerConfig::builder()
@@ -1129,16 +1130,16 @@
 			.with_safe_default_kx_groups()
 			.with_protocol_versions(<span class="kw-2">&amp;</span><span class="macro">vec!</span>[]);
 
-		check_error(err, ErrorKind::Rustls(<span class="string">&quot;rustls error: &quot;</span>.to_string()).into())<span class="question-mark">?</span>;
+		check_error(err, ErrorKind::Rustls(<span class="string">"rustls error: "</span>.to_string()).into())<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;ServerName, InvalidDnsNameError&gt; = <span class="string">&quot;a*$&amp;@@!aa&quot;</span>.try_into();
+		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;ServerName, InvalidDnsNameError&gt; = <span class="string">"a*$&amp;@@!aa"</span>.try_into();
 		<span class="macro">assert!</span>(err.is_err());
-		check_error(err, ErrorKind::Rustls(<span class="string">&quot;rustls error: &quot;</span>.to_string()).into())<span class="question-mark">?</span>;
+		check_error(err, ErrorKind::Rustls(<span class="string">"rustls error: "</span>.to_string()).into())<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;Arc&lt;<span class="kw">dyn </span>SigningKey&gt;, SignError&gt; =
-			any_supported_type(<span class="kw-2">&amp;</span>load_private_key(<span class="string">&quot;./resources/badkey.pem&quot;</span>)<span class="question-mark">?</span>);
+			any_supported_type(<span class="kw-2">&amp;</span>load_private_key(<span class="string">"./resources/badkey.pem"</span>)<span class="question-mark">?</span>);
 		<span class="macro">assert!</span>(err.is_err());
-		check_error(err, ErrorKind::Rustls(<span class="string">&quot;rustls error: &quot;</span>.to_string()).into())<span class="question-mark">?</span>;
+		check_error(err, ErrorKind::Rustls(<span class="string">"rustls error: "</span>.to_string()).into())<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 }
