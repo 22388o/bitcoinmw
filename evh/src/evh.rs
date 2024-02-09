@@ -6520,6 +6520,104 @@ mod test {
 	}
 
 	#[test]
+	fn test_evh_panic_backlog() -> Result<(), Error> {
+		let port = pick_free_port()?;
+		info!("panic_backlog Using port: {}", port)?;
+		let addr = &format!("127.0.0.1:{}", port)[..];
+		let threads = 1;
+		let config = EventHandlerConfig {
+			threads,
+			housekeeping_frequency_millis: 100_000,
+			read_slab_count: 20,
+			max_handles_per_thread: 4,
+			..Default::default()
+		};
+		let mut evh = EventHandlerImpl::new(config)?;
+		evh.set_debug_fatal_error(true);
+
+		evh.set_on_read(move |conn_data, _thread_context, _attachment| {
+			debug!("on read slab_offset = {}", conn_data.slab_offset())?;
+			let first_slab = conn_data.first_slab();
+			let last_slab = conn_data.last_slab();
+			let slab_offset = conn_data.slab_offset();
+			debug!("first_slab={}", first_slab)?;
+			let res = conn_data.borrow_slab_allocator(move |sa| {
+				let slab = sa.get(first_slab.try_into()?)?;
+				assert_eq!(first_slab, last_slab);
+				info!("read bytes = {:?}", &slab.get()[0..slab_offset as usize])?;
+				let mut ret: Vec<u8> = vec![];
+				ret.extend(&slab.get()[0..slab_offset as usize]);
+				Ok(ret)
+			})?;
+
+			if res.len() > 0 && res[0] == '1' as u8 {
+				panic!("test start with '1'");
+			} else if res.len() > 0 && res[0] == '2' as u8 {
+				sleep(Duration::from_millis(5_000));
+			}
+
+			conn_data.clear_through(first_slab)?;
+			conn_data.write_handle().write(&res)?;
+			info!("res={:?}", res)?;
+			Ok(())
+		})?;
+		evh.set_on_accept(move |_conn_data, _thread_context| Ok(()))?;
+		evh.set_on_close(move |_conn_data, _thread_context| Ok(()))?;
+		evh.set_on_panic(move |_thread_context, _e| Ok(()))?;
+		evh.set_housekeeper(move |_thread_context| Ok(()))?;
+
+		evh.start()?;
+		let handles = create_listeners(threads, addr, 10, false)?;
+		info!("handles.size={},handles={:?}", handles.size(), handles)?;
+		let sc = ServerConnection {
+			tls_config: None,
+			handles,
+			is_reuse_port: false,
+		};
+		evh.add_server(sc, Box::new(""))?;
+		sleep(Duration::from_millis(5_000));
+
+		let mut c1 = TcpStream::connect(addr)?;
+		let mut c2 = TcpStream::connect(addr)?;
+		let mut c3 = TcpStream::connect(addr)?;
+
+		c1.write(b"2222")?;
+		sleep(Duration::from_millis(1_000));
+		c2.write(b"1111")?;
+		sleep(Duration::from_millis(1_000));
+		c3.write(b"3333")?;
+		let mut buf = vec![];
+		buf.resize(10, 0u8);
+		let len = c3.read(&mut buf)?;
+		assert_eq!(len, 4);
+		assert_eq!(&buf[0..4], b"3333");
+		let len = c1.read(&mut buf)?;
+		info!("read {} bytes", len)?;
+		assert_eq!(len, 4);
+		assert_eq!(&buf[0..4], b"2222");
+		c1.write(b"5555")?;
+		c2.write(b"6666")?;
+		c3.write(b"77777")?;
+
+		let len = c1.read(&mut buf)?;
+		info!("read {} bytes", len)?;
+		assert_eq!(len, 4);
+		assert_eq!(&buf[0..4], b"5555");
+
+		// this one closed
+		let len = c2.read(&mut buf)?;
+		info!("read {} bytes", len)?;
+		assert_eq!(len, 0);
+
+		let len = c3.read(&mut buf)?;
+		info!("read {} bytes", len)?;
+		assert_eq!(len, 5);
+		assert_eq!(&buf[0..5], b"77777");
+
+		Ok(())
+	}
+
+	#[test]
 	fn test_evh_other_situations() -> Result<(), Error> {
 		let port = pick_free_port()?;
 		info!("other_situations Using port: {}", port)?;
