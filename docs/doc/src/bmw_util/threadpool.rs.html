@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/threadpool.rs`."><title>threadpool.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/threadpool.rs`."><title>threadpool.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -724,13 +725,13 @@
 // * Arti: https://gitlab.torproject.org/tpo/core/arti
 // * BitcoinMW: https://github.com/bitcoinmw/bitcoinmw
 //
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -770,11 +771,11 @@
 <span class="kw">where
 	</span>OnPanic: FnMut(u128, Box&lt;<span class="kw">dyn </span>Any + Send&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 		+ Send
-		+ <span class="lifetime">&#39;static
+		+ <span class="lifetime">'static
 		</span>+ Clone
 		+ Sync
 		+ Unpin,
-	T: <span class="lifetime">&#39;static </span>+ Send + Sync,
+	T: <span class="lifetime">'static </span>+ Send + Sync,
 {
 	<span class="attr">#[cfg(test)]
 	</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new_with_on_panic_and_t(
@@ -787,7 +788,7 @@
 
 	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(config: ThreadPoolConfig) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
 		<span class="kw">if </span>config.min_size == <span class="number">0 </span>|| config.min_size &gt; config.max_size {
-			<span class="kw">let </span>fmt = <span class="string">&quot;min_size must be &gt; 0 and &lt; max_size&quot;</span>;
+			<span class="kw">let </span>fmt = <span class="string">"min_size must be &gt; 0 and &lt; max_size"</span>;
 			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Configuration, fmt));
 		}
 		<span class="kw">let </span>waiting = <span class="number">0</span>;
@@ -818,7 +819,7 @@
 
 	<span class="comment">// full coverage. tarpualin reporting a few lines that are actually covered so disabling.
 	</span><span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>run_thread&lt;R: <span class="lifetime">&#39;static</span>&gt;(
+	</span><span class="kw">fn </span>run_thread&lt;R: <span class="lifetime">'static</span>&gt;(
 		rx: Arc&lt;Mutex&lt;Receiver&lt;FutureWrapper&lt;R&gt;&gt;&gt;&gt;,
 		<span class="kw-2">mut </span>state: Box&lt;<span class="kw">dyn </span>LockBox&lt;ThreadPoolState&gt;&gt;,
 		<span class="kw-2">mut </span>on_panic: <span class="prelude-ty">Option</span>&lt;Pin&lt;Box&lt;OnPanic&gt;&gt;&gt;,
@@ -838,7 +839,7 @@
 								<span class="kw">let </span><span class="kw-2">mut </span>state = state_clone.wlock()<span class="question-mark">?</span>;
 								<span class="kw">let </span>guard = <span class="kw-2">&amp;mut **</span>state.guard();
 
-								<span class="macro">debug!</span>(<span class="string">&quot;state = {:?}&quot;</span>, guard)<span class="question-mark">?</span>;
+								<span class="macro">debug!</span>(<span class="string">"state = {:?}"</span>, guard)<span class="question-mark">?</span>;
 								<span class="comment">// we have too many threads or stop
 								// was set. Exit this one.
 								</span><span class="kw">if </span>guard.stop || guard.waiting &gt;= guard.config.min_size {
@@ -857,12 +858,12 @@
 									do_run_thread = <span class="bool-val">true</span>;
 								}
 							}
-							<span class="macro">debug!</span>(<span class="string">&quot;cur state = {:?}&quot;</span>, guard)<span class="question-mark">?</span>;
+							<span class="macro">debug!</span>(<span class="string">"cur state = {:?}"</span>, guard)<span class="question-mark">?</span>;
 							(ret, do_run_thread)
 						};
 
 						<span class="kw">if </span>do_run_thread {
-							<span class="macro">debug!</span>(<span class="string">&quot;spawning a new thread&quot;</span>)<span class="question-mark">?</span>;
+							<span class="macro">debug!</span>(<span class="string">"spawning a new thread"</span>)<span class="question-mark">?</span>;
 							<span class="self">Self</span>::run_thread(
 								rx.clone(),
 								state_clone.clone(),
@@ -880,11 +881,11 @@
 								<span class="kw">let </span>send_res = next.tx.send(PoolResult::Ok(res));
 								<span class="kw">if </span>send_res.is_err() {
 									<span class="kw">let </span>e = send_res.unwrap_err();
-									<span class="macro">debug!</span>(<span class="string">&quot;error sending response: {}&quot;</span>, e)<span class="question-mark">?</span>;
+									<span class="macro">debug!</span>(<span class="string">"error sending response: {}"</span>, e)<span class="question-mark">?</span>;
 								}
 							}
 							<span class="prelude-val">Err</span>(e) =&gt; {
-								<span class="macro">debug!</span>(<span class="string">&quot;sending an err&quot;</span>)<span class="question-mark">?</span>;
+								<span class="macro">debug!</span>(<span class="string">"sending an err"</span>)<span class="question-mark">?</span>;
 								<span class="comment">// if the reciever is not there we
 								// just ignore the error that would
 								// occur
@@ -899,21 +900,21 @@
 						<span class="kw">let </span><span class="kw-2">mut </span>state = state.wlock()<span class="question-mark">?</span>;
 						<span class="kw">let </span>guard = <span class="kw-2">&amp;mut **</span>state.guard();
 						guard.cur_size = guard.cur_size.saturating_sub(<span class="number">1</span>);
-						<span class="macro">debug!</span>(<span class="string">&quot;exiting a thread, ncur={}&quot;</span>, guard.cur_size)<span class="question-mark">?</span>;
+						<span class="macro">debug!</span>(<span class="string">"exiting a thread, ncur={}"</span>, guard.cur_size)<span class="question-mark">?</span>;
 						<span class="kw">break</span>;
 					} <span class="comment">// reduce thread count so exit this one
 					</span><span class="prelude-val">Err</span>(e) =&gt; <span class="kw">match </span>on_panic.as_mut() {
 						<span class="prelude-val">Some</span>(on_panic) =&gt; {
-							<span class="macro">debug!</span>(<span class="string">&quot;found an onpanic&quot;</span>)<span class="question-mark">?</span>;
+							<span class="macro">debug!</span>(<span class="string">"found an onpanic"</span>)<span class="question-mark">?</span>;
 							<span class="kw">let </span>id = id_clone.rlock()<span class="question-mark">?</span>;
 							<span class="kw">let </span>guard = id.guard();
 							<span class="kw">match </span>on_panic(<span class="kw-2">**</span>guard, e) {
 								<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
-								<span class="prelude-val">Err</span>(e) =&gt; <span class="macro">warn!</span>(<span class="string">&quot;on_panic handler generated error: {}&quot;</span>, e)<span class="question-mark">?</span>,
+								<span class="prelude-val">Err</span>(e) =&gt; <span class="macro">warn!</span>(<span class="string">"on_panic handler generated error: {}"</span>, e)<span class="question-mark">?</span>,
 							}
 						}
 						<span class="prelude-val">None </span>=&gt; {
-							<span class="macro">debug!</span>(<span class="string">&quot;no onpanic&quot;</span>)<span class="question-mark">?</span>;
+							<span class="macro">debug!</span>(<span class="string">"no onpanic"</span>)<span class="question-mark">?</span>;
 						}
 					},
 				}
@@ -926,20 +927,20 @@
 
 <span class="kw">impl</span>&lt;T, OnPanic&gt; ThreadPool&lt;T, OnPanic&gt; <span class="kw">for </span>ThreadPoolImpl&lt;T, OnPanic&gt;
 <span class="kw">where
-	</span>T: <span class="lifetime">&#39;static </span>+ Send + Sync,
+	</span>T: <span class="lifetime">'static </span>+ Send + Sync,
 	OnPanic: FnMut(u128, Box&lt;<span class="kw">dyn </span>Any + Send&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 		+ Send
-		+ <span class="lifetime">&#39;static
+		+ <span class="lifetime">'static
 		</span>+ Clone
 		+ Sync
 		+ Unpin,
 {
 	<span class="kw">fn </span>execute&lt;F&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, f: F, id: u128) -&gt; <span class="prelude-ty">Result</span>&lt;Receiver&lt;PoolResult&lt;T, Error&gt;&gt;, Error&gt;
 	<span class="kw">where
-		</span>F: Future&lt;Output = <span class="prelude-ty">Result</span>&lt;T, Error&gt;&gt; + Send + <span class="lifetime">&#39;static</span>,
+		</span>F: Future&lt;Output = <span class="prelude-ty">Result</span>&lt;T, Error&gt;&gt; + Send + <span class="lifetime">'static</span>,
 	{
 		<span class="kw">if </span><span class="self">self</span>.tx.is_none() {
-			<span class="kw">let </span>fmt = <span class="string">&quot;Thread pool has not been initialized&quot;</span>;
+			<span class="kw">let </span>fmt = <span class="string">"Thread pool has not been initialized"</span>;
 			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IllegalState, fmt));
 		}
 
@@ -1015,10 +1016,10 @@
 {
 	<span class="kw">pub fn </span>execute&lt;F&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, f: F, id: u128) -&gt; <span class="prelude-ty">Result</span>&lt;Receiver&lt;PoolResult&lt;T, Error&gt;&gt;, Error&gt;
 	<span class="kw">where
-		</span>F: Future&lt;Output = <span class="prelude-ty">Result</span>&lt;T, Error&gt;&gt; + Send + <span class="lifetime">&#39;static</span>,
+		</span>F: Future&lt;Output = <span class="prelude-ty">Result</span>&lt;T, Error&gt;&gt; + Send + <span class="lifetime">'static</span>,
 	{
 		<span class="kw">if </span><span class="self">self</span>.tx.is_none() {
-			<span class="kw">let </span>fmt = <span class="string">&quot;Thread pool has not been initialized&quot;</span>;
+			<span class="kw">let </span>fmt = <span class="string">"Thread pool has not been initialized"</span>;
 			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IllegalState, fmt));
 		}
 
@@ -1099,9 +1100,9 @@
 		}
 
 		<span class="comment">// return an error
-		</span><span class="kw">let </span>res = tp.execute(<span class="kw">async move </span>{ <span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Test, <span class="string">&quot;test&quot;</span>)) }, <span class="number">0</span>)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>res = tp.execute(<span class="kw">async move </span>{ <span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Test, <span class="string">"test"</span>)) }, <span class="number">0</span>)<span class="question-mark">?</span>;
 
-		<span class="macro">assert_eq!</span>(res.recv()<span class="question-mark">?</span>, PoolResult::Err(<span class="macro">err!</span>(ErrKind::Test, <span class="string">&quot;test&quot;</span>)));
+		<span class="macro">assert_eq!</span>(res.recv()<span class="question-mark">?</span>, PoolResult::Err(<span class="macro">err!</span>(ErrKind::Test, <span class="string">"test"</span>)));
 
 		<span class="comment">// handle panic
 		</span><span class="kw">let </span>res = tp.execute(
@@ -1132,17 +1133,17 @@
 		<span class="macro">assert_eq!</span>(res.recv()<span class="question-mark">?</span>, PoolResult::Ok(<span class="number">5</span>));
 
 		sleep(Duration::from_millis(<span class="number">1000</span>));
-		<span class="macro">info!</span>(<span class="string">&quot;test sending errors&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"test sending errors"</span>)<span class="question-mark">?</span>;
 
 		<span class="comment">// send an error and ignore the response
 		</span>{
-			<span class="kw">let </span>res = tp.execute(<span class="kw">async move </span>{ <span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Test, <span class="string">&quot;&quot;</span>)) }, <span class="number">0</span>)<span class="question-mark">?</span>;
+			<span class="kw">let </span>res = tp.execute(<span class="kw">async move </span>{ <span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Test, <span class="string">""</span>)) }, <span class="number">0</span>)<span class="question-mark">?</span>;
 			drop(res);
 			sleep(Duration::from_millis(<span class="number">1000</span>));
 		}
 		{
-			<span class="kw">let </span>res = tp.execute(<span class="kw">async move </span>{ <span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Test, <span class="string">&quot;test&quot;</span>)) }, <span class="number">0</span>)<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>(res.recv()<span class="question-mark">?</span>, PoolResult::Err(<span class="macro">err!</span>(ErrKind::Test, <span class="string">&quot;test&quot;</span>)));
+			<span class="kw">let </span>res = tp.execute(<span class="kw">async move </span>{ <span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Test, <span class="string">"test"</span>)) }, <span class="number">0</span>)<span class="question-mark">?</span>;
+			<span class="macro">assert_eq!</span>(res.recv()<span class="question-mark">?</span>, PoolResult::Err(<span class="macro">err!</span>(ErrKind::Test, <span class="string">"test"</span>)));
 		}
 		sleep(Duration::from_millis(<span class="number">1_000</span>));
 
@@ -1223,7 +1224,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
 		<span class="kw">for </span>res <span class="kw">in </span>v {
 			<span class="macro">assert_eq!</span>(res.recv()<span class="question-mark">?</span>, PoolResult::Ok(<span class="number">1</span>));
-			<span class="macro">info!</span>(<span class="string">&quot;res complete {}&quot;</span>, i)<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(<span class="string">"res complete {}"</span>, i)<span class="question-mark">?</span>;
 			i += <span class="number">1</span>;
 		}
 
@@ -1238,14 +1239,14 @@
 			<span class="kw">let </span><span class="kw-2">mut </span>x2_clone = x2.clone();
 			tp.execute(
 				<span class="kw">async move </span>{
-					<span class="macro">info!</span>(<span class="string">&quot;x0a&quot;</span>)<span class="question-mark">?</span>;
+					<span class="macro">info!</span>(<span class="string">"x0a"</span>)<span class="question-mark">?</span>;
 					<span class="kw">loop </span>{
 						<span class="kw">if </span><span class="kw-2">**</span>(x2_clone.rlock()<span class="question-mark">?</span>.guard()) != <span class="number">0 </span>{
 							<span class="kw">break</span>;
 						}
 						sleep(Duration::from_millis(<span class="number">50</span>));
 					}
-					<span class="macro">info!</span>(<span class="string">&quot;x2&quot;</span>)<span class="question-mark">?</span>;
+					<span class="macro">info!</span>(<span class="string">"x2"</span>)<span class="question-mark">?</span>;
 					<span class="kw-2">**</span>(x2_clone.wlock()<span class="question-mark">?</span>.guard()) += <span class="number">1</span>;
 
 					<span class="prelude-val">Ok</span>(<span class="number">0</span>)
@@ -1261,9 +1262,9 @@
 		</span><span class="kw">let </span><span class="kw-2">mut </span>x2_clone = x2.clone();
 		tp.execute(
 			<span class="kw">async move </span>{
-				<span class="macro">info!</span>(<span class="string">&quot;x0&quot;</span>)<span class="question-mark">?</span>;
+				<span class="macro">info!</span>(<span class="string">"x0"</span>)<span class="question-mark">?</span>;
 				<span class="kw-2">**</span>(x2_clone.wlock()<span class="question-mark">?</span>.guard()) += <span class="number">1</span>;
-				<span class="macro">info!</span>(<span class="string">&quot;x1&quot;</span>)<span class="question-mark">?</span>;
+				<span class="macro">info!</span>(<span class="string">"x1"</span>)<span class="question-mark">?</span>;
 				<span class="prelude-val">Ok</span>(<span class="number">0</span>)
 			},
 			<span class="number">0</span>,
@@ -1272,7 +1273,7 @@
 		<span class="comment">// wait
 		</span>sleep(Duration::from_millis(<span class="number">2_000</span>));
 
-		<span class="comment">// confirm situation hasn&#39;t changed
+		<span class="comment">// confirm situation hasn't changed
 		</span><span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(x2.rlock()<span class="question-mark">?</span>.guard()), <span class="number">0</span>);
 
 		<span class="comment">// unlock the threads by setting x2 to 1
@@ -1281,7 +1282,7 @@
 		<span class="comment">// wait
 		</span>sleep(Duration::from_millis(<span class="number">4_000</span>));
 		<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(x2.rlock()<span class="question-mark">?</span>.guard()), <span class="number">6</span>);
-		<span class="macro">info!</span>(<span class="string">&quot;exit all&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"exit all"</span>)<span class="question-mark">?</span>;
 
 		sleep(Duration::from_millis(<span class="number">2_000</span>));
 		<span class="macro">assert_eq!</span>(tp.size()<span class="question-mark">?</span>, <span class="number">2</span>);
@@ -1308,7 +1309,7 @@
 		tp.execute(<span class="kw">async move </span>{ <span class="prelude-val">Ok</span>(()) }, <span class="number">0</span>)<span class="question-mark">?</span>;
 
 		sleep(Duration::from_millis(<span class="number">1000</span>));
-		<span class="macro">info!</span>(<span class="string">&quot;stopping pool&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"stopping pool"</span>)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(tp.size()<span class="question-mark">?</span>, <span class="number">2</span>);
 		tp.stop()<span class="question-mark">?</span>;
 
@@ -1333,7 +1334,7 @@
 			std::thread::spawn(<span class="kw">move </span>|| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 				<span class="kw">let </span>tp = tp.rlock()<span class="question-mark">?</span>;
 				<span class="macro">execute!</span>((<span class="kw-2">**</span>tp.guard()), {
-					<span class="macro">info!</span>(<span class="string">&quot;executing in thread pool&quot;</span>)<span class="question-mark">?</span>;
+					<span class="macro">info!</span>(<span class="string">"executing in thread pool"</span>)<span class="question-mark">?</span>;
 					<span class="prelude-val">Ok</span>(<span class="number">1</span>)
 				})<span class="question-mark">?</span>;
 				<span class="prelude-val">Ok</span>(())
@@ -1377,7 +1378,7 @@
 			tp.execute(<span class="kw">async move </span>{ <span class="prelude-val">Ok</span>(()) }, <span class="number">0</span>).unwrap_err(),
 			<span class="macro">err!</span>(
 				ErrKind::IllegalState,
-				<span class="string">&quot;Thread pool has not been initialized&quot;
+				<span class="string">"Thread pool has not been initialized"
 			</span>)
 		);
 		<span class="prelude-val">Ok</span>(())
@@ -1396,7 +1397,7 @@
 		tp.set_on_panic(<span class="kw">move </span>|<span class="kw">_</span>, <span class="kw">_</span>| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 			<span class="kw">let </span><span class="kw-2">mut </span>count = count.wlock()<span class="question-mark">?</span>;
 			<span class="kw-2">**</span>count.guard() += <span class="number">1</span>;
-			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Test, <span class="string">&quot;panic errored&quot;</span>));
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Test, <span class="string">"panic errored"</span>));
 		})<span class="question-mark">?</span>;
 
 		<span class="comment">// test that unstarted pool returns err
@@ -1407,7 +1408,7 @@
 
 		tp.execute(
 			<span class="kw">async move </span>{
-				<span class="macro">panic!</span>(<span class="string">&quot;err&quot;</span>);
+				<span class="macro">panic!</span>(<span class="string">"err"</span>);
 			},
 			<span class="number">0</span>,
 		)<span class="question-mark">?</span>;
@@ -1427,7 +1428,7 @@
 		// panic)
 		</span><span class="kw">let </span>res = tp.execute(
 			<span class="kw">async move </span>{
-				<span class="macro">info!</span>(<span class="string">&quot;execute&quot;</span>)<span class="question-mark">?</span>;
+				<span class="macro">info!</span>(<span class="string">"execute"</span>)<span class="question-mark">?</span>;
 				<span class="prelude-val">Ok</span>(<span class="number">1</span>)
 			},
 			<span class="number">0</span>,

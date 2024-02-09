@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/lib.rs`."><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/lib.rs`."><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -558,13 +559,13 @@
 <a href="#558" id="558">558</a>
 <a href="#559" id="559">559</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers // Some code and concepts from: // * Grin: https://github.com/mimblewimble/grin // * Arti: https://gitlab.torproject.org/tpo/core/arti // * BitcoinMW: https://github.com/bitcoinmw/bitcoinmw //
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -574,7 +575,7 @@
 //! [`crate::ArrayList`], [`crate::Stack`], [`crate::Queue`], and [`crate::SuffixTree`]. Additionally
 //! a [`crate::ThreadPool`] implementation is provided. Each data structure can be instantiated in
 //! a impl and Box form using the [`crate::Builder`] or through macros. The impls completely stack
-//! based and the box forms are Box&lt;dyn ..&gt;&#39;s that can be stored in other structs and Enums. While
+//! based and the box forms are Box&lt;dyn ..&gt;'s that can be stored in other structs and Enums. While
 //! the boxed versions do store data on the heap, it is only pointers and the vast majority of the
 //! data, in either form, is stored in pre-allocated slabs. The array based structures do use
 //! the heap, they use [`std::vec::Vec`] as the underlying storage mechanism, but they only allocate
@@ -684,8 +685,8 @@
 //! ```
 //!
 //! So, as seen, the performance is somewhat comparable and keep in mind, that these operations are
-//! being done in the sub millisecond time frame, so it&#39;s very unlikely that this will ultimately
-//! impact the performance of the application unless it&#39;s an already very optimized application
+//! being done in the sub millisecond time frame, so it's very unlikely that this will ultimately
+//! impact the performance of the application unless it's an already very optimized application
 //! that needs to be very scalable.
 //!
 //! # Using bmw_util (and other crates) in your project
@@ -693,15 +694,15 @@
 //! To use the crates in bmw in your project, add the following to your Cargo.toml:
 //!
 //!```text
-//! bmw_util   = { git = &quot;https://github.com/cgilliard/bitcoinmw&quot;  }
+//! bmw_util   = { git = "https://github.com/cgilliard/bitcoinmw"  }
 //!```
 //!
 //! Optionally, you may wish to use the other associated crates:
 //!
 //!```text
-//! bmw_err    = { git = &quot;https://github.com/cgilliard/bitcoinmw&quot;  }
-//! bmw_log    = { git = &quot;https://github.com/cgilliard/bitcoinmw&quot;  }
-//! bmw_derive = { git = &quot;https://github.com/cgilliard/bitcoinmw&quot;  }
+//! bmw_err    = { git = "https://github.com/cgilliard/bitcoinmw"  }
+//! bmw_log    = { git = "https://github.com/cgilliard/bitcoinmw"  }
+//! bmw_derive = { git = "https://github.com/cgilliard/bitcoinmw"  }
 //!```
 //!
 //! The linux dependencies can be installed with the following commands on ubuntu:
@@ -760,22 +761,22 @@
 //!     // get the value for our key and assert it is correct
 //!     let v = hashtable.get(&amp;1)?;
 //!     assert_eq!(v, Some(2));
-//!     info!(&quot;value = {:?}&quot;, v)?;
+//!     info!("value = {:?}", v)?;
 //!
-//!     // instantiate a hashset that uses the same slab allocator. Since we don&#39;t specify
+//!     // instantiate a hashset that uses the same slab allocator. Since we don't specify
 //!     // the MaxLoadFactor, the default value of 0.8 will be used for this hashset.
 //!     let mut hashset = hashset!(MaxEntries(5_000), Slabs(&amp;slabs))?;
 //!
 //!     // insert a key
-//!     hashset.insert(&amp;&quot;test&quot;.to_string())?;
+//!     hashset.insert(&amp;"test".to_string())?;
 //!
 //!     // assert that our key is found in the hashset
-//!     assert!(hashset.contains(&amp;&quot;test&quot;.to_string())?);
+//!     assert!(hashset.contains(&amp;"test".to_string())?);
 //!
 //!     // do a negative assertion
-//!     assert!(!hashset.contains(&amp;&quot;test2&quot;.to_string())?);
+//!     assert!(!hashset.contains(&amp;"test2".to_string())?);
 //!
-//!     info!(&quot;complete!&quot;)?;
+//!     info!("complete!")?;
 //!
 //!     Ok(())
 //! }
@@ -804,7 +805,7 @@
 //!     list2.push(4)?;
 //!     list2.push(1)?;
 //!
-//!     // sort the array list and assert it&#39;s equal to the other list
+//!     // sort the array list and assert it's equal to the other list
 //!     list2.sort()?;
 //!     assert!(list_eq!(list1, list2));
 //!
@@ -858,7 +859,7 @@
 //!     let mut tp = thread_pool!()?;
 //!     tp.set_on_panic(move |_id,_e| -&gt; Result&lt;(), Error&gt; { Ok(()) })?;
 //!
-//!     // create a lock initializing it&#39;s value to 0
+//!     // create a lock initializing it's value to 0
 //!     let x = lock!(0)?;
 //!     // clone the lock (one for the thread pool, one for the local thread)
 //!     let mut x_clone = x.clone();
@@ -915,10 +916,10 @@
 //!             hashtable,
 //!         };
 //!
-//!         s.hashtable.insert(&amp;1, &amp;&quot;something&quot;.to_string())?;
-//!         s.hashtable.insert(&amp;2, &amp;&quot;something else&quot;.to_string())?;
+//!         s.hashtable.insert(&amp;1, &amp;"something".to_string())?;
+//!         s.hashtable.insert(&amp;2, &amp;"something else".to_string())?;
 //!
-//!         assert_eq!(s.hashtable.get(&amp;1)?, Some(&quot;something&quot;.to_string()));
+//!         assert_eq!(s.hashtable.get(&amp;1)?, Some("something".to_string()));
 //!
 //!     }
 //!
@@ -976,16 +977,16 @@
 //!     // and a max wild card length (the maximum length of any wildcards) of 50
 //!     let mut suffix_tree = suffix_tree!(
 //!         list![
-//!             pattern!(Regex(&quot;abc&quot;), Id(0))?,
-//!             pattern!(Regex(&quot;def.*ok&quot;), Id(1))?
+//!             pattern!(Regex("abc"), Id(0))?,
+//!             pattern!(Regex("def.*ok"), Id(1))?
 //!         ],
 //!         TerminationLength(100),
 //!         MaxWildcardLength(50)
 //!     )?;
 //!
-//!     // run the matches and return the number of matches assert that it&#39;s
+//!     // run the matches and return the number of matches assert that it's
 //!     // one for the abc match
-//!     let match_count = suffix_tree.tmatch(b&quot;abc&quot;, &amp;mut matches)?;
+//!     let match_count = suffix_tree.tmatch(b"abc", &amp;mut matches)?;
 //!     assert_eq!(match_count, 1);
 //!
 //!     Ok(())
@@ -1062,12 +1063,12 @@
 //! fn main() -&gt; Result&lt;(), Error&gt; {
 //!     let s = MyStruct {
 //!         id: 1234,
-//!         name: &quot;Hagrid&quot;.to_string(),
+//!         name: "Hagrid".to_string(),
 //!         phone: None,
 //!         age: 54,
 //!     };
 //!
-//!     debug!(&quot;my struct = {:?}&quot;, s)?;
+//!     debug!("my struct = {:?}", s)?;
 //!
 //!     let mut hashtable = hashtable!()?;
 //!
@@ -1076,7 +1077,7 @@
 //!     let v = hashtable.get(&amp;1)?;
 //!     assert_eq!(v, Some(s));
 //!
-//!     info!(&quot;value of record #1 is {:?}&quot;, v)?;
+//!     info!("value of record #1 is {:?}", v)?;
 //!     
 //!     Ok(())
 //! }

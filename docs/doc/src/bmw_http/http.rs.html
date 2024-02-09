@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `http/src/http.rs`."><title>http.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_http" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `http/src/http.rs`."><title>http.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_http" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -2245,13 +2246,13 @@
 // * Arti: https://gitlab.torproject.org/tpo/core/arti
 // * BitcoinMW: https://github.com/bitcoinmw/bitcoinmw
 //
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -2323,178 +2324,178 @@
 			debug: <span class="bool-val">false</span>,
 			cache_slab_count: <span class="number">10_000</span>,
 			idle_timeout: <span class="number">60_000</span>,
-			server_name: <span class="string">&quot;BitcoinMW HTTP Server&quot;</span>.to_string(),
-			server_version: <span class="string">&quot;0.0.0&quot;</span>.to_string(),
+			server_name: <span class="string">"BitcoinMW HTTP Server"</span>.to_string(),
+			server_version: <span class="string">"0.0.0"</span>.to_string(),
 			bring_to_front_weight: <span class="number">0.1</span>,
 			restat_file_frequency_in_millis: <span class="number">3_000</span>, <span class="comment">// 3 seconds
 			</span>request_callback: <span class="prelude-val">None</span>,
 			mime_map: <span class="macro">vec!</span>[
-				(<span class="string">&quot;html&quot;</span>.to_string(), <span class="string">&quot;text/html&quot;</span>.to_string()),
-				(<span class="string">&quot;htm&quot;</span>.to_string(), <span class="string">&quot;text/html&quot;</span>.to_string()),
-				(<span class="string">&quot;shtml&quot;</span>.to_string(), <span class="string">&quot;text/html&quot;</span>.to_string()),
-				(<span class="string">&quot;txt&quot;</span>.to_string(), <span class="string">&quot;text/plain&quot;</span>.to_string()),
-				(<span class="string">&quot;css&quot;</span>.to_string(), <span class="string">&quot;text/css&quot;</span>.to_string()),
-				(<span class="string">&quot;xml&quot;</span>.to_string(), <span class="string">&quot;text/xml&quot;</span>.to_string()),
-				(<span class="string">&quot;gif&quot;</span>.to_string(), <span class="string">&quot;image/gif&quot;</span>.to_string()),
-				(<span class="string">&quot;jpeg&quot;</span>.to_string(), <span class="string">&quot;image/jpeg&quot;</span>.to_string()),
-				(<span class="string">&quot;jpg&quot;</span>.to_string(), <span class="string">&quot;image/jpeg&quot;</span>.to_string()),
-				(<span class="string">&quot;js&quot;</span>.to_string(), <span class="string">&quot;application/javascript&quot;</span>.to_string()),
-				(<span class="string">&quot;atom&quot;</span>.to_string(), <span class="string">&quot;application/atom+xml&quot;</span>.to_string()),
-				(<span class="string">&quot;rss&quot;</span>.to_string(), <span class="string">&quot;application/rss+xml&quot;</span>.to_string()),
-				(<span class="string">&quot;mml&quot;</span>.to_string(), <span class="string">&quot;text/mathml&quot;</span>.to_string()),
+				(<span class="string">"html"</span>.to_string(), <span class="string">"text/html"</span>.to_string()),
+				(<span class="string">"htm"</span>.to_string(), <span class="string">"text/html"</span>.to_string()),
+				(<span class="string">"shtml"</span>.to_string(), <span class="string">"text/html"</span>.to_string()),
+				(<span class="string">"txt"</span>.to_string(), <span class="string">"text/plain"</span>.to_string()),
+				(<span class="string">"css"</span>.to_string(), <span class="string">"text/css"</span>.to_string()),
+				(<span class="string">"xml"</span>.to_string(), <span class="string">"text/xml"</span>.to_string()),
+				(<span class="string">"gif"</span>.to_string(), <span class="string">"image/gif"</span>.to_string()),
+				(<span class="string">"jpeg"</span>.to_string(), <span class="string">"image/jpeg"</span>.to_string()),
+				(<span class="string">"jpg"</span>.to_string(), <span class="string">"image/jpeg"</span>.to_string()),
+				(<span class="string">"js"</span>.to_string(), <span class="string">"application/javascript"</span>.to_string()),
+				(<span class="string">"atom"</span>.to_string(), <span class="string">"application/atom+xml"</span>.to_string()),
+				(<span class="string">"rss"</span>.to_string(), <span class="string">"application/rss+xml"</span>.to_string()),
+				(<span class="string">"mml"</span>.to_string(), <span class="string">"text/mathml"</span>.to_string()),
 				(
-					<span class="string">&quot;jad&quot;</span>.to_string(),
-					<span class="string">&quot;text/vnd.sun.j2me.app-descriptor&quot;</span>.to_string(),
+					<span class="string">"jad"</span>.to_string(),
+					<span class="string">"text/vnd.sun.j2me.app-descriptor"</span>.to_string(),
 				),
-				(<span class="string">&quot;wml&quot;</span>.to_string(), <span class="string">&quot;text/vnd.wap.wml&quot;</span>.to_string()),
-				(<span class="string">&quot;htc&quot;</span>.to_string(), <span class="string">&quot;text/x-component&quot;</span>.to_string()),
-				(<span class="string">&quot;avif&quot;</span>.to_string(), <span class="string">&quot;image/avif&quot;</span>.to_string()),
-				(<span class="string">&quot;png&quot;</span>.to_string(), <span class="string">&quot;image/png&quot;</span>.to_string()),
-				(<span class="string">&quot;svg&quot;</span>.to_string(), <span class="string">&quot;image/svg+xml&quot;</span>.to_string()),
-				(<span class="string">&quot;svgz&quot;</span>.to_string(), <span class="string">&quot;image/svg+xml&quot;</span>.to_string()),
-				(<span class="string">&quot;tif&quot;</span>.to_string(), <span class="string">&quot;image/tiff&quot;</span>.to_string()),
-				(<span class="string">&quot;tiff&quot;</span>.to_string(), <span class="string">&quot;image/tiff&quot;</span>.to_string()),
-				(<span class="string">&quot;wbmp&quot;</span>.to_string(), <span class="string">&quot;image/vnd.wap.wbmp&quot;</span>.to_string()),
-				(<span class="string">&quot;webp&quot;</span>.to_string(), <span class="string">&quot;image/webp&quot;</span>.to_string()),
-				(<span class="string">&quot;ico&quot;</span>.to_string(), <span class="string">&quot;image/x-icon&quot;</span>.to_string()),
-				(<span class="string">&quot;jng&quot;</span>.to_string(), <span class="string">&quot;image/x-jng&quot;</span>.to_string()),
-				(<span class="string">&quot;bmp&quot;</span>.to_string(), <span class="string">&quot;image/x-ms-bmp&quot;</span>.to_string()),
-				(<span class="string">&quot;woff&quot;</span>.to_string(), <span class="string">&quot;font/woff&quot;</span>.to_string()),
-				(<span class="string">&quot;woff2&quot;</span>.to_string(), <span class="string">&quot;font/woff2&quot;</span>.to_string()),
-				(<span class="string">&quot;jar&quot;</span>.to_string(), <span class="string">&quot;application/java-archive&quot;</span>.to_string()),
-				(<span class="string">&quot;war&quot;</span>.to_string(), <span class="string">&quot;application/java-archive&quot;</span>.to_string()),
-				(<span class="string">&quot;ear&quot;</span>.to_string(), <span class="string">&quot;application/java-archive&quot;</span>.to_string()),
-				(<span class="string">&quot;json&quot;</span>.to_string(), <span class="string">&quot;application/json&quot;</span>.to_string()),
-				(<span class="string">&quot;hqx&quot;</span>.to_string(), <span class="string">&quot;application/mac-binhex40&quot;</span>.to_string()),
-				(<span class="string">&quot;doc&quot;</span>.to_string(), <span class="string">&quot;application/msword&quot;</span>.to_string()),
-				(<span class="string">&quot;pdf&quot;</span>.to_string(), <span class="string">&quot;application/pdf&quot;</span>.to_string()),
-				(<span class="string">&quot;ps&quot;</span>.to_string(), <span class="string">&quot;application/postscript&quot;</span>.to_string()),
-				(<span class="string">&quot;eps&quot;</span>.to_string(), <span class="string">&quot;application/postscript&quot;</span>.to_string()),
-				(<span class="string">&quot;ai&quot;</span>.to_string(), <span class="string">&quot;application/postscript&quot;</span>.to_string()),
-				(<span class="string">&quot;rtf&quot;</span>.to_string(), <span class="string">&quot;application/rtf&quot;</span>.to_string()),
+				(<span class="string">"wml"</span>.to_string(), <span class="string">"text/vnd.wap.wml"</span>.to_string()),
+				(<span class="string">"htc"</span>.to_string(), <span class="string">"text/x-component"</span>.to_string()),
+				(<span class="string">"avif"</span>.to_string(), <span class="string">"image/avif"</span>.to_string()),
+				(<span class="string">"png"</span>.to_string(), <span class="string">"image/png"</span>.to_string()),
+				(<span class="string">"svg"</span>.to_string(), <span class="string">"image/svg+xml"</span>.to_string()),
+				(<span class="string">"svgz"</span>.to_string(), <span class="string">"image/svg+xml"</span>.to_string()),
+				(<span class="string">"tif"</span>.to_string(), <span class="string">"image/tiff"</span>.to_string()),
+				(<span class="string">"tiff"</span>.to_string(), <span class="string">"image/tiff"</span>.to_string()),
+				(<span class="string">"wbmp"</span>.to_string(), <span class="string">"image/vnd.wap.wbmp"</span>.to_string()),
+				(<span class="string">"webp"</span>.to_string(), <span class="string">"image/webp"</span>.to_string()),
+				(<span class="string">"ico"</span>.to_string(), <span class="string">"image/x-icon"</span>.to_string()),
+				(<span class="string">"jng"</span>.to_string(), <span class="string">"image/x-jng"</span>.to_string()),
+				(<span class="string">"bmp"</span>.to_string(), <span class="string">"image/x-ms-bmp"</span>.to_string()),
+				(<span class="string">"woff"</span>.to_string(), <span class="string">"font/woff"</span>.to_string()),
+				(<span class="string">"woff2"</span>.to_string(), <span class="string">"font/woff2"</span>.to_string()),
+				(<span class="string">"jar"</span>.to_string(), <span class="string">"application/java-archive"</span>.to_string()),
+				(<span class="string">"war"</span>.to_string(), <span class="string">"application/java-archive"</span>.to_string()),
+				(<span class="string">"ear"</span>.to_string(), <span class="string">"application/java-archive"</span>.to_string()),
+				(<span class="string">"json"</span>.to_string(), <span class="string">"application/json"</span>.to_string()),
+				(<span class="string">"hqx"</span>.to_string(), <span class="string">"application/mac-binhex40"</span>.to_string()),
+				(<span class="string">"doc"</span>.to_string(), <span class="string">"application/msword"</span>.to_string()),
+				(<span class="string">"pdf"</span>.to_string(), <span class="string">"application/pdf"</span>.to_string()),
+				(<span class="string">"ps"</span>.to_string(), <span class="string">"application/postscript"</span>.to_string()),
+				(<span class="string">"eps"</span>.to_string(), <span class="string">"application/postscript"</span>.to_string()),
+				(<span class="string">"ai"</span>.to_string(), <span class="string">"application/postscript"</span>.to_string()),
+				(<span class="string">"rtf"</span>.to_string(), <span class="string">"application/rtf"</span>.to_string()),
 				(
-					<span class="string">&quot;m3u8&quot;</span>.to_string(),
-					<span class="string">&quot;application/vnd.apple.mpegurl&quot;</span>.to_string(),
-				),
-				(
-					<span class="string">&quot;kml&quot;</span>.to_string(),
-					<span class="string">&quot;application/vnd.google-earth.kml+xml&quot;</span>.to_string(),
+					<span class="string">"m3u8"</span>.to_string(),
+					<span class="string">"application/vnd.apple.mpegurl"</span>.to_string(),
 				),
 				(
-					<span class="string">&quot;kmz&quot;</span>.to_string(),
-					<span class="string">&quot;application/vnd.google-earth.kmz&quot;</span>.to_string(),
-				),
-				(<span class="string">&quot;xls&quot;</span>.to_string(), <span class="string">&quot;application/vnd.ms-excel&quot;</span>.to_string()),
-				(
-					<span class="string">&quot;eot&quot;</span>.to_string(),
-					<span class="string">&quot;application/vnd.ms-fontobject&quot;</span>.to_string(),
+					<span class="string">"kml"</span>.to_string(),
+					<span class="string">"application/vnd.google-earth.kml+xml"</span>.to_string(),
 				),
 				(
-					<span class="string">&quot;ppt&quot;</span>.to_string(),
-					<span class="string">&quot;application/vnd.ms-powerpoint&quot;</span>.to_string(),
+					<span class="string">"kmz"</span>.to_string(),
+					<span class="string">"application/vnd.google-earth.kmz"</span>.to_string(),
+				),
+				(<span class="string">"xls"</span>.to_string(), <span class="string">"application/vnd.ms-excel"</span>.to_string()),
+				(
+					<span class="string">"eot"</span>.to_string(),
+					<span class="string">"application/vnd.ms-fontobject"</span>.to_string(),
 				),
 				(
-					<span class="string">&quot;odg&quot;</span>.to_string(),
-					<span class="string">&quot;application/vnd.oasis.opendocument.graphics&quot;</span>.to_string(),
+					<span class="string">"ppt"</span>.to_string(),
+					<span class="string">"application/vnd.ms-powerpoint"</span>.to_string(),
 				),
 				(
-					<span class="string">&quot;odp&quot;</span>.to_string(),
-					<span class="string">&quot;application/vnd.oasis.opendocument.presentation&quot;</span>.to_string(),
+					<span class="string">"odg"</span>.to_string(),
+					<span class="string">"application/vnd.oasis.opendocument.graphics"</span>.to_string(),
 				),
 				(
-					<span class="string">&quot;ods&quot;</span>.to_string(),
-					<span class="string">&quot;application/vnd.oasis.opendocument.spreadsheet&quot;</span>.to_string(),
+					<span class="string">"odp"</span>.to_string(),
+					<span class="string">"application/vnd.oasis.opendocument.presentation"</span>.to_string(),
 				),
 				(
-					<span class="string">&quot;odt&quot;</span>.to_string(),
-					<span class="string">&quot;application/vnd.oasis.opendocument.text&quot;</span>.to_string(),
+					<span class="string">"ods"</span>.to_string(),
+					<span class="string">"application/vnd.oasis.opendocument.spreadsheet"</span>.to_string(),
 				),
 				(
-					<span class="string">&quot;pptx&quot;</span>.to_string(),
-					<span class="string">&quot;application/vnd.openxmlformats-officedocument.presentationml.presentation&quot;
+					<span class="string">"odt"</span>.to_string(),
+					<span class="string">"application/vnd.oasis.opendocument.text"</span>.to_string(),
+				),
+				(
+					<span class="string">"pptx"</span>.to_string(),
+					<span class="string">"application/vnd.openxmlformats-officedocument.presentationml.presentation"
 						</span>.to_string(),
 				),
 				(
-					<span class="string">&quot;xlsx&quot;</span>.to_string(),
-					<span class="string">&quot;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet&quot;</span>.to_string(),
+					<span class="string">"xlsx"</span>.to_string(),
+					<span class="string">"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"</span>.to_string(),
 				),
 				(
-					<span class="string">&quot;docx&quot;</span>.to_string(),
-					<span class="string">&quot;application/vnd.openxmlformats-officedocument.wordprocessingml.document&quot;
+					<span class="string">"docx"</span>.to_string(),
+					<span class="string">"application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 						</span>.to_string(),
 				),
-				(<span class="string">&quot;wmlc&quot;</span>.to_string(), <span class="string">&quot;application/vnd.wap.wmlc&quot;</span>.to_string()),
-				(<span class="string">&quot;wasm&quot;</span>.to_string(), <span class="string">&quot;application/wasm&quot;</span>.to_string()),
-				(<span class="string">&quot;7z&quot;</span>.to_string(), <span class="string">&quot;application/x-7z-compressed&quot;</span>.to_string()),
-				(<span class="string">&quot;cco&quot;</span>.to_string(), <span class="string">&quot;application/x-cocoa&quot;</span>.to_string()),
+				(<span class="string">"wmlc"</span>.to_string(), <span class="string">"application/vnd.wap.wmlc"</span>.to_string()),
+				(<span class="string">"wasm"</span>.to_string(), <span class="string">"application/wasm"</span>.to_string()),
+				(<span class="string">"7z"</span>.to_string(), <span class="string">"application/x-7z-compressed"</span>.to_string()),
+				(<span class="string">"cco"</span>.to_string(), <span class="string">"application/x-cocoa"</span>.to_string()),
 				(
-					<span class="string">&quot;jardiff&quot;</span>.to_string(),
-					<span class="string">&quot;application/x-java-archive-diff&quot;</span>.to_string(),
+					<span class="string">"jardiff"</span>.to_string(),
+					<span class="string">"application/x-java-archive-diff"</span>.to_string(),
 				),
 				(
-					<span class="string">&quot;jnlp&quot;</span>.to_string(),
-					<span class="string">&quot;application/x-java-jnlp-file&quot;</span>.to_string(),
+					<span class="string">"jnlp"</span>.to_string(),
+					<span class="string">"application/x-java-jnlp-file"</span>.to_string(),
 				),
-				(<span class="string">&quot;run&quot;</span>.to_string(), <span class="string">&quot;application/x-makeself&quot;</span>.to_string()),
-				(<span class="string">&quot;pl&quot;</span>.to_string(), <span class="string">&quot;application/x-perl&quot;</span>.to_string()),
-				(<span class="string">&quot;pm&quot;</span>.to_string(), <span class="string">&quot;application/x-perl&quot;</span>.to_string()),
-				(<span class="string">&quot;prc&quot;</span>.to_string(), <span class="string">&quot;application/x-pilot&quot;</span>.to_string()),
-				(<span class="string">&quot;pbd&quot;</span>.to_string(), <span class="string">&quot;application/x-pilot&quot;</span>.to_string()),
+				(<span class="string">"run"</span>.to_string(), <span class="string">"application/x-makeself"</span>.to_string()),
+				(<span class="string">"pl"</span>.to_string(), <span class="string">"application/x-perl"</span>.to_string()),
+				(<span class="string">"pm"</span>.to_string(), <span class="string">"application/x-perl"</span>.to_string()),
+				(<span class="string">"prc"</span>.to_string(), <span class="string">"application/x-pilot"</span>.to_string()),
+				(<span class="string">"pbd"</span>.to_string(), <span class="string">"application/x-pilot"</span>.to_string()),
 				(
-					<span class="string">&quot;rar&quot;</span>.to_string(),
-					<span class="string">&quot;application/x-rar-compressed&quot;</span>.to_string(),
+					<span class="string">"rar"</span>.to_string(),
+					<span class="string">"application/x-rar-compressed"</span>.to_string(),
 				),
 				(
-					<span class="string">&quot;rpm&quot;</span>.to_string(),
-					<span class="string">&quot;application/x-redhat-package-manager&quot;</span>.to_string(),
+					<span class="string">"rpm"</span>.to_string(),
+					<span class="string">"application/x-redhat-package-manager"</span>.to_string(),
 				),
-				(<span class="string">&quot;sea&quot;</span>.to_string(), <span class="string">&quot;application/x-sea&quot;</span>.to_string()),
+				(<span class="string">"sea"</span>.to_string(), <span class="string">"application/x-sea"</span>.to_string()),
 				(
-					<span class="string">&quot;swf&quot;</span>.to_string(),
-					<span class="string">&quot;application/x-shockwave-flash&quot;</span>.to_string(),
+					<span class="string">"swf"</span>.to_string(),
+					<span class="string">"application/x-shockwave-flash"</span>.to_string(),
 				),
-				(<span class="string">&quot;sit&quot;</span>.to_string(), <span class="string">&quot;application/x-stuffit&quot;</span>.to_string()),
-				(<span class="string">&quot;tcl&quot;</span>.to_string(), <span class="string">&quot;application/x-tcl&quot;</span>.to_string()),
-				(<span class="string">&quot;tk&quot;</span>.to_string(), <span class="string">&quot;application/x-tcl&quot;</span>.to_string()),
-				(<span class="string">&quot;der&quot;</span>.to_string(), <span class="string">&quot;application/x-x509-ca-cert&quot;</span>.to_string()),
-				(<span class="string">&quot;pem&quot;</span>.to_string(), <span class="string">&quot;application/x-x509-ca-cert&quot;</span>.to_string()),
-				(<span class="string">&quot;crt&quot;</span>.to_string(), <span class="string">&quot;application/x-x509-ca-cert&quot;</span>.to_string()),
-				(<span class="string">&quot;xpi&quot;</span>.to_string(), <span class="string">&quot;application/x-xpinstall&quot;</span>.to_string()),
-				(<span class="string">&quot;xhtml&quot;</span>.to_string(), <span class="string">&quot;application/xhtml+xml&quot;</span>.to_string()),
-				(<span class="string">&quot;xspf&quot;</span>.to_string(), <span class="string">&quot;application/xspf+xml&quot;</span>.to_string()),
-				(<span class="string">&quot;zip&quot;</span>.to_string(), <span class="string">&quot;application/zip&quot;</span>.to_string()),
-				(<span class="string">&quot;bin&quot;</span>.to_string(), <span class="string">&quot;application/octet-stream&quot;</span>.to_string()),
-				(<span class="string">&quot;exe&quot;</span>.to_string(), <span class="string">&quot;application/octet-stream&quot;</span>.to_string()),
-				(<span class="string">&quot;dll&quot;</span>.to_string(), <span class="string">&quot;application/octet-stream&quot;</span>.to_string()),
-				(<span class="string">&quot;deb&quot;</span>.to_string(), <span class="string">&quot;application/octet-stream&quot;</span>.to_string()),
-				(<span class="string">&quot;dmg&quot;</span>.to_string(), <span class="string">&quot;application/octet-stream&quot;</span>.to_string()),
-				(<span class="string">&quot;iso&quot;</span>.to_string(), <span class="string">&quot;application/octet-stream&quot;</span>.to_string()),
-				(<span class="string">&quot;img&quot;</span>.to_string(), <span class="string">&quot;application/octet-stream&quot;</span>.to_string()),
-				(<span class="string">&quot;msi&quot;</span>.to_string(), <span class="string">&quot;application/octet-stream&quot;</span>.to_string()),
-				(<span class="string">&quot;msp&quot;</span>.to_string(), <span class="string">&quot;application/octet-stream&quot;</span>.to_string()),
-				(<span class="string">&quot;msm&quot;</span>.to_string(), <span class="string">&quot;application/octet-stream&quot;</span>.to_string()),
-				(<span class="string">&quot;mid&quot;</span>.to_string(), <span class="string">&quot;audio/midi&quot;</span>.to_string()),
-				(<span class="string">&quot;midi&quot;</span>.to_string(), <span class="string">&quot;audio/midi&quot;</span>.to_string()),
-				(<span class="string">&quot;kar&quot;</span>.to_string(), <span class="string">&quot;audio/midi&quot;</span>.to_string()),
-				(<span class="string">&quot;mp3&quot;</span>.to_string(), <span class="string">&quot;audio/mpeg&quot;</span>.to_string()),
-				(<span class="string">&quot;ogg&quot;</span>.to_string(), <span class="string">&quot;audio/ogg&quot;</span>.to_string()),
-				(<span class="string">&quot;m4a&quot;</span>.to_string(), <span class="string">&quot;audio/x-m4a&quot;</span>.to_string()),
-				(<span class="string">&quot;ra&quot;</span>.to_string(), <span class="string">&quot;audio/x-realaudio&quot;</span>.to_string()),
-				(<span class="string">&quot;3gpg&quot;</span>.to_string(), <span class="string">&quot;video/3gpp&quot;</span>.to_string()),
-				(<span class="string">&quot;3gp&quot;</span>.to_string(), <span class="string">&quot;video/mp2t&quot;</span>.to_string()),
-				(<span class="string">&quot;ts&quot;</span>.to_string(), <span class="string">&quot;video/mp2t&quot;</span>.to_string()),
-				(<span class="string">&quot;mp4&quot;</span>.to_string(), <span class="string">&quot;video/mp4&quot;</span>.to_string()),
-				(<span class="string">&quot;mpeg&quot;</span>.to_string(), <span class="string">&quot;video/mpeg&quot;</span>.to_string()),
-				(<span class="string">&quot;mpg&quot;</span>.to_string(), <span class="string">&quot;video/mpeg&quot;</span>.to_string()),
-				(<span class="string">&quot;mov&quot;</span>.to_string(), <span class="string">&quot;video/quicktime&quot;</span>.to_string()),
-				(<span class="string">&quot;webm&quot;</span>.to_string(), <span class="string">&quot;video/webm&quot;</span>.to_string()),
-				(<span class="string">&quot;flv&quot;</span>.to_string(), <span class="string">&quot;video/x-flv&quot;</span>.to_string()),
-				(<span class="string">&quot;m4v&quot;</span>.to_string(), <span class="string">&quot;video/x-m4v&quot;</span>.to_string()),
-				(<span class="string">&quot;mng&quot;</span>.to_string(), <span class="string">&quot;video/x-mng&quot;</span>.to_string()),
-				(<span class="string">&quot;asx&quot;</span>.to_string(), <span class="string">&quot;video/x-ms-asf&quot;</span>.to_string()),
-				(<span class="string">&quot;asf&quot;</span>.to_string(), <span class="string">&quot;video/x-ms-asf&quot;</span>.to_string()),
-				(<span class="string">&quot;wmv&quot;</span>.to_string(), <span class="string">&quot;video/x-ms-wmv&quot;</span>.to_string()),
-				(<span class="string">&quot;avi&quot;</span>.to_string(), <span class="string">&quot;video/x-msvideo&quot;</span>.to_string()),
+				(<span class="string">"sit"</span>.to_string(), <span class="string">"application/x-stuffit"</span>.to_string()),
+				(<span class="string">"tcl"</span>.to_string(), <span class="string">"application/x-tcl"</span>.to_string()),
+				(<span class="string">"tk"</span>.to_string(), <span class="string">"application/x-tcl"</span>.to_string()),
+				(<span class="string">"der"</span>.to_string(), <span class="string">"application/x-x509-ca-cert"</span>.to_string()),
+				(<span class="string">"pem"</span>.to_string(), <span class="string">"application/x-x509-ca-cert"</span>.to_string()),
+				(<span class="string">"crt"</span>.to_string(), <span class="string">"application/x-x509-ca-cert"</span>.to_string()),
+				(<span class="string">"xpi"</span>.to_string(), <span class="string">"application/x-xpinstall"</span>.to_string()),
+				(<span class="string">"xhtml"</span>.to_string(), <span class="string">"application/xhtml+xml"</span>.to_string()),
+				(<span class="string">"xspf"</span>.to_string(), <span class="string">"application/xspf+xml"</span>.to_string()),
+				(<span class="string">"zip"</span>.to_string(), <span class="string">"application/zip"</span>.to_string()),
+				(<span class="string">"bin"</span>.to_string(), <span class="string">"application/octet-stream"</span>.to_string()),
+				(<span class="string">"exe"</span>.to_string(), <span class="string">"application/octet-stream"</span>.to_string()),
+				(<span class="string">"dll"</span>.to_string(), <span class="string">"application/octet-stream"</span>.to_string()),
+				(<span class="string">"deb"</span>.to_string(), <span class="string">"application/octet-stream"</span>.to_string()),
+				(<span class="string">"dmg"</span>.to_string(), <span class="string">"application/octet-stream"</span>.to_string()),
+				(<span class="string">"iso"</span>.to_string(), <span class="string">"application/octet-stream"</span>.to_string()),
+				(<span class="string">"img"</span>.to_string(), <span class="string">"application/octet-stream"</span>.to_string()),
+				(<span class="string">"msi"</span>.to_string(), <span class="string">"application/octet-stream"</span>.to_string()),
+				(<span class="string">"msp"</span>.to_string(), <span class="string">"application/octet-stream"</span>.to_string()),
+				(<span class="string">"msm"</span>.to_string(), <span class="string">"application/octet-stream"</span>.to_string()),
+				(<span class="string">"mid"</span>.to_string(), <span class="string">"audio/midi"</span>.to_string()),
+				(<span class="string">"midi"</span>.to_string(), <span class="string">"audio/midi"</span>.to_string()),
+				(<span class="string">"kar"</span>.to_string(), <span class="string">"audio/midi"</span>.to_string()),
+				(<span class="string">"mp3"</span>.to_string(), <span class="string">"audio/mpeg"</span>.to_string()),
+				(<span class="string">"ogg"</span>.to_string(), <span class="string">"audio/ogg"</span>.to_string()),
+				(<span class="string">"m4a"</span>.to_string(), <span class="string">"audio/x-m4a"</span>.to_string()),
+				(<span class="string">"ra"</span>.to_string(), <span class="string">"audio/x-realaudio"</span>.to_string()),
+				(<span class="string">"3gpg"</span>.to_string(), <span class="string">"video/3gpp"</span>.to_string()),
+				(<span class="string">"3gp"</span>.to_string(), <span class="string">"video/mp2t"</span>.to_string()),
+				(<span class="string">"ts"</span>.to_string(), <span class="string">"video/mp2t"</span>.to_string()),
+				(<span class="string">"mp4"</span>.to_string(), <span class="string">"video/mp4"</span>.to_string()),
+				(<span class="string">"mpeg"</span>.to_string(), <span class="string">"video/mpeg"</span>.to_string()),
+				(<span class="string">"mpg"</span>.to_string(), <span class="string">"video/mpeg"</span>.to_string()),
+				(<span class="string">"mov"</span>.to_string(), <span class="string">"video/quicktime"</span>.to_string()),
+				(<span class="string">"webm"</span>.to_string(), <span class="string">"video/webm"</span>.to_string()),
+				(<span class="string">"flv"</span>.to_string(), <span class="string">"video/x-flv"</span>.to_string()),
+				(<span class="string">"m4v"</span>.to_string(), <span class="string">"video/x-m4v"</span>.to_string()),
+				(<span class="string">"mng"</span>.to_string(), <span class="string">"video/x-mng"</span>.to_string()),
+				(<span class="string">"asx"</span>.to_string(), <span class="string">"video/x-ms-asf"</span>.to_string()),
+				(<span class="string">"asf"</span>.to_string(), <span class="string">"video/x-ms-asf"</span>.to_string()),
+				(<span class="string">"wmv"</span>.to_string(), <span class="string">"video/x-ms-wmv"</span>.to_string()),
+				(<span class="string">"avi"</span>.to_string(), <span class="string">"video/x-msvideo"</span>.to_string()),
 			],
 		}
 	}
@@ -2503,16 +2504,16 @@
 <span class="kw">impl </span>Default <span class="kw">for </span>HttpInstance {
 	<span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
 		<span class="kw">let </span><span class="kw-2">mut </span>http_dir_map = HashMap::new();
-		http_dir_map.insert(<span class="string">&quot;*&quot;</span>.to_string(), <span class="string">&quot;~/.bmw/www&quot;</span>.to_string());
+		http_dir_map.insert(<span class="string">"*"</span>.to_string(), <span class="string">"~/.bmw/www"</span>.to_string());
 		<span class="self">Self </span>{
 			port: <span class="number">8080</span>,
-			addr: <span class="string">&quot;127.0.0.1&quot;</span>.to_string(),
+			addr: <span class="string">"127.0.0.1"</span>.to_string(),
 			listen_queue_size: <span class="number">100</span>,
 			instance_type: HttpInstanceType::Plain(PlainConfig { http_dir_map }),
-			default_file: <span class="macro">vec!</span>[<span class="string">&quot;index.html&quot;</span>.to_string(), <span class="string">&quot;index.htm&quot;</span>.to_string()],
-			error_400file: <span class="string">&quot;error.html&quot;</span>.to_string(),
-			error_403file: <span class="string">&quot;error.html&quot;</span>.to_string(),
-			error_404file: <span class="string">&quot;error.html&quot;</span>.to_string(),
+			default_file: <span class="macro">vec!</span>[<span class="string">"index.html"</span>.to_string(), <span class="string">"index.htm"</span>.to_string()],
+			error_400file: <span class="string">"error.html"</span>.to_string(),
+			error_403file: <span class="string">"error.html"</span>.to_string(),
+			error_404file: <span class="string">"error.html"</span>.to_string(),
 			callback_extensions: HashSet::new(),
 			callback_mappings: HashSet::new(),
 			websocket_mappings: HashMap::new(),
@@ -2522,29 +2523,29 @@
 	}
 }
 
-<span class="kw">impl </span>HttpHeaders&lt;<span class="lifetime">&#39;_</span>&gt; {
+<span class="kw">impl </span>HttpHeaders&lt;<span class="lifetime">'_</span>&gt; {
 	<span class="kw">pub fn </span>path(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;String, Error&gt; {
 		<span class="kw">if </span><span class="self">self</span>.start_uri &gt; <span class="number">0 </span>&amp;&amp; <span class="self">self</span>.end_uri &gt; <span class="self">self</span>.start_uri {
 			<span class="kw">let </span>path = std::str::from_utf8(<span class="kw-2">&amp;</span><span class="self">self</span>.req[<span class="self">self</span>.start_uri..<span class="self">self</span>.end_uri])<span class="question-mark">?</span>.to_string();
-			<span class="kw">if </span>path.contains(<span class="string">&quot;?&quot;</span>) {
-				<span class="kw">let </span>pos = path.chars().position(|c| c == <span class="string">&#39;?&#39;</span>).unwrap();
+			<span class="kw">if </span>path.contains(<span class="string">"?"</span>) {
+				<span class="kw">let </span>pos = path.chars().position(|c| c == <span class="string">'?'</span>).unwrap();
 				<span class="kw">let </span>path = path.substring(<span class="number">0</span>, pos);
 				<span class="prelude-val">Ok</span>(path.to_string())
 			} <span class="kw">else </span>{
 				<span class="prelude-val">Ok</span>(path)
 			}
 		} <span class="kw">else </span>{
-			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">&quot;no path&quot;</span>))
+			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">"no path"</span>))
 		}
 	}
 
 	<span class="kw">pub fn </span>query(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;String, Error&gt; {
 		<span class="kw">let </span>path = std::str::from_utf8(<span class="kw-2">&amp;</span><span class="self">self</span>.req[<span class="self">self</span>.start_uri..<span class="self">self</span>.end_uri])<span class="question-mark">?</span>.to_string();
-		<span class="kw">let </span>query = <span class="kw">if </span>path.contains(<span class="string">&quot;?&quot;</span>) {
-			<span class="kw">let </span>pos = path.chars().position(|c| c == <span class="string">&#39;?&#39;</span>).unwrap();
+		<span class="kw">let </span>query = <span class="kw">if </span>path.contains(<span class="string">"?"</span>) {
+			<span class="kw">let </span>pos = path.chars().position(|c| c == <span class="string">'?'</span>).unwrap();
 			path.substring(pos + <span class="number">1</span>, path.len()).to_string()
 		} <span class="kw">else </span>{
-			<span class="string">&quot;&quot;</span>.to_string()
+			<span class="string">""</span>.to_string()
 		};
 		<span class="prelude-val">Ok</span>(query)
 	}
@@ -2608,25 +2609,25 @@
 	<span class="kw">pub fn </span>extension(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;String, Error&gt; {
 		<span class="kw">let </span>path = <span class="kw">if </span><span class="self">self</span>.start_uri &gt; <span class="number">0 </span>&amp;&amp; <span class="self">self</span>.end_uri &gt; <span class="self">self</span>.start_uri {
 			<span class="kw">let </span>path = std::str::from_utf8(<span class="kw-2">&amp;</span><span class="self">self</span>.req[<span class="self">self</span>.start_uri..<span class="self">self</span>.end_uri])<span class="question-mark">?</span>.to_string();
-			<span class="kw">if </span>path.contains(<span class="string">&quot;?&quot;</span>) {
-				<span class="kw">let </span>pos = path.chars().position(|c| c == <span class="string">&#39;?&#39;</span>).unwrap();
+			<span class="kw">if </span>path.contains(<span class="string">"?"</span>) {
+				<span class="kw">let </span>pos = path.chars().position(|c| c == <span class="string">'?'</span>).unwrap();
 				<span class="kw">let </span>path = path.substring(<span class="number">0</span>, pos);
 				path.to_string()
 			} <span class="kw">else </span>{
 				path
 			}
 		} <span class="kw">else </span>{
-			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">&quot;no path&quot;</span>));
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">"no path"</span>));
 		};
 
 		<span class="kw">let </span>path_len = path.len();
 
-		<span class="prelude-val">Ok</span>(<span class="kw">match </span>rfind_utf8(<span class="kw-2">&amp;</span>path, <span class="string">&#39;.&#39;</span>) {
+		<span class="prelude-val">Ok</span>(<span class="kw">match </span>rfind_utf8(<span class="kw-2">&amp;</span>path, <span class="string">'.'</span>) {
 			<span class="prelude-val">Some</span>(pos) =&gt; <span class="kw">match </span>pos + <span class="number">1 </span>&lt; path_len {
 				<span class="bool-val">true </span>=&gt; path.substring(pos + <span class="number">1</span>, path_len).to_string(),
-				<span class="bool-val">false </span>=&gt; <span class="string">&quot;&quot;</span>.to_string(),
+				<span class="bool-val">false </span>=&gt; <span class="string">""</span>.to_string(),
 			},
-			<span class="prelude-val">None </span>=&gt; <span class="string">&quot;&quot;</span>.to_string(),
+			<span class="prelude-val">None </span>=&gt; <span class="string">""</span>.to_string(),
 		})
 	}
 
@@ -2662,17 +2663,17 @@
 		<span class="kw">if </span>config.bring_to_front_weight &gt; <span class="number">1.0 </span>|| config.bring_to_front_weight &lt; <span class="number">0.0 </span>{
 			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 				ErrKind::IllegalArgument,
-				<span class="string">&quot;bring_to_front_weight must be between 0.0 and 1.0 inclusive.&quot;
+				<span class="string">"bring_to_front_weight must be between 0.0 and 1.0 inclusive."
 			</span>));
 		}
 
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">fn </span>build_ctx&lt;<span class="lifetime">&#39;a</span>&gt;(
-		ctx: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>ThreadContext,
+	<span class="kw">fn </span>build_ctx&lt;<span class="lifetime">'a</span>&gt;(
+		ctx: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>ThreadContext,
 		config: <span class="kw-2">&amp;</span>HttpConfig,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>HttpContext, Error&gt; {
+	) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>HttpContext, Error&gt; {
 		<span class="kw">match </span>ctx.user_data.downcast_ref::&lt;HttpContext&gt;() {
 			<span class="prelude-val">Some</span>(<span class="kw">_</span>) =&gt; {}
 			<span class="prelude-val">None </span>=&gt; {
@@ -2684,46 +2685,46 @@
 	}
 
 	<span class="kw">fn </span>build_http_context(config: <span class="kw-2">&amp;</span>HttpConfig) -&gt; <span class="prelude-ty">Result</span>&lt;HttpContext, Error&gt; {
-		<span class="macro">debug!</span>(<span class="string">&quot;build ctx&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"build ctx"</span>)<span class="question-mark">?</span>;
 		<span class="macro">global_slab_allocator!</span>(SlabSize(<span class="number">128</span>), SlabCount(<span class="number">1_000</span>))<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>suffix_tree = Box::new(<span class="macro">suffix_tree!</span>(
 			<span class="macro">list!</span>[
 				bmw_util::Builder::build_pattern(
-					<span class="string">&quot;\r\n\r\n&quot;</span>,
+					<span class="string">"\r\n\r\n"</span>,
 					<span class="bool-val">true</span>,
 					<span class="bool-val">true</span>,
 					<span class="bool-val">true</span>,
 					SUFFIX_TREE_TERMINATE_HEADERS_ID
 				),
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^GET .* &quot;</span>), Id(SUFFIX_TREE_GET_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^POST .* &quot;</span>), Id(SUFFIX_TREE_POST_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^HEAD .* &quot;</span>), Id(SUFFIX_TREE_HEAD_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^PUT .* &quot;</span>), Id(SUFFIX_TREE_PUT_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^DELETE .* &quot;</span>), Id(SUFFIX_TREE_DELETE_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^OPTIONS .* &quot;</span>), Id(SUFFIX_TREE_OPTIONS_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^CONNECT .* &quot;</span>), Id(SUFFIX_TREE_CONNECT_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^TRACE .* &quot;</span>), Id(SUFFIX_TREE_TRACE_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^PATCH .* &quot;</span>), Id(SUFFIX_TREE_PATCH_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^GET .*\n&quot;</span>), Id(SUFFIX_TREE_GET_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^POST .*\n&quot;</span>), Id(SUFFIX_TREE_POST_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^HEAD .*\n&quot;</span>), Id(SUFFIX_TREE_HEAD_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^PUT .*\n&quot;</span>), Id(SUFFIX_TREE_PUT_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^DELETE .*\n&quot;</span>), Id(SUFFIX_TREE_DELETE_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^OPTIONS .*\n&quot;</span>), Id(SUFFIX_TREE_OPTIONS_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^CONNECT .*\n&quot;</span>), Id(SUFFIX_TREE_CONNECT_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^TRACE .*\n&quot;</span>), Id(SUFFIX_TREE_TRACE_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^PATCH .*\n&quot;</span>), Id(SUFFIX_TREE_PATCH_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^GET .*\r&quot;</span>), Id(SUFFIX_TREE_GET_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^POST .*\r&quot;</span>), Id(SUFFIX_TREE_POST_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^HEAD .*\r&quot;</span>), Id(SUFFIX_TREE_HEAD_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^PUT .*\r&quot;</span>), Id(SUFFIX_TREE_PUT_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^DELETE .*\r&quot;</span>), Id(SUFFIX_TREE_DELETE_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^OPTIONS .*\r&quot;</span>), Id(SUFFIX_TREE_OPTIONS_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^CONNECT .*\r&quot;</span>), Id(SUFFIX_TREE_CONNECT_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^TRACE .*\r&quot;</span>), Id(SUFFIX_TREE_TRACE_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^PATCH .*\r&quot;</span>), Id(SUFFIX_TREE_PATCH_ID))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;\r\n.*: &quot;</span>), Id(SUFFIX_TREE_HEADER_ID))<span class="question-mark">?
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^GET .* "</span>), Id(SUFFIX_TREE_GET_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^POST .* "</span>), Id(SUFFIX_TREE_POST_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^HEAD .* "</span>), Id(SUFFIX_TREE_HEAD_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^PUT .* "</span>), Id(SUFFIX_TREE_PUT_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^DELETE .* "</span>), Id(SUFFIX_TREE_DELETE_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^OPTIONS .* "</span>), Id(SUFFIX_TREE_OPTIONS_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^CONNECT .* "</span>), Id(SUFFIX_TREE_CONNECT_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^TRACE .* "</span>), Id(SUFFIX_TREE_TRACE_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^PATCH .* "</span>), Id(SUFFIX_TREE_PATCH_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^GET .*\n"</span>), Id(SUFFIX_TREE_GET_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^POST .*\n"</span>), Id(SUFFIX_TREE_POST_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^HEAD .*\n"</span>), Id(SUFFIX_TREE_HEAD_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^PUT .*\n"</span>), Id(SUFFIX_TREE_PUT_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^DELETE .*\n"</span>), Id(SUFFIX_TREE_DELETE_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^OPTIONS .*\n"</span>), Id(SUFFIX_TREE_OPTIONS_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^CONNECT .*\n"</span>), Id(SUFFIX_TREE_CONNECT_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^TRACE .*\n"</span>), Id(SUFFIX_TREE_TRACE_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^PATCH .*\n"</span>), Id(SUFFIX_TREE_PATCH_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^GET .*\r"</span>), Id(SUFFIX_TREE_GET_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^POST .*\r"</span>), Id(SUFFIX_TREE_POST_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^HEAD .*\r"</span>), Id(SUFFIX_TREE_HEAD_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^PUT .*\r"</span>), Id(SUFFIX_TREE_PUT_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^DELETE .*\r"</span>), Id(SUFFIX_TREE_DELETE_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^OPTIONS .*\r"</span>), Id(SUFFIX_TREE_OPTIONS_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^CONNECT .*\r"</span>), Id(SUFFIX_TREE_CONNECT_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^TRACE .*\r"</span>), Id(SUFFIX_TREE_TRACE_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"^PATCH .*\r"</span>), Id(SUFFIX_TREE_PATCH_ID))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"\r\n.*: "</span>), Id(SUFFIX_TREE_HEADER_ID))<span class="question-mark">?
 			</span>],
 			TerminationLength(<span class="number">100_000</span>),
 			MaxWildcardLength(<span class="number">100</span>)
@@ -2784,50 +2785,50 @@
 		<span class="kw">let </span>range_start = headers.range_start()<span class="question-mark">?</span>;
 		<span class="kw">let </span>res = dt
 			.format(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
-				<span class="string">&quot;HTTP/{} {} {}\r\n\
+				<span class="string">"HTTP/{} {} {}\r\n\
 			Server: {} {}\r\n\
 			Date: %a, %d %h %C%y %H:%M:%S GMT\r\n{}{}\
 			Connection: {}\r\n\
 			Last-Modified: {}\r\n\
 			ETag: {}\r\n\
-			{}\r\n\r\n{}&quot;</span>,
+			{}\r\n\r\n{}"</span>,
 				<span class="kw">match </span>version {
-					HttpVersion::HTTP11 =&gt; <span class="string">&quot;1.1&quot;</span>,
-					<span class="kw">_ </span>=&gt; <span class="string">&quot;1.0&quot;</span>,
+					HttpVersion::HTTP11 =&gt; <span class="string">"1.1"</span>,
+					<span class="kw">_ </span>=&gt; <span class="string">"1.0"</span>,
 				},
 				code,
 				message,
 				config.server_name,
 				config.server_version,
 				<span class="kw">match </span>content_type {
-					<span class="prelude-val">Some</span>(content_type) =&gt; <span class="macro">format!</span>(<span class="string">&quot;Content-Type: {}\r\n&quot;</span>, content_type),
-					<span class="prelude-val">None </span>=&gt; <span class="string">&quot;&quot;</span>.to_string(),
+					<span class="prelude-val">Some</span>(content_type) =&gt; <span class="macro">format!</span>(<span class="string">"Content-Type: {}\r\n"</span>, content_type),
+					<span class="prelude-val">None </span>=&gt; <span class="string">""</span>.to_string(),
 				},
 				<span class="kw">match </span>headers.has_range()<span class="question-mark">? </span>&amp;&amp; !error {
 					<span class="bool-val">true </span>=&gt; <span class="macro">format!</span>(
-						<span class="string">&quot;Content-Range: bytes {}-{}/{}\r\n&quot;</span>,
+						<span class="string">"Content-Range: bytes {}-{}/{}\r\n"</span>,
 						range_start, range_end, file_len
 					),
-					<span class="bool-val">false </span>=&gt; <span class="string">&quot;Accept-Ranges: bytes\r\n&quot;</span>.to_string(),
+					<span class="bool-val">false </span>=&gt; <span class="string">"Accept-Ranges: bytes\r\n"</span>.to_string(),
 				},
 				<span class="kw">match </span>connection_type {
-					ConnectionType::KeepAlive =&gt; <span class="string">&quot;keep-alive&quot;</span>,
-					<span class="kw">_ </span>=&gt; <span class="string">&quot;close&quot;</span>,
+					ConnectionType::KeepAlive =&gt; <span class="string">"keep-alive"</span>,
+					<span class="kw">_ </span>=&gt; <span class="string">"close"</span>,
 				},
 				DateTime::from_timestamp(<span class="macro">try_into!</span>(last_modified / <span class="number">1000</span>)<span class="question-mark">?</span>, <span class="number">0</span>)
 					.unwrap_or(UNIX_EPOCH.into())
-					.format(<span class="string">&quot;%a, %d %h %C%y %H:%M:%S GMT&quot;</span>),
+					.format(<span class="string">"%a, %d %h %C%y %H:%M:%S GMT"</span>),
 				etag,
 				<span class="kw">if </span>!headers.has_range()<span class="question-mark">? </span>&amp;&amp; !is_error &amp;&amp; headers.accept_gzip()<span class="question-mark">? </span>{
-					<span class="string">&quot;Content-Encoding: gzip\r\nTransfer-Encoding: chunked, gzip&quot;</span>.to_string()
+					<span class="string">"Content-Encoding: gzip\r\nTransfer-Encoding: chunked, gzip"</span>.to_string()
 				} <span class="kw">else if </span>!headers.has_range()<span class="question-mark">? </span>&amp;&amp; !is_error {
-					<span class="string">&quot;Transfer-Encoding: chunked&quot;</span>.to_string()
+					<span class="string">"Transfer-Encoding: chunked"</span>.to_string()
 				} <span class="kw">else </span>{
-					<span class="macro">format!</span>(<span class="string">&quot;Content-Length: {}&quot;</span>, content_len)
+					<span class="macro">format!</span>(<span class="string">"Content-Length: {}"</span>, content_len)
 				},
 				<span class="kw">match </span>content {
 					<span class="prelude-val">Some</span>(content) =&gt; content,
-					<span class="prelude-val">None </span>=&gt; <span class="string">&quot;&quot;</span>.to_string(),
+					<span class="prelude-val">None </span>=&gt; <span class="string">""</span>.to_string(),
 				}
 			))
 			.to_string();
@@ -2838,20 +2839,20 @@
 	<span class="kw">fn </span>find_http_dir(host: <span class="kw-2">&amp;</span>String, map: <span class="kw-2">&amp;</span>HashMap&lt;String, String&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;String, Error&gt; {
 		<span class="kw">match </span>map.get(host) {
 			<span class="prelude-val">Some</span>(http_dir) =&gt; <span class="prelude-val">Ok</span>(http_dir.clone()),
-			<span class="prelude-val">None </span>=&gt; <span class="kw">match </span>map.get(<span class="string">&quot;*&quot;</span>) {
+			<span class="prelude-val">None </span>=&gt; <span class="kw">match </span>map.get(<span class="string">"*"</span>) {
 				<span class="prelude-val">Some</span>(http_dir) =&gt; <span class="prelude-val">Ok</span>(http_dir.clone()),
-				<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">&quot;could not find http_dir&quot;</span>.to_string())),
+				<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">"could not find http_dir"</span>.to_string())),
 			},
 		}
 	}
 
 	<span class="kw">fn </span>http_dir(instance: <span class="kw-2">&amp;</span>HttpInstance, headers: <span class="kw-2">&amp;</span>HttpHeaders) -&gt; <span class="prelude-ty">Result</span>&lt;String, Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>host = headers.host()<span class="question-mark">?</span>.clone();
-		<span class="kw">if </span>host.contains(<span class="string">&quot;:&quot;</span>) {
+		<span class="kw">if </span>host.contains(<span class="string">":"</span>) {
 			<span class="kw">let </span>pos = host
 				.as_bytes()
 				.iter()
-				.position(|<span class="kw-2">&amp;</span>s| s == <span class="string">b&#39;:&#39;</span>)
+				.position(|<span class="kw-2">&amp;</span>s| s == <span class="string">b':'</span>)
 				.unwrap_or(host.len());
 			host = host.clone().substring(<span class="number">0</span>, pos).to_string();
 		}
@@ -2873,16 +2874,16 @@
 		ctx: <span class="kw-2">&amp;</span>HttpContext,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>http_dir = <span class="self">Self</span>::http_dir(instance, headers)<span class="question-mark">?</span>;
-		<span class="kw">let </span>slash = <span class="kw">if </span>http_dir.ends_with(<span class="string">&quot;/&quot;</span>) { <span class="string">&quot;&quot; </span>} <span class="kw">else </span>{ <span class="string">&quot;/&quot; </span>};
+		<span class="kw">let </span>slash = <span class="kw">if </span>http_dir.ends_with(<span class="string">"/"</span>) { <span class="string">"" </span>} <span class="kw">else </span>{ <span class="string">"/" </span>};
 		<span class="kw">let </span>fpath = <span class="kw">if </span>code == <span class="number">404 </span>{
-			<span class="macro">format!</span>(<span class="string">&quot;{}{}{}&quot;</span>, http_dir, slash, instance.error_404file)
+			<span class="macro">format!</span>(<span class="string">"{}{}{}"</span>, http_dir, slash, instance.error_404file)
 		} <span class="kw">else if </span>code == <span class="number">403 </span>{
-			<span class="macro">format!</span>(<span class="string">&quot;{}{}{}&quot;</span>, http_dir, slash, instance.error_403file)
+			<span class="macro">format!</span>(<span class="string">"{}{}{}"</span>, http_dir, slash, instance.error_403file)
 		} <span class="kw">else </span>{
-			<span class="macro">format!</span>(<span class="string">&quot;{}{}{}&quot;</span>, http_dir, slash, instance.error_400file)
+			<span class="macro">format!</span>(<span class="string">"{}{}{}"</span>, http_dir, slash, instance.error_400file)
 		};
 
-		<span class="macro">debug!</span>(<span class="string">&quot;error page location: {}&quot;</span>, fpath)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"error page location: {}"</span>, fpath)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>metadata = metadata(fpath.clone());
 
@@ -2903,10 +2904,10 @@
 			}
 			<span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; {
 				<span class="kw">let </span>error_content = ERROR_CONTENT
-					.replace(<span class="string">&quot;ERROR_MESSAGE&quot;</span>, message)
-					.replace(<span class="string">&quot;ERROR_CODE&quot;</span>, <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, code));
+					.replace(<span class="string">"ERROR_MESSAGE"</span>, message)
+					.replace(<span class="string">"ERROR_CODE"</span>, <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"{}"</span>, code));
 				<span class="kw">let </span>last_modified = <span class="macro">try_into!</span>(ctx.now)<span class="question-mark">?</span>;
-				<span class="kw">let </span>etag = <span class="macro">format!</span>(<span class="string">&quot;{}-{:01x}&quot;</span>, last_modified, error_content.len());
+				<span class="kw">let </span>etag = <span class="macro">format!</span>(<span class="string">"{}-{:01x}"</span>, last_modified, error_content.len());
 
 				<span class="kw">let </span>(keep_alive, res) = <span class="self">Self</span>::build_response_headers(
 					config,
@@ -2915,7 +2916,7 @@
 					error_content.len(),
 					error_content.len(),
 					<span class="prelude-val">Some</span>(error_content),
-					<span class="prelude-val">Some</span>(<span class="string">&quot;text/html&quot;</span>.to_string()),
+					<span class="prelude-val">Some</span>(<span class="string">"text/html"</span>.to_string()),
 					ctx,
 					headers,
 					<span class="bool-val">true</span>,
@@ -2937,7 +2938,7 @@
 	}
 
 	<span class="kw">pub fn </span>normalize_path&lt;P: AsRef&lt;Path&gt;&gt;(path: P) -&gt; PathBuf {
-		<span class="kw">let </span>ends_with_slash = path.as_ref().to_str().map_or(<span class="bool-val">false</span>, |s| s.ends_with(<span class="string">&#39;/&#39;</span>));
+		<span class="kw">let </span>ends_with_slash = path.as_ref().to_str().map_or(<span class="bool-val">false</span>, |s| s.ends_with(<span class="string">'/'</span>));
 		<span class="kw">let </span><span class="kw-2">mut </span>normalized = PathBuf::new();
 		<span class="kw">for </span>component <span class="kw">in </span>path.as_ref().components() {
 			<span class="kw">match </span><span class="kw-2">&amp;</span>component {
@@ -2952,7 +2953,7 @@
 			}
 		}
 		<span class="kw">if </span>ends_with_slash {
-			normalized.push(<span class="string">&quot;&quot;</span>);
+			normalized.push(<span class="string">""</span>);
 		}
 		normalized
 	}
@@ -2967,21 +2968,21 @@
 		ctx: <span class="kw-2">&amp;</span>HttpContext,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="kw">let </span>http_dir = <span class="self">Self</span>::http_dir(instance, headers)<span class="question-mark">?</span>;
-		<span class="kw">let </span>fpath = <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, http_dir, path);
+		<span class="kw">let </span>fpath = <span class="macro">format!</span>(<span class="string">"{}{}"</span>, http_dir, path);
 
 		<span class="kw">let </span>fpath = <span class="self">Self</span>::normalize_path(fpath)
 			.into_os_string()
 			.into_string()
-			.unwrap_or(<span class="macro">format!</span>(<span class="string">&quot;{}/&quot;</span>, http_dir));
+			.unwrap_or(<span class="macro">format!</span>(<span class="string">"{}/"</span>, http_dir));
 
-		<span class="kw">if </span>!fpath.starts_with(<span class="kw-2">&amp;</span>http_dir) || !path.starts_with(<span class="string">&quot;/&quot;</span>) {
+		<span class="kw">if </span>!fpath.starts_with(<span class="kw-2">&amp;</span>http_dir) || !path.starts_with(<span class="string">"/"</span>) {
 			<span class="self">Self</span>::process_error(
 				config,
 				path,
 				conn_data,
 				instance,
 				<span class="number">403</span>,
-				<span class="string">&quot;Forbidden&quot;</span>,
+				<span class="string">"Forbidden"</span>,
 				cache,
 				headers,
 				ctx,
@@ -2998,7 +2999,7 @@
 				conn_data,
 				instance,
 				<span class="number">405</span>,
-				<span class="string">&quot;Not Allowed&quot;</span>,
+				<span class="string">"Not Allowed"</span>,
 				cache,
 				headers,
 				ctx,
@@ -3010,8 +3011,8 @@
 			<span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">true</span>);
 		}
 		<span class="kw">for </span>default_file <span class="kw">in </span>instance.default_file.clone() {
-			<span class="kw">let </span>slash = <span class="kw">if </span>fpath.ends_with(<span class="string">&quot;/&quot;</span>) { <span class="string">&quot;&quot; </span>} <span class="kw">else </span>{ <span class="string">&quot;/&quot; </span>};
-			<span class="kw">let </span>fpath_default_file = <span class="macro">format!</span>(<span class="string">&quot;{}{}{}&quot;</span>, fpath, slash, default_file);
+			<span class="kw">let </span>slash = <span class="kw">if </span>fpath.ends_with(<span class="string">"/"</span>) { <span class="string">"" </span>} <span class="kw">else </span>{ <span class="string">"/" </span>};
+			<span class="kw">let </span>fpath_default_file = <span class="macro">format!</span>(<span class="string">"{}{}{}"</span>, fpath, slash, default_file);
 			<span class="kw">if </span><span class="self">Self</span>::try_cache(
 				cache.clone(),
 				<span class="kw-2">&amp;</span>fpath_default_file,
@@ -3029,14 +3030,14 @@
 		<span class="kw">let </span>metadata_value = <span class="kw">match </span>metadata_value {
 			<span class="prelude-val">Ok</span>(metadata) =&gt; metadata,
 			<span class="prelude-val">Err</span>(_e) =&gt; {
-				<span class="macro">debug!</span>(<span class="string">&quot;404path={},dir={}&quot;</span>, fpath, http_dir)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"404path={},dir={}"</span>, fpath, http_dir)<span class="question-mark">?</span>;
 				<span class="self">Self</span>::process_error(
 					config,
 					path,
 					conn_data,
 					instance,
 					<span class="number">404</span>,
-					<span class="string">&quot;Not Found&quot;</span>,
+					<span class="string">"Not Found"</span>,
 					cache,
 					headers,
 					ctx,
@@ -3048,10 +3049,10 @@
 		<span class="kw">let </span>(fpath, metadata) = <span class="kw">if </span>metadata_value.is_dir() {
 			<span class="kw">let </span><span class="kw-2">mut </span>fpath_ret: <span class="prelude-ty">Option</span>&lt;String&gt; = <span class="prelude-val">None</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>metadata_ret: <span class="prelude-ty">Option</span>&lt;Metadata&gt; = <span class="prelude-val">None</span>;
-			<span class="kw">let </span>slash = <span class="kw">if </span>fpath.ends_with(<span class="string">&quot;/&quot;</span>) { <span class="string">&quot;&quot; </span>} <span class="kw">else </span>{ <span class="string">&quot;/&quot; </span>};
+			<span class="kw">let </span>slash = <span class="kw">if </span>fpath.ends_with(<span class="string">"/"</span>) { <span class="string">"" </span>} <span class="kw">else </span>{ <span class="string">"/" </span>};
 
 			<span class="kw">for </span>default_file <span class="kw">in </span>instance.default_file.clone() {
-				<span class="kw">let </span>fpath_res = <span class="macro">format!</span>(<span class="string">&quot;{}{}{}&quot;</span>, fpath, slash, default_file);
+				<span class="kw">let </span>fpath_res = <span class="macro">format!</span>(<span class="string">"{}{}{}"</span>, fpath, slash, default_file);
 				<span class="kw">let </span>metadata_res = metadata(fpath_res.clone());
 				<span class="kw">match </span>metadata_res {
 					<span class="prelude-val">Ok</span>(metadata) =&gt; {
@@ -3074,7 +3075,7 @@
 					conn_data,
 					instance,
 					<span class="number">404</span>,
-					<span class="string">&quot;Not Found&quot;</span>,
+					<span class="string">"Not Found"</span>,
 					cache,
 					headers,
 					ctx,
@@ -3085,7 +3086,7 @@
 			(fpath, metadata_value)
 		};
 
-		<span class="macro">debug!</span>(<span class="string">&quot;path={},dir={}&quot;</span>, fpath, http_dir)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"path={},dir={}"</span>, fpath, http_dir)<span class="question-mark">?</span>;
 
 		<span class="self">Self</span>::stream_file(
 			config,
@@ -3093,7 +3094,7 @@
 			metadata.len(),
 			conn_data,
 			<span class="number">200</span>,
-			<span class="string">&quot;OK&quot;</span>,
+			<span class="string">"OK"</span>,
 			cache,
 			ctx,
 			headers,
@@ -3111,7 +3112,7 @@
 		config: <span class="kw-2">&amp;</span>HttpConfig,
 		headers: <span class="kw-2">&amp;</span>HttpHeaders,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
-		<span class="macro">debug!</span>(<span class="string">&quot;try cache: {}&quot;</span>, path)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"try cache: {}"</span>, path)<span class="question-mark">?</span>;
 		<span class="kw">let </span>hit: CacheStreamResult;
 		{
 			<span class="kw">let </span>cache = cache.rlock()<span class="question-mark">?</span>;
@@ -3119,7 +3120,7 @@
 				path,
 				conn_data,
 				<span class="number">200</span>,
-				<span class="string">&quot;OK&quot;</span>,
+				<span class="string">"OK"</span>,
 				ctx,
 				config,
 				headers,
@@ -3191,22 +3192,22 @@
 		<span class="kw">let </span>content_len = range_end_content.saturating_sub(range_start);
 
 		<span class="kw">let </span>path_len = fpath.len();
-		<span class="kw">let </span>extension = <span class="kw">match </span>rfind_utf8(<span class="kw-2">&amp;</span>fpath, <span class="string">&#39;.&#39;</span>) {
+		<span class="kw">let </span>extension = <span class="kw">match </span>rfind_utf8(<span class="kw-2">&amp;</span>fpath, <span class="string">'.'</span>) {
 			<span class="prelude-val">Some</span>(pos) =&gt; <span class="kw">match </span>pos + <span class="number">1 </span>&lt; path_len {
 				<span class="bool-val">true </span>=&gt; fpath.substring(pos + <span class="number">1</span>, path_len).to_string(),
-				<span class="bool-val">false </span>=&gt; <span class="string">&quot;&quot;</span>.to_string(),
+				<span class="bool-val">false </span>=&gt; <span class="string">""</span>.to_string(),
 			},
-			<span class="prelude-val">None </span>=&gt; <span class="string">&quot;&quot;</span>.to_string(),
+			<span class="prelude-val">None </span>=&gt; <span class="string">""</span>.to_string(),
 		};
 
-		<span class="kw">let </span>etag = <span class="macro">format!</span>(<span class="string">&quot;{}-{:01x}&quot;</span>, last_modified, content_len);
+		<span class="kw">let </span>etag = <span class="macro">format!</span>(<span class="string">"{}-{:01x}"</span>, last_modified, content_len);
 		<span class="kw">let </span>modified_since = DateTime::parse_from_rfc2822(headers.if_modified_since()<span class="question-mark">?</span>)
 			.unwrap_or(Utc.with_ymd_and_hms(<span class="number">1970</span>, <span class="number">1</span>, <span class="number">1</span>, <span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>).unwrap().into());
 		<span class="kw">let </span>modified_since = modified_since.timestamp_millis();
 
 		<span class="kw">if </span><span class="kw-2">&amp;</span>etag == headers.if_none_match()<span class="question-mark">? </span>|| last_modified &lt; <span class="macro">try_into!</span>(modified_since)<span class="question-mark">? </span>{
 			code = <span class="number">304</span>;
-			message = <span class="string">&quot;Not Modified&quot;</span>;
+			message = <span class="string">"Not Modified"</span>;
 		}
 
 		<span class="kw">let </span>(keep_alive, res) = <span class="self">Self</span>::build_response_headers(
@@ -3216,7 +3217,7 @@
 				<span class="bool-val">false </span>=&gt; code,
 			},
 			<span class="kw">match </span>headers.has_range()<span class="question-mark">? </span>{
-				<span class="bool-val">true </span>=&gt; <span class="string">&quot;Partial Content&quot;</span>,
+				<span class="bool-val">true </span>=&gt; <span class="string">"Partial Content"</span>,
 				<span class="bool-val">false </span>=&gt; message,
 			},
 			<span class="macro">try_into!</span>(content_len)<span class="question-mark">?</span>,
@@ -3224,7 +3225,7 @@
 			<span class="prelude-val">None</span>,
 			<span class="kw">match </span>ctx.mime_map.get(<span class="kw-2">&amp;</span>extension) {
 				<span class="prelude-val">Some</span>(mime_type) =&gt; <span class="prelude-val">Some</span>(mime_type.clone()),
-				<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Some</span>(<span class="string">&quot;text/plain&quot;</span>.to_string()),
+				<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Some</span>(<span class="string">"text/plain"</span>.to_string()),
 			},
 			ctx,
 			headers,
@@ -3234,7 +3235,7 @@
 			<span class="bool-val">false</span>,
 		)<span class="question-mark">?</span>;
 
-		<span class="macro">debug!</span>(<span class="string">&quot;writing {}&quot;</span>, res)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"writing {}"</span>, res)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>write_error = <span class="bool-val">false</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>write_handle = conn_data.write_handle();
@@ -3248,7 +3249,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>write_to_cache = <span class="bool-val">true</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>term = <span class="bool-val">false</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>len_sum = <span class="number">0</span>;
-		<span class="macro">debug!</span>(<span class="string">&quot;rangestart={},rangeend={}&quot;</span>, range_start, range_end)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"rangestart={},rangeend={}"</span>, range_start, range_end)<span class="question-mark">?</span>;
 		<span class="kw">let </span>mime_type = ctx.mime_rev_lookup.get(<span class="kw-2">&amp;</span>extension).unwrap_or(<span class="kw-2">&amp;</span>u32::MAX);
 		<span class="kw">let </span>accept_gzip = headers.accept_gzip()<span class="question-mark">?</span>;
 
@@ -3263,7 +3264,7 @@
 						<span class="prelude-val">None </span>=&gt; <span class="kw">match </span>buf_reader {
 							<span class="prelude-val">Some</span>(<span class="kw-2">ref mut </span>buf_reader) =&gt; buf_reader.read(<span class="kw-2">&amp;mut </span>buf[blen..])<span class="question-mark">?</span>,
 							<span class="prelude-val">None </span>=&gt; {
-								<span class="macro">warn!</span>(<span class="string">&quot;none when a buf_reader was expected!&quot;</span>)<span class="question-mark">?</span>;
+								<span class="macro">warn!</span>(<span class="string">"none when a buf_reader was expected!"</span>)<span class="question-mark">?</span>;
 								<span class="kw">break</span>;
 							}
 						},
@@ -3279,7 +3280,7 @@
 					}
 				}
 
-				<span class="macro">debug!</span>(<span class="string">&quot;i={},blen={}&quot;</span>, i, blen)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"i={},blen={}"</span>, i, blen)<span class="question-mark">?</span>;
 
 				<span class="kw">if </span>!write_error &amp;&amp; http_request_type != <span class="kw-2">&amp;</span>HttpRequestType::HEAD {
 					<span class="self">Self</span>::range_write(
@@ -3348,16 +3349,16 @@
 				)<span class="question-mark">?</span>;
 			}
 
-			<span class="macro">debug!</span>(<span class="string">&quot;write error = {}&quot;</span>, write_error)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"write error = {}"</span>, write_error)<span class="question-mark">?</span>;
 			<span class="kw">if </span>!write_error &amp;&amp; !headers.has_range()<span class="question-mark">? </span>{
-				<span class="macro">debug!</span>(<span class="string">&quot;write term bytes&quot;</span>)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"write term bytes"</span>)<span class="question-mark">?</span>;
 				<span class="comment">// write termination bytes
-				</span><span class="kw">let </span>term = [<span class="string">&#39;0&#39; </span><span class="kw">as </span>u8, <span class="string">&#39;\r&#39; </span><span class="kw">as </span>u8, <span class="string">&#39;\n&#39; </span><span class="kw">as </span>u8, <span class="string">&#39;\r&#39; </span><span class="kw">as </span>u8, <span class="string">&#39;\n&#39; </span><span class="kw">as </span>u8];
+				</span><span class="kw">let </span>term = [<span class="string">'0' </span><span class="kw">as </span>u8, <span class="string">'\r' </span><span class="kw">as </span>u8, <span class="string">'\n' </span><span class="kw">as </span>u8, <span class="string">'\r' </span><span class="kw">as </span>u8, <span class="string">'\n' </span><span class="kw">as </span>u8];
 				write_handle.write(<span class="kw-2">&amp;</span>term)<span class="question-mark">?</span>;
 			}
 		}
 
-		<span class="macro">debug!</span>(<span class="string">&quot;write_error={}&quot;</span>, write_error)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"write_error={}"</span>, write_error)<span class="question-mark">?</span>;
 
 		<span class="kw">if </span>!keep_alive {
 			write_handle.close()<span class="question-mark">?</span>;
@@ -3388,7 +3389,7 @@
 		};
 
 		<span class="macro">debug!</span>(
-			<span class="string">&quot;start={},end={},blen={},len_sum={},range_end={}&quot;</span>,
+			<span class="string">"start={},end={},blen={},len_sum={},range_end={}"</span>,
 			start, end, blen, len_sum, range_end
 		)<span class="question-mark">?</span>;
 
@@ -3400,7 +3401,7 @@
 				//let len = res.len();
 				</span><span class="kw">let </span>len = end - start;
 
-				<span class="kw">match </span>write_handle.write(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{:X}\r\n&quot;</span>, len).as_bytes()[..]) {
+				<span class="kw">match </span>write_handle.write(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"{:X}\r\n"</span>, len).as_bytes()[..]) {
 					<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
 					<span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; write_error = <span class="bool-val">true</span>,
 				}
@@ -3413,7 +3414,7 @@
 				}
 
 				<span class="kw">if </span>!write_error {
-					<span class="kw">let </span>nl = [<span class="string">&#39;\r&#39; </span><span class="kw">as </span>u8, <span class="string">&#39;\n&#39; </span><span class="kw">as </span>u8];
+					<span class="kw">let </span>nl = [<span class="string">'\r' </span><span class="kw">as </span>u8, <span class="string">'\n' </span><span class="kw">as </span>u8];
 					<span class="kw">match </span>write_handle.write(<span class="kw-2">&amp;</span>nl[..]) {
 						<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
 						<span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; write_error = <span class="bool-val">true</span>,
@@ -3430,18 +3431,18 @@
 		<span class="prelude-val">Ok</span>(write_error)
 	}
 
-	<span class="kw">fn </span>build_request_headers&lt;<span class="lifetime">&#39;a</span>&gt;(
-		req: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>Vec&lt;u8&gt;,
+	<span class="kw">fn </span>build_request_headers&lt;<span class="lifetime">'a</span>&gt;(
+		req: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Vec&lt;u8&gt;,
 		start: usize,
 		<span class="kw-2">mut </span>matches: [bmw_util::Match; <span class="number">1_000</span>],
 		suffix_tree: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>SuffixTree + Send + Sync&gt;,
 		slab_offset: usize,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;HttpHeaders&lt;<span class="lifetime">&#39;a</span>&gt;, Error&gt; {
+	) -&gt; <span class="prelude-ty">Result</span>&lt;HttpHeaders&lt;<span class="lifetime">'a</span>&gt;, Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>termination_point = <span class="number">0</span>;
 		<span class="kw">let </span>count = suffix_tree.tmatch(<span class="kw-2">&amp;</span>req[start..], <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 
 		<span class="macro">debug!</span>(
-			<span class="string">&quot;count={},slab_offset={},start={}&quot;</span>,
+			<span class="string">"count={},slab_offset={},start={}"</span>,
 			count, slab_offset, start
 		)<span class="question-mark">?</span>;
 
@@ -3454,32 +3455,32 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>connection = ConnectionType::KeepAlive;
 		<span class="kw">let </span><span class="kw-2">mut </span>range_start = <span class="number">0</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>range_end = usize::MAX;
-		<span class="kw">let </span><span class="kw-2">mut </span>if_none_match = <span class="string">&quot;&quot;</span>.to_string();
-		<span class="kw">let </span><span class="kw-2">mut </span>if_modified_since = <span class="string">&quot;&quot;</span>.to_string();
+		<span class="kw">let </span><span class="kw-2">mut </span>if_none_match = <span class="string">""</span>.to_string();
+		<span class="kw">let </span><span class="kw-2">mut </span>if_modified_since = <span class="string">""</span>.to_string();
 		<span class="kw">let </span><span class="kw-2">mut </span>is_websocket_upgrade = <span class="bool-val">false</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>sec_websocket_key = <span class="string">&quot;&quot;</span>.to_string();
-		<span class="kw">let </span><span class="kw-2">mut </span>sec_websocket_protocol = <span class="string">&quot;&quot;</span>.to_string();
+		<span class="kw">let </span><span class="kw-2">mut </span>sec_websocket_key = <span class="string">""</span>.to_string();
+		<span class="kw">let </span><span class="kw-2">mut </span>sec_websocket_protocol = <span class="string">""</span>.to_string();
 		<span class="kw">let </span><span class="kw-2">mut </span>accept_gzip = <span class="bool-val">false</span>;
 
-		<span class="macro">debug!</span>(<span class="string">&quot;count={}&quot;</span>, count)<span class="question-mark">?</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>host = <span class="string">&quot;&quot;</span>.to_string();
+		<span class="macro">debug!</span>(<span class="string">"count={}"</span>, count)<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>host = <span class="string">""</span>.to_string();
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..count {
-			<span class="macro">debug!</span>(<span class="string">&quot;c[{}]={:?}&quot;</span>, i, matches[i])<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"c[{}]={:?}"</span>, i, matches[i])<span class="question-mark">?</span>;
 			<span class="kw">let </span>end = matches[i].end();
 			<span class="kw">let </span>start = matches[i].start();
 			<span class="kw">let </span>id = matches[i].id();
 
 			<span class="kw">if </span>id == SUFFIX_TREE_TERMINATE_HEADERS_ID {
-				<span class="macro">debug!</span>(<span class="string">&quot;found term end={}, slab_off={}&quot;</span>, end, slab_offset)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"found term end={}, slab_off={}"</span>, end, slab_offset)<span class="question-mark">?</span>;
 
 				<span class="kw">if </span>end_uri == <span class="number">0 </span>{
-					<span class="kw">match </span>req.windows(<span class="number">1</span>).position(|window| window == <span class="string">&quot; &quot;</span>.as_bytes()) {
+					<span class="kw">match </span>req.windows(<span class="number">1</span>).position(|window| window == <span class="string">" "</span>.as_bytes()) {
 						<span class="prelude-val">Some</span>(c) =&gt; {
 							start_uri = c + <span class="number">1</span>;
 							end_uri = end;
 							<span class="kw">for </span>j <span class="kw">in </span>start_uri..end {
-								<span class="kw">if </span>req[j] == <span class="string">&#39;\r&#39; </span><span class="kw">as </span>u8
-									|| req[j] == <span class="string">&#39;\n&#39; </span><span class="kw">as </span>u8 || req[j] == <span class="string">&#39; &#39; </span><span class="kw">as </span>u8
+								<span class="kw">if </span>req[j] == <span class="string">'\r' </span><span class="kw">as </span>u8
+									|| req[j] == <span class="string">'\n' </span><span class="kw">as </span>u8 || req[j] == <span class="string">' ' </span><span class="kw">as </span>u8
 								{
 									end_uri = j;
 									<span class="kw">break</span>;
@@ -3503,7 +3504,7 @@
 				|| id == SUFFIX_TREE_TRACE_ID
 				|| id == SUFFIX_TREE_PATCH_ID
 			{
-				<span class="macro">debug!</span>(<span class="string">&quot;id is GET/POST = {}&quot;</span>, id)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"id is GET/POST = {}"</span>, id)<span class="question-mark">?</span>;
 				<span class="kw">if </span>id == SUFFIX_TREE_GET_ID {
 					start_uri = start + <span class="number">4</span>;
 					http_request_type = HttpRequestType::GET;
@@ -3537,24 +3538,24 @@
 				<span class="kw">let </span><span class="kw-2">mut </span>end_version = <span class="number">0</span>;
 				<span class="kw">let </span><span class="kw-2">mut </span>start_version = <span class="number">0</span>;
 				<span class="kw">for </span>i <span class="kw">in </span>start_uri..req.len() {
-					<span class="kw">if </span>req[start + i] == <span class="string">&#39; &#39; </span><span class="kw">as </span>u8 {
+					<span class="kw">if </span>req[start + i] == <span class="string">' ' </span><span class="kw">as </span>u8 {
 						end_uri = start + i;
 						start_version = start + i + <span class="number">1</span>;
 					}
-					<span class="kw">if </span>req[start + i] == <span class="string">&#39;\r&#39; </span><span class="kw">as </span>u8 || req[start + i] == <span class="string">&#39;\n&#39; </span><span class="kw">as </span>u8 {
+					<span class="kw">if </span>req[start + i] == <span class="string">'\r' </span><span class="kw">as </span>u8 || req[start + i] == <span class="string">'\n' </span><span class="kw">as </span>u8 {
 						end_version = start + i;
 						<span class="kw">break</span>;
 					}
 				}
 
-				<span class="macro">debug!</span>(<span class="string">&quot;start_v={},end_v={}&quot;</span>, start_version, end_version)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"start_v={},end_v={}"</span>, start_version, end_version)<span class="question-mark">?</span>;
 				<span class="kw">if </span>end_version &gt; start_version &amp;&amp; start_version != <span class="number">0 </span>{
 					<span class="comment">// try to get version
 					</span><span class="kw">let </span>version_str =
-						std::str::from_utf8(<span class="kw-2">&amp;</span>req[start_version..end_version]).unwrap_or(<span class="string">&quot;&quot;</span>);
-					<span class="kw">if </span>version_str == <span class="string">&quot;HTTP/1.1&quot; </span>{
+						std::str::from_utf8(<span class="kw-2">&amp;</span>req[start_version..end_version]).unwrap_or(<span class="string">""</span>);
+					<span class="kw">if </span>version_str == <span class="string">"HTTP/1.1" </span>{
 						version = HttpVersion::HTTP11;
-					} <span class="kw">else if </span>version_str == <span class="string">&quot;HTTP/1.0&quot; </span>{
+					} <span class="kw">else if </span>version_str == <span class="string">"HTTP/1.0" </span>{
 						version = HttpVersion::HTTP10;
 					} <span class="kw">else </span>{
 						version = HttpVersion::OTHER;
@@ -3568,7 +3569,7 @@
 					headers[header_count].end_header_value = <span class="number">0</span>;
 
 					<span class="kw">for </span>i <span class="kw">in </span>end..req.len() {
-						<span class="kw">if </span>req[i] == <span class="string">&#39;\n&#39; </span><span class="kw">as </span>u8 || req[i] == <span class="string">&#39;\r&#39; </span><span class="kw">as </span>u8 {
+						<span class="kw">if </span>req[i] == <span class="string">'\n' </span><span class="kw">as </span>u8 || req[i] == <span class="string">'\r' </span><span class="kw">as </span>u8 {
 							headers[header_count].end_header_value = i;
 							<span class="kw">break</span>;
 						}
@@ -3588,7 +3589,7 @@
 								<span class="kw-2">&amp;</span>req[headers[header_count].start_header_value
 									..headers[header_count].end_header_value],
 							)
-							.unwrap_or(<span class="string">&quot;&quot;</span>)
+							.unwrap_or(<span class="string">""</span>)
 							.to_string();
 						} <span class="kw">else if </span><span class="kw-2">&amp;</span>req[headers[header_count].start_header_name
 							..headers[header_count].end_header_name]
@@ -3608,11 +3609,11 @@
 								<span class="kw-2">&amp;</span>req[headers[header_count].start_header_value
 									..headers[header_count].end_header_value],
 							)
-							.unwrap_or(<span class="string">&quot;&quot;</span>);
+							.unwrap_or(<span class="string">""</span>);
 
-							<span class="kw">if </span>range_value.starts_with(<span class="string">&quot;bytes=&quot;</span>) {
-								<span class="kw">let </span>range_split: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = range_value.split(<span class="string">&#39;=&#39;</span>).collect();
-								<span class="kw">let </span>range_split: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = range_split[<span class="number">1</span>].split(<span class="string">&#39;-&#39;</span>).collect();
+							<span class="kw">if </span>range_value.starts_with(<span class="string">"bytes="</span>) {
+								<span class="kw">let </span>range_split: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = range_value.split(<span class="string">'='</span>).collect();
+								<span class="kw">let </span>range_split: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = range_split[<span class="number">1</span>].split(<span class="string">'-'</span>).collect();
 								range_start = range_split[<span class="number">0</span>].parse()<span class="question-mark">?</span>;
 								range_end = range_split[<span class="number">1</span>].parse()<span class="question-mark">?</span>;
 								range_end += <span class="number">1</span>;
@@ -3625,7 +3626,7 @@
 								<span class="kw-2">&amp;</span>req[headers[header_count].start_header_value
 									..headers[header_count].end_header_value],
 							)
-							.unwrap_or(<span class="string">&quot;&quot;</span>)
+							.unwrap_or(<span class="string">""</span>)
 							.to_string();
 						} <span class="kw">else if </span><span class="kw-2">&amp;</span>req[headers[header_count].start_header_name
 							..headers[header_count].end_header_name]
@@ -3635,7 +3636,7 @@
 								<span class="kw-2">&amp;</span>req[headers[header_count].start_header_value
 									..headers[header_count].end_header_value],
 							)
-							.unwrap_or(<span class="string">&quot;&quot;</span>)
+							.unwrap_or(<span class="string">""</span>)
 							.to_string();
 						} <span class="kw">else if </span><span class="kw-2">&amp;</span>req[headers[header_count].start_header_name
 							..headers[header_count].end_header_name]
@@ -3652,7 +3653,7 @@
 								<span class="kw-2">&amp;</span>req[headers[header_count].start_header_value
 									..headers[header_count].end_header_value],
 							)
-							.unwrap_or(<span class="string">&quot;&quot;</span>)
+							.unwrap_or(<span class="string">""</span>)
 							.to_string();
 						} <span class="kw">else if </span><span class="kw-2">&amp;</span>req[headers[header_count].start_header_name
 							..headers[header_count].end_header_name]
@@ -3662,7 +3663,7 @@
 								<span class="kw-2">&amp;</span>req[headers[header_count].start_header_value
 									..headers[header_count].end_header_value],
 							)
-							.unwrap_or(<span class="string">&quot;&quot;</span>)
+							.unwrap_or(<span class="string">""</span>)
 							.to_string();
 						} <span class="kw">else if </span><span class="kw-2">&amp;</span>req[headers[header_count].start_header_name
 							..headers[header_count].end_header_name]
@@ -3672,12 +3673,12 @@
 								<span class="kw-2">&amp;</span>req[headers[header_count].start_header_value
 									..headers[header_count].end_header_value],
 							)
-							.unwrap_or(<span class="string">&quot;&quot;</span>)
+							.unwrap_or(<span class="string">""</span>)
 							.to_string();
-							<span class="kw">let </span>accept_encodings: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = accept_encoding.split(<span class="string">&#39;,&#39;</span>).collect();
+							<span class="kw">let </span>accept_encodings: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = accept_encoding.split(<span class="string">','</span>).collect();
 							<span class="kw">for </span>accept_encoding <span class="kw">in </span>accept_encodings {
 								<span class="kw">let </span>accept_encoding = accept_encoding.trim();
-								<span class="kw">if </span>accept_encoding == <span class="string">&quot;gzip&quot; </span>{
+								<span class="kw">if </span>accept_encoding == <span class="string">"gzip" </span>{
 									accept_gzip = <span class="bool-val">true</span>;
 								}
 							}
@@ -3689,9 +3690,9 @@
 		}
 
 		<span class="kw">if </span>termination_point != <span class="number">0 </span>&amp;&amp; start_uri == <span class="number">0 </span>{
-			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">&quot;URI not specified&quot;</span>.to_string()))
+			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">"URI not specified"</span>.to_string()))
 		} <span class="kw">else if </span>termination_point != <span class="number">0 </span>&amp;&amp; http_request_type == HttpRequestType::UNKNOWN {
-			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">&quot;Unknown http request type&quot;</span>.to_string()))
+			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">"Unknown http request type"</span>.to_string()))
 		} <span class="kw">else </span>{
 			<span class="prelude-val">Ok</span>(HttpHeaders {
 				termination_point,
@@ -3717,7 +3718,7 @@
 		}
 	}
 
-	<span class="kw">fn </span>type_of&lt;T&gt;(<span class="kw">_</span>: T) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str {
+	<span class="kw">fn </span>type_of&lt;T&gt;(<span class="kw">_</span>: T) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
 		type_name::&lt;T&gt;()
 	}
 
@@ -3731,28 +3732,28 @@
 		headers: <span class="kw-2">&amp;</span>HttpHeaders,
 		ctx: <span class="kw-2">&amp;</span>HttpContext,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">debug!</span>(<span class="string">&quot;Err: {:?}&quot;</span>, err.inner())<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"Err: {:?}"</span>, err.inner())<span class="question-mark">?</span>;
 		<span class="kw">let </span>err_text = err.inner();
-		<span class="kw">if </span>err_text == <span class="string">&quot;http_error: Unknown http request type&quot; </span>{
+		<span class="kw">if </span>err_text == <span class="string">"http_error: Unknown http request type" </span>{
 			<span class="self">Self</span>::process_error(
 				config,
 				path,
 				conn_data,
 				instance,
 				<span class="number">501</span>,
-				<span class="string">&quot;Unknown Request Type&quot;</span>,
+				<span class="string">"Unknown Request Type"</span>,
 				cache,
 				headers,
 				ctx,
 			)<span class="question-mark">?</span>;
-		} <span class="kw">else if </span>err_text == <span class="string">&quot;http_error: Cannot upgrade to websocket for this URI&quot; </span>{
+		} <span class="kw">else if </span>err_text == <span class="string">"http_error: Cannot upgrade to websocket for this URI" </span>{
 			<span class="self">Self</span>::process_error(
 				config,
 				path,
 				conn_data,
 				instance,
 				<span class="number">403</span>,
-				<span class="string">&quot;Forbidden&quot;</span>,
+				<span class="string">"Forbidden"</span>,
 				cache,
 				headers,
 				ctx,
@@ -3764,7 +3765,7 @@
 				conn_data,
 				instance,
 				<span class="number">400</span>,
-				<span class="string">&quot;Bad Request&quot;</span>,
+				<span class="string">"Bad Request"</span>,
 				cache,
 				headers,
 				ctx,
@@ -3786,7 +3787,7 @@
 			websocket_data: <span class="prelude-val">None</span>,
 		};
 		<span class="macro">debug!</span>(
-			<span class="string">&quot;insert handle={}, id={}&quot;</span>,
+			<span class="string">"insert handle={}, id={}"</span>,
 			conn_data.get_handle(),
 			conn_data.get_connection_id()
 		)<span class="question-mark">?</span>;
@@ -3803,7 +3804,7 @@
 		<span class="kw">match </span>ctx.connections.get_mut(<span class="kw-2">&amp;</span>conn_data.get_connection_id()) {
 			<span class="prelude-val">Some</span>(connection_data) =&gt; connection_data.last_active = now,
 			<span class="prelude-val">None </span>=&gt; <span class="macro">warn!</span>(
-				<span class="string">&quot;Expected there to be connection data for this id, but there was none. Id = {}&quot;</span>,
+				<span class="string">"Expected there to be connection data for this id, but there was none. Id = {}"</span>,
 				conn_data.get_connection_id()
 			)<span class="question-mark">?</span>,
 		}
@@ -3820,7 +3821,7 @@
 		<span class="kw">let </span>sha1 = Sha1::new();
 		<span class="kw">let </span>sec_websocket_key = headers.sec_websocket_key()<span class="question-mark">?</span>.to_string();
 		<span class="kw">let </span>sec_websocket_protocol = headers.sec_websocket_protocol()<span class="question-mark">?</span>.to_string();
-		<span class="kw">let </span>client_protos: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = sec_websocket_protocol.split(<span class="string">&#39;,&#39;</span>).collect();
+		<span class="kw">let </span>client_protos: Vec&lt;<span class="kw-2">&amp;</span>str&gt; = sec_websocket_protocol.split(<span class="string">','</span>).collect();
 		<span class="kw">let </span><span class="kw-2">mut </span>negotiated_protocol = <span class="prelude-val">None</span>;
 		<span class="kw">for </span>proto <span class="kw">in </span>client_protos {
 			<span class="kw">let </span>proto = proto.trim();
@@ -3830,7 +3831,7 @@
 			}
 		}
 
-		<span class="macro">debug!</span>(<span class="string">&quot;matched proto = {:?}&quot;</span>, negotiated_protocol)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"matched proto = {:?}"</span>, negotiated_protocol)<span class="question-mark">?</span>;
 
 		send_websocket_handshake_response(
 			<span class="kw-2">&amp;mut </span>write_handle,
@@ -3849,7 +3850,7 @@
 				})
 			}
 			<span class="prelude-val">None </span>=&gt; <span class="macro">warn!</span>(
-				<span class="string">&quot;Expected there to be connection data for this id, but there was none. Id = {}&quot;</span>,
+				<span class="string">"Expected there to be connection data for this id, but there was none. Id = {}"</span>,
 				conn_data.get_connection_id()
 			)<span class="question-mark">?</span>,
 		}
@@ -3876,10 +3877,10 @@
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>attachment = <span class="kw">match </span>attachment {
 			<span class="prelude-val">Some</span>(attachment) =&gt; attachment,
-			<span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">&quot;no instance found for this request1&quot;</span>)),
+			<span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">"no instance found for this request1"</span>)),
 		};
 		<span class="macro">debug!</span>(
-			<span class="string">&quot;atttypename={:?},type={}&quot;</span>,
+			<span class="string">"atttypename={:?},type={}"</span>,
 			attachment.clone(),
 			<span class="self">Self</span>::type_of(attachment.clone())
 		)<span class="question-mark">?</span>;
@@ -3888,19 +3889,19 @@
 		<span class="kw">let </span>attachment = <span class="kw">match </span>attachment {
 			<span class="prelude-val">Some</span>(attachment) =&gt; attachment,
 			<span class="prelude-val">None </span>=&gt; {
-				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">&quot;no instance found for this request2&quot;</span>));
+				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">"no instance found for this request2"</span>));
 			}
 		};
-		<span class="macro">debug!</span>(<span class="string">&quot;conn_data.tid={},att={:?}&quot;</span>, conn_data.tid(), attachment)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"conn_data.tid={},att={:?}"</span>, conn_data.tid(), attachment)<span class="question-mark">?</span>;
 		<span class="kw">let </span>ctx = <span class="self">Self</span>::build_ctx(ctx, config)<span class="question-mark">?</span>;
 		ctx.now = SystemTime::now().duration_since(UNIX_EPOCH)<span class="question-mark">?</span>.as_millis();
 		<span class="self">Self</span>::update_connections_hashtable(ctx.now, ctx, conn_data)<span class="question-mark">?</span>;
 
-		<span class="macro">debug!</span>(<span class="string">&quot;on read slab_offset = {}&quot;</span>, conn_data.slab_offset())<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"on read slab_offset = {}"</span>, conn_data.slab_offset())<span class="question-mark">?</span>;
 		<span class="kw">let </span>first_slab = conn_data.first_slab();
 		<span class="kw">let </span>last_slab = conn_data.last_slab();
 		<span class="kw">let </span>slab_offset = conn_data.slab_offset();
-		<span class="macro">debug!</span>(<span class="string">&quot;firstslab={},last_slab={}&quot;</span>, first_slab, last_slab)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"firstslab={},last_slab={}"</span>, first_slab, last_slab)<span class="question-mark">?</span>;
 		<span class="kw">let </span>(req, slab_id_vec, slab_count) = conn_data.borrow_slab_allocator(<span class="kw">move </span>|sa| {
 			<span class="kw">let </span><span class="kw-2">mut </span>slab_id_vec = <span class="macro">vec!</span>[];
 			<span class="kw">let </span><span class="kw-2">mut </span>slab_id = first_slab;
@@ -3918,7 +3919,7 @@
 				};
 
 				<span class="kw">let </span>slab_bytes_data = <span class="kw-2">&amp;</span>slab_bytes[<span class="number">0</span>..offset];
-				<span class="macro">debug!</span>(<span class="string">&quot;read bytes = {:?}&quot;</span>, slab_bytes_data)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"read bytes = {:?}"</span>, slab_bytes_data)<span class="question-mark">?</span>;
 				ret.extend(slab_bytes_data);
 
 				<span class="kw">if </span>slab_id == last_slab {
@@ -3948,7 +3949,7 @@
 					<span class="prelude-val">Err</span>(e) =&gt; {
 						<span class="comment">// invalid data sent to the websocket connection.
 						// close it.
-						</span><span class="macro">warn!</span>(<span class="string">&quot;Websocket Error [closing connection]: {}&quot;</span>, e.to_string())<span class="question-mark">?</span>;
+						</span><span class="macro">warn!</span>(<span class="string">"Websocket Error [closing connection]: {}"</span>, e.to_string())<span class="question-mark">?</span>;
 						conn_data.write_handle().close()<span class="question-mark">?</span>;
 						req.len()
 					}
@@ -3956,7 +3957,7 @@
 			}
 			<span class="prelude-val">None </span>=&gt; {
 				<span class="kw">loop </span>{
-					<span class="macro">debug!</span>(<span class="string">&quot;slab_count={}&quot;</span>, slab_count)<span class="question-mark">?</span>;
+					<span class="macro">debug!</span>(<span class="string">"slab_count={}"</span>, slab_count)<span class="question-mark">?</span>;
 					<span class="kw">let </span>headers = <span class="self">Self</span>::build_request_headers(
 						<span class="kw-2">&amp;</span>req,
 						start,
@@ -3972,14 +3973,14 @@
 							// can put something that triggers the default instance.
 							</span><span class="kw">let </span>termination_point = <span class="number">0</span>;
 							<span class="kw">let </span>start = <span class="number">0</span>;
-							<span class="kw">let </span>req = <span class="kw-2">&amp;</span><span class="string">&quot;Host_&quot;</span>.to_string().as_bytes().to_vec();
+							<span class="kw">let </span>req = <span class="kw-2">&amp;</span><span class="string">"Host_"</span>.to_string().as_bytes().to_vec();
 							<span class="kw">let </span>start_uri = <span class="number">0</span>;
 							<span class="kw">let </span>end_uri = <span class="number">0</span>;
 							<span class="kw">let </span>http_request_type = HttpRequestType::GET;
 							<span class="kw">let </span>headers = [HttpHeader::default(); <span class="number">100</span>];
 							<span class="kw">let </span>header_count = <span class="number">0</span>;
 							<span class="kw">let </span>version = HttpVersion::UNKNOWN;
-							<span class="kw">let </span>host = <span class="string">&quot;&quot;</span>.to_string();
+							<span class="kw">let </span>host = <span class="string">""</span>.to_string();
 							<span class="kw">let </span>connection = ConnectionType::KeepAlive;
 							<span class="kw">let </span>headers = HttpHeaders {
 								termination_point,
@@ -3995,16 +3996,16 @@
 								connection,
 								range_start: <span class="number">0</span>,
 								range_end: usize::MAX,
-								if_none_match: <span class="string">&quot;&quot;</span>.to_string(),
-								if_modified_since: <span class="string">&quot;&quot;</span>.to_string(),
+								if_none_match: <span class="string">""</span>.to_string(),
+								if_modified_since: <span class="string">""</span>.to_string(),
 								is_websocket_upgrade: <span class="bool-val">false</span>,
-								sec_websocket_key: <span class="string">&quot;&quot;</span>.to_string(),
-								sec_websocket_protocol: <span class="string">&quot;&quot;</span>.to_string(),
+								sec_websocket_key: <span class="string">""</span>.to_string(),
+								sec_websocket_protocol: <span class="string">""</span>.to_string(),
 								accept_gzip: <span class="bool-val">false</span>,
 							};
 							<span class="self">Self</span>::header_error(
 								config,
-								<span class="string">&quot;&quot;</span>.to_string(),
+								<span class="string">""</span>.to_string(),
 								conn_data,
 								attachment,
 								e,
@@ -4016,21 +4017,21 @@
 						}
 					};
 
-					<span class="macro">debug!</span>(<span class="string">&quot;Request type = {:?}&quot;</span>, headers.http_request_type)<span class="question-mark">?</span>;
+					<span class="macro">debug!</span>(<span class="string">"Request type = {:?}"</span>, headers.http_request_type)<span class="question-mark">?</span>;
 
 					termination_sum += headers.termination_point;
 
-					<span class="macro">debug!</span>(<span class="string">&quot;term point = {}&quot;</span>, headers.termination_point)<span class="question-mark">?</span>;
+					<span class="macro">debug!</span>(<span class="string">"term point = {}"</span>, headers.termination_point)<span class="question-mark">?</span>;
 					<span class="kw">if </span>headers.termination_point == <span class="number">0 </span>{
 						<span class="kw">break</span>;
 					} <span class="kw">else </span>{
 						<span class="kw">if </span>headers.version != HttpVersion::HTTP10 &amp;&amp; headers.host()<span class="question-mark">?</span>.len() == <span class="number">0 </span>{
 							<span class="self">Self</span>::header_error(
 								config,
-								<span class="string">&quot;&quot;</span>.to_string(),
+								<span class="string">""</span>.to_string(),
 								conn_data,
 								attachment,
-								<span class="macro">err!</span>(ErrKind::Http, <span class="string">&quot;Host not specified on HTTP/1.1+&quot;</span>),
+								<span class="macro">err!</span>(ErrKind::Http, <span class="string">"Host not specified on HTTP/1.1+"</span>),
 								cache.clone(),
 								<span class="kw-2">&amp;</span>headers,
 								ctx,
@@ -4043,7 +4044,7 @@
 							<span class="prelude-val">Err</span>(e) =&gt; {
 								<span class="self">Self</span>::header_error(
 									config,
-									<span class="string">&quot;&quot;</span>.to_string(),
+									<span class="string">""</span>.to_string(),
 									conn_data,
 									attachment,
 									e,
@@ -4070,7 +4071,7 @@
 										attachment,
 										<span class="macro">err!</span>(
 											ErrKind::Http,
-											<span class="string">&quot;Cannot upgrade to websocket for this URI&quot;
+											<span class="string">"Cannot upgrade to websocket for this URI"
 										</span>),
 										cache,
 										<span class="kw-2">&amp;</span>headers,
@@ -4095,8 +4096,8 @@
 										<span class="kw-2">&amp;</span>attachment,
 										<span class="kw-2">&amp;mut </span>conn_data.write_handle(),
 									)<span class="question-mark">?</span>;
-								} <span class="kw">else if </span>path.contains(<span class="string">r&quot;.&quot;</span>) {
-									<span class="kw">let </span>pos = path.chars().rev().position(|c| c == <span class="string">&#39;.&#39;</span>).unwrap();
+								} <span class="kw">else if </span>path.contains(<span class="string">r"."</span>) {
+									<span class="kw">let </span>pos = path.chars().rev().position(|c| c == <span class="string">'.'</span>).unwrap();
 									<span class="kw">let </span>len = path.len();
 									<span class="kw">let </span>suffix = path.substring(len - pos, len).to_string();
 									<span class="kw">if </span>attachment.callback_extensions.contains(<span class="kw-2">&amp;</span>suffix) {
@@ -4127,12 +4128,12 @@
 						}
 
 						<span class="kw">if </span>config.debug {
-							<span class="kw">let </span>empty = <span class="string">&quot;&quot;</span>.to_string();
-							<span class="kw">let </span>query = headers.query().unwrap_or(<span class="string">&quot;&quot;</span>.to_string());
+							<span class="kw">let </span>empty = <span class="string">""</span>.to_string();
+							<span class="kw">let </span>query = headers.query().unwrap_or(<span class="string">""</span>.to_string());
 							<span class="kw">let </span>extension = headers.extension().unwrap_or(empty);
 							<span class="kw">let </span>header_count = headers.header_count().unwrap_or(<span class="number">0</span>);
 							<span class="macro">info!</span>(
-						<span class="string">&quot;uri={},query={},extension={},method={:?},version={:?},header_count={},cache_hit={},has_range={},range_start={},range_end={},if_none_match={},if_modified_since={},is_websocket_upgrade={},accept_gzip={}&quot;</span>,
+						<span class="string">"uri={},query={},extension={},method={:?},version={:?},header_count={},cache_hit={},has_range={},range_start={},range_end={},if_none_match={},if_modified_since={},is_websocket_upgrade={},accept_gzip={}"</span>,
 						path,
 						query,
                                                 extension,
@@ -4143,30 +4144,30 @@
                                                 headers.has_range().unwrap_or(<span class="bool-val">false</span>),
                                                 headers.range_start().unwrap_or(<span class="number">0</span>),
                                                 headers.range_end().unwrap_or(usize::MAX),
-                                                headers.if_none_match().unwrap_or(<span class="kw-2">&amp;</span><span class="string">&quot;&quot;</span>.to_string()),
-                                                headers.if_modified_since().unwrap_or(<span class="kw-2">&amp;</span><span class="string">&quot;&quot;</span>.to_string()),
+                                                headers.if_none_match().unwrap_or(<span class="kw-2">&amp;</span><span class="string">""</span>.to_string()),
+                                                headers.if_modified_since().unwrap_or(<span class="kw-2">&amp;</span><span class="string">""</span>.to_string()),
                                                 headers.is_websocket_upgrade().unwrap_or(<span class="bool-val">false</span>),
                                                 headers.accept_gzip().unwrap_or(<span class="bool-val">false</span>),
 					)<span class="question-mark">?</span>;
-							<span class="macro">info!</span>(<span class="string">&quot;{}&quot;</span>, SEPARATOR_LINE)<span class="question-mark">?</span>;
+							<span class="macro">info!</span>(<span class="string">"{}"</span>, SEPARATOR_LINE)<span class="question-mark">?</span>;
 
 							<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..header_count {
 								<span class="macro">info!</span>(
-									<span class="string">&quot;   header[{}] = [&#39;{}&#39;]&quot;</span>,
-									headers.header_name(i).unwrap_or(<span class="string">&quot;&quot;</span>.to_string()),
-									headers.header_value(i).unwrap_or(<span class="string">&quot;&quot;</span>.to_string())
+									<span class="string">"   header[{}] = ['{}']"</span>,
+									headers.header_name(i).unwrap_or(<span class="string">""</span>.to_string()),
+									headers.header_value(i).unwrap_or(<span class="string">""</span>.to_string())
 								)<span class="question-mark">?</span>;
 							}
-							<span class="macro">info!</span>(<span class="string">&quot;{}&quot;</span>, SEPARATOR_LINE)<span class="question-mark">?</span>;
+							<span class="macro">info!</span>(<span class="string">"{}"</span>, SEPARATOR_LINE)<span class="question-mark">?</span>;
 						}
 					}
 
-					<span class="macro">debug!</span>(<span class="string">&quot;start={}&quot;</span>, headers.start)<span class="question-mark">?</span>;
+					<span class="macro">debug!</span>(<span class="string">"start={}"</span>, headers.start)<span class="question-mark">?</span>;
 				}
 			}
 		}
 
-		<span class="macro">debug!</span>(<span class="string">&quot;last term = {}&quot;</span>, last_term)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"last term = {}"</span>, last_term)<span class="question-mark">?</span>;
 		<span class="self">Self</span>::clean_slabs(termination_sum, req.len(), ctx, <span class="kw-2">&amp;</span>slab_id_vec, conn_data)<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
@@ -4225,7 +4226,7 @@
 		<span class="kw">let </span>now = SystemTime::now().duration_since(UNIX_EPOCH)<span class="question-mark">?</span>.as_millis();
 		<span class="kw">let </span><span class="kw-2">mut </span>to_remove = <span class="macro">vec!</span>[];
 		<span class="kw">for </span>(k, v) <span class="kw">in </span><span class="kw-2">&amp;</span>ctx.connections {
-			<span class="macro">debug!</span>(<span class="string">&quot;connection: {:?} {:?}&quot;</span>, k, v)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"connection: {:?} {:?}"</span>, k, v)<span class="question-mark">?</span>;
 			<span class="kw">let </span>diff = now.saturating_sub(v.last_active);
 			<span class="kw">if </span>diff &gt;= config.idle_timeout {
 				to_remove.push((k.clone(), v.write_state.clone(), v.tid.clone()));
@@ -4246,7 +4247,7 @@
 		<span class="kw">if </span><span class="self">self</span>.config.instances.len() == <span class="number">0 </span>{
 			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 				ErrKind::IllegalArgument,
-				<span class="string">&quot;At least one instance must be specified&quot;
+				<span class="string">"At least one instance must be specified"
 			</span>));
 		}
 
@@ -4265,7 +4266,7 @@
 					<span class="kw">for </span>(hostname, http_dir) <span class="kw">in </span><span class="kw-2">&amp;</span>instance_type.http_dir_map {
 						nmap.insert(
 							hostname.clone(),
-							<span class="self">Self</span>::normalize_path(http_dir.replace(<span class="string">&quot;~&quot;</span>, <span class="kw-2">&amp;</span>home_dir))
+							<span class="self">Self</span>::normalize_path(http_dir.replace(<span class="string">"~"</span>, <span class="kw-2">&amp;</span>home_dir))
 								.into_os_string()
 								.into_string()<span class="question-mark">?</span>,
 						);
@@ -4276,7 +4277,7 @@
 					<span class="kw">for </span>(hostname, http_dir) <span class="kw">in </span><span class="kw-2">&amp;</span>instance_type.http_dir_map {
 						nmap.insert(
 							hostname.clone(),
-							<span class="self">Self</span>::normalize_path(http_dir.replace(<span class="string">&quot;~&quot;</span>, <span class="kw-2">&amp;</span>home_dir))
+							<span class="self">Self</span>::normalize_path(http_dir.replace(<span class="string">"~"</span>, <span class="kw-2">&amp;</span>home_dir))
 								.into_os_string()
 								.into_string()<span class="question-mark">?</span>,
 						);
@@ -4311,8 +4312,8 @@
 			<span class="kw">let </span>port = instance.port;
 			<span class="kw">let </span>addr = <span class="kw-2">&amp;</span>instance.addr;
 
-			<span class="macro">debug!</span>(<span class="string">&quot;creating listener for {}&quot;</span>, port)<span class="question-mark">?</span>;
-			<span class="kw">let </span>addr = <span class="macro">format!</span>(<span class="string">&quot;{}:{}&quot;</span>, addr, port);
+			<span class="macro">debug!</span>(<span class="string">"creating listener for {}"</span>, port)<span class="question-mark">?</span>;
+			<span class="kw">let </span>addr = <span class="macro">format!</span>(<span class="string">"{}:{}"</span>, addr, port);
 			<span class="kw">let </span>handles = create_listeners(<span class="self">self</span>.config.evh_config.threads, <span class="kw-2">&amp;</span>addr, <span class="number">10</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
 
 			<span class="kw">let </span>tls_config = <span class="kw">match </span><span class="kw-2">&amp;</span>instance.instance_type {
@@ -4368,18 +4369,18 @@
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_http_slow_requests() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
-		<span class="kw">let </span>test_dir = <span class="string">&quot;.test_http_slow_requests.bmw&quot;</span>;
+		<span class="kw">let </span>test_dir = <span class="string">".test_http_slow_requests.bmw"</span>;
 		setup_test_dir(test_dir)<span class="question-mark">?</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>file = File::create(<span class="macro">format!</span>(<span class="string">&quot;{}/abc.html&quot;</span>, test_dir))<span class="question-mark">?</span>;
-		file.write_all(<span class="string">b&quot;Hello, world!&quot;</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>file = File::create(<span class="macro">format!</span>(<span class="string">"{}/abc.html"</span>, test_dir))<span class="question-mark">?</span>;
+		file.write_all(<span class="string">b"Hello, world!"</span>)<span class="question-mark">?</span>;
 
-		<span class="kw">let </span><span class="kw-2">mut </span>file = File::create(<span class="macro">format!</span>(<span class="string">&quot;{}/def1.html&quot;</span>, test_dir))<span class="question-mark">?</span>;
-		file.write_all(<span class="string">b&quot;Hello, world2!&quot;</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>file = File::create(<span class="macro">format!</span>(<span class="string">"{}/def1.html"</span>, test_dir))<span class="question-mark">?</span>;
+		file.write_all(<span class="string">b"Hello, world2!"</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>config = HttpConfig {
 			instances: <span class="macro">vec!</span>[HttpInstance {
 				port,
 				instance_type: HttpInstanceType::Plain(PlainConfig {
-					http_dir_map: HashMap::from([(<span class="string">&quot;*&quot;</span>.to_string(), test_dir.to_string())]),
+					http_dir_map: HashMap::from([(<span class="string">"*"</span>.to_string(), test_dir.to_string())]),
 				}),
 				..Default::default()
 			}],
@@ -4388,33 +4389,33 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>http = HttpServerImpl::new(<span class="kw-2">&amp;</span>config)<span class="question-mark">?</span>;
 		http.start()<span class="question-mark">?</span>;
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
-		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;127.0.0.1:{}&quot;</span>, port)[..];
-		<span class="macro">info!</span>(<span class="string">&quot;addr={}&quot;</span>, addr)<span class="question-mark">?</span>;
+		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
+		<span class="macro">info!</span>(<span class="string">"addr={}"</span>, addr)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>client = TcpStream::connect(addr)<span class="question-mark">?</span>;
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
-		client.write(<span class="string">b&quot;GET /abc.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test&quot;</span>)<span class="question-mark">?</span>;
+		client.write(<span class="string">b"GET /abc.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test"</span>)<span class="question-mark">?</span>;
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
-		client.write(<span class="string">b&quot;\r\n\r\n&quot;</span>)<span class="question-mark">?</span>;
+		client.write(<span class="string">b"\r\n\r\n"</span>)<span class="question-mark">?</span>;
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0</span>; <span class="number">512</span>];
 		<span class="kw">let </span>len = client.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"len={}"</span>, len)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"data='{}'"</span>, data)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(len, <span class="number">284</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
 		<span class="kw">let </span><span class="kw-2">mut </span>client = TcpStream::connect(addr)<span class="question-mark">?</span>;
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
-		client.write(<span class="string">b&quot;GET /def1.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n&quot;</span>)<span class="question-mark">?</span>;
+		client.write(<span class="string">b"GET /def1.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n"</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0</span>; <span class="number">512</span>];
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 		<span class="kw">let </span>len = client.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"len={}"</span>, len)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"data='{}'"</span>, data)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(len, <span class="number">285</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
@@ -4426,51 +4427,51 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_http_server_basic() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">&quot;.test_http_server_basic.bmw&quot;</span>;
+		<span class="kw">let </span>test_dir = <span class="string">".test_http_server_basic.bmw"</span>;
 		setup_test_dir(test_dir)<span class="question-mark">?</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>file = File::create(<span class="macro">format!</span>(<span class="string">&quot;{}/foo.html&quot;</span>, test_dir))<span class="question-mark">?</span>;
-		file.write_all(<span class="string">b&quot;Hello, world!&quot;</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>file = File::create(<span class="macro">format!</span>(<span class="string">"{}/foo.html"</span>, test_dir))<span class="question-mark">?</span>;
+		file.write_all(<span class="string">b"Hello, world!"</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;port={}&quot;</span>, port)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"port={}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>config = HttpConfig {
 			instances: <span class="macro">vec!</span>[HttpInstance {
 				port,
 				instance_type: HttpInstanceType::Plain(PlainConfig {
-					http_dir_map: HashMap::from([(<span class="string">&quot;*&quot;</span>.to_string(), test_dir.to_string())]),
+					http_dir_map: HashMap::from([(<span class="string">"*"</span>.to_string(), test_dir.to_string())]),
 				}),
 				..Default::default()
 			}],
-			server_version: <span class="string">&quot;test1&quot;</span>.to_string(),
+			server_version: <span class="string">"test1"</span>.to_string(),
 			..Default::default()
 		};
 		<span class="kw">let </span><span class="kw-2">mut </span>http = HttpServerImpl::new(<span class="kw-2">&amp;</span>config)<span class="question-mark">?</span>;
 		http.start()<span class="question-mark">?</span>;
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
-		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;127.0.0.1:{}&quot;</span>, port)[..];
-		<span class="macro">info!</span>(<span class="string">&quot;addr={}&quot;</span>, addr)<span class="question-mark">?</span>;
+		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
+		<span class="macro">info!</span>(<span class="string">"addr={}"</span>, addr)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>client = TcpStream::connect(addr)<span class="question-mark">?</span>;
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
-		client.write(<span class="string">b&quot;GET /foo.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n&quot;</span>)<span class="question-mark">?</span>;
+		client.write(<span class="string">b"GET /foo.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n"</span>)<span class="question-mark">?</span>;
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0</span>; <span class="number">512</span>];
 		<span class="kw">let </span>len = client.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"len={}"</span>, len)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"data='{}'"</span>, data)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(len, <span class="number">284</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 
 		<span class="kw">let </span><span class="kw-2">mut </span>client = TcpStream::connect(addr)<span class="question-mark">?</span>;
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
-		client.write(<span class="string">b&quot;GET /foo.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n&quot;</span>)<span class="question-mark">?</span>;
+		client.write(<span class="string">b"GET /foo.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n"</span>)<span class="question-mark">?</span>;
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0</span>; <span class="number">512</span>];
 		<span class="kw">let </span>len = client.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
 		<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;len={}&quot;</span>, len)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;data=&#39;{}&#39;&quot;</span>, data)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"len={}"</span>, len)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"data='{}'"</span>, data)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(len, <span class="number">284</span>);
 
 		std::thread::sleep(std::time::Duration::from_millis(<span class="number">1_000</span>));

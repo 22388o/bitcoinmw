@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/hash.rs`."><title>hash.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/hash.rs`."><title>hash.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -2954,13 +2955,13 @@
 // * Arti: https://gitlab.torproject.org/tpo/core/arti
 // * BitcoinMW: https://github.com/bitcoinmw/bitcoinmw
 //
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -2989,7 +2990,7 @@
 
 <span class="macro">info!</span>();
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, K, V&gt; Iterator <span class="kw">for </span>HashtableIterator&lt;<span class="lifetime">&#39;a</span>, K, V&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, K, V&gt; Iterator <span class="kw">for </span>HashtableIterator&lt;<span class="lifetime">'a</span>, K, V&gt;
 <span class="kw">where
 	</span>K: Serializable + Clone,
 	V: Serializable + Clone,
@@ -2999,14 +3000,14 @@
 		<span class="kw">match </span><span class="self">self</span>.hashtable.get_next(<span class="kw-2">&amp;mut </span><span class="self">self</span>.cur) {
 			<span class="prelude-val">Ok</span>(x) =&gt; x,
 			<span class="prelude-val">Err</span>(e) =&gt; {
-				<span class="kw">let _ </span>= <span class="macro">error!</span>(<span class="string">&quot;get_next generated unexpected error: {}&quot;</span>, e);
+				<span class="kw">let _ </span>= <span class="macro">error!</span>(<span class="string">"get_next generated unexpected error: {}"</span>, e);
 				<span class="prelude-val">None
 			</span>}
 		}
 	}
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, K&gt; Iterator <span class="kw">for </span>HashsetIterator&lt;<span class="lifetime">&#39;a</span>, K&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, K&gt; Iterator <span class="kw">for </span>HashsetIterator&lt;<span class="lifetime">'a</span>, K&gt;
 <span class="kw">where
 	</span>K: Serializable + Clone,
 {
@@ -3018,21 +3019,21 @@
 				<span class="bool-val">true </span>=&gt; <span class="kw">match </span>K::read(<span class="kw-2">&amp;mut </span><span class="self">self</span>.slab_reader) {
 					<span class="prelude-val">Ok</span>(k) =&gt; <span class="prelude-val">Some</span>(k),
 					<span class="prelude-val">Err</span>(e) =&gt; {
-						<span class="kw">let _ </span>= <span class="macro">warn!</span>(<span class="string">&quot;deserialization generated error: {}&quot;</span>, e);
+						<span class="kw">let _ </span>= <span class="macro">warn!</span>(<span class="string">"deserialization generated error: {}"</span>, e);
 						<span class="prelude-val">None
 					</span>}
 				},
 				<span class="bool-val">false </span>=&gt; <span class="prelude-val">None</span>,
 			},
 			<span class="prelude-val">Err</span>(e) =&gt; {
-				<span class="kw">let _ </span>= <span class="macro">warn!</span>(<span class="string">&quot;get_next_slot generated error: {}&quot;</span>, e);
+				<span class="kw">let _ </span>= <span class="macro">warn!</span>(<span class="string">"get_next_slot generated error: {}"</span>, e);
 				<span class="prelude-val">None
 			</span>}
 		}
 	}
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, V&gt; Iterator <span class="kw">for </span>ListIterator&lt;<span class="lifetime">&#39;a</span>, V&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, V&gt; Iterator <span class="kw">for </span>ListIterator&lt;<span class="lifetime">'a</span>, V&gt;
 <span class="kw">where
 	</span>V: Serializable + Clone,
 {
@@ -3058,7 +3059,7 @@
 							<span class="kw">match </span>V::read(slab_reader) {
 								<span class="prelude-val">Ok</span>(v) =&gt; <span class="prelude-val">Some</span>(v),
 								<span class="prelude-val">Err</span>(e) =&gt; {
-									<span class="kw">let _ </span>= <span class="macro">warn!</span>(<span class="string">&quot;deserialization generated error: {}&quot;</span>, e);
+									<span class="kw">let _ </span>= <span class="macro">warn!</span>(<span class="string">"deserialization generated error: {}"</span>, e);
 									<span class="prelude-val">None
 								</span>}
 							}
@@ -3067,7 +3068,7 @@
 						</span>}
 					}
 					<span class="prelude-val">Err</span>(e) =&gt; {
-						<span class="kw">let _ </span>= <span class="macro">warn!</span>(<span class="string">&quot;get_next_slot generated error: {}&quot;</span>, e);
+						<span class="kw">let _ </span>= <span class="macro">warn!</span>(<span class="string">"get_next_slot generated error: {}"</span>, e);
 						<span class="prelude-val">None
 					</span>}
 				}
@@ -3095,11 +3096,11 @@
 	}
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, K, V&gt; HashtableIterator&lt;<span class="lifetime">&#39;a</span>, K, V&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, K, V&gt; HashtableIterator&lt;<span class="lifetime">'a</span>, K, V&gt;
 <span class="kw">where
 	</span>K: Serializable + Clone,
 {
-	<span class="kw">fn </span>new(hashtable: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>HashImpl&lt;K&gt;, cur: usize) -&gt; <span class="self">Self </span>{
+	<span class="kw">fn </span>new(hashtable: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>HashImpl&lt;K&gt;, cur: usize) -&gt; <span class="self">Self </span>{
 		<span class="self">Self </span>{
 			hashtable,
 			cur,
@@ -3108,11 +3109,11 @@
 	}
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, K&gt; HashsetIterator&lt;<span class="lifetime">&#39;a</span>, K&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, K&gt; HashsetIterator&lt;<span class="lifetime">'a</span>, K&gt;
 <span class="kw">where
 	</span>K: Serializable + Clone,
 {
-	<span class="kw">fn </span>new(hashset: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>HashImpl&lt;K&gt;, cur: usize) -&gt; <span class="self">Self </span>{
+	<span class="kw">fn </span>new(hashset: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>HashImpl&lt;K&gt;, cur: usize) -&gt; <span class="self">Self </span>{
 		<span class="self">Self </span>{
 			hashset,
 			cur,
@@ -3122,12 +3123,12 @@
 	}
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, V&gt; ListIterator&lt;<span class="lifetime">&#39;a</span>, V&gt;
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, V&gt; ListIterator&lt;<span class="lifetime">'a</span>, V&gt;
 <span class="kw">where
 	</span>V: Serializable + Clone,
 {
-	<span class="kw">fn </span>new(list: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>HashImpl&lt;V&gt;, cur: usize, direction: Direction) -&gt; <span class="self">Self </span>{
-		<span class="kw">let _ </span>= <span class="macro">debug!</span>(<span class="string">&quot;new list iter&quot;</span>);
+	<span class="kw">fn </span>new(list: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>HashImpl&lt;V&gt;, cur: usize, direction: Direction) -&gt; <span class="self">Self </span>{
+		<span class="kw">let _ </span>= <span class="macro">debug!</span>(<span class="string">"new list iter"</span>);
 		<span class="self">Self </span>{
 			linked_list_ref: <span class="prelude-val">Some</span>(list),
 			cur,
@@ -3229,34 +3230,34 @@
 <span class="kw">where
 	</span>K: Serializable + Debug + Clone,
 {
-	<span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), std::fmt::Error&gt; {
+	<span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), std::fmt::Error&gt; {
 		<span class="kw">if </span><span class="self">self</span>.entry_array.is_some() {
 			<span class="kw">let </span>itt = HashsetIterator::new(<span class="self">self</span>, <span class="self">self</span>.tail);
-			<span class="macro">write!</span>(f, <span class="string">&quot;[&quot;</span>)<span class="question-mark">?</span>;
+			<span class="macro">write!</span>(f, <span class="string">"["</span>)<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
 			<span class="kw">for </span>x <span class="kw">in </span>itt {
-				<span class="kw">let </span>v = <span class="kw">if </span><span class="self">self</span>.is_hashtable { <span class="string">&quot;=VALUE&quot; </span>} <span class="kw">else </span>{ <span class="string">&quot;&quot; </span>};
+				<span class="kw">let </span>v = <span class="kw">if </span><span class="self">self</span>.is_hashtable { <span class="string">"=VALUE" </span>} <span class="kw">else </span>{ <span class="string">"" </span>};
 				<span class="kw">if </span>i == <span class="number">0 </span>{
-					<span class="macro">write!</span>(f, <span class="string">&quot;{:?}{}&quot;</span>, x, v)<span class="question-mark">?</span>;
+					<span class="macro">write!</span>(f, <span class="string">"{:?}{}"</span>, x, v)<span class="question-mark">?</span>;
 				} <span class="kw">else </span>{
-					<span class="macro">write!</span>(f, <span class="string">&quot;, {:?}{}&quot;</span>, x, v)<span class="question-mark">?</span>;
+					<span class="macro">write!</span>(f, <span class="string">", {:?}{}"</span>, x, v)<span class="question-mark">?</span>;
 				}
 				i += <span class="number">1</span>;
 			}
-			<span class="macro">write!</span>(f, <span class="string">&quot;]&quot;</span>)<span class="question-mark">?</span>;
+			<span class="macro">write!</span>(f, <span class="string">"]"</span>)<span class="question-mark">?</span>;
 		} <span class="kw">else </span>{
 			<span class="kw">let </span>itt = ListIterator::new(<span class="self">self</span>, <span class="self">self</span>.head, Direction::Forward);
-			<span class="macro">write!</span>(f, <span class="string">&quot;[&quot;</span>)<span class="question-mark">?</span>;
+			<span class="macro">write!</span>(f, <span class="string">"["</span>)<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
 			<span class="kw">for </span>x <span class="kw">in </span>itt {
 				<span class="kw">if </span>i == <span class="number">0 </span>{
-					<span class="macro">write!</span>(f, <span class="string">&quot;{:?}&quot;</span>, x)<span class="question-mark">?</span>;
+					<span class="macro">write!</span>(f, <span class="string">"{:?}"</span>, x)<span class="question-mark">?</span>;
 				} <span class="kw">else </span>{
-					<span class="macro">write!</span>(f, <span class="string">&quot;, {:?}&quot;</span>, x)<span class="question-mark">?</span>;
+					<span class="macro">write!</span>(f, <span class="string">", {:?}"</span>, x)<span class="question-mark">?</span>;
 				}
 				i += <span class="number">1</span>;
 			}
-			<span class="macro">write!</span>(f, <span class="string">&quot;]&quot;</span>)<span class="question-mark">?</span>;
+			<span class="macro">write!</span>(f, <span class="string">"]"</span>)<span class="question-mark">?</span>;
 		}
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -3297,8 +3298,8 @@
 <span class="kw">where
 	</span>K: Serializable + Debug + Clone,
 {
-	<span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), std::fmt::Error&gt; {
-		<span class="macro">write!</span>(f, <span class="string">&quot;{:?}&quot;</span>, <span class="self">self</span>.static_impl)
+	<span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), std::fmt::Error&gt; {
+		<span class="macro">write!</span>(f, <span class="string">"{:?}"</span>, <span class="self">self</span>.static_impl)
 	}
 }
 
@@ -3364,7 +3365,7 @@
 		<span class="self">self</span>.static_impl.clear_impl()
 	}
 
-	<span class="kw">fn </span>iter&lt;<span class="lifetime">&#39;b</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;b </span><span class="self">self</span>) -&gt; HashtableIterator&lt;<span class="lifetime">&#39;b</span>, K, V&gt; {
+	<span class="kw">fn </span>iter&lt;<span class="lifetime">'b</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'b </span><span class="self">self</span>) -&gt; HashtableIterator&lt;<span class="lifetime">'b</span>, K, V&gt; {
 		HashtableIterator::new(<span class="kw-2">&amp;</span><span class="self">self</span>.static_impl, <span class="self">self</span>.static_impl.tail)
 	}
 	<span class="kw">fn </span>max_load_factor(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; f64 {
@@ -3453,7 +3454,7 @@
 		<span class="self">self</span>.static_impl.clear_impl()
 	}
 
-	<span class="kw">fn </span>iter&lt;<span class="lifetime">&#39;b</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;b </span><span class="self">self</span>) -&gt; HashsetIterator&lt;<span class="lifetime">&#39;b</span>, K&gt; {
+	<span class="kw">fn </span>iter&lt;<span class="lifetime">'b</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'b </span><span class="self">self</span>) -&gt; HashsetIterator&lt;<span class="lifetime">'b</span>, K&gt; {
 		HashsetIterator::new(<span class="kw-2">&amp;</span><span class="self">self</span>.static_impl, <span class="self">self</span>.static_impl.tail)
 	}
 	<span class="kw">fn </span>max_load_factor(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; f64 {
@@ -3473,14 +3474,14 @@
 			.insert_impl::&lt;V&gt;(<span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>value), <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="bool-val">false</span>)
 	}
 
-	<span class="kw">fn </span>iter&lt;<span class="lifetime">&#39;b</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;b </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = V&gt; + <span class="lifetime">&#39;b</span>&gt; {
+	<span class="kw">fn </span>iter&lt;<span class="lifetime">'b</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'b </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = V&gt; + <span class="lifetime">'b</span>&gt; {
 		Box::new(ListIterator::new(
 			<span class="kw-2">&amp;</span><span class="self">self</span>.static_impl,
 			<span class="self">self</span>.static_impl.head,
 			Direction::Forward,
 		))
 	}
-	<span class="kw">fn </span>iter_rev&lt;<span class="lifetime">&#39;b</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;b </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = V&gt; + <span class="lifetime">&#39;b</span>&gt; {
+	<span class="kw">fn </span>iter_rev&lt;<span class="lifetime">'b</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'b </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = V&gt; + <span class="lifetime">'b</span>&gt; {
 		Box::new(ListIterator::new(
 			<span class="kw-2">&amp;</span><span class="self">self</span>.static_impl,
 			<span class="self">self</span>.static_impl.tail,
@@ -3522,10 +3523,10 @@
 					<span class="bool-val">true </span>=&gt; slabs.slab_size()<span class="question-mark">?</span>,
 					<span class="bool-val">false </span>=&gt; {
 						<span class="kw">let </span>th = thread::current();
-						<span class="kw">let </span>n = th.name().unwrap_or(<span class="string">&quot;unknown&quot;</span>);
-						<span class="kw">let </span>m1 = <span class="string">&quot;Slab allocator was not initialized for thread&quot;</span>;
-						<span class="kw">let </span>m2 = <span class="string">&quot;Initializing with default values.&quot;</span>;
-						<span class="macro">warn!</span>(<span class="string">&quot;WARN: {} &#39;{}&#39;. {}&quot;</span>, m1, n, m2)<span class="question-mark">?</span>;
+						<span class="kw">let </span>n = th.name().unwrap_or(<span class="string">"unknown"</span>);
+						<span class="kw">let </span>m1 = <span class="string">"Slab allocator was not initialized for thread"</span>;
+						<span class="kw">let </span>m2 = <span class="string">"Initializing with default values."</span>;
+						<span class="macro">warn!</span>(<span class="string">"WARN: {} '{}'. {}"</span>, m1, n, m2)<span class="question-mark">?</span>;
 						slabs.init(SlabAllocatorConfig::default())<span class="question-mark">?</span>;
 						slabs.slab_size()<span class="question-mark">?
 					</span>}
@@ -3536,13 +3537,13 @@
 		};
 
 		<span class="kw">if </span>slab_size &gt; <span class="number">256 </span>* <span class="number">256 </span>{
-			<span class="kw">let </span>fmt = <span class="string">&quot;slab_size must be equal to or less than 65,536&quot;</span>;
+			<span class="kw">let </span>fmt = <span class="string">"slab_size must be equal to or less than 65,536"</span>;
 			<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::Configuration, fmt);
 			<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 		}
 
 		<span class="kw">if </span>slab_count &gt; <span class="number">281_474_976_710_655 </span>|| debug_large_slab_count {
-			<span class="kw">let </span>fmt = <span class="string">&quot;slab_count must be equal to or less than 281_474_976_710_655&quot;</span>;
+			<span class="kw">let </span>fmt = <span class="string">"slab_count must be equal to or less than 281_474_976_710_655"</span>;
 			<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::Configuration, fmt);
 			<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 		}
@@ -3550,12 +3551,12 @@
 		<span class="kw">let </span>(max_entries, max_load_factor) = <span class="kw">match </span>hashtable_config {
 			<span class="prelude-val">Some</span>(config) =&gt; {
 				<span class="kw">if </span>config.max_entries == <span class="number">0 </span>{
-					<span class="kw">let </span>fmt = <span class="string">&quot;MaxEntries must be greater than 0&quot;</span>;
+					<span class="kw">let </span>fmt = <span class="string">"MaxEntries must be greater than 0"</span>;
 					<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::Configuration, fmt);
 					<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 				}
 				<span class="kw">if </span>config.max_load_factor &lt;= <span class="number">0.0 </span>|| config.max_load_factor &gt; <span class="number">1.0 </span>{
-					<span class="kw">let </span>fmt = <span class="string">&quot;MaxLoadFactor must be greater than 0 and less than or equal to 1.0&quot;</span>;
+					<span class="kw">let </span>fmt = <span class="string">"MaxLoadFactor must be greater than 0 and less than or equal to 1.0"</span>;
 					<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::Configuration, fmt);
 					<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 				}
@@ -3565,19 +3566,19 @@
 				<span class="kw">match </span>hashset_config {
 					<span class="prelude-val">Some</span>(config) =&gt; {
 						<span class="kw">if </span>config.max_entries == <span class="number">0 </span>{
-							<span class="kw">let </span>fmt = <span class="string">&quot;MaxEntries must be greater than 0&quot;</span>;
+							<span class="kw">let </span>fmt = <span class="string">"MaxEntries must be greater than 0"</span>;
 							<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::Configuration, fmt);
 							<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 						}
 						<span class="kw">if </span>config.max_load_factor &lt;= <span class="number">0.0 </span>|| config.max_load_factor &gt; <span class="number">1.0 </span>{
-							<span class="kw">let </span>fmt = <span class="string">&quot;MaxLoadFactor must be greater than 0 and less than or equal to 1.0&quot;</span>;
+							<span class="kw">let </span>fmt = <span class="string">"MaxLoadFactor must be greater than 0 and less than or equal to 1.0"</span>;
 							<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::Configuration, fmt);
 							<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 						}
 
 						(config.max_entries, config.max_load_factor)
 					}
-					<span class="prelude-val">None </span>=&gt; (<span class="number">0</span>, <span class="number">1.0</span>), <span class="comment">// for lists it&#39;s ignored
+					<span class="prelude-val">None </span>=&gt; (<span class="number">0</span>, <span class="number">1.0</span>), <span class="comment">// for lists it's ignored
 				</span>}
 			}
 		};
@@ -3593,13 +3594,13 @@
 					x &gt;&gt;= <span class="number">8</span>;
 					ptr_size += <span class="number">1</span>;
 				}
-				<span class="macro">debug!</span>(<span class="string">&quot;ptr_size={}&quot;</span>, ptr_size)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"ptr_size={}"</span>, ptr_size)<span class="question-mark">?</span>;
 				(<span class="prelude-val">None</span>, ptr_size)
 			}
 			<span class="prelude-val">None </span>=&gt; {
 				<span class="kw">let </span>size: usize = (max_entries <span class="kw">as </span>f64 / max_load_factor).ceil() <span class="kw">as </span>usize;
 				<span class="kw">let </span>entry_array = Builder::build_array(size, <span class="kw-2">&amp;</span>SLOT_EMPTY)<span class="question-mark">?</span>;
-				<span class="macro">debug!</span>(<span class="string">&quot;entry array init to size = {}&quot;</span>, size)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"entry array init to size = {}"</span>, size)<span class="question-mark">?</span>;
 				<span class="kw">let </span><span class="kw-2">mut </span>x = entry_array.size() + <span class="number">2</span>; <span class="comment">// two more, one for deleted and one for empty
 				</span><span class="kw">let </span><span class="kw-2">mut </span>ptr_size = <span class="number">0</span>;
 				<span class="kw">loop </span>{
@@ -3609,7 +3610,7 @@
 					x &gt;&gt;= <span class="number">8</span>;
 					ptr_size += <span class="number">1</span>;
 				}
-				<span class="macro">debug!</span>(<span class="string">&quot;ptr_size={}&quot;</span>, ptr_size)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"ptr_size={}"</span>, ptr_size)<span class="question-mark">?</span>;
 				(<span class="prelude-val">Some</span>(entry_array), ptr_size)
 			}
 		};
@@ -3619,14 +3620,14 @@
 
 		<span class="kw">let </span>bytes_per_slab = slab_size.saturating_sub(ptr_size);
 		<span class="kw">if </span>slab_size &lt; ptr_size * <span class="number">4 </span>{
-			<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">&quot;SlabSize is too small. Must be at least {}&quot;</span>, ptr_size * <span class="number">4</span>);
+			<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">"SlabSize is too small. Must be at least {}"</span>, ptr_size * <span class="number">4</span>);
 			<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::Configuration, fmt);
 			<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 		}
 
 		<span class="kw">let </span>(slab_reader, slab_writer, slabs) = <span class="kw">match </span>slabs.clone() {
 			<span class="prelude-val">Some</span>(slabs) =&gt; {
-				<span class="kw">let </span>slabs2: Rc&lt;RefCell&lt;(<span class="kw">dyn </span>SlabAllocator + <span class="lifetime">&#39;static</span>)&gt;&gt; = slabs.clone();
+				<span class="kw">let </span>slabs2: Rc&lt;RefCell&lt;(<span class="kw">dyn </span>SlabAllocator + <span class="lifetime">'static</span>)&gt;&gt; = slabs.clone();
 				(
 					SlabReader::new(<span class="prelude-val">Some</span>(slabs2.clone()), <span class="number">0</span>, <span class="prelude-val">Some</span>(ptr_size))<span class="question-mark">?</span>,
 					SlabWriter::new(<span class="prelude-val">Some</span>(slabs2.clone()), <span class="number">0</span>, <span class="prelude-val">Some</span>(ptr_size))<span class="question-mark">?</span>,
@@ -3695,10 +3696,10 @@
 		reader: <span class="kw-2">&amp;mut </span>SlabReader,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="kw">if </span><span class="self">self</span>.debug_get_next_slot_error {
-			<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::Test, <span class="string">&quot;get_next_slot&quot;</span>);
+			<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::Test, <span class="string">"get_next_slot"</span>);
 			<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 		}
-		<span class="macro">debug!</span>(<span class="string">&quot;cur={}&quot;</span>, <span class="kw-2">*</span>cur)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"cur={}"</span>, <span class="kw-2">*</span>cur)<span class="question-mark">?</span>;
 		<span class="kw">if </span><span class="kw-2">*</span>cur &gt;= <span class="self">self</span>.max_value {
 			<span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>);
 		}
@@ -3706,7 +3707,7 @@
 			<span class="prelude-val">Some</span>(entry_array) =&gt; entry_array[<span class="kw-2">*</span>cur],
 			<span class="prelude-val">None </span>=&gt; <span class="kw-2">*</span>cur,
 		};
-		<span class="macro">debug!</span>(<span class="string">&quot;slot={}&quot;</span>, slot)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"slot={}"</span>, slot)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>ptrs = [<span class="number">0u8</span>; <span class="number">8</span>];
 		<span class="kw">let </span>ptr_size = <span class="self">self</span>.ptr_size;
@@ -3723,7 +3724,7 @@
 				slice_to_usize(<span class="kw-2">&amp;</span>ptrs[<span class="number">0</span>..ptr_size])<span class="question-mark">?
 			</span>}
 		};
-		<span class="macro">debug!</span>(<span class="string">&quot;read cur = {}&quot;</span>, cur)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"read cur = {}"</span>, cur)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
 	}
 
@@ -3746,11 +3747,11 @@
 			<span class="kw">if </span><span class="self">self</span>.entry_array.is_none() &amp;&amp; cur &gt;= <span class="self">self</span>.max_value {
 				<span class="kw">break</span>;
 			}
-			<span class="macro">debug!</span>(<span class="string">&quot;clear impl cur={}&quot;</span>, cur)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"clear impl cur={}"</span>, cur)<span class="question-mark">?</span>;
 
 			<span class="kw">if </span>cur &lt; <span class="self">self</span>.max_value {
 				<span class="kw">let </span>entry = <span class="self">self</span>.lookup_entry(cur);
-				<span class="macro">debug!</span>(<span class="string">&quot;free chain = {}&quot;</span>, entry)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"free chain = {}"</span>, entry)<span class="question-mark">?</span>;
 				<span class="self">self</span>.free_chain(entry)<span class="question-mark">?</span>;
 			} <span class="kw">else </span>{
 				<span class="kw">break</span>;
@@ -3761,13 +3762,13 @@
 			<span class="self">self</span>.get_next_slot(<span class="kw-2">&amp;mut </span>cur, dir, <span class="kw-2">&amp;mut </span><span class="self">self</span>.slab_reader.clone())<span class="question-mark">?</span>;
 			<span class="kw">match </span><span class="self">self</span>.entry_array.as_mut() {
 				<span class="prelude-val">Some</span>(entry_array) =&gt; {
-					<span class="macro">debug!</span>(<span class="string">&quot;setting entry_array[{}]={}&quot;</span>, last_cur, SLOT_EMPTY)<span class="question-mark">?</span>;
+					<span class="macro">debug!</span>(<span class="string">"setting entry_array[{}]={}"</span>, last_cur, SLOT_EMPTY)<span class="question-mark">?</span>;
 					entry_array[last_cur] = SLOT_EMPTY
 				}
 				<span class="prelude-val">None </span>=&gt; {}
 			}
 		}
-		<span class="macro">debug!</span>(<span class="string">&quot;set size to 0&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"set size to 0"</span>)<span class="question-mark">?</span>;
 		<span class="self">self</span>.size = <span class="number">0</span>;
 		<span class="self">self</span>.tail = SLOT_EMPTY;
 		<span class="self">self</span>.head = SLOT_EMPTY;
@@ -3784,7 +3785,7 @@
 
 	<span class="kw">fn </span>remove_oldest_impl(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="macro">debug!</span>(
-			<span class="string">&quot;remove_oldest_impl self.head={}, Slot_empty={}&quot;</span>,
+			<span class="string">"remove_oldest_impl self.head={}, Slot_empty={}"</span>,
 			<span class="self">self</span>.head, SLOT_EMPTY
 		)<span class="question-mark">?</span>;
 		<span class="kw">if </span><span class="self">self</span>.head != SLOT_EMPTY {
@@ -3801,7 +3802,7 @@
 		<span class="kw">match </span><span class="self">self</span>.get_impl(key, hash)<span class="question-mark">? </span>{
 			<span class="prelude-val">Some</span>((entry, _reader)) =&gt; {
 				<span class="macro">debug!</span>(
-					<span class="string">&quot;entry={},self.tail={},self.head={}&quot;</span>,
+					<span class="string">"entry={},self.tail={},self.head={}"</span>,
 					entry, <span class="self">self</span>.tail, <span class="self">self</span>.head
 				)<span class="question-mark">?</span>;
 				<span class="kw">if </span>entry != <span class="self">self</span>.tail {
@@ -3843,7 +3844,7 @@
 
 					<span class="self">self</span>.tail = entry;
 					<span class="kw">if </span>entry == <span class="self">self</span>.head {
-						<span class="macro">debug!</span>(<span class="string">&quot;setting head to {}&quot;</span>, entry_next)<span class="question-mark">?</span>;
+						<span class="macro">debug!</span>(<span class="string">"setting head to {}"</span>, entry_next)<span class="question-mark">?</span>;
 						<span class="self">self</span>.head = entry_next;
 					}
 				}
@@ -3899,7 +3900,7 @@
 		<span class="kw">let </span>entry_array_len = <span class="kw">match </span><span class="self">self</span>.entry_array.as_ref() {
 			<span class="prelude-val">Some</span>(e) =&gt; e.size(),
 			<span class="prelude-val">None </span>=&gt; {
-				<span class="kw">let </span>fmt = <span class="string">&quot;get_impl called with no entry array&quot;</span>;
+				<span class="kw">let </span>fmt = <span class="string">"get_impl called with no entry array"</span>;
 				<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::IllegalState, fmt);
 				<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 			}
@@ -3909,11 +3910,11 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
 		<span class="kw">loop </span>{
 			<span class="kw">if </span>i &gt;= entry_array_len || <span class="self">self</span>.debug_entry_array_len {
-				<span class="kw">let </span>msg = <span class="string">&quot;HashImpl: Capacity exceeded&quot;</span>;
+				<span class="kw">let </span>msg = <span class="string">"HashImpl: Capacity exceeded"</span>;
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::CapacityExceeded, msg));
 			}
 			<span class="kw">if </span><span class="self">self</span>.lookup_entry(entry) == SLOT_EMPTY {
-				<span class="macro">debug!</span>(<span class="string">&quot;slot empty at {}&quot;</span>, entry)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"slot empty at {}"</span>, entry)<span class="question-mark">?</span>;
 				<span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
 			}
 
@@ -3947,7 +3948,7 @@
 		V: Serializable + Clone,
 	{
 		<span class="macro">debug!</span>(
-			<span class="string">&quot;insert_hash_impl with cur head = {}, raw_chunk={:?}&quot;</span>,
+			<span class="string">"insert_hash_impl with cur head = {}, raw_chunk={:?}"</span>,
 			<span class="self">self</span>.head, raw_chunk
 		)<span class="question-mark">?</span>;
 		<span class="kw">let </span>entry_array_len = <span class="self">self</span>.entry_array.as_ref().unwrap().size();
@@ -3957,7 +3958,7 @@
 
 		<span class="comment">// check the load factor
 		</span><span class="kw">if </span>(<span class="self">self</span>.size + <span class="number">1</span>) <span class="kw">as </span>f64 &gt; <span class="self">self</span>.max_load_factor * entry_array_len <span class="kw">as </span>f64 {
-			<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">&quot;load factor ({}) exceeded&quot;</span>, <span class="self">self</span>.max_load_factor);
+			<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">"load factor ({}) exceeded"</span>, <span class="self">self</span>.max_load_factor);
 			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::CapacityExceeded, fmt));
 		}
 
@@ -3965,15 +3966,15 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>slab_id = <span class="self">self</span>.max_value;
 		<span class="kw">let </span><span class="kw-2">mut </span>raw_exists = <span class="bool-val">false</span>;
 		<span class="kw">loop </span>{
-			<span class="macro">debug!</span>(<span class="string">&quot;loop&quot;</span>)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"loop"</span>)<span class="question-mark">?</span>;
 			<span class="kw">if </span>i &gt;= entry_array_len || <span class="self">self</span>.debug_entry_array_len {
-				<span class="kw">let </span>msg = <span class="string">&quot;HashImpl: Capacity exceeded&quot;</span>;
-				<span class="macro">debug!</span>(<span class="string">&quot;err1&quot;</span>)<span class="question-mark">?</span>;
+				<span class="kw">let </span>msg = <span class="string">"HashImpl: Capacity exceeded"</span>;
+				<span class="macro">debug!</span>(<span class="string">"err1"</span>)<span class="question-mark">?</span>;
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::CapacityExceeded, msg));
 			}
 			<span class="kw">let </span>entry_value = <span class="self">self</span>.lookup_entry(entry);
 			<span class="kw">if </span>entry_value == SLOT_EMPTY || entry_value == SLOT_DELETED {
-				<span class="macro">debug!</span>(<span class="string">&quot;break&quot;</span>)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"break"</span>)<span class="question-mark">?</span>;
 				<span class="kw">break</span>;
 			}
 			<span class="comment">// does the current key match ours?
@@ -3995,7 +3996,7 @@
 			i += <span class="number">1</span>;
 		}
 
-		<span class="macro">debug!</span>(<span class="string">&quot;insert_impl&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"insert_impl"</span>)<span class="question-mark">?</span>;
 		<span class="self">self</span>.insert_impl(
 			key,
 			value,
@@ -4009,7 +4010,7 @@
 		)<span class="question-mark">?</span>;
 
 		<span class="macro">debug!</span>(
-			<span class="string">&quot;---------------------------------insert_hash_impl complete slab_id={}&quot;</span>,
+			<span class="string">"---------------------------------insert_hash_impl complete slab_id={}"</span>,
 			slab_id
 		)<span class="question-mark">?</span>;
 
@@ -4031,18 +4032,18 @@
 		</span>V: Serializable + Clone,
 	{
 		<span class="macro">debug!</span>(
-			<span class="string">&quot;in insert impl with raw value = {:?}, entry = {:?}, raw_exists = {}&quot;</span>,
+			<span class="string">"in insert impl with raw value = {:?}, entry = {:?}, raw_exists = {}"</span>,
 			raw_value, entry, raw_exists
 		)<span class="question-mark">?</span>;
 		<span class="kw">let </span>ptr_size = <span class="self">self</span>.ptr_size;
 		<span class="kw">let </span>max_value = <span class="self">self</span>.max_value;
 		<span class="kw">let </span>tail = <span class="self">self</span>.tail;
-		<span class="macro">debug!</span>(<span class="string">&quot;in insert_impl&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"in insert_impl"</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>slab_id = <span class="kw">match </span>slab_id_allocated {
 			<span class="prelude-val">Some</span>(slab_id) =&gt; slab_id,
 			<span class="prelude-val">None </span>=&gt; <span class="self">self</span>.allocate()<span class="question-mark">?</span>,
 		};
-		<span class="macro">debug!</span>(<span class="string">&quot;alloc={},entry={:?}&quot;</span>, slab_id, entry)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"alloc={},entry={:?}"</span>, slab_id, entry)<span class="question-mark">?</span>;
 		<span class="self">self</span>.slab_writer.seek(slab_id, <span class="number">0</span>);
 
 		<span class="comment">// for lists we use the slab_id as the entry
@@ -4051,11 +4052,11 @@
 			<span class="prelude-val">None </span>=&gt; slab_id,
 		};
 		<span class="kw">let </span><span class="kw-2">mut </span>ptrs = [<span class="number">0u8</span>; <span class="number">16</span>];
-		<span class="macro">debug!</span>(<span class="string">&quot;slab_id={}&quot;</span>, slab_id)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"slab_id={}"</span>, slab_id)<span class="question-mark">?</span>;
 		<span class="comment">// update head/tail pointers
 		</span>usize_to_slice(SLOT_EMPTY, <span class="kw-2">&amp;mut </span>ptrs[<span class="number">0</span>..ptr_size])<span class="question-mark">?</span>;
 		usize_to_slice(tail, <span class="kw-2">&amp;mut </span>ptrs[ptr_size..ptr_size * <span class="number">2</span>])<span class="question-mark">?</span>;
-		<span class="macro">debug!</span>(<span class="string">&quot;updating slab id {}&quot;</span>, slab_id)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"updating slab id {}"</span>, slab_id)<span class="question-mark">?</span>;
 
 		<span class="kw">if </span>!raw_exists {
 			<span class="self">self</span>.slab_writer.write_fixed_bytes(<span class="kw-2">&amp;</span>ptrs[<span class="number">0</span>..ptr_size * <span class="number">2</span>])<span class="question-mark">?</span>;
@@ -4067,22 +4068,22 @@
 			<span class="kw">match </span>key.as_ref().unwrap().write(<span class="kw-2">&amp;mut </span><span class="self">self</span>.slab_writer) {
 				<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
 				<span class="prelude-val">Err</span>(e) =&gt; {
-					<span class="macro">warn!</span>(<span class="string">&quot;writing key generated error: {}&quot;</span>, e)<span class="question-mark">?</span>;
+					<span class="macro">warn!</span>(<span class="string">"writing key generated error: {}"</span>, e)<span class="question-mark">?</span>;
 					<span class="self">self</span>.free_chain(slab_id)<span class="question-mark">?</span>;
-					<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">&quot;writing key generated error: {}&quot;</span>, e);
+					<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">"writing key generated error: {}"</span>, e);
 					<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::CapacityExceeded, fmt);
 					<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 				}
 			}
 		}
-		<span class="macro">debug!</span>(<span class="string">&quot;value write&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"value write"</span>)<span class="question-mark">?</span>;
 		<span class="kw">if </span>value.is_some() {
 			<span class="kw">match </span>value.as_ref().unwrap().write(<span class="kw-2">&amp;mut </span><span class="self">self</span>.slab_writer) {
 				<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
 				<span class="prelude-val">Err</span>(e) =&gt; {
-					<span class="macro">warn!</span>(<span class="string">&quot;writing value generated error: {}&quot;</span>, e)<span class="question-mark">?</span>;
+					<span class="macro">warn!</span>(<span class="string">"writing value generated error: {}"</span>, e)<span class="question-mark">?</span>;
 					<span class="self">self</span>.free_chain(slab_id)<span class="question-mark">?</span>;
-					<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">&quot;writing value generated error: {}&quot;</span>, e);
+					<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">"writing value generated error: {}"</span>, e);
 					<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::CapacityExceeded, fmt);
 					<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 				}
@@ -4091,14 +4092,14 @@
 
 		<span class="kw">if </span>raw_value.is_some() {
 			<span class="kw">let </span>raw_value = raw_value.unwrap();
-			<span class="macro">debug!</span>(<span class="string">&quot;skip bytes {}&quot;</span>, raw_value.<span class="number">0</span>)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"skip bytes {}"</span>, raw_value.<span class="number">0</span>)<span class="question-mark">?</span>;
 			<span class="self">self</span>.slab_writer.skip_bytes(raw_value.<span class="number">0</span>)<span class="question-mark">?</span>;
-			<span class="macro">debug!</span>(<span class="string">&quot;write fixed bytes {:?}&quot;</span>, raw_value.<span class="number">1</span>)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"write fixed bytes {:?}"</span>, raw_value.<span class="number">1</span>)<span class="question-mark">?</span>;
 			<span class="self">self</span>.slab_writer
 				.write_fixed_bytes(<span class="kw-2">&amp;</span>raw_value.<span class="number">1</span>[..raw_value.<span class="number">2</span>])<span class="question-mark">?</span>;
 		}
 
-		<span class="macro">debug!</span>(<span class="string">&quot;array update&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"array update"</span>)<span class="question-mark">?</span>;
 
 		<span class="kw">if </span>!raw_exists {
 			<span class="kw">match </span><span class="self">self</span>.entry_array.as_mut() {
@@ -4159,7 +4160,7 @@
 				</span><span class="kw">for </span>i <span class="kw">in </span><span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size {
 					slab_mut[i] = <span class="number">0xFF</span>;
 				}
-				<span class="macro">debug!</span>(<span class="string">&quot;allocate id = {}&quot;</span>, slab.id())<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"allocate id = {}"</span>, slab.id())<span class="question-mark">?</span>;
 				<span class="prelude-val">Ok</span>(slab.id())
 			}
 			<span class="prelude-val">None </span>=&gt; GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
@@ -4170,7 +4171,7 @@
 				</span><span class="kw">for </span>i <span class="kw">in </span><span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size {
 					slab_mut[i] = <span class="number">0xFF</span>;
 				}
-				<span class="macro">debug!</span>(<span class="string">&quot;allocate id = {}&quot;</span>, slab.id())<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"allocate id = {}"</span>, slab.id())<span class="question-mark">?</span>;
 				<span class="prelude-val">Ok</span>(slab.id())
 			}),
 		}
@@ -4192,7 +4193,7 @@
 	<span class="comment">// loop and break counted as not covered, but are covered
 	</span><span class="attr">#[cfg(not(tarpaulin_include))]
 	</span><span class="kw">fn </span>free_chain(<span class="kw-2">&amp;mut </span><span class="self">self</span>, slab_id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">debug!</span>(<span class="string">&quot;free chain {}&quot;</span>, slab_id)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"free chain {}"</span>, slab_id)<span class="question-mark">?</span>;
 		<span class="kw">let </span>bytes_per_slab = <span class="self">self</span>.bytes_per_slab;
 		<span class="kw">let </span>slab_size = <span class="self">self</span>.slab_size;
 		<span class="kw">let </span><span class="kw-2">mut </span>next_bytes = slab_id;
@@ -4211,7 +4212,7 @@
 				}),
 			}<span class="question-mark">?</span>;
 			next_bytes = n;
-			<span class="macro">debug!</span>(<span class="string">&quot;free id = {}, next_bytes={}&quot;</span>, id, next_bytes)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"free id = {}, next_bytes={}"</span>, id, next_bytes)<span class="question-mark">?</span>;
 			<span class="self">self</span>.free(id)<span class="question-mark">?</span>;
 
 			<span class="kw">if </span>next_bytes &gt;= <span class="self">self</span>.max_value {
@@ -4240,15 +4241,15 @@
 		<span class="kw">let </span>prev_usize_entry = slice_to_usize(<span class="kw-2">&amp;</span>prev[<span class="number">0</span>..ptr_size])<span class="question-mark">?</span>;
 
 		<span class="macro">debug!</span>(
-			<span class="string">&quot;free_iter_list with self.head = {}, entry = {}, next_usize_entry={}, prev_usize_entry={}&quot;</span>,
+			<span class="string">"free_iter_list with self.head = {}, entry = {}, next_usize_entry={}, prev_usize_entry={}"</span>,
 			<span class="self">self</span>.head, entry, next_usize_entry, prev_usize_entry
 		)<span class="question-mark">?</span>;
 		<span class="kw">if </span><span class="self">self</span>.head == entry {
 			<span class="kw">if </span>next_usize_entry &gt;= <span class="self">self</span>.max_value {
-				<span class="macro">debug!</span>(<span class="string">&quot;updating self.head to {}&quot;</span>, SLOT_EMPTY)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"updating self.head to {}"</span>, SLOT_EMPTY)<span class="question-mark">?</span>;
 				<span class="self">self</span>.head = SLOT_EMPTY;
 			} <span class="kw">else </span>{
-				<span class="macro">debug!</span>(<span class="string">&quot;2updating self.head to {}&quot;</span>, next_usize_entry)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"2updating self.head to {}"</span>, next_usize_entry)<span class="question-mark">?</span>;
 				<span class="self">self</span>.head = next_usize_entry;
 			}
 		}
@@ -4291,7 +4292,7 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 	<span class="kw">fn </span>remove_impl(<span class="kw-2">&amp;mut </span><span class="self">self</span>, entry: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">debug!</span>(<span class="string">&quot;remove impl {}&quot;</span>, entry)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"remove impl {}"</span>, entry)<span class="question-mark">?</span>;
 
 		<span class="self">self</span>.free_iter_list(entry)<span class="question-mark">?</span>;
 		<span class="self">self</span>.free_chain(<span class="self">self</span>.lookup_entry(entry))<span class="question-mark">?</span>;
@@ -4316,7 +4317,7 @@
 		<span class="kw">let </span>res = <span class="self">self</span>.clear_impl();
 		<span class="kw">if </span>res.is_err() {
 			<span class="kw">let </span>e = res.unwrap_err();
-			<span class="kw">let _ </span>= <span class="macro">warn!</span>(<span class="string">&quot;unexpected error in drop: {}&quot;</span>, e);
+			<span class="kw">let _ </span>= <span class="macro">warn!</span>(<span class="string">"unexpected error in drop: {}"</span>, e);
 		}
 	}
 }
@@ -4361,7 +4362,7 @@
 		<span class="self">self</span>.clear_impl()
 	}
 
-	<span class="kw">fn </span>iter&lt;<span class="lifetime">&#39;b</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;b </span><span class="self">self</span>) -&gt; HashtableIterator&lt;<span class="lifetime">&#39;b</span>, K, V&gt; {
+	<span class="kw">fn </span>iter&lt;<span class="lifetime">'b</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'b </span><span class="self">self</span>) -&gt; HashtableIterator&lt;<span class="lifetime">'b</span>, K, V&gt; {
 		HashtableIterator::new(<span class="self">self</span>, <span class="self">self</span>.tail)
 	}
 	<span class="kw">fn </span>max_load_factor(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; f64 {
@@ -4445,7 +4446,7 @@
 		<span class="self">self</span>.clear_impl()
 	}
 
-	<span class="kw">fn </span>iter&lt;<span class="lifetime">&#39;b</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;b </span><span class="self">self</span>) -&gt; HashsetIterator&lt;<span class="lifetime">&#39;b</span>, K&gt; {
+	<span class="kw">fn </span>iter&lt;<span class="lifetime">'b</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'b </span><span class="self">self</span>) -&gt; HashsetIterator&lt;<span class="lifetime">'b</span>, K&gt; {
 		HashsetIterator::new(<span class="self">self</span>, <span class="self">self</span>.tail)
 	}
 	<span class="kw">fn </span>max_load_factor(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; f64 {
@@ -4464,10 +4465,10 @@
 		<span class="self">self</span>.insert_impl::&lt;V&gt;(<span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>value), <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="bool-val">false</span>)
 	}
 
-	<span class="kw">fn </span>iter&lt;<span class="lifetime">&#39;b</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;b </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = V&gt; + <span class="lifetime">&#39;b</span>&gt; {
+	<span class="kw">fn </span>iter&lt;<span class="lifetime">'b</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'b </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = V&gt; + <span class="lifetime">'b</span>&gt; {
 		Box::new(ListIterator::new(<span class="self">self</span>, <span class="self">self</span>.head, Direction::Forward))
 	}
-	<span class="kw">fn </span>iter_rev&lt;<span class="lifetime">&#39;b</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;b </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = V&gt; + <span class="lifetime">&#39;b</span>&gt; {
+	<span class="kw">fn </span>iter_rev&lt;<span class="lifetime">'b</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'b </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = V&gt; + <span class="lifetime">'b</span>&gt; {
 		Box::new(ListIterator::new(<span class="self">self</span>, <span class="self">self</span>.tail, Direction::Backward))
 	}
 	<span class="kw">fn </span>delete_head(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
@@ -4599,7 +4600,7 @@
 		<span class="kw">let </span>size = hashtable.size();
 		<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
 		<span class="kw">for </span>(k, v) <span class="kw">in </span>hashtable.iter() {
-			<span class="macro">info!</span>(<span class="string">&quot;k={},v={}&quot;</span>, k, v)<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(<span class="string">"k={},v={}"</span>, k, v)<span class="question-mark">?</span>;
 			<span class="macro">assert_eq!</span>(hashtable.get(<span class="kw-2">&amp;</span>k)<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(v));
 			i += <span class="number">1</span>;
 		}
@@ -4611,7 +4612,7 @@
 		<span class="kw">let </span>size = hashtable.size();
 		<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
 		<span class="kw">for </span>(k, v) <span class="kw">in </span>hashtable.iter() {
-			<span class="macro">info!</span>(<span class="string">&quot;k={},v={}&quot;</span>, k, v)<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(<span class="string">"k={},v={}"</span>, k, v)<span class="question-mark">?</span>;
 			<span class="macro">assert_eq!</span>(hashtable.get(<span class="kw-2">&amp;</span>k)<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(v));
 			i += <span class="number">1</span>;
 		}
@@ -4622,7 +4623,7 @@
 		<span class="kw">let </span>size = hashtable.size();
 		<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
 		<span class="kw">for </span>(k, v) <span class="kw">in </span>hashtable.iter() {
-			<span class="macro">info!</span>(<span class="string">&quot;k={},v={}&quot;</span>, k, v)<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(<span class="string">"k={},v={}"</span>, k, v)<span class="question-mark">?</span>;
 			<span class="macro">assert_eq!</span>(hashtable.get(<span class="kw-2">&amp;</span>k)<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(v));
 			i += <span class="number">1</span>;
 		}
@@ -4638,7 +4639,7 @@
 		<span class="kw">let </span>free_count1 = GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
 			<span class="prelude-val">Ok</span>(<span class="kw">unsafe </span>{ f.get().as_ref().unwrap().free_count()<span class="question-mark">? </span>})
 		})<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;free_count={}&quot;</span>, free_count1)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"free_count={}"</span>, free_count1)<span class="question-mark">?</span>;
 
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="number">10</span>)<span class="question-mark">?</span>;
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">2</span>, <span class="kw-2">&amp;</span><span class="number">20</span>)<span class="question-mark">?</span>;
@@ -4647,7 +4648,7 @@
 		<span class="kw">let </span>size = hashtable.size();
 		<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
 		<span class="kw">for </span>(k, v) <span class="kw">in </span>hashtable.iter() {
-			<span class="macro">info!</span>(<span class="string">&quot;k={},v={}&quot;</span>, k, v)<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(<span class="string">"k={},v={}"</span>, k, v)<span class="question-mark">?</span>;
 			<span class="macro">assert_eq!</span>(hashtable.get(<span class="kw-2">&amp;</span>k)<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(v));
 			i += <span class="number">1</span>;
 		}
@@ -4661,7 +4662,7 @@
 		<span class="kw">let </span>free_count2 = GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
 			<span class="prelude-val">Ok</span>(<span class="kw">unsafe </span>{ f.get().as_ref().unwrap().free_count()<span class="question-mark">? </span>})
 		})<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;free_count={}&quot;</span>, free_count2)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"free_count={}"</span>, free_count2)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(free_count1, free_count2);
 
 		<span class="prelude-val">Ok</span>(())
@@ -4675,7 +4676,7 @@
 			free_count1 = GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
 				<span class="prelude-val">Ok</span>(<span class="kw">unsafe </span>{ f.get().as_ref().unwrap().free_count()<span class="question-mark">? </span>})
 			})<span class="question-mark">?</span>;
-			<span class="macro">info!</span>(<span class="string">&quot;free_count={}&quot;</span>, free_count1)<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(<span class="string">"free_count={}"</span>, free_count1)<span class="question-mark">?</span>;
 
 			hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="number">10</span>)<span class="question-mark">?</span>;
 			hashtable.insert(<span class="kw-2">&amp;</span><span class="number">2</span>, <span class="kw-2">&amp;</span><span class="number">20</span>)<span class="question-mark">?</span>;
@@ -4684,7 +4685,7 @@
 			<span class="kw">let </span>size = hashtable.size();
 			<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
 			<span class="kw">for </span>(k, v) <span class="kw">in </span>hashtable.iter() {
-				<span class="macro">info!</span>(<span class="string">&quot;k={},v={}&quot;</span>, k, v)<span class="question-mark">?</span>;
+				<span class="macro">info!</span>(<span class="string">"k={},v={}"</span>, k, v)<span class="question-mark">?</span>;
 				<span class="macro">assert_eq!</span>(hashtable.get(<span class="kw-2">&amp;</span>k)<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(v));
 				i += <span class="number">1</span>;
 			}
@@ -4696,7 +4697,7 @@
 		<span class="kw">let </span>free_count2 = GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
 			<span class="prelude-val">Ok</span>(<span class="kw">unsafe </span>{ f.get().as_ref().unwrap().free_count()<span class="question-mark">? </span>})
 		})<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;free_count={}&quot;</span>, free_count2)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"free_count={}"</span>, free_count2)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(free_count1, free_count2);
 
 		<span class="prelude-val">Ok</span>(())
@@ -4712,7 +4713,7 @@
 		<span class="kw">let </span>size = hashset.size();
 		<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
 		<span class="kw">for </span>k <span class="kw">in </span>hashset.iter() {
-			<span class="macro">info!</span>(<span class="string">&quot;k={}&quot;</span>, k)<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(<span class="string">"k={}"</span>, k)<span class="question-mark">?</span>;
 			<span class="macro">assert_eq!</span>(hashset.contains(<span class="kw-2">&amp;</span>k)<span class="question-mark">?</span>, <span class="bool-val">true</span>);
 			i += <span class="number">1</span>;
 		}
@@ -4724,7 +4725,7 @@
 		<span class="kw">let </span>size = hashset.size();
 		<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
 		<span class="kw">for </span>k <span class="kw">in </span>hashset.iter() {
-			<span class="macro">info!</span>(<span class="string">&quot;k={}&quot;</span>, k)<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(<span class="string">"k={}"</span>, k)<span class="question-mark">?</span>;
 			<span class="macro">assert_eq!</span>(hashset.contains(<span class="kw-2">&amp;</span>k)<span class="question-mark">?</span>, <span class="bool-val">true</span>);
 			i += <span class="number">1</span>;
 		}
@@ -4735,7 +4736,7 @@
 		<span class="kw">let </span>size = hashset.size();
 		<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
 		<span class="kw">for </span>k <span class="kw">in </span>hashset.iter() {
-			<span class="macro">info!</span>(<span class="string">&quot;k={}&quot;</span>, k)<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(<span class="string">"k={}"</span>, k)<span class="question-mark">?</span>;
 			<span class="macro">assert_eq!</span>(hashset.contains(<span class="kw-2">&amp;</span>k)<span class="question-mark">?</span>, <span class="bool-val">true</span>);
 			i += <span class="number">1</span>;
 		}
@@ -4760,7 +4761,7 @@
 		list.push(<span class="number">6</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
 		<span class="kw">for </span>x <span class="kw">in </span>list.iter() {
-			<span class="macro">info!</span>(<span class="string">&quot;valuetest_fwd={}&quot;</span>, x)<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(<span class="string">"valuetest_fwd={}"</span>, x)<span class="question-mark">?</span>;
 			i += <span class="number">1</span>;
 			<span class="kw">if </span>i &gt; <span class="number">10 </span>{
 				<span class="kw">break</span>;
@@ -4769,7 +4770,7 @@
 
 		<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
 		<span class="kw">for </span>x <span class="kw">in </span>list.iter_rev() {
-			<span class="macro">info!</span>(<span class="string">&quot;valuetest_rev={}&quot;</span>, x)<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(<span class="string">"valuetest_rev={}"</span>, x)<span class="question-mark">?</span>;
 			i += <span class="number">1</span>;
 			<span class="kw">if </span>i &gt; <span class="number">10 </span>{
 				<span class="kw">break</span>;
@@ -4828,9 +4829,9 @@
 			};
 			<span class="kw">let </span><span class="kw-2">mut </span>h = Builder::build_hashtable(config, <span class="kw-2">&amp;</span><span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>slabs))<span class="question-mark">?</span>;
 
-			<span class="macro">info!</span>(<span class="string">&quot;insert 1&quot;</span>)<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(<span class="string">"insert 1"</span>)<span class="question-mark">?</span>;
 			<span class="macro">assert!</span>(h.insert(<span class="kw-2">&amp;</span><span class="number">2u64</span>, <span class="kw-2">&amp;</span><span class="number">6u64</span>).is_err());
-			<span class="macro">info!</span>(<span class="string">&quot;insert 2&quot;</span>)<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(<span class="string">"insert 2"</span>)<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>h = Builder::build_hashtable(config, <span class="kw-2">&amp;</span><span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>slabs))<span class="question-mark">?</span>;
 			h.insert(<span class="kw-2">&amp;</span><span class="number">2000u32</span>, <span class="kw-2">&amp;</span><span class="number">1000u32</span>)<span class="question-mark">?</span>;
 		}
@@ -5030,7 +5031,7 @@
 		{
 			<span class="kw">let </span>h = h_clone3.rlock()<span class="question-mark">?</span>;
 			<span class="kw">let </span>h2 = h2_clone.rlock()<span class="question-mark">?</span>;
-			<span class="macro">info!</span>(<span class="string">&quot;h={:?},h2={:?}&quot;</span>, <span class="kw-2">**</span>h.guard(), <span class="kw-2">**</span>h2.guard())<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(<span class="string">"h={:?},h2={:?}"</span>, <span class="kw-2">**</span>h.guard(), <span class="kw-2">**</span>h2.guard())<span class="question-mark">?</span>;
 			<span class="macro">assert!</span>(<span class="macro">list_eq!</span>(<span class="kw-2">**</span>h.guard(), <span class="kw-2">**</span>h2.guard()));
 		}
 
@@ -5166,7 +5167,7 @@
 	</span><span class="kw">fn </span>test_sort_linked() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>list = <span class="macro">list!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">7</span>, <span class="number">5</span>];
 		list.sort()<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;list={:?}&quot;</span>, list)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"list={:?}"</span>, list)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>other_list = <span class="macro">list!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">5</span>, <span class="number">7</span>];
 		<span class="macro">assert!</span>(<span class="macro">list_eq!</span>(other_list, list));
@@ -5179,13 +5180,13 @@
 		hashset.insert(<span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>;
 		hashset.insert(<span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>;
 		hashset.insert(<span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;hashset={:?}&quot;</span>, hashset)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"hashset={:?}"</span>, hashset)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>hashtable = <span class="macro">hashtable!</span>()<span class="question-mark">?</span>;
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="number">10</span>)<span class="question-mark">?</span>;
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">2</span>, <span class="kw-2">&amp;</span><span class="number">20</span>)<span class="question-mark">?</span>;
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="number">10</span>)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;hashtable={:?}&quot;</span>, hashtable)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"hashtable={:?}"</span>, hashtable)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 
@@ -5197,13 +5198,13 @@
 		Hashtable::insert(<span class="kw-2">&amp;mut </span>hash_impl, <span class="kw-2">&amp;</span><span class="number">0</span>, <span class="kw-2">&amp;</span><span class="number">0u32</span>)<span class="question-mark">?</span>;
 
 		{
-			<span class="kw">let </span><span class="kw-2">mut </span>iter: HashtableIterator&lt;<span class="lifetime">&#39;_</span>, u32, u32&gt; = Hashtable::iter(<span class="kw-2">&amp;mut </span>hash_impl);
+			<span class="kw">let </span><span class="kw-2">mut </span>iter: HashtableIterator&lt;<span class="lifetime">'_</span>, u32, u32&gt; = Hashtable::iter(<span class="kw-2">&amp;mut </span>hash_impl);
 			<span class="comment">// none because error occurs in the get_next_slot fn
 			</span><span class="macro">assert!</span>(iter.next().is_none());
 		}
 
 		{
-			<span class="kw">let </span><span class="kw-2">mut </span>iter: HashsetIterator&lt;<span class="lifetime">&#39;_</span>, u32&gt; = Hashset::iter(<span class="kw-2">&amp;mut </span>hash_impl);
+			<span class="kw">let </span><span class="kw-2">mut </span>iter: HashsetIterator&lt;<span class="lifetime">'_</span>, u32&gt; = Hashset::iter(<span class="kw-2">&amp;mut </span>hash_impl);
 			<span class="comment">// same with hashset iterator
 			</span><span class="macro">assert!</span>(iter.next().is_none());
 		}
@@ -5211,13 +5212,13 @@
 		hash_impl.set_debug_get_next_slot_error(<span class="bool-val">false</span>);
 
 		{
-			<span class="kw">let </span><span class="kw-2">mut </span>iter: HashtableIterator&lt;<span class="lifetime">&#39;_</span>, u32, u32&gt; = Hashtable::iter(<span class="kw-2">&amp;mut </span>hash_impl);
+			<span class="kw">let </span><span class="kw-2">mut </span>iter: HashtableIterator&lt;<span class="lifetime">'_</span>, u32, u32&gt; = Hashtable::iter(<span class="kw-2">&amp;mut </span>hash_impl);
 			<span class="comment">// no error occurs this time
 			</span><span class="macro">assert!</span>(iter.next().is_some());
 		}
 
 		{
-			<span class="kw">let </span><span class="kw-2">mut </span>iter: HashsetIterator&lt;<span class="lifetime">&#39;_</span>, u32&gt; = Hashset::iter(<span class="kw-2">&amp;mut </span>hash_impl);
+			<span class="kw">let </span><span class="kw-2">mut </span>iter: HashsetIterator&lt;<span class="lifetime">'_</span>, u32&gt; = Hashset::iter(<span class="kw-2">&amp;mut </span>hash_impl);
 			<span class="comment">// also no error
 			</span><span class="macro">assert!</span>(iter.next().is_some());
 		}
@@ -5244,7 +5245,7 @@
 
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>iter: Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = u32&gt;&gt; = List::iter(<span class="kw-2">&amp;mut </span>hash_impl);
-			<span class="comment">// now it&#39;s found
+			<span class="comment">// now it's found
 			</span><span class="macro">assert!</span>(iter.next().is_some());
 		}
 
@@ -5290,7 +5291,7 @@
 			Hashtable::get(<span class="kw-2">&amp;mut </span>hash_impl, <span class="kw-2">&amp;</span>SerErr { exp: <span class="number">100</span>, empty: <span class="number">0 </span>});
 		<span class="macro">assert_eq!</span>(
 			res,
-			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::CorruptedData, <span class="string">&quot;expected: 99, received: 100&quot;</span>))
+			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::CorruptedData, <span class="string">"expected: 99, received: 100"</span>))
 		);
 
 		<span class="kw">let </span><span class="kw-2">mut </span>iter: HashtableIterator&lt;SerErr, u32&gt; = Hashtable::iter(<span class="kw-2">&amp;mut </span>hash_impl);
@@ -5413,7 +5414,7 @@
 			hashset.unwrap_err(),
 			<span class="macro">err!</span>(
 				ErrKind::Configuration,
-				<span class="string">&quot;SlabSize is too small. Must be at least 12&quot;
+				<span class="string">"SlabSize is too small. Must be at least 12"
 			</span>)
 		);
 
@@ -5451,7 +5452,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>hashtable =
 			Builder::build_hashtable::&lt;u128, u128&gt;(HashtableConfig::default(), <span class="kw-2">&amp;</span><span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>slabs))<span class="question-mark">?</span>;
 		<span class="kw">let </span>e = hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="number">2</span>).unwrap_err().kind();
-		<span class="macro">info!</span>(<span class="string">&quot;e={}&quot;</span>, e)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"e={}"</span>, e)<span class="question-mark">?</span>;
 		<span class="kw">let </span>m = <span class="macro">matches!</span>(e, ErrorKind::CapacityExceeded(<span class="kw">_</span>));
 		<span class="macro">assert!</span>(m);
 		<span class="kw">let </span>slabs = slabs.borrow();
@@ -5537,7 +5538,7 @@
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">2</span>, <span class="kw-2">&amp;</span><span class="number">6</span>)<span class="question-mark">?</span>;
 
 		hashtable.bring_to_front(<span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;bring to front 1&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"bring to front 1"</span>)<span class="question-mark">?</span>;
 
 		hashtable.remove_oldest()<span class="question-mark">?</span>;
 
@@ -5548,14 +5549,14 @@
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">4</span>, <span class="kw-2">&amp;</span><span class="number">8</span>)<span class="question-mark">?</span>;
 
 		hashtable.bring_to_front(<span class="kw-2">&amp;</span><span class="number">4</span>)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;bring to front complete&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"bring to front complete"</span>)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(hashtable.get(<span class="kw-2">&amp;</span><span class="number">3</span>), <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="number">7</span>)));
 		<span class="macro">assert_eq!</span>(hashtable.get(<span class="kw-2">&amp;</span><span class="number">4</span>), <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="number">8</span>)));
 		<span class="macro">assert_eq!</span>(hashtable.get(<span class="kw-2">&amp;</span><span class="number">1</span>), <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="number">5</span>)));
 
-		<span class="macro">info!</span>(<span class="string">&quot;remove oldest start&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"remove oldest start"</span>)<span class="question-mark">?</span>;
 		hashtable.remove_oldest()<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;remove oldest complete&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"remove oldest complete"</span>)<span class="question-mark">?</span>;
 
 		<span class="macro">assert_eq!</span>(hashtable.get(<span class="kw-2">&amp;</span><span class="number">3</span>), <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="number">7</span>)));
 		<span class="macro">assert_eq!</span>(hashtable.get(<span class="kw-2">&amp;</span><span class="number">4</span>), <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="number">8</span>)));
@@ -5569,7 +5570,7 @@
 		<span class="macro">assert_eq!</span>(hashtable.get(<span class="kw-2">&amp;</span><span class="number">4</span>), <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>));
 		<span class="macro">assert_eq!</span>(hashtable.get(<span class="kw-2">&amp;</span><span class="number">1</span>), <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>));
 
-		<span class="macro">info!</span>(<span class="string">&quot;end assertions&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"end assertions"</span>)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 
@@ -5581,13 +5582,13 @@
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">0</span>, <span class="kw-2">&amp;</span><span class="number">4</span>)<span class="question-mark">?</span>;
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="number">5</span>)<span class="question-mark">?</span>;
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">2</span>, <span class="kw-2">&amp;</span><span class="number">6</span>)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;bring to front&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"bring to front"</span>)<span class="question-mark">?</span>;
 		hashtable.bring_to_front(<span class="kw-2">&amp;</span><span class="number">0</span>)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;end bring to front&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"end bring to front"</span>)<span class="question-mark">?</span>;
 
 		hashtable.remove_oldest()<span class="question-mark">?</span>;
 
-		<span class="macro">info!</span>(<span class="string">&quot;end rem&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"end rem"</span>)<span class="question-mark">?</span>;
 
 		<span class="macro">assert_eq!</span>(hashtable.get(<span class="kw-2">&amp;</span><span class="number">0</span>), <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="number">4</span>)));
 		<span class="macro">assert_eq!</span>(hashtable.get(<span class="kw-2">&amp;</span><span class="number">1</span>), <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>));
@@ -5708,11 +5709,11 @@
 		<span class="kw">let </span>empty = [<span class="number">4u8</span>; CACHE_BUFFER_SIZE];
 		<span class="kw">let </span>data = [<span class="number">10u8</span>; CACHE_BUFFER_SIZE];
 
-		<span class="macro">info!</span>(<span class="string">&quot;raw_write at 1383&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"raw_write at 1383"</span>)<span class="question-mark">?</span>;
 		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">7</span>, <span class="number">1383</span>, <span class="kw-2">&amp;</span>data, CACHE_BUFFER_SIZE)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;raw write at 0&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"raw write at 0"</span>)<span class="question-mark">?</span>;
 		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">7</span>, <span class="number">0</span>, <span class="kw-2">&amp;</span>empty, CACHE_BUFFER_SIZE)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;raw read at 1383&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"raw read at 1383"</span>)<span class="question-mark">?</span>;
 		hashtable.raw_read(<span class="kw-2">&amp;</span><span class="number">7</span>, <span class="number">1383</span>, <span class="kw-2">&amp;mut </span>data2)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(data, data2);
 		<span class="prelude-val">Ok</span>(())
@@ -5723,9 +5724,9 @@
 		<span class="kw">let </span>slabs = <span class="macro">slab_allocator!</span>(SlabSize(<span class="number">25</span>), SlabCount(<span class="number">3</span>))<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>hashtable =
 			Builder::build_hashtable::&lt;u32, String&gt;(HashtableConfig::default(), <span class="kw-2">&amp;</span><span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>slabs))<span class="question-mark">?</span>;
-		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="string">&quot;4&quot;</span>.to_string())<span class="question-mark">?</span>;
-		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">2</span>, <span class="kw-2">&amp;</span><span class="string">&quot;5&quot;</span>.to_string())<span class="question-mark">?</span>;
-		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">3</span>, <span class="kw-2">&amp;</span><span class="string">&quot;6&quot;</span>.to_string())<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="string">"4"</span>.to_string())<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">2</span>, <span class="kw-2">&amp;</span><span class="string">"5"</span>.to_string())<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">3</span>, <span class="kw-2">&amp;</span><span class="string">"6"</span>.to_string())<span class="question-mark">?</span>;
 		{
 			<span class="kw">let </span>slabs = slabs.borrow();
 			<span class="macro">assert_eq!</span>(slabs.free_count()<span class="question-mark">?</span>, <span class="number">0</span>);
@@ -5749,7 +5750,7 @@
 			<span class="macro">assert_eq!</span>(slabs.free_count()<span class="question-mark">?</span>, <span class="number">3</span>);
 		}
 
-		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="string">&quot;0123456789012345678901234&quot;</span>.to_string())<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="string">"0123456789012345678901234"</span>.to_string())<span class="question-mark">?</span>;
 
 		{
 			<span class="kw">let </span>slabs = slabs.borrow();
@@ -5762,7 +5763,7 @@
 			<span class="macro">assert_eq!</span>(slabs.free_count()<span class="question-mark">?</span>, <span class="number">3</span>);
 		}
 
-		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="string">&quot;012345678901234567890123456789&quot;</span>.to_string())<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="string">"012345678901234567890123456789"</span>.to_string())<span class="question-mark">?</span>;
 
 		{
 			<span class="kw">let </span>slabs = slabs.borrow();
@@ -5775,8 +5776,8 @@
 			<span class="macro">assert_eq!</span>(slabs.free_count()<span class="question-mark">?</span>, <span class="number">3</span>);
 		}
 
-		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="string">&quot;4&quot;</span>.to_string())<span class="question-mark">?</span>;
-		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">2</span>, <span class="kw-2">&amp;</span><span class="string">&quot;0123456789012345678901234&quot;</span>.to_string())<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="string">"4"</span>.to_string())<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">2</span>, <span class="kw-2">&amp;</span><span class="string">"0123456789012345678901234"</span>.to_string())<span class="question-mark">?</span>;
 
 		{
 			<span class="kw">let </span>slabs = slabs.borrow();
@@ -5795,8 +5796,8 @@
 			<span class="macro">assert_eq!</span>(slabs.free_count()<span class="question-mark">?</span>, <span class="number">3</span>);
 		}
 
-		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">2</span>, <span class="kw-2">&amp;</span><span class="string">&quot;0123456789012345678901234&quot;</span>.to_string())<span class="question-mark">?</span>;
-		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="string">&quot;4&quot;</span>.to_string())<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">2</span>, <span class="kw-2">&amp;</span><span class="string">"0123456789012345678901234"</span>.to_string())<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="string">"4"</span>.to_string())<span class="question-mark">?</span>;
 
 		hashtable.remove_oldest()<span class="question-mark">?</span>;
 		{
@@ -5816,7 +5817,7 @@
 			<span class="macro">assert_eq!</span>(slabs.free_count()<span class="question-mark">?</span>, <span class="number">3</span>);
 		}
 
-		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="string">&quot;012345678901234567890123456789&quot;</span>.to_string())<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="string">"012345678901234567890123456789"</span>.to_string())<span class="question-mark">?</span>;
 
 		{
 			<span class="kw">let </span>slabs = slabs.borrow();
@@ -5838,10 +5839,10 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>hashtable =
 			Builder::build_hashtable::&lt;u32, String&gt;(HashtableConfig::default(), <span class="kw-2">&amp;</span><span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>slabs))<span class="question-mark">?</span>;
 
-		<span class="kw">let </span><span class="kw-2">mut </span>big_string = <span class="string">&quot;&quot;</span>.to_string();
-		<span class="kw">let </span>string10 = <span class="string">&quot;0123456789&quot;</span>.to_string();
+		<span class="kw">let </span><span class="kw-2">mut </span>big_string = <span class="string">""</span>.to_string();
+		<span class="kw">let </span>string10 = <span class="string">"0123456789"</span>.to_string();
 		<span class="kw">for _ in </span><span class="number">0</span>..<span class="number">137 </span>{
-			big_string = <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, big_string, string10);
+			big_string = <span class="macro">format!</span>(<span class="string">"{}{}"</span>, big_string, string10);
 		}
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span>big_string)<span class="question-mark">?</span>;
 
@@ -5856,7 +5857,7 @@
 			<span class="macro">assert_eq!</span>(slabs.free_count()<span class="question-mark">?</span>, <span class="number">64</span>);
 		}
 
-		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">2</span>, <span class="kw-2">&amp;</span><span class="string">&quot;ok&quot;</span>.to_string())<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">2</span>, <span class="kw-2">&amp;</span><span class="string">"ok"</span>.to_string())<span class="question-mark">?</span>;
 
 		{
 			<span class="kw">let </span>slabs = slabs.borrow();

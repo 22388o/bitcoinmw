@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `log/src/log.rs`."><title>log.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_log" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `log/src/log.rs`."><title>log.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_log" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1982,14 +1983,14 @@
 // * Arti: https://gitlab.torproject.org/tpo/core/arti
 // * BitcoinMW: https://github.com/bitcoinmw/bitcoinmw
 //
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -2013,7 +2014,7 @@
 <span class="kw">use </span>std::rc::Rc;
 <span class="kw">use </span>std::time::Instant;
 
-<span class="kw">const </span>NEWLINE: <span class="kw-2">&amp;</span>[u8] = <span class="kw-2">&amp;</span>[<span class="string">&#39;\n&#39; </span><span class="kw">as </span>u8];
+<span class="kw">const </span>NEWLINE: <span class="kw-2">&amp;</span>[u8] = <span class="kw-2">&amp;</span>[<span class="string">'\n' </span><span class="kw">as </span>u8];
 
 <span class="attr">#[derive(PartialEq)]
 </span><span class="kw">enum </span>LogType {
@@ -2053,7 +2054,7 @@
 
 	<span class="kw">fn </span>rotate(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">if </span>!<span class="self">self</span>.init {
-			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Log, <span class="string">&quot;log not initialized&quot;</span>));
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Log, <span class="string">"log not initialized"</span>));
 		}
 
 		<span class="kw">if </span><span class="self">self</span>.file.is_none() {
@@ -2062,7 +2063,7 @@
 		}
 
 		<span class="kw">let </span>now: DateTime&lt;Local&gt; = Local::now();
-		<span class="kw">let </span>rotation_string = now.format(<span class="string">&quot;.r_%m_%d_%Y_%T&quot;</span>).to_string().replace(<span class="string">&quot;:&quot;</span>, <span class="string">&quot;-&quot;</span>);
+		<span class="kw">let </span>rotation_string = now.format(<span class="string">".r_%m_%d_%Y_%T"</span>).to_string().replace(<span class="string">":"</span>, <span class="string">"-"</span>);
 
 		<span class="kw">let </span>original_file_path = <span class="kw">match </span><span class="self">self</span>.config.file_path.clone() {
 			FilePath(file_path) =&gt; <span class="kw">match </span>file_path {
@@ -2070,14 +2071,14 @@
 				<span class="prelude-val">None </span>=&gt; {
 					<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 						ErrKind::IllegalArgument,
-						<span class="string">&quot;file_path must be of the for FilePath(Option&lt;PathBuf&gt;)&quot;
+						<span class="string">"file_path must be of the for FilePath(Option&lt;PathBuf&gt;)"
 					</span>))
 				}
 			},
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::IllegalArgument,
-					<span class="string">&quot;file_path must be of the for FilePath(Option&lt;PathBuf&gt;)&quot;
+					<span class="string">"file_path must be of the for FilePath(Option&lt;PathBuf&gt;)"
 				</span>));
 			}
 		};
@@ -2088,7 +2089,7 @@
 			<span class="prelude-val">None </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::IllegalArgument,
-					<span class="string">&quot;file_path has an unexpected illegal value of None for parent&quot;
+					<span class="string">"file_path has an unexpected illegal value of None for parent"
 				</span>));
 			}
 		};
@@ -2098,7 +2099,7 @@
 			<span class="prelude-val">None </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::IllegalArgument,
-					<span class="string">&quot;file_path has an unexpected illegal value of None for file_name&quot;
+					<span class="string">"file_path has an unexpected illegal value of None for file_name"
 				</span>))
 			}
 		};
@@ -2107,18 +2108,18 @@
 		<span class="kw">if </span>file_name.is_none() || <span class="self">self</span>.config.debug_invalid_os_str {
 			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 				ErrKind::IllegalArgument,
-				<span class="string">&quot;file_path has an unexpected illegal value of None for file_name&quot;
+				<span class="string">"file_path has an unexpected illegal value of None for file_name"
 			</span>));
 		}
 
 		<span class="kw">let </span>file_name = file_name.unwrap();
 
 		<span class="kw">let </span><span class="kw-2">mut </span>new_file_path_buf = parent.to_path_buf();
-		<span class="kw">let </span>file_name = <span class="kw">match </span>file_name.rfind(<span class="string">&quot;.&quot;</span>) {
+		<span class="kw">let </span>file_name = <span class="kw">match </span>file_name.rfind(<span class="string">"."</span>) {
 			<span class="prelude-val">Some</span>(pos) =&gt; <span class="kw-2">&amp;</span>file_name[<span class="number">0</span>..pos],
 			<span class="kw">_ </span>=&gt; <span class="kw-2">&amp;</span>file_name,
 		};
-		<span class="kw">let </span>file_name = <span class="macro">format!</span>(<span class="string">&quot;{}{}_{}.log&quot;</span>, file_name, rotation_string, random::&lt;u64&gt;());
+		<span class="kw">let </span>file_name = <span class="macro">format!</span>(<span class="string">"{}{}_{}.log"</span>, file_name, rotation_string, random::&lt;u64&gt;());
 		new_file_path_buf.push(file_name);
 
 		<span class="kw">match </span><span class="self">self</span>.config.delete_rotation {
@@ -2132,7 +2133,7 @@
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::IllegalArgument,
-					<span class="string">&quot;delete_rotation has an unexpected illegal value&quot;
+					<span class="string">"delete_rotation has an unexpected illegal value"
 				</span>))
 			}
 		}
@@ -2148,7 +2149,7 @@
 
 	<span class="kw">fn </span>need_rotate(<span class="kw-2">&amp;</span><span class="self">self</span>, now: <span class="prelude-ty">Option</span>&lt;Instant&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="kw">if </span>!<span class="self">self</span>.init {
-			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Log, <span class="string">&quot;log not initialized&quot;</span>));
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Log, <span class="string">"log not initialized"</span>));
 		}
 
 		<span class="kw">let </span>now = now.unwrap_or(Instant::now());
@@ -2159,7 +2160,7 @@
 				<span class="comment">// should not get here, but return an error if we do
 				</span><span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::IllegalArgument,
-					<span class="string">&quot;max_age_millis must be of form MaxAgeMillis(u128)&quot;
+					<span class="string">"max_age_millis must be of form MaxAgeMillis(u128)"
 				</span>));
 			}
 		};
@@ -2169,7 +2170,7 @@
 				<span class="comment">// should not get here, but return an error if we do
 				</span><span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::IllegalArgument,
-					<span class="string">&quot;max_size_bytes must be of form MaxSizeBytes(u64)&quot;
+					<span class="string">"max_size_bytes must be of form MaxSizeBytes(u64)"
 				</span>));
 			}
 		};
@@ -2185,7 +2186,7 @@
 
 	<span class="kw">fn </span>init(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">if </span><span class="self">self</span>.init {
-			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Log, <span class="string">&quot;log already initialized&quot;</span>));
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Log, <span class="string">"log already initialized"</span>));
 		}
 
 		<span class="kw">match </span><span class="self">self</span>.config.file_path.clone() {
@@ -2208,7 +2209,7 @@
 				<span class="comment">// should not be able to get here
 				</span><span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::Log,
-					<span class="string">&quot;file_path must be of the form FilePath(Option&lt;PathBuf&gt;)&quot;
+					<span class="string">"file_path must be of the form FilePath(Option&lt;PathBuf&gt;)"
 				</span>));
 			}
 		}
@@ -2249,7 +2250,7 @@
 			FilePath(<span class="kw">_</span>) =&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::Log,
-					<span class="string">&quot;filepath cannot be set after log is initialized&quot;
+					<span class="string">"filepath cannot be set after log is initialized"
 				</span>));
 			}
 			ShowBt(<span class="kw">_</span>) =&gt; {
@@ -2301,12 +2302,12 @@
 	}
 
 	<span class="kw">fn </span>format_millis(<span class="kw-2">&amp;</span><span class="self">self</span>, millis: i64) -&gt; String {
-		<span class="kw">let </span><span class="kw-2">mut </span>millis_format = <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, millis);
+		<span class="kw">let </span><span class="kw-2">mut </span>millis_format = <span class="macro">format!</span>(<span class="string">"{}"</span>, millis);
 		<span class="kw">if </span>millis &lt; <span class="number">100 </span>{
-			millis_format = <span class="macro">format!</span>(<span class="string">&quot;0{}&quot;</span>, millis_format);
+			millis_format = <span class="macro">format!</span>(<span class="string">"0{}"</span>, millis_format);
 		}
 		<span class="kw">if </span>millis &lt; <span class="number">10 </span>{
-			millis_format = <span class="macro">format!</span>(<span class="string">&quot;0{}&quot;</span>, millis_format);
+			millis_format = <span class="macro">format!</span>(<span class="string">"0{}"</span>, millis_format);
 		}
 
 		millis_format
@@ -2319,7 +2320,7 @@
 		logged_from_file: <span class="kw-2">&amp;mut </span>String,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="kw">if </span>_config.debug_process_resolve_frame_error {
-			<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::Test, <span class="string">&quot;test resolve_frame error&quot;</span>);
+			<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::Test, <span class="string">"test resolve_frame error"</span>);
 			<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 		}
 		<span class="kw">let </span><span class="kw-2">mut </span>found_frame = <span class="bool-val">false</span>;
@@ -2329,32 +2330,32 @@
 			<span class="kw">let </span>lineno = symbol.lineno();
 
 			<span class="kw">let </span>lineno = <span class="kw">if </span>lineno.is_none() || _config.debug_lineno_none {
-				<span class="string">&quot;&quot;</span>.to_string()
+				<span class="string">""</span>.to_string()
 			} <span class="kw">else </span>{
 				lineno.unwrap().to_string()
 			};
 
-			<span class="kw">if </span>filename.find(<span class="string">&quot;/log/src/log.rs&quot;</span>).is_some()
-				|| filename.find(<span class="string">&quot;\\log\\src\\log.rs&quot;</span>).is_some()
+			<span class="kw">if </span>filename.find(<span class="string">"/log/src/log.rs"</span>).is_some()
+				|| filename.find(<span class="string">"\\log\\src\\log.rs"</span>).is_some()
 			{
 				<span class="kw-2">*</span>found_logger = <span class="bool-val">true</span>;
 			}
-			<span class="kw">if </span>(filename.find(<span class="string">&quot;/log/src/log.rs&quot;</span>).is_none()
-				&amp;&amp; filename.find(<span class="string">&quot;\\log\\src\\log.rs&quot;</span>).is_none())
+			<span class="kw">if </span>(filename.find(<span class="string">"/log/src/log.rs"</span>).is_none()
+				&amp;&amp; filename.find(<span class="string">"\\log\\src\\log.rs"</span>).is_none())
 				&amp;&amp; <span class="kw-2">*</span>found_logger
 			{
-				<span class="kw-2">*</span>logged_from_file = <span class="macro">format!</span>(<span class="string">&quot;{}:{}&quot;</span>, filename, lineno);
+				<span class="kw-2">*</span>logged_from_file = <span class="macro">format!</span>(<span class="string">"{}:{}"</span>, filename, lineno);
 				found_frame = <span class="bool-val">true</span>;
 			}
 		}
 		<span class="attr">#[cfg(not(debug_assertions))]
 		</span><span class="kw">if let </span><span class="prelude-val">Some</span>(name) = symbol.name() {
 			<span class="kw">let </span>name = name.to_string();
-			<span class="kw">if </span>name.find(<span class="string">&quot;as bmw_log::types::Log&quot;</span>).is_some() {
+			<span class="kw">if </span>name.find(<span class="string">"as bmw_log::types::Log"</span>).is_some() {
 				<span class="kw-2">*</span>found_logger = <span class="bool-val">true</span>;
 			}
-			<span class="kw">if </span>name.find(<span class="string">&quot;as bmw_log::types::Log&quot;</span>).is_none() &amp;&amp; <span class="kw-2">*</span>found_logger {
-				<span class="kw">let </span>pos = name.rfind(<span class="string">&#39;:&#39;</span>);
+			<span class="kw">if </span>name.find(<span class="string">"as bmw_log::types::Log"</span>).is_none() &amp;&amp; <span class="kw-2">*</span>found_logger {
+				<span class="kw">let </span>pos = name.rfind(<span class="string">':'</span>);
 				<span class="kw">let </span>name = <span class="kw">match </span>pos {
 					<span class="prelude-val">Some</span>(pos) =&gt; <span class="kw">match </span>pos &gt; <span class="number">1 </span>{
 						<span class="bool-val">true </span>=&gt; <span class="kw-2">&amp;</span>name[<span class="number">0</span>..pos - <span class="number">1</span>],
@@ -2362,7 +2363,7 @@
 					},
 					<span class="prelude-val">None </span>=&gt; <span class="kw-2">&amp;</span>name[..],
 				};
-				<span class="kw-2">*</span>logged_from_file = <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, name);
+				<span class="kw-2">*</span>logged_from_file = <span class="macro">format!</span>(<span class="string">"{}"</span>, name);
 				found_frame = <span class="bool-val">true</span>;
 			}
 		}
@@ -2377,7 +2378,7 @@
 		log_type: LogType,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">if </span>!<span class="self">self</span>.init {
-			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Log, <span class="string">&quot;log not initialized&quot;</span>));
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Log, <span class="string">"log not initialized"</span>));
 		}
 
 		<span class="self">self</span>.rotate_if_needed(now)<span class="question-mark">?</span>;
@@ -2386,7 +2387,7 @@
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::IllegalArgument,
-					<span class="string">&quot;stdout must be of the form Stdout(bool)&quot;
+					<span class="string">"stdout must be of the form Stdout(bool)"
 				</span>));
 			}
 		};
@@ -2395,7 +2396,7 @@
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::IllegalArgument,
-					<span class="string">&quot;timestamp must be of the form Timestamp(bool)&quot;
+					<span class="string">"timestamp must be of the form Timestamp(bool)"
 				</span>));
 			}
 		};
@@ -2404,7 +2405,7 @@
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::IllegalArgument,
-					<span class="string">&quot;colors must be of the form Colors(bool)&quot;
+					<span class="string">"colors must be of the form Colors(bool)"
 				</span>));
 			}
 		};
@@ -2413,7 +2414,7 @@
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::IllegalArgument,
-					<span class="string">&quot;log_level must be of the form LogLevel(bool)&quot;
+					<span class="string">"log_level must be of the form LogLevel(bool)"
 				</span>));
 			}
 		};
@@ -2422,7 +2423,7 @@
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::IllegalArgument,
-					<span class="string">&quot;line_num must be of the form LineNum(bool)&quot;
+					<span class="string">"line_num must be of the form LineNum(bool)"
 				</span>));
 			}
 		};
@@ -2432,7 +2433,7 @@
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::IllegalArgument,
-					<span class="string">&quot;show_millis must be of the form ShowMillis(bool)&quot;
+					<span class="string">"show_millis must be of the form ShowMillis(bool)"
 				</span>));
 			}
 		};
@@ -2442,7 +2443,7 @@
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::IllegalArgument,
-					<span class="string">&quot;show_bt must be of the form ShowBt(bool)&quot;
+					<span class="string">"show_bt must be of the form ShowBt(bool)"
 				</span>));
 			}
 		};
@@ -2453,13 +2454,13 @@
 			<span class="kw">let </span>millis = date.timestamp_millis() % <span class="number">1_000</span>;
 			<span class="kw">let </span>millis_format = <span class="self">self</span>.format_millis(millis);
 			<span class="kw">let </span>formatted_timestamp = <span class="kw">if </span>show_millis {
-				<span class="macro">format!</span>(<span class="string">&quot;{}.{}&quot;</span>, date.format(<span class="string">&quot;%Y-%m-%d %H:%M:%S&quot;</span>), millis_format)
+				<span class="macro">format!</span>(<span class="string">"{}.{}"</span>, date.format(<span class="string">"%Y-%m-%d %H:%M:%S"</span>), millis_format)
 			} <span class="kw">else </span>{
-				<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, date.format(<span class="string">&quot;%Y-%m-%d %H:%M:%S&quot;</span>))
+				<span class="macro">format!</span>(<span class="string">"{}"</span>, date.format(<span class="string">"%Y-%m-%d %H:%M:%S"</span>))
 			};
 
 			<span class="kw">if </span>file_is_some {
-				<span class="kw">let </span>formatted_timestamp = <span class="macro">format!</span>(<span class="string">&quot;[{}]: &quot;</span>, formatted_timestamp);
+				<span class="kw">let </span>formatted_timestamp = <span class="macro">format!</span>(<span class="string">"[{}]: "</span>, formatted_timestamp);
 				<span class="kw">let </span>formatted_timestamp = formatted_timestamp.as_bytes();
 				<span class="self">self</span>.file
 					.as_mut()
@@ -2472,15 +2473,15 @@
 
 			<span class="kw">if </span>show_stdout {
 				<span class="kw">if </span>show_colors {
-					<span class="macro">print!</span>(<span class="string">&quot;[{}]: &quot;</span>, formatted_timestamp.to_string().dimmed());
+					<span class="macro">print!</span>(<span class="string">"[{}]: "</span>, formatted_timestamp.to_string().dimmed());
 				} <span class="kw">else </span>{
-					<span class="macro">print!</span>(<span class="string">&quot;[{}]: &quot;</span>, formatted_timestamp);
+					<span class="macro">print!</span>(<span class="string">"[{}]: "</span>, formatted_timestamp);
 				}
 			}
 		}
 		<span class="kw">if </span>show_log_level {
 			<span class="kw">if </span>file_is_some {
-				<span class="kw">let </span>formatted_level = <span class="macro">format!</span>(<span class="string">&quot;({}) &quot;</span>, level);
+				<span class="kw">let </span>formatted_level = <span class="macro">format!</span>(<span class="string">"({}) "</span>, level);
 				<span class="kw">let </span>formatted_level = formatted_level.as_bytes();
 				<span class="self">self</span>.file
 					.as_mut()
@@ -2495,27 +2496,27 @@
 				<span class="kw">if </span>show_colors {
 					<span class="kw">match </span>level {
 						LogLevel::Trace | LogLevel::Debug =&gt; {
-							<span class="macro">print!</span>(<span class="string">&quot;({}) &quot;</span>, <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, level).magenta());
+							<span class="macro">print!</span>(<span class="string">"({}) "</span>, <span class="macro">format!</span>(<span class="string">"{}"</span>, level).magenta());
 						}
 						LogLevel::Info =&gt; {
-							<span class="macro">print!</span>(<span class="string">&quot;({}) &quot;</span>, <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, level).green());
+							<span class="macro">print!</span>(<span class="string">"({}) "</span>, <span class="macro">format!</span>(<span class="string">"{}"</span>, level).green());
 						}
 						LogLevel::Warn =&gt; {
-							<span class="macro">print!</span>(<span class="string">&quot;({}) &quot;</span>, <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, level).yellow());
+							<span class="macro">print!</span>(<span class="string">"({}) "</span>, <span class="macro">format!</span>(<span class="string">"{}"</span>, level).yellow());
 						}
 						LogLevel::Error | LogLevel::Fatal =&gt; {
-							<span class="macro">print!</span>(<span class="string">&quot;({}) &quot;</span>, <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, level).red());
+							<span class="macro">print!</span>(<span class="string">"({}) "</span>, <span class="macro">format!</span>(<span class="string">"{}"</span>, level).red());
 						}
 					}
 				} <span class="kw">else </span>{
-					<span class="macro">print!</span>(<span class="string">&quot;({}) &quot;</span>, level);
+					<span class="macro">print!</span>(<span class="string">"({}) "</span>, level);
 				}
 			}
 		}
 		<span class="kw">if </span>show_line_num {
 			<span class="kw">let </span><span class="kw-2">mut </span>found_logger = <span class="bool-val">false</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>found_frame = <span class="bool-val">false</span>;
-			<span class="kw">let </span><span class="kw-2">mut </span>logged_from_file = <span class="string">&quot;*********unknown**********&quot;</span>.to_string();
+			<span class="kw">let </span><span class="kw-2">mut </span>logged_from_file = <span class="string">"*********unknown**********"</span>.to_string();
 			backtrace::trace(|frame| {
 				backtrace::resolve_frame(frame, |symbol| {
 					found_frame = <span class="kw">match </span><span class="self">Self</span>::process_resolve_frame(
@@ -2526,7 +2527,7 @@
 					) {
 						<span class="prelude-val">Ok</span>(ff) =&gt; ff,
 						<span class="prelude-val">Err</span>(e) =&gt; {
-							<span class="kw">let _ </span>= <span class="macro">println!</span>(<span class="string">&quot;error processing frame: {}&quot;</span>, e);
+							<span class="kw">let _ </span>= <span class="macro">println!</span>(<span class="string">"error processing frame: {}"</span>, e);
 							<span class="bool-val">true
 						</span>}
 					};
@@ -2538,18 +2539,18 @@
 				<span class="kw">_ </span>=&gt; {
 					<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 						ErrKind::IllegalArgument,
-						<span class="string">&quot;unexpected illegal value for LineNumDataMaxLen&quot;
+						<span class="string">"unexpected illegal value for LineNumDataMaxLen"
 					</span>));
 				}
 			};
 			<span class="kw">let </span>len = logged_from_file.len();
 			<span class="kw">if </span>len &gt; max_len {
 				<span class="kw">let </span>start = len.saturating_sub(max_len);
-				logged_from_file = <span class="macro">format!</span>(<span class="string">&quot;..{}&quot;</span>, <span class="kw-2">&amp;</span>logged_from_file[start..]);
+				logged_from_file = <span class="macro">format!</span>(<span class="string">"..{}"</span>, <span class="kw-2">&amp;</span>logged_from_file[start..]);
 			}
 
 			<span class="kw">if </span>file_is_some {
-				<span class="kw">let </span>logged_from_file = <span class="macro">format!</span>(<span class="string">&quot;[{}]: &quot;</span>, logged_from_file);
+				<span class="kw">let </span>logged_from_file = <span class="macro">format!</span>(<span class="string">"[{}]: "</span>, logged_from_file);
 				<span class="kw">let </span>logged_from_file = logged_from_file.as_bytes();
 				<span class="self">self</span>.file
 					.as_mut()
@@ -2562,9 +2563,9 @@
 
 			<span class="kw">if </span>show_stdout {
 				<span class="kw">if </span>show_colors {
-					<span class="macro">print!</span>(<span class="string">&quot;[{}]: &quot;</span>, logged_from_file.yellow());
+					<span class="macro">print!</span>(<span class="string">"[{}]: "</span>, logged_from_file.yellow());
 				} <span class="kw">else </span>{
-					<span class="macro">print!</span>(<span class="string">&quot;[{}]: &quot;</span>, logged_from_file);
+					<span class="macro">print!</span>(<span class="string">"[{}]: "</span>, logged_from_file);
 				}
 			}
 		}
@@ -2581,7 +2582,7 @@
 
 			<span class="kw">if </span>show_bt {
 				<span class="kw">let </span>bt = Backtrace::new();
-				<span class="kw">let </span>bt_text = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, bt);
+				<span class="kw">let </span>bt_text = <span class="macro">format!</span>(<span class="string">"{:?}"</span>, bt);
 				<span class="kw">let </span>bt_bytes: <span class="kw-2">&amp;</span>[u8] = bt_text.as_bytes();
 				file.write(bt_bytes)<span class="question-mark">?</span>;
 				<span class="self">self</span>.cur_size += <span class="macro">u64!</span>(bt_bytes.len());
@@ -2589,11 +2590,11 @@
 		}
 
 		<span class="kw">if </span>show_stdout {
-			<span class="macro">println!</span>(<span class="string">&quot;{}&quot;</span>, line);
+			<span class="macro">println!</span>(<span class="string">"{}"</span>, line);
 			<span class="kw">if </span>show_bt {
 				<span class="kw">let </span>bt = Backtrace::new();
-				<span class="kw">let </span>bt_text = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, bt);
-				<span class="macro">print!</span>(<span class="string">&quot;{}&quot;</span>, bt_text);
+				<span class="kw">let </span>bt_text = <span class="macro">format!</span>(<span class="string">"{:?}"</span>, bt);
+				<span class="macro">print!</span>(<span class="string">"{}"</span>, bt_text);
 			}
 		}
 
@@ -2611,7 +2612,7 @@
 				<span class="comment">// should not get here, but return an error if we do
 				</span><span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::IllegalArgument,
-					<span class="string">&quot;autorotate must be of form AutoRotate(bool)&quot;
+					<span class="string">"autorotate must be of form AutoRotate(bool)"
 				</span>));
 			}
 		}
@@ -2626,7 +2627,7 @@
 				<span class="comment">// should not get here, but return an error if we do
 				</span><span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::IllegalArgument,
-					<span class="string">&quot;max_age_millis must be of form MaxAgeMillis(u128)&quot;
+					<span class="string">"max_age_millis must be of form MaxAgeMillis(u128)"
 				</span>));
 			}
 		};
@@ -2636,7 +2637,7 @@
 				<span class="comment">// should not get here, but return an error if we do
 				</span><span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::IllegalArgument,
-					<span class="string">&quot;max_size_bytes must be of form MaxSizeBytes(u64)&quot;
+					<span class="string">"max_size_bytes must be of form MaxSizeBytes(u64)"
 				</span>));
 			}
 		};
@@ -2659,7 +2660,7 @@
 							<span class="kw">if </span>file_path.is_dir() {
 								<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 									ErrKind::Configuration,
-									<span class="string">&quot;file_path must not be a directory&quot;
+									<span class="string">"file_path must not be a directory"
 								</span>));
 							}
 						}
@@ -2669,8 +2670,8 @@
 					<span class="kw">if </span>file_path.parent().is_none() {
 						<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 							ErrKind::Configuration,
-							<span class="string">&quot;if file_path specifies a PathBuf, the PathBuf must\
-not terminate in a root or a prefix&quot;
+							<span class="string">"if file_path specifies a PathBuf, the PathBuf must\
+not terminate in a root or a prefix"
 						</span>));
 					}
 				}
@@ -2679,7 +2680,7 @@ not terminate in a root or a prefix&quot;
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::Configuration,
-					<span class="string">&quot;file_path must be of the form FilePath(Option&lt;PathBuf&gt;)&quot;
+					<span class="string">"file_path must be of the form FilePath(Option&lt;PathBuf&gt;)"
 				</span>));
 			}
 		}
@@ -2688,7 +2689,7 @@ not terminate in a root or a prefix&quot;
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::Configuration,
-					<span class="string">&quot;colors must be of the form Colors(bool)&quot;
+					<span class="string">"colors must be of the form Colors(bool)"
 				</span>));
 			}
 		}
@@ -2697,7 +2698,7 @@ not terminate in a root or a prefix&quot;
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::Configuration,
-					<span class="string">&quot;stdout must be of the form Stdout(bool)&quot;
+					<span class="string">"stdout must be of the form Stdout(bool)"
 				</span>));
 			}
 		}
@@ -2706,7 +2707,7 @@ not terminate in a root or a prefix&quot;
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::Configuration,
-					<span class="string">&quot;max_size_bytes must be of the form MaxSizeBytes(u64)&quot;
+					<span class="string">"max_size_bytes must be of the form MaxSizeBytes(u64)"
 				</span>));
 			}
 		}
@@ -2715,7 +2716,7 @@ not terminate in a root or a prefix&quot;
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::Configuration,
-					<span class="string">&quot;max_age_millis must be of the form MaxAgeMillis(u64)&quot;
+					<span class="string">"max_age_millis must be of the form MaxAgeMillis(u64)"
 				</span>));
 			}
 		}
@@ -2725,7 +2726,7 @@ not terminate in a root or a prefix&quot;
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::Configuration,
-					<span class="string">&quot;timestamp must be of the form Timestamp(bool)&quot;
+					<span class="string">"timestamp must be of the form Timestamp(bool)"
 				</span>));
 			}
 		}
@@ -2734,7 +2735,7 @@ not terminate in a root or a prefix&quot;
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::Configuration,
-					<span class="string">&quot;level must be of the form Level(bool)&quot;
+					<span class="string">"level must be of the form Level(bool)"
 				</span>));
 			}
 		}
@@ -2743,7 +2744,7 @@ not terminate in a root or a prefix&quot;
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::Configuration,
-					<span class="string">&quot;line_num must be of the form LineNum(bool)&quot;
+					<span class="string">"line_num must be of the form LineNum(bool)"
 				</span>));
 			}
 		}
@@ -2752,7 +2753,7 @@ not terminate in a root or a prefix&quot;
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::Configuration,
-					<span class="string">&quot;show_millis must be of the form ShowMillis(bool)&quot;
+					<span class="string">"show_millis must be of the form ShowMillis(bool)"
 				</span>));
 			}
 		}
@@ -2761,7 +2762,7 @@ not terminate in a root or a prefix&quot;
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::Configuration,
-					<span class="string">&quot;auto_rotate must be of the form AutoRotate(bool)&quot;
+					<span class="string">"auto_rotate must be of the form AutoRotate(bool)"
 				</span>));
 			}
 		}
@@ -2770,7 +2771,7 @@ not terminate in a root or a prefix&quot;
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::Configuration,
-					<span class="string">&quot;show_bt must be of the form ShowBt(bool)&quot;
+					<span class="string">"show_bt must be of the form ShowBt(bool)"
 				</span>));
 			}
 		}
@@ -2779,7 +2780,7 @@ not terminate in a root or a prefix&quot;
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::Configuration,
-					<span class="string">&quot;line_num_data_max_len must be of the form LineNumDataMaxLen(u64)&quot;
+					<span class="string">"line_num_data_max_len must be of the form LineNumDataMaxLen(u64)"
 				</span>));
 			}
 		}
@@ -2788,7 +2789,7 @@ not terminate in a root or a prefix&quot;
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::Configuration,
-					<span class="string">&quot;delete_rotation must be of the form DeleteRotation(bool)&quot;
+					<span class="string">"delete_rotation must be of the form DeleteRotation(bool)"
 				</span>));
 			}
 		}
@@ -2798,7 +2799,7 @@ not terminate in a root or a prefix&quot;
 			<span class="kw">_ </span>=&gt; {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 					ErrKind::Configuration,
-					<span class="string">&quot;file_header must be of the form FileHeader(String)&quot;
+					<span class="string">"file_header must be of the form FileHeader(String)"
 				</span>));
 			}
 		}
@@ -2811,7 +2812,7 @@ not terminate in a root or a prefix&quot;
 		<span class="kw">if </span>metadata.is_err() || <span class="self">self</span>.config.debug_invalid_metadata {
 			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 				ErrKind::Log,
-				<span class="macro">format!</span>(<span class="string">&quot;failed to retreive metadata for file: {}&quot;</span>, path.display())
+				<span class="macro">format!</span>(<span class="string">"failed to retreive metadata for file: {}"</span>, path.display())
 			));
 		}
 		<span class="kw">let </span>metadata = metadata.unwrap();
@@ -2822,7 +2823,7 @@ not terminate in a root or a prefix&quot;
 			</span><span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.config.file_header {
 				FileHeader(header) =&gt; {
 					<span class="kw">if </span>header.len() &gt; <span class="number">0 </span>{
-						<span class="comment">// there&#39;s a header. We need to append it.
+						<span class="comment">// there's a header. We need to append it.
 						</span>file.write(header.as_bytes())<span class="question-mark">?</span>;
 						file.write(NEWLINE)<span class="question-mark">?</span>;
 						<span class="self">self</span>.cur_size = <span class="macro">u64!</span>(header.len()) + <span class="number">1</span>;
@@ -2833,7 +2834,7 @@ not terminate in a root or a prefix&quot;
 				<span class="kw">_ </span>=&gt; {
 					<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 						ErrKind::Configuration,
-						<span class="string">&quot;file_header must be of the form FileHeader(String)&quot;
+						<span class="string">"file_header must be of the form FileHeader(String)"
 					</span>));
 				}
 			}
@@ -2965,7 +2966,7 @@ not terminate in a root or a prefix&quot;
 		.is_ok());
 
 		<span class="macro">assert!</span>(LogBuilder::build(LogConfig {
-			line_num: FileHeader(<span class="string">&quot;file_header_value&quot;</span>.to_string()),
+			line_num: FileHeader(<span class="string">"file_header_value"</span>.to_string()),
 			..Default::default()
 		})
 		.is_err());
@@ -2995,14 +2996,14 @@ not terminate in a root or a prefix&quot;
 		.is_err());
 
 		<span class="kw">let </span><span class="kw-2">mut </span>path_buf = PathBuf::new();
-		path_buf.push(<span class="string">&quot;./anything&quot;</span>);
+		path_buf.push(<span class="string">"./anything"</span>);
 		<span class="macro">assert!</span>(LogBuilder::build(LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(path_buf)),
 			..Default::default()
 		})
 		.is_ok());
 
-		<span class="comment">// error because it&#39;s a root path
+		<span class="comment">// error because it's a root path
 		</span><span class="kw">let </span>path_buf = PathBuf::new();
 		<span class="macro">assert!</span>(LogBuilder::build(LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(path_buf)),
@@ -3010,9 +3011,9 @@ not terminate in a root or a prefix&quot;
 		})
 		.is_err());
 
-		<span class="comment">// error because it&#39;s a directory
+		<span class="comment">// error because it's a directory
 		</span><span class="kw">let </span><span class="kw-2">mut </span>path_buf = PathBuf::new();
-		path_buf.push(<span class="string">&quot;.&quot;</span>);
+		path_buf.push(<span class="string">"."</span>);
 		<span class="macro">assert!</span>(LogBuilder::build(LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(path_buf)),
 			..Default::default()
@@ -3051,7 +3052,7 @@ not terminate in a root or a prefix&quot;
 		.is_ok());
 
 		<span class="macro">assert!</span>(LogBuilder::build(LogConfig {
-			line_num_data_max_len: FileHeader(<span class="string">&quot;&quot;</span>.to_string()),
+			line_num_data_max_len: FileHeader(<span class="string">""</span>.to_string()),
 			..Default::default()
 		})
 		.is_err());
@@ -3069,7 +3070,7 @@ not terminate in a root or a prefix&quot;
 		.is_err());
 
 		<span class="macro">assert!</span>(LogBuilder::build(LogConfig {
-			file_header: FileHeader(<span class="string">&quot;some_value&quot;</span>.to_string()),
+			file_header: FileHeader(<span class="string">"some_value"</span>.to_string()),
 			..Default::default()
 		})
 		.is_ok());
@@ -3184,7 +3185,7 @@ not terminate in a root or a prefix&quot;
 			<span class="kw-2">&amp;</span>FilePath(<span class="prelude-val">None</span>)
 		);
 		<span class="kw">let </span><span class="kw-2">mut </span>path = PathBuf::new();
-		path.push(<span class="string">&quot;./anything&quot;</span>);
+		path.push(<span class="string">"./anything"</span>);
 		<span class="comment">// file_path cannot be set
 		</span><span class="macro">assert!</span>(log.set_config_option(FilePath(<span class="prelude-val">Some</span>(path.clone()))).is_err());
 
@@ -3220,12 +3221,12 @@ not terminate in a root or a prefix&quot;
 
 		<span class="macro">assert_eq!</span>(
 			log.get_config_option(LogConfigOptionName::FileHeader)<span class="question-mark">?</span>,
-			<span class="kw-2">&amp;</span>FileHeader(<span class="string">&quot;&quot;</span>.to_string())
+			<span class="kw-2">&amp;</span>FileHeader(<span class="string">""</span>.to_string())
 		);
-		log.set_config_option(FileHeader(<span class="string">&quot;anything&quot;</span>.to_string()))<span class="question-mark">?</span>;
+		log.set_config_option(FileHeader(<span class="string">"anything"</span>.to_string()))<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(
 			log.get_config_option(LogConfigOptionName::FileHeader)<span class="question-mark">?</span>,
-			<span class="kw-2">&amp;</span>FileHeader(<span class="string">&quot;anything&quot;</span>.to_string())
+			<span class="kw-2">&amp;</span>FileHeader(<span class="string">"anything"</span>.to_string())
 		);
 
 		<span class="prelude-val">Ok</span>(())
@@ -3233,19 +3234,19 @@ not terminate in a root or a prefix&quot;
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_init() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">&quot;.test_init.bmw&quot;</span>;
+		<span class="kw">let </span>test_dir = <span class="string">".test_init.bmw"</span>;
 		setup_test_dir(test_dir)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>config = LogConfig {
-			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(<span class="macro">format!</span>(<span class="string">&quot;{}/test.log&quot;</span>, test_dir)))),
+			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(<span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir)))),
 			..Default::default()
 		};
 		<span class="kw">let </span><span class="kw-2">mut </span>log = LogBuilder::build(config)<span class="question-mark">?</span>;
 		log.init()<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;test&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Debug, <span class="string">&quot;test2&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"test"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Debug, <span class="string">"test2"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 
-		<span class="macro">assert!</span>(PathBuf::from(<span class="macro">format!</span>(<span class="string">&quot;{}/test.log&quot;</span>, test_dir)).exists());
+		<span class="macro">assert!</span>(PathBuf::from(<span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir)).exists());
 
 		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
@@ -3253,10 +3254,10 @@ not terminate in a root or a prefix&quot;
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_configuration_options() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">&quot;.test_config.bmw&quot;</span>;
+		<span class="kw">let </span>test_dir = <span class="string">".test_config.bmw"</span>;
 		setup_test_dir(test_dir)<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">&quot;{}/test.log&quot;</span>, test_dir);
+		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir);
 
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
@@ -3267,27 +3268,27 @@ not terminate in a root or a prefix&quot;
 		<span class="kw">let </span><span class="kw-2">mut </span>log = LogBuilder::build(config)<span class="question-mark">?</span>;
 		log.init()<span class="question-mark">?</span>;
 		log.set_config_option(ShowBt(<span class="bool-val">false</span>))<span class="question-mark">?</span>;
-		log.log(LogLevel::Trace, <span class="string">&quot;trace&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Debug, <span class="string">&quot;debug&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;info&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Warn, <span class="string">&quot;warn&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Error, <span class="string">&quot;error&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Fatal, <span class="string">&quot;fatal&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Trace, <span class="string">"trace"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Debug, <span class="string">"debug"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"info"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Warn, <span class="string">"warn"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Error, <span class="string">"error"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Fatal, <span class="string">"fatal"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>contents = read_to_string(log_file.clone())<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">&quot;trace&quot;</span>), <span class="prelude-val">Some</span>(<span class="number">66</span>));
-		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">&quot;debug&quot;</span>), <span class="prelude-val">Some</span>(<span class="number">138</span>));
-		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">&quot;info&quot;</span>), <span class="prelude-val">Some</span>(<span class="number">209</span>));
-		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">&quot;warn&quot;</span>), <span class="prelude-val">Some</span>(<span class="number">279</span>));
-		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">&quot;error&quot;</span>), <span class="prelude-val">Some</span>(<span class="number">350</span>));
-		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">&quot;fatal&quot;</span>), <span class="prelude-val">Some</span>(<span class="number">422</span>));
+		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">"trace"</span>), <span class="prelude-val">Some</span>(<span class="number">66</span>));
+		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">"debug"</span>), <span class="prelude-val">Some</span>(<span class="number">138</span>));
+		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">"info"</span>), <span class="prelude-val">Some</span>(<span class="number">209</span>));
+		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">"warn"</span>), <span class="prelude-val">Some</span>(<span class="number">279</span>));
+		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">"error"</span>), <span class="prelude-val">Some</span>(<span class="number">350</span>));
+		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">"fatal"</span>), <span class="prelude-val">Some</span>(<span class="number">422</span>));
 		<span class="macro">assert_eq!</span>(contents.len(), <span class="number">428</span>);
 
 		<span class="comment">//try with a header
-		</span><span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">&quot;{}/test2.log&quot;</span>, test_dir);
+		</span><span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test2.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
-			file_header: FileHeader(<span class="string">&quot;this is a test&quot;</span>.to_string()),
+			file_header: FileHeader(<span class="string">"this is a test"</span>.to_string()),
 			show_bt: ShowBt(<span class="bool-val">false</span>),
 			line_num: LogConfigOption::LineNum(<span class="bool-val">true</span>),
 			..Default::default()
@@ -3295,21 +3296,21 @@ not terminate in a root or a prefix&quot;
 		<span class="kw">let </span><span class="kw-2">mut </span>log = LogBuilder::build(config)<span class="question-mark">?</span>;
 		log.init()<span class="question-mark">?</span>;
 
-		log.log(LogLevel::Trace, <span class="string">&quot;trace&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Debug, <span class="string">&quot;debug&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;info&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Warn, <span class="string">&quot;warn&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Error, <span class="string">&quot;error&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Fatal, <span class="string">&quot;fatal&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Trace, <span class="string">"trace"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Debug, <span class="string">"debug"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"info"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Warn, <span class="string">"warn"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Error, <span class="string">"error"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Fatal, <span class="string">"fatal"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>contents = read_to_string(log_file.clone())<span class="question-mark">?</span>;
 		<span class="comment">// original location + length of header + 1 for the newline
 		</span><span class="macro">assert_eq!</span>(
-			contents.rfind(<span class="string">&quot;trace&quot;</span>),
-			<span class="prelude-val">Some</span>(<span class="number">66 </span>+ <span class="string">&quot;this is a test&quot;</span>.len() + <span class="number">1</span>)
+			contents.rfind(<span class="string">"trace"</span>),
+			<span class="prelude-val">Some</span>(<span class="number">66 </span>+ <span class="string">"this is a test"</span>.len() + <span class="number">1</span>)
 		);
 
 		<span class="comment">// no millis
-		</span><span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">&quot;{}/test3.log&quot;</span>, test_dir);
+		</span><span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test3.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
 			show_millis: ShowMillis(<span class="bool-val">false</span>),
@@ -3320,20 +3321,20 @@ not terminate in a root or a prefix&quot;
 		<span class="kw">let </span><span class="kw-2">mut </span>log = LogBuilder::build(config)<span class="question-mark">?</span>;
 		log.init()<span class="question-mark">?</span>;
 
-		log.log(LogLevel::Trace, <span class="string">&quot;trace&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Debug, <span class="string">&quot;debug&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;info&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Warn, <span class="string">&quot;warn&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Error, <span class="string">&quot;error&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Fatal, <span class="string">&quot;fatal&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Trace, <span class="string">"trace"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Debug, <span class="string">"debug"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"info"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Warn, <span class="string">"warn"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Error, <span class="string">"error"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Fatal, <span class="string">"fatal"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>contents = read_to_string(log_file.clone())<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(
-			contents.rfind(<span class="string">&quot;trace&quot;</span>),
+			contents.rfind(<span class="string">"trace"</span>),
 			<span class="prelude-val">Some</span>(<span class="number">66 </span>- <span class="number">4</span>) <span class="comment">// millis are four chars (one for the dot and three decimal places).
 		</span>);
 
 		<span class="comment">// no level
-		</span><span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">&quot;{}/test4.log&quot;</span>, test_dir);
+		</span><span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test4.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
 			level: Level(<span class="bool-val">false</span>),
@@ -3344,20 +3345,20 @@ not terminate in a root or a prefix&quot;
 		<span class="kw">let </span><span class="kw-2">mut </span>log = LogBuilder::build(config)<span class="question-mark">?</span>;
 		log.init()<span class="question-mark">?</span>;
 
-		log.log(LogLevel::Trace, <span class="string">&quot;trace&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Debug, <span class="string">&quot;debug&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;info&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Warn, <span class="string">&quot;warn&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Error, <span class="string">&quot;error&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Fatal, <span class="string">&quot;fatal&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Trace, <span class="string">"trace"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Debug, <span class="string">"debug"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"info"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Warn, <span class="string">"warn"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Error, <span class="string">"error"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Fatal, <span class="string">"fatal"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>contents = read_to_string(log_file.clone())<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(
-			contents.rfind(<span class="string">&quot;trace&quot;</span>),
-			<span class="prelude-val">Some</span>(<span class="number">66 </span>- <span class="number">8</span>) <span class="comment">// len is 5 for &quot;TRACE&quot; and the &#39;(&#39; and &#39;)&#39; and one space.
+			contents.rfind(<span class="string">"trace"</span>),
+			<span class="prelude-val">Some</span>(<span class="number">66 </span>- <span class="number">8</span>) <span class="comment">// len is 5 for "TRACE" and the '(' and ')' and one space.
 		</span>);
 
 		<span class="comment">// no timestamp
-		</span><span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">&quot;{}/test5.log&quot;</span>, test_dir);
+		</span><span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test5.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
 			timestamp: Timestamp(<span class="bool-val">false</span>),
@@ -3368,17 +3369,17 @@ not terminate in a root or a prefix&quot;
 		<span class="kw">let </span><span class="kw-2">mut </span>log = LogBuilder::build(config)<span class="question-mark">?</span>;
 		log.init()<span class="question-mark">?</span>;
 
-		log.log(LogLevel::Trace, <span class="string">&quot;trace&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Debug, <span class="string">&quot;debug&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;info&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Warn, <span class="string">&quot;warn&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Error, <span class="string">&quot;error&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Fatal, <span class="string">&quot;fatal&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Trace, <span class="string">"trace"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Debug, <span class="string">"debug"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"info"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Warn, <span class="string">"warn"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Error, <span class="string">"error"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Fatal, <span class="string">"fatal"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>contents = read_to_string(log_file.clone())<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">&quot;trace&quot;</span>), <span class="prelude-val">Some</span>(<span class="number">39</span>));
+		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">"trace"</span>), <span class="prelude-val">Some</span>(<span class="number">39</span>));
 
 		<span class="comment">// no linenum
-		</span><span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">&quot;{}/test6.log&quot;</span>, test_dir);
+		</span><span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test6.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
 			line_num: LineNum(<span class="bool-val">false</span>),
@@ -3388,17 +3389,17 @@ not terminate in a root or a prefix&quot;
 		<span class="kw">let </span><span class="kw-2">mut </span>log = LogBuilder::build(config)<span class="question-mark">?</span>;
 		log.init()<span class="question-mark">?</span>;
 
-		log.log(LogLevel::Trace, <span class="string">&quot;trace&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Debug, <span class="string">&quot;debug&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;info&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Warn, <span class="string">&quot;warn&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Error, <span class="string">&quot;error&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Fatal, <span class="string">&quot;fatal&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Trace, <span class="string">"trace"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Debug, <span class="string">"debug"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"info"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Warn, <span class="string">"warn"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Error, <span class="string">"error"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Fatal, <span class="string">"fatal"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>contents = read_to_string(log_file.clone())<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">&quot;trace&quot;</span>), <span class="prelude-val">Some</span>(<span class="number">66 </span>- <span class="number">31</span>)); <span class="comment">// 31 less (25 maxlen, 2 brackets, colon, space, and two dots
+		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">"trace"</span>), <span class="prelude-val">Some</span>(<span class="number">66 </span>- <span class="number">31</span>)); <span class="comment">// 31 less (25 maxlen, 2 brackets, colon, space, and two dots
 
 		// 20 as line_num_data_max_len (default is 25).
-		</span><span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">&quot;{}/test7.log&quot;</span>, test_dir);
+		</span><span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test7.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
 			line_num_data_max_len: LineNumDataMaxLen(<span class="number">20</span>),
@@ -3409,17 +3410,17 @@ not terminate in a root or a prefix&quot;
 		<span class="kw">let </span><span class="kw-2">mut </span>log = LogBuilder::build(config)<span class="question-mark">?</span>;
 		log.init()<span class="question-mark">?</span>;
 
-		log.log(LogLevel::Trace, <span class="string">&quot;trace&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Debug, <span class="string">&quot;debug&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;info&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Warn, <span class="string">&quot;warn&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Error, <span class="string">&quot;error&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Fatal, <span class="string">&quot;fatal&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Trace, <span class="string">"trace"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Debug, <span class="string">"debug"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"info"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Warn, <span class="string">"warn"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Error, <span class="string">"error"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Fatal, <span class="string">"fatal"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>contents = read_to_string(log_file.clone())<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">&quot;trace&quot;</span>), <span class="prelude-val">Some</span>(<span class="number">66 </span>- <span class="number">5</span>)); <span class="comment">// 31 less (25 maxlen, 2 brackets, colon, space, and two dots
+		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">"trace"</span>), <span class="prelude-val">Some</span>(<span class="number">66 </span>- <span class="number">5</span>)); <span class="comment">// 31 less (25 maxlen, 2 brackets, colon, space, and two dots
 
 		// test a dynamic configuration change
-		</span><span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">&quot;{}/test8.log&quot;</span>, test_dir);
+		</span><span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test8.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
 			line_num_data_max_len: LineNumDataMaxLen(<span class="number">20</span>),
@@ -3430,13 +3431,13 @@ not terminate in a root or a prefix&quot;
 		<span class="kw">let </span><span class="kw-2">mut </span>log = LogBuilder::build(config)<span class="question-mark">?</span>;
 		log.init()<span class="question-mark">?</span>;
 
-		log.log(LogLevel::Info, <span class="string">&quot;abc&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"abc"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>contents = read_to_string(log_file.clone())<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">&quot;abc&quot;</span>), <span class="prelude-val">Some</span>(<span class="number">60</span>));
+		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">"abc"</span>), <span class="prelude-val">Some</span>(<span class="number">60</span>));
 		log.set_config_option(ShowMillis(<span class="bool-val">false</span>))<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;abc&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"abc"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>contents = read_to_string(log_file.clone())<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">&quot;abc&quot;</span>), <span class="prelude-val">Some</span>(<span class="number">120</span>));
+		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">"abc"</span>), <span class="prelude-val">Some</span>(<span class="number">120</span>));
 
 		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
@@ -3444,10 +3445,10 @@ not terminate in a root or a prefix&quot;
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_log_rotation() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">&quot;.test_log_rotation.bmw&quot;</span>;
+		<span class="kw">let </span>test_dir = <span class="string">".test_log_rotation.bmw"</span>;
 		setup_test_dir(test_dir)<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">&quot;{}/test.log&quot;</span>, test_dir);
+		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
 			max_size_bytes: MaxSizeBytes(<span class="number">100</span>),
@@ -3458,27 +3459,27 @@ not terminate in a root or a prefix&quot;
 		<span class="kw">let </span><span class="kw-2">mut </span>log = LogBuilder::build(config)<span class="question-mark">?</span>;
 
 		log.init()<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;1&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;2&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"1"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"2"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>files = read_dir(test_dir).unwrap();
 		<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
 		<span class="kw">for </span>file <span class="kw">in </span>files {
 			<span class="kw">let </span>file = file.unwrap().path().display().to_string();
-			<span class="kw">if </span>file.find(<span class="string">&quot;.log&quot;</span>).is_some() {
+			<span class="kw">if </span>file.find(<span class="string">".log"</span>).is_some() {
 				count += <span class="number">1</span>;
 			}
 		}
 		<span class="macro">assert_eq!</span>(count, <span class="number">1</span>);
 
 		<span class="comment">// this triggers an auto rotate
-		</span>log.log(LogLevel::Info, <span class="string">&quot;3&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		</span>log.log(LogLevel::Info, <span class="string">"3"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>files = read_dir(test_dir).unwrap();
 		<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
 		<span class="kw">for </span>file <span class="kw">in </span>files {
 			<span class="kw">let </span>file = file.unwrap().path().display().to_string();
-			<span class="kw">if </span>file.find(<span class="string">&quot;.log&quot;</span>).is_some() {
+			<span class="kw">if </span>file.find(<span class="string">".log"</span>).is_some() {
 				count += <span class="number">1</span>;
 			}
 		}
@@ -3491,10 +3492,10 @@ not terminate in a root or a prefix&quot;
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_manual_rotation() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">&quot;.test_log_manual_rotation.bmw&quot;</span>;
+		<span class="kw">let </span>test_dir = <span class="string">".test_log_manual_rotation.bmw"</span>;
 		setup_test_dir(test_dir)<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">&quot;{}/test.log&quot;</span>, test_dir);
+		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
 			max_size_bytes: MaxSizeBytes(<span class="number">100</span>),
@@ -3506,27 +3507,27 @@ not terminate in a root or a prefix&quot;
 		<span class="kw">let </span><span class="kw-2">mut </span>log = LogBuilder::build(config)<span class="question-mark">?</span>;
 
 		log.init()<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;a&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;b&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"a"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"b"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>files = read_dir(test_dir).unwrap();
 		<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
 		<span class="kw">for </span>file <span class="kw">in </span>files {
 			<span class="kw">let </span>file = file.unwrap().path().display().to_string();
-			<span class="kw">if </span>file.find(<span class="string">&quot;.log&quot;</span>).is_some() {
+			<span class="kw">if </span>file.find(<span class="string">".log"</span>).is_some() {
 				count += <span class="number">1</span>;
 			}
 		}
 		<span class="macro">assert_eq!</span>(count, <span class="number">1</span>);
 
-		<span class="comment">// this would trigger an auto rotate, but set to false so it doesn&#39;t
-		</span>log.log(LogLevel::Info, <span class="string">&quot;c&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		<span class="comment">// this would trigger an auto rotate, but set to false so it doesn't
+		</span>log.log(LogLevel::Info, <span class="string">"c"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>files = read_dir(test_dir).unwrap();
 		<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
 		<span class="kw">for </span>file <span class="kw">in </span>files {
 			<span class="kw">let </span>file = file.unwrap().path().display().to_string();
-			<span class="kw">if </span>file.find(<span class="string">&quot;.log&quot;</span>).is_some() {
+			<span class="kw">if </span>file.find(<span class="string">".log"</span>).is_some() {
 				count += <span class="number">1</span>;
 			}
 		}
@@ -3539,7 +3540,7 @@ not terminate in a root or a prefix&quot;
 		<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
 		<span class="kw">for </span>file <span class="kw">in </span>files {
 			<span class="kw">let </span>file = file.unwrap().path().display().to_string();
-			<span class="kw">if </span>file.find(<span class="string">&quot;.log&quot;</span>).is_some() {
+			<span class="kw">if </span>file.find(<span class="string">".log"</span>).is_some() {
 				count += <span class="number">1</span>;
 			}
 		}
@@ -3553,10 +3554,10 @@ not terminate in a root or a prefix&quot;
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_time_based_rotation() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">&quot;.test_log_time_rotation.bmw&quot;</span>;
+		<span class="kw">let </span>test_dir = <span class="string">".test_log_time_rotation.bmw"</span>;
 		setup_test_dir(test_dir)<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">&quot;{}/test.log&quot;</span>, test_dir);
+		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
 			max_age_millis: MaxAgeMillis(<span class="number">10_000</span>),
@@ -3568,15 +3569,15 @@ not terminate in a root or a prefix&quot;
 		<span class="kw">let </span><span class="kw-2">mut </span>log = LogBuilder::build(config)<span class="question-mark">?</span>;
 
 		log.init()<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;a&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;b&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"a"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"b"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(log.need_rotate(<span class="prelude-val">None</span>)<span class="question-mark">?</span>, <span class="bool-val">false</span>);
 		sleep(Duration::from_millis(<span class="number">20_000</span>));
 		<span class="macro">assert_eq!</span>(log.need_rotate(<span class="prelude-val">None</span>)<span class="question-mark">?</span>, <span class="bool-val">true</span>);
 		log.rotate()<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(log.need_rotate(<span class="prelude-val">None</span>)<span class="question-mark">?</span>, <span class="bool-val">false</span>);
 
-		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">&quot;{}/othertestlog&quot;</span>, test_dir);
+		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/othertestlog"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
 			max_age_millis: MaxAgeMillis(<span class="number">10_000</span>),
@@ -3588,8 +3589,8 @@ not terminate in a root or a prefix&quot;
 		<span class="kw">let </span><span class="kw-2">mut </span>log = LogBuilder::build(config)<span class="question-mark">?</span>;
 
 		log.init()<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;a&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;b&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"a"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"b"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(log.need_rotate(<span class="prelude-val">None</span>)<span class="question-mark">?</span>, <span class="bool-val">false</span>);
 		sleep(Duration::from_millis(<span class="number">20_000</span>));
 		<span class="macro">assert_eq!</span>(log.need_rotate(<span class="prelude-val">None</span>)<span class="question-mark">?</span>, <span class="bool-val">true</span>);
@@ -3602,10 +3603,10 @@ not terminate in a root or a prefix&quot;
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_other_situations() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">&quot;.test_log_other.bmw&quot;</span>;
+		<span class="kw">let </span>test_dir = <span class="string">".test_log_other.bmw"</span>;
 		setup_test_dir(test_dir)<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">&quot;{}/test.log&quot;</span>, test_dir);
+		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
 			stdout: Stdout(<span class="bool-val">false</span>),
@@ -3618,12 +3619,12 @@ not terminate in a root or a prefix&quot;
 		<span class="kw">let </span><span class="kw-2">mut </span>log = LogBuilder::build(config)<span class="question-mark">?</span>;
 
 		<span class="macro">assert!</span>(log.rotate().is_err());
-		<span class="macro">assert!</span>(log.log(LogLevel::Info, <span class="string">&quot;a&quot;</span>, <span class="prelude-val">None</span>).is_err());
+		<span class="macro">assert!</span>(log.log(LogLevel::Info, <span class="string">"a"</span>, <span class="prelude-val">None</span>).is_err());
 		<span class="macro">assert!</span>(log.need_rotate(<span class="prelude-val">None</span>).is_err());
 
 		log.init()<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;a&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log_all(LogLevel::Info, <span class="string">&quot;b&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"a"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log_all(LogLevel::Info, <span class="string">"b"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>contents = read_to_string(log_file.clone())<span class="question-mark">?</span>;
 
 		<span class="comment">// both entries logged
@@ -3635,69 +3636,69 @@ not terminate in a root or a prefix&quot;
 		log.init()<span class="question-mark">?</span>;
 		log.rotate()<span class="question-mark">?</span>; <span class="comment">// should return without error
 
-		// use log impl to get into situations we normally wouldn&#39;t see
+		// use log impl to get into situations we normally wouldn't see
 		</span><span class="kw">let </span><span class="kw-2">mut </span>log_as_impl = LogImpl::new(LogConfig {
-			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(<span class="macro">format!</span>(<span class="string">&quot;{}/test.log&quot;</span>, test_dir)))),
+			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(<span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir)))),
 			..Default::default()
 		})<span class="question-mark">?</span>;
 		log_as_impl.init()<span class="question-mark">?</span>;
-		log_as_impl.log(LogLevel::Info, <span class="string">&quot;a&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log_as_impl.log(LogLevel::Info, <span class="string">"a"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 		log_as_impl.config.file_path = FilePath(<span class="prelude-val">None</span>);
 		<span class="macro">assert!</span>(log_as_impl.rotate().is_err());
-		log_as_impl.config.file_path = FileHeader(<span class="string">&quot;&quot;</span>.to_string());
+		log_as_impl.config.file_path = FileHeader(<span class="string">""</span>.to_string());
 		<span class="macro">assert!</span>(log_as_impl.rotate().is_err());
 		log_as_impl.config.file_path = FilePath(<span class="prelude-val">Some</span>(PathBuf::new()));
 		<span class="macro">assert!</span>(log_as_impl.rotate().is_err());
-		log_as_impl.config.file_path = FilePath(<span class="prelude-val">Some</span>(PathBuf::from(<span class="macro">format!</span>(<span class="string">&quot;{}/..&quot;</span>, test_dir))));
+		log_as_impl.config.file_path = FilePath(<span class="prelude-val">Some</span>(PathBuf::from(<span class="macro">format!</span>(<span class="string">"{}/.."</span>, test_dir))));
 		<span class="macro">assert!</span>(log_as_impl.rotate().is_err());
 		log_as_impl.config.stdout = AutoRotate(<span class="bool-val">false</span>);
-		<span class="macro">assert!</span>(log_as_impl.log(LogLevel::Info, <span class="string">&quot;test&quot;</span>, <span class="prelude-val">None</span>).is_err());
+		<span class="macro">assert!</span>(log_as_impl.log(LogLevel::Info, <span class="string">"test"</span>, <span class="prelude-val">None</span>).is_err());
 		log_as_impl.config.stdout = Stdout(<span class="bool-val">false</span>);
 		log_as_impl.config.timestamp = AutoRotate(<span class="bool-val">false</span>);
-		<span class="macro">assert!</span>(log_as_impl.log(LogLevel::Info, <span class="string">&quot;test&quot;</span>, <span class="prelude-val">None</span>).is_err());
+		<span class="macro">assert!</span>(log_as_impl.log(LogLevel::Info, <span class="string">"test"</span>, <span class="prelude-val">None</span>).is_err());
 		log_as_impl.config.timestamp = Timestamp(<span class="bool-val">false</span>);
 		log_as_impl.config.level = AutoRotate(<span class="bool-val">false</span>);
-		<span class="macro">assert!</span>(log_as_impl.log(LogLevel::Info, <span class="string">&quot;test&quot;</span>, <span class="prelude-val">None</span>).is_err());
+		<span class="macro">assert!</span>(log_as_impl.log(LogLevel::Info, <span class="string">"test"</span>, <span class="prelude-val">None</span>).is_err());
 		log_as_impl.config.level = Level(<span class="bool-val">false</span>);
 		log_as_impl.config.line_num = AutoRotate(<span class="bool-val">false</span>);
-		<span class="macro">assert!</span>(log_as_impl.log(LogLevel::Info, <span class="string">&quot;test&quot;</span>, <span class="prelude-val">None</span>).is_err());
+		<span class="macro">assert!</span>(log_as_impl.log(LogLevel::Info, <span class="string">"test"</span>, <span class="prelude-val">None</span>).is_err());
 		log_as_impl.config.line_num = LineNum(<span class="bool-val">false</span>);
 		log_as_impl.config.show_millis = AutoRotate(<span class="bool-val">false</span>);
-		<span class="macro">assert!</span>(log_as_impl.log(LogLevel::Info, <span class="string">&quot;test&quot;</span>, <span class="prelude-val">None</span>).is_err());
+		<span class="macro">assert!</span>(log_as_impl.log(LogLevel::Info, <span class="string">"test"</span>, <span class="prelude-val">None</span>).is_err());
 		log_as_impl.config.show_millis = ShowMillis(<span class="bool-val">false</span>);
 		log_as_impl.config.show_bt = AutoRotate(<span class="bool-val">false</span>);
-		<span class="macro">assert!</span>(log_as_impl.log(LogLevel::Info, <span class="string">&quot;test&quot;</span>, <span class="prelude-val">None</span>).is_err());
+		<span class="macro">assert!</span>(log_as_impl.log(LogLevel::Info, <span class="string">"test"</span>, <span class="prelude-val">None</span>).is_err());
 		log_as_impl.config.show_bt = ShowBt(<span class="bool-val">true</span>);
 		log_as_impl.config.colors = AutoRotate(<span class="bool-val">false</span>);
-		<span class="macro">assert!</span>(log_as_impl.log(LogLevel::Info, <span class="string">&quot;test&quot;</span>, <span class="prelude-val">None</span>).is_err());
+		<span class="macro">assert!</span>(log_as_impl.log(LogLevel::Info, <span class="string">"test"</span>, <span class="prelude-val">None</span>).is_err());
 		log_as_impl.config.colors = Colors(<span class="bool-val">false</span>);
 		log_as_impl.config.stdout = Stdout(<span class="bool-val">true</span>);
 		log_as_impl.config.timestamp = Timestamp(<span class="bool-val">true</span>);
 		log_as_impl.config.level = Level(<span class="bool-val">true</span>);
-		<span class="macro">assert!</span>(log_as_impl.log(LogLevel::Info, <span class="string">&quot;test&quot;</span>, <span class="prelude-val">None</span>).is_ok());
+		<span class="macro">assert!</span>(log_as_impl.log(LogLevel::Info, <span class="string">"test"</span>, <span class="prelude-val">None</span>).is_ok());
 		log_as_impl.config.line_num_data_max_len = AutoRotate(<span class="bool-val">false</span>);
 		log_as_impl.config.line_num = LineNum(<span class="bool-val">true</span>);
-		<span class="macro">assert!</span>(log_as_impl.log(LogLevel::Info, <span class="string">&quot;test&quot;</span>, <span class="prelude-val">None</span>).is_err());
+		<span class="macro">assert!</span>(log_as_impl.log(LogLevel::Info, <span class="string">"test"</span>, <span class="prelude-val">None</span>).is_err());
 		log_as_impl.config.colors = Colors(<span class="bool-val">false</span>);
 		log_as_impl.config.stdout = Stdout(<span class="bool-val">true</span>);
 		log_as_impl.config.line_num = LineNum(<span class="bool-val">true</span>);
 		log_as_impl.config.line_num_data_max_len = LineNumDataMaxLen(<span class="number">20</span>);
-		<span class="macro">assert!</span>(log_as_impl.log(LogLevel::Info, <span class="string">&quot;test&quot;</span>, <span class="prelude-val">None</span>).is_ok());
+		<span class="macro">assert!</span>(log_as_impl.log(LogLevel::Info, <span class="string">"test"</span>, <span class="prelude-val">None</span>).is_ok());
 		log_as_impl.config.file_header = AutoRotate(<span class="bool-val">false</span>);
 		<span class="macro">assert!</span>(log_as_impl.rotate().is_err());
 		log_as_impl.config.auto_rotate = Colors(<span class="bool-val">false</span>);
 		<span class="macro">assert!</span>(log_as_impl
-			.log(LogLevel::Info, <span class="string">&quot;test&quot;</span>, <span class="prelude-val">Some</span>(Instant::now()))
+			.log(LogLevel::Info, <span class="string">"test"</span>, <span class="prelude-val">Some</span>(Instant::now()))
 			.is_err());
 		log_as_impl.config.auto_rotate = AutoRotate(<span class="bool-val">true</span>);
 		log_as_impl.config.max_age_millis = AutoRotate(<span class="bool-val">true</span>);
 		<span class="macro">assert!</span>(log_as_impl
-			.log(LogLevel::Info, <span class="string">&quot;test&quot;</span>, <span class="prelude-val">Some</span>(Instant::now()))
+			.log(LogLevel::Info, <span class="string">"test"</span>, <span class="prelude-val">Some</span>(Instant::now()))
 			.is_err());
 		log_as_impl.config.max_age_millis = MaxAgeMillis(<span class="number">100_000</span>);
 		log_as_impl.config.max_size_bytes = AutoRotate(<span class="bool-val">false</span>);
 		<span class="macro">assert!</span>(log_as_impl
-			.log(LogLevel::Info, <span class="string">&quot;test&quot;</span>, <span class="prelude-val">Some</span>(Instant::now()))
+			.log(LogLevel::Info, <span class="string">"test"</span>, <span class="prelude-val">Some</span>(Instant::now()))
 			.is_err());
 
 		<span class="macro">assert!</span>(LogImpl::new(LogConfig {
@@ -3707,7 +3708,7 @@ not terminate in a root or a prefix&quot;
 		.is_err());
 
 		<span class="macro">assert!</span>(LogImpl::new(LogConfig {
-			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(<span class="macro">format!</span>(<span class="string">&quot;{}/..&quot;</span>, test_dir)))),
+			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(<span class="macro">format!</span>(<span class="string">"{}/.."</span>, test_dir)))),
 			..Default::default()
 		})
 		.is_err());
@@ -3719,9 +3720,9 @@ not terminate in a root or a prefix&quot;
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_delete_rotation() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">&quot;.test_log_delete_rotation.bmw&quot;</span>;
+		<span class="kw">let </span>test_dir = <span class="string">".test_log_delete_rotation.bmw"</span>;
 		setup_test_dir(test_dir)<span class="question-mark">?</span>;
-		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">&quot;{}/test.log&quot;</span>, test_dir);
+		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
 			max_size_bytes: MaxSizeBytes(<span class="number">100</span>),
@@ -3733,27 +3734,27 @@ not terminate in a root or a prefix&quot;
 		<span class="kw">let </span><span class="kw-2">mut </span>log = LogBuilder::build(config)<span class="question-mark">?</span>;
 
 		log.init()<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;a&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;b&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"a"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"b"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>files = read_dir(test_dir).unwrap();
 		<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
 		<span class="kw">for </span>file <span class="kw">in </span>files {
 			<span class="kw">let </span>file = file.unwrap().path().display().to_string();
-			<span class="kw">if </span>file.find(<span class="string">&quot;.log&quot;</span>).is_some() {
+			<span class="kw">if </span>file.find(<span class="string">".log"</span>).is_some() {
 				count += <span class="number">1</span>;
 			}
 		}
 		<span class="macro">assert_eq!</span>(count, <span class="number">1</span>);
 
-		<span class="comment">// this would trigger an auto rotate, but set to false so it doesn&#39;t
-		</span>log.log(LogLevel::Info, <span class="string">&quot;c&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		<span class="comment">// this would trigger an auto rotate, but set to false so it doesn't
+		</span>log.log(LogLevel::Info, <span class="string">"c"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>files = read_dir(test_dir).unwrap();
 		<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
 		<span class="kw">for </span>file <span class="kw">in </span>files {
 			<span class="kw">let </span>file = file.unwrap().path().display().to_string();
-			<span class="kw">if </span>file.find(<span class="string">&quot;.log&quot;</span>).is_some() {
+			<span class="kw">if </span>file.find(<span class="string">".log"</span>).is_some() {
 				count += <span class="number">1</span>;
 			}
 		}
@@ -3765,22 +3766,22 @@ not terminate in a root or a prefix&quot;
 		<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
 		<span class="kw">for </span>file <span class="kw">in </span>files {
 			<span class="kw">let </span>file = file.unwrap().path().display().to_string();
-			<span class="kw">if </span>file.find(<span class="string">&quot;.log&quot;</span>).is_some() {
+			<span class="kw">if </span>file.find(<span class="string">".log"</span>).is_some() {
 				count += <span class="number">1</span>;
 			}
 		}
 
-		<span class="comment">// rotation occurs but it&#39;s deleted so still just one log file
+		<span class="comment">// rotation occurs but it's deleted so still just one log file
 		</span><span class="macro">assert_eq!</span>(count, <span class="number">1</span>);
 
 		<span class="comment">// log some more
-		</span>log.log(LogLevel::Info, <span class="string">&quot;a&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;b&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;c&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		</span>log.log(LogLevel::Info, <span class="string">"a"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"b"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"c"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 		<span class="macro">assert!</span>(log.need_rotate(<span class="prelude-val">None</span>)<span class="question-mark">?</span>);
 
 		<span class="comment">// use the log_impl
-		</span><span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">&quot;{}/test2.log&quot;</span>, test_dir);
+		</span><span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test2.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
 			max_size_bytes: MaxSizeBytes(<span class="number">100</span>),
@@ -3799,9 +3800,9 @@ not terminate in a root or a prefix&quot;
 
 		log.init()<span class="question-mark">?</span>;
 
-		log.log(LogLevel::Info, <span class="string">&quot;x&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;y&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
-		log.log(LogLevel::Info, <span class="string">&quot;z&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"x"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"y"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Info, <span class="string">"z"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 		<span class="macro">assert!</span>(log.need_rotate(<span class="prelude-val">None</span>)<span class="question-mark">?</span>);
 		<span class="comment">// set the delete_rotation to an illegal value
 		</span>log.config.delete_rotation = AutoRotate(<span class="bool-val">true</span>);
@@ -3821,12 +3822,12 @@ not terminate in a root or a prefix&quot;
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_other_config_options() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">&quot;.test_other_config_options.bmw&quot;</span>;
+		<span class="kw">let </span>test_dir = <span class="string">".test_other_config_options.bmw"</span>;
 		setup_test_dir(test_dir)<span class="question-mark">?</span>;
 
-		<span class="kw">const </span>STR: <span class="kw-2">&amp;</span>str = <span class="string">&quot;01234567890123456789012345678901234567890123456789&quot;</span>;
+		<span class="kw">const </span>STR: <span class="kw-2">&amp;</span>str = <span class="string">"01234567890123456789012345678901234567890123456789"</span>;
 
-		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">&quot;{}/test.log&quot;</span>, test_dir);
+		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
 			auto_rotate: AutoRotate(<span class="bool-val">false</span>),
@@ -3866,9 +3867,9 @@ not terminate in a root or a prefix&quot;
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_log_file_and_bt() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">&quot;.test_log_file_and_bt.bmw&quot;</span>;
+		<span class="kw">let </span>test_dir = <span class="string">".test_log_file_and_bt.bmw"</span>;
 		setup_test_dir(test_dir)<span class="question-mark">?</span>;
-		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">&quot;{}/test.log&quot;</span>, test_dir);
+		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
 			show_bt: ShowBt(<span class="bool-val">true</span>),
@@ -3877,14 +3878,14 @@ not terminate in a root or a prefix&quot;
 		};
 		<span class="kw">let </span><span class="kw-2">mut </span>log = LogBuilder::build(config)<span class="question-mark">?</span>;
 		log.init()<span class="question-mark">?</span>;
-		log.log(LogLevel::Debug, <span class="string">&quot;test&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Debug, <span class="string">"test"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>contents = read_to_string(log_file.clone())<span class="question-mark">?</span>;
-		<span class="comment">// since we&#39;re info level we don&#39;t log the bt, so standard length for info
+		<span class="comment">// since we're info level we don't log the bt, so standard length for info
 		// with all options set
 		</span><span class="macro">assert_eq!</span>(contents.len(), <span class="number">71</span>);
 
 		<span class="comment">// now with bt
-		</span><span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">&quot;{}/test2.log&quot;</span>, test_dir);
+		</span><span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test2.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
 			show_bt: ShowBt(<span class="bool-val">true</span>),
@@ -3893,9 +3894,9 @@ not terminate in a root or a prefix&quot;
 		};
 		<span class="kw">let </span><span class="kw-2">mut </span>log = LogBuilder::build(config)<span class="question-mark">?</span>;
 		log.init()<span class="question-mark">?</span>;
-		log.log(LogLevel::Error, <span class="string">&quot;test&quot;</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		log.log(LogLevel::Error, <span class="string">"test"</span>, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>contents = read_to_string(log_file.clone())<span class="question-mark">?</span>;
-		<span class="comment">// we don&#39;t know exactly how big the stack trace will be so just assert it&#39;s larger
+		<span class="comment">// we don't know exactly how big the stack trace will be so just assert it's larger
 		</span><span class="macro">assert!</span>(contents.len() &gt; <span class="number">71</span>);
 
 		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
@@ -3904,9 +3905,9 @@ not terminate in a root or a prefix&quot;
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_invalid_flags() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">&quot;.test_log_file_invalid_metadata.bmw&quot;</span>;
+		<span class="kw">let </span>test_dir = <span class="string">".test_log_file_invalid_metadata.bmw"</span>;
 		setup_test_dir(test_dir)<span class="question-mark">?</span>;
-		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">&quot;{}/test.log&quot;</span>, test_dir);
+		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
 			debug_invalid_metadata: <span class="bool-val">true</span>,
@@ -3918,13 +3919,13 @@ not terminate in a root or a prefix&quot;
 		log.config.debug_invalid_metadata = <span class="bool-val">false</span>;
 		log.config.file_header = AutoRotate(<span class="bool-val">true</span>);
 		<span class="macro">assert!</span>(log.init().is_err());
-		log.config.file_header = FileHeader(<span class="string">&quot;&quot;</span>.to_string());
+		log.config.file_header = FileHeader(<span class="string">""</span>.to_string());
 		log.config.debug_invalid_os_str = <span class="bool-val">true</span>;
 		log.init()<span class="question-mark">?</span>;
 		<span class="macro">assert!</span>(log.rotate().is_err());
 		log.config.debug_invalid_os_str = <span class="bool-val">false</span>;
 		log.config.debug_lineno_none = <span class="bool-val">true</span>;
-		<span class="macro">assert!</span>(log.log(LogLevel::Info, <span class="string">&quot;&quot;</span>, <span class="prelude-val">None</span>).is_ok());
+		<span class="macro">assert!</span>(log.log(LogLevel::Info, <span class="string">""</span>, <span class="prelude-val">None</span>).is_ok());
 
 		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
@@ -3933,10 +3934,10 @@ not terminate in a root or a prefix&quot;
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_format_millis() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>log = LogImpl::new(LogConfig::default())<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(log.format_millis(<span class="number">777</span>), <span class="string">&quot;777&quot;</span>.to_string());
-		<span class="macro">assert_eq!</span>(log.format_millis(<span class="number">77</span>), <span class="string">&quot;077&quot;</span>.to_string());
-		<span class="macro">assert_eq!</span>(log.format_millis(<span class="number">7</span>), <span class="string">&quot;007&quot;</span>.to_string());
-		<span class="macro">assert_eq!</span>(log.format_millis(<span class="number">0</span>), <span class="string">&quot;000&quot;</span>.to_string());
+		<span class="macro">assert_eq!</span>(log.format_millis(<span class="number">777</span>), <span class="string">"777"</span>.to_string());
+		<span class="macro">assert_eq!</span>(log.format_millis(<span class="number">77</span>), <span class="string">"077"</span>.to_string());
+		<span class="macro">assert_eq!</span>(log.format_millis(<span class="number">7</span>), <span class="string">"007"</span>.to_string());
+		<span class="macro">assert_eq!</span>(log.format_millis(<span class="number">0</span>), <span class="string">"000"</span>.to_string());
 		<span class="prelude-val">Ok</span>(())
 	}
 
@@ -3950,7 +3951,7 @@ not terminate in a root or a prefix&quot;
 		log.init()<span class="question-mark">?</span>;
 
 		<span class="comment">// this will return Ok(()) even though the error occurs.
-		</span><span class="macro">assert_eq!</span>(log.log(LogLevel::Info, <span class="string">&quot;&quot;</span>, <span class="prelude-val">None</span>), <span class="prelude-val">Ok</span>(()));
+		</span><span class="macro">assert_eq!</span>(log.log(LogLevel::Info, <span class="string">""</span>, <span class="prelude-val">None</span>), <span class="prelude-val">Ok</span>(()));
 		<span class="prelude-val">Ok</span>(())
 	}
 }

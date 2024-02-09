@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `derive/src/lib.rs`."><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_derive" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `derive/src/lib.rs`."><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_derive" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -300,14 +301,14 @@
 // * Arti: https://gitlab.torproject.org/tpo/core/arti
 // * BitcoinMW: https://github.com/bitcoinmw/bitcoinmw
 //
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -339,10 +340,10 @@
 //!     let _s1 = MyStruct {
 //!         id: 1234,
 //!         is_member: true,
-//!         name: &quot;Hagrid&quot;.to_string(),
+//!         name: "Hagrid".to_string(),
 //!     };
 //!
-//!     let _s2 = MyEnum::Type1(&quot;something&quot;.to_string());
+//!     let _s2 = MyEnum::Type1("something".to_string());
 //!
 //!     Ok(())
 //! }
@@ -358,7 +359,7 @@
 <span class="kw">use </span>proc_macro::TokenTree;
 <span class="kw">use </span>proc_macro::TokenTree::{Group, Ident, Literal, Punct};
 
-<span class="comment">// Note about tarpaulin. Tarpaulin doesn&#39;t cover proc_macros so we disable it throughout this
+<span class="comment">// Note about tarpaulin. Tarpaulin doesn't cover proc_macros so we disable it throughout this
 // library.
 
 </span><span class="macro">info!</span>();
@@ -376,48 +377,48 @@
 </span><span class="kw">impl </span>MacroState {
 	<span class="kw">fn </span>new() -&gt; <span class="self">Self </span>{
 		<span class="self">Self </span>{
-			ret_read: <span class="string">&quot;&quot;</span>.to_string(),
-			ret_write: <span class="string">&quot;&quot;</span>.to_string(),
+			ret_read: <span class="string">""</span>.to_string(),
+			ret_write: <span class="string">""</span>.to_string(),
 			expect_name: <span class="bool-val">false</span>,
-			name: <span class="string">&quot;&quot;</span>.to_string(),
+			name: <span class="string">""</span>.to_string(),
 			field_names: <span class="macro">vec!</span>[],
 			is_enum: <span class="bool-val">false</span>,
 		}
 	}
 
 	<span class="kw">fn </span>append_read(<span class="kw-2">&amp;mut </span><span class="self">self</span>, s: <span class="kw-2">&amp;</span>str) {
-		<span class="self">self</span>.ret_read = <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.ret_read, s);
+		<span class="self">self</span>.ret_read = <span class="macro">format!</span>(<span class="string">"{}{}"</span>, <span class="self">self</span>.ret_read, s);
 	}
 
 	<span class="kw">fn </span>append_write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, s: <span class="kw-2">&amp;</span>str) {
-		<span class="self">self</span>.ret_write = <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.ret_write, s);
+		<span class="self">self</span>.ret_write = <span class="macro">format!</span>(<span class="string">"{}{}"</span>, <span class="self">self</span>.ret_write, s);
 	}
 
 	<span class="kw">fn </span>ret(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
 		<span class="kw">let </span>ret = <span class="kw">if </span><span class="self">self</span>.is_enum {
-			<span class="macro">format!</span>(<span class="string">&quot;impl bmw_ser::Serializable for {} {{ \n\
+			<span class="macro">format!</span>(<span class="string">"impl bmw_ser::Serializable for {} {{ \n\
                                         fn read&lt;R&gt;(reader: &amp;mut R) -&gt; Result&lt;Self, bmw_err::Error&gt; where R: bmw_ser::Reader {{\n\
                                             Ok(match reader.read_u16()? {{ {} _ =&gt; {{\n\
-                                            let fmt = \&quot;unexpected type returned in reader\&quot;;\n\
+                                            let fmt = \"unexpected type returned in reader\";\n\
                                             let e = bmw_err::err!(bmw_err::ErrKind::CorruptedData, fmt);\n\
                                             return Err(e);\n\
                                             }}\n\
                                         }}) }} \n\
                     fn write&lt;W&gt;(&amp;self, writer: &amp;mut W) -&gt; Result&lt;(), bmw_err::Error&gt; where W: bmw_ser::Writer {{ match self {{ {} }} Ok(()) }}\n\
-                    }}&quot;</span>, <span class="self">self</span>.name, <span class="self">self</span>.ret_read, <span class="self">self</span>.ret_write)
+                    }}"</span>, <span class="self">self</span>.name, <span class="self">self</span>.ret_read, <span class="self">self</span>.ret_write)
 		} <span class="kw">else </span>{
-			<span class="kw">let </span><span class="kw-2">mut </span>field_name_return = <span class="string">&quot;Ok(Self {&quot;</span>.to_string();
+			<span class="kw">let </span><span class="kw-2">mut </span>field_name_return = <span class="string">"Ok(Self {"</span>.to_string();
 			<span class="kw">for </span>x <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.field_names {
-				field_name_return = <span class="macro">format!</span>(<span class="string">&quot;{} {},&quot;</span>, field_name_return, x);
+				field_name_return = <span class="macro">format!</span>(<span class="string">"{} {},"</span>, field_name_return, x);
 			}
-			field_name_return = <span class="macro">format!</span>(<span class="string">&quot;{} }})&quot;</span>, field_name_return);
-			<span class="macro">format!</span>(<span class="string">&quot;impl bmw_ser::Serializable for {} {{ \n\
+			field_name_return = <span class="macro">format!</span>(<span class="string">"{} }})"</span>, field_name_return);
+			<span class="macro">format!</span>(<span class="string">"impl bmw_ser::Serializable for {} {{ \n\
                     fn read&lt;R&gt;(reader: &amp;mut R) -&gt; Result&lt;Self, bmw_err::Error&gt; where R: bmw_ser::Reader {{ {} {} }}\n\
                     fn write&lt;W&gt;(&amp;self, writer: &amp;mut W) -&gt; Result&lt;(), bmw_err::Error&gt; where W: bmw_ser::Writer {{ {} Ok(()) }}\n\
-                    }}&quot;</span>, <span class="self">self</span>.name, <span class="self">self</span>.ret_read, field_name_return, <span class="self">self</span>.ret_write)
+                    }}"</span>, <span class="self">self</span>.name, <span class="self">self</span>.ret_read, field_name_return, <span class="self">self</span>.ret_write)
 		};
 
-		<span class="kw">let _ </span>= <span class="macro">debug!</span>(<span class="string">&quot;ret=&#39;{}&#39;&quot;</span>, ret);
+		<span class="kw">let _ </span>= <span class="macro">debug!</span>(<span class="string">"ret='{}'"</span>, ret);
 
 		ret
 	}
@@ -429,12 +430,12 @@
 #[cfg(not(tarpaulin_include))]
 </span><span class="kw">pub fn </span>derive_serialize(strm: TokenStream) -&gt; TokenStream {
 	<span class="kw">let </span><span class="kw-2">mut </span>state = MacroState::new();
-	<span class="kw">let _ </span>= <span class="macro">debug!</span>(<span class="string">&quot;-----------------derive serialization----------------&quot;</span>);
+	<span class="kw">let _ </span>= <span class="macro">debug!</span>(<span class="string">"-----------------derive serialization----------------"</span>);
 	<span class="kw">match </span>process_strm(strm, <span class="kw-2">&amp;mut </span>state) {
 		<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; state.ret().parse().unwrap(),
 		<span class="prelude-val">Err</span>(e) =&gt; {
-			<span class="kw">let _ </span>= <span class="macro">error!</span>(<span class="string">&quot;parsing Serializable generated error: {}&quot;</span>, e);
-			<span class="string">&quot;&quot;</span>.parse().unwrap()
+			<span class="kw">let _ </span>= <span class="macro">error!</span>(<span class="string">"parsing Serializable generated error: {}"</span>, e);
+			<span class="string">""</span>.parse().unwrap()
 		}
 	}
 }
@@ -452,21 +453,21 @@
 	<span class="kw">match </span>tree {
 		Ident(ident) =&gt; {
 			<span class="kw">let </span>ident = ident.to_string();
-			<span class="macro">debug!</span>(<span class="string">&quot;ident={}&quot;</span>, ident)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"ident={}"</span>, ident)<span class="question-mark">?</span>;
 
 			<span class="kw">if </span>state.expect_name {
-				<span class="macro">debug!</span>(<span class="string">&quot;struct/enum name = {}&quot;</span>, ident)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"struct/enum name = {}"</span>, ident)<span class="question-mark">?</span>;
 				state.name = ident.clone();
 				state.expect_name = <span class="bool-val">false</span>;
-			} <span class="kw">else if </span>ident != <span class="string">&quot;pub&quot; </span>&amp;&amp; ident != <span class="string">&quot;struct&quot; </span>&amp;&amp; ident != <span class="string">&quot;enum&quot; </span>{
-				<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">&quot;error expected pub or struct. Found &#39;{}&#39;&quot;</span>, ident);
+			} <span class="kw">else if </span>ident != <span class="string">"pub" </span>&amp;&amp; ident != <span class="string">"struct" </span>&amp;&amp; ident != <span class="string">"enum" </span>{
+				<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">"error expected pub or struct. Found '{}'"</span>, ident);
 				<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::IllegalState, fmt);
 				<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 			}
 
-			<span class="kw">if </span>ident == <span class="string">&quot;struct&quot; </span>|| ident == <span class="string">&quot;enum&quot; </span>{
+			<span class="kw">if </span>ident == <span class="string">"struct" </span>|| ident == <span class="string">"enum" </span>{
 				state.expect_name = <span class="bool-val">true</span>;
-				<span class="kw">if </span>ident == <span class="string">&quot;struct&quot; </span>{
+				<span class="kw">if </span>ident == <span class="string">"struct" </span>{
 					state.is_enum = <span class="bool-val">false</span>;
 				} <span class="kw">else </span>{
 					state.is_enum = <span class="bool-val">true</span>;
@@ -477,10 +478,10 @@
 			process_group(group, state)<span class="question-mark">?</span>;
 		}
 		Literal(literal) =&gt; {
-			<span class="macro">debug!</span>(<span class="string">&quot;literal={}&quot;</span>, literal)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"literal={}"</span>, literal)<span class="question-mark">?</span>;
 		}
 		Punct(punct) =&gt; {
-			<span class="macro">debug!</span>(<span class="string">&quot;punct={}&quot;</span>, punct)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"punct={}"</span>, punct)<span class="question-mark">?</span>;
 		}
 	}
 	<span class="prelude-val">Ok</span>(())
@@ -488,37 +489,37 @@
 
 <span class="attr">#[cfg(not(tarpaulin_include))]
 </span><span class="kw">fn </span>process_group(group: proc_macro::Group, state: <span class="kw-2">&amp;mut </span>MacroState) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-	<span class="macro">debug!</span>(<span class="string">&quot;group={}&quot;</span>, group)<span class="question-mark">?</span>;
+	<span class="macro">debug!</span>(<span class="string">"group={}"</span>, group)<span class="question-mark">?</span>;
 
 	<span class="kw">let </span><span class="kw-2">mut </span>expect_name = <span class="bool-val">true</span>;
-	<span class="kw">let </span><span class="kw-2">mut </span>name = <span class="string">&quot;&quot;</span>.to_string();
+	<span class="kw">let </span><span class="kw-2">mut </span>name = <span class="string">""</span>.to_string();
 	<span class="kw">let </span><span class="kw-2">mut </span>has_inner = <span class="bool-val">false</span>;
 
 	<span class="kw">for </span>item <span class="kw">in </span>group.stream() {
 		<span class="kw">match </span>item {
 			Ident(ident) =&gt; {
 				<span class="kw">let </span>ident = ident.to_string();
-				<span class="macro">debug!</span>(<span class="string">&quot;groupident={}&quot;</span>, ident)<span class="question-mark">?</span>;
-				<span class="kw">if </span>expect_name &amp;&amp; ident != <span class="string">&quot;pub&quot; </span>&amp;&amp; ident != <span class="string">&quot;doc&quot; </span>&amp;&amp; ident != <span class="string">&quot;crate&quot; </span>{
+				<span class="macro">debug!</span>(<span class="string">"groupident={}"</span>, ident)<span class="question-mark">?</span>;
+				<span class="kw">if </span>expect_name &amp;&amp; ident != <span class="string">"pub" </span>&amp;&amp; ident != <span class="string">"doc" </span>&amp;&amp; ident != <span class="string">"crate" </span>{
 					expect_name = <span class="bool-val">false</span>;
 					has_inner = <span class="bool-val">false</span>;
 					name = ident.clone();
 				}
 			}
 			Group(group) =&gt; {
-				<span class="comment">// we don&#39;t need to process the inner group because the read function
-				// only requires the name, we do use this to determine if there&#39;s
+				<span class="comment">// we don't need to process the inner group because the read function
+				// only requires the name, we do use this to determine if there's
 				// an inner value
-				</span><span class="macro">debug!</span>(<span class="string">&quot;group={}&quot;</span>, group)<span class="question-mark">?</span>;
+				</span><span class="macro">debug!</span>(<span class="string">"group={}"</span>, group)<span class="question-mark">?</span>;
 				has_inner = <span class="bool-val">true</span>;
 			}
 			Literal(literal) =&gt; {
-				<span class="macro">debug!</span>(<span class="string">&quot;groupliteral={}&quot;</span>, literal)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"groupliteral={}"</span>, literal)<span class="question-mark">?</span>;
 			}
 			Punct(punct) =&gt; {
-				<span class="macro">debug!</span>(<span class="string">&quot;grouppunct={}&quot;</span>, punct)<span class="question-mark">?</span>;
-				<span class="kw">if </span>punct.to_string() == <span class="string">&quot;,&quot;</span>.to_string() {
-					<span class="macro">debug!</span>(<span class="string">&quot;end a name: {}&quot;</span>, name)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"grouppunct={}"</span>, punct)<span class="question-mark">?</span>;
+				<span class="kw">if </span>punct.to_string() == <span class="string">","</span>.to_string() {
+					<span class="macro">debug!</span>(<span class="string">"end a name: {}"</span>, name)<span class="question-mark">?</span>;
 					process_field(<span class="kw-2">&amp;</span>name, <span class="kw-2">&amp;</span>group, state, has_inner)<span class="question-mark">?</span>;
 					expect_name = <span class="bool-val">true</span>;
 				}
@@ -526,9 +527,9 @@
 		}
 	}
 
-	<span class="comment">// if there&#39;s no trailing comma.
+	<span class="comment">// if there's no trailing comma.
 	</span><span class="kw">if </span>!expect_name {
-		<span class="macro">debug!</span>(<span class="string">&quot;end name end loop: {}&quot;</span>, name)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"end name end loop: {}"</span>, name)<span class="question-mark">?</span>;
 		process_field(<span class="kw-2">&amp;</span>name, <span class="kw-2">&amp;</span>group, state, has_inner)<span class="question-mark">?</span>;
 	}
 
@@ -543,18 +544,18 @@
 	has_inner: bool,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 	<span class="kw">if </span>name.len() == <span class="number">0 </span>{
-		<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">&quot;expected name for this group: {:?}&quot;</span>, group);
+		<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">"expected name for this group: {:?}"</span>, group);
 		<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::IllegalState, fmt);
 		<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 	}
 
-	<span class="macro">debug!</span>(<span class="string">&quot;state.is_enum={},has_inner={}&quot;</span>, state.is_enum, has_inner)<span class="question-mark">?</span>;
+	<span class="macro">debug!</span>(<span class="string">"state.is_enum={},has_inner={}"</span>, state.is_enum, has_inner)<span class="question-mark">?</span>;
 	<span class="kw">if </span>state.is_enum {
-		<span class="macro">debug!</span>(<span class="string">&quot;do an append enum&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"do an append enum"</span>)<span class="question-mark">?</span>;
 		<span class="kw">if </span>has_inner {
 			state.append_read(
 				<span class="kw-2">&amp;</span><span class="macro">format!</span>(
-					<span class="string">&quot;{} =&gt; {}::{}(Serializable::read(reader)?),\n&quot;</span>,
+					<span class="string">"{} =&gt; {}::{}(Serializable::read(reader)?),\n"</span>,
 					state.field_names.len(),
 					state.name,
 					name,
@@ -562,7 +563,7 @@
 			);
 			state.append_write(
 				<span class="kw-2">&amp;</span><span class="macro">format!</span>(
-					<span class="string">&quot;{}::{}(x) =&gt; {{ writer.write_u16({})?; Serializable::write(x, writer)?; }},\n&quot;</span>,
+					<span class="string">"{}::{}(x) =&gt; {{ writer.write_u16({})?; Serializable::write(x, writer)?; }},\n"</span>,
 					state.name,
 					name,
 					state.field_names.len()
@@ -570,11 +571,11 @@
 			);
 		} <span class="kw">else </span>{
 			state.append_read(
-				<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{} =&gt; {}::{},\n&quot;</span>, state.field_names.len(), state.name, name)[..],
+				<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"{} =&gt; {}::{},\n"</span>, state.field_names.len(), state.name, name)[..],
 			);
 			state.append_write(
 				<span class="kw-2">&amp;</span><span class="macro">format!</span>(
-					<span class="string">&quot;{}::{} =&gt; {{ writer.write_u16({})?; }},\n&quot;</span>,
+					<span class="string">"{}::{} =&gt; {{ writer.write_u16({})?; }},\n"</span>,
 					state.name,
 					name,
 					state.field_names.len()
@@ -582,9 +583,9 @@
 			);
 		}
 	} <span class="kw">else </span>{
-		state.append_read(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;let {} = bmw_ser::Serializable::read(reader)?;\n&quot;</span>, name)[..]);
+		state.append_read(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"let {} = bmw_ser::Serializable::read(reader)?;\n"</span>, name)[..]);
 		state
-			.append_write(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;bmw_ser::Serializable::write(&amp;self.{}, writer)?;\n&quot;</span>, name)[..]);
+			.append_write(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"bmw_ser::Serializable::write(&amp;self.{}, writer)?;\n"</span>, name)[..]);
 	}
 	state.field_names.push(name.clone());
 

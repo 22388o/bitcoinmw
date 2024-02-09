@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/types.rs`."><title>types.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/types.rs`."><title>types.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1385,13 +1386,13 @@
 // * Arti: https://gitlab.torproject.org/tpo/core/arti
 // * BitcoinMW: https://github.com/bitcoinmw/bitcoinmw
 //
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -1453,10 +1454,10 @@
 {
 	<span class="doccomment">/// obtain a write lock and corresponding [`std::sync::RwLockWriteGuard`] for this
 	/// [`crate::Lock`].
-	</span><span class="kw">fn </span>wlock(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RwLockWriteGuardWrapper&lt;<span class="lifetime">&#39;_</span>, T&gt;, Error&gt;;
+	</span><span class="kw">fn </span>wlock(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RwLockWriteGuardWrapper&lt;<span class="lifetime">'_</span>, T&gt;, Error&gt;;
 	<span class="doccomment">/// obtain a read lock and corresponding [`std::sync::RwLockReadGuard`] for this
 	/// [`crate::Lock`].
-	</span><span class="kw">fn </span>rlock(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RwLockReadGuardWrapper&lt;<span class="lifetime">&#39;_</span>, T&gt;, Error&gt;;
+	</span><span class="kw">fn </span>rlock(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RwLockReadGuardWrapper&lt;<span class="lifetime">'_</span>, T&gt;, Error&gt;;
 	<span class="doccomment">/// Clone this [`crate::Lock`].
 	</span><span class="kw">fn </span>clone(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self</span>;
 }
@@ -1501,16 +1502,16 @@
 {
 	<span class="doccomment">/// obtain a write lock and corresponding [`std::sync::RwLockWriteGuard`] for this
 	/// [`crate::LockBox`].
-	</span><span class="kw">fn </span>wlock(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RwLockWriteGuardWrapper&lt;<span class="lifetime">&#39;_</span>, T&gt;, Error&gt;;
+	</span><span class="kw">fn </span>wlock(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RwLockWriteGuardWrapper&lt;<span class="lifetime">'_</span>, T&gt;, Error&gt;;
 	<span class="doccomment">/// obtain a read lock and corresponding [`std::sync::RwLockReadGuard`] for this
 	/// [`crate::LockBox`].
-	</span><span class="kw">fn </span>rlock(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RwLockReadGuardWrapper&lt;<span class="lifetime">&#39;_</span>, T&gt;, Error&gt;;
+	</span><span class="kw">fn </span>rlock(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RwLockReadGuardWrapper&lt;<span class="lifetime">'_</span>, T&gt;, Error&gt;;
 	<span class="doccomment">/// Same as [`crate::LockBox::wlock`] except that any poison errors are ignored
 	/// by calling the underlying into_inner() fn.
-	</span><span class="kw">fn </span>wlock_ignore_poison(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RwLockWriteGuardWrapper&lt;<span class="lifetime">&#39;_</span>, T&gt;, Error&gt;;
+	</span><span class="kw">fn </span>wlock_ignore_poison(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RwLockWriteGuardWrapper&lt;<span class="lifetime">'_</span>, T&gt;, Error&gt;;
 	<span class="doccomment">/// Same as [`crate::LockBox::rlock`] except that any poison errors are ignored
 	/// by calling the underlying into_inner() fn.
-	</span><span class="kw">fn </span>rlock_ignore_poison(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RwLockReadGuardWrapper&lt;<span class="lifetime">&#39;_</span>, T&gt;, Error&gt;;
+	</span><span class="kw">fn </span>rlock_ignore_poison(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RwLockReadGuardWrapper&lt;<span class="lifetime">'_</span>, T&gt;, Error&gt;;
 	<span class="doccomment">/// consume the inner Arc and return a usize value. This function is dangerous
 	/// because it potentially leaks memory. The usize must be rebuilt into a lockbox
 	/// that can then be dropped via the [`crate::lock_box_from_usize`] function.
@@ -1522,23 +1523,23 @@
 }
 
 <span class="doccomment">/// Wrapper around the [`std::sync::RwLockReadGuard`].
-</span><span class="kw">pub struct </span>RwLockReadGuardWrapper&lt;<span class="lifetime">&#39;a</span>, T&gt; {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) guard: RwLockReadGuard&lt;<span class="lifetime">&#39;a</span>, T&gt;,
+</span><span class="kw">pub struct </span>RwLockReadGuardWrapper&lt;<span class="lifetime">'a</span>, T&gt; {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) guard: RwLockReadGuard&lt;<span class="lifetime">'a</span>, T&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) id: u128,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_err: bool,
 }
 
 <span class="doccomment">/// Wrapper around the [`std::sync::RwLockWriteGuard`].
-</span><span class="kw">pub struct </span>RwLockWriteGuardWrapper&lt;<span class="lifetime">&#39;a</span>, T&gt; {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) guard: RwLockWriteGuard&lt;<span class="lifetime">&#39;a</span>, T&gt;,
+</span><span class="kw">pub struct </span>RwLockWriteGuardWrapper&lt;<span class="lifetime">'a</span>, T&gt; {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) guard: RwLockWriteGuard&lt;<span class="lifetime">'a</span>, T&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) id: u128,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_err: bool,
 }
 
 <span class="doccomment">/// The enum used to define patterns. See [`crate::pattern`] for more info.
-</span><span class="kw">pub enum </span>PatternParam&lt;<span class="lifetime">&#39;a</span>&gt; {
+</span><span class="kw">pub enum </span>PatternParam&lt;<span class="lifetime">'a</span>&gt; {
 	<span class="doccomment">/// The regular expression for this pattern.
-	</span>Regex(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str),
+	</span>Regex(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str),
 	<span class="doccomment">/// Whether or not this is a termination pattern.
 	</span>IsTerm(bool),
 	<span class="doccomment">/// Whether or not this is a multi-line pattern. (allowing multi-line wildcard matches).
@@ -1559,7 +1560,7 @@
 
 <span class="doccomment">/// Configuration options used throughout this crate via macro.
 </span><span class="attr">#[derive(Clone, Debug)]
-</span><span class="kw">pub enum </span>ConfigOption&lt;<span class="lifetime">&#39;a</span>&gt; {
+</span><span class="kw">pub enum </span>ConfigOption&lt;<span class="lifetime">'a</span>&gt; {
 	<span class="doccomment">/// The maximum number of entries for a data structure. See [`crate::Hashtable`] and
 	/// [`crate::Hashset`].
 	</span>MaxEntries(usize),
@@ -1577,7 +1578,7 @@
 	<span class="doccomment">/// The size of the sync channel for a thread pool. See [`crate::ThreadPool`].
 	</span>SyncChannelSize(usize),
 	<span class="doccomment">/// Slab allocator to be used by this data structure.
-	</span>Slabs(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>Rc&lt;RefCell&lt;<span class="kw">dyn </span>SlabAllocator&gt;&gt;),
+	</span>Slabs(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>Rc&lt;RefCell&lt;<span class="kw">dyn </span>SlabAllocator&gt;&gt;),
 }
 
 <span class="doccomment">/// Utility to write to slabs using the [`bmw_ser::Writer`] trait.
@@ -1603,14 +1604,14 @@
 
 <span class="doccomment">/// Utility wrapper for an underlying byte Writer. Defines higher level methods
 /// to write numbers, byte vectors, hashes, etc.
-</span><span class="kw">pub struct </span>BinWriter&lt;<span class="lifetime">&#39;a</span>&gt; {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) sink: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span><span class="kw">dyn </span>Write,
+</span><span class="kw">pub struct </span>BinWriter&lt;<span class="lifetime">'a</span>&gt; {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) sink: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="kw">dyn </span>Write,
 }
 
 <span class="doccomment">/// Utility wrapper for an underlying byte Reader. Defines higher level methods
 /// to write numbers, byte vectors, hashes, etc.
-</span><span class="kw">pub struct </span>BinReader&lt;<span class="lifetime">&#39;a</span>, R: Read&gt; {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) source: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>R,
+</span><span class="kw">pub struct </span>BinReader&lt;<span class="lifetime">'a</span>, R: Read&gt; {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) source: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>R,
 }
 
 <span class="doccomment">/// The configuration struct for a [`crate::ThreadPool`]. This struct is passed into the
@@ -1675,7 +1676,7 @@
 }
 
 <span class="doccomment">/// [`crate::ArrayList`] is an array based implementation of the [`crate::List`] and
-/// [`crate::SortableList`] trait. It uses the [`crate::Array`] as it&#39;s underlying
+/// [`crate::SortableList`] trait. It uses the [`crate::Array`] as it's underlying
 /// storage mechanism. In most cases it is more performant than the LinkedList implementation,
 /// but it does do a heap allocation when created. See the module level documentation for
 /// an example.
@@ -1771,7 +1772,7 @@
 ///
 ///         hashtable.insert(&amp;1, &amp;2)?;
 ///         let v = hashtable.get(&amp;1)?.unwrap();
-///         info!(&quot;v={}&quot;, v)?;
+///         info!("v={}", v)?;
 ///         assert_eq!(v, 2);
 ///
 ///         Ok(())
@@ -1841,12 +1842,12 @@
 /// fn main() -&gt; Result&lt;(), Error&gt; {
 ///     let s = MyStruct {
 ///         id: 1234,
-///         name: &quot;Hagrid&quot;.to_string(),
+///         name: "Hagrid".to_string(),
 ///         phone: None,
 ///         age: 54,
 ///     };
 ///
-///     debug!(&quot;my struct = {:?}&quot;, s)?;
+///     debug!("my struct = {:?}", s)?;
 ///
 ///     let mut hashtable = hashtable!()?;
 ///
@@ -1855,7 +1856,7 @@
 ///     let v = hashtable.get(&amp;1)?;
 ///     assert_eq!(v, Some(s));
 ///
-///     info!(&quot;value of record #1 is {:?}&quot;, v)?;
+///     info!("value of record #1 is {:?}", v)?;
 ///
 ///     Ok(())
 /// }
@@ -1882,7 +1883,7 @@
 	/// associated with this hashtable.
 	</span><span class="kw">fn </span>clear(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="doccomment">/// Returns an [`std::iter::Iterator`] to iterate through this hashtable.
-	</span><span class="kw">fn </span>iter&lt;<span class="lifetime">&#39;a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="self">self</span>) -&gt; HashtableIterator&lt;<span class="lifetime">&#39;a</span>, K, V&gt;;
+	</span><span class="kw">fn </span>iter&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; HashtableIterator&lt;<span class="lifetime">'a</span>, K, V&gt;;
 	<span class="doccomment">/// Bring the entry to the front of the list for deletion purposes in a cache.
 	</span><span class="kw">fn </span>bring_to_front(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="doccomment">/// Remove the oldest entry in the hashtable.
@@ -1956,7 +1957,7 @@
 	/// associated with this hashset.
 	</span><span class="kw">fn </span>clear(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="doccomment">/// Returns an [`std::iter::Iterator`] to iterate through this hashset.
-	</span><span class="kw">fn </span>iter&lt;<span class="lifetime">&#39;a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="self">self</span>) -&gt; HashsetIterator&lt;<span class="lifetime">&#39;a</span>, K&gt;;
+	</span><span class="kw">fn </span>iter&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; HashsetIterator&lt;<span class="lifetime">'a</span>, K&gt;;
 }
 
 <span class="doccomment">/// This trait defines a queue. The implementation is a bounded queue.
@@ -2086,7 +2087,7 @@
 ///     list2.push(4)?;
 ///     list2.push(1)?;
 ///
-///     // sort the array list and assert it&#39;s equal to the other list
+///     // sort the array list and assert it's equal to the other list
 ///     list2.sort()?;
 ///     assert!(list_eq!(list1, list2));
 ///
@@ -2101,11 +2102,11 @@
 	<span class="doccomment">/// push a value onto the end of the list
 	</span><span class="kw">fn </span>push(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: V) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="doccomment">/// iterate through the list
-	</span><span class="kw">fn </span>iter&lt;<span class="lifetime">&#39;a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = V&gt; + <span class="lifetime">&#39;a</span>&gt;
+	</span><span class="kw">fn </span>iter&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = V&gt; + <span class="lifetime">'a</span>&gt;
 	<span class="kw">where
 		</span>V: Serializable + Clone;
 	<span class="doccomment">/// iterate through the list in reverse order
-	</span><span class="kw">fn </span>iter_rev&lt;<span class="lifetime">&#39;a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = V&gt; + <span class="lifetime">&#39;a</span>&gt;
+	</span><span class="kw">fn </span>iter_rev&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = V&gt; + <span class="lifetime">'a</span>&gt;
 	<span class="kw">where
 		</span>V: Serializable + Clone;
 	<span class="doccomment">/// delete the head of the list
@@ -2119,7 +2120,7 @@
 <span class="doccomment">/// A trait that defines a sortable list. Both implementations
 /// implement this trait, although the linked list merely copies
 /// the data into an array list to sort. The array_list can natively sort
-/// with rust&#39;s sort implementations using the functions associated
+/// with rust's sort implementations using the functions associated
 /// with slice.
 </span><span class="kw">pub trait </span>SortableList&lt;V&gt;: List&lt;V&gt; + DynClone {
 	<span class="doccomment">/// sort with a stable sorting algorithm
@@ -2186,11 +2187,11 @@
 ///         let mut shared = shared.wlock()?;
 ///         // increment the counter
 ///         (**shared.guard()) += 1;
-///         // return the counter value (now it&#39;s 1)
+///         // return the counter value (now it's 1)
 ///         Ok((**shared.guard()))
 ///     })?;
 ///
-///     // block on the returned handle until it&#39;s task is complete and assert that the
+///     // block on the returned handle until it's task is complete and assert that the
 ///     // return value is 1.
 ///     assert_eq!(block_on!(handle), PoolResult::Ok(1));
 ///
@@ -2224,7 +2225,7 @@
 ///             // execute the task in the thread pool, the returned handle can be used
 ///             // if desired or ignored
 ///             execute!((**tp.guard()), {
-///                 info!(&quot;executing in thread pool&quot;)?;
+///                 info!("executing in thread pool")?;
 ///                 Ok(1)
 ///             })?;
 ///             Ok(())
@@ -2238,7 +2239,7 @@
 <span class="kw">where
 	</span>OnPanic: FnMut(u128, Box&lt;<span class="kw">dyn </span>Any + Send&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 		+ Send
-		+ <span class="lifetime">&#39;static
+		+ <span class="lifetime">'static
 		</span>+ Clone
 		+ Sync
 		+ Unpin,
@@ -2249,7 +2250,7 @@
 	/// an error occurs, [`bmw_err::Error`] will be returned.
 	</span><span class="kw">fn </span>execute&lt;F&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, f: F, id: u128) -&gt; <span class="prelude-ty">Result</span>&lt;Receiver&lt;PoolResult&lt;T, Error&gt;&gt;, Error&gt;
 	<span class="kw">where
-		</span>F: Future&lt;Output = <span class="prelude-ty">Result</span>&lt;T, Error&gt;&gt; + Send + <span class="lifetime">&#39;static</span>;
+		</span>F: Future&lt;Output = <span class="prelude-ty">Result</span>&lt;T, Error&gt;&gt; + Send + <span class="lifetime">'static</span>;
 
 	<span class="doccomment">/// Start the pool. If macros are used, this call is unnecessary.
 	</span><span class="kw">fn </span>start(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
@@ -2278,15 +2279,15 @@
 
 <span class="doccomment">/// Struct that is used as a mutable reference to data in a slab. See [`crate::SlabAllocator`] for
 /// further details.
-</span><span class="kw">pub struct </span>SlabMut&lt;<span class="lifetime">&#39;a</span>&gt; {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) data: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>[u8],
+</span><span class="kw">pub struct </span>SlabMut&lt;<span class="lifetime">'a</span>&gt; {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) data: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>[u8],
 	<span class="kw">pub</span>(<span class="kw">crate</span>) id: usize,
 }
 
 <span class="doccomment">/// Struct that is used as a immutable reference to data in a slab. See [`crate::SlabAllocator`] for
 /// further details.
-</span><span class="kw">pub struct </span>Slab&lt;<span class="lifetime">&#39;a</span>&gt; {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) data: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>[u8],
+</span><span class="kw">pub struct </span>Slab&lt;<span class="lifetime">'a</span>&gt; {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) data: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>[u8],
 	<span class="kw">pub</span>(<span class="kw">crate</span>) id: usize,
 }
 
@@ -2324,7 +2325,7 @@
 ///         id
 ///     };
 ///
-///     // borrow, this time with a Ref instead of refmut since it&#39;s an immutable call.
+///     // borrow, this time with a Ref instead of refmut since it's an immutable call.
 ///     let slabs: Ref&lt;_&gt; = slabs.borrow();
 ///     // now we can get an immutable reference to this slab
 ///     let slab = slabs.get(id)?;
@@ -2345,7 +2346,7 @@
 	///
 	/// * [`bmw_err::ErrorKind::CapacityExceeded`] if the capacity of this
 	/// [`crate::SlabAllocator`] has been exceeded.
-	</span><span class="kw">fn </span>allocate&lt;<span class="lifetime">&#39;a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;SlabMut&lt;<span class="lifetime">&#39;a</span>&gt;, Error&gt;;
+	</span><span class="kw">fn </span>allocate&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;SlabMut&lt;<span class="lifetime">'a</span>&gt;, Error&gt;;
 
 	<span class="doccomment">/// Free a slab that has previously been allocated by this slab allocator.
 	/// `id` is the id of the slab to free. It can be obtained through the
@@ -2439,12 +2440,12 @@
 	///     // get the slab that was allocated
 	///     let slab = slabs.get(slab_id)?;
 	///
-	///     info!(&quot;slab data = {:?}&quot;, slab.get())?;
+	///     info!("slab data = {:?}", slab.get())?;
 	///
 	///     Ok(())
 	/// }
 	///```
-	</span><span class="kw">fn </span>get&lt;<span class="lifetime">&#39;a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="self">self</span>, id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;Slab&lt;<span class="lifetime">&#39;a</span>&gt;, Error&gt;;
+	</span><span class="kw">fn </span>get&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>, id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;Slab&lt;<span class="lifetime">'a</span>&gt;, Error&gt;;
 
 	<span class="doccomment">/// Get an mutable reference to a slab that has previously been allocated by the
 	/// [`crate::SlabAllocator`]. On success a [`crate::SlabMut`] is returned. On failure,
@@ -2489,12 +2490,12 @@
 	///     // get the slab that was allocated
 	///     let mut slab = slabs.get_mut(slab_id)?;
 	///
-	///     info!(&quot;slab data = {:?}&quot;, slab.get_mut())?;
+	///     info!("slab data = {:?}", slab.get_mut())?;
 	///
 	///     Ok(())
 	/// }
 	///```
-	</span><span class="kw">fn </span>get_mut&lt;<span class="lifetime">&#39;a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span><span class="self">self</span>, id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;SlabMut&lt;<span class="lifetime">&#39;a</span>&gt;, Error&gt;;
+	</span><span class="kw">fn </span>get_mut&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>, id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;SlabMut&lt;<span class="lifetime">'a</span>&gt;, Error&gt;;
 
 	<span class="doccomment">/// Returns the number of free slabs this [`crate::SlabAllocator`] has remaining.
 	</span><span class="kw">fn </span>free_count(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt;;
@@ -2544,33 +2545,33 @@
 </span><span class="kw">pub struct </span>Builder {}
 
 <span class="doccomment">/// An iterator for the [`crate::Hashtable`].
-</span><span class="kw">pub struct </span>HashtableIterator&lt;<span class="lifetime">&#39;a</span>, K, V&gt;
+</span><span class="kw">pub struct </span>HashtableIterator&lt;<span class="lifetime">'a</span>, K, V&gt;
 <span class="kw">where
 	</span>K: Serializable + Clone,
 {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) hashtable: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>HashImpl&lt;K&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) hashtable: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>HashImpl&lt;K&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) cur: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) _phantom_data: PhantomData&lt;(K, V)&gt;,
 }
 
 <span class="doccomment">/// An iterator for the [`crate::Hashset`].
-</span><span class="kw">pub struct </span>HashsetIterator&lt;<span class="lifetime">&#39;a</span>, K&gt;
+</span><span class="kw">pub struct </span>HashsetIterator&lt;<span class="lifetime">'a</span>, K&gt;
 <span class="kw">where
 	</span>K: Serializable + Clone,
 {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) hashset: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>HashImpl&lt;K&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) hashset: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>HashImpl&lt;K&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) cur: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) _phantom_data: PhantomData&lt;K&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) slab_reader: SlabReader,
 }
 
 <span class="doccomment">/// An iterator for the [`crate::List`].
-</span><span class="kw">pub struct </span>ListIterator&lt;<span class="lifetime">&#39;a</span>, V&gt;
+</span><span class="kw">pub struct </span>ListIterator&lt;<span class="lifetime">'a</span>, V&gt;
 <span class="kw">where
 	</span>V: Serializable + Clone,
 {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) linked_list_ref: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>HashImpl&lt;V&gt;&gt;,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) array_list_ref: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>ArrayList&lt;V&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) linked_list_ref: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>HashImpl&lt;V&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) array_list_ref: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>ArrayList&lt;V&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) cur: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) direction: Direction,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) _phantom_data: PhantomData&lt;V&gt;,
@@ -2578,15 +2579,15 @@
 }
 
 <span class="doccomment">/// An iterator for the [`crate::ArrayList`].
-</span><span class="kw">pub struct </span>ArrayListIterator&lt;<span class="lifetime">&#39;a</span>, T&gt; {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) array_list_ref: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>ArrayList&lt;T&gt;,
+</span><span class="kw">pub struct </span>ArrayListIterator&lt;<span class="lifetime">'a</span>, T&gt; {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) array_list_ref: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>ArrayList&lt;T&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) direction: Direction,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) cur: usize,
 }
 
 <span class="doccomment">/// An iterator for the [`crate::Array`].
-</span><span class="kw">pub struct </span>ArrayIterator&lt;<span class="lifetime">&#39;a</span>, T&gt; {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) array_ref: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>Array&lt;T&gt;,
+</span><span class="kw">pub struct </span>ArrayIterator&lt;<span class="lifetime">'a</span>, T&gt; {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) array_ref: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Array&lt;T&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) cur: usize,
 }
 
@@ -2604,7 +2605,7 @@
 </span><span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>ThreadPoolExecutor&lt;T&gt;
 <span class="kw">where
-	</span>T: <span class="lifetime">&#39;static </span>+ Send + Sync,
+	</span>T: <span class="lifetime">'static </span>+ Send + Sync,
 {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) config: ThreadPoolConfig,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) tx: <span class="prelude-ty">Option</span>&lt;SyncSender&lt;FutureWrapper&lt;T&gt;&gt;&gt;,
@@ -2699,17 +2700,17 @@
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>FutureWrapper&lt;T&gt; {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) f: Pin&lt;Box&lt;<span class="kw">dyn </span>Future&lt;Output = <span class="prelude-ty">Result</span>&lt;T, Error&gt;&gt; + Send + <span class="lifetime">&#39;static</span>&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) f: Pin&lt;Box&lt;<span class="kw">dyn </span>Future&lt;Output = <span class="prelude-ty">Result</span>&lt;T, Error&gt;&gt; + Send + <span class="lifetime">'static</span>&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) tx: SyncSender&lt;PoolResult&lt;T, Error&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) id: u128,
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>ThreadPoolImpl&lt;T, OnPanic&gt;
 <span class="kw">where
-	</span>T: <span class="lifetime">&#39;static </span>+ Send + Sync,
+	</span>T: <span class="lifetime">'static </span>+ Send + Sync,
 	OnPanic: FnMut(u128, Box&lt;<span class="kw">dyn </span>Any + Send&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 		+ Send
-		+ <span class="lifetime">&#39;static
+		+ <span class="lifetime">'static
 		</span>+ Clone
 		+ Sync
 		+ Unpin,

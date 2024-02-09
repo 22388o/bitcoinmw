@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/macros.rs`."><title>macros.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/macros.rs`."><title>macros.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -2435,13 +2436,13 @@
 // * Arti: https://gitlab.torproject.org/tpo/core/arti
 // * BitcoinMW: https://github.com/bitcoinmw/bitcoinmw
 //
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -2475,7 +2476,7 @@
 /// }
 ///
 /// fn main() -&gt; Result&lt;(), Error&gt; {
-///     let v = MyStruct::new(1234, &quot;joe&quot;.to_string());
+///     let v = MyStruct::new(1234, "joe".to_string());
 ///     let mut vlock = lock!(v)?;
 ///     let vlock_clone = vlock.clone();
 ///
@@ -2550,7 +2551,7 @@
 /// fn main() -&gt; Result&lt;(), Error&gt; {
 ///     global_slab_allocator!(SlabSize(128), SlabCount(1_000))?;
 ///
-///     // this will use the global slab allocator since we don&#39;t specify one
+///     // this will use the global slab allocator since we don't specify one
 ///     let hashtable: Box&lt;dyn Hashtable&lt;u32, u32&gt;&gt; = hashtable_box!()?;
 ///
 ///     // ...
@@ -2566,7 +2567,7 @@
             <span class="kw">let </span><span class="kw-2">mut </span>slab_size_specified = <span class="bool-val">false</span>;
             <span class="kw">let </span><span class="kw-2">mut </span>slab_count_specified = <span class="bool-val">false</span>;
 
-            <span class="comment">// compiler sees macro as not used if it&#39;s not used in one part of the code
+            <span class="comment">// compiler sees macro as not used if it's not used in one part of the code
             // these lines make the warnings go away
             </span><span class="kw">if </span>config.slab_size == <span class="number">0 </span>{ config.slab_size = <span class="number">0</span>; }
             <span class="kw">if </span>slab_count_specified { slab_count_specified = <span class="bool-val">false</span>; }
@@ -2581,7 +2582,7 @@
                         config.slab_size = slab_size;
 
                         <span class="kw">if </span>slab_size_specified {
-                            error = <span class="prelude-val">Some</span>(<span class="string">&quot;SlabSize was specified more than once!&quot;</span>.to_string());
+                            error = <span class="prelude-val">Some</span>(<span class="string">"SlabSize was specified more than once!"</span>.to_string());
                         }
                         slab_size_specified = <span class="bool-val">true</span>;
                         <span class="kw">if </span>slab_size_specified {}
@@ -2591,14 +2592,14 @@
                         config.slab_count = slab_count;
 
                         <span class="kw">if </span>slab_count_specified {
-                            error = <span class="prelude-val">Some</span>(<span class="string">&quot;SlabCount was specified more than once!&quot;</span>.to_string());
+                            error = <span class="prelude-val">Some</span>(<span class="string">"SlabCount was specified more than once!"</span>.to_string());
                         }
 
                         slab_count_specified = <span class="bool-val">true</span>;
                         <span class="kw">if </span>slab_count_specified {}
                     },
                     <span class="kw">_ </span>=&gt; {
-                        error = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">&quot;&#39;{:?}&#39; is not allowed for hashset&quot;</span>, <span class="macro-nonterminal">$config</span>));
+                        error = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">"'{:?}' is not allowed for hashset"</span>, <span class="macro-nonterminal">$config</span>));
                     }
                 }
             )*
@@ -2675,7 +2676,7 @@
             <span class="kw">let </span><span class="kw-2">mut </span>slab_size_specified = <span class="bool-val">false</span>;
             <span class="kw">let </span><span class="kw-2">mut </span>slab_count_specified = <span class="bool-val">false</span>;
 
-            <span class="comment">// compiler sees macro as not used if it&#39;s not used in one part of the code
+            <span class="comment">// compiler sees macro as not used if it's not used in one part of the code
             // these lines make the warnings go away
             </span><span class="kw">if </span>config.slab_size == <span class="number">0 </span>{ config.slab_size = <span class="number">0</span>; }
             <span class="kw">if </span>slab_count_specified { slab_count_specified = <span class="bool-val">false</span>; }
@@ -2690,7 +2691,7 @@
                         config.slab_size = slab_size;
 
                         <span class="kw">if </span>slab_size_specified {
-                            error = <span class="prelude-val">Some</span>(<span class="string">&quot;SlabSize was specified more than once!&quot;</span>.to_string());
+                            error = <span class="prelude-val">Some</span>(<span class="string">"SlabSize was specified more than once!"</span>.to_string());
                         }
                         slab_size_specified = <span class="bool-val">true</span>;
                         <span class="kw">if </span>slab_size_specified {}
@@ -2700,14 +2701,14 @@
                         config.slab_count = slab_count;
 
                         <span class="kw">if </span>slab_count_specified {
-                            error = <span class="prelude-val">Some</span>(<span class="string">&quot;SlabCount was specified more than once!&quot;</span>.to_string());
+                            error = <span class="prelude-val">Some</span>(<span class="string">"SlabCount was specified more than once!"</span>.to_string());
                         }
 
                         slab_count_specified = <span class="bool-val">true</span>;
                         <span class="kw">if </span>slab_count_specified {}
                     },
                     <span class="kw">_ </span>=&gt; {
-                        error = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">&quot;&#39;{:?}&#39; is not allowed for hashset&quot;</span>, <span class="macro-nonterminal">$config</span>));
+                        error = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">"'{:?}' is not allowed for hashset"</span>, <span class="macro-nonterminal">$config</span>));
                     }
                 }
             )*
@@ -2774,9 +2775,9 @@
                 <span class="kw">match </span>id {
                         <span class="prelude-val">Some</span>(id) =&gt; <span class="kw">match </span>regex {
                                 <span class="prelude-val">Some</span>(regex) =&gt; <span class="prelude-val">Ok</span>(bmw_util::Builder::build_pattern(regex, is_case_sensitive, is_term, is_multi, id)),
-                                <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::Configuration, <span class="string">&quot;Regex must be specified&quot;</span>)),
+                                <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::Configuration, <span class="string">"Regex must be specified"</span>)),
                         }
-                        <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::Configuration, <span class="string">&quot;Id must be specified&quot;</span>)),
+                        <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::Configuration, <span class="string">"Id must be specified"</span>)),
                 }
 	}};
 }
@@ -2810,9 +2811,9 @@
 ///         // build a suffix tree with three patterns
 ///         let mut suffix_tree = suffix_tree!(
 ///                 list![
-///                         pattern!(Regex(&quot;p1&quot;), Id(0))?,
-///                         pattern!(Regex(&quot;p2&quot;), Id(1))?,
-///                         pattern!(Regex(&quot;p3&quot;), Id(2))?
+///                         pattern!(Regex("p1"), Id(0))?,
+///                         pattern!(Regex("p2"), Id(1))?,
+///                         pattern!(Regex("p3"), Id(2))?
 ///                 ],
 ///                 TerminationLength(1_000),
 ///                 MaxWildcardLength(100)
@@ -2821,12 +2822,12 @@
 ///         // create a matches array for the suffix tree to return matches in
 ///         let mut matches = [Builder::build_match_default(); 10];
 ///
-///         // run the match for the input text b&quot;p1p2&quot;.
-///         let count = suffix_tree.tmatch(b&quot;p1p2&quot;, &amp;mut matches)?;
+///         // run the match for the input text b"p1p2".
+///         let count = suffix_tree.tmatch(b"p1p2", &amp;mut matches)?;
 ///
-///         // assert that two matches were returned &quot;p1&quot; and &quot;p2&quot;
+///         // assert that two matches were returned "p1" and "p2"
 ///         // and that their start/end/id is correct.
-///         info!(&quot;count={}&quot;, count)?;
+///         info!("count={}", count)?;
 ///         assert_eq!(count, 2);
 ///         assert_eq!(matches[0].id(), 0);
 ///         assert_eq!(matches[0].start(), 0);
@@ -2852,9 +2853,9 @@
 ///         // build a suffix tree with a wild card
 ///         let mut suffix_tree = suffix_tree!(
 ///                 list![
-///                         pattern!(Regex(&quot;p1&quot;), Id(0))?,
-///                         pattern!(Regex(&quot;p2.*test&quot;), Id(1))?,
-///                         pattern!(Regex(&quot;p3&quot;), Id(2))?
+///                         pattern!(Regex("p1"), Id(0))?,
+///                         pattern!(Regex("p2.*test"), Id(1))?,
+///                         pattern!(Regex("p3"), Id(2))?
 ///                 ],
 ///                 TerminationLength(1_000),
 ///                 MaxWildcardLength(100)
@@ -2863,13 +2864,13 @@
 ///         // create a matches array for the suffix tree to return matches in
 ///         let mut matches = [Builder::build_match_default(); 10];
 ///
-///         // run the match for the input text b&quot;p1p2&quot;. Only &quot;p1&quot; matches this time.
-///         let count = suffix_tree.tmatch(b&quot;p1p2&quot;, &amp;mut matches)?;
+///         // run the match for the input text b"p1p2". Only "p1" matches this time.
+///         let count = suffix_tree.tmatch(b"p1p2", &amp;mut matches)?;
 ///         assert_eq!(count, 1);
 ///
-///         // run the match for the input text b&quot;p1p2xxxxxxtest1&quot;. Now the wildcard
+///         // run the match for the input text b"p1p2xxxxxxtest1". Now the wildcard
 ///         // match succeeds to two matches are returned.
-///         let count = suffix_tree.tmatch(b&quot;p1p2xxxxxxtest1&quot;, &amp;mut matches)?;
+///         let count = suffix_tree.tmatch(b"p1p2xxxxxxtest1", &amp;mut matches)?;
 ///         assert_eq!(count, 2);
 ///
 ///         Ok(())
@@ -2889,9 +2890,9 @@
 ///         // build a suffix tree with a wild card
 ///         let mut suffix_tree = suffix_tree!(
 ///                 list![
-///                         pattern!(Regex(&quot;p1&quot;), Id(0))?,
-///                         pattern!(Regex(&quot;p2.test&quot;), Id(1))?,
-///                         pattern!(Regex(&quot;p3&quot;), Id(2))?
+///                         pattern!(Regex("p1"), Id(0))?,
+///                         pattern!(Regex("p2.test"), Id(1))?,
+///                         pattern!(Regex("p3"), Id(2))?
 ///                 ],
 ///                 TerminationLength(1_000),
 ///                 MaxWildcardLength(100)
@@ -2900,17 +2901,17 @@
 ///         // create a matches array for the suffix tree to return matches in
 ///         let mut matches = [Builder::build_match_default(); 10];
 ///
-///         // run the match for the input text b&quot;p1p2&quot;. Only &quot;p1&quot; matches this time.
-///         let count = suffix_tree.tmatch(b&quot;p1p2&quot;, &amp;mut matches)?;
+///         // run the match for the input text b"p1p2". Only "p1" matches this time.
+///         let count = suffix_tree.tmatch(b"p1p2", &amp;mut matches)?;
 ///         assert_eq!(count, 1);
 ///
-///         // run the match for the input text b&quot;p1p2xxxxxxtest1&quot;. Now the wildcard
-///         // match doesn&#39;t succeed because it&#39;s a single char match. One match is returned.
-///         let count = suffix_tree.tmatch(b&quot;p1p2xxxxxxtest1&quot;, &amp;mut matches)?;
+///         // run the match for the input text b"p1p2xxxxxxtest1". Now the wildcard
+///         // match doesn't succeed because it's a single char match. One match is returned.
+///         let count = suffix_tree.tmatch(b"p1p2xxxxxxtest1", &amp;mut matches)?;
 ///         assert_eq!(count, 1);
 ///
 ///         // run it with a single char and see that it matches pattern two.
-///         let count = suffix_tree.tmatch(b&quot;p1p2xtestx&quot;, &amp;mut matches)?;
+///         let count = suffix_tree.tmatch(b"p1p2xtestx", &amp;mut matches)?;
 ///         assert_eq!(count, 2);
 ///
 ///         Ok(())
@@ -2930,8 +2931,8 @@
 ///         // build a suffix tree with a wild card
 ///         let mut suffix_tree = suffix_tree!(
 ///                 list![
-///                         pattern!(Regex(&quot;p1&quot;), Id(0))?,
-///                         pattern!(Regex(&quot;^p2&quot;), Id(2))?
+///                         pattern!(Regex("p1"), Id(0))?,
+///                         pattern!(Regex("^p2"), Id(2))?
 ///                 ],
 ///                 TerminationLength(1_000),
 ///                 MaxWildcardLength(100)
@@ -2940,13 +2941,13 @@
 ///         // create a matches array for the suffix tree to return matches in
 ///         let mut matches = [Builder::build_match_default(); 10];
 ///
-///         // run the match for the input text b&quot;p1p2&quot;. Only &quot;p1&quot; matches this time
+///         // run the match for the input text b"p1p2". Only "p1" matches this time
 ///         // because p2 is not at the start
-///         let count = suffix_tree.tmatch(b&quot;p1p2&quot;, &amp;mut matches)?;
+///         let count = suffix_tree.tmatch(b"p1p2", &amp;mut matches)?;
 ///         assert_eq!(count, 1);
 ///
 ///         // since p2 is at the beginning, both match
-///         let count = suffix_tree.tmatch(b&quot;p2p1&quot;, &amp;mut matches)?;
+///         let count = suffix_tree.tmatch(b"p2p1", &amp;mut matches)?;
 ///         assert_eq!(count, 2);
 ///
 ///         Ok(())
@@ -2987,7 +2988,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>max_entries_specified = <span class="bool-val">false</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>max_load_factor_specified = <span class="bool-val">false</span>;
 
-		<span class="comment">// compiler sees macro as not used if it&#39;s not used in one part of the code
+		<span class="comment">// compiler sees macro as not used if it's not used in one part of the code
 		// these lines make the warnings go away
 		</span><span class="kw">if </span>config.max_entries == <span class="number">0 </span>{
 			config.max_entries = <span class="number">0</span>;
@@ -3010,7 +3011,7 @@
 					config.max_entries = max_entries;
 
 					<span class="kw">if </span>max_entries_specified {
-						error = <span class="prelude-val">Some</span>(<span class="string">&quot;MaxEntries was specified more than once!&quot;</span>.to_string());
+						error = <span class="prelude-val">Some</span>(<span class="string">"MaxEntries was specified more than once!"</span>.to_string());
 					}
 
 					max_entries_specified = <span class="bool-val">true</span>;
@@ -3020,14 +3021,14 @@
 					config.max_load_factor = max_load_factor;
 
 					<span class="kw">if </span>max_load_factor_specified {
-						error = <span class="prelude-val">Some</span>(<span class="string">&quot;MaxLoadFactor was specified more than once!&quot;</span>.to_string());
+						error = <span class="prelude-val">Some</span>(<span class="string">"MaxLoadFactor was specified more than once!"</span>.to_string());
 					}
 
 					max_load_factor_specified = <span class="bool-val">true</span>;
 					<span class="kw">if </span>max_load_factor_specified {}
 				}
 				<span class="kw">_ </span>=&gt; {
-					error = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">&quot;&#39;{:?}&#39; is not allowed for hashtable&quot;</span>, config_item));
+					error = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">"'{:?}' is not allowed for hashtable"</span>, config_item));
 				}
 			}
 		}
@@ -3051,7 +3052,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>slab_size_specified = <span class="bool-val">false</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>slab_count_specified = <span class="bool-val">false</span>;
 
-		<span class="comment">// compiler sees macro as not used if it&#39;s not used in one part of the code
+		<span class="comment">// compiler sees macro as not used if it's not used in one part of the code
 		// these lines make the warnings go away
 		</span><span class="kw">if </span>config.max_entries == <span class="number">0 </span>{
 			config.max_entries = <span class="number">0</span>;
@@ -3074,7 +3075,7 @@
 					config.max_entries = max_entries;
 
 					<span class="kw">if </span>max_entries_specified {
-						error = <span class="prelude-val">Some</span>(<span class="string">&quot;MaxEntries was specified more than once!&quot;</span>.to_string());
+						error = <span class="prelude-val">Some</span>(<span class="string">"MaxEntries was specified more than once!"</span>.to_string());
 					}
 
 					max_entries_specified = <span class="bool-val">true</span>;
@@ -3084,7 +3085,7 @@
 					config.max_load_factor = max_load_factor;
 
 					<span class="kw">if </span>max_load_factor_specified {
-						error = <span class="prelude-val">Some</span>(<span class="string">&quot;MaxLoadFactor was specified more than once!&quot;</span>.to_string());
+						error = <span class="prelude-val">Some</span>(<span class="string">"MaxLoadFactor was specified more than once!"</span>.to_string());
 					}
 
 					max_load_factor_specified = <span class="bool-val">true</span>;
@@ -3094,7 +3095,7 @@
 					slab_config.slab_size = slab_size;
 
 					<span class="kw">if </span>slab_size_specified {
-						error = <span class="prelude-val">Some</span>(<span class="string">&quot;SlabSize was specified more than once!&quot;</span>.to_string());
+						error = <span class="prelude-val">Some</span>(<span class="string">"SlabSize was specified more than once!"</span>.to_string());
 					}
 					slab_size_specified = <span class="bool-val">true</span>;
 					<span class="kw">if </span>slab_size_specified {}
@@ -3103,14 +3104,14 @@
 					slab_config.slab_count = slab_count;
 
 					<span class="kw">if </span>slab_count_specified {
-						error = <span class="prelude-val">Some</span>(<span class="string">&quot;SlabCount was specified more than once!&quot;</span>.to_string());
+						error = <span class="prelude-val">Some</span>(<span class="string">"SlabCount was specified more than once!"</span>.to_string());
 					}
 
 					slab_count_specified = <span class="bool-val">true</span>;
 					<span class="kw">if </span>slab_count_specified {}
 				}
 				<span class="kw">_ </span>=&gt; {
-					error = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">&quot;&#39;{:?}&#39; is not allowed for hashtable&quot;</span>, config_item));
+					error = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">"'{:?}' is not allowed for hashtable"</span>, config_item));
 				}
 			}
 		}
@@ -3131,7 +3132,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>max_entries_specified = <span class="bool-val">false</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>max_load_factor_specified = <span class="bool-val">false</span>;
 
-		<span class="comment">// compiler sees macro as not used if it&#39;s not used in one part of the code
+		<span class="comment">// compiler sees macro as not used if it's not used in one part of the code
 		// these lines make the warnings go away
 		</span><span class="kw">if </span>config.max_entries == <span class="number">0 </span>{
 			config.max_entries = <span class="number">0</span>;
@@ -3154,7 +3155,7 @@
 					config.max_entries = max_entries;
 
 					<span class="kw">if </span>max_entries_specified {
-						error = <span class="prelude-val">Some</span>(<span class="string">&quot;MaxEntries was specified more than once!&quot;</span>.to_string());
+						error = <span class="prelude-val">Some</span>(<span class="string">"MaxEntries was specified more than once!"</span>.to_string());
 					}
 
 					max_entries_specified = <span class="bool-val">true</span>;
@@ -3164,14 +3165,14 @@
 					config.max_load_factor = max_load_factor;
 
 					<span class="kw">if </span>max_load_factor_specified {
-						error = <span class="prelude-val">Some</span>(<span class="string">&quot;MaxLoadFactor was specified more than once!&quot;</span>.to_string());
+						error = <span class="prelude-val">Some</span>(<span class="string">"MaxLoadFactor was specified more than once!"</span>.to_string());
 					}
 
 					max_load_factor_specified = <span class="bool-val">true</span>;
 					<span class="kw">if </span>max_load_factor_specified {}
 				}
 				<span class="kw">_ </span>=&gt; {
-					error = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">&quot;&#39;{:?}&#39; is not allowed for hashset&quot;</span>, config_item));
+					error = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">"'{:?}' is not allowed for hashset"</span>, config_item));
 				}
 			}
 		}
@@ -3195,7 +3196,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>slab_size_specified = <span class="bool-val">false</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>slab_count_specified = <span class="bool-val">false</span>;
 
-		<span class="comment">// compiler sees macro as not used if it&#39;s not used in one part of the code
+		<span class="comment">// compiler sees macro as not used if it's not used in one part of the code
 		// these lines make the warnings go away
 		</span><span class="kw">if </span>config.max_entries == <span class="number">0 </span>{
 			config.max_entries = <span class="number">0</span>;
@@ -3218,7 +3219,7 @@
 					config.max_entries = max_entries;
 
 					<span class="kw">if </span>max_entries_specified {
-						error = <span class="prelude-val">Some</span>(<span class="string">&quot;MaxEntries was specified more than once!&quot;</span>.to_string());
+						error = <span class="prelude-val">Some</span>(<span class="string">"MaxEntries was specified more than once!"</span>.to_string());
 					}
 
 					max_entries_specified = <span class="bool-val">true</span>;
@@ -3228,7 +3229,7 @@
 					config.max_load_factor = max_load_factor;
 
 					<span class="kw">if </span>max_load_factor_specified {
-						error = <span class="prelude-val">Some</span>(<span class="string">&quot;MaxLoadFactor was specified more than once!&quot;</span>.to_string());
+						error = <span class="prelude-val">Some</span>(<span class="string">"MaxLoadFactor was specified more than once!"</span>.to_string());
 					}
 
 					max_load_factor_specified = <span class="bool-val">true</span>;
@@ -3238,7 +3239,7 @@
 					slab_config.slab_size = slab_size;
 
 					<span class="kw">if </span>slab_size_specified {
-						error = <span class="prelude-val">Some</span>(<span class="string">&quot;SlabSize was specified more than once!&quot;</span>.to_string());
+						error = <span class="prelude-val">Some</span>(<span class="string">"SlabSize was specified more than once!"</span>.to_string());
 					}
 					slab_size_specified = <span class="bool-val">true</span>;
 					<span class="kw">if </span>slab_size_specified {}
@@ -3247,14 +3248,14 @@
 					slab_config.slab_count = slab_count;
 
 					<span class="kw">if </span>slab_count_specified {
-						error = <span class="prelude-val">Some</span>(<span class="string">&quot;SlabCount was specified more than once!&quot;</span>.to_string());
+						error = <span class="prelude-val">Some</span>(<span class="string">"SlabCount was specified more than once!"</span>.to_string());
 					}
 
 					slab_count_specified = <span class="bool-val">true</span>;
 					<span class="kw">if </span>slab_count_specified {}
 				}
 				<span class="kw">_ </span>=&gt; {
-					error = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">&quot;&#39;{:?}&#39; is not allowed for hashset&quot;</span>, config_item));
+					error = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">"'{:?}' is not allowed for hashset"</span>, config_item));
 				}
 			}
 		}
@@ -3278,7 +3279,7 @@
 ///                                     hashtable uses linear probing to handle collisions. The
 ///                                     max_load_factor makes sure no additional insertions occur
 ///                                     at a given ratio of entries to capacity in the array. Note
-///                                     that MaxEntries can always be inserted, it&#39;s the capacity
+///                                     that MaxEntries can always be inserted, it's the capacity
 ///                                     of the array that becomes larger as this ratio goes down.
 ///                                     If not specified, the default value is 0.8.
 /// * Slabs(Option&lt;&amp;Rc&lt;RefCell&lt;dyn SlabAllocator&gt;&gt;&gt;) (optional) - An optional reference to a slab
@@ -3294,7 +3295,7 @@
 /// * [`bmw_err::ErrorKind::Configuration`] if anything other than [`crate::ConfigOption::Slabs`],
 ///                                     [`crate::ConfigOption::MaxEntries`] or
 ///                                     [`crate::ConfigOption::MaxLoadFactor`] is specified,
-///                                     if the slab_allocator&#39;s slab_size is greater than 65,536,
+///                                     if the slab_allocator's slab_size is greater than 65,536,
 ///                                     or slab_count is greater than 281_474_976_710_655,
 ///                                     max_entries is 0 or max_load_factor is not greater than 0
 ///                                     and less than or equal to 1.
@@ -3445,7 +3446,7 @@
 ///                                     hashtable uses linear probing to handle collisions. The
 ///                                     max_load_factor makes sure no additional insertions occur
 ///                                     at a given ratio of entries to capacity in the array. Note
-///                                     that MaxEntries can always be inserted, it&#39;s the capacity
+///                                     that MaxEntries can always be inserted, it's the capacity
 ///                                     of the array that becomes larger as this ratio goes down.
 ///                                     If not specified, the default value is 0.8.
 /// * SlabSize(usize) (optional) - the size in bytes of the slabs for this slab allocator.
@@ -3466,7 +3467,7 @@
                         bmw_util::ConfigOption::Slabs(<span class="kw">_</span>) =&gt; {
                             <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(
                                     bmw_err::ErrKind::Configuration,
-                                    <span class="string">&quot;Slabs cannot be specified with hashtable_sync&quot;
+                                    <span class="string">"Slabs cannot be specified with hashtable_sync"
                             </span>));
                         }
                         <span class="kw">_ </span>=&gt; {
@@ -3515,7 +3516,7 @@
                         bmw_util::ConfigOption::Slabs(<span class="kw">_</span>) =&gt; {
                             <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(
                                     bmw_err::ErrKind::Configuration,
-                                    <span class="string">&quot;Slabs cannot be specified with hashtable_sync&quot;
+                                    <span class="string">"Slabs cannot be specified with hashtable_sync"
                             </span>));
                         }
                         <span class="kw">_ </span>=&gt; {
@@ -3563,7 +3564,7 @@
 ///                                     hashset uses linear probing to handle collisions. The
 ///                                     max_load_factor makes sure no additional insertions occur
 ///                                     at a given ratio of entries to capacity in the array. Note
-///                                     that MaxEntries can always be inserted, it&#39;s the capacity
+///                                     that MaxEntries can always be inserted, it's the capacity
 ///                                     of the array that becomes larger as this ratio goes down.
 ///                                     If not specified, the default value is 0.8.
 /// * Slabs(Option&lt;&amp;Rc&lt;RefCell&lt;dyn SlabAllocator&gt;&gt;&gt;) (optional) - An optional reference to a slab
@@ -3579,7 +3580,7 @@
 /// * [`bmw_err::ErrorKind::Configuration`] if anything other than [`crate::ConfigOption::Slabs`],
 ///                                     [`crate::ConfigOption::MaxEntries`] or
 ///                                     [`crate::ConfigOption::MaxLoadFactor`] is specified,
-///                                     if the slab_allocator&#39;s slab_size is greater than 65,536,
+///                                     if the slab_allocator's slab_size is greater than 65,536,
 ///                                     or slab_count is greater than 281_474_976_710_655,
 ///                                     max_entries is 0 or max_load_factor is not greater than 0
 ///                                     and less than or equal to 1.
@@ -3725,7 +3726,7 @@
                         bmw_util::ConfigOption::Slabs(<span class="kw">_</span>) =&gt; {
                             <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(
                                     bmw_err::ErrKind::Configuration,
-                                    <span class="string">&quot;Slabs cannot be specified with hashset_sync&quot;
+                                    <span class="string">"Slabs cannot be specified with hashset_sync"
                             </span>));
                         }
                         <span class="kw">_ </span>=&gt; {
@@ -3774,7 +3775,7 @@
                         bmw_util::ConfigOption::Slabs(<span class="kw">_</span>) =&gt; {
                             <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(
                                     bmw_err::ErrKind::Configuration,
-                                    <span class="string">&quot;Slabs cannot be specified with hashset_sync&quot;
+                                    <span class="string">"Slabs cannot be specified with hashset_sync"
                             </span>));
                         }
                         <span class="kw">_ </span>=&gt; {
@@ -3827,7 +3828,7 @@
 /// fn main() -&gt; Result&lt;(), Error&gt; {
 ///     let list = list![1, 2, 3, 4];
 ///
-///     info!(&quot;list={:?}&quot;, list)?;
+///     info!("list={:?}", list)?;
 ///
 ///     assert!(list_eq!(list, list![1, 2, 3, 4]));
 ///
@@ -3863,7 +3864,7 @@
     };
 }
 
-<span class="doccomment">/// Like [`crate::hashtable_sync`] and [`crate::hashset_sync`] list has a &#39;sync&#39; version. See those
+<span class="doccomment">/// Like [`crate::hashtable_sync`] and [`crate::hashset_sync`] list has a 'sync' version. See those
 /// macros for more details and see the [`crate`] for an example of the sync version of a hashtable.
 /// Just as in that example the list can be put into a [`crate::lock!`] or [`crate::lock_box`]
 /// and passed between threads.
@@ -3876,7 +3877,7 @@
             <span class="kw">let </span><span class="kw-2">mut </span>slab_size_specified = <span class="bool-val">false</span>;
             <span class="kw">let </span><span class="kw-2">mut </span>slab_count_specified = <span class="bool-val">false</span>;
 
-            <span class="comment">// compiler sees macro as not used if it&#39;s not used in one part of the code
+            <span class="comment">// compiler sees macro as not used if it's not used in one part of the code
             // these lines make the warnings go away
             </span><span class="kw">if </span>config.slab_size == <span class="number">0 </span>{ config.slab_size = <span class="number">0</span>; }
             <span class="kw">if </span>slab_count_specified { slab_count_specified = <span class="bool-val">false</span>; }
@@ -3891,7 +3892,7 @@
                         config.slab_size = slab_size;
 
                         <span class="kw">if </span>slab_size_specified {
-                            error = <span class="prelude-val">Some</span>(<span class="string">&quot;SlabSize was specified more than once!&quot;</span>.to_string());
+                            error = <span class="prelude-val">Some</span>(<span class="string">"SlabSize was specified more than once!"</span>.to_string());
                         }
                         slab_size_specified = <span class="bool-val">true</span>;
                         <span class="kw">if </span>slab_size_specified {}
@@ -3901,14 +3902,14 @@
                         config.slab_count = slab_count;
 
                         <span class="kw">if </span>slab_count_specified {
-                            error = <span class="prelude-val">Some</span>(<span class="string">&quot;SlabCount was specified more than once!&quot;</span>.to_string());
+                            error = <span class="prelude-val">Some</span>(<span class="string">"SlabCount was specified more than once!"</span>.to_string());
                         }
 
                         slab_count_specified = <span class="bool-val">true</span>;
                         <span class="kw">if </span>slab_count_specified {}
                     },
                     <span class="kw">_ </span>=&gt; {
-                        error = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">&quot;&#39;{:?}&#39; is not allowed for sync_list&quot;</span>, <span class="macro-nonterminal">$x</span>));
+                        error = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">"'{:?}' is not allowed for sync_list"</span>, <span class="macro-nonterminal">$x</span>));
                     }
                 }
             )*
@@ -3937,7 +3938,7 @@
             <span class="kw">let </span><span class="kw-2">mut </span>slab_size_specified = <span class="bool-val">false</span>;
             <span class="kw">let </span><span class="kw-2">mut </span>slab_count_specified = <span class="bool-val">false</span>;
 
-            <span class="comment">// compiler sees macro as not used if it&#39;s not used in one part of the code
+            <span class="comment">// compiler sees macro as not used if it's not used in one part of the code
             // these lines make the warnings go away
             </span><span class="kw">if </span>config.slab_size == <span class="number">0 </span>{ config.slab_size = <span class="number">0</span>; }
             <span class="kw">if </span>slab_count_specified { slab_count_specified = <span class="bool-val">false</span>; }
@@ -3952,7 +3953,7 @@
                         config.slab_size = slab_size;
 
                         <span class="kw">if </span>slab_size_specified {
-                            error = <span class="prelude-val">Some</span>(<span class="string">&quot;SlabSize was specified more than once!&quot;</span>.to_string());
+                            error = <span class="prelude-val">Some</span>(<span class="string">"SlabSize was specified more than once!"</span>.to_string());
                         }
                         slab_size_specified = <span class="bool-val">true</span>;
                         <span class="kw">if </span>slab_size_specified {}
@@ -3962,14 +3963,14 @@
                         config.slab_count = slab_count;
 
                         <span class="kw">if </span>slab_count_specified {
-                            error = <span class="prelude-val">Some</span>(<span class="string">&quot;SlabCount was specified more than once!&quot;</span>.to_string());
+                            error = <span class="prelude-val">Some</span>(<span class="string">"SlabCount was specified more than once!"</span>.to_string());
                         }
 
                         slab_count_specified = <span class="bool-val">true</span>;
                         <span class="kw">if </span>slab_count_specified {}
                     },
                     <span class="kw">_ </span>=&gt; {
-                        error = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">&quot;&#39;{:?}&#39; is not allowed for sync_list&quot;</span>, <span class="macro-nonterminal">$x</span>));
+                        error = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">"'{:?}' is not allowed for sync_list"</span>, <span class="macro-nonterminal">$x</span>));
                     }
                 }
             )*
@@ -4262,7 +4263,7 @@
                             <span class="prelude-val">Err</span>(
                                     <span class="macro">bmw_err::err!</span>(
                                             bmw_err::ErrKind::Misc,
-                                            <span class="macro">format!</span>(<span class="string">&quot;threadpoolbuilder buld error: {}&quot;</span>, e)
+                                            <span class="macro">format!</span>(<span class="string">"threadpoolbuilder buld error: {}"</span>, e)
                                     )
                             )
                         }
@@ -4280,7 +4281,7 @@
                     bmw_util::ConfigOption::MinSize(min_size) =&gt; {
                         config.min_size = min_size;
                          <span class="kw">if </span>min_size_specified {
-                            error = <span class="prelude-val">Some</span>(<span class="string">&quot;MinSize was specified more than once!&quot;</span>.to_string());
+                            error = <span class="prelude-val">Some</span>(<span class="string">"MinSize was specified more than once!"</span>.to_string());
                         }
 
                         min_size_specified = <span class="bool-val">true</span>;
@@ -4289,7 +4290,7 @@
                     bmw_util::ConfigOption::MaxSize(max_size) =&gt; {
                         config.max_size = max_size;
                         <span class="kw">if </span>max_size_specified {
-                            error = <span class="prelude-val">Some</span>(<span class="string">&quot;MaxSize was specified more than once!&quot;</span>.to_string());
+                            error = <span class="prelude-val">Some</span>(<span class="string">"MaxSize was specified more than once!"</span>.to_string());
                         }
 
                         max_size_specified = <span class="bool-val">true</span>;
@@ -4298,7 +4299,7 @@
                     bmw_util::ConfigOption::SyncChannelSize(sync_channel_size) =&gt; {
                         config.sync_channel_size = sync_channel_size;
                         <span class="kw">if </span>sync_channel_size_specified {
-                             error = <span class="prelude-val">Some</span>(<span class="string">&quot;SyncChannelSize was specified more than once!&quot;</span>.to_string());
+                             error = <span class="prelude-val">Some</span>(<span class="string">"SyncChannelSize was specified more than once!"</span>.to_string());
                         }
 
                         sync_channel_size_specified = <span class="bool-val">true</span>;
@@ -4307,7 +4308,7 @@
                     <span class="kw">_ </span>=&gt; {
                         error = <span class="prelude-val">Some</span>(
                             <span class="macro">format!</span>(
-                                <span class="string">&quot;Invalid configuration {:?} is not allowed for thread_pool!&quot;</span>,
+                                <span class="string">"Invalid configuration {:?} is not allowed for thread_pool!"</span>,
                                 <span class="macro-nonterminal">$config
                             </span>)
                         );
@@ -4345,7 +4346,7 @@
 			<span class="prelude-val">Ok</span>(res) =&gt; res,
 			<span class="prelude-val">Err</span>(e) =&gt; bmw_util::PoolResult::Err(<span class="macro">bmw_err::err!</span>(
 				bmw_err::ErrKind::ThreadPanic,
-				<span class="macro">format!</span>(<span class="string">&quot;thread pool panic: {}&quot;</span>, e)
+				<span class="macro">format!</span>(<span class="string">"thread pool panic: {}"</span>, e)
 			)),
 		}
 	}};
@@ -4537,10 +4538,10 @@
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(hashtable.get(<span class="kw-2">&amp;</span><span class="number">1</span>).unwrap().unwrap(), <span class="number">2</span>);
 		<span class="kw">let </span><span class="kw-2">mut </span>hashtable = <span class="macro">hashtable!</span>(MaxEntries(<span class="number">100</span>), MaxLoadFactor(<span class="number">0.9</span>))<span class="question-mark">?</span>;
-		hashtable.insert(<span class="kw-2">&amp;</span><span class="string">&quot;test&quot;</span>.to_string(), <span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="string">"test"</span>.to_string(), <span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(hashtable.size(), <span class="number">1</span>);
-		hashtable.insert(<span class="kw-2">&amp;</span><span class="string">&quot;something&quot;</span>.to_string(), <span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;hashtable={:?}&quot;</span>, hashtable)<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="string">"something"</span>.to_string(), <span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"hashtable={:?}"</span>, hashtable)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>hashtable = <span class="macro">hashtable_sync!</span>()<span class="question-mark">?</span>;
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>;
@@ -4551,19 +4552,19 @@
 			SlabSize(<span class="number">100</span>),
 			SlabCount(<span class="number">100</span>)
 		)<span class="question-mark">?</span>;
-		hashtable.insert(<span class="kw-2">&amp;</span><span class="string">&quot;test&quot;</span>.to_string(), <span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="string">"test"</span>.to_string(), <span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(hashtable.size(), <span class="number">1</span>);
-		hashtable.insert(<span class="kw-2">&amp;</span><span class="string">&quot;something&quot;</span>.to_string(), <span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;hashtable={:?}&quot;</span>, hashtable)<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="string">"something"</span>.to_string(), <span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"hashtable={:?}"</span>, hashtable)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>hashtable = <span class="macro">hashtable_box!</span>()<span class="question-mark">?</span>;
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(hashtable.get(<span class="kw-2">&amp;</span><span class="number">1</span>).unwrap().unwrap(), <span class="number">2</span>);
 		<span class="kw">let </span><span class="kw-2">mut </span>hashtable = <span class="macro">hashtable_box!</span>(MaxEntries(<span class="number">100</span>), MaxLoadFactor(<span class="number">0.9</span>))<span class="question-mark">?</span>;
-		hashtable.insert(<span class="kw-2">&amp;</span><span class="string">&quot;test&quot;</span>.to_string(), <span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="string">"test"</span>.to_string(), <span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(hashtable.size(), <span class="number">1</span>);
-		hashtable.insert(<span class="kw-2">&amp;</span><span class="string">&quot;something&quot;</span>.to_string(), <span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;hashtable={:?}&quot;</span>, hashtable)<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="string">"something"</span>.to_string(), <span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"hashtable={:?}"</span>, hashtable)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>hashtable = <span class="macro">hashtable_sync_box!</span>()<span class="question-mark">?</span>;
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>;
@@ -4574,10 +4575,10 @@
 			SlabSize(<span class="number">100</span>),
 			SlabCount(<span class="number">100</span>)
 		)<span class="question-mark">?</span>;
-		hashtable.insert(<span class="kw-2">&amp;</span><span class="string">&quot;test&quot;</span>.to_string(), <span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="string">"test"</span>.to_string(), <span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(hashtable.size(), <span class="number">1</span>);
-		hashtable.insert(<span class="kw-2">&amp;</span><span class="string">&quot;something&quot;</span>.to_string(), <span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;hashtable={:?}&quot;</span>, hashtable)<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="string">"something"</span>.to_string(), <span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"hashtable={:?}"</span>, hashtable)<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -4589,13 +4590,13 @@
 		<span class="macro">assert_eq!</span>(hashset.contains(<span class="kw-2">&amp;</span><span class="number">1</span>).unwrap(), <span class="bool-val">true</span>);
 		<span class="macro">assert_eq!</span>(hashset.contains(<span class="kw-2">&amp;</span><span class="number">2</span>).unwrap(), <span class="bool-val">false</span>);
 		<span class="kw">let </span><span class="kw-2">mut </span>hashset = <span class="macro">hashset!</span>(MaxEntries(<span class="number">100</span>), MaxLoadFactor(<span class="number">0.9</span>))<span class="question-mark">?</span>;
-		hashset.insert(<span class="kw-2">&amp;</span><span class="string">&quot;test&quot;</span>.to_string())<span class="question-mark">?</span>;
+		hashset.insert(<span class="kw-2">&amp;</span><span class="string">"test"</span>.to_string())<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(hashset.size(), <span class="number">1</span>);
-		<span class="macro">assert!</span>(hashset.contains(<span class="kw-2">&amp;</span><span class="string">&quot;test&quot;</span>.to_string())<span class="question-mark">?</span>);
-		<span class="macro">info!</span>(<span class="string">&quot;hashset={:?}&quot;</span>, hashset)<span class="question-mark">?</span>;
-		hashset.insert(<span class="kw-2">&amp;</span><span class="string">&quot;another item&quot;</span>.to_string())<span class="question-mark">?</span>;
-		hashset.insert(<span class="kw-2">&amp;</span><span class="string">&quot;third item&quot;</span>.to_string())<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;hashset={:?}&quot;</span>, hashset)<span class="question-mark">?</span>;
+		<span class="macro">assert!</span>(hashset.contains(<span class="kw-2">&amp;</span><span class="string">"test"</span>.to_string())<span class="question-mark">?</span>);
+		<span class="macro">info!</span>(<span class="string">"hashset={:?}"</span>, hashset)<span class="question-mark">?</span>;
+		hashset.insert(<span class="kw-2">&amp;</span><span class="string">"another item"</span>.to_string())<span class="question-mark">?</span>;
+		hashset.insert(<span class="kw-2">&amp;</span><span class="string">"third item"</span>.to_string())<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"hashset={:?}"</span>, hashset)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>hashset = <span class="macro">hashset_sync!</span>()<span class="question-mark">?</span>;
 		hashset.insert(<span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>;
@@ -4607,26 +4608,26 @@
 			SlabSize(<span class="number">100</span>),
 			SlabCount(<span class="number">100</span>)
 		)<span class="question-mark">?</span>;
-		hashset.insert(<span class="kw-2">&amp;</span><span class="string">&quot;test&quot;</span>.to_string())<span class="question-mark">?</span>;
+		hashset.insert(<span class="kw-2">&amp;</span><span class="string">"test"</span>.to_string())<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(hashset.size(), <span class="number">1</span>);
-		<span class="macro">assert!</span>(hashset.contains(<span class="kw-2">&amp;</span><span class="string">&quot;test&quot;</span>.to_string())<span class="question-mark">?</span>);
-		<span class="macro">info!</span>(<span class="string">&quot;hashset={:?}&quot;</span>, hashset)<span class="question-mark">?</span>;
-		hashset.insert(<span class="kw-2">&amp;</span><span class="string">&quot;another item&quot;</span>.to_string())<span class="question-mark">?</span>;
-		hashset.insert(<span class="kw-2">&amp;</span><span class="string">&quot;third item&quot;</span>.to_string())<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;hashset={:?}&quot;</span>, hashset)<span class="question-mark">?</span>;
+		<span class="macro">assert!</span>(hashset.contains(<span class="kw-2">&amp;</span><span class="string">"test"</span>.to_string())<span class="question-mark">?</span>);
+		<span class="macro">info!</span>(<span class="string">"hashset={:?}"</span>, hashset)<span class="question-mark">?</span>;
+		hashset.insert(<span class="kw-2">&amp;</span><span class="string">"another item"</span>.to_string())<span class="question-mark">?</span>;
+		hashset.insert(<span class="kw-2">&amp;</span><span class="string">"third item"</span>.to_string())<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"hashset={:?}"</span>, hashset)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>hashset = <span class="macro">hashset_box!</span>()<span class="question-mark">?</span>;
 		hashset.insert(<span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(hashset.contains(<span class="kw-2">&amp;</span><span class="number">1</span>).unwrap(), <span class="bool-val">true</span>);
 		<span class="macro">assert_eq!</span>(hashset.contains(<span class="kw-2">&amp;</span><span class="number">2</span>).unwrap(), <span class="bool-val">false</span>);
 		<span class="kw">let </span><span class="kw-2">mut </span>hashset = <span class="macro">hashset_box!</span>(MaxEntries(<span class="number">100</span>), MaxLoadFactor(<span class="number">0.9</span>))<span class="question-mark">?</span>;
-		hashset.insert(<span class="kw-2">&amp;</span><span class="string">&quot;test&quot;</span>.to_string())<span class="question-mark">?</span>;
+		hashset.insert(<span class="kw-2">&amp;</span><span class="string">"test"</span>.to_string())<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(hashset.size(), <span class="number">1</span>);
-		<span class="macro">assert!</span>(hashset.contains(<span class="kw-2">&amp;</span><span class="string">&quot;test&quot;</span>.to_string())<span class="question-mark">?</span>);
-		<span class="macro">info!</span>(<span class="string">&quot;hashset={:?}&quot;</span>, hashset)<span class="question-mark">?</span>;
-		hashset.insert(<span class="kw-2">&amp;</span><span class="string">&quot;another item&quot;</span>.to_string())<span class="question-mark">?</span>;
-		hashset.insert(<span class="kw-2">&amp;</span><span class="string">&quot;third item&quot;</span>.to_string())<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;hashset={:?}&quot;</span>, hashset)<span class="question-mark">?</span>;
+		<span class="macro">assert!</span>(hashset.contains(<span class="kw-2">&amp;</span><span class="string">"test"</span>.to_string())<span class="question-mark">?</span>);
+		<span class="macro">info!</span>(<span class="string">"hashset={:?}"</span>, hashset)<span class="question-mark">?</span>;
+		hashset.insert(<span class="kw-2">&amp;</span><span class="string">"another item"</span>.to_string())<span class="question-mark">?</span>;
+		hashset.insert(<span class="kw-2">&amp;</span><span class="string">"third item"</span>.to_string())<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"hashset={:?}"</span>, hashset)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>hashset = <span class="macro">hashset_sync_box!</span>()<span class="question-mark">?</span>;
 		hashset.insert(<span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>;
@@ -4638,28 +4639,28 @@
 			SlabSize(<span class="number">100</span>),
 			SlabCount(<span class="number">100</span>)
 		)<span class="question-mark">?</span>;
-		hashset.insert(<span class="kw-2">&amp;</span><span class="string">&quot;test&quot;</span>.to_string())<span class="question-mark">?</span>;
+		hashset.insert(<span class="kw-2">&amp;</span><span class="string">"test"</span>.to_string())<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(hashset.size(), <span class="number">1</span>);
-		<span class="macro">assert!</span>(hashset.contains(<span class="kw-2">&amp;</span><span class="string">&quot;test&quot;</span>.to_string())<span class="question-mark">?</span>);
-		<span class="macro">info!</span>(<span class="string">&quot;hashset={:?}&quot;</span>, hashset)<span class="question-mark">?</span>;
-		hashset.insert(<span class="kw-2">&amp;</span><span class="string">&quot;another item&quot;</span>.to_string())<span class="question-mark">?</span>;
-		hashset.insert(<span class="kw-2">&amp;</span><span class="string">&quot;third item&quot;</span>.to_string())<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;hashset={:?}&quot;</span>, hashset)<span class="question-mark">?</span>;
+		<span class="macro">assert!</span>(hashset.contains(<span class="kw-2">&amp;</span><span class="string">"test"</span>.to_string())<span class="question-mark">?</span>);
+		<span class="macro">info!</span>(<span class="string">"hashset={:?}"</span>, hashset)<span class="question-mark">?</span>;
+		hashset.insert(<span class="kw-2">&amp;</span><span class="string">"another item"</span>.to_string())<span class="question-mark">?</span>;
+		hashset.insert(<span class="kw-2">&amp;</span><span class="string">"third item"</span>.to_string())<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"hashset={:?}"</span>, hashset)<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_list_macro() -&gt; <span class="prelude-ty">Result</span>&lt;(), bmw_err::Error&gt; {
-		<span class="kw">let </span><span class="kw-2">mut </span>list1 = <span class="macro">list!</span>[<span class="string">&#39;1&#39;</span>, <span class="string">&#39;2&#39;</span>, <span class="string">&#39;3&#39;</span>];
-		<span class="macro">list_append!</span>(list1, <span class="macro">list!</span>[<span class="string">&#39;a&#39;</span>, <span class="string">&#39;b&#39;</span>, <span class="string">&#39;c&#39;</span>]);
-		<span class="kw">let </span>list2 = <span class="macro">list!</span>[<span class="string">&#39;1&#39;</span>, <span class="string">&#39;2&#39;</span>, <span class="string">&#39;3&#39;</span>, <span class="string">&#39;a&#39;</span>, <span class="string">&#39;b&#39;</span>, <span class="string">&#39;c&#39;</span>];
+		<span class="kw">let </span><span class="kw-2">mut </span>list1 = <span class="macro">list!</span>[<span class="string">'1'</span>, <span class="string">'2'</span>, <span class="string">'3'</span>];
+		<span class="macro">list_append!</span>(list1, <span class="macro">list!</span>[<span class="string">'a'</span>, <span class="string">'b'</span>, <span class="string">'c'</span>]);
+		<span class="kw">let </span>list2 = <span class="macro">list!</span>[<span class="string">'1'</span>, <span class="string">'2'</span>, <span class="string">'3'</span>, <span class="string">'a'</span>, <span class="string">'b'</span>, <span class="string">'c'</span>];
 		<span class="macro">assert!</span>(<span class="macro">list_eq!</span>(list1, list2));
-		<span class="kw">let </span>list2 = <span class="macro">list!</span>[<span class="string">&#39;a&#39;</span>, <span class="string">&#39;b&#39;</span>, <span class="string">&#39;c&#39;</span>, <span class="string">&#39;1&#39;</span>, <span class="string">&#39;2&#39;</span>];
+		<span class="kw">let </span>list2 = <span class="macro">list!</span>[<span class="string">'a'</span>, <span class="string">'b'</span>, <span class="string">'c'</span>, <span class="string">'1'</span>, <span class="string">'2'</span>];
 		<span class="macro">assert!</span>(!<span class="macro">list_eq!</span>(list1, list2));
 
 		<span class="kw">let </span>list3 = <span class="macro">list!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>];
-		<span class="macro">info!</span>(<span class="string">&quot;list={:?}&quot;</span>, list3)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"list={:?}"</span>, list3)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>list4 = <span class="macro">list_box!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>];
 		<span class="kw">let </span><span class="kw-2">mut </span>list5 = <span class="macro">list_sync!</span>()<span class="question-mark">?</span>;
@@ -4678,7 +4679,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>tp = <span class="macro">thread_pool!</span>()<span class="question-mark">?</span>;
 		tp.set_on_panic(<span class="kw">move </span>|_id, _e| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; { <span class="prelude-val">Ok</span>(()) })<span class="question-mark">?</span>;
 		<span class="kw">let </span>resp = <span class="macro">execute!</span>(tp, {
-			<span class="macro">info!</span>(<span class="string">&quot;in thread pool&quot;</span>)<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(<span class="string">"in thread pool"</span>)<span class="question-mark">?</span>;
 			<span class="prelude-val">Ok</span>(<span class="number">123</span>)
 		})<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(<span class="macro">block_on!</span>(resp), PoolResult::Ok(<span class="number">123</span>));
@@ -4686,18 +4687,18 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>tp = <span class="macro">thread_pool!</span>(MinSize(<span class="number">3</span>))<span class="question-mark">?</span>;
 		tp.set_on_panic(<span class="kw">move </span>|_id, _e| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; { <span class="prelude-val">Ok</span>(()) })<span class="question-mark">?</span>;
 		<span class="kw">let </span>resp: Receiver&lt;PoolResult&lt;u32, Error&gt;&gt; = <span class="macro">execute!</span>(tp, {
-			<span class="macro">info!</span>(<span class="string">&quot;thread pool2&quot;</span>)<span class="question-mark">?</span>;
-			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Test, <span class="string">&quot;test err&quot;</span>))
+			<span class="macro">info!</span>(<span class="string">"thread pool2"</span>)<span class="question-mark">?</span>;
+			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Test, <span class="string">"test err"</span>))
 		})<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(
 			<span class="macro">block_on!</span>(resp),
-			PoolResult::Err(<span class="macro">err!</span>(ErrKind::Test, <span class="string">&quot;test err&quot;</span>))
+			PoolResult::Err(<span class="macro">err!</span>(ErrKind::Test, <span class="string">"test err"</span>))
 		);
 
 		<span class="kw">let </span><span class="kw-2">mut </span>tp = <span class="macro">thread_pool!</span>(MinSize(<span class="number">3</span>))<span class="question-mark">?</span>;
 		tp.set_on_panic(<span class="kw">move </span>|_id, _e| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; { <span class="prelude-val">Ok</span>(()) })<span class="question-mark">?</span>;
 		<span class="kw">let </span>resp: Receiver&lt;PoolResult&lt;u32, Error&gt;&gt; = <span class="macro">execute!</span>(tp, {
-			<span class="macro">info!</span>(<span class="string">&quot;thread pool panic&quot;</span>)<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(<span class="string">"thread pool panic"</span>)<span class="question-mark">?</span>;
 			<span class="kw">let </span>x: <span class="prelude-ty">Option</span>&lt;u32&gt; = <span class="prelude-val">None</span>;
 			<span class="prelude-val">Ok</span>(x.unwrap())
 		})<span class="question-mark">?</span>;
@@ -4705,7 +4706,7 @@
 			<span class="macro">block_on!</span>(resp),
 			PoolResult::Err(<span class="macro">err!</span>(
 				ErrKind::ThreadPanic,
-				<span class="string">&quot;thread pool panic: receiving on a closed channel&quot;
+				<span class="string">"thread pool panic: receiving on a closed channel"
 			</span>))
 		);
 		<span class="prelude-val">Ok</span>(())
@@ -4719,7 +4720,7 @@
 		<span class="macro">assert_eq!</span>(tp.size()<span class="question-mark">?</span>, <span class="number">4</span>);
 		sleep(Duration::from_millis(<span class="number">2_000</span>));
 		<span class="kw">let </span>resp = <span class="macro">execute!</span>(tp, {
-			<span class="macro">info!</span>(<span class="string">&quot;thread pool&quot;</span>)<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(<span class="string">"thread pool"</span>)<span class="question-mark">?</span>;
 			<span class="prelude-val">Ok</span>(<span class="number">0</span>)
 		})<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(<span class="macro">block_on!</span>(resp), PoolResult::Ok(<span class="number">0</span>));
@@ -4727,7 +4728,7 @@
 
 		<span class="kw">for _ in </span><span class="number">0</span>..<span class="number">10 </span>{
 			<span class="macro">execute!</span>(tp, {
-				<span class="macro">info!</span>(<span class="string">&quot;thread pool&quot;</span>)<span class="question-mark">?</span>;
+				<span class="macro">info!</span>(<span class="string">"thread pool"</span>)<span class="question-mark">?</span>;
 				sleep(Duration::from_millis(<span class="number">5_000</span>));
 				<span class="prelude-val">Ok</span>(<span class="number">0</span>)
 			})<span class="question-mark">?</span>;
@@ -4810,22 +4811,22 @@
 		</span><span class="kw">let </span><span class="kw-2">mut </span>matches = [Builder::build_match_default(); <span class="number">10</span>];
 
 		<span class="comment">// test pattern
-		</span><span class="kw">let </span>pattern = <span class="macro">pattern!</span>(Regex(<span class="string">&quot;abc&quot;</span>), Id(<span class="number">0</span>))<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>pattern = <span class="macro">pattern!</span>(Regex(<span class="string">"abc"</span>), Id(<span class="number">0</span>))<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(
 			pattern,
-			Builder::build_pattern(<span class="string">&quot;abc&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>, <span class="number">0</span>)
+			Builder::build_pattern(<span class="string">"abc"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>, <span class="number">0</span>)
 		);
 
 		<span class="comment">// test suffix tree
 		</span><span class="kw">let </span><span class="kw-2">mut </span>suffix_tree = <span class="macro">suffix_tree!</span>(
 			<span class="macro">list!</span>[
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;abc&quot;</span>), Id(<span class="number">0</span>))<span class="question-mark">?</span>,
-				<span class="macro">pattern!</span>(Regex(<span class="string">&quot;def&quot;</span>), Id(<span class="number">1</span>))<span class="question-mark">?
+				<span class="macro">pattern!</span>(Regex(<span class="string">"abc"</span>), Id(<span class="number">0</span>))<span class="question-mark">?</span>,
+				<span class="macro">pattern!</span>(Regex(<span class="string">"def"</span>), Id(<span class="number">1</span>))<span class="question-mark">?
 			</span>],
 			TerminationLength(<span class="number">100</span>),
 			MaxWildcardLength(<span class="number">50</span>)
 		)<span class="question-mark">?</span>;
-		<span class="kw">let </span>match_count = suffix_tree.tmatch(<span class="string">b&quot;abc&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		<span class="kw">let </span>match_count = suffix_tree.tmatch(<span class="string">b"abc"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(match_count, <span class="number">1</span>);
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -4837,12 +4838,12 @@
 
 		<span class="comment">// create a suffix tree
 		</span><span class="kw">let </span><span class="kw-2">mut </span>suffix_tree = <span class="macro">suffix_tree!</span>(<span class="macro">list!</span>[
-			<span class="macro">pattern!</span>(Regex(<span class="string">&quot;aaa&quot;</span>), Id(<span class="number">0</span>))<span class="question-mark">?</span>,
-			<span class="macro">pattern!</span>(Regex(<span class="string">&quot;bbb&quot;</span>), Id(<span class="number">1</span>))<span class="question-mark">?
+			<span class="macro">pattern!</span>(Regex(<span class="string">"aaa"</span>), Id(<span class="number">0</span>))<span class="question-mark">?</span>,
+			<span class="macro">pattern!</span>(Regex(<span class="string">"bbb"</span>), Id(<span class="number">1</span>))<span class="question-mark">?
 		</span>],)<span class="question-mark">?</span>;
 
 		<span class="comment">// match
-		</span><span class="kw">let </span>match_count = suffix_tree.tmatch(<span class="string">b&quot;aaa&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>match_count = suffix_tree.tmatch(<span class="string">b"aaa"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(match_count, <span class="number">1</span>);
 		<span class="prelude-val">Ok</span>(())
 	}

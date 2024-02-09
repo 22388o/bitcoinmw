@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/suffix_tree.rs`."><title>suffix_tree.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/suffix_tree.rs`."><title>suffix_tree.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -803,13 +804,13 @@
 // * Arti: https://gitlab.torproject.org/tpo/core/arti
 // * BitcoinMW: https://github.com/bitcoinmw/bitcoinmw
 //
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -846,7 +847,7 @@
 		<span class="kw">if </span>pattern.regex.len() == <span class="number">0 </span>{
 			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 				ErrKind::IllegalArgument,
-				<span class="string">&quot;regex length must be greater than 0&quot;
+				<span class="string">"regex length must be greater than 0"
 			</span>));
 		}
 
@@ -861,7 +862,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>cur_node = <span class="kw-2">&amp;mut </span><span class="self">self</span>.nodes[<span class="number">0</span>];
 		<span class="kw">let </span><span class="kw-2">mut </span>is_start_only = <span class="bool-val">false</span>;
 
-		<span class="kw">if </span>cur_byte == <span class="string">&#39;^&#39; </span><span class="kw">as </span>u8 {
+		<span class="kw">if </span>cur_byte == <span class="string">'^' </span><span class="kw">as </span>u8 {
 			cur_byte = <span class="kw">match </span>regex.next() {
 				<span class="prelude-val">Some</span>(cur_byte) =&gt; {
 					is_start_only = <span class="bool-val">true</span>;
@@ -870,18 +871,18 @@
 				<span class="prelude-val">None </span>=&gt; {
 					<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 						ErrKind::IllegalArgument,
-						<span class="string">&quot;Regex must be at least one byte long not including the ^ character&quot;
+						<span class="string">"Regex must be at least one byte long not including the ^ character"
 					</span>));
 				}
 			}
 		}
 
 		<span class="kw">loop </span>{
-			<span class="kw">let </span>(check_index, is_multi) = <span class="kw">if </span>cur_byte == <span class="string">&#39;.&#39; </span><span class="kw">as </span>u8 {
+			<span class="kw">let </span>(check_index, is_multi) = <span class="kw">if </span>cur_byte == <span class="string">'.' </span><span class="kw">as </span>u8 {
 				<span class="kw">let </span>peek = regex.peek();
 				<span class="kw">let </span>is_multi = <span class="kw">match </span>peek {
 					<span class="prelude-val">Some</span>(peek) =&gt; {
-						<span class="kw">if </span><span class="kw-2">*</span>peek == <span class="string">&#39;*&#39; </span><span class="kw">as </span>u8 {
+						<span class="kw">if </span><span class="kw-2">*</span>peek == <span class="string">'*' </span><span class="kw">as </span>u8 {
 							regex.next();
 							<span class="bool-val">true
 						</span>} <span class="kw">else </span>{
@@ -891,22 +892,22 @@
 					<span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
 				};
 				(<span class="number">256usize</span>, is_multi) <span class="comment">// wild card is 256
-			</span>} <span class="kw">else if </span>cur_byte == <span class="string">&#39;\\&#39; </span><span class="kw">as </span>u8 {
+			</span>} <span class="kw">else if </span>cur_byte == <span class="string">'\\' </span><span class="kw">as </span>u8 {
 				<span class="kw">let </span>next = regex.next();
 				<span class="kw">match </span>next {
 					<span class="prelude-val">Some</span>(next) =&gt; {
-						<span class="kw">if </span>next == <span class="string">&#39;\\&#39; </span><span class="kw">as </span>u8 {
+						<span class="kw">if </span>next == <span class="string">'\\' </span><span class="kw">as </span>u8 {
 							(cur_byte <span class="kw">as </span>usize, <span class="bool-val">false</span>)
-						} <span class="kw">else if </span>next == <span class="string">&#39;.&#39; </span><span class="kw">as </span>u8 {
+						} <span class="kw">else if </span>next == <span class="string">'.' </span><span class="kw">as </span>u8 {
 							(next <span class="kw">as </span>usize, <span class="bool-val">false</span>)
 						} <span class="kw">else </span>{
-							<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">&quot;Illegal escape character &#39;{}&#39;&quot;</span>, next <span class="kw">as </span>char);
+							<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">"Illegal escape character '{}'"</span>, next <span class="kw">as </span>char);
 							<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::IllegalArgument, fmt);
 							<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 						}
 					}
 					<span class="prelude-val">None </span>=&gt; {
-						<span class="kw">let </span>fmt = <span class="string">&quot;Illegal escape character at termination of string&quot;</span>;
+						<span class="kw">let </span>fmt = <span class="string">"Illegal escape character at termination of string"</span>;
 						<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::IllegalArgument, fmt);
 						<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 					}
@@ -993,7 +994,7 @@
 		<span class="kw">if </span>patterns.size() == <span class="number">0 </span>{
 			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 				ErrKind::Configuration,
-				<span class="string">&quot;suffix tree must have at least one pattern&quot;
+				<span class="string">"suffix tree must have at least one pattern"
 			</span>));
 		}
 
@@ -1059,14 +1060,14 @@
 				<span class="kw">let </span>byte = <span class="kw">if </span>case_sensitive {
 					text[itt]
 				} <span class="kw">else </span>{
-					<span class="kw">if </span>text[itt] &gt;= <span class="string">&#39;A&#39; </span><span class="kw">as </span>u8 &amp;&amp; text[itt] &lt;= <span class="string">&#39;Z&#39; </span><span class="kw">as </span>u8 {
+					<span class="kw">if </span>text[itt] &gt;= <span class="string">'A' </span><span class="kw">as </span>u8 &amp;&amp; text[itt] &lt;= <span class="string">'Z' </span><span class="kw">as </span>u8 {
 						text[itt] + <span class="number">32
 					</span>} <span class="kw">else </span>{
 						text[itt]
 					}
 				};
 
-				<span class="kw">if </span>byte == <span class="string">&#39;\r&#39; </span><span class="kw">as </span>u8 || byte == <span class="string">&#39;\n&#39; </span><span class="kw">as </span>u8 {
+				<span class="kw">if </span>byte == <span class="string">'\r' </span><span class="kw">as </span>u8 || byte == <span class="string">'\n' </span><span class="kw">as </span>u8 {
 					has_newline = <span class="bool-val">true</span>;
 				}
 
@@ -1259,8 +1260,8 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_pattern() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>pattern = Pattern::new(<span class="string">&quot;abc&quot;</span>, <span class="bool-val">true</span>, <span class="bool-val">true</span>, <span class="bool-val">true</span>, <span class="number">0</span>);
-		<span class="macro">assert_eq!</span>(pattern.regex(), <span class="string">&quot;abc&quot;</span>);
+		<span class="kw">let </span>pattern = Pattern::new(<span class="string">"abc"</span>, <span class="bool-val">true</span>, <span class="bool-val">true</span>, <span class="bool-val">true</span>, <span class="number">0</span>);
+		<span class="macro">assert_eq!</span>(pattern.regex(), <span class="string">"abc"</span>);
 		<span class="macro">assert_eq!</span>(pattern.is_case_sensitive(), <span class="bool-val">true</span>);
 		<span class="macro">assert_eq!</span>(pattern.is_termination_pattern(), <span class="bool-val">true</span>);
 		<span class="macro">assert_eq!</span>(pattern.id(), <span class="number">0</span>);
@@ -1272,17 +1273,17 @@
 	</span><span class="kw">fn </span>test_suffix_tree1() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>suffix_tree = Builder::build_suffix_tree(
 			<span class="macro">list!</span>[
-				Builder::build_pattern(<span class="string">&quot;p1&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>),
-				Builder::build_pattern(<span class="string">&quot;p2&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">1</span>),
-				Builder::build_pattern(<span class="string">&quot;p3&quot;</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">2</span>)
+				Builder::build_pattern(<span class="string">"p1"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>),
+				Builder::build_pattern(<span class="string">"p2"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">1</span>),
+				Builder::build_pattern(<span class="string">"p3"</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">2</span>)
 			],
 			<span class="number">1_000</span>,
 			<span class="number">100</span>,
 		)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>matches = [Builder::build_match_default(); <span class="number">10</span>];
-		<span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;p1p2&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;count={}&quot;</span>, count)<span class="question-mark">?</span>;
+		<span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"p1p2"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"count={}"</span>, count)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">2</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].id(), <span class="number">0</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].start(), <span class="number">0</span>);
@@ -1298,16 +1299,16 @@
 	</span><span class="kw">fn </span>test_suffix_tree_wildcard() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>suffix_tree = Builder::build_suffix_tree(
 			<span class="macro">list!</span>[
-				Builder::build_pattern(<span class="string">&quot;p1.*abc&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>),
-				Builder::build_pattern(<span class="string">&quot;p2&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">1</span>),
-				Builder::build_pattern(<span class="string">&quot;p3&quot;</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">2</span>)
+				Builder::build_pattern(<span class="string">"p1.*abc"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>),
+				Builder::build_pattern(<span class="string">"p2"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">1</span>),
+				Builder::build_pattern(<span class="string">"p3"</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">2</span>)
 			],
 			<span class="number">37</span>,
 			<span class="number">10</span>,
 		)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>matches = [Builder::build_match_default(); <span class="number">10</span>];
-		<span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;p1xyz123abcp2&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		<span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"p1xyz123abcp2"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">2</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].id(), <span class="number">0</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].start(), <span class="number">0</span>);
@@ -1316,67 +1317,67 @@
 		<span class="macro">assert_eq!</span>(matches[<span class="number">1</span>].start(), <span class="number">11</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">1</span>].end(), <span class="number">13</span>);
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..count {
-			<span class="macro">info!</span>(<span class="string">&quot;match[{}]={:?}&quot;</span>, i, matches[i])<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(<span class="string">"match[{}]={:?}"</span>, i, matches[i])<span class="question-mark">?</span>;
 		}
 
 		<span class="comment">// try a wildcard that is too long
-		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;p1xyzxxxxxxxxxxxxxxxxxxxxxxxx123abcp2&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"p1xyzxxxxxxxxxxxxxxxxxxxxxxxx123abcp2"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">1</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].id(), <span class="number">1</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].start(), <span class="number">35</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].end(), <span class="number">37</span>);
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..count {
-			<span class="macro">info!</span>(<span class="string">&quot;match[{}]={:?}&quot;</span>, i, matches[i])<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(<span class="string">"match[{}]={:?}"</span>, i, matches[i])<span class="question-mark">?</span>;
 		}
 
 		<span class="comment">// test termination
 		</span><span class="kw">let </span>count =
-			suffix_tree.tmatch(<span class="string">b&quot;p1xyzxxxxxxxxxxxxxxxxxxxxxxxxxxx123abcp2&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+			suffix_tree.tmatch(<span class="string">b"p1xyzxxxxxxxxxxxxxxxxxxxxxxxxxxx123abcp2"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">0</span>);
 
 		<span class="comment">// non-repeating wildcard
 		</span><span class="kw">let </span><span class="kw-2">mut </span>suffix_tree = Builder::build_suffix_tree(
 			<span class="macro">list!</span>[
-				Builder::build_pattern(<span class="string">&quot;p1.abc&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>),
-				Builder::build_pattern(<span class="string">&quot;p2&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">1</span>),
-				Builder::build_pattern(<span class="string">&quot;p3&quot;</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">2</span>),
-				Builder::build_pattern(<span class="string">&quot;p4.&quot;</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">3</span>),
-				Builder::build_pattern(<span class="string">&quot;p5\\\\x&quot;</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">4</span>),
-				Builder::build_pattern(<span class="string">&quot;p6\\.x&quot;</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">5</span>)
+				Builder::build_pattern(<span class="string">"p1.abc"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>),
+				Builder::build_pattern(<span class="string">"p2"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">1</span>),
+				Builder::build_pattern(<span class="string">"p3"</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">2</span>),
+				Builder::build_pattern(<span class="string">"p4."</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">3</span>),
+				Builder::build_pattern(<span class="string">"p5\\\\x"</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">4</span>),
+				Builder::build_pattern(<span class="string">"p6\\.x"</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">5</span>)
 			],
 			<span class="number">37</span>,
 			<span class="number">10</span>,
 		)<span class="question-mark">?</span>;
 		<span class="comment">// 2 wildcard chars so no match
-		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;p1xxabc&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"p1xxabc"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">0</span>);
 
-		<span class="comment">// 1 wildcard char so it&#39;s a match
-		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;p1xabc&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		<span class="comment">// 1 wildcard char so it's a match
+		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"p1xabc"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">1</span>);
 
 		<span class="comment">// no char after p4 so no match
-		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;p4&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"p4"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">0</span>);
 
 		<span class="comment">// char after p4 so match
-		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;p4a&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"p4a"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">1</span>);
 
 		<span class="comment">// char after p4 so match
-		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;p4aaa&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"p4aaa"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">1</span>);
 
-		<span class="comment">// &#39;\&#39; matches
-		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;p5\\x&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		<span class="comment">// '\' matches
+		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"p5\\x"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">1</span>);
 
 		<span class="comment">// escaped dot match
-		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;p6.x&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"p6.x"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">1</span>);
 
 		<span class="comment">// escaped dot is not a wildcard
-		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;p6ax&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"p6ax"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">0</span>);
 
 		<span class="prelude-val">Ok</span>(())
@@ -1385,16 +1386,16 @@
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_case_sensitivity() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>matches = [Builder::build_match_default(); <span class="number">10</span>];
-		<span class="kw">let </span>pattern1 = Builder::build_pattern(<span class="string">&quot;AaAaA&quot;</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>);
-		<span class="kw">let </span>pattern2 = Builder::build_pattern(<span class="string">&quot;AaAaA&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>);
+		<span class="kw">let </span>pattern1 = Builder::build_pattern(<span class="string">"AaAaA"</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>);
+		<span class="kw">let </span>pattern2 = Builder::build_pattern(<span class="string">"AaAaA"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>);
 
 		<span class="kw">let </span><span class="kw-2">mut </span>suffix_tree = Builder::build_suffix_tree(<span class="macro">list!</span>[pattern1], <span class="number">100</span>, <span class="number">100</span>)<span class="question-mark">?</span>;
 
-		<span class="macro">assert_eq!</span>(suffix_tree.tmatch(<span class="string">b&quot;AAAAA&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>, <span class="number">0</span>);
+		<span class="macro">assert_eq!</span>(suffix_tree.tmatch(<span class="string">b"AAAAA"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>, <span class="number">0</span>);
 
 		<span class="kw">let </span><span class="kw-2">mut </span>suffix_tree = Builder::build_suffix_tree(<span class="macro">list!</span>[pattern2], <span class="number">100</span>, <span class="number">100</span>)<span class="question-mark">?</span>;
 
-		<span class="macro">assert_eq!</span>(suffix_tree.tmatch(<span class="string">b&quot;AAAAA&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>, <span class="number">1</span>);
+		<span class="macro">assert_eq!</span>(suffix_tree.tmatch(<span class="string">b"AAAAA"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>, <span class="number">1</span>);
 
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -1403,16 +1404,16 @@
 	</span><span class="kw">fn </span>test_multi_line() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>matches = [Builder::build_match_default(); <span class="number">10</span>];
 		<span class="kw">let </span><span class="kw-2">mut </span>suffix_tree = <span class="macro">suffix_tree!</span>(<span class="macro">list!</span>[
-			<span class="macro">pattern!</span>(Regex(<span class="string">&quot;abc.*123&quot;</span>), Id(<span class="number">0</span>), IsMulti(<span class="bool-val">false</span>))<span class="question-mark">?</span>,
-			<span class="macro">pattern!</span>(Regex(<span class="string">&quot;def.*123&quot;</span>), Id(<span class="number">1</span>), IsMulti(<span class="bool-val">true</span>))<span class="question-mark">?
+			<span class="macro">pattern!</span>(Regex(<span class="string">"abc.*123"</span>), Id(<span class="number">0</span>), IsMulti(<span class="bool-val">false</span>))<span class="question-mark">?</span>,
+			<span class="macro">pattern!</span>(Regex(<span class="string">"def.*123"</span>), Id(<span class="number">1</span>), IsMulti(<span class="bool-val">true</span>))<span class="question-mark">?
 		</span>],)<span class="question-mark">?</span>;
 
 		<span class="comment">// this will not match because of the newline
-		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;abcxxx\n123&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"abcxxx\n123"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">0</span>);
 
 		<span class="comment">// this will match because IsMulti is true
-		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;defxxx\n123&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"defxxx\n123"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">1</span>);
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -1421,16 +1422,16 @@
 	</span><span class="kw">fn </span>test_termination_pattern() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>matches = [Builder::build_match_default(); <span class="number">10</span>];
 		<span class="kw">let </span><span class="kw-2">mut </span>suffix_tree = <span class="macro">suffix_tree!</span>(<span class="macro">list!</span>[
-			<span class="macro">pattern!</span>(Regex(<span class="string">&quot;abc&quot;</span>), Id(<span class="number">0</span>), IsTerm(<span class="bool-val">false</span>))<span class="question-mark">?</span>,
-			<span class="macro">pattern!</span>(Regex(<span class="string">&quot;def&quot;</span>), Id(<span class="number">1</span>), IsTerm(<span class="bool-val">true</span>))<span class="question-mark">?
+			<span class="macro">pattern!</span>(Regex(<span class="string">"abc"</span>), Id(<span class="number">0</span>), IsTerm(<span class="bool-val">false</span>))<span class="question-mark">?</span>,
+			<span class="macro">pattern!</span>(Regex(<span class="string">"def"</span>), Id(<span class="number">1</span>), IsTerm(<span class="bool-val">true</span>))<span class="question-mark">?
 		</span>],)<span class="question-mark">?</span>;
 
 		<span class="comment">// both matches will be found
-		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;abcdef&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"abcdef"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">2</span>);
 
 		<span class="comment">// only the first match will be found because it is a termination pattern
-		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;defabc&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"defabc"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">1</span>);
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -1440,16 +1441,16 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>matches1 = [Builder::build_match_default(); <span class="number">1</span>];
 		<span class="kw">let </span><span class="kw-2">mut </span>matches10 = [Builder::build_match_default(); <span class="number">10</span>];
 		<span class="kw">let </span><span class="kw-2">mut </span>suffix_tree = <span class="macro">suffix_tree!</span>(<span class="macro">list!</span>[
-			<span class="macro">pattern!</span>(Regex(<span class="string">&quot;abc&quot;</span>), Id(<span class="number">0</span>), IsTerm(<span class="bool-val">false</span>))<span class="question-mark">?</span>,
-			<span class="macro">pattern!</span>(Regex(<span class="string">&quot;def&quot;</span>), Id(<span class="number">1</span>), IsTerm(<span class="bool-val">true</span>))<span class="question-mark">?
+			<span class="macro">pattern!</span>(Regex(<span class="string">"abc"</span>), Id(<span class="number">0</span>), IsTerm(<span class="bool-val">false</span>))<span class="question-mark">?</span>,
+			<span class="macro">pattern!</span>(Regex(<span class="string">"def"</span>), Id(<span class="number">1</span>), IsTerm(<span class="bool-val">true</span>))<span class="question-mark">?
 		</span>],)<span class="question-mark">?</span>;
 
 		<span class="comment">// only one match returned because match list length is 1
-		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;abcdef&quot;</span>, <span class="kw-2">&amp;mut </span>matches1)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"abcdef"</span>, <span class="kw-2">&amp;mut </span>matches1)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">1</span>);
 
 		<span class="comment">// both matches returned with long enough list
-		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;abcdef&quot;</span>, <span class="kw-2">&amp;mut </span>matches10)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"abcdef"</span>, <span class="kw-2">&amp;mut </span>matches10)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">2</span>);
 
 		<span class="prelude-val">Ok</span>(())
@@ -1459,11 +1460,11 @@
 	</span><span class="kw">fn </span>test_suffix_tree_overlap() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>matches = [Builder::build_match_default(); <span class="number">10</span>];
 		<span class="kw">let </span><span class="kw-2">mut </span>suffix_tree = <span class="macro">suffix_tree!</span>(<span class="macro">list!</span>[
-			<span class="macro">pattern!</span>(Regex(<span class="string">&quot;abc&quot;</span>), Id(<span class="number">0</span>))<span class="question-mark">?</span>,
-			<span class="macro">pattern!</span>(Regex(<span class="string">&quot;abcdef&quot;</span>), Id(<span class="number">1</span>))<span class="question-mark">?
+			<span class="macro">pattern!</span>(Regex(<span class="string">"abc"</span>), Id(<span class="number">0</span>))<span class="question-mark">?</span>,
+			<span class="macro">pattern!</span>(Regex(<span class="string">"abcdef"</span>), Id(<span class="number">1</span>))<span class="question-mark">?
 		</span>],)<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;abcdef&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		<span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"abcdef"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">2</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].start(), <span class="number">0</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">1</span>].start(), <span class="number">0</span>);
@@ -1487,16 +1488,16 @@
 	</span><span class="kw">fn </span>test_suffix_tree_caret() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>matches = [Builder::build_match_default(); <span class="number">10</span>];
 		<span class="kw">let </span><span class="kw-2">mut </span>suffix_tree = <span class="macro">suffix_tree!</span>(<span class="macro">list!</span>[
-			<span class="macro">pattern!</span>(Regex(<span class="string">&quot;abc&quot;</span>), Id(<span class="number">0</span>))<span class="question-mark">?</span>,
-			<span class="macro">pattern!</span>(Regex(<span class="string">&quot;^def&quot;</span>), Id(<span class="number">1</span>))<span class="question-mark">?
+			<span class="macro">pattern!</span>(Regex(<span class="string">"abc"</span>), Id(<span class="number">0</span>))<span class="question-mark">?</span>,
+			<span class="macro">pattern!</span>(Regex(<span class="string">"^def"</span>), Id(<span class="number">1</span>))<span class="question-mark">?
 		</span>],)<span class="question-mark">?</span>;
 
 		<span class="comment">// only abc is found because def is not at the start
-		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;abcdef&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"abcdef"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">1</span>);
 
 		<span class="comment">// both found
-		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;defabc&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"defabc"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">2</span>);
 
 		<span class="prelude-val">Ok</span>(())
@@ -1505,28 +1506,28 @@
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_suffix_tree_error_conditions() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="macro">assert!</span>(Builder::build_suffix_tree(
-			<span class="macro">list!</span>[Builder::build_pattern(<span class="string">&quot;&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)],
+			<span class="macro">list!</span>[Builder::build_pattern(<span class="string">""</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)],
 			<span class="number">36</span>,
 			<span class="number">36
 		</span>)
 		.is_err());
 
 		<span class="macro">assert!</span>(Builder::build_suffix_tree(
-			<span class="macro">list!</span>[Builder::build_pattern(<span class="string">&quot;^&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)],
+			<span class="macro">list!</span>[Builder::build_pattern(<span class="string">"^"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)],
 			<span class="number">100</span>,
 			<span class="number">100
 		</span>)
 		.is_err());
 
 		<span class="macro">assert!</span>(Builder::build_suffix_tree(
-			<span class="macro">list!</span>[Builder::build_pattern(<span class="string">&quot;x\\y&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)],
+			<span class="macro">list!</span>[Builder::build_pattern(<span class="string">"x\\y"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)],
 			<span class="number">100</span>,
 			<span class="number">100
 		</span>)
 		.is_err());
 
 		<span class="macro">assert!</span>(Builder::build_suffix_tree(
-			<span class="macro">list!</span>[Builder::build_pattern(<span class="string">&quot;x\\&quot;</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)],
+			<span class="macro">list!</span>[Builder::build_pattern(<span class="string">"x\\"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)],
 			<span class="number">100</span>,
 			<span class="number">100
 		</span>)
@@ -1546,23 +1547,23 @@
 	</span><span class="kw">fn </span>test_suffix_tree_branches() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>matches = [Builder::build_match_default(); <span class="number">10</span>];
 		<span class="kw">let </span><span class="kw-2">mut </span>suffix_tree = <span class="macro">suffix_tree!</span>(<span class="macro">list!</span>[
-			<span class="macro">pattern!</span>(Regex(<span class="string">&quot;abc&quot;</span>), Id(<span class="number">0</span>))<span class="question-mark">?</span>,
-			<span class="macro">pattern!</span>(Regex(<span class="string">&quot;ab.*x&quot;</span>), Id(<span class="number">1</span>))<span class="question-mark">?
+			<span class="macro">pattern!</span>(Regex(<span class="string">"abc"</span>), Id(<span class="number">0</span>))<span class="question-mark">?</span>,
+			<span class="macro">pattern!</span>(Regex(<span class="string">"ab.*x"</span>), Id(<span class="number">1</span>))<span class="question-mark">?
 		</span>],)<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;abc&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		<span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"abc"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">1</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].id(), <span class="number">0</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].start(), <span class="number">0</span>);
 
-		<span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b&quot;abcx&quot;</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		<span class="kw">let </span>count = suffix_tree.tmatch(<span class="string">b"abcx"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">2</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].id(), <span class="number">0</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].start(), <span class="number">0</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">1</span>].id(), <span class="number">1</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">1</span>].start(), <span class="number">0</span>);
 
-		<span class="kw">let </span>text = <span class="string">b&quot;abxx&quot;</span>;
+		<span class="kw">let </span>text = <span class="string">b"abxx"</span>;
 		<span class="kw">let </span>count = suffix_tree.tmatch(text, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">1</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].id(), <span class="number">1</span>);
@@ -1570,21 +1571,21 @@
 		<span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>text[matches[<span class="number">0</span>].start()..matches[<span class="number">0</span>].end()], text);
 
 		<span class="kw">let </span><span class="kw-2">mut </span>suffix_tree = <span class="macro">suffix_tree!</span>(<span class="macro">list!</span>[
-			<span class="macro">pattern!</span>(Regex(<span class="string">&quot;header: 1234\r\n&quot;</span>), Id(<span class="number">1</span>))<span class="question-mark">?</span>,
-			<span class="macro">pattern!</span>(Regex(<span class="string">&quot;header: .*\r\n&quot;</span>), Id(<span class="number">0</span>))<span class="question-mark">?
+			<span class="macro">pattern!</span>(Regex(<span class="string">"header: 1234\r\n"</span>), Id(<span class="number">1</span>))<span class="question-mark">?</span>,
+			<span class="macro">pattern!</span>(Regex(<span class="string">"header: .*\r\n"</span>), Id(<span class="number">0</span>))<span class="question-mark">?
 		</span>],)<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>text = <span class="string">b&quot;yyyheader: 1299\r\n&quot;</span>;
+		<span class="kw">let </span>text = <span class="string">b"yyyheader: 1299\r\n"</span>;
 		<span class="kw">let </span>count = suffix_tree.tmatch(text, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;count1={}&quot;</span>, count)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"count1={}"</span>, count)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">1</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].id(), <span class="number">0</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].start(), <span class="number">3</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].end(), text.len());
 
-		<span class="kw">let </span>text = <span class="string">b&quot;yyyheader: 1234\r\n&quot;</span>;
+		<span class="kw">let </span>text = <span class="string">b"yyyheader: 1234\r\n"</span>;
 		<span class="kw">let </span>count = suffix_tree.tmatch(text, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;count2={}&quot;</span>, count)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"count2={}"</span>, count)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">2</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].id(), <span class="number">1</span>);
 		<span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].start(), <span class="number">3</span>);

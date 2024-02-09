@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `evh/src/lib.rs`."><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_evh" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `evh/src/lib.rs`."><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_evh" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -236,13 +237,13 @@
 // * Arti: https://gitlab.torproject.org/tpo/core/arti
 // * BitcoinMW: https://github.com/bitcoinmw/bitcoinmw
 //
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -262,16 +263,16 @@
 //! Add the following to your Cargo.toml:
 //!
 //!```text
-//! bmw_evh = { git = &quot;https://github.com/cgilliard/bitcoinmw&quot;  }
+//! bmw_evh = { git = "https://github.com/cgilliard/bitcoinmw"  }
 //!```
 //!
 //! Optionally, you may wish to use the other associated crates:
 //!
 //!```text
-//! bmw_err    = { git = &quot;https://github.com/cgilliard/bitcoinmw&quot;  }
-//! bmw_log    = { git = &quot;https://github.com/cgilliard/bitcoinmw&quot;  }
-//! bmw_derive = { git = &quot;https://github.com/cgilliard/bitcoinmw&quot;  }
-//! bmw_util   = { git = &quot;https://github.com/cgilliard/bitcoinmw&quot;  }
+//! bmw_err    = { git = "https://github.com/cgilliard/bitcoinmw"  }
+//! bmw_log    = { git = "https://github.com/cgilliard/bitcoinmw"  }
+//! bmw_derive = { git = "https://github.com/cgilliard/bitcoinmw"  }
+//! bmw_util   = { git = "https://github.com/cgilliard/bitcoinmw"  }
 //!```
 //!
 //! The linux dependencies can be installed with the following commands on ubuntu:
@@ -317,13 +318,13 @@
 //!     evh.set_on_read(move |cd, _ctx, _attachment| {
 //!         // log the connection_id of this connection. The connection_id is a random u128
 //!         //value. Each connection has a unique id.
-//!         info!(&quot;read data on connection {}&quot;, cd.get_connection_id())?;
+//!         info!("read data on connection {}", cd.get_connection_id())?;
 //!
 //!         // data read is stored in a linked list of slabs. first_slab returns the first
 //!         // slab in the list.
 //!         let first_slab = cd.first_slab();
 //!
-//!         // in this example, we don&#39;t use it, but we could get the last slab in the list
+//!         // in this example, we don't use it, but we could get the last slab in the list
 //!         // if more than one slab of data may be returned.
 //!         let _last_slab = cd.last_slab();
 //!
@@ -341,7 +342,7 @@
 //!             let slab = sa.get(first_slab.try_into()?)?;
 //!
 //!             // log the number of bytes that have been read
-//!             info!(&quot;read {} bytes&quot;, slab_offset)?;
+//!             info!("read {} bytes", slab_offset)?;
 //!
 //!             // create a vec and extend it with the data that was read
 //!             let mut ret: Vec&lt;u8&gt; = vec![];
@@ -364,12 +365,12 @@
 //!     })?;
 //!     evh.set_on_accept(move |cd, _ctx| {
 //!         // The on_accept callback is executed when a connection is accepted.
-//!         info!(&quot;accepted connection id = {}&quot;, cd.get_connection_id())?;
+//!         info!("accepted connection id = {}", cd.get_connection_id())?;
 //!         Ok(())
 //!     })?;
 //!     evh.set_on_close(move |cd, _ctx| {
 //!         // The on_close callback is executed when a connection is closed.
-//!         info!(&quot;closed connection id = {}&quot;, cd.get_connection_id())?;
+//!         info!("closed connection id = {}", cd.get_connection_id())?;
 //!         Ok(())
 //!     })?;
 //!     evh.set_on_panic(move |_ctx, e| {
@@ -377,12 +378,12 @@
 //!         // to &amp;str to get the message.
 //!         let e = e.downcast_ref::&lt;&amp;str&gt;().unwrap();
 //!         // The on_panic callback is executed when a thread panic occurs.
-//!         warn!(&quot;callback generated thread panic: {}&quot;, e)?;
+//!         warn!("callback generated thread panic: {}", e)?;
 //!         Ok(())
 //!     })?;
 //!     evh.set_housekeeper(move |_ctx| {
 //!         // The housekeper callback is executed once per thread every second by default.
-//!         info!(&quot;Housekeeper executed&quot;)?;
+//!         info!("Housekeeper executed")?;
 //!         Ok(())
 //!     })?;
 //!
@@ -392,12 +393,12 @@
 //!     // pick a free port for our server to bind to
 //!     let (addr, handles) = loop {
 //!         let port = pick_free_port()?;
-//!         info!(&quot;using port = {}&quot;, port);
+//!         info!("using port = {}", port);
 //!         // bind to the loopback interface.
-//!         let addr = format!(&quot;127.0.0.1:{}&quot;, port).clone();
+//!         let addr = format!("127.0.0.1:{}", port).clone();
 //!
 //!         // create our server handles for the default 6 threads of the evh.
-//!         // We use a tcp_listener backlog of 10 in this example and we&#39;re setting
+//!         // We use a tcp_listener backlog of 10 in this example and we're setting
 //!         // SO_REUSE_PORT to true.
 //!         let handles = create_listeners(6, &amp;addr, 10, true);
 //!         match handles {
@@ -415,26 +416,26 @@
 //!     };
 //!
 //!     // add our server connection to the evh.
-//!     evh.add_server(sc, Box::new(&quot;&quot;))?;
+//!     evh.add_server(sc, Box::new(""))?;
 //!
 //!     // create a client connection to test the evh
 //!     let mut connection = TcpStream::connect(addr)?;
 //!
-//!     // send a message &quot;test1&quot;.
-//!     connection.write(b&quot;test1&quot;)?;
+//!     // send a message "test1".
+//!     connection.write(b"test1")?;
 //!
 //!     // assert that the response is an echo of our message.
 //!     let mut buf = vec![];
 //!     buf.resize(100, 0u8);
 //!     let len = connection.read(&amp;mut buf)?;
-//!     assert_eq!(&amp;buf[0..len], b&quot;test1&quot;);
+//!     assert_eq!(&amp;buf[0..len], b"test1");
 //!
-//!     // send a second message &quot;test2&quot;.
-//!     connection.write(b&quot;test2&quot;)?;
+//!     // send a second message "test2".
+//!     connection.write(b"test2")?;
 //!
 //!     // assert that the response is an echo of our message.
 //!     let len = connection.read(&amp;mut buf)?;
-//!     assert_eq!(&amp;buf[0..len], b&quot;test2&quot;);
+//!     assert_eq!(&amp;buf[0..len], b"test2");
 //!
 //!     // stop the evh
 //!     evh.stop()?;
@@ -446,9 +447,9 @@
 
 </span><span class="kw">mod </span>builder;
 <span class="kw">mod </span>evh;
-<span class="attr">#[cfg(target_os = <span class="string">&quot;linux&quot;</span>)]
+<span class="attr">#[cfg(target_os = <span class="string">"linux"</span>)]
 </span><span class="kw">mod </span>linux;
-<span class="attr">#[cfg(target_os = <span class="string">&quot;macos&quot;</span>)]
+<span class="attr">#[cfg(target_os = <span class="string">"macos"</span>)]
 </span><span class="kw">mod </span>mac;
 <span class="kw">mod </span>macros;
 <span class="kw">mod </span>types;

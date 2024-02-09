@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `log/src/macros.rs`."><title>macros.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_log" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `log/src/macros.rs`."><title>macros.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_log" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1161,14 +1162,14 @@
 // * Arti: https://gitlab.torproject.org/tpo/core/arti
 // * BitcoinMW: https://github.com/bitcoinmw/bitcoinmw
 //
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -1210,7 +1211,7 @@
 /// fatal!();
 ///
 /// fn main() -&gt; Result&lt;(), Error&gt; {
-///     fatal!(&quot;v1={},v2={}&quot;, 123, &quot;def&quot;)?;
+///     fatal!("v1={},v2={}", 123, "def")?;
 ///
 ///     Ok(())
 /// }
@@ -1288,7 +1289,7 @@
 /// error!();
 ///
 /// fn main() -&gt; Result&lt;(), Error&gt; {
-///     error!(&quot;v1={},v2={}&quot;, 123, &quot;def&quot;)?;
+///     error!("v1={},v2={}", 123, "def")?;
 ///
 ///     Ok(())
 /// }
@@ -1390,7 +1391,7 @@
 /// warn!();
 ///
 /// fn main() -&gt; Result&lt;(), Error&gt; {
-///     warn!(&quot;v1={},v2={}&quot;, 123, &quot;def&quot;)?;
+///     warn!("v1={},v2={}", 123, "def")?;
 ///
 ///     Ok(())
 /// }
@@ -1492,7 +1493,7 @@
 /// info!();
 ///
 /// fn main() -&gt; Result&lt;(), Error&gt; {
-///     info!(&quot;v1={},v2={}&quot;, 123, &quot;def&quot;)?;
+///     info!("v1={},v2={}", 123, "def")?;
 ///
 ///     Ok(())
 /// }
@@ -1595,7 +1596,7 @@
 /// debug!();
 ///
 /// fn main() -&gt; Result&lt;(), Error&gt; {
-///     debug!(&quot;v1={},v2={}&quot;, 123, &quot;def&quot;)?;
+///     debug!("v1={},v2={}", 123, "def")?;
 ///
 ///     Ok(())
 /// }
@@ -1697,7 +1698,7 @@
 /// trace!();
 ///
 /// fn main() -&gt; Result&lt;(), Error&gt; {
-///     trace!(&quot;v1={},v2={}&quot;, 123, &quot;def&quot;)?;
+///     trace!("v1={},v2={}", 123, "def")?;
 ///
 ///     Ok(())
 /// }
@@ -1828,7 +1829,7 @@
         }
 }
 
-<span class="doccomment">/// This macro is called by the [`fatal`], [`error`], [`warn`], [`info`], [`debug`] and [`trace`] macros and the &#39;all&#39; / &#39;plain&#39;
+<span class="doccomment">/// This macro is called by the [`fatal`], [`error`], [`warn`], [`info`], [`debug`] and [`trace`] macros and the 'all' / 'plain'
 /// macros to process logging. Generally those macros should be used in favor of calling this one directly.
 </span><span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>do_log {
@@ -1900,7 +1901,7 @@
                                                         <span class="macro">bmw_err::err!</span>(
                                                             bmw_err::ErrKind::Log,
                                                             <span class="macro">format!</span>(
-                                                                <span class="string">&quot;error initializing log: {}&quot;</span>,
+                                                                <span class="string">"error initializing log: {}"</span>,
                                                                 e
                                                             )
                                                         )
@@ -1957,7 +1958,7 @@
 ///     let v = get_log_option!(LogConfigOptionName::FilePath)?;
 ///     // It should be the default value which is None
 ///     assert_eq!(v, LogConfigOption::FilePath(None));
-///     info!(&quot;file_path={:?}&quot;, v)?;
+///     info!("file_path={:?}", v)?;
 ///
 ///     Ok(())
 /// }
@@ -1971,14 +1972,14 @@
 					<span class="prelude-val">Ok</span>(x) =&gt; <span class="prelude-val">Ok</span>(x.clone()),
 					<span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(
 						bmw_err::ErrKind::Log,
-						<span class="macro">format!</span>(<span class="string">&quot;log get_config_option returned error: {}&quot;</span>, e)
+						<span class="macro">format!</span>(<span class="string">"log get_config_option returned error: {}"</span>, e)
 					)),
 				},
-				<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::Log, <span class="string">&quot;log not initialized&quot;</span>)),
+				<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::Log, <span class="string">"log not initialized"</span>)),
 			},
 			<span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(
 				bmw_err::ErrKind::Poison,
-				<span class="macro">format!</span>(<span class="string">&quot;could not obtain static_log lock: {}&quot;</span>, e)
+				<span class="macro">format!</span>(<span class="string">"could not obtain static_log lock: {}"</span>, e)
 			)),
 		}
 	}};
@@ -1994,11 +1995,11 @@
 		<span class="kw">match </span><span class="macro">bmw_log::lockw!</span>(bmw_log::STATIC_LOG) {
 			<span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>static_log) =&gt; <span class="kw">match </span>(<span class="kw-2">*</span>static_log).as_mut() {
 				<span class="prelude-val">Some</span>(log) =&gt; log.set_config_option(<span class="macro-nonterminal">$option</span>),
-				<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::Log, <span class="string">&quot;log not initialized&quot;</span>)),
+				<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::Log, <span class="string">"log not initialized"</span>)),
 			},
 			<span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(
 				bmw_err::ErrKind::Poison,
-				<span class="macro">format!</span>(<span class="string">&quot;could not obtain static_log lock: {}&quot;</span>, e)
+				<span class="macro">format!</span>(<span class="string">"could not obtain static_log lock: {}"</span>, e)
 			)),
 		}
 	}};
@@ -2023,7 +2024,7 @@
 /// debug!();
 ///
 /// fn main() -&gt; Result&lt;(), Error&gt; {
-///     let main_log_path = &quot;./main.log&quot;;
+///     let main_log_path = "./main.log";
 ///     log_init!(LogConfig {
 ///         show_bt: ShowBt(false),
 ///         show_millis: ShowMillis(false),
@@ -2032,7 +2033,7 @@
 ///         ..Default::default()
 ///     });
 ///
-///     info!(&quot;Startup complete!&quot;)?;
+///     info!("Startup complete!")?;
 ///
 ///     Ok(())
 /// }
@@ -2047,7 +2048,7 @@
 /// debug!();
 ///
 /// fn main() -&gt; Result&lt;(), Error&gt; {
-///     info!(&quot;Startup complete!&quot;)?;
+///     info!("Startup complete!")?;
 ///     
 ///     Ok(())
 /// }
@@ -2064,7 +2065,7 @@
 		<span class="kw">match </span><span class="macro">bmw_log::lockw!</span>(bmw_log::STATIC_LOG) {
 			<span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>static_log) =&gt; {
 				<span class="kw">if </span>(<span class="kw-2">*</span>static_log).is_some() {
-					<span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::Log, <span class="string">&quot;already initialized&quot;</span>))
+					<span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::Log, <span class="string">"already initialized"</span>))
 				} <span class="kw">else </span>{
 					<span class="kw">match </span>bmw_log::LogBuilder::build_send_sync(<span class="macro-nonterminal">$config</span>) {
 						<span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>log) =&gt; {
@@ -2074,14 +2075,14 @@
 						}
 						<span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(
 							bmw_err::ErrKind::Log,
-							<span class="macro">format!</span>(<span class="string">&quot;error building log: {}&quot;</span>, e)
+							<span class="macro">format!</span>(<span class="string">"error building log: {}"</span>, e)
 						)),
 					}
 				}
 			}
 			<span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(
 				bmw_err::ErrKind::Poison,
-				<span class="macro">format!</span>(<span class="string">&quot;could not obtain static logger lock: {}&quot;</span>, e)
+				<span class="macro">format!</span>(<span class="string">"could not obtain static logger lock: {}"</span>, e)
 			)),
 		}
 	};
@@ -2095,11 +2096,11 @@
 		<span class="kw">match </span><span class="macro">bmw_log::lockw!</span>(bmw_log::STATIC_LOG) {
 			<span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>static_log) =&gt; <span class="kw">match </span>(<span class="kw-2">*</span>static_log).as_mut() {
 				<span class="prelude-val">Some</span>(log) =&gt; log.rotate(),
-				<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::Log, <span class="string">&quot;log not initialized&quot;</span>)),
+				<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::Log, <span class="string">"log not initialized"</span>)),
 			},
 			<span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(
 				bmw_err::ErrKind::Poison,
-				<span class="macro">format!</span>(<span class="string">&quot;couldn&#39;t obtain lock for global log: {}&quot;</span>, e)
+				<span class="macro">format!</span>(<span class="string">"couldn't obtain lock for global log: {}"</span>, e)
 			)),
 		}
 	}};
@@ -2113,11 +2114,11 @@
 		<span class="kw">match </span><span class="macro">bmw_log::lockr!</span>(bmw_log::STATIC_LOG) {
 			<span class="prelude-val">Ok</span>(static_log) =&gt; <span class="kw">match </span>(<span class="kw-2">*</span>static_log).as_ref() {
 				<span class="prelude-val">Some</span>(log) =&gt; log.need_rotate(<span class="prelude-val">None</span>),
-				<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::Log, <span class="string">&quot;log not initialized&quot;</span>)),
+				<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::Log, <span class="string">"log not initialized"</span>)),
 			},
 			<span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(
 				bmw_err::ErrKind::Poison,
-				<span class="macro">format!</span>(<span class="string">&quot;couldn&#39;t obtain lock for global log: {}&quot;</span>, e)
+				<span class="macro">format!</span>(<span class="string">"couldn't obtain lock for global log: {}"</span>, e)
 			)),
 		}
 	}};
@@ -2129,7 +2130,7 @@
 	(<span class="macro-nonterminal">$a</span>:expr) =&gt; {{
 		<span class="kw">let </span>res = <span class="macro-nonterminal">$a</span>.write().map_err(|e| {
 			<span class="kw">let </span>error: bmw_err::Error =
-				bmw_err::ErrorKind::Poison(<span class="macro">format!</span>(<span class="string">&quot;Poison Error: {}&quot;</span>, e.to_string())).into();
+				bmw_err::ErrorKind::Poison(<span class="macro">format!</span>(<span class="string">"Poison Error: {}"</span>, e.to_string())).into();
 			error
 		});
 		res
@@ -2142,7 +2143,7 @@
 	(<span class="macro-nonterminal">$a</span>:expr) =&gt; {{
 		<span class="kw">let </span>res = <span class="macro-nonterminal">$a</span>.read().map_err(|e| {
 			<span class="kw">let </span>error: bmw_err::Error =
-				bmw_err::ErrorKind::Poison(<span class="macro">format!</span>(<span class="string">&quot;Poison Error: {}&quot;</span>, e.to_string())).into();
+				bmw_err::ErrorKind::Poison(<span class="macro">format!</span>(<span class="string">"Poison Error: {}"</span>, e.to_string())).into();
 			error
 		});
 
@@ -2200,7 +2201,7 @@
 		<span class="comment">// this will be an error but we ignore for the purposes of this test
 		</span><span class="kw">let _ </span>= jh.join();
 
-		<span class="comment">// try to get the lock here and it&#39;s a poison error
+		<span class="comment">// try to get the lock here and it's a poison error
 		</span><span class="kw">let </span>res = <span class="macro">lockw!</span>(x);
 		<span class="macro">assert!</span>(res.is_err());
 		<span class="kw">let </span>res = <span class="macro">lockr!</span>(x);
@@ -2211,10 +2212,10 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_log_macros_werror() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">&quot;.test_macros.bmw&quot;</span>;
+		<span class="kw">let </span>test_dir = <span class="string">".test_macros.bmw"</span>;
 		setup_test_dir(test_dir)<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">&quot;{}/test.log&quot;</span>, test_dir);
+		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir);
 		<span class="macro">log_init!</span>(LogConfig {
 			file_path: LogConfigOption::FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
 			max_size_bytes: LogConfigOption::MaxSizeBytes(<span class="number">100</span>),
@@ -2224,51 +2225,51 @@
 			..Default::default()
 		})<span class="question-mark">?</span>;
 
-		<span class="macro">trace!</span>(<span class="string">&quot;1&quot;</span>)<span class="question-mark">?</span>;
-		<span class="macro">debug!</span>(<span class="string">&quot;2&quot;</span>)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;3&quot;</span>)<span class="question-mark">?</span>;
-		<span class="macro">warn!</span>(<span class="string">&quot;4&quot;</span>)<span class="question-mark">?</span>;
-		<span class="macro">error!</span>(<span class="string">&quot;5&quot;</span>)<span class="question-mark">?</span>;
-		<span class="macro">fatal!</span>(<span class="string">&quot;6&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">trace!</span>(<span class="string">"1"</span>)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"2"</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"3"</span>)<span class="question-mark">?</span>;
+		<span class="macro">warn!</span>(<span class="string">"4"</span>)<span class="question-mark">?</span>;
+		<span class="macro">error!</span>(<span class="string">"5"</span>)<span class="question-mark">?</span>;
+		<span class="macro">fatal!</span>(<span class="string">"6"</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>contents = read_to_string(log_file.clone())<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(contents.len(), <span class="number">406</span>);
 
 		<span class="macro">set_log_option!</span>(LogConfigOption::ShowMillis(<span class="bool-val">false</span>))<span class="question-mark">?</span>;
 		<span class="kw">let </span>show_millis = <span class="macro">get_log_option!</span>(LogConfigOptionName::ShowMillis)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;show_millis={:?}&quot;</span>, show_millis)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"show_millis={:?}"</span>, show_millis)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(show_millis, LogConfigOption::ShowMillis(<span class="bool-val">false</span>));
 
-		<span class="macro">trace!</span>(<span class="string">&quot;1&quot;</span>)<span class="question-mark">?</span>;
-		<span class="macro">debug!</span>(<span class="string">&quot;2&quot;</span>)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;3&quot;</span>)<span class="question-mark">?</span>;
-		<span class="macro">warn!</span>(<span class="string">&quot;4&quot;</span>)<span class="question-mark">?</span>;
-		<span class="macro">error!</span>(<span class="string">&quot;5&quot;</span>)<span class="question-mark">?</span>;
-		<span class="macro">fatal!</span>(<span class="string">&quot;6&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">trace!</span>(<span class="string">"1"</span>)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"2"</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"3"</span>)<span class="question-mark">?</span>;
+		<span class="macro">warn!</span>(<span class="string">"4"</span>)<span class="question-mark">?</span>;
+		<span class="macro">error!</span>(<span class="string">"5"</span>)<span class="question-mark">?</span>;
+		<span class="macro">fatal!</span>(<span class="string">"6"</span>)<span class="question-mark">?</span>;
 
-		<span class="macro">trace_plain!</span>(<span class="string">&quot;1&quot;</span>)<span class="question-mark">?</span>;
-		<span class="macro">debug_plain!</span>(<span class="string">&quot;2&quot;</span>)<span class="question-mark">?</span>;
-		<span class="macro">info_plain!</span>(<span class="string">&quot;3&quot;</span>)<span class="question-mark">?</span>;
-		<span class="macro">warn_plain!</span>(<span class="string">&quot;4&quot;</span>)<span class="question-mark">?</span>;
-		<span class="macro">error_plain!</span>(<span class="string">&quot;5&quot;</span>)<span class="question-mark">?</span>;
-		<span class="macro">fatal_plain!</span>(<span class="string">&quot;6&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">trace_plain!</span>(<span class="string">"1"</span>)<span class="question-mark">?</span>;
+		<span class="macro">debug_plain!</span>(<span class="string">"2"</span>)<span class="question-mark">?</span>;
+		<span class="macro">info_plain!</span>(<span class="string">"3"</span>)<span class="question-mark">?</span>;
+		<span class="macro">warn_plain!</span>(<span class="string">"4"</span>)<span class="question-mark">?</span>;
+		<span class="macro">error_plain!</span>(<span class="string">"5"</span>)<span class="question-mark">?</span>;
+		<span class="macro">fatal_plain!</span>(<span class="string">"6"</span>)<span class="question-mark">?</span>;
 
-		<span class="macro">trace_all!</span>(<span class="string">&quot;1&quot;</span>)<span class="question-mark">?</span>;
-		<span class="macro">debug_all!</span>(<span class="string">&quot;2&quot;</span>)<span class="question-mark">?</span>;
-		<span class="macro">info_all!</span>(<span class="string">&quot;3&quot;</span>)<span class="question-mark">?</span>;
-		<span class="macro">warn_all!</span>(<span class="string">&quot;4&quot;</span>)<span class="question-mark">?</span>;
-		<span class="macro">error_all!</span>(<span class="string">&quot;5&quot;</span>)<span class="question-mark">?</span>;
-		<span class="macro">fatal_all!</span>(<span class="string">&quot;6&quot;</span>)<span class="question-mark">?</span>;
+		<span class="macro">trace_all!</span>(<span class="string">"1"</span>)<span class="question-mark">?</span>;
+		<span class="macro">debug_all!</span>(<span class="string">"2"</span>)<span class="question-mark">?</span>;
+		<span class="macro">info_all!</span>(<span class="string">"3"</span>)<span class="question-mark">?</span>;
+		<span class="macro">warn_all!</span>(<span class="string">"4"</span>)<span class="question-mark">?</span>;
+		<span class="macro">error_all!</span>(<span class="string">"5"</span>)<span class="question-mark">?</span>;
+		<span class="macro">fatal_all!</span>(<span class="string">"6"</span>)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>need_rotate = <span class="macro">need_rotate!</span>()<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;need_rotate={}&quot;</span>, need_rotate)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"need_rotate={}"</span>, need_rotate)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(need_rotate, <span class="bool-val">true</span>);
 		<span class="macro">log_rotate!</span>()<span class="question-mark">?</span>;
 		<span class="kw">let </span>need_rotate = <span class="macro">need_rotate!</span>()<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(need_rotate, <span class="bool-val">false</span>);
 
 		<span class="kw">let </span>recursive = Recursive {};
-		<span class="macro">info_all!</span>(<span class="string">&quot;{:?}&quot;</span>, recursive)<span class="question-mark">?</span>;
-		<span class="macro">info_all!</span>(<span class="string">&quot;another {:?}&quot;</span>, recursive)<span class="question-mark">?</span>;
+		<span class="macro">info_all!</span>(<span class="string">"{:?}"</span>, recursive)<span class="question-mark">?</span>;
+		<span class="macro">info_all!</span>(<span class="string">"another {:?}"</span>, recursive)<span class="question-mark">?</span>;
 
 		test_log_macros_expect();
 
@@ -2277,37 +2278,37 @@
 	}
 
 	<span class="kw">fn </span>test_log_macros_expect() {
-		<span class="macro">trace!</span>(<span class="string">&quot;1&quot;</span>).expect(<span class="string">&quot;&quot;</span>);
-		<span class="macro">debug!</span>(<span class="string">&quot;2&quot;</span>).expect(<span class="string">&quot;&quot;</span>);
-		<span class="macro">info!</span>(<span class="string">&quot;3&quot;</span>).expect(<span class="string">&quot;&quot;</span>);
-		<span class="macro">warn!</span>(<span class="string">&quot;4&quot;</span>).expect(<span class="string">&quot;&quot;</span>);
-		<span class="macro">error!</span>(<span class="string">&quot;5&quot;</span>).expect(<span class="string">&quot;&quot;</span>);
-		<span class="macro">fatal!</span>(<span class="string">&quot;6&quot;</span>).expect(<span class="string">&quot;&quot;</span>);
+		<span class="macro">trace!</span>(<span class="string">"1"</span>).expect(<span class="string">""</span>);
+		<span class="macro">debug!</span>(<span class="string">"2"</span>).expect(<span class="string">""</span>);
+		<span class="macro">info!</span>(<span class="string">"3"</span>).expect(<span class="string">""</span>);
+		<span class="macro">warn!</span>(<span class="string">"4"</span>).expect(<span class="string">""</span>);
+		<span class="macro">error!</span>(<span class="string">"5"</span>).expect(<span class="string">""</span>);
+		<span class="macro">fatal!</span>(<span class="string">"6"</span>).expect(<span class="string">""</span>);
 
-		<span class="macro">set_log_option!</span>(LogConfigOption::ShowMillis(<span class="bool-val">false</span>)).expect(<span class="string">&quot;&quot;</span>);
-		<span class="kw">let </span>show_millis = <span class="macro">get_log_option!</span>(LogConfigOptionName::ShowMillis).expect(<span class="string">&quot;&quot;</span>);
+		<span class="macro">set_log_option!</span>(LogConfigOption::ShowMillis(<span class="bool-val">false</span>)).expect(<span class="string">""</span>);
+		<span class="kw">let </span>show_millis = <span class="macro">get_log_option!</span>(LogConfigOptionName::ShowMillis).expect(<span class="string">""</span>);
 		<span class="macro">assert_eq!</span>(show_millis, LogConfigOption::ShowMillis(<span class="bool-val">false</span>));
 
-		<span class="macro">trace!</span>(<span class="string">&quot;1&quot;</span>).expect(<span class="string">&quot;&quot;</span>);
-		<span class="macro">debug!</span>(<span class="string">&quot;2&quot;</span>).expect(<span class="string">&quot;&quot;</span>);
-		<span class="macro">info!</span>(<span class="string">&quot;3&quot;</span>).expect(<span class="string">&quot;&quot;</span>);
-		<span class="macro">warn!</span>(<span class="string">&quot;4&quot;</span>).expect(<span class="string">&quot;&quot;</span>);
-		<span class="macro">error!</span>(<span class="string">&quot;5&quot;</span>).expect(<span class="string">&quot;&quot;</span>);
-		<span class="macro">fatal!</span>(<span class="string">&quot;6&quot;</span>).expect(<span class="string">&quot;&quot;</span>);
+		<span class="macro">trace!</span>(<span class="string">"1"</span>).expect(<span class="string">""</span>);
+		<span class="macro">debug!</span>(<span class="string">"2"</span>).expect(<span class="string">""</span>);
+		<span class="macro">info!</span>(<span class="string">"3"</span>).expect(<span class="string">""</span>);
+		<span class="macro">warn!</span>(<span class="string">"4"</span>).expect(<span class="string">""</span>);
+		<span class="macro">error!</span>(<span class="string">"5"</span>).expect(<span class="string">""</span>);
+		<span class="macro">fatal!</span>(<span class="string">"6"</span>).expect(<span class="string">""</span>);
 
-		<span class="kw">let </span>need_rotate = <span class="macro">need_rotate!</span>().expect(<span class="string">&quot;&quot;</span>);
-		<span class="macro">info!</span>(<span class="string">&quot;need_rotate={}&quot;</span>, need_rotate).expect(<span class="string">&quot;&quot;</span>);
-		<span class="macro">log_rotate!</span>().expect(<span class="string">&quot;&quot;</span>);
-		<span class="macro">need_rotate!</span>().expect(<span class="string">&quot;&quot;</span>);
+		<span class="kw">let </span>need_rotate = <span class="macro">need_rotate!</span>().expect(<span class="string">""</span>);
+		<span class="macro">info!</span>(<span class="string">"need_rotate={}"</span>, need_rotate).expect(<span class="string">""</span>);
+		<span class="macro">log_rotate!</span>().expect(<span class="string">""</span>);
+		<span class="macro">need_rotate!</span>().expect(<span class="string">""</span>);
 	}
 	<span class="kw">struct </span>Recursive {}
 
 	<span class="kw">impl </span>Debug <span class="kw">for </span>Recursive {
-		<span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), std::fmt::Error&gt; {
-			<span class="kw">let _ </span>= <span class="macro">info!</span>(<span class="string">&quot;test {}&quot;</span>, <span class="string">&quot;ok&quot;</span>);
-			<span class="kw">let _ </span>= <span class="macro">info_all!</span>(<span class="string">&quot;test all {}&quot;</span>, <span class="string">&quot;ok&quot;</span>);
-			<span class="kw">let _ </span>= <span class="macro">info_plain!</span>(<span class="string">&quot;test plain {}&quot;</span>, <span class="string">&quot;ok&quot;</span>);
-			<span class="macro">write!</span>(f, <span class="string">&quot;done&quot;</span>)<span class="question-mark">?</span>;
+		<span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), std::fmt::Error&gt; {
+			<span class="kw">let _ </span>= <span class="macro">info!</span>(<span class="string">"test {}"</span>, <span class="string">"ok"</span>);
+			<span class="kw">let _ </span>= <span class="macro">info_all!</span>(<span class="string">"test all {}"</span>, <span class="string">"ok"</span>);
+			<span class="kw">let _ </span>= <span class="macro">info_plain!</span>(<span class="string">"test plain {}"</span>, <span class="string">"ok"</span>);
+			<span class="macro">write!</span>(f, <span class="string">"done"</span>)<span class="question-mark">?</span>;
 			<span class="prelude-val">Ok</span>(())
 		}
 	}

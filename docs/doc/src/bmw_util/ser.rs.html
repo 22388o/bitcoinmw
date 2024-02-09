@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/ser.rs`."><title>ser.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/ser.rs`."><title>ser.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1446,13 +1447,13 @@
 // * Arti: https://gitlab.torproject.org/tpo/core/arti
 // * BitcoinMW: https://github.com/bitcoinmw/bitcoinmw
 //
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -1477,7 +1478,7 @@
 
 <span class="macro">info!</span>();
 
-<span class="kw">impl </span>Serializable <span class="kw">for </span>ConfigOption&lt;<span class="lifetime">&#39;_</span>&gt; {
+<span class="kw">impl </span>Serializable <span class="kw">for </span>ConfigOption&lt;<span class="lifetime">'_</span>&gt; {
 	<span class="comment">// fully covered, but the wildcard match not counted by tarpaulin
 	</span><span class="attr">#[cfg(not(tarpaulin_include))]
 	</span><span class="kw">fn </span>read&lt;R: Reader&gt;(reader: <span class="kw-2">&amp;mut </span>R) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
@@ -1490,7 +1491,7 @@
 			<span class="number">5 </span>=&gt; <span class="prelude-val">Ok</span>(MaxSize(reader.read_usize()<span class="question-mark">?</span>)),
 			<span class="number">6 </span>=&gt; <span class="prelude-val">Ok</span>(SyncChannelSize(reader.read_usize()<span class="question-mark">?</span>)),
 			<span class="kw">_ </span>=&gt; {
-				<span class="kw">let </span>fmt = <span class="string">&quot;invalid type for config option!&quot;</span>;
+				<span class="kw">let </span>fmt = <span class="string">"invalid type for config option!"</span>;
 				<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::CorruptedData, fmt);
 				<span class="prelude-val">Err</span>(e)
 			}
@@ -1530,7 +1531,7 @@
 				writer.write_usize(<span class="kw-2">*</span>scs)<span class="question-mark">?</span>;
 			}
 			Slabs(<span class="kw">_</span>) =&gt; {
-				<span class="kw">let </span>fmt = <span class="string">&quot;can&#39;t serialize slab allocator&quot;</span>;
+				<span class="kw">let </span>fmt = <span class="string">"can't serialize slab allocator"</span>;
 				<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::OperationNotSupported, fmt);
 				<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 			}
@@ -1560,7 +1561,7 @@
 		}
 
 		<span class="kw">if </span>a.is_none() {
-			<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::CorruptedData, <span class="string">&quot;size of array cannot be 0&quot;</span>);
+			<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::CorruptedData, <span class="string">"size of array cannot be 0"</span>);
 			<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 		}
 
@@ -1568,7 +1569,7 @@
 	}
 }
 
-<span class="kw">impl</span>&lt;S: Serializable + PartialEq + Debug + Clone + <span class="lifetime">&#39;static</span>&gt; Serializable
+<span class="kw">impl</span>&lt;S: Serializable + PartialEq + Debug + Clone + <span class="lifetime">'static</span>&gt; Serializable
 	<span class="kw">for </span>Box&lt;<span class="kw">dyn </span>SortableList&lt;S&gt;&gt;
 {
 	<span class="kw">fn </span>write&lt;W: Writer&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, writer: <span class="kw-2">&amp;mut </span>W) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
@@ -1591,7 +1592,7 @@
 
 <span class="kw">impl</span>&lt;K, V&gt; Serializable <span class="kw">for </span>Box&lt;<span class="kw">dyn </span>Hashtable&lt;K, V&gt;&gt;
 <span class="kw">where
-	</span>K: Serializable + Clone + Debug + PartialEq + Hash + <span class="lifetime">&#39;static</span>,
+	</span>K: Serializable + Clone + Debug + PartialEq + Hash + <span class="lifetime">'static</span>,
 	V: Serializable + Clone,
 {
 	<span class="kw">fn </span>write&lt;W: Writer&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, writer: <span class="kw-2">&amp;mut </span>W) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
@@ -1626,7 +1627,7 @@
 
 <span class="kw">impl</span>&lt;K&gt; Serializable <span class="kw">for </span>Box&lt;<span class="kw">dyn </span>Hashset&lt;K&gt;&gt;
 <span class="kw">where
-	</span>K: Serializable + Clone + Debug + PartialEq + Hash + <span class="lifetime">&#39;static</span>,
+	</span>K: Serializable + Clone + Debug + PartialEq + Hash + <span class="lifetime">'static</span>,
 {
 	<span class="kw">fn </span>write&lt;W: Writer&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, writer: <span class="kw-2">&amp;mut </span>W) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		writer.write_usize(<span class="self">self</span>.max_entries())<span class="question-mark">?</span>;
@@ -1685,7 +1686,7 @@
 		slab_id: usize,
 		slab_ptr_size: <span class="prelude-ty">Option</span>&lt;usize&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
-		<span class="macro">debug!</span>(<span class="string">&quot;new with slab_id = {}&quot;</span>, slab_id)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"new with slab_id = {}"</span>, slab_id)<span class="question-mark">?</span>;
 		<span class="kw">let </span>(slab_size, slab_count) = <span class="kw">match </span>slabs {
 			<span class="prelude-val">Some</span>(<span class="kw-2">ref </span>slabs) =&gt; {
 				<span class="kw">let </span>slabs: Ref&lt;<span class="kw">_</span>&gt; = slabs.borrow();
@@ -1697,10 +1698,10 @@
 					<span class="bool-val">true </span>=&gt; slabs.slab_size()<span class="question-mark">?</span>,
 					<span class="bool-val">false </span>=&gt; {
 						<span class="kw">let </span>th = thread::current();
-						<span class="kw">let </span>n = th.name().unwrap_or(<span class="string">&quot;unknown&quot;</span>);
+						<span class="kw">let </span>n = th.name().unwrap_or(<span class="string">"unknown"</span>);
 						<span class="macro">warn!</span>(
-							<span class="string">&quot;Slab allocator was not initialized for thread &#39;{}&#39;. {}&quot;</span>,
-							n, <span class="string">&quot;Initializing with default values.&quot;</span>,
+							<span class="string">"Slab allocator was not initialized for thread '{}'. {}"</span>,
+							n, <span class="string">"Initializing with default values."</span>,
 						)<span class="question-mark">?</span>;
 						slabs.init(SlabAllocatorConfig::default())<span class="question-mark">?</span>;
 						slabs.slab_size()<span class="question-mark">?
@@ -1726,7 +1727,7 @@
 				ptr_size
 			}
 		};
-		<span class="macro">debug!</span>(<span class="string">&quot;slab_ptr_size={}&quot;</span>, slab_ptr_size)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"slab_ptr_size={}"</span>, slab_ptr_size)<span class="question-mark">?</span>;
 		<span class="kw">let </span>bytes_per_slab = slab_size.saturating_sub(slab_ptr_size);
 
 		<span class="kw">let </span>ret = <span class="self">Self </span>{
@@ -1787,7 +1788,7 @@
 					<span class="kw">let </span><span class="kw-2">mut </span>slab_mut = slabs.get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>;
 
 					<span class="macro">debug!</span>(
-						<span class="string">&quot;bytes.len={},self.offset={},wlen={},slab_size={}&quot;</span>,
+						<span class="string">"bytes.len={},self.offset={},wlen={},slab_size={}"</span>,
 						bytes.len(),
 						<span class="self">self</span>.offset,
 						wlen,
@@ -1823,7 +1824,7 @@
 		<span class="kw">let </span>skip = count.is_some();
 
 		<span class="macro">debug!</span>(
-			<span class="string">&quot;+++++++++++++++++ do_write_fixed_bytes_impl bytes={:?},count={:?},slab_id={},offset={}&quot;</span>,
+			<span class="string">"+++++++++++++++++ do_write_fixed_bytes_impl bytes={:?},count={:?},slab_id={},offset={}"</span>,
 			bytes, count, <span class="self">self</span>.slab_id, <span class="self">self</span>.offset
 		)<span class="question-mark">?</span>;
 
@@ -1840,7 +1841,7 @@
 
 		<span class="kw">loop </span>{
 			<span class="macro">debug!</span>(
-				<span class="string">&quot;loop with bytes_offset={},bytes_len={},self.offset={},slab_id={},self.bytes_per_slab={},slab_size={}&quot;</span>,
+				<span class="string">"loop with bytes_offset={},bytes_len={},self.offset={},slab_id={},self.bytes_per_slab={},slab_size={}"</span>,
 				bytes_offset, bytes_len, <span class="self">self</span>.offset, <span class="self">self</span>.slab_id, <span class="self">self</span>.bytes_per_slab, <span class="self">self</span>.slab_size,
 			)<span class="question-mark">?</span>;
 			<span class="kw">if </span>bytes_offset &gt;= bytes_len {
@@ -1849,7 +1850,7 @@
 
 			<span class="kw">if </span><span class="self">self</span>.offset &gt;= <span class="self">self</span>.bytes_per_slab {
 				<span class="macro">debug!</span>(
-					<span class="string">&quot;need to allocate a new slab bytes_offset={}, bytes_len={}&quot;</span>,
+					<span class="string">"need to allocate a new slab bytes_offset={}, bytes_len={}"</span>,
 					bytes_offset, bytes_len
 				)<span class="question-mark">?</span>;
 				<span class="comment">// we need to allocate another slab
@@ -1864,7 +1865,7 @@
 				skip,
 				<span class="kw-2">&amp;mut </span>slabs,
 			)<span class="question-mark">?</span>;
-			<span class="macro">debug!</span>(<span class="string">&quot;wlen = {}&quot;</span>, wlen)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"wlen = {}"</span>, wlen)<span class="question-mark">?</span>;
 			bytes_offset += wlen;
 			<span class="self">self</span>.offset += wlen;
 		}
@@ -1918,14 +1919,14 @@
 				<span class="prelude-val">Some</span>(slabs) =&gt; {
 					<span class="kw">let </span><span class="kw-2">mut </span>slab = slabs.get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>;
 					<span class="kw">let </span>prev = <span class="kw-2">&amp;mut </span>slab.get_mut()[<span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size];
-					<span class="macro">debug!</span>(<span class="string">&quot;writing pointer to {} -&gt; {}&quot;</span>, <span class="self">self</span>.slab_id, new_id)<span class="question-mark">?</span>;
+					<span class="macro">debug!</span>(<span class="string">"writing pointer to {} -&gt; {}"</span>, <span class="self">self</span>.slab_id, new_id)<span class="question-mark">?</span>;
 					usize_to_slice(new_id, prev)<span class="question-mark">?</span>;
 				}
 				<span class="prelude-val">None </span>=&gt; GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 					<span class="kw">let </span>slabs = <span class="kw">unsafe </span>{ f.get().as_mut().unwrap() };
 					<span class="kw">let </span><span class="kw-2">mut </span>slab = slabs.get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>;
 					<span class="kw">let </span>prev = <span class="kw-2">&amp;mut </span>slab.get_mut()[<span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size];
-					<span class="macro">debug!</span>(<span class="string">&quot;writing pointer to {} -&gt; {}&quot;</span>, <span class="self">self</span>.slab_id, new_id)<span class="question-mark">?</span>;
+					<span class="macro">debug!</span>(<span class="string">"writing pointer to {} -&gt; {}"</span>, <span class="self">self</span>.slab_id, new_id)<span class="question-mark">?</span>;
 					usize_to_slice(new_id, prev)<span class="question-mark">?</span>;
 					<span class="prelude-val">Ok</span>(())
 				})<span class="question-mark">?</span>,
@@ -1941,7 +1942,7 @@
 }
 
 <span class="kw">impl </span>Writer <span class="kw">for </span>SlabWriter {
-	<span class="kw">fn </span>write_fixed_bytes&lt;<span class="lifetime">&#39;a</span>, T: AsRef&lt;[u8]&gt;&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, bytes: T) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">fn </span>write_fixed_bytes&lt;<span class="lifetime">'a</span>, T: AsRef&lt;[u8]&gt;&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, bytes: T) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.slabs {
 			<span class="prelude-val">Some</span>(slabs) =&gt; {
 				<span class="kw">let </span>slabs = slabs.clone();
@@ -1953,7 +1954,7 @@
 	}
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; SlabReader {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; SlabReader {
 	<span class="comment">// only the break line is reported as uncovered, but it is covered
 	</span><span class="attr">#[cfg(not(tarpaulin_include))]
 	</span><span class="kw">pub fn </span>new(
@@ -1972,9 +1973,9 @@
 					<span class="bool-val">true </span>=&gt; slabs.slab_size()<span class="question-mark">?</span>,
 					<span class="bool-val">false </span>=&gt; {
 						<span class="kw">let </span>th = thread::current();
-						<span class="kw">let </span>n = th.name().unwrap_or(<span class="string">&quot;unknown&quot;</span>);
-						<span class="kw">let </span>m = <span class="string">&quot;Initializing with default values.&quot;</span>;
-						<span class="macro">warn!</span>(<span class="string">&quot;Allocator was not initialized for thread &#39;{}&#39;. {}&quot;</span>, n, m)<span class="question-mark">?</span>;
+						<span class="kw">let </span>n = th.name().unwrap_or(<span class="string">"unknown"</span>);
+						<span class="kw">let </span>m = <span class="string">"Initializing with default values."</span>;
+						<span class="macro">warn!</span>(<span class="string">"Allocator was not initialized for thread '{}'. {}"</span>, n, m)<span class="question-mark">?</span>;
 						slabs.init(SlabAllocatorConfig::default())<span class="question-mark">?</span>;
 						slabs.slab_size()<span class="question-mark">?
 					</span>}
@@ -2079,13 +2080,13 @@
 	}
 
 	<span class="kw">pub fn </span>do_read_exact(<span class="kw-2">&amp;mut </span><span class="self">self</span>, buf: <span class="kw-2">&amp;mut </span>[u8], count: <span class="prelude-ty">Option</span>&lt;usize&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">debug!</span>(<span class="string">&quot;do read exact {:?},buf.len={}&quot;</span>, count, buf.len())<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"do read exact {:?},buf.len={}"</span>, count, buf.len())<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>buf_offset = <span class="number">0</span>;
 		<span class="kw">let </span>buf_len = <span class="kw">match </span>count {
 			<span class="prelude-val">Some</span>(count) =&gt; count,
 			<span class="prelude-val">None </span>=&gt; buf.len(),
 		};
-		<span class="macro">debug!</span>(<span class="string">&quot;buflen={}&quot;</span>, buf_len)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"buflen={}"</span>, buf_len)<span class="question-mark">?</span>;
 		<span class="kw">loop </span>{
 			<span class="kw">if </span>buf_offset &gt;= buf_len {
 				<span class="kw">break</span>;
@@ -2099,7 +2100,7 @@
 					<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 						ErrKind::IO,
 						<span class="macro">format!</span>(
-							<span class="string">&quot;failed to fill whole buffer next={}, self.max_value={}&quot;</span>,
+							<span class="string">"failed to fill whole buffer next={}, self.max_value={}"</span>,
 							next, <span class="self">self</span>.max_value
 						)
 					));
@@ -2112,7 +2113,7 @@
 				rlen = buf_rem;
 			}
 
-			<span class="macro">debug!</span>(<span class="string">&quot;read exact rln={}&quot;</span>, rlen)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"read exact rln={}"</span>, rlen)<span class="question-mark">?</span>;
 
 			<span class="kw">let </span>b = <span class="kw">if </span>count.is_some() {
 				<span class="kw-2">&amp;mut </span>[<span class="number">0</span>; <span class="number">0usize</span>]
@@ -2121,9 +2122,9 @@
 			};
 
 			<span class="self">self</span>.read_bytes(<span class="self">self</span>.slab_id, <span class="self">self</span>.offset, rlen, b, count.is_some())<span class="question-mark">?</span>;
-			<span class="macro">debug!</span>(<span class="string">&quot;buf[first]={}&quot;</span>, buf[buf_offset])<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"buf[first]={}"</span>, buf[buf_offset])<span class="question-mark">?</span>;
 			buf_offset += rlen;
-			<span class="macro">debug!</span>(<span class="string">&quot;buf_offset={}&quot;</span>, buf_offset)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"buf_offset={}"</span>, buf_offset)<span class="question-mark">?</span>;
 			<span class="self">self</span>.offset += rlen;
 		}
 
@@ -2199,34 +2200,34 @@
 		<span class="kw">if </span>b == val {
 			<span class="prelude-val">Ok</span>(b)
 		} <span class="kw">else </span>{
-			<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">&quot;expected: {:?}, received: {:?}&quot;</span>, val, b);
+			<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">"expected: {:?}, received: {:?}"</span>, val, b);
 			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::CorruptedData, fmt))
 		}
 	}
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; BinWriter&lt;<span class="lifetime">&#39;a</span>&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; BinWriter&lt;<span class="lifetime">'a</span>&gt; {
 	<span class="doccomment">/// Wraps a standard Write in a new BinWriter
-	</span><span class="kw">pub fn </span>new(sink: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span><span class="kw">dyn </span>Write) -&gt; BinWriter&lt;<span class="lifetime">&#39;a</span>&gt; {
+	</span><span class="kw">pub fn </span>new(sink: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="kw">dyn </span>Write) -&gt; BinWriter&lt;<span class="lifetime">'a</span>&gt; {
 		BinWriter { sink }
 	}
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; Writer <span class="kw">for </span>BinWriter&lt;<span class="lifetime">&#39;a</span>&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; Writer <span class="kw">for </span>BinWriter&lt;<span class="lifetime">'a</span>&gt; {
 	<span class="kw">fn </span>write_fixed_bytes&lt;T: AsRef&lt;[u8]&gt;&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, bytes: T) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.sink.write_all(bytes.as_ref())<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, R: Read&gt; BinReader&lt;<span class="lifetime">&#39;a</span>, R&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, R: Read&gt; BinReader&lt;<span class="lifetime">'a</span>, R&gt; {
 	<span class="doccomment">/// Constructor for a new BinReader for the provided source
-	</span><span class="kw">pub fn </span>new(source: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>R) -&gt; <span class="self">Self </span>{
+	</span><span class="kw">pub fn </span>new(source: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>R) -&gt; <span class="self">Self </span>{
 		BinReader { source }
 	}
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, R: Read&gt; Reader <span class="kw">for </span>BinReader&lt;<span class="lifetime">&#39;a</span>, R&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, R: Read&gt; Reader <span class="kw">for </span>BinReader&lt;<span class="lifetime">'a</span>, R&gt; {
 	<span class="kw">fn </span>read_u8(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u8, Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>b = [<span class="number">0u8</span>; <span class="number">1</span>];
 		<span class="self">self</span>.source.read_exact(<span class="kw-2">&amp;mut </span>b)<span class="question-mark">?</span>;
@@ -2294,7 +2295,7 @@
 		<span class="kw">if </span>b == val {
 			<span class="prelude-val">Ok</span>(b)
 		} <span class="kw">else </span>{
-			<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">&quot;expected: {:?}, received: {:?}&quot;</span>, val, b);
+			<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">"expected: {:?}, received: {:?}"</span>, val, b);
 			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::CorruptedData, fmt))
 		}
 	}
@@ -2511,7 +2512,7 @@
 		ser_helper(ser_out)<span class="question-mark">?</span>;
 		ser_helper(())<span class="question-mark">?</span>;
 		ser_helper((rand::random::&lt;u32&gt;(), rand::random::&lt;i128&gt;()))<span class="question-mark">?</span>;
-		ser_helper((<span class="string">&quot;hi there&quot;</span>.to_string(), <span class="number">123</span>))<span class="question-mark">?</span>;
+		ser_helper((<span class="string">"hi there"</span>.to_string(), <span class="number">123</span>))<span class="question-mark">?</span>;
 		<span class="kw">let </span>x = [<span class="number">3u8</span>; <span class="number">8</span>];
 		ser_helper(x)<span class="question-mark">?</span>;
 
@@ -2533,7 +2534,7 @@
 		<span class="kw">let </span>ser_in: <span class="prelude-ty">Result</span>&lt;SerErr, Error&gt; = deserialize(<span class="kw-2">&amp;mut &amp;</span>v[..]);
 		<span class="macro">assert!</span>(ser_in.is_err());
 
-		<span class="kw">let </span>v = <span class="macro">vec!</span>[<span class="string">&quot;test1&quot;</span>.to_string(), <span class="string">&quot;a&quot;</span>.to_string(), <span class="string">&quot;okokok&quot;</span>.to_string()];
+		<span class="kw">let </span>v = <span class="macro">vec!</span>[<span class="string">"test1"</span>.to_string(), <span class="string">"a"</span>.to_string(), <span class="string">"okokok"</span>.to_string()];
 		ser_helper(v)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>hashtable = <span class="macro">hashtable_box!</span>(MaxEntries(<span class="number">123</span>), MaxLoadFactor(<span class="number">0.5</span>))<span class="question-mark">?</span>;
@@ -2623,7 +2624,7 @@
 
 		<span class="kw">let </span><span class="kw-2">mut </span>v = <span class="macro">vec!</span>[];
 		v.resize(<span class="number">1024 </span>* <span class="number">2</span>, <span class="number">0u8</span>);
-		<span class="comment">// we can&#39;t read anymore
+		<span class="comment">// we can't read anymore
 		</span><span class="macro">assert!</span>(slab_reader.read_fixed_bytes(<span class="kw-2">&amp;mut </span>v).is_err());
 
 		<span class="prelude-val">Ok</span>(())
@@ -2653,7 +2654,7 @@
 
 		<span class="kw">let </span><span class="kw-2">mut </span>v = <span class="macro">vec!</span>[];
 		v.resize(<span class="number">1024 </span>* <span class="number">2</span>, <span class="number">0u8</span>);
-		<span class="comment">// we can&#39;t read anymore
+		<span class="comment">// we can't read anymore
 		</span><span class="macro">assert!</span>(slab_reader.read_fixed_bytes(<span class="kw-2">&amp;mut </span>v).is_err());
 
 		<span class="prelude-val">Ok</span>(())
@@ -2727,7 +2728,7 @@
 		<span class="kw">let </span>free_count1 = GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
 			<span class="prelude-val">Ok</span>(<span class="kw">unsafe </span>{ f.get().as_ref().unwrap().free_count()<span class="question-mark">? </span>})
 		})<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;free_count={}&quot;</span>, free_count1)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"free_count={}"</span>, free_count1)<span class="question-mark">?</span>;
 
 		{
 			<span class="kw">let </span>slabid = {
@@ -2756,7 +2757,7 @@
 		<span class="kw">let </span>free_count2 = GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
 			<span class="prelude-val">Ok</span>(<span class="kw">unsafe </span>{ f.get().as_ref().unwrap().free_count()<span class="question-mark">? </span>})
 		})<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">&quot;free_count={}&quot;</span>, free_count2)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"free_count={}"</span>, free_count2)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(free_count1, free_count2);
 
 		<span class="prelude-val">Ok</span>(())
