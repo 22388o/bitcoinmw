@@ -468,6 +468,8 @@
 <a href="#467" id="467">467</a>
 <a href="#468" id="468">468</a>
 <a href="#469" id="469">469</a>
+<a href="#470" id="470">470</a>
+<a href="#471" id="471">471</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -605,10 +607,11 @@
 				<span class="self">self</span>.free_count += <span class="number">1</span>;
 				<span class="prelude-val">Ok</span>(())
 			}
-			<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(
-				ErrKind::IllegalState,
-				<span class="string">"slab allocator has not been initialized"
-			</span>)),
+			<span class="prelude-val">None </span>=&gt; {
+				<span class="kw">let </span>text = <span class="string">"slab allocator has not been initialized"</span>;
+				<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::IllegalState, text);
+				<span class="prelude-val">Err</span>(e)
+			}
 		}
 	}
 	<span class="kw">fn </span>get&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>, id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;Slab&lt;<span class="lifetime">'a</span>&gt;, Error&gt; {
@@ -657,10 +660,11 @@
 		<span class="macro">debug!</span>(<span class="string">"slab_size:self.config={:?}"</span>, <span class="self">self</span>.config)<span class="question-mark">?</span>;
 		<span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.config {
 			<span class="prelude-val">Some</span>(config) =&gt; <span class="prelude-val">Ok</span>(config.slab_size),
-			<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(
-				ErrKind::IllegalState,
-				<span class="string">"slab allocator has not been initialized"
-			</span>)),
+			<span class="prelude-val">None </span>=&gt; {
+				<span class="kw">let </span>text = <span class="string">"slab allocator has not been initialized"</span>;
+				<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::IllegalState, text);
+				<span class="prelude-val">Err</span>(e)
+			}
 		}
 	}
 
@@ -668,31 +672,31 @@
 		<span class="macro">debug!</span>(<span class="string">"slab_size:self.config={:?}"</span>, <span class="self">self</span>.config)<span class="question-mark">?</span>;
 		<span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.config {
 			<span class="prelude-val">Some</span>(config) =&gt; <span class="prelude-val">Ok</span>(config.slab_count),
-			<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(
-				ErrKind::IllegalState,
-				<span class="string">"slab allocator has not been initialized"
-			</span>)),
+			<span class="prelude-val">None </span>=&gt; {
+				<span class="kw">let </span>text = <span class="string">"slab allocator has not been initialized"</span>;
+				<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::IllegalState, text);
+				<span class="prelude-val">Err</span>(e)
+			}
 		}
 	}
 
 	<span class="kw">fn </span>init(<span class="kw-2">&amp;mut </span><span class="self">self</span>, config: SlabAllocatorConfig) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.config {
-			<span class="prelude-val">Some</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(
-				ErrKind::IllegalState,
-				<span class="string">"slab allocator has already been initialized"
-			</span>)),
+			<span class="prelude-val">Some</span>(<span class="kw">_</span>) =&gt; {
+				<span class="kw">let </span>text = <span class="string">"slab allocator has already been initialized"</span>;
+				<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::IllegalState, text);
+				<span class="prelude-val">Err</span>(e)
+			}
 			<span class="prelude-val">None </span>=&gt; {
 				<span class="kw">if </span>config.slab_size &lt; <span class="number">8 </span>{
-					<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
-						ErrKind::IllegalArgument,
-						<span class="string">"slab_size must be at least 8 bytes"
-					</span>));
+					<span class="kw">let </span>text = <span class="string">"slab_size must be at least 8 bytes"</span>;
+					<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::IllegalArgument, text);
+					<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 				}
 				<span class="kw">if </span>config.slab_count == <span class="number">0 </span>{
-					<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
-						ErrKind::IllegalArgument,
-						<span class="string">"slab_count must be greater than 0"
-					</span>));
+					<span class="kw">let </span>text = <span class="string">"slab_count must be greater than 0"</span>;
+					<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::IllegalArgument, text);
+					<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 				}
 
 				<span class="comment">// build data array

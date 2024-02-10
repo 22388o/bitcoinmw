@@ -775,6 +775,8 @@
 <a href="#774" id="774">774</a>
 <a href="#775" id="775">775</a>
 <a href="#776" id="776">776</a>
+<a href="#777" id="777">777</a>
+<a href="#778" id="778">778</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1428,6 +1430,8 @@
 		<span class="macro">assert_eq!</span>(nmatch.start(), <span class="number">0</span>);
 		<span class="macro">assert_eq!</span>(nmatch.end(), <span class="number">1</span>);
 		<span class="macro">assert_eq!</span>(nmatch.id(), <span class="number">2</span>);
+
+		<span class="macro">assert!</span>(!Builder::build_sync_slabs().is_init());
 
 		<span class="prelude-val">Ok</span>(())
 	}
