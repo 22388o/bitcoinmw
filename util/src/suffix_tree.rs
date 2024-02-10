@@ -45,10 +45,9 @@ impl Dictionary {
 
 	fn add(&mut self, pattern: Pattern) -> Result<(), Error> {
 		if pattern.regex.len() == 0 {
-			return Err(err!(
-				ErrKind::IllegalArgument,
-				"regex length must be greater than 0"
-			));
+			let text = "regex length must be greater than 0";
+			let e = err!(ErrKind::IllegalArgument, text);
+			return Err(e);
 		}
 
 		let lower;
@@ -69,10 +68,9 @@ impl Dictionary {
 					cur_byte
 				}
 				None => {
-					return Err(err!(
-						ErrKind::IllegalArgument,
-						"Regex must be at least one byte long not including the ^ character"
-					));
+					let text = "Regex must be at least one byte long not including the ^ character";
+					let e = err!(ErrKind::IllegalArgument, text);
+					return Err(e);
 				}
 			}
 		}
@@ -192,10 +190,9 @@ impl SuffixTreeImpl {
 		max_wildcard_length: usize,
 	) -> Result<Self, Error> {
 		if patterns.size() == 0 {
-			return Err(err!(
-				ErrKind::Configuration,
-				"suffix tree must have at least one pattern"
-			));
+			let text = "suffix tree must have at least one pattern";
+			let e = err!(ErrKind::Configuration, text);
+			return Err(e);
 		}
 
 		let mut dictionary_case_insensitive = Dictionary::new()?;
@@ -404,6 +401,7 @@ impl Pattern {
 }
 
 impl Serializable for Pattern {
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn read<R: Reader>(reader: &mut R) -> Result<Self, Error> {
 		let regex = String::read(reader)?;
 		let is_case_sensitive = match reader.read_u8()? {

@@ -96,8 +96,7 @@ where
 		Ok(ret)
 	}
 
-	// full coverage. tarpualin reporting a few lines that are actually covered so disabling.
-	#[cfg(not(tarpaulin_include))]
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn run_thread<R: 'static>(
 		rx: Arc<Mutex<Receiver<FutureWrapper<R>>>>,
 		mut state: Box<dyn LockBox<ThreadPoolState>>,
@@ -233,8 +232,7 @@ where
 		Ok(rx)
 	}
 
-	// full coverage. tarpualin reporting a few lines that are actually covered so disabling.
-	#[cfg(not(tarpaulin_include))]
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn start(&mut self) -> Result<(), Error> {
 		let (tx, rx) = sync_channel(self.config.sync_channel_size);
 		let rx = Arc::new(Mutex::new(rx));
@@ -287,6 +285,12 @@ where
 		self.on_panic = Some(Box::pin(on_panic));
 		Ok(())
 	}
+
+	#[cfg(test)]
+	fn set_on_panic_none(&mut self) -> Result<(), Error> {
+		self.on_panic = None;
+		Ok(())
+	}
 }
 
 impl<T> ThreadPoolExecutor<T>
@@ -322,10 +326,7 @@ impl ThreadPoolStopper {
 	/// This is not the case with [`crate::ThreadPool::stop`] and that function
 	/// should be used where possible.
 	pub fn stop(&mut self) -> Result<(), Error> {
-		let mut state = self.state.wlock()?;
-		let guard = state.guard();
-		(**guard).stop = true;
-
+		(**self.state.wlock()?.guard()).stop = true;
 		Ok(())
 	}
 }
@@ -660,6 +661,32 @@ mod test {
 				"Thread pool has not been initialized"
 			)
 		);
+		Ok(())
+	}
+
+	#[test]
+	fn test_no_on_panic_handler() -> Result<(), Error> {
+		let mut tp = Builder::build_thread_pool(ThreadPoolConfig {
+			min_size: 1,
+			max_size: 1,
+			..Default::default()
+		})?;
+
+		tp.set_on_panic(move |_, _| -> Result<(), Error> { Ok(()) })?;
+		tp.set_on_panic_none()?;
+		tp.start()?;
+		tp.execute(
+			async move {
+				if true {
+					panic!("2");
+				}
+				Ok(())
+			},
+			0,
+		)?;
+
+		sleep(Duration::from_millis(1_000));
+
 		Ok(())
 	}
 

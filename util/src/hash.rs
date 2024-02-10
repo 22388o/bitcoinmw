@@ -1900,6 +1900,7 @@ mod test {
 		};
 
 		let h = Builder::build_hashtable_sync(config, slab_config)?;
+		assert!(h.slabs().is_ok());
 		let mut h = lock!(h)?;
 		let mut h_clone = h.clone();
 
@@ -2744,6 +2745,33 @@ mod test {
 		hashtable.raw_write(&7, 383, &data, CACHE_BUFFER_SIZE)?;
 		hashtable.raw_read(&7, 383, &mut data2)?;
 		assert_eq!(data, data2);
+		assert!(!hashtable.raw_read(&9, 384, &mut data2)?);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_hashtable_sync_raw() -> Result<(), Error> {
+		let mut hashtable = Builder::build_hashtable_sync::<u32, u32>(
+			HashtableConfig::default(),
+			SlabAllocatorConfig::default(),
+		)?;
+
+		let mut data2 = [0u8; CACHE_BUFFER_SIZE];
+		let data = [8u8; CACHE_BUFFER_SIZE];
+		hashtable.raw_write(&0, 0, &data, CACHE_BUFFER_SIZE)?;
+		assert!(hashtable.raw_read(&0, 0, &mut data2)?);
+		assert_eq!(data, data2);
+
+		let data = [10u8; CACHE_BUFFER_SIZE];
+		hashtable.raw_write(&7, 383, &data, CACHE_BUFFER_SIZE)?;
+		assert!(hashtable.raw_read(&7, 383, &mut data2)?);
+		assert_eq!(data, data2);
+
+		assert!(!hashtable.raw_read(&9, 384, &mut data2)?);
+		assert!(hashtable.slabs().is_ok());
+		assert!(hashtable.bring_to_front(&7).is_ok());
+		assert!(hashtable.remove_oldest().is_ok());
 
 		Ok(())
 	}

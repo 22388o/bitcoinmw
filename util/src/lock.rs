@@ -202,7 +202,6 @@ impl<T> LockImpl<T> {
 		let contains = LOCKS.with(|f| -> Result<bool, Error> {
 			let ret = (*f.borrow()).contains(&self.id);
 			(*f.borrow_mut()).insert(self.id);
-
 			Ok(ret)
 		})?;
 		if contains {
@@ -285,6 +284,27 @@ mod test {
 			let mut z = lock.wlock()?;
 			assert_eq!(**(z.guard()), 2);
 		}
+
+		let mut lock = Builder::build_lock_box(1)?;
+		let lock2 = lock.clone();
+		{
+			let x = lock.rlock_ignore_poison()?;
+			println!("x={}", *x.guard());
+			assert!(lock.rlock_ignore_poison().is_err());
+		}
+		{
+			let mut y = lock.wlock()?;
+			**(y.guard()) = 2;
+
+			assert!(lock2.rlock_ignore_poison().is_err());
+			assert!(lock2.rlock_ignore_poison().is_err());
+		}
+
+		{
+			let mut z = lock.wlock()?;
+			assert_eq!(**(z.guard()), 2);
+		}
+
 		Ok(())
 	}
 
@@ -354,7 +374,14 @@ mod test {
 		}
 
 		{
-			let tlb = tlb.lock_box.rlock()?;
+			let clone = tlb.lock_box.clone();
+			let tlb2 = tlb.lock_box.rlock_ignore_poison()?;
+			assert_eq!((**tlb2.guard()), 3u32);
+			assert!(clone.rlock_ignore_poison().is_err());
+		}
+
+		{
+			let mut tlb = lock_box2.wlock_ignore_poison()?;
 			assert_eq!((**tlb.guard()), 3u32);
 		}
 
@@ -389,6 +416,24 @@ mod test {
 	}
 
 	#[test]
+	fn test_ignore_poison_scenarios() -> Result<(), Error> {
+		let mut x = crate::types::LockImpl::new(1u32);
+		let x_clone = crate::types::Lock::clone(&x);
+
+		spawn(move || -> Result<(), Error> {
+			let _v = x_clone.t.write();
+			let p: Option<usize> = None;
+			p.unwrap();
+			Ok(())
+		});
+
+		sleep(Duration::from_millis(5_000));
+		x.rlock_ignore_poison()?;
+		x.wlock_ignore_poison()?;
+		Ok(())
+	}
+
+	#[test]
 	fn test_to_usize() -> Result<(), Error> {
 		let v = {
 			let x: Box<dyn LockBox<u32>> = lock_box!(100u32)?;
@@ -400,6 +445,12 @@ mod test {
 		let v = arc.read().unwrap();
 		info!("ptr_ret = {}", *v)?;
 		assert_eq!(*v, 100);
+
+		let mut lbox = lock_box!(1_100)?;
+		let v = lbox.danger_to_usize();
+		let lbox_new: Box<dyn LockBox<u32>> = crate::lock_box_from_usize(v);
+		(**(lbox.wlock()?.guard())) = 1_200;
+		assert_eq!((**(lbox_new.rlock()?.guard())), 1_200);
 
 		Ok(())
 	}

@@ -893,6 +893,9 @@ where
 
 	/// Set an on panic handler for this thread pool
 	fn set_on_panic(&mut self, on_panic: OnPanic) -> Result<(), Error>;
+
+	#[cfg(test)]
+	fn set_on_panic_none(&mut self) -> Result<(), Error>;
 }
 
 /// Struct that is used as a mutable reference to data in a slab. See [`crate::SlabAllocator`] for

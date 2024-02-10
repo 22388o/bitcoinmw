@@ -135,10 +135,11 @@ impl SlabAllocator for SlabAllocatorImpl {
 				self.free_count += 1;
 				Ok(())
 			}
-			None => Err(err!(
-				ErrKind::IllegalState,
-				"slab allocator has not been initialized"
-			)),
+			None => {
+				let text = "slab allocator has not been initialized";
+				let e = err!(ErrKind::IllegalState, text);
+				Err(e)
+			}
 		}
 	}
 	fn get<'a>(&'a self, id: usize) -> Result<Slab<'a>, Error> {
@@ -187,10 +188,11 @@ impl SlabAllocator for SlabAllocatorImpl {
 		debug!("slab_size:self.config={:?}", self.config)?;
 		match &self.config {
 			Some(config) => Ok(config.slab_size),
-			None => Err(err!(
-				ErrKind::IllegalState,
-				"slab allocator has not been initialized"
-			)),
+			None => {
+				let text = "slab allocator has not been initialized";
+				let e = err!(ErrKind::IllegalState, text);
+				Err(e)
+			}
 		}
 	}
 
@@ -198,31 +200,31 @@ impl SlabAllocator for SlabAllocatorImpl {
 		debug!("slab_size:self.config={:?}", self.config)?;
 		match &self.config {
 			Some(config) => Ok(config.slab_count),
-			None => Err(err!(
-				ErrKind::IllegalState,
-				"slab allocator has not been initialized"
-			)),
+			None => {
+				let text = "slab allocator has not been initialized";
+				let e = err!(ErrKind::IllegalState, text);
+				Err(e)
+			}
 		}
 	}
 
 	fn init(&mut self, config: SlabAllocatorConfig) -> Result<(), Error> {
 		match &self.config {
-			Some(_) => Err(err!(
-				ErrKind::IllegalState,
-				"slab allocator has already been initialized"
-			)),
+			Some(_) => {
+				let text = "slab allocator has already been initialized";
+				let e = err!(ErrKind::IllegalState, text);
+				Err(e)
+			}
 			None => {
 				if config.slab_size < 8 {
-					return Err(err!(
-						ErrKind::IllegalArgument,
-						"slab_size must be at least 8 bytes"
-					));
+					let text = "slab_size must be at least 8 bytes";
+					let e = err!(ErrKind::IllegalArgument, text);
+					return Err(e);
 				}
 				if config.slab_count == 0 {
-					return Err(err!(
-						ErrKind::IllegalArgument,
-						"slab_count must be greater than 0"
-					));
+					let text = "slab_count must be greater than 0";
+					let e = err!(ErrKind::IllegalArgument, text);
+					return Err(e);
 				}
 
 				// build data array
