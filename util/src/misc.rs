@@ -157,7 +157,8 @@ pub(crate) fn set_max(slice: &mut [u8]) {
 #[cfg(test)]
 mod test {
 	use crate::misc::{
-		slice_to_u128, slice_to_u32, slice_to_usize, u128_to_slice, u32_to_slice, usize_to_slice,
+		slice_to_u128, slice_to_u32, slice_to_u64, slice_to_usize, u128_to_slice, u32_to_slice,
+		u64_to_slice, usize_to_slice,
 	};
 	use bmw_err::*;
 	use bmw_log::*;
@@ -307,6 +308,17 @@ mod test {
 		assert!(u32_to_slice(1, &mut [0u8; 5]).is_err());
 
 		assert!(slice_to_u32(&mut [0u8; 5]).is_err());
+		Ok(())
+	}
+
+	#[test]
+	fn test_u64_to_slice() -> Result<(), Error> {
+		// test 1 byte
+		for i in 0..u8::MAX {
+			let mut b = [0u8; 1];
+			u64_to_slice(i as u64, &mut b)?;
+			assert_eq!(slice_to_u64(&b)?, i as u64);
+		}
 		Ok(())
 	}
 }
