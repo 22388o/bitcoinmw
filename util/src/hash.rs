@@ -2233,6 +2233,7 @@ mod test {
 		hashtable.insert(&2, &20)?;
 		hashtable.insert(&1, &10)?;
 		info!("hashtable={:?}", hashtable)?;
+		assert!(hashtable.slabs().is_ok());
 		Ok(())
 	}
 
