@@ -21,7 +21,6 @@ use bmw_deps::rustls::client::InvalidDnsNameError;
 use bmw_deps::rustls::sign::SignError;
 use bmw_deps::webpki::Error as WebpkiError;
 use std::alloc::LayoutError;
-use std::array::TryFromSliceError;
 use std::convert::Infallible;
 use std::ffi::OsString;
 use std::fmt::{Display, Formatter, Result};
@@ -358,14 +357,6 @@ impl From<InvalidDnsNameError> for Error {
 	}
 }
 
-impl From<TryFromSliceError> for Error {
-	fn from(e: TryFromSliceError) -> Error {
-		Error {
-			inner: Context::new(ErrorKind::Misc(format!("tryfromsliceerror: {}", e))),
-		}
-	}
-}
-
 impl From<FromUtf8Error> for Error {
 	fn from(e: FromUtf8Error) -> Error {
 		Error {
@@ -386,7 +377,7 @@ impl From<AddrParseError> for Error {
 mod test {
 	#![allow(invalid_from_utf8)]
 	use crate as bmw_err;
-	use crate::{err, ErrKind, Error, ErrorKind};
+	use crate::{err, error::WebpkiError, ErrKind, Error, ErrorKind};
 	use bmw_deps::rustls::client::InvalidDnsNameError;
 	use bmw_deps::rustls::sign::{any_supported_type, SignError, SigningKey};
 	use bmw_deps::rustls::{PrivateKey, ServerConfig, ServerName, ALL_CIPHER_SUITES};
@@ -397,6 +388,8 @@ mod test {
 	use std::ffi::OsString;
 	use std::fs::File;
 	use std::io::BufReader;
+	use std::net::{AddrParseError, IpAddr};
+	use std::string::FromUtf8Error;
 	use std::sync::mpsc::channel;
 	use std::sync::{Arc, Mutex, RwLock};
 	use std::time::{Duration, SystemTime, SystemTimeError};
@@ -567,6 +560,22 @@ mod test {
 			any_supported_type(&load_private_key("./resources/badkey.pem")?);
 		assert!(err.is_err());
 		check_error(err, ErrorKind::Rustls("rustls error: ".to_string()).into())?;
+
+		let err: Result<IpAddr, AddrParseError> = "127.0.0.1:8080".parse();
+		assert!(err.is_err());
+		check_error(
+			err,
+			ErrorKind::Misc("addr parse error: ".to_string()).into(),
+		)?;
+
+		let bytes: &[u8] = &[0, 1, 2, 3, 4, 5, 6, 255];
+		let err: Result<String, FromUtf8Error> = String::from_utf8(bytes.to_vec());
+		assert!(err.is_err());
+		check_error(err, ErrorKind::Misc("utf8 error: ".to_string()).into())?;
+
+		let err: Result<String, WebpkiError> = Err(WebpkiError::BadDerTime);
+		check_error(err, ErrorKind::Misc("webpkiError: ".to_string()).into())?;
+
 		Ok(())
 	}
 }
