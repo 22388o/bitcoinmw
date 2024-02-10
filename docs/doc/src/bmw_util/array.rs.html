@@ -842,6 +842,10 @@
 <a href="#841" id="841">841</a>
 <a href="#842" id="842">842</a>
 <a href="#843" id="843">843</a>
+<a href="#844" id="844">844</a>
+<a href="#845" id="845">845</a>
+<a href="#846" id="846">846</a>
+<a href="#847" id="847">847</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1054,7 +1058,9 @@
 		<span class="self">self</span>.size += <span class="number">1</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
-	<span class="kw">fn </span>iter&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = T&gt; + <span class="lifetime">'a</span>&gt;
+
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">fn </span>iter&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = T&gt; + <span class="lifetime">'a</span>&gt;
 	<span class="kw">where
 		</span>T: Serializable,
 	{
@@ -1065,7 +1071,9 @@
 		};
 		Box::new(ret)
 	}
-	<span class="kw">fn </span>iter_rev&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = T&gt; + <span class="lifetime">'a</span>&gt;
+
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">fn </span>iter_rev&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = T&gt; + <span class="lifetime">'a</span>&gt;
 	<span class="kw">where
 		</span>T: Serializable,
 	{

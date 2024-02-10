@@ -796,8 +796,6 @@
 <a href="#795" id="795">795</a>
 <a href="#796" id="796">796</a>
 <a href="#797" id="797">797</a>
-<a href="#798" id="798">798</a>
-<a href="#799" id="799">799</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -845,10 +843,9 @@
 
 	<span class="kw">fn </span>add(<span class="kw-2">&amp;mut </span><span class="self">self</span>, pattern: Pattern) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">if </span>pattern.regex.len() == <span class="number">0 </span>{
-			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
-				ErrKind::IllegalArgument,
-				<span class="string">"regex length must be greater than 0"
-			</span>));
+			<span class="kw">let </span>text = <span class="string">"regex length must be greater than 0"</span>;
+			<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::IllegalArgument, text);
+			<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 		}
 
 		<span class="kw">let </span>lower;
@@ -869,10 +866,9 @@
 					cur_byte
 				}
 				<span class="prelude-val">None </span>=&gt; {
-					<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
-						ErrKind::IllegalArgument,
-						<span class="string">"Regex must be at least one byte long not including the ^ character"
-					</span>));
+					<span class="kw">let </span>text = <span class="string">"Regex must be at least one byte long not including the ^ character"</span>;
+					<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::IllegalArgument, text);
+					<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 				}
 			}
 		}
@@ -992,10 +988,9 @@
 		max_wildcard_length: usize,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
 		<span class="kw">if </span>patterns.size() == <span class="number">0 </span>{
-			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
-				ErrKind::Configuration,
-				<span class="string">"suffix tree must have at least one pattern"
-			</span>));
+			<span class="kw">let </span>text = <span class="string">"suffix tree must have at least one pattern"</span>;
+			<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::Configuration, text);
+			<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 		}
 
 		<span class="kw">let </span><span class="kw-2">mut </span>dictionary_case_insensitive = Dictionary::new()<span class="question-mark">?</span>;
@@ -1204,7 +1199,8 @@
 }
 
 <span class="kw">impl </span>Serializable <span class="kw">for </span>Pattern {
-	<span class="kw">fn </span>read&lt;R: Reader&gt;(reader: <span class="kw-2">&amp;mut </span>R) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">fn </span>read&lt;R: Reader&gt;(reader: <span class="kw-2">&amp;mut </span>R) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
 		<span class="kw">let </span>regex = String::read(reader)<span class="question-mark">?</span>;
 		<span class="kw">let </span>is_case_sensitive = <span class="kw">match </span>reader.read_u8()<span class="question-mark">? </span>{
 			<span class="number">0 </span>=&gt; <span class="bool-val">false</span>,

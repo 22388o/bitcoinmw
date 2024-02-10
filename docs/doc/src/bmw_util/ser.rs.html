@@ -1434,13 +1434,6 @@
 <a href="#1433" id="1433">1433</a>
 <a href="#1434" id="1434">1434</a>
 <a href="#1435" id="1435">1435</a>
-<a href="#1436" id="1436">1436</a>
-<a href="#1437" id="1437">1437</a>
-<a href="#1438" id="1438">1438</a>
-<a href="#1439" id="1439">1439</a>
-<a href="#1440" id="1440">1440</a>
-<a href="#1441" id="1441">1441</a>
-<a href="#1442" id="1442">1442</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1479,8 +1472,7 @@
 <span class="macro">info!</span>();
 
 <span class="kw">impl </span>Serializable <span class="kw">for </span>ConfigOption&lt;<span class="lifetime">'_</span>&gt; {
-	<span class="comment">// fully covered, but the wildcard match not counted by tarpaulin
-	</span><span class="attr">#[cfg(not(tarpaulin_include))]
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
 	</span><span class="kw">fn </span>read&lt;R: Reader&gt;(reader: <span class="kw-2">&amp;mut </span>R) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
 		<span class="kw">match </span>reader.read_u8()<span class="question-mark">? </span>{
 			<span class="number">0 </span>=&gt; <span class="prelude-val">Ok</span>(MaxEntries(reader.read_usize()<span class="question-mark">?</span>)),
@@ -1498,8 +1490,7 @@
 		}
 	}
 
-	<span class="comment">// fully covered but the Slabs(_) line not counted by tarpaulin
-	</span><span class="attr">#[cfg(not(tarpaulin_include))]
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
 	</span><span class="kw">fn </span>write&lt;W: Writer&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, writer: <span class="kw-2">&amp;mut </span>W) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">match </span><span class="self">self </span>{
 			MaxEntries(size) =&gt; {
@@ -1758,8 +1749,7 @@
 		}
 	}
 
-	<span class="comment">// appears to be 100% covered. Tarpaulin reprots a few lines.
-	</span><span class="attr">#[cfg(not(tarpaulin_include))]
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
 	</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>write_fixed_bytes_impl&lt;T: AsRef&lt;[u8]&gt;&gt;(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		bytes: T,
@@ -1768,7 +1758,8 @@
 		<span class="self">self</span>.do_write_fixed_bytes_impl(bytes, <span class="prelude-val">None</span>, slabs)
 	}
 
-	<span class="kw">fn </span>process_write(
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">fn </span>process_write(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		bytes: <span class="kw-2">&amp;</span>[u8],
 		bytes_len: usize,
@@ -1810,7 +1801,8 @@
 		<span class="prelude-val">Ok</span>(wlen)
 	}
 
-	<span class="kw">fn </span>do_write_fixed_bytes_impl&lt;T: AsRef&lt;[u8]&gt;&gt;(
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">fn </span>do_write_fixed_bytes_impl&lt;T: AsRef&lt;[u8]&gt;&gt;(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		bytes: T,
 		count: <span class="prelude-ty">Option</span>&lt;usize&gt;,
@@ -1823,10 +1815,11 @@
 		};
 		<span class="kw">let </span>skip = count.is_some();
 
-		<span class="macro">debug!</span>(
-			<span class="string">"+++++++++++++++++ do_write_fixed_bytes_impl bytes={:?},count={:?},slab_id={},offset={}"</span>,
-			bytes, count, <span class="self">self</span>.slab_id, <span class="self">self</span>.offset
-		)<span class="question-mark">?</span>;
+		<span class="kw">let </span>b = bytes;
+		<span class="kw">let </span>c = count;
+		<span class="kw">let </span>s = <span class="self">self</span>.slab_id;
+		<span class="kw">let </span>o = <span class="self">self</span>.offset;
+		<span class="macro">debug!</span>(<span class="string">"dwfb_impl b={:?},c={:?},s={},o={}"</span>, b, c, s, o)<span class="question-mark">?</span>;
 
 		<span class="kw">if </span>bytes_len == <span class="number">0 </span>{
 			<span class="kw">return </span><span class="prelude-val">Ok</span>(());
@@ -1849,22 +1842,16 @@
 			}
 
 			<span class="kw">if </span><span class="self">self</span>.offset &gt;= <span class="self">self</span>.bytes_per_slab {
-				<span class="macro">debug!</span>(
-					<span class="string">"need to allocate a new slab bytes_offset={}, bytes_len={}"</span>,
-					bytes_offset, bytes_len
-				)<span class="question-mark">?</span>;
+				<span class="macro">debug!</span>(<span class="string">"alloc slab b_offset={}, b_len={}"</span>, bytes_offset, bytes_len)<span class="question-mark">?</span>;
 				<span class="comment">// we need to allocate another slab
 				</span><span class="self">self</span>.next_slab(<span class="kw-2">&amp;mut </span>slabs, max_value)<span class="question-mark">?</span>;
 			}
 
 			<span class="kw">let </span>index = <span class="kw">if </span>skip { <span class="number">0 </span>} <span class="kw">else </span>{ bytes_offset };
 
-			<span class="kw">let </span>wlen = <span class="self">self</span>.process_write(
-				<span class="kw-2">&amp;</span>bytes[index..],
-				bytes_len.saturating_sub(bytes_offset),
-				skip,
-				<span class="kw-2">&amp;mut </span>slabs,
-			)<span class="question-mark">?</span>;
+			<span class="kw">let </span>b = <span class="kw-2">&amp;</span>bytes[index..];
+			<span class="kw">let </span>l = bytes_len.saturating_sub(bytes_offset);
+			<span class="kw">let </span>wlen = <span class="self">self</span>.process_write(b, l, skip, <span class="kw-2">&amp;mut </span>slabs)<span class="question-mark">?</span>;
 			<span class="macro">debug!</span>(<span class="string">"wlen = {}"</span>, wlen)<span class="question-mark">?</span>;
 			bytes_offset += wlen;
 			<span class="self">self</span>.offset += wlen;
@@ -1955,8 +1942,7 @@
 }
 
 <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; SlabReader {
-	<span class="comment">// only the break line is reported as uncovered, but it is covered
-	</span><span class="attr">#[cfg(not(tarpaulin_include))]
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
 	</span><span class="kw">pub fn </span>new(
 		slabs: <span class="prelude-ty">Option</span>&lt;Rc&lt;RefCell&lt;<span class="kw">dyn </span>SlabAllocator&gt;&gt;&gt;,
 		slab_id: usize,
@@ -2073,13 +2059,13 @@
 		<span class="self">self</span>.do_read_exact(<span class="kw-2">&amp;mut </span>[<span class="number">0u8</span>; <span class="number">0</span>], <span class="prelude-val">Some</span>(count))
 	}
 
-	<span class="comment">// only the break line is reported as uncovered, but it is covered
-	</span><span class="attr">#[cfg(not(tarpaulin_include))]
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
 	</span><span class="kw">pub fn </span>read_exact(<span class="kw-2">&amp;mut </span><span class="self">self</span>, buf: <span class="kw-2">&amp;mut </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.do_read_exact(buf, <span class="prelude-val">None</span>)
 	}
 
-	<span class="kw">pub fn </span>do_read_exact(<span class="kw-2">&amp;mut </span><span class="self">self</span>, buf: <span class="kw-2">&amp;mut </span>[u8], count: <span class="prelude-ty">Option</span>&lt;usize&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">pub fn </span>do_read_exact(<span class="kw-2">&amp;mut </span><span class="self">self</span>, buf: <span class="kw-2">&amp;mut </span>[u8], count: <span class="prelude-ty">Option</span>&lt;usize&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="macro">debug!</span>(<span class="string">"do read exact {:?},buf.len={}"</span>, count, buf.len())<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>buf_offset = <span class="number">0</span>;
 		<span class="kw">let </span>buf_len = <span class="kw">match </span>count {
@@ -2097,13 +2083,9 @@
 				<span class="self">self</span>.offset = <span class="number">0</span>;
 				<span class="kw">let </span>next = <span class="self">self</span>.get_next_id(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>;
 				<span class="kw">if </span>next &gt;= <span class="self">self</span>.max_value {
-					<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
-						ErrKind::IO,
-						<span class="macro">format!</span>(
-							<span class="string">"failed to fill whole buffer next={}, self.max_value={}"</span>,
-							next, <span class="self">self</span>.max_value
-						)
-					));
+					<span class="kw">let </span>t = <span class="macro">format!</span>(<span class="string">"overflow: next={}, self.max_value={}"</span>, next, <span class="self">self</span>.max_value);
+					<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::IO, t);
+					<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 				}
 				<span class="self">self</span>.slab_id = next;
 			}
@@ -2458,6 +2440,10 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>slab_reader = SlabReader::new(<span class="prelude-val">Some</span>(slabs.clone()), slab_id, <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
 		slab_reader.skip_bytes(<span class="number">800</span>)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(slab_reader.read_u128()<span class="question-mark">?</span>, <span class="number">123</span>);
+
+		slab_writer.slabs = <span class="prelude-val">None</span>;
+		slab_writer.skip_bytes(<span class="number">1</span>)<span class="question-mark">?</span>;
+
 		<span class="prelude-val">Ok</span>(())
 	}
 

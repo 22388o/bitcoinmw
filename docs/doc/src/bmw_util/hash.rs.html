@@ -2949,6 +2949,37 @@
 <a href="#2948" id="2948">2948</a>
 <a href="#2949" id="2949">2949</a>
 <a href="#2950" id="2950">2950</a>
+<a href="#2951" id="2951">2951</a>
+<a href="#2952" id="2952">2952</a>
+<a href="#2953" id="2953">2953</a>
+<a href="#2954" id="2954">2954</a>
+<a href="#2955" id="2955">2955</a>
+<a href="#2956" id="2956">2956</a>
+<a href="#2957" id="2957">2957</a>
+<a href="#2958" id="2958">2958</a>
+<a href="#2959" id="2959">2959</a>
+<a href="#2960" id="2960">2960</a>
+<a href="#2961" id="2961">2961</a>
+<a href="#2962" id="2962">2962</a>
+<a href="#2963" id="2963">2963</a>
+<a href="#2964" id="2964">2964</a>
+<a href="#2965" id="2965">2965</a>
+<a href="#2966" id="2966">2966</a>
+<a href="#2967" id="2967">2967</a>
+<a href="#2968" id="2968">2968</a>
+<a href="#2969" id="2969">2969</a>
+<a href="#2970" id="2970">2970</a>
+<a href="#2971" id="2971">2971</a>
+<a href="#2972" id="2972">2972</a>
+<a href="#2973" id="2973">2973</a>
+<a href="#2974" id="2974">2974</a>
+<a href="#2975" id="2975">2975</a>
+<a href="#2976" id="2976">2976</a>
+<a href="#2977" id="2977">2977</a>
+<a href="#2978" id="2978">2978</a>
+<a href="#2979" id="2979">2979</a>
+<a href="#2980" id="2980">2980</a>
+<a href="#2981" id="2981">2981</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -3794,7 +3825,8 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">fn </span>bring_to_front_impl&lt;V&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, hash: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">fn </span>bring_to_front_impl&lt;V&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, hash: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 	<span class="kw">where
 		</span>K: PartialEq,
 		V: Serializable + Clone,
@@ -4228,7 +4260,8 @@
 		}
 	}
 
-	<span class="kw">fn </span>free_iter_list(<span class="kw-2">&amp;mut </span><span class="self">self</span>, entry: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">fn </span>free_iter_list(<span class="kw-2">&amp;mut </span><span class="self">self</span>, entry: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>slab_id = <span class="self">self</span>.lookup_entry(entry);
 		<span class="kw">let </span><span class="kw-2">mut </span>next = [<span class="number">0u8</span>; <span class="number">8</span>];
 		<span class="kw">let </span><span class="kw-2">mut </span>prev = [<span class="number">0u8</span>; <span class="number">8</span>];
@@ -4851,6 +4884,7 @@
 		};
 
 		<span class="kw">let </span>h = Builder::build_hashtable_sync(config, slab_config)<span class="question-mark">?</span>;
+		<span class="macro">assert!</span>(h.slabs().is_ok());
 		<span class="kw">let </span><span class="kw-2">mut </span>h = <span class="macro">lock!</span>(h)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>h_clone = h.clone();
 
@@ -5183,6 +5217,7 @@
 		<span class="macro">info!</span>(<span class="string">"hashset={:?}"</span>, hashset)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>hashtable = <span class="macro">hashtable!</span>()<span class="question-mark">?</span>;
+		<span class="macro">assert!</span>(hashtable.slabs().is_ok());
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="number">10</span>)<span class="question-mark">?</span>;
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">2</span>, <span class="kw-2">&amp;</span><span class="number">20</span>)<span class="question-mark">?</span>;
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="number">10</span>)<span class="question-mark">?</span>;
@@ -5695,6 +5730,33 @@
 		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">7</span>, <span class="number">383</span>, <span class="kw-2">&amp;</span>data, CACHE_BUFFER_SIZE)<span class="question-mark">?</span>;
 		hashtable.raw_read(<span class="kw-2">&amp;</span><span class="number">7</span>, <span class="number">383</span>, <span class="kw-2">&amp;mut </span>data2)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(data, data2);
+		<span class="macro">assert!</span>(!hashtable.raw_read(<span class="kw-2">&amp;</span><span class="number">9</span>, <span class="number">384</span>, <span class="kw-2">&amp;mut </span>data2)<span class="question-mark">?</span>);
+
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="attr">#[test]
+	</span><span class="kw">fn </span>test_hashtable_sync_raw() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>hashtable = Builder::build_hashtable_sync::&lt;u32, u32&gt;(
+			HashtableConfig::default(),
+			SlabAllocatorConfig::default(),
+		)<span class="question-mark">?</span>;
+
+		<span class="kw">let </span><span class="kw-2">mut </span>data2 = [<span class="number">0u8</span>; CACHE_BUFFER_SIZE];
+		<span class="kw">let </span>data = [<span class="number">8u8</span>; CACHE_BUFFER_SIZE];
+		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">0</span>, <span class="number">0</span>, <span class="kw-2">&amp;</span>data, CACHE_BUFFER_SIZE)<span class="question-mark">?</span>;
+		<span class="macro">assert!</span>(hashtable.raw_read(<span class="kw-2">&amp;</span><span class="number">0</span>, <span class="number">0</span>, <span class="kw-2">&amp;mut </span>data2)<span class="question-mark">?</span>);
+		<span class="macro">assert_eq!</span>(data, data2);
+
+		<span class="kw">let </span>data = [<span class="number">10u8</span>; CACHE_BUFFER_SIZE];
+		hashtable.raw_write(<span class="kw-2">&amp;</span><span class="number">7</span>, <span class="number">383</span>, <span class="kw-2">&amp;</span>data, CACHE_BUFFER_SIZE)<span class="question-mark">?</span>;
+		<span class="macro">assert!</span>(hashtable.raw_read(<span class="kw-2">&amp;</span><span class="number">7</span>, <span class="number">383</span>, <span class="kw-2">&amp;mut </span>data2)<span class="question-mark">?</span>);
+		<span class="macro">assert_eq!</span>(data, data2);
+
+		<span class="macro">assert!</span>(!hashtable.raw_read(<span class="kw-2">&amp;</span><span class="number">9</span>, <span class="number">384</span>, <span class="kw-2">&amp;mut </span>data2)<span class="question-mark">?</span>);
+		<span class="macro">assert!</span>(hashtable.slabs().is_ok());
+		<span class="macro">assert!</span>(hashtable.bring_to_front(<span class="kw-2">&amp;</span><span class="number">7</span>).is_ok());
+		<span class="macro">assert!</span>(hashtable.remove_oldest().is_ok());
 
 		<span class="prelude-val">Ok</span>(())
 	}

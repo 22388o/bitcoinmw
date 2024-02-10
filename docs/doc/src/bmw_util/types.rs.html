@@ -1380,6 +1380,9 @@
 <a href="#1379" id="1379">1379</a>
 <a href="#1380" id="1380">1380</a>
 <a href="#1381" id="1381">1381</a>
+<a href="#1382" id="1382">1382</a>
+<a href="#1383" id="1383">1383</a>
+<a href="#1384" id="1384">1384</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2275,6 +2278,9 @@
 
 	<span class="doccomment">/// Set an on panic handler for this thread pool
 	</span><span class="kw">fn </span>set_on_panic(<span class="kw-2">&amp;mut </span><span class="self">self</span>, on_panic: OnPanic) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+
+	<span class="attr">#[cfg(test)]
+	</span><span class="kw">fn </span>set_on_panic_none(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 }
 
 <span class="doccomment">/// Struct that is used as a mutable reference to data in a slab. See [`crate::SlabAllocator`] for
