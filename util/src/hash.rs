@@ -523,18 +523,14 @@ where
 	}
 
 	fn iter<'b>(&'b self) -> Box<dyn Iterator<Item = V> + 'b> {
-		Box::new(ListIterator::new(
-			&self.static_impl,
-			self.static_impl.head,
-			Direction::Forward,
-		))
+		let d = Direction::Forward;
+		let x = self.static_impl.head;
+		Box::new(ListIterator::new(&self.static_impl, x, d))
 	}
 	fn iter_rev<'b>(&'b self) -> Box<dyn Iterator<Item = V> + 'b> {
-		Box::new(ListIterator::new(
-			&self.static_impl,
-			self.static_impl.tail,
-			Direction::Backward,
-		))
+		let d = Direction::Backward;
+		let x = self.static_impl.tail;
+		Box::new(ListIterator::new(&self.static_impl, x, d))
 	}
 	fn delete_head(&mut self) -> Result<(), Error> {
 		self.static_impl.delete_head()
