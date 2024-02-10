@@ -37,6 +37,7 @@ pub mod built_info {
 	include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
 
+#[cfg(not(tarpaulin_include))] // temporary test function, will be removed
 fn callback(
 	_headers: &HttpHeaders,
 	_config: &HttpConfig,
@@ -58,6 +59,7 @@ callbk\n"
 	Ok(())
 }
 
+#[cfg(not(tarpaulin_include))] // temporary test function, will be removed
 fn ws_handler(
 	message: &WebSocketMessage,
 	_config: &HttpConfig,
