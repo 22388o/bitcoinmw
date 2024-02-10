@@ -90,17 +90,13 @@ impl Log for LogImpl {
 			FilePath(file_path) => match file_path {
 				Some(file_path) => file_path,
 				None => {
-					return Err(err!(
-						ErrKind::IllegalArgument,
-						"file_path must be of the for FilePath(Option<PathBuf>)"
-					))
+					let text = "file_path must be of the for FilePath(Option<PathBuf>)";
+					return Err(err!(ErrKind::IllegalArgument, text));
 				}
 			},
 			_ => {
-				return Err(err!(
-					ErrKind::IllegalArgument,
-					"file_path must be of the for FilePath(Option<PathBuf>)"
-				));
+				let text = "file_path must be of the for FilePath(Option<PathBuf>)";
+				return Err(err!(ErrKind::IllegalArgument, text));
 			}
 		};
 
@@ -108,29 +104,23 @@ impl Log for LogImpl {
 		let parent = match original_file_path.parent() {
 			Some(parent) => parent,
 			None => {
-				return Err(err!(
-					ErrKind::IllegalArgument,
-					"file_path has an unexpected illegal value of None for parent"
-				));
+				let text = "file_path has an unexpected illegal value of None for parent";
+				return Err(err!(ErrKind::IllegalArgument, text));
 			}
 		};
 
 		let file_name = match original_file_path.file_name() {
 			Some(file_name) => file_name,
 			None => {
-				return Err(err!(
-					ErrKind::IllegalArgument,
-					"file_path has an unexpected illegal value of None for file_name"
-				))
+				let text = "file_path has an unexpected illegal value of None for file_name";
+				return Err(err!(ErrKind::IllegalArgument, text));
 			}
 		};
 
 		let file_name = file_name.to_str();
 		if file_name.is_none() || self.config.debug_invalid_os_str {
-			return Err(err!(
-				ErrKind::IllegalArgument,
-				"file_path has an unexpected illegal value of None for file_name"
-			));
+			let text = "file_path has an unexpected illegal value of None for file_name";
+			return Err(err!(ErrKind::IllegalArgument, text));
 		}
 
 		let file_name = file_name.unwrap();
@@ -152,10 +142,8 @@ impl Log for LogImpl {
 				}
 			}
 			_ => {
-				return Err(err!(
-					ErrKind::IllegalArgument,
-					"delete_rotation has an unexpected illegal value"
-				))
+				let text = "delete_rotation has an unexpected illegal value";
+				return Err(err!(ErrKind::IllegalArgument, text));
 			}
 		}
 
@@ -179,20 +167,16 @@ impl Log for LogImpl {
 			MaxAgeMillis(m) => m,
 			_ => {
 				// should not get here, but return an error if we do
-				return Err(err!(
-					ErrKind::IllegalArgument,
-					"max_age_millis must be of form MaxAgeMillis(u128)"
-				));
+				let text = "max_age_millis must be of form MaxAgeMillis(u128)";
+				return Err(err!(ErrKind::IllegalArgument, text));
 			}
 		};
 		let max_size_bytes = match self.config.max_size_bytes {
 			MaxSizeBytes(m) => m,
 			_ => {
 				// should not get here, but return an error if we do
-				return Err(err!(
-					ErrKind::IllegalArgument,
-					"max_size_bytes must be of form MaxSizeBytes(u64)"
-				));
+				let text = "max_size_bytes must be of form MaxSizeBytes(u64)";
+				return Err(err!(ErrKind::IllegalArgument, text));
 			}
 		};
 
@@ -228,10 +212,8 @@ impl Log for LogImpl {
 			},
 			_ => {
 				// should not be able to get here
-				return Err(err!(
-					ErrKind::Log,
-					"file_path must be of the form FilePath(Option<PathBuf>)"
-				));
+				let text = "file_path must be of the form FilePath(Option<PathBuf>)";
+				return Err(err!(ErrKind::Log, text));
 			}
 		}
 
@@ -269,10 +251,8 @@ impl Log for LogImpl {
 				self.config.auto_rotate = value;
 			}
 			FilePath(_) => {
-				return Err(err!(
-					ErrKind::Log,
-					"filepath cannot be set after log is initialized"
-				));
+				let text = "filepath cannot be set after log is initialized";
+				return Err(err!(ErrKind::Log, text));
 			}
 			ShowBt(_) => {
 				self.config.show_bt = value;
@@ -406,66 +386,52 @@ impl LogImpl {
 		let show_stdout = match self.config.stdout {
 			Stdout(s) => s || log_type == LogType::All,
 			_ => {
-				return Err(err!(
-					ErrKind::IllegalArgument,
-					"stdout must be of the form Stdout(bool)"
-				));
+				let text = "stdout must be of the form Stdout(bool)";
+				return Err(err!(ErrKind::IllegalArgument, text));
 			}
 		};
 		let show_timestamp = match self.config.timestamp {
 			Timestamp(t) => t && log_type != LogType::Plain,
 			_ => {
-				return Err(err!(
-					ErrKind::IllegalArgument,
-					"timestamp must be of the form Timestamp(bool)"
-				));
+				let text = "timestamp must be of the form Timestamp(bool)";
+				return Err(err!(ErrKind::IllegalArgument, text));
 			}
 		};
 		let show_colors = match self.config.colors {
 			Colors(c) => c,
 			_ => {
-				return Err(err!(
-					ErrKind::IllegalArgument,
-					"colors must be of the form Colors(bool)"
-				));
+				let text = "colors must be of the form Colors(bool)";
+				return Err(err!(ErrKind::IllegalArgument, text));
 			}
 		};
 		let show_log_level = match self.config.level {
 			Level(l) => l && log_type != LogType::Plain,
 			_ => {
-				return Err(err!(
-					ErrKind::IllegalArgument,
-					"log_level must be of the form LogLevel(bool)"
-				));
+				let text = "log_level must be of the form LogLevel(bool)";
+				return Err(err!(ErrKind::IllegalArgument, text));
 			}
 		};
 		let show_line_num = match self.config.line_num {
 			LineNum(l) => l && log_type != LogType::Plain,
 			_ => {
-				return Err(err!(
-					ErrKind::IllegalArgument,
-					"line_num must be of the form LineNum(bool)"
-				));
+				let text = "line_num must be of the form LineNum(bool)";
+				return Err(err!(ErrKind::IllegalArgument, text));
 			}
 		};
 
 		let show_millis = match self.config.show_millis {
 			ShowMillis(m) => m && log_type != LogType::Plain,
 			_ => {
-				return Err(err!(
-					ErrKind::IllegalArgument,
-					"show_millis must be of the form ShowMillis(bool)"
-				));
+				let text = "show_millis must be of the form ShowMillis(bool)";
+				return Err(err!(ErrKind::IllegalArgument, text));
 			}
 		};
 
 		let show_bt = match self.config.show_bt {
 			ShowBt(b) => b && (level == LogLevel::Error || level == LogLevel::Fatal),
 			_ => {
-				return Err(err!(
-					ErrKind::IllegalArgument,
-					"show_bt must be of the form ShowBt(bool)"
-				));
+				let text = "show_bt must be of the form ShowBt(bool)";
+				return Err(err!(ErrKind::IllegalArgument, text));
 			}
 		};
 
@@ -558,10 +524,8 @@ impl LogImpl {
 			let max_len = match self.config.line_num_data_max_len {
 				LineNumDataMaxLen(max_len) => max_len,
 				_ => {
-					return Err(err!(
-						ErrKind::IllegalArgument,
-						"unexpected illegal value for LineNumDataMaxLen"
-					));
+					let text = "unexpected illegal value for LineNumDataMaxLen";
+					return Err(err!(ErrKind::IllegalArgument, text));
 				}
 			};
 			let len = logged_from_file.len();
@@ -631,10 +595,8 @@ impl LogImpl {
 			}
 			_ => {
 				// should not get here, but return an error if we do
-				return Err(err!(
-					ErrKind::IllegalArgument,
-					"autorotate must be of form AutoRotate(bool)"
-				));
+				let text = "autorotate must be of form AutoRotate(bool)";
+				return Err(err!(ErrKind::IllegalArgument, text));
 			}
 		}
 		let now = match now_param {
@@ -646,20 +608,16 @@ impl LogImpl {
 			MaxAgeMillis(m) => m,
 			_ => {
 				// should not get here, but return an error if we do
-				return Err(err!(
-					ErrKind::IllegalArgument,
-					"max_age_millis must be of form MaxAgeMillis(u128)"
-				));
+				let text = "max_age_millis must be of form MaxAgeMillis(u128)";
+				return Err(err!(ErrKind::IllegalArgument, text));
 			}
 		};
 		let max_size_bytes = match self.config.max_size_bytes {
 			MaxSizeBytes(m) => m,
 			_ => {
 				// should not get here, but return an error if we do
-				return Err(err!(
-					ErrKind::IllegalArgument,
-					"max_size_bytes must be of form MaxSizeBytes(u64)"
-				));
+				let text = "max_size_bytes must be of form MaxSizeBytes(u64)";
+				return Err(err!(ErrKind::IllegalArgument, text));
 			}
 		};
 
@@ -679,149 +637,124 @@ impl LogImpl {
 					match canonicalize(file_path) {
 						Ok(file_path) => {
 							if file_path.is_dir() {
-								return Err(err!(
-									ErrKind::Configuration,
-									"file_path must not be a directory"
-								));
+								let text = "file_path must not be a directory";
+								return Err(err!(ErrKind::Configuration, text));
 							}
 						}
 						Err(_) => {} // it might not have been created yet which is ok. Just check dir here.
 					}
 
 					if file_path.parent().is_none() {
-						return Err(err!(
-							ErrKind::Configuration,
-							"if file_path specifies a PathBuf, the PathBuf must\
-not terminate in a root or a prefix"
-						));
+						let text = "if file_path specifies a PathBuf, the PathBuf must\
+not terminate in a root or a prefix";
+						return Err(err!(ErrKind::Configuration, text));
 					}
 				}
 				None => {}
 			},
 			_ => {
-				return Err(err!(
-					ErrKind::Configuration,
-					"file_path must be of the form FilePath(Option<PathBuf>)"
-				));
+				let text = "file_path must be of the form FilePath(Option<PathBuf>)";
+				return Err(err!(ErrKind::Configuration, text));
 			}
 		}
 		match config.colors {
 			Colors(_) => {}
 			_ => {
-				return Err(err!(
-					ErrKind::Configuration,
-					"colors must be of the form Colors(bool)"
-				));
+				let text = "colors must be of the form Colors(bool)";
+				return Err(err!(ErrKind::Configuration, text));
 			}
 		}
 		match config.stdout {
 			Stdout(_) => {}
 			_ => {
-				return Err(err!(
-					ErrKind::Configuration,
-					"stdout must be of the form Stdout(bool)"
-				));
+				let text = "stdout must be of the form Stdout(bool)";
+				return Err(err!(ErrKind::Configuration, text));
 			}
 		}
 		match config.max_size_bytes {
 			MaxSizeBytes(_) => {}
 			_ => {
-				return Err(err!(
-					ErrKind::Configuration,
-					"max_size_bytes must be of the form MaxSizeBytes(u64)"
-				));
+				let text = "max_size_bytes must be of the form MaxSizeBytes(u64)";
+				return Err(err!(ErrKind::Configuration, text));
 			}
 		}
 		match config.max_age_millis {
 			MaxAgeMillis(_) => {}
 			_ => {
-				return Err(err!(
-					ErrKind::Configuration,
-					"max_age_millis must be of the form MaxAgeMillis(u64)"
-				));
+				let text = "max_age_millis must be of the form MaxAgeMillis(u64)";
+				return Err(err!(ErrKind::Configuration, text));
 			}
 		}
 
 		match config.timestamp {
 			Timestamp(_) => {}
 			_ => {
-				return Err(err!(
-					ErrKind::Configuration,
-					"timestamp must be of the form Timestamp(bool)"
-				));
+				let text = "timestamp must be of the form Timestamp(bool)";
+				return Err(err!(ErrKind::Configuration, text));
 			}
 		}
 		match config.level {
 			Level(_) => {}
 			_ => {
-				return Err(err!(
-					ErrKind::Configuration,
-					"level must be of the form Level(bool)"
-				));
+				let text = "level must be of the form Level(bool)";
+				return Err(err!(ErrKind::Configuration, text));
 			}
 		}
 		match config.line_num {
 			LineNum(_) => {}
 			_ => {
-				return Err(err!(
-					ErrKind::Configuration,
-					"line_num must be of the form LineNum(bool)"
-				));
+				let text = "line_num must be of the form LineNum(bool)";
+				let e = err!(ErrKind::Configuration, text);
+				return Err(e);
 			}
 		}
 		match config.show_millis {
 			ShowMillis(_) => {}
 			_ => {
-				return Err(err!(
-					ErrKind::Configuration,
-					"show_millis must be of the form ShowMillis(bool)"
-				));
+				let text = "show_millis must be of the form ShowMillis(bool)";
+				let e = err!(ErrKind::Configuration, text);
+				return Err(e);
 			}
 		}
 		match config.auto_rotate {
 			AutoRotate(_) => {}
 			_ => {
-				return Err(err!(
-					ErrKind::Configuration,
-					"auto_rotate must be of the form AutoRotate(bool)"
-				));
+				let text = "auto_rotate must be of the form AutoRotate(bool)";
+				let e = err!(ErrKind::Configuration, text);
+				return Err(e);
 			}
 		}
 		match config.show_bt {
 			ShowBt(_) => {}
 			_ => {
-				return Err(err!(
-					ErrKind::Configuration,
-					"show_bt must be of the form ShowBt(bool)"
-				));
+				let text = "show_bt must be of the form ShowBt(bool)";
+				let e = err!(ErrKind::Configuration, text);
+				return Err(e);
 			}
 		}
 		match config.line_num_data_max_len {
 			LineNumDataMaxLen(_) => {}
 			_ => {
-				return Err(err!(
-					ErrKind::Configuration,
-					"line_num_data_max_len must be of the form LineNumDataMaxLen(u64)"
-				));
+				let text = "line_num_data_max_len must be of the form LineNumDataMaxLen(u64)";
+				let e = err!(ErrKind::Configuration, text);
+				return Err(e);
 			}
 		}
 		match config.delete_rotation {
 			DeleteRotation(_) => {}
 			_ => {
-				return Err(err!(
-					ErrKind::Configuration,
-					"delete_rotation must be of the form DeleteRotation(bool)"
-				));
+				let text = "delete_rotation must be of the form DeleteRotation(bool)";
+				let e = err!(ErrKind::Configuration, text);
+				return Err(e);
 			}
 		}
 
 		match config.file_header {
 			FileHeader(_) => {}
 			_ => {
-				return Err(err!(
-					ErrKind::Configuration,
-					"file_header must be of the form FileHeader(String)"
-				));
+				let text = "file_header must be of the form FileHeader(String)";
+				let e = err!(ErrKind::Configuration, text);
+				return Err(e);
 			}
 		}
 
@@ -853,10 +786,9 @@ not terminate in a root or a prefix"
 					}
 				}
 				_ => {
-					return Err(err!(
-						ErrKind::Configuration,
-						"file_header must be of the form FileHeader(String)"
-					));
+					let text = "file_header must be of the form FileHeader(String)";
+					let e = err!(ErrKind::Configuration, text);
+					return Err(e);
 				}
 			}
 		} else {
