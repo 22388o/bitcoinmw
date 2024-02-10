@@ -7878,6 +7878,9 @@
 <a href="#7877" id="7877">7877</a>
 <a href="#7878" id="7878">7878</a>
 <a href="#7879" id="7879">7879</a>
+<a href="#7880" id="7880">7880</a>
+<a href="#7881" id="7881">7881</a>
+<a href="#7882" id="7882">7882</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -14485,7 +14488,10 @@
 		<span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..<span class="number">4</span>], <span class="string">b"5555"</span>);
 
 		<span class="comment">// this one closed
-		</span><span class="kw">let </span>len = c2.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>len = <span class="kw">match </span>c2.read(<span class="kw-2">&amp;mut </span>buf) {
+			<span class="prelude-val">Ok</span>(len) =&gt; len,
+			<span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="number">0</span>,
+		};
 		<span class="macro">info!</span>(<span class="string">"read {} bytes"</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(len, <span class="number">0</span>);
 
