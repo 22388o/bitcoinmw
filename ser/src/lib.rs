@@ -125,6 +125,7 @@ impl<S: Serializable> Serializable for Vec<S> {
 }
 
 impl<S: Serializable> Serializable for Option<S> {
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
 		match self {
 			Some(s) => {
