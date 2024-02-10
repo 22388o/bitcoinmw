@@ -2973,9 +2973,6 @@
 <a href="#2972" id="2972">2972</a>
 <a href="#2973" id="2973">2973</a>
 <a href="#2974" id="2974">2974</a>
-<a href="#2975" id="2975">2975</a>
-<a href="#2976" id="2976">2976</a>
-<a href="#2977" id="2977">2977</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -3817,8 +3814,7 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
-	</span><span class="kw">fn </span>bring_to_front_impl&lt;V&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, hash: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
+	<span class="kw">fn </span>bring_to_front_impl&lt;V&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, hash: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 	<span class="kw">where
 		</span>K: PartialEq,
 		V: Serializable + Clone,
@@ -4252,8 +4248,7 @@
 		}
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
-	</span><span class="kw">fn </span>free_iter_list(<span class="kw-2">&amp;mut </span><span class="self">self</span>, entry: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">fn </span>free_iter_list(<span class="kw-2">&amp;mut </span><span class="self">self</span>, entry: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>slab_id = <span class="self">self</span>.lookup_entry(entry);
 		<span class="kw">let </span><span class="kw-2">mut </span>next = [<span class="number">0u8</span>; <span class="number">8</span>];
 		<span class="kw">let </span><span class="kw-2">mut </span>prev = [<span class="number">0u8</span>; <span class="number">8</span>];
@@ -5209,7 +5204,6 @@
 		<span class="macro">info!</span>(<span class="string">"hashset={:?}"</span>, hashset)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>hashtable = <span class="macro">hashtable!</span>()<span class="question-mark">?</span>;
-		<span class="macro">assert!</span>(hashtable.slabs().is_ok());
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="number">10</span>)<span class="question-mark">?</span>;
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">2</span>, <span class="kw-2">&amp;</span><span class="number">20</span>)<span class="question-mark">?</span>;
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="number">10</span>)<span class="question-mark">?</span>;
