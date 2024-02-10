@@ -2964,9 +2964,6 @@
 <a href="#2963" id="2963">2963</a>
 <a href="#2964" id="2964">2964</a>
 <a href="#2965" id="2965">2965</a>
-<a href="#2966" id="2966">2966</a>
-<a href="#2967" id="2967">2967</a>
-<a href="#2968" id="2968">2968</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -3814,10 +3811,7 @@
 		<span class="kw">if </span>found.is_some() {
 			<span class="comment">// unwrap is ok because is_some is a condition
 			</span><span class="kw">let </span>(entry, _reader) = found.unwrap();
-			<span class="macro">debug!</span>(
-				<span class="string">"entry={},self.tail={},self.head={}"</span>,
-				entry, <span class="self">self</span>.tail, <span class="self">self</span>.head
-			)<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"e={},tail={},self.head={}"</span>, entry, <span class="self">self</span>.tail, <span class="self">self</span>.head)<span class="question-mark">?</span>;
 			<span class="kw">if </span>entry != <span class="self">self</span>.tail {
 				<span class="kw">let </span>entry_slab_id = <span class="self">self</span>.lookup_entry(entry);
 				<span class="kw">let </span>tail_slab_id = <span class="self">self</span>.lookup_entry(<span class="self">self</span>.tail);
