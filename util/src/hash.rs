@@ -1285,10 +1285,6 @@ where
 		let next_usize_entry = slice_to_usize(&next[0..ptr_size])?;
 		let prev_usize_entry = slice_to_usize(&prev[0..ptr_size])?;
 
-		debug!(
-			"free_iter_list with self.head = {}, entry = {}, next_usize_entry={}, prev_usize_entry={}",
-			self.head, entry, next_usize_entry, prev_usize_entry
-		)?;
 		if self.head == entry {
 			if next_usize_entry >= self.max_value {
 				debug!("updating self.head to {}", SLOT_EMPTY)?;
