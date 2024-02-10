@@ -2976,10 +2976,6 @@
 <a href="#2975" id="2975">2975</a>
 <a href="#2976" id="2976">2976</a>
 <a href="#2977" id="2977">2977</a>
-<a href="#2978" id="2978">2978</a>
-<a href="#2979" id="2979">2979</a>
-<a href="#2980" id="2980">2980</a>
-<a href="#2981" id="2981">2981</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -3428,7 +3424,7 @@
 	<span class="kw">fn </span>raw_write(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		key: <span class="kw-2">&amp;</span>K,
-		offset: usize,
+		off: usize,
 		data: <span class="kw-2">&amp;</span>[u8; CACHE_BUFFER_SIZE],
 		len: usize,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
@@ -3437,9 +3433,8 @@
 	{
 		<span class="kw">let </span><span class="kw-2">mut </span>hasher = DefaultHasher::new();
 		key.hash(<span class="kw-2">&amp;mut </span>hasher);
-		<span class="kw">let </span>hash = hasher.finish() <span class="kw">as </span>usize;
-		<span class="self">self</span>.static_impl
-			.raw_write_impl::&lt;V&gt;(key, hash, offset, data, len)
+		<span class="kw">let </span>h = hasher.finish() <span class="kw">as </span>usize;
+		<span class="self">self</span>.static_impl.raw_write_impl::&lt;V&gt;(key, h, off, data, len)
 	}
 	<span class="kw">fn </span>slabs(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Rc&lt;RefCell&lt;<span class="kw">dyn </span>SlabAllocator&gt;&gt;&gt;, Error&gt; {
 		<span class="self">self</span>.static_impl.slabs_impl()
@@ -3815,10 +3810,7 @@
 	}
 
 	<span class="kw">fn </span>remove_oldest_impl(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">debug!</span>(
-			<span class="string">"remove_oldest_impl self.head={}, Slot_empty={}"</span>,
-			<span class="self">self</span>.head, SLOT_EMPTY
-		)<span class="question-mark">?</span>;
+		<span class="macro">debug!</span>(<span class="string">"self.head={}, Slot_empty={}"</span>, <span class="self">self</span>.head, SLOT_EMPTY)<span class="question-mark">?</span>;
 		<span class="kw">if </span><span class="self">self</span>.head != SLOT_EMPTY {
 			<span class="self">self</span>.remove_impl(<span class="self">self</span>.head)<span class="question-mark">?</span>;
 		}
