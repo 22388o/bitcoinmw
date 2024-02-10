@@ -65,6 +65,7 @@ where
 		Self::new(config)
 	}
 
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	pub(crate) fn new(config: ThreadPoolConfig) -> Result<Self, Error> {
 		if config.min_size == 0 || config.min_size > config.max_size {
 			let fmt = "min_size must be > 0 and < max_size";
