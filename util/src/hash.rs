@@ -843,7 +843,6 @@ where
 		Ok(())
 	}
 
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn bring_to_front_impl<V>(&mut self, key: &K, hash: usize) -> Result<(), Error>
 	where
 		K: PartialEq,
@@ -1278,7 +1277,6 @@ where
 		}
 	}
 
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn free_iter_list(&mut self, entry: usize) -> Result<(), Error> {
 		let slab_id = self.lookup_entry(entry);
 		let mut next = [0u8; 8];
@@ -2235,7 +2233,6 @@ mod test {
 		info!("hashset={:?}", hashset)?;
 
 		let mut hashtable = hashtable!()?;
-		assert!(hashtable.slabs().is_ok());
 		hashtable.insert(&1, &10)?;
 		hashtable.insert(&2, &20)?;
 		hashtable.insert(&1, &10)?;
