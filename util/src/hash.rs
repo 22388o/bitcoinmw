@@ -446,7 +446,7 @@ where
 	fn raw_write(
 		&mut self,
 		key: &K,
-		offset: usize,
+		off: usize,
 		data: &[u8; CACHE_BUFFER_SIZE],
 		len: usize,
 	) -> Result<(), Error>
@@ -455,9 +455,8 @@ where
 	{
 		let mut hasher = DefaultHasher::new();
 		key.hash(&mut hasher);
-		let hash = hasher.finish() as usize;
-		self.static_impl
-			.raw_write_impl::<V>(key, hash, offset, data, len)
+		let h = hasher.finish() as usize;
+		self.static_impl.raw_write_impl::<V>(key, h, off, data, len)
 	}
 	fn slabs(&self) -> Result<Option<Rc<RefCell<dyn SlabAllocator>>>, Error> {
 		self.static_impl.slabs_impl()
@@ -833,10 +832,7 @@ where
 	}
 
 	fn remove_oldest_impl(&mut self) -> Result<(), Error> {
-		debug!(
-			"remove_oldest_impl self.head={}, Slot_empty={}",
-			self.head, SLOT_EMPTY
-		)?;
+		debug!("self.head={}, Slot_empty={}", self.head, SLOT_EMPTY)?;
 		if self.head != SLOT_EMPTY {
 			self.remove_impl(self.head)?;
 		}
