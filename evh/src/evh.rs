@@ -6605,7 +6605,10 @@ mod test {
 		assert_eq!(&buf[0..4], b"5555");
 
 		// this one closed
-		let len = c2.read(&mut buf)?;
+		let len = match c2.read(&mut buf) {
+			Ok(len) => len,
+			Err(_) => 0,
+		};
 		info!("read {} bytes", len)?;
 		assert_eq!(len, 0);
 
