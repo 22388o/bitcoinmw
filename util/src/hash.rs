@@ -840,57 +840,58 @@ where
 		K: PartialEq,
 		V: Serializable + Clone,
 	{
-		match self.get_impl(key, hash)? {
-			Some((entry, _reader)) => {
-				debug!(
-					"entry={},self.tail={},self.head={}",
-					entry, self.tail, self.head
-				)?;
-				if entry != self.tail {
-					let entry_slab_id = self.lookup_entry(entry);
-					let tail_slab_id = self.lookup_entry(self.tail);
-					let ptr_size = self.ptr_size;
-					self.slab_reader.seek(entry_slab_id, 0);
-					let mut ptrs = [0u8; 16];
+		let found = self.get_impl(key, hash)?;
 
-					self.slab_reader
-						.read_fixed_bytes(&mut ptrs[0..ptr_size * 2])?;
-					let entry_next = slice_to_usize(&ptrs[0..ptr_size])?;
-					let entry_prev = slice_to_usize(&ptrs[ptr_size..ptr_size * 2])?;
-					let entry_next_slab_id = self.lookup_entry(entry_next);
+		if found.is_some() {
+			// unwrap is ok because is_some is a condition
+			let (entry, _reader) = found.unwrap();
+			debug!(
+				"entry={},self.tail={},self.head={}",
+				entry, self.tail, self.head
+			)?;
+			if entry != self.tail {
+				let entry_slab_id = self.lookup_entry(entry);
+				let tail_slab_id = self.lookup_entry(self.tail);
+				let ptr_size = self.ptr_size;
+				self.slab_reader.seek(entry_slab_id, 0);
+				let mut ptrs = [0u8; 16];
 
-					// update entry_prev_next to entry_next
-					if entry != self.head {
-						let entry_prev_slab_id = self.lookup_entry(entry_prev);
-						self.slab_writer.seek(entry_prev_slab_id, 0);
-						usize_to_slice(entry_next, &mut ptrs[0..ptr_size])?;
-						self.slab_writer.write_fixed_bytes(&ptrs[0..ptr_size])?;
-					}
+				self.slab_reader
+					.read_fixed_bytes(&mut ptrs[0..ptr_size * 2])?;
+				let entry_next = slice_to_usize(&ptrs[0..ptr_size])?;
+				let entry_prev = slice_to_usize(&ptrs[ptr_size..ptr_size * 2])?;
+				let entry_next_slab_id = self.lookup_entry(entry_next);
 
-					// update entry_next_prev to entry_prev
-					self.slab_writer.seek(entry_next_slab_id, ptr_size);
-					usize_to_slice(entry_prev, &mut ptrs[0..ptr_size])?;
+				// update entry_prev_next to entry_next
+				if entry != self.head {
+					let entry_prev_slab_id = self.lookup_entry(entry_prev);
+					self.slab_writer.seek(entry_prev_slab_id, 0);
+					usize_to_slice(entry_next, &mut ptrs[0..ptr_size])?;
 					self.slab_writer.write_fixed_bytes(&ptrs[0..ptr_size])?;
+				}
 
-					// write the entry to point to current tail
-					self.slab_writer.seek(entry_slab_id, 0);
-					usize_to_slice(SLOT_EMPTY, &mut ptrs[0..ptr_size])?;
-					usize_to_slice(self.tail, &mut ptrs[ptr_size..ptr_size * 2])?;
-					self.slab_writer.write_fixed_bytes(&ptrs[0..ptr_size * 2])?;
+				// update entry_next_prev to entry_prev
+				self.slab_writer.seek(entry_next_slab_id, ptr_size);
+				usize_to_slice(entry_prev, &mut ptrs[0..ptr_size])?;
+				self.slab_writer.write_fixed_bytes(&ptrs[0..ptr_size])?;
 
-					// update the tail
-					self.slab_writer.seek(tail_slab_id, 0);
-					usize_to_slice(entry, &mut ptrs[0..ptr_size])?;
-					self.slab_writer.write_fixed_bytes(&ptrs[0..ptr_size])?;
+				// write the entry to point to current tail
+				self.slab_writer.seek(entry_slab_id, 0);
+				usize_to_slice(SLOT_EMPTY, &mut ptrs[0..ptr_size])?;
+				usize_to_slice(self.tail, &mut ptrs[ptr_size..ptr_size * 2])?;
+				self.slab_writer.write_fixed_bytes(&ptrs[0..ptr_size * 2])?;
 
-					self.tail = entry;
-					if entry == self.head {
-						debug!("setting head to {}", entry_next)?;
-						self.head = entry_next;
-					}
+				// update the tail
+				self.slab_writer.seek(tail_slab_id, 0);
+				usize_to_slice(entry, &mut ptrs[0..ptr_size])?;
+				self.slab_writer.write_fixed_bytes(&ptrs[0..ptr_size])?;
+
+				self.tail = entry;
+				if entry == self.head {
+					debug!("setting head to {}", entry_next)?;
+					self.head = entry_next;
 				}
 			}
-			None => {}
 		}
 
 		Ok(())
