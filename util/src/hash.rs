@@ -845,10 +845,7 @@ where
 		if found.is_some() {
 			// unwrap is ok because is_some is a condition
 			let (entry, _reader) = found.unwrap();
-			debug!(
-				"entry={},self.tail={},self.head={}",
-				entry, self.tail, self.head
-			)?;
+			debug!("e={},tail={},self.head={}", entry, self.tail, self.head)?;
 			if entry != self.tail {
 				let entry_slab_id = self.lookup_entry(entry);
 				let tail_slab_id = self.lookup_entry(self.tail);
