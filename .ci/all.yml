@@ -1,29 +1,36 @@
 steps:
   - script: |
-      SET OPENSSL_DIR=C:\Program Files\OpenSSL
-      echo "OpenSSL = %OPENSSL_DIR%"
       rustup update
       cargo test --all --jobs 1
+    displayName: Windows Cargo Test
+    condition: eq( variables['Agent.OS'], 'Windows_NT' )
+  - script: |
       cd etc\evh_perf
       cargo build --release --jobs 1
       target\release\evh_perf -e -c -i 100 --count 10 --clients 2 -t 10
-    displayName: Windows Cargo Test
+    displayName: Windows Eventhandler Perf Test
     condition: eq( variables['Agent.OS'], 'Windows_NT' )
   - script: |
       rustup update
       cargo test --all
+    displayName: macOS Cargo Test
+    condition: eq( variables['Agent.OS'], 'Darwin' )
+  - script: |
       cd etc/evh_perf
       cargo build --release
       ./target/release/evh_perf -e -c -i 100 --count 10 --clients 2 -t 10
-    displayName: macOS Cargo Test
+    displayName: macOS Eventhandler Perf Test
     condition: eq( variables['Agent.OS'], 'Darwin' )
   - script: |
       rustup update
       cargo test --all
+    displayName: Linux Cargo Test
+    condition: eq( variables['Agent.OS'], 'Linux' )
+  - script: |
       cd etc/evh_perf
       cargo build --release
       ./target/release/evh_perf -e -c -i 100 --count 10 --clients 2 -t 10
-    displayName: Linux Cargo Test
+    displayName: Linux Eventhandler Perf Test
     condition: eq( variables['Agent.OS'], 'Linux' )
   - script: 'cargo build --release --jobs 1'
     displayName: Build Release
