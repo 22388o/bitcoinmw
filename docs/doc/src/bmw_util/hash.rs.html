@@ -2966,6 +2966,7 @@
 <a href="#2965" id="2965">2965</a>
 <a href="#2966" id="2966">2966</a>
 <a href="#2967" id="2967">2967</a>
+<a href="#2968" id="2968">2968</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -3808,57 +3809,58 @@
 		</span>K: PartialEq,
 		V: Serializable + Clone,
 	{
-		<span class="kw">match </span><span class="self">self</span>.get_impl(key, hash)<span class="question-mark">? </span>{
-			<span class="prelude-val">Some</span>((entry, _reader)) =&gt; {
-				<span class="macro">debug!</span>(
-					<span class="string">"entry={},self.tail={},self.head={}"</span>,
-					entry, <span class="self">self</span>.tail, <span class="self">self</span>.head
-				)<span class="question-mark">?</span>;
-				<span class="kw">if </span>entry != <span class="self">self</span>.tail {
-					<span class="kw">let </span>entry_slab_id = <span class="self">self</span>.lookup_entry(entry);
-					<span class="kw">let </span>tail_slab_id = <span class="self">self</span>.lookup_entry(<span class="self">self</span>.tail);
-					<span class="kw">let </span>ptr_size = <span class="self">self</span>.ptr_size;
-					<span class="self">self</span>.slab_reader.seek(entry_slab_id, <span class="number">0</span>);
-					<span class="kw">let </span><span class="kw-2">mut </span>ptrs = [<span class="number">0u8</span>; <span class="number">16</span>];
+		<span class="kw">let </span>found = <span class="self">self</span>.get_impl(key, hash)<span class="question-mark">?</span>;
 
-					<span class="self">self</span>.slab_reader
-						.read_fixed_bytes(<span class="kw-2">&amp;mut </span>ptrs[<span class="number">0</span>..ptr_size * <span class="number">2</span>])<span class="question-mark">?</span>;
-					<span class="kw">let </span>entry_next = slice_to_usize(<span class="kw-2">&amp;</span>ptrs[<span class="number">0</span>..ptr_size])<span class="question-mark">?</span>;
-					<span class="kw">let </span>entry_prev = slice_to_usize(<span class="kw-2">&amp;</span>ptrs[ptr_size..ptr_size * <span class="number">2</span>])<span class="question-mark">?</span>;
-					<span class="kw">let </span>entry_next_slab_id = <span class="self">self</span>.lookup_entry(entry_next);
+		<span class="kw">if </span>found.is_some() {
+			<span class="comment">// unwrap is ok because is_some is a condition
+			</span><span class="kw">let </span>(entry, _reader) = found.unwrap();
+			<span class="macro">debug!</span>(
+				<span class="string">"entry={},self.tail={},self.head={}"</span>,
+				entry, <span class="self">self</span>.tail, <span class="self">self</span>.head
+			)<span class="question-mark">?</span>;
+			<span class="kw">if </span>entry != <span class="self">self</span>.tail {
+				<span class="kw">let </span>entry_slab_id = <span class="self">self</span>.lookup_entry(entry);
+				<span class="kw">let </span>tail_slab_id = <span class="self">self</span>.lookup_entry(<span class="self">self</span>.tail);
+				<span class="kw">let </span>ptr_size = <span class="self">self</span>.ptr_size;
+				<span class="self">self</span>.slab_reader.seek(entry_slab_id, <span class="number">0</span>);
+				<span class="kw">let </span><span class="kw-2">mut </span>ptrs = [<span class="number">0u8</span>; <span class="number">16</span>];
 
-					<span class="comment">// update entry_prev_next to entry_next
-					</span><span class="kw">if </span>entry != <span class="self">self</span>.head {
-						<span class="kw">let </span>entry_prev_slab_id = <span class="self">self</span>.lookup_entry(entry_prev);
-						<span class="self">self</span>.slab_writer.seek(entry_prev_slab_id, <span class="number">0</span>);
-						usize_to_slice(entry_next, <span class="kw-2">&amp;mut </span>ptrs[<span class="number">0</span>..ptr_size])<span class="question-mark">?</span>;
-						<span class="self">self</span>.slab_writer.write_fixed_bytes(<span class="kw-2">&amp;</span>ptrs[<span class="number">0</span>..ptr_size])<span class="question-mark">?</span>;
-					}
+				<span class="self">self</span>.slab_reader
+					.read_fixed_bytes(<span class="kw-2">&amp;mut </span>ptrs[<span class="number">0</span>..ptr_size * <span class="number">2</span>])<span class="question-mark">?</span>;
+				<span class="kw">let </span>entry_next = slice_to_usize(<span class="kw-2">&amp;</span>ptrs[<span class="number">0</span>..ptr_size])<span class="question-mark">?</span>;
+				<span class="kw">let </span>entry_prev = slice_to_usize(<span class="kw-2">&amp;</span>ptrs[ptr_size..ptr_size * <span class="number">2</span>])<span class="question-mark">?</span>;
+				<span class="kw">let </span>entry_next_slab_id = <span class="self">self</span>.lookup_entry(entry_next);
 
-					<span class="comment">// update entry_next_prev to entry_prev
-					</span><span class="self">self</span>.slab_writer.seek(entry_next_slab_id, ptr_size);
-					usize_to_slice(entry_prev, <span class="kw-2">&amp;mut </span>ptrs[<span class="number">0</span>..ptr_size])<span class="question-mark">?</span>;
+				<span class="comment">// update entry_prev_next to entry_next
+				</span><span class="kw">if </span>entry != <span class="self">self</span>.head {
+					<span class="kw">let </span>entry_prev_slab_id = <span class="self">self</span>.lookup_entry(entry_prev);
+					<span class="self">self</span>.slab_writer.seek(entry_prev_slab_id, <span class="number">0</span>);
+					usize_to_slice(entry_next, <span class="kw-2">&amp;mut </span>ptrs[<span class="number">0</span>..ptr_size])<span class="question-mark">?</span>;
 					<span class="self">self</span>.slab_writer.write_fixed_bytes(<span class="kw-2">&amp;</span>ptrs[<span class="number">0</span>..ptr_size])<span class="question-mark">?</span>;
+				}
 
-					<span class="comment">// write the entry to point to current tail
-					</span><span class="self">self</span>.slab_writer.seek(entry_slab_id, <span class="number">0</span>);
-					usize_to_slice(SLOT_EMPTY, <span class="kw-2">&amp;mut </span>ptrs[<span class="number">0</span>..ptr_size])<span class="question-mark">?</span>;
-					usize_to_slice(<span class="self">self</span>.tail, <span class="kw-2">&amp;mut </span>ptrs[ptr_size..ptr_size * <span class="number">2</span>])<span class="question-mark">?</span>;
-					<span class="self">self</span>.slab_writer.write_fixed_bytes(<span class="kw-2">&amp;</span>ptrs[<span class="number">0</span>..ptr_size * <span class="number">2</span>])<span class="question-mark">?</span>;
+				<span class="comment">// update entry_next_prev to entry_prev
+				</span><span class="self">self</span>.slab_writer.seek(entry_next_slab_id, ptr_size);
+				usize_to_slice(entry_prev, <span class="kw-2">&amp;mut </span>ptrs[<span class="number">0</span>..ptr_size])<span class="question-mark">?</span>;
+				<span class="self">self</span>.slab_writer.write_fixed_bytes(<span class="kw-2">&amp;</span>ptrs[<span class="number">0</span>..ptr_size])<span class="question-mark">?</span>;
 
-					<span class="comment">// update the tail
-					</span><span class="self">self</span>.slab_writer.seek(tail_slab_id, <span class="number">0</span>);
-					usize_to_slice(entry, <span class="kw-2">&amp;mut </span>ptrs[<span class="number">0</span>..ptr_size])<span class="question-mark">?</span>;
-					<span class="self">self</span>.slab_writer.write_fixed_bytes(<span class="kw-2">&amp;</span>ptrs[<span class="number">0</span>..ptr_size])<span class="question-mark">?</span>;
+				<span class="comment">// write the entry to point to current tail
+				</span><span class="self">self</span>.slab_writer.seek(entry_slab_id, <span class="number">0</span>);
+				usize_to_slice(SLOT_EMPTY, <span class="kw-2">&amp;mut </span>ptrs[<span class="number">0</span>..ptr_size])<span class="question-mark">?</span>;
+				usize_to_slice(<span class="self">self</span>.tail, <span class="kw-2">&amp;mut </span>ptrs[ptr_size..ptr_size * <span class="number">2</span>])<span class="question-mark">?</span>;
+				<span class="self">self</span>.slab_writer.write_fixed_bytes(<span class="kw-2">&amp;</span>ptrs[<span class="number">0</span>..ptr_size * <span class="number">2</span>])<span class="question-mark">?</span>;
 
-					<span class="self">self</span>.tail = entry;
-					<span class="kw">if </span>entry == <span class="self">self</span>.head {
-						<span class="macro">debug!</span>(<span class="string">"setting head to {}"</span>, entry_next)<span class="question-mark">?</span>;
-						<span class="self">self</span>.head = entry_next;
-					}
+				<span class="comment">// update the tail
+				</span><span class="self">self</span>.slab_writer.seek(tail_slab_id, <span class="number">0</span>);
+				usize_to_slice(entry, <span class="kw-2">&amp;mut </span>ptrs[<span class="number">0</span>..ptr_size])<span class="question-mark">?</span>;
+				<span class="self">self</span>.slab_writer.write_fixed_bytes(<span class="kw-2">&amp;</span>ptrs[<span class="number">0</span>..ptr_size])<span class="question-mark">?</span>;
+
+				<span class="self">self</span>.tail = entry;
+				<span class="kw">if </span>entry == <span class="self">self</span>.head {
+					<span class="macro">debug!</span>(<span class="string">"setting head to {}"</span>, entry_next)<span class="question-mark">?</span>;
+					<span class="self">self</span>.head = entry_next;
 				}
 			}
-			<span class="prelude-val">None </span>=&gt; {}
 		}
 
 		<span class="prelude-val">Ok</span>(())
