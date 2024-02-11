@@ -2088,6 +2088,7 @@ where
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn handle_invalid(handle: Handle) -> Result<Handle, Error> {
 		#[cfg(unix)]
 		if handle < 0 {
@@ -2210,6 +2211,7 @@ where
 		Ok(handle)
 	}
 
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn process_accepted_connection(
 		&mut self,
 		ctx: &mut EventHandlerContext,
