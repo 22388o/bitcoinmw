@@ -20,7 +20,7 @@ use bmw_log::*;
 info!();
 
 /// Macro to get a [`crate::Lock`]. Internally, the parameter passed in is wrapped in
-/// an Arc<Rwlock<T>> wrapper that can be used to obtain read/write locks around any
+/// an `Arc<Rwlock<T>>` wrapper that can be used to obtain read/write locks around any
 /// data structure.
 ///
 /// # Examples
@@ -70,7 +70,7 @@ macro_rules! lock {
 	}};
 }
 
-/// The same as lock except that the value returned is in a Box<dyn LockBox<T>> structure.
+/// The same as lock except that the value returned is in a `Box<dyn LockBox<T>>` structure.
 /// See [`crate::LockBox`] for a working example.
 #[macro_export]
 macro_rules! lock_box {
@@ -850,7 +850,7 @@ macro_rules! hashset_sync_config {
 ///                                     that MaxEntries can always be inserted, it's the capacity
 ///                                     of the array that becomes larger as this ratio goes down.
 ///                                     If not specified, the default value is 0.8.
-/// * Slabs(Option<&Rc<RefCell<dyn SlabAllocator>>>) (optional) - An optional reference to a slab
+/// * Slabs(`Option<&Rc<RefCell<dyn SlabAllocator>>>`) (optional) - An optional reference to a slab
 ///                                     allocator to use with this [`crate::Hashtable`]. If not
 ///                                     specified, the global slab allocator is used.
 ///
@@ -1135,7 +1135,7 @@ macro_rules! hashtable_sync_box {
 ///                                     that MaxEntries can always be inserted, it's the capacity
 ///                                     of the array that becomes larger as this ratio goes down.
 ///                                     If not specified, the default value is 0.8.
-/// * Slabs(Option<&Rc<RefCell<dyn SlabAllocator>>>) (optional) - An optional reference to a slab
+/// * Slabs(`Option<&Rc<RefCell<dyn SlabAllocator>>>`) (optional) - An optional reference to a slab
 ///                                     allocator to use with this [`crate::Hashset`]. If not
 ///                                     specified, the global slab allocator is used.
 ///

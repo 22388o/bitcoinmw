@@ -132,7 +132,7 @@ impl Builder {
 
 	/// Build an [`crate::Queue`] based on the specified `size` and `default` value.
 	/// The default value is only used to initialize the underlying [`crate::Array`]
-	/// and is not included in the queue. On success a Box<dyn Queue<T>>
+	/// and is not included in the queue. On success a `Box<dyn Queue<T>>`
 	/// is returned. This function may be used if you wish to store the list in a
 	/// struct or enum.
 	///
@@ -167,7 +167,7 @@ impl Builder {
 
 	/// Build an [`crate::Queue`] based on the specified `size` and `default` value.
 	/// The default value is only used to initialize the underlying [`crate::Array`]
-	/// and is not included in the queue. On success a Box<dyn Queue<T>>
+	/// and is not included in the queue. On success a `Box<dyn Queue<T>>`
 	/// is returned. This function may be used if you wish to store the list in a
 	/// struct or enum. This version requires that T be Send and Sync and returns a "Send/Sync"
 	/// queue.
@@ -202,7 +202,7 @@ impl Builder {
 
 	/// Build a [`crate::Stack`] based on the specified `size` and `default` value.
 	/// The default value is only used to initialize the underlying [`crate::Array`]
-	/// and is not included in the stack. On success a Box<dyn Stack<T>>
+	/// and is not included in the stack. On success a `Box<dyn Stack<T>>`
 	/// is returned. This function may be used if you wish to store the list in a
 	/// struct or enum.
 	///
@@ -365,7 +365,7 @@ impl Builder {
 	/// slab allocator is not thread safe and the global slab allocator is thread local,
 	/// a dedicated slab allocator must be used. That is why the slab allocator configuration
 	/// is specified and a slab allocator may not be passed in as is the case with the regular
-	/// hashtable/hashset builder functions. The returned value is a Box<dyn Hashset<K>>.
+	/// hashtable/hashset builder functions. The returned value is a `Box<dyn Hashset<K>>`.
 	///
 	/// # Errors
 	///
@@ -410,7 +410,7 @@ impl Builder {
 	/// Build a [`crate::Hashset`] based on the specified `config` and
 	/// `slabs`. The returned Hashset is not thread safe and does not implement Send
 	/// or Sync. The slab allocator may be shared among other data structures, but it must
-	/// not be used in other threads. The returned value is a Box<dyn Hashset<K>>.
+	/// not be used in other threads. The returned value is a `Box<dyn Hashset<K>>`.
 	///
 	/// # Errors
 	///
@@ -436,7 +436,7 @@ impl Builder {
 	/// a dedicated slab allocator must be used. That is why the slab allocator configuration
 	/// is specified and a slab allocator may not be passed in as is the case with the regular
 	/// list builder functions. The returned value is an anonymous impl of
-	/// SortableList<V>. This version of the list is a linked list.
+	/// `SortableList<V>`. This version of the list is a linked list.
 	///
 	/// # Errors
 	///
@@ -458,7 +458,7 @@ impl Builder {
 	/// slab allocator is not thread safe and the global slab allocator is thread local,
 	/// a dedicated slab allocator must be used. That is why the slab allocator configuration
 	/// is specified and a slab allocator may not be passed in as is the case with the regular
-	/// list builder functions. The returned value is a Box<dyn SortableList<V>>.
+	/// list builder functions. The returned value is a `Box<dyn SortableList<V>>`.
 	/// This version of the list is a linked list.
 	///
 	/// # Errors
@@ -503,7 +503,7 @@ impl Builder {
 	/// Build a [`crate::List`] based on the specified `config` and
 	/// `slabs`. The returned List is not thread safe and does not implement Send
 	/// or Sync. The slab allocator may be shared among other data structures, but it must
-	/// not be used in other threads. The returned value is a Box<dyn SortableList<V>>.
+	/// not be used in other threads. The returned value is a `Box<dyn SortableList<V>>`.
 	///
 	/// # Errors
 	///
@@ -568,7 +568,7 @@ impl Builder {
 	}
 
 	/// Same as [`crate::Builder::build_suffix_tree`] except that the tree is returned
-	/// as a Box<dyn SuffixTree>>.
+	/// as a `Box<dyn SuffixTree>>`.
 	pub fn build_suffix_tree_box(
 		patterns: impl SortableList<Pattern>,
 		termination_length: usize,

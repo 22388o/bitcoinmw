@@ -62,6 +62,11 @@
 //!     Ok(())
 //! }
 //!
+//! // Example of the err macro
+//! fn return_err() -> Result<(), Error> {
+//!     Err(err!(ErrKind::Misc, "misc error occured"))
+//! }
+//!
 //!```
 
 use bmw_deps::failure;

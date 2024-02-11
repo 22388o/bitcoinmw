@@ -81,7 +81,7 @@ where
 }
 
 /// [`crate::LockBox`] is the same as [`crate::Lock`] except that it is possible to build
-/// The LockBox into a Box<dyn LockBox<T>> structure so that it is object safe. It can then
+/// The LockBox into a `Box<dyn LockBox<T>>` structure so that it is object safe. It can then
 /// be cloned using DynClone.
 ///
 /// # Examples
