@@ -11,25 +11,41 @@ steps:
     displayName: Windows Eventhandler Perf Test
     condition: eq( variables['Agent.OS'], 'Windows_NT' )
   - script: |
+    if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" ]; then
       rustup update
       cargo test --all
+    else
+      echo "This is a Pipelines-Bot checkin. Will not execute."
+    fi
     displayName: macOS Cargo Test
     condition: eq( variables['Agent.OS'], 'Darwin' )
   - script: |
+    if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" ]; then
       cd etc/evh_perf
       cargo build --release
       ./target/release/evh_perf -e -c -i 100 --count 10 --clients 2 -t 10
+    else
+      echo "This is a Pipelines-Bot checkin. Will not execute."
+    fi
     displayName: macOS Eventhandler Perf Test
     condition: eq( variables['Agent.OS'], 'Darwin' )
   - script: |
+    if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" ]; then
       rustup update
       cargo test --all
+    else
+      echo "This is a Pipelines-Bot checkin. Will not execute."
+    fi
     displayName: Linux Cargo Test
     condition: eq( variables['Agent.OS'], 'Linux' )
   - script: |
+    if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" ]; then
       cd etc/evh_perf
       cargo build --release
       ./target/release/evh_perf -e -c -i 100 --count 10 --clients 2 -t 10
+    else
+      echo "This is a Pipelines-Bot checkin. Will not execute."
+    fi
     displayName: Linux Eventhandler Perf Test
     condition: eq( variables['Agent.OS'], 'Linux' )
   - script: 'cargo build --release --jobs 1'
@@ -127,6 +143,7 @@ steps:
       assetUploadMode: 'replace'
       addChangeLog: true
   - script: |
+    if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" ]; then
       last_tarpaulin_summary=$( tail -n 1 docs/tarpaulin_summary.txt)
       last_tarpaulin_summary_split=( $last_tarpaulin_summary )
       # only update at most once per hour
@@ -174,9 +191,13 @@ steps:
       else
         echo "not updating too recent"
       fi
+    else
+      echo "This is a Pipelines-Bot checkin. Will not execute."
+    fi
     displayName: Tarpaulin
     condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))
   - script: |
+    if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" ]; then
       cd ~
       git clone https://anything:$(github_pat)@github.com/cgilliard/bitcoinmw.git bmw_new2
       cd bmw_new2
@@ -211,5 +232,8 @@ steps:
         git commit -m "Pipelines-Bot: Updated repo (via pushdocs script) Source Version is $(Build.SourceVersion)";
         git push https://$(github_pat)@github.com/cgilliard/bitcoinmw.git
       fi
+    else
+      echo "This is a Pipelines-Bot checkin. Will not execute."
+    fi
     displayName: Create and Push Docs
     condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))
