@@ -795,7 +795,7 @@ macro_rules! do_log {
 /// fn test() -> Result<(), Error> {
 ///
 ///     // first init the logger
-///     log_init!(LogConfig::default());
+///     log_init!(LogConfig::default())?;
 ///     // get the configured value for FilePath
 ///     let v = get_log_option!(LogConfigOptionName::FilePath)?;
 ///     // It should be the default value which is None
@@ -873,7 +873,7 @@ macro_rules! set_log_option {
 ///         // comment this line out to avoid tests actually creating this file
 ///         // file_path: FilePath(Some(PathBuf::from(main_log_path))),
 ///         ..Default::default()
-///     });
+///     })?;
 ///
 ///     info!("Startup complete!")?;
 ///
@@ -901,7 +901,7 @@ macro_rules! set_log_option {
 macro_rules! log_init {
 	() => {{
 		let config = bmw_log::LogConfig::default();
-		log_init!(config)
+		log_init!(config)?
 	}};
 	($config:expr) => {
 		match bmw_log::lockw!(bmw_log::STATIC_LOG) {

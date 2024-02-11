@@ -62,6 +62,94 @@
 //! ```
 //!
 //! If enabled color coding is included as well.
+//!
+//! Logging may be configured in many ways. The [`crate::log_init`] macro
+//! allows for convenient configuration of logging.
+//!
+//! Some examples:
+//!
+//!```
+//! use bmw_err::*;
+//! use bmw_log::*;
+//!
+//! info!();
+//!
+//! fn main() -> Result<(), Error> {
+//!     log_init!(LogConfig {
+//!         colors: Colors(true), // Show colors
+//!         stdout: Stdout(true), // Print to stdout
+//!         max_size_bytes: MaxSizeBytes(1024 * 1024 * 5), // The maximum bytes before a log
+//!                                                        // rotation occurs (only applicable when
+//!                                                        // file logging is used)
+//!         max_age_millis: MaxAgeMillis(1000 * 30 * 60),  // The maximum time, in milliseconds,
+//!                                                        // before a log rotation occurs (only
+//!                                                        // applicable when file logging is used)
+//!         timestamp: Timestamp(true), // Show timestamps
+//!         level: Level(true), // Show log level
+//!         line_num: LineNum(false), // Show line numbers
+//!         show_millis: ShowMillis(false), // Show miliseconds in the timestamp
+//!         auto_rotate: AutoRotate(true), // Automatically rotate
+//!         file_path: FilePath(None), // Log to this file location
+//!         show_bt: ShowBt(true), // Show backtraces for error and fatal level logging
+//!         line_num_data_max_len: LineNumDataMaxLen(20), // The maximum length shown of the
+//!                                                       // linenum field.
+//!         delete_rotation: DeleteRotation(false), // Delete log rotations (only used in testing)
+//!         file_header: FileHeader("BitcoinMW Log V1.1".to_string()), // Header (first line) of the log files
+//!         debug_invalid_metadata: false, // debugging parameter which must only be set in tests
+//!         debug_invalid_os_str: false, // debugging parameter which must only be set in tests
+//!         debug_lineno_none: false, // debugging parameter which must only be set in tests
+//!         debug_process_resolve_frame_error: false, // debugging parameter which must only be set in tests
+//!     })?;
+//!
+//!     info!("show this!")?;
+//!
+//!     Ok(())
+//! }
+//!
+//! fn with_default() -> Result<(), Error> {
+//!     // The default trait is implemented for [`crate::LogConfig`] so specifying all parameters
+//!     // is not necessary.
+//!     log_init!(LogConfig {
+//!         colors: Colors(false),
+//!         stdout: Stdout(true),
+//!         ..Default::default()
+//!     })?;
+//!
+//!     info!("show this!")?;
+//!
+//!     Ok(())
+//! }
+//!
+//!```
+//!
+//! Log configuration options may be set after the log has been initialized. See the example
+//! below. For all configuration options, see [`crate::LogConfigOption`].
+//!
+//!```
+//! use bmw_err::*;
+//! use bmw_log::*;
+//!
+//! info!();
+//!
+//! fn set_log_options_after_startup() -> Result<(), Error> {
+//!     // Init log first
+//!
+//!     log_init!(LogConfig {
+//!         colors: Colors(false),
+//!         stdout: Stdout(true),
+//!         ..Default::default()
+//!     })?;
+//!
+//!     info!("show this!")?;
+//!
+//!     set_log_option!(LogConfigOption::Colors(true))?;
+//!
+//!     info!("show this with colors!")?;
+//!
+//!     Ok(())
+//! }
+//!
+//!```
 
 mod log;
 mod macros;
