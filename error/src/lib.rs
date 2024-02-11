@@ -27,7 +27,7 @@
 //! # Examples
 //!```
 //! // Example of the err macro
-//! use bmw_err::{Error, ErrorKind, ErrKind, err, map_err};
+//! use bmw_err::{Error, ErrorKind, ErrKind, err, map_err, try_into};
 //! use std::path::PathBuf;
 //! use std::fs::File;
 //! use std::io::Write;
@@ -65,6 +65,12 @@
 //! // Example of the err macro
 //! fn return_err() -> Result<(), Error> {
 //!     Err(err!(ErrKind::Misc, "misc error occured"))
+//! }
+//!
+//! // Example of the try_into macro
+//! fn try_into_ex() -> Result<(), Error> {
+//!     let _v: usize = try_into!(100u128)?;
+//!     Ok(())
 //! }
 //!
 //!```
