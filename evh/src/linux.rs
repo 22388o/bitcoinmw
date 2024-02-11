@@ -407,6 +407,15 @@ mod test {
 
 		assert_eq!(ctx.filter_set.len(), 100 + ret[0] as usize);
 
+		let port = pick_free_port()?;
+		info!("basic Using port: {}", port)?;
+		let fmt = format!("[::1]:{}", port);
+		assert!(setup_fd(false, &fmt, 10).is_ok());
+
+		let port2 = pick_free_port()?;
+		let addr = format!("127.0.0.1:{}", port2);
+		assert!(create_listeners_impl(2, &addr, 10, true).is_ok());
+
 		Ok(())
 	}
 }
