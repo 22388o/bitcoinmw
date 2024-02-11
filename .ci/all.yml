@@ -11,23 +11,23 @@ steps:
     displayName: Windows Eventhandler Perf Test
     condition: eq( variables['Agent.OS'], 'Windows_NT' )
   - script: |
-    chmod 755 ./.ci/cargo_test.sh
-    ./.ci/cargo_test.sh
+      chmod 755 ./.ci/cargo_test.sh
+      ./.ci/cargo_test.sh
     displayName: macOS Cargo Test
     condition: eq( variables['Agent.OS'], 'Darwin' )
   - script: |
-    chmod 755 ./.ci/perf.sh
-    ./.ci/perf.sh
+      chmod 755 ./.ci/perf.sh
+      ./.ci/perf.sh
     displayName: macOS Eventhandler Perf Test
     condition: eq( variables['Agent.OS'], 'Darwin' )
   - script: |
-     chmod 755 ./.ci/cargo_test.sh
-    ./.ci/cargo_test.sh
+      chmod 755 ./.ci/cargo_test.sh
+      ./.ci/cargo_test.sh
     displayName: Linux Cargo Test
     condition: eq( variables['Agent.OS'], 'Linux' )
   - script: |
-    chmod 755 ./.ci/perf.sh
-    ./.ci/perf.sh
+      chmod 755 ./.ci/perf.sh
+      ./.ci/perf.sh
     displayName: Linux Eventhandler Perf Test
     condition: eq( variables['Agent.OS'], 'Linux' )
   - script: 'cargo build --release --jobs 1'
