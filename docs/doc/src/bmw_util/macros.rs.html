@@ -2452,7 +2452,7 @@
 <span class="macro">info!</span>();
 
 <span class="doccomment">/// Macro to get a [`crate::Lock`]. Internally, the parameter passed in is wrapped in
-/// an Arc&lt;Rwlock&lt;T&gt;&gt; wrapper that can be used to obtain read/write locks around any
+/// an `Arc&lt;Rwlock&lt;T&gt;&gt;` wrapper that can be used to obtain read/write locks around any
 /// data structure.
 ///
 /// # Examples
@@ -2502,7 +2502,7 @@
 	}};
 }
 
-<span class="doccomment">/// The same as lock except that the value returned is in a Box&lt;dyn LockBox&lt;T&gt;&gt; structure.
+<span class="doccomment">/// The same as lock except that the value returned is in a `Box&lt;dyn LockBox&lt;T&gt;&gt;` structure.
 /// See [`crate::LockBox`] for a working example.
 </span><span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>lock_box {
@@ -3282,7 +3282,7 @@
 ///                                     that MaxEntries can always be inserted, it's the capacity
 ///                                     of the array that becomes larger as this ratio goes down.
 ///                                     If not specified, the default value is 0.8.
-/// * Slabs(Option&lt;&amp;Rc&lt;RefCell&lt;dyn SlabAllocator&gt;&gt;&gt;) (optional) - An optional reference to a slab
+/// * Slabs(`Option&lt;&amp;Rc&lt;RefCell&lt;dyn SlabAllocator&gt;&gt;&gt;`) (optional) - An optional reference to a slab
 ///                                     allocator to use with this [`crate::Hashtable`]. If not
 ///                                     specified, the global slab allocator is used.
 ///
@@ -3567,7 +3567,7 @@
 ///                                     that MaxEntries can always be inserted, it's the capacity
 ///                                     of the array that becomes larger as this ratio goes down.
 ///                                     If not specified, the default value is 0.8.
-/// * Slabs(Option&lt;&amp;Rc&lt;RefCell&lt;dyn SlabAllocator&gt;&gt;&gt;) (optional) - An optional reference to a slab
+/// * Slabs(`Option&lt;&amp;Rc&lt;RefCell&lt;dyn SlabAllocator&gt;&gt;&gt;`) (optional) - An optional reference to a slab
 ///                                     allocator to use with this [`crate::Hashset`]. If not
 ///                                     specified, the global slab allocator is used.
 ///

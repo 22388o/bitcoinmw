@@ -53,7 +53,7 @@ is returned.</p>
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.76.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.76.0/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;dyn <a class="trait" href="trait.Queue.html" title="trait bmw_util::Queue">Queue</a>&lt;T&gt;&gt;, Error&gt;<div class="where">where
     T: <a class="trait" href="https://doc.rust-lang.org/1.76.0/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a> + 'static,</div></h4></section></summary><div class="docblock"><p>Build an <a href="trait.Queue.html" title="trait bmw_util::Queue"><code>crate::Queue</code></a> based on the specified <code>size</code> and <code>default</code> value.
 The default value is only used to initialize the underlying <a href="struct.Array.html" title="struct bmw_util::Array"><code>crate::Array</code></a>
-and is not included in the queue. On success a Box&lt;dyn Queue<T>&gt;
+and is not included in the queue. On success a <code>Box&lt;dyn Queue&lt;T&gt;&gt;</code>
 is returned. This function may be used if you wish to store the list in a
 struct or enum.</p>
 <h5 id="errors-3"><a href="#errors-3">Errors</a></h5>
@@ -75,7 +75,7 @@ queue.</p>
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.76.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.76.0/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;dyn <a class="trait" href="trait.Queue.html" title="trait bmw_util::Queue">Queue</a>&lt;T&gt; + <a class="trait" href="https://doc.rust-lang.org/1.76.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a class="trait" href="https://doc.rust-lang.org/1.76.0/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a>&gt;, Error&gt;<div class="where">where
     T: <a class="trait" href="https://doc.rust-lang.org/1.76.0/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a> + <a class="trait" href="https://doc.rust-lang.org/1.76.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a class="trait" href="https://doc.rust-lang.org/1.76.0/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> + 'static,</div></h4></section></summary><div class="docblock"><p>Build an <a href="trait.Queue.html" title="trait bmw_util::Queue"><code>crate::Queue</code></a> based on the specified <code>size</code> and <code>default</code> value.
 The default value is only used to initialize the underlying <a href="struct.Array.html" title="struct bmw_util::Array"><code>crate::Array</code></a>
-and is not included in the queue. On success a Box&lt;dyn Queue<T>&gt;
+and is not included in the queue. On success a <code>Box&lt;dyn Queue&lt;T&gt;&gt;</code>
 is returned. This function may be used if you wish to store the list in a
 struct or enum. This version requires that T be Send and Sync and returns a “Send/Sync”
 queue.</p>
@@ -94,7 +94,7 @@ is returned.</p>
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.76.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.76.0/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;dyn <a class="trait" href="trait.Stack.html" title="trait bmw_util::Stack">Stack</a>&lt;T&gt;&gt;, Error&gt;<div class="where">where
     T: <a class="trait" href="https://doc.rust-lang.org/1.76.0/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a> + 'static,</div></h4></section></summary><div class="docblock"><p>Build a <a href="trait.Stack.html" title="trait bmw_util::Stack"><code>crate::Stack</code></a> based on the specified <code>size</code> and <code>default</code> value.
 The default value is only used to initialize the underlying <a href="struct.Array.html" title="struct bmw_util::Array"><code>crate::Array</code></a>
-and is not included in the stack. On success a Box&lt;dyn Stack<T>&gt;
+and is not included in the stack. On success a <code>Box&lt;dyn Stack&lt;T&gt;&gt;</code>
 is returned. This function may be used if you wish to store the list in a
 struct or enum.</p>
 <h5 id="errors-7"><a href="#errors-7">Errors</a></h5>
@@ -196,7 +196,7 @@ to fit the pointer values needed.</p>
 slab allocator is not thread safe and the global slab allocator is thread local,
 a dedicated slab allocator must be used. That is why the slab allocator configuration
 is specified and a slab allocator may not be passed in as is the case with the regular
-hashtable/hashset builder functions. The returned value is a Box&lt;dyn Hashset<K>&gt;.</p>
+hashtable/hashset builder functions. The returned value is a <code>Box&lt;dyn Hashset&lt;K&gt;&gt;</code>.</p>
 <h5 id="errors-13"><a href="#errors-13">Errors</a></h5>
 <p>[<code>bmw_err::ErrorKind::Configuration</code>] is returned if the <code>slab_size</code> is greater than
 65_536, the slab count is greater than 281_474_976_710_655, <code>max_entries</code> is equal to
@@ -223,7 +223,7 @@ to fit the pointer values needed.</p>
     K: <a class="trait" href="trait.Serializable.html" title="trait bmw_util::Serializable">Serializable</a> + <a class="trait" href="https://doc.rust-lang.org/1.76.0/core/hash/trait.Hash.html" title="trait core::hash::Hash">Hash</a> + <a class="trait" href="https://doc.rust-lang.org/1.76.0/core/cmp/trait.PartialEq.html" title="trait core::cmp::PartialEq">PartialEq</a> + <a class="trait" href="https://doc.rust-lang.org/1.76.0/core/fmt/trait.Debug.html" title="trait core::fmt::Debug">Debug</a> + 'static + <a class="trait" href="https://doc.rust-lang.org/1.76.0/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a>,</div></h4></section></summary><div class="docblock"><p>Build a <a href="trait.Hashset.html" title="trait bmw_util::Hashset"><code>crate::Hashset</code></a> based on the specified <code>config</code> and
 <code>slabs</code>. The returned Hashset is not thread safe and does not implement Send
 or Sync. The slab allocator may be shared among other data structures, but it must
-not be used in other threads. The returned value is a Box&lt;dyn Hashset<K>&gt;.</p>
+not be used in other threads. The returned value is a <code>Box&lt;dyn Hashset&lt;K&gt;&gt;</code>.</p>
 <h5 id="errors-15"><a href="#errors-15">Errors</a></h5>
 <p>[<code>bmw_err::ErrorKind::Configuration</code>] is returned if the <code>slab_size</code> is greater than
 65_536, the slab count is greater than 281_474_976_710_655, <code>max_entries</code> is equal to
@@ -239,7 +239,7 @@ slab allocator is not thread safe and the global slab allocator is thread local,
 a dedicated slab allocator must be used. That is why the slab allocator configuration
 is specified and a slab allocator may not be passed in as is the case with the regular
 list builder functions. The returned value is an anonymous impl of
-SortableList<V>. This version of the list is a linked list.</p>
+<code>SortableList&lt;V&gt;</code>. This version of the list is a linked list.</p>
 <h5 id="errors-16"><a href="#errors-16">Errors</a></h5>
 <p>[<code>bmw_err::ErrorKind::Configuration</code>] is returned if the <code>slab_size</code> is greater than
 65_536, the slab count is greater than 281_474_976_710_655, or the <code>slab_size</code> is to small
@@ -253,7 +253,7 @@ to fit the pointer values needed.</p>
 slab allocator is not thread safe and the global slab allocator is thread local,
 a dedicated slab allocator must be used. That is why the slab allocator configuration
 is specified and a slab allocator may not be passed in as is the case with the regular
-list builder functions. The returned value is a Box&lt;dyn SortableList<V>&gt;.
+list builder functions. The returned value is a <code>Box&lt;dyn SortableList&lt;V&gt;&gt;</code>.
 This version of the list is a linked list.</p>
 <h5 id="errors-17"><a href="#errors-17">Errors</a></h5>
 <p>[<code>bmw_err::ErrorKind::Configuration</code>] is returned if the <code>slab_size</code> is greater than
@@ -280,7 +280,7 @@ to fit the pointer values needed.</p>
     V: <a class="trait" href="trait.Serializable.html" title="trait bmw_util::Serializable">Serializable</a> + <a class="trait" href="https://doc.rust-lang.org/1.76.0/core/fmt/trait.Debug.html" title="trait core::fmt::Debug">Debug</a> + <a class="trait" href="https://doc.rust-lang.org/1.76.0/core/cmp/trait.PartialEq.html" title="trait core::cmp::PartialEq">PartialEq</a> + <a class="trait" href="https://doc.rust-lang.org/1.76.0/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a> + 'static,</div></h4></section></summary><div class="docblock"><p>Build a <a href="trait.List.html" title="trait bmw_util::List"><code>crate::List</code></a> based on the specified <code>config</code> and
 <code>slabs</code>. The returned List is not thread safe and does not implement Send
 or Sync. The slab allocator may be shared among other data structures, but it must
-not be used in other threads. The returned value is a Box&lt;dyn SortableList<V>&gt;.</p>
+not be used in other threads. The returned value is a <code>Box&lt;dyn SortableList&lt;V&gt;&gt;</code>.</p>
 <h5 id="errors-19"><a href="#errors-19">Errors</a></h5>
 <p>[<code>bmw_err::ErrorKind::Configuration</code>] is returned if the <code>slab_size</code> is greater than
 65_536, the slab count is greater than 281_474_976_710_655, <code>max_entries</code> is equal to
@@ -313,7 +313,7 @@ maximum length of any wild card matches.</p>
     termination_length: <a class="primitive" href="https://doc.rust-lang.org/1.76.0/std/primitive.usize.html">usize</a>,
     max_wildcard_length: <a class="primitive" href="https://doc.rust-lang.org/1.76.0/std/primitive.usize.html">usize</a>
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.76.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.76.0/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;dyn <a class="trait" href="trait.SuffixTree.html" title="trait bmw_util::SuffixTree">SuffixTree</a> + <a class="trait" href="https://doc.rust-lang.org/1.76.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a class="trait" href="https://doc.rust-lang.org/1.76.0/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a>&gt;, Error&gt;</h4></section></summary><div class="docblock"><p>Same as <a href="struct.Builder.html#method.build_suffix_tree" title="associated function bmw_util::Builder::build_suffix_tree"><code>crate::Builder::build_suffix_tree</code></a> except that the tree is returned
-as a Box<dyn SuffixTree>&gt;.</p>
+as a <code>Box&lt;dyn SuffixTree&gt;&gt;</code>.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.build_slabs_unsafe" class="method"><a class="src rightside" href="../src/bmw_util/builder.rs.html#589-591">source</a><h4 class="code-header">pub fn <a href="#method.build_slabs_unsafe" class="fn">build_slabs_unsafe</a>() -&gt; <a class="struct" href="https://doc.rust-lang.org/1.76.0/core/cell/struct.UnsafeCell.html" title="struct core::cell::UnsafeCell">UnsafeCell</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.76.0/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;dyn <a class="trait" href="trait.SlabAllocator.html" title="trait bmw_util::SlabAllocator">SlabAllocator</a>&gt;&gt;</h4></section></summary><div class="docblock"><p>Build a slab allocator on the heap in an <a href="https://doc.rust-lang.org/1.76.0/core/cell/struct.UnsafeCell.html" title="struct core::cell::UnsafeCell"><code>std::cell::UnsafeCell</code></a>.
 This function is used by the global thread local slab allocator to allocate
 thread local slab allocators. Note that it calls unsafe functions. This

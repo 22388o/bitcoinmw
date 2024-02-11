@@ -911,7 +911,7 @@
 
 	<span class="doccomment">/// Build an [`crate::Queue`] based on the specified `size` and `default` value.
 	/// The default value is only used to initialize the underlying [`crate::Array`]
-	/// and is not included in the queue. On success a Box&lt;dyn Queue&lt;T&gt;&gt;
+	/// and is not included in the queue. On success a `Box&lt;dyn Queue&lt;T&gt;&gt;`
 	/// is returned. This function may be used if you wish to store the list in a
 	/// struct or enum.
 	///
@@ -946,7 +946,7 @@
 
 	<span class="doccomment">/// Build an [`crate::Queue`] based on the specified `size` and `default` value.
 	/// The default value is only used to initialize the underlying [`crate::Array`]
-	/// and is not included in the queue. On success a Box&lt;dyn Queue&lt;T&gt;&gt;
+	/// and is not included in the queue. On success a `Box&lt;dyn Queue&lt;T&gt;&gt;`
 	/// is returned. This function may be used if you wish to store the list in a
 	/// struct or enum. This version requires that T be Send and Sync and returns a "Send/Sync"
 	/// queue.
@@ -981,7 +981,7 @@
 
 	<span class="doccomment">/// Build a [`crate::Stack`] based on the specified `size` and `default` value.
 	/// The default value is only used to initialize the underlying [`crate::Array`]
-	/// and is not included in the stack. On success a Box&lt;dyn Stack&lt;T&gt;&gt;
+	/// and is not included in the stack. On success a `Box&lt;dyn Stack&lt;T&gt;&gt;`
 	/// is returned. This function may be used if you wish to store the list in a
 	/// struct or enum.
 	///
@@ -1144,7 +1144,7 @@
 	/// slab allocator is not thread safe and the global slab allocator is thread local,
 	/// a dedicated slab allocator must be used. That is why the slab allocator configuration
 	/// is specified and a slab allocator may not be passed in as is the case with the regular
-	/// hashtable/hashset builder functions. The returned value is a Box&lt;dyn Hashset&lt;K&gt;&gt;.
+	/// hashtable/hashset builder functions. The returned value is a `Box&lt;dyn Hashset&lt;K&gt;&gt;`.
 	///
 	/// # Errors
 	///
@@ -1189,7 +1189,7 @@
 	<span class="doccomment">/// Build a [`crate::Hashset`] based on the specified `config` and
 	/// `slabs`. The returned Hashset is not thread safe and does not implement Send
 	/// or Sync. The slab allocator may be shared among other data structures, but it must
-	/// not be used in other threads. The returned value is a Box&lt;dyn Hashset&lt;K&gt;&gt;.
+	/// not be used in other threads. The returned value is a `Box&lt;dyn Hashset&lt;K&gt;&gt;`.
 	///
 	/// # Errors
 	///
@@ -1215,7 +1215,7 @@
 	/// a dedicated slab allocator must be used. That is why the slab allocator configuration
 	/// is specified and a slab allocator may not be passed in as is the case with the regular
 	/// list builder functions. The returned value is an anonymous impl of
-	/// SortableList&lt;V&gt;. This version of the list is a linked list.
+	/// `SortableList&lt;V&gt;`. This version of the list is a linked list.
 	///
 	/// # Errors
 	///
@@ -1237,7 +1237,7 @@
 	/// slab allocator is not thread safe and the global slab allocator is thread local,
 	/// a dedicated slab allocator must be used. That is why the slab allocator configuration
 	/// is specified and a slab allocator may not be passed in as is the case with the regular
-	/// list builder functions. The returned value is a Box&lt;dyn SortableList&lt;V&gt;&gt;.
+	/// list builder functions. The returned value is a `Box&lt;dyn SortableList&lt;V&gt;&gt;`.
 	/// This version of the list is a linked list.
 	///
 	/// # Errors
@@ -1282,7 +1282,7 @@
 	<span class="doccomment">/// Build a [`crate::List`] based on the specified `config` and
 	/// `slabs`. The returned List is not thread safe and does not implement Send
 	/// or Sync. The slab allocator may be shared among other data structures, but it must
-	/// not be used in other threads. The returned value is a Box&lt;dyn SortableList&lt;V&gt;&gt;.
+	/// not be used in other threads. The returned value is a `Box&lt;dyn SortableList&lt;V&gt;&gt;`.
 	///
 	/// # Errors
 	///
@@ -1347,7 +1347,7 @@
 	}
 
 	<span class="doccomment">/// Same as [`crate::Builder::build_suffix_tree`] except that the tree is returned
-	/// as a Box&lt;dyn SuffixTree&gt;&gt;.
+	/// as a `Box&lt;dyn SuffixTree&gt;&gt;`.
 	</span><span class="kw">pub fn </span>build_suffix_tree_box(
 		patterns: <span class="kw">impl </span>SortableList&lt;Pattern&gt;,
 		termination_length: usize,
