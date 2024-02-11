@@ -7883,6 +7883,22 @@
 <a href="#7882" id="7882">7882</a>
 <a href="#7883" id="7883">7883</a>
 <a href="#7884" id="7884">7884</a>
+<a href="#7885" id="7885">7885</a>
+<a href="#7886" id="7886">7886</a>
+<a href="#7887" id="7887">7887</a>
+<a href="#7888" id="7888">7888</a>
+<a href="#7889" id="7889">7889</a>
+<a href="#7890" id="7890">7890</a>
+<a href="#7891" id="7891">7891</a>
+<a href="#7892" id="7892">7892</a>
+<a href="#7893" id="7893">7893</a>
+<a href="#7894" id="7894">7894</a>
+<a href="#7895" id="7895">7895</a>
+<a href="#7896" id="7896">7896</a>
+<a href="#7897" id="7897">7897</a>
+<a href="#7898" id="7898">7898</a>
+<a href="#7899" id="7899">7899</a>
+<a href="#7900" id="7900">7900</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -7920,7 +7936,6 @@
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
-<span class="kw">use </span>std::any::type_name;
 <span class="kw">use </span>std::any::Any;
 <span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::fmt::{Debug, Formatter};
@@ -8851,7 +8866,8 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">fn </span>execute_thread(
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">fn </span>execute_thread(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		wakeup: <span class="kw-2">&amp;mut </span>Wakeup,
 		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
@@ -8954,7 +8970,8 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">fn </span>process_housekeeper(
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">fn </span>process_housekeeper(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
 		callback_context: <span class="kw-2">&amp;mut </span>ThreadContext,
@@ -9021,11 +9038,8 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">fn </span>type_of&lt;T&gt;(<span class="kw">_</span>: T) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
-		type_name::&lt;T&gt;()
-	}
-
-	<span class="kw">fn </span>process_write_queue(<span class="kw-2">&amp;mut </span><span class="self">self</span>, ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">fn </span>process_write_queue(<span class="kw-2">&amp;mut </span><span class="self">self</span>, ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="macro">debug!</span>(<span class="string">"process write queue"</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[ctx.tid].wlock_ignore_poison()<span class="question-mark">?</span>;
 		<span class="kw">loop </span>{
@@ -9108,7 +9122,8 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">fn </span>process_new_connections(
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">fn </span>process_new_connections(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
 		callback_context: <span class="kw-2">&amp;mut </span>ThreadContext,
@@ -9224,7 +9239,8 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">fn </span>process_events(
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">fn </span>process_events(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
 		wakeup: <span class="kw-2">&amp;</span>Wakeup,
@@ -10456,7 +10472,6 @@
 		<span class="kw">let </span>attachment = AttachmentHolder {
 			attachment: Arc::new(attachment),
 		};
-		<span class="macro">debug!</span>(<span class="string">"type in add_ser = {:?}"</span>, <span class="self">Self</span>::type_of(attachment.clone()))<span class="question-mark">?</span>;
 		<span class="macro">debug!</span>(<span class="string">"add server: {:?}"</span>, attachment)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>tls_config = <span class="kw">match </span>connection.tls_config {
@@ -10660,8 +10675,9 @@
 		StreamInfo, Wakeup, WriteState,
 	};
 	<span class="kw">use crate</span>::{
-		ClientConnection, ConnData, EventHandler, EventHandlerConfig, ServerConnection,
-		ThreadContext, TlsClientConfig, TlsServerConfig, READ_SLAB_DATA_SIZE,
+		ClientConnection, CloseHandle, ConnData, EventHandler, EventHandlerConfig,
+		EventHandlerData, ServerConnection, ThreadContext, TlsClientConfig, TlsServerConfig,
+		READ_SLAB_DATA_SIZE,
 	};
 
 	<span class="kw">use </span>bmw_deps::rand::random;
@@ -10948,6 +10964,7 @@
 				}),
 			};
 			<span class="kw">let </span><span class="kw-2">mut </span>wh = evh.add_client(client, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
+			<span class="macro">assert!</span>(wh.id() &gt; <span class="number">0</span>);
 			<span class="macro">assert!</span>(evh.event_handler_data().is_ok());
 			wh.write(<span class="string">b"test"</span>)<span class="question-mark">?</span>;
 			sleep(Duration::from_millis(<span class="number">2000</span>));
@@ -15764,6 +15781,21 @@
 
 		evh.stop()<span class="question-mark">?</span>;
 
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="attr">#[test]
+	</span><span class="kw">fn </span>test_evh_close_handle() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="macro">assert!</span>(CloseHandle::new(
+			<span class="kw-2">&amp;mut </span><span class="macro">lock_box!</span>(WriteState {
+				write_buffer: <span class="macro">vec!</span>[],
+				flags: <span class="number">0</span>,
+			})<span class="question-mark">?</span>,
+			<span class="number">0</span>,
+			<span class="kw-2">&amp;mut </span><span class="macro">lock_box!</span>(EventHandlerData::new(<span class="number">100</span>, <span class="number">100</span>)<span class="question-mark">?</span>)<span class="question-mark">?</span>,
+		)
+		.close()
+		.is_ok());
 		<span class="prelude-val">Ok</span>(())
 	}
 }
