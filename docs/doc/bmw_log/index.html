@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Logging crate used by other crates in bmw. The crate has a macro library that allows for logging at the standard 6 levels and also allows for specifying a log file and various options. All options can be seen in the `crate::LogConfig` struct. This crate is largely compatible with the log crate. So any code that was written to work with that crate will work with this crate with minor adjustments. In addition to the `trace`, `debug`, `info`, `warn`, `error` and `fatal` macros, this crate provides an ‘all’ version and ‘plain’ version of each macro. For example: `info_all` and `info_plain`. These macros allow for logging to standard out no matter how the log is configured and for logging without the timestamp respectively. The main adjustment a developer accustomed to using the rust log crate would need to make is that this crate returns errors so you will have to add error handling which can be as simple as using the question mark operator or using the `bmw_err::map_err` macro."><title>bmw_log - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="bmw_log" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../bmw_log/index.html">bmw_log</a><span class="version">0.0.3-beta.1</span></h2></div><div class="sidebar-elems"><ul class="block">
             <li><a id="all-types" href="all.html">All Items</a></li></ul><section><ul class="block"><li><a href="#reexports">Re-exports</a></li><li><a href="#macros">Macros</a></li><li><a href="#structs">Structs</a></li><li><a href="#enums">Enums</a></li><li><a href="#traits">Traits</a></li></ul></section></div></nav><div class="sidebar-resizer"></div>
-    <main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../bmw_log/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Crate <a class="mod" href="#">bmw_log</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="src" href="../src/bmw_log/lib.rs.html#18-73">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Logging crate used by other crates in bmw. The crate has a macro
+    <main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../bmw_log/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Crate <a class="mod" href="#">bmw_log</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="src" href="../src/bmw_log/lib.rs.html#18-161">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Logging crate used by other crates in bmw. The crate has a macro
 library that allows for logging at the standard 6 levels and also
 allows for specifying a log file and various options. All options can
 be seen in the <a href="struct.LogConfig.html" title="struct bmw_log::LogConfig"><code>crate::LogConfig</code></a> struct. This crate is largely compatible
@@ -39,6 +39,87 @@ the question mark operator or using the [<code>bmw_err::map_err</code>] macro.</
 [2022-02-24 13:52:24.123]: (TRACE) [..ibconcord/src/main.rs:136]: trace
 </code></pre></div>
 <p>If enabled color coding is included as well.</p>
+<p>Logging may be configured in many ways. The <a href="macro.log_init.html" title="macro bmw_log::log_init"><code>crate::log_init</code></a> macro
+allows for convenient configuration of logging.</p>
+<p>Some examples:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code> <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
+ <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
+
+ <span class="macro">info!</span>();
+
+ <span class="kw">fn </span>main() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+     <span class="macro">log_init!</span>(LogConfig {
+         colors: Colors(<span class="bool-val">true</span>), <span class="comment">// Show colors
+         </span>stdout: Stdout(<span class="bool-val">true</span>), <span class="comment">// Print to stdout
+         </span>max_size_bytes: MaxSizeBytes(<span class="number">1024 </span>* <span class="number">1024 </span>* <span class="number">5</span>), <span class="comment">// The maximum bytes before a log
+                                                        // rotation occurs (only applicable when
+                                                        // file logging is used)
+         </span>max_age_millis: MaxAgeMillis(<span class="number">1000 </span>* <span class="number">30 </span>* <span class="number">60</span>),  <span class="comment">// The maximum time, in milliseconds,
+                                                        // before a log rotation occurs (only
+                                                        // applicable when file logging is used)
+         </span>timestamp: Timestamp(<span class="bool-val">true</span>), <span class="comment">// Show timestamps
+         </span>level: Level(<span class="bool-val">true</span>), <span class="comment">// Show log level
+         </span>line_num: LineNum(<span class="bool-val">false</span>), <span class="comment">// Show line numbers
+         </span>show_millis: ShowMillis(<span class="bool-val">false</span>), <span class="comment">// Show miliseconds in the timestamp
+         </span>auto_rotate: AutoRotate(<span class="bool-val">true</span>), <span class="comment">// Automatically rotate
+         </span>file_path: FilePath(<span class="prelude-val">None</span>), <span class="comment">// Log to this file location
+         </span>show_bt: ShowBt(<span class="bool-val">true</span>), <span class="comment">// Show backtraces for error and fatal level logging
+         </span>line_num_data_max_len: LineNumDataMaxLen(<span class="number">20</span>), <span class="comment">// The maximum length shown of the
+                                                       // linenum field.
+         </span>delete_rotation: DeleteRotation(<span class="bool-val">false</span>), <span class="comment">// Delete log rotations (only used in testing)
+         </span>file_header: FileHeader(<span class="string">"BitcoinMW Log V1.1"</span>.to_string()), <span class="comment">// Header (first line) of the log files
+         </span>debug_invalid_metadata: <span class="bool-val">false</span>, <span class="comment">// debugging parameter which must only be set in tests
+         </span>debug_invalid_os_str: <span class="bool-val">false</span>, <span class="comment">// debugging parameter which must only be set in tests
+         </span>debug_lineno_none: <span class="bool-val">false</span>, <span class="comment">// debugging parameter which must only be set in tests
+         </span>debug_process_resolve_frame_error: <span class="bool-val">false</span>, <span class="comment">// debugging parameter which must only be set in tests
+     </span>})<span class="question-mark">?</span>;
+
+     <span class="macro">info!</span>(<span class="string">"show this!"</span>)<span class="question-mark">?</span>;
+
+     <span class="prelude-val">Ok</span>(())
+ }
+
+ <span class="kw">fn </span>with_default() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+     <span class="comment">// The default trait is implemented for [`crate::LogConfig`] so specifying all parameters
+     // is not necessary.
+     </span><span class="macro">log_init!</span>(LogConfig {
+         colors: Colors(<span class="bool-val">false</span>),
+         stdout: Stdout(<span class="bool-val">true</span>),
+         ..Default::default()
+     })<span class="question-mark">?</span>;
+
+     <span class="macro">info!</span>(<span class="string">"show this!"</span>)<span class="question-mark">?</span>;
+
+     <span class="prelude-val">Ok</span>(())
+ }
+</code></pre></div>
+<p>Log configuration options may be set after the log has been initialized. See the example
+below. For all configuration options, see <a href="enum.LogConfigOption.html" title="enum bmw_log::LogConfigOption"><code>crate::LogConfigOption</code></a>.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code> <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
+ <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
+
+ <span class="macro">info!</span>();
+
+ <span class="kw">fn </span>set_log_options_after_startup() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+     <span class="comment">// Init log first
+
+     </span><span class="macro">log_init!</span>(LogConfig {
+         colors: Colors(<span class="bool-val">false</span>),
+         stdout: Stdout(<span class="bool-val">true</span>),
+         ..Default::default()
+     })<span class="question-mark">?</span>;
+
+     <span class="macro">info!</span>(<span class="string">"show this!"</span>)<span class="question-mark">?</span>;
+
+     <span class="macro">set_log_option!</span>(LogConfigOption::Colors(<span class="bool-val">true</span>))<span class="question-mark">?</span>;
+
+     <span class="macro">info!</span>(<span class="string">"show this with colors!"</span>)<span class="question-mark">?</span>;
+
+     <span class="prelude-val">Ok</span>(())
+ }
+</code></pre></div>
 </div></details><h2 id="reexports" class="section-header"><a href="#reexports">Re-exports</a></h2><ul class="item-table"><li><div class="item-name" id="reexport.LogHolder"><code>pub use crate::macros::LogHolder;</code></div></li><li><div class="item-name" id="reexport.LOG_REF"><code>pub use crate::macros::LOG_REF;</code></div></li><li><div class="item-name" id="reexport.STATIC_LOG"><code>pub use crate::macros::STATIC_LOG;</code></div></li><li><div class="item-name" id="reexport.STATIC_LOG-1"><code>pub use crate::macros::STATIC_LOG;</code></div></li><li><div class="item-name"><code>pub use crate::<a class="enum" href="enum.LogConfigOption.html" title="enum bmw_log::LogConfigOption">LogConfigOption</a>::*;</code></div></li></ul><h2 id="macros" class="section-header"><a href="#macros">Macros</a></h2><ul class="item-table"><li><div class="item-name"><a class="macro" href="macro.debug.html" title="macro bmw_log::debug">debug</a></div><div class="desc docblock-short">Set <a href="enum.LogLevel.html" title="enum bmw_log::LogLevel"><code>crate::LogLevel</code></a> to <a href="enum.LogLevel.html#variant.Debug" title="variant bmw_log::LogLevel::Debug"><code>crate::LogLevel::Debug</code></a> or log at the <a href="enum.LogLevel.html#variant.Debug" title="variant bmw_log::LogLevel::Debug"><code>crate::LogLevel::Debug</code></a> log level.
 If no parameters are specified the log level will be set. If a single parameter is specified,
 that string will be logged. If two or more parameters are specified, the first parameter is a format

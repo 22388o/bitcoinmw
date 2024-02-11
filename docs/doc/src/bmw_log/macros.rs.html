@@ -1953,7 +1953,7 @@
 /// fn test() -&gt; Result&lt;(), Error&gt; {
 ///
 ///     // first init the logger
-///     log_init!(LogConfig::default());
+///     log_init!(LogConfig::default())?;
 ///     // get the configured value for FilePath
 ///     let v = get_log_option!(LogConfigOptionName::FilePath)?;
 ///     // It should be the default value which is None
@@ -2031,7 +2031,7 @@
 ///         // comment this line out to avoid tests actually creating this file
 ///         // file_path: FilePath(Some(PathBuf::from(main_log_path))),
 ///         ..Default::default()
-///     });
+///     })?;
 ///
 ///     info!("Startup complete!")?;
 ///
@@ -2059,8 +2059,8 @@
 </span><span class="macro">macro_rules! </span>log_init {
 	() =&gt; {{
 		<span class="kw">let </span>config = bmw_log::LogConfig::default();
-		<span class="macro">log_init!</span>(config)
-	}};
+		<span class="macro">log_init!</span>(config)<span class="question-mark">?
+	</span>}};
 	(<span class="macro-nonterminal">$config</span>:expr) =&gt; {
 		<span class="kw">match </span><span class="macro">bmw_log::lockw!</span>(bmw_log::STATIC_LOG) {
 			<span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>static_log) =&gt; {

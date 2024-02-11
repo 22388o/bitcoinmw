@@ -14,7 +14,7 @@ is the underlying function call for full details.</p>
  <span class="kw">fn </span>test() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 
      <span class="comment">// first init the logger
-     </span><span class="macro">log_init!</span>(LogConfig::default());
+     </span><span class="macro">log_init!</span>(LogConfig::default())<span class="question-mark">?</span>;
      <span class="comment">// get the configured value for FilePath
      </span><span class="kw">let </span>v = <span class="macro">get_log_option!</span>(LogConfigOptionName::FilePath)<span class="question-mark">?</span>;
      <span class="comment">// It should be the default value which is None

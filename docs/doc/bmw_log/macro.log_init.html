@@ -25,7 +25,7 @@ unanticipated logging occurs before this macro is called by mistake.</p>
          <span class="comment">// comment this line out to avoid tests actually creating this file
          // file_path: FilePath(Some(PathBuf::from(main_log_path))),
          </span>..Default::default()
-     });
+     })<span class="question-mark">?</span>;
 
      <span class="macro">info!</span>(<span class="string">"Startup complete!"</span>)<span class="question-mark">?</span>;
 
