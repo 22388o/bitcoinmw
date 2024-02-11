@@ -881,8 +881,14 @@ where
 			debug_tls_read: false,
 			debug_attachment_none: false,
 			debug_rw_accept_id_none: false,
+			debug_close_handle: false,
 		};
 		Ok(ret)
+	}
+
+	#[cfg(test)]
+	fn set_debug_close_handle(&mut self, value: bool) {
+		self.debug_close_handle = value;
 	}
 
 	#[cfg(test)]
@@ -1105,14 +1111,13 @@ where
 				ConnectionInfo::ListenerInfo(_) => {} // don't close listeners
 				ConnectionInfo::StreamInfo(mut rw) => {
 					{
-						match rw.write_state.wlock() {
-							Ok(mut state) => {
-								let guard = state.guard();
-								(**guard).set_flag(WRITE_STATE_FLAG_CLOSE);
-							}
-							Err(e) => {
-								let _ = warn!("rw.write_state.wlock generated error: {:?}", e);
-							}
+						let lock = rw.write_state.wlock();
+						if lock.is_ok() && !self.debug_close_handle {
+							let mut state = lock.unwrap();
+							let guard = state.guard();
+							(**guard).set_flag(WRITE_STATE_FLAG_CLOSE);
+						} else {
+							let _ = warn!("rw.write_state.wlock generated error");
 						}
 					}
 
@@ -1121,17 +1126,15 @@ where
 				}
 			}
 		}
-		match ctx.handle_hashtable.clear() {
-			Ok(_) => {}
-			Err(e) => {
-				let _ = warn!("handle_hashtable.clear generated error: {:?}", e);
-			}
+
+		let v = ctx.handle_hashtable.clear();
+		if v.is_err() || self.debug_close_handle {
+			let _ = warn!("handle_hashtable.clear generated error: {:?}", v);
 		}
-		match ctx.connection_hashtable.clear() {
-			Ok(_) => {}
-			Err(e) => {
-				let _ = warn!("connetion_hashtable.clear generated error: {:?}", e);
-			}
+
+		let v = ctx.connection_hashtable.clear();
+		if v.is_err() || self.debug_close_handle {
+			let _ = warn!("connetion_hashtable.clear generated error: {:?}", v);
 		}
 		debug!("handles closed")?;
 		Ok(())
@@ -7895,6 +7898,62 @@ mod test {
 		)
 		.close()
 		.is_ok());
+		Ok(())
+	}
+
+	#[test]
+	fn test_debug_close_handle() -> Result<(), Error> {
+		let port = pick_free_port()?;
+		info!(
+			"eventhandler test_evh_debug_attachment_none none Using port: {}",
+			port
+		)?;
+		let addr = &format!("127.0.0.1:{}", port)[..];
+		let threads = 1;
+		let config = EventHandlerConfig {
+			threads,
+			housekeeping_frequency_millis: 100_000,
+			read_slab_count: 2,
+			max_handles_per_thread: 5,
+			..Default::default()
+		};
+		let mut evh = EventHandlerImpl::new(config)?;
+		evh.set_debug_close_handle(true);
+
+		evh.set_on_read(move |conn_data, _thread_context, attachment| {
+			info!("in on read: attachment.is_some()={}", attachment.is_some())?;
+			let mut wh = conn_data.write_handle();
+			if attachment.is_none() {
+				wh.write(b"none")?;
+			} else {
+				wh.write(b"some")?;
+			}
+			Ok(())
+		})?;
+		evh.set_on_accept(move |_conn_data, _thread_context| {
+			info!("on accept")?;
+			Ok(())
+		})?;
+		evh.set_on_close(move |_conn_data, _thread_context| Ok(()))?;
+		evh.set_on_panic(move |_thread_context, _e| Ok(()))?;
+		evh.set_housekeeper(move |_thread_context| Ok(()))?;
+		evh.start()?;
+
+		let handles = create_listeners(threads, addr, 10, false)?;
+		info!("handles.size={},handles={:?}", handles.size(), handles)?;
+		let sc = ServerConnection {
+			tls_config: None,
+			handles,
+			is_reuse_port: false,
+		};
+		evh.add_server(sc, Box::new(""))?;
+		sleep(Duration::from_millis(5_000));
+
+		let _c = TcpStream::connect(addr)?;
+		sleep(Duration::from_millis(5_000));
+		evh.stop()?;
+		sleep(Duration::from_millis(5_000));
+
 		Ok(())
 	}
 }

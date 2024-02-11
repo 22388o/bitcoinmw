@@ -354,6 +354,7 @@ where
 	pub(crate) debug_tls_read: bool,
 	pub(crate) debug_attachment_none: bool,
 	pub(crate) debug_rw_accept_id_none: bool,
+	pub(crate) debug_close_handle: bool,
 }
 
 #[derive(Clone)]
