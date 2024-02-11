@@ -16,7 +16,7 @@ at a given ratio of entries to capacity in the array. Note
 that MaxEntries can always be inserted, it’s the capacity
 of the array that becomes larger as this ratio goes down.
 If not specified, the default value is 0.8.</li>
-<li>Slabs(Option&lt;&amp;Rc&lt;RefCell<dyn SlabAllocator>&gt;&gt;) (optional) - An optional reference to a slab
+<li>Slabs(<code>Option&lt;&amp;Rc&lt;RefCell&lt;dyn SlabAllocator&gt;&gt;&gt;</code>) (optional) - An optional reference to a slab
 allocator to use with this <a href="trait.Hashset.html" title="trait bmw_util::Hashset"><code>crate::Hashset</code></a>. If not
 specified, the global slab allocator is used.</li>
 </ul>

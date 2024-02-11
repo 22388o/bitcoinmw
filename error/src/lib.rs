@@ -64,11 +64,13 @@
 //!
 //! // Example of the err macro
 //! fn return_err() -> Result<(), Error> {
+//!     // return an error with the ErrKind::Misc with the text below
 //!     Err(err!(ErrKind::Misc, "misc error occured"))
 //! }
 //!
 //! // Example of the try_into macro
 //! fn try_into_ex() -> Result<(), Error> {
+//!     // try to convert a u128 to a usize
 //!     let _v: usize = try_into!(100u128)?;
 //!     Ok(())
 //! }
