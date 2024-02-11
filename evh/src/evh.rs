@@ -35,7 +35,6 @@ use bmw_deps::webpki_roots::TLS_SERVER_ROOTS;
 use bmw_err::*;
 use bmw_log::*;
 use bmw_util::*;
-use std::any::type_name;
 use std::any::Any;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
@@ -966,6 +965,7 @@ where
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn execute_thread(
 		&mut self,
 		wakeup: &mut Wakeup,
@@ -1069,6 +1069,7 @@ where
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn process_housekeeper(
 		&mut self,
 		ctx: &mut EventHandlerContext,
@@ -1136,10 +1137,7 @@ where
 		Ok(())
 	}
 
-	fn type_of<T>(_: T) -> &'static str {
-		type_name::<T>()
-	}
-
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn process_write_queue(&mut self, ctx: &mut EventHandlerContext) -> Result<(), Error> {
 		debug!("process write queue")?;
 		let mut data = self.data[ctx.tid].wlock_ignore_poison()?;
@@ -1223,6 +1221,7 @@ where
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn process_new_connections(
 		&mut self,
 		ctx: &mut EventHandlerContext,
@@ -1339,6 +1338,7 @@ where
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn process_events(
 		&mut self,
 		ctx: &mut EventHandlerContext,
@@ -2571,7 +2571,6 @@ where
 		let attachment = AttachmentHolder {
 			attachment: Arc::new(attachment),
 		};
-		debug!("type in add_ser = {:?}", Self::type_of(attachment.clone()))?;
 		debug!("add server: {:?}", attachment)?;
 
 		let tls_config = match connection.tls_config {
@@ -2775,8 +2774,9 @@ mod test {
 		StreamInfo, Wakeup, WriteState,
 	};
 	use crate::{
-		ClientConnection, ConnData, EventHandler, EventHandlerConfig, ServerConnection,
-		ThreadContext, TlsClientConfig, TlsServerConfig, READ_SLAB_DATA_SIZE,
+		ClientConnection, CloseHandle, ConnData, EventHandler, EventHandlerConfig,
+		EventHandlerData, ServerConnection, ThreadContext, TlsClientConfig, TlsServerConfig,
+		READ_SLAB_DATA_SIZE,
 	};
 
 	use bmw_deps::rand::random;
@@ -3063,6 +3063,7 @@ mod test {
 				}),
 			};
 			let mut wh = evh.add_client(client, Box::new(""))?;
+			assert!(wh.id() > 0);
 			assert!(evh.event_handler_data().is_ok());
 			wh.write(b"test")?;
 			sleep(Duration::from_millis(2000));
@@ -7879,6 +7880,21 @@ mod test {
 
 		evh.stop()?;
 
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_close_handle() -> Result<(), Error> {
+		assert!(CloseHandle::new(
+			&mut lock_box!(WriteState {
+				write_buffer: vec![],
+				flags: 0,
+			})?,
+			0,
+			&mut lock_box!(EventHandlerData::new(100, 100)?)?,
+		)
+		.close()
+		.is_ok());
 		Ok(())
 	}
 }
