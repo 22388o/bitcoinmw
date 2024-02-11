@@ -7881,6 +7881,8 @@
 <a href="#7880" id="7880">7880</a>
 <a href="#7881" id="7881">7881</a>
 <a href="#7882" id="7882">7882</a>
+<a href="#7883" id="7883">7883</a>
+<a href="#7884" id="7884">7884</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -9971,7 +9973,8 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">fn </span>handle_invalid(handle: Handle) -&gt; <span class="prelude-ty">Result</span>&lt;Handle, Error&gt; {
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">fn </span>handle_invalid(handle: Handle) -&gt; <span class="prelude-ty">Result</span>&lt;Handle, Error&gt; {
 		<span class="attr">#[cfg(unix)]
 		</span><span class="kw">if </span>handle &lt; <span class="number">0 </span>{
 			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IllegalArgument, <span class="string">"invalid handle"</span>));
@@ -10093,7 +10096,8 @@
 		<span class="prelude-val">Ok</span>(handle)
 	}
 
-	<span class="kw">fn </span>process_accepted_connection(
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">fn </span>process_accepted_connection(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
 		handle: Handle,

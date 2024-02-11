@@ -166,6 +166,8 @@
 <a href="#165" id="165">165</a>
 <a href="#166" id="166">166</a>
 <a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -205,7 +207,8 @@
 	<span class="macro">include!</span>(<span class="macro">concat!</span>(<span class="macro">env!</span>(<span class="string">"OUT_DIR"</span>), <span class="string">"/built.rs"</span>));
 }
 
-<span class="kw">fn </span>callback(
+<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// temporary test function, will be removed
+</span><span class="kw">fn </span>callback(
 	_headers: <span class="kw-2">&amp;</span>HttpHeaders,
 	_config: <span class="kw-2">&amp;</span>HttpConfig,
 	_instance: <span class="kw-2">&amp;</span>HttpInstance,
@@ -226,7 +229,8 @@ callbk\n"
 	<span class="prelude-val">Ok</span>(())
 }
 
-<span class="kw">fn </span>ws_handler(
+<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// temporary test function, will be removed
+</span><span class="kw">fn </span>ws_handler(
 	message: <span class="kw-2">&amp;</span>WebSocketMessage,
 	_config: <span class="kw-2">&amp;</span>HttpConfig,
 	_instance: <span class="kw-2">&amp;</span>HttpInstance,
