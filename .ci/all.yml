@@ -1,7 +1,6 @@
 steps:
   - script: |
-      rustup update
-      cargo test --all --jobs 1
+      .ci\cargo_test.bat
     displayName: Windows Cargo Test
     condition: eq( variables['Agent.OS'], 'Windows_NT' )
   - script: |
