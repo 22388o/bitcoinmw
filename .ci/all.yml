@@ -150,7 +150,8 @@ steps:
       else
         changes=`git diff HEAD^^ HEAD --name-only`
         echo "updating with changes = $changes"
-        git config user.name "Pipelines-Bot"
+        git config --global user.name "Pipelines-Bot"
+        git config --global user.email "noreply@nodomain.com"
         git checkout main
         cargo doc --no-deps --workspace
 

@@ -23,7 +23,7 @@
 //!
 //! # Performance
 //!
-//! The performance tool included shows the performance of the event handler. The output below
+//! The performance tool included in `etc/evh_perf` shows the performance of the event handler. The output below
 //! shows a run which completed successfully with 30 million messages with an average of
 //! just over 1.5 million messages per second and an average latency just under 10 ms.
 //! This run was on a six core linux box with 2.9 ghz cpus. The details on the performance tool can
