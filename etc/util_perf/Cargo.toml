@@ -1,5 +1,5 @@
 [package]
-name = "ds_perf"
+name = "util_perf"
 version = "0.0.3-beta.1"
 edition = "2021"
 description = "Utility to test performance of data structures"
@@ -10,7 +10,7 @@ exclude = ["**/*.bmw", "**/*.bmw"]
 build = "src/build/build.rs"
 
 [[bin]]
-name = "perf"
+name = "util_perf"
 
 [dependencies]
 bmw_deps = { path = "../../deps" }

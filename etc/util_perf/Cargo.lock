@@ -365,19 +365,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ds_perf"
-version = "0.0.3-beta.1"
-dependencies = [
- "bmw_deps",
- "bmw_err",
- "bmw_log",
- "bmw_util",
- "built",
- "clap",
- "num-format",
-]
-
-[[package]]
 name = "dyn-clone"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1339,6 +1326,19 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
+]
+
+[[package]]
+name = "util_perf"
+version = "0.0.3-beta.1"
+dependencies = [
+ "bmw_deps",
+ "bmw_err",
+ "bmw_log",
+ "bmw_util",
+ "built",
+ "clap",
+ "num-format",
 ]
 
 [[package]]
