@@ -1,0 +1,32 @@
+name: util_perf
+author: The BitcoinMW Developers
+
+args:
+    - hashtable:
+        help: run tests for hashtable
+        long: hashtable
+        takes_value: false
+    - arraylist:
+        help: run tests for array list
+        long: arraylist
+        takes_value: false
+    - array:
+        help: run tests for array
+        long: array
+        takes_value: false
+    - vec:
+        help: run tests for standard rust library vec
+        long: vec
+        takes_value: false
+    - hashmap:
+        help: run tests for standard rust library hashmap
+        long: hashmap
+        takes_value: false
+    - array_string:
+        help: run tests for array with strings
+        long: array_string
+        takes_value: false
+    - vec_string:
+        help: run tests for vec with strings
+        long: vec_string
+        takes_value: false
