@@ -122,8 +122,8 @@ steps:
       assetUploadMode: 'replace'
       addChangeLog: true
   - script: |
-      chmod 755 ./.ci/tarpaulin.sh $(github_pat) $(Build.SourceVersion)
-      ./.ci/tarpaulin.sh
+      chmod 755 ./.ci/tarpaulin.sh
+      ./.ci/tarpaulin.sh $(github_pat) $(Build.SourceVersion)
     displayName: Tarpaulin
     condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))
   - script: |
