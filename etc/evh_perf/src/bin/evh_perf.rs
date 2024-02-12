@@ -1005,6 +1005,10 @@ fn main() -> Result<(), Error> {
 			format!("evh_perf EventHandler/{}", built_info::PKG_VERSION).green()
 		)?;
 		run_eventhandler(args, start, None)?;
+	} else {
+		set_log_option!(LogConfigOption::Level(true))?;
+		info!("-c or -e option must be specified. run evh_perf --help for full details.")?;
+		exit(-1);
 	}
 
 	Ok(())
