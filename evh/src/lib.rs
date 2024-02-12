@@ -182,6 +182,8 @@
 //! ----------------------------------------------------------------------------------------------------
 //!```
 //!
+//! As seen above, with fewer requests per second, the latency improves.
+//!
 //! # Using eventhandlers in your project
 //!
 //! Add the following to your Cargo.toml:
