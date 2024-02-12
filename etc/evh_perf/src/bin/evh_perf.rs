@@ -1007,7 +1007,7 @@ fn main() -> Result<(), Error> {
 		run_eventhandler(args, start, None)?;
 	} else {
 		set_log_option!(LogConfigOption::Level(true))?;
-		info!("-c or -e option must be specified. run evh_perf --help for full details.")?;
+		error!("-c or -e option must be specified. run evh_perf --help for full details.")?;
 		exit(-1);
 	}
 
