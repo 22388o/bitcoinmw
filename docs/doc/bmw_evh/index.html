@@ -1,12 +1,165 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="This crate defines and implements the `crate::EventHandler`. EventHandlers process nonblocking i/o events. They are implemented for linux, windows, and macos. Each platform has a different implementation due to the differences between these platforms. For linux, epoll is used. On macos kqueues are used. On windows, wepoll is used. The result is a cross-platform, performant nonblocking i/o event handler."><title>bmw_evh - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="bmw_evh" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../bmw_evh/index.html">bmw_evh</a><span class="version">0.0.3-beta.1</span></h2></div><div class="sidebar-elems"><ul class="block">
             <li><a id="all-types" href="all.html">All Items</a></li></ul><section><ul class="block"><li><a href="#macros">Macros</a></li><li><a href="#structs">Structs</a></li><li><a href="#constants">Constants</a></li><li><a href="#traits">Traits</a></li><li><a href="#functions">Functions</a></li></ul></section></div></nav><div class="sidebar-resizer"></div>
-    <main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../bmw_evh/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Crate <a class="mod" href="#">bmw_evh</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="src" href="../src/bmw_evh/lib.rs.html#18-232">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>This crate defines and implements the <a href="trait.EventHandler.html" title="trait bmw_evh::EventHandler"><code>crate::EventHandler</code></a>. EventHandlers process
+    <main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../bmw_evh/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Crate <a class="mod" href="#">bmw_evh</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="src" href="../src/bmw_evh/lib.rs.html#18-391">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>This crate defines and implements the <a href="trait.EventHandler.html" title="trait bmw_evh::EventHandler"><code>crate::EventHandler</code></a>. EventHandlers process
 nonblocking i/o events. They are implemented for linux, windows, and macos. Each platform has
 a different implementation due to the differences between these platforms. For linux, epoll is
 used. On macos kqueues are used. On windows, wepoll is used. The result is a cross-platform,
 performant nonblocking i/o event handler.</p>
 <h2 id="performance"><a href="#performance">Performance</a></h2>
-<p>TBD</p>
+<p>The performance tool included shows the performance of the event handler. The output below
+shows a run which completed successfully with 30 million messages with an average of
+just over 1.5 million messages per second and an average latency just under 10 ms.
+This run was on a six core linux box with 2.9 ghz cpus. The details on the performance tool can
+be found in the &lt;project_directory&gt;/etc/evh_perf directory.</p>
+<div class="example-wrap"><pre class="language-text"><code>$ ./target/release/evh_perf -e -c -t 30 --count 1000 -i 100 --reconns 10  --read_slab_count 10000 --max_handles_per_thread 1000
+ [2024-02-11 20:24:04.893]: evh_perf Client/0.0.3-beta.1
+ ----------------------------------------------------------------------------------------------------
+ [2024-02-11 20:24:04.894]: debug:                  &#39;false&#39;
+ [2024-02-11 20:24:04.894]: host:                   &#39;127.0.0.1&#39;
+ [2024-02-11 20:24:04.894]: max_handles_per_thread: &#39;1,000&#39;
+ [2024-02-11 20:24:04.894]: port:                   &#39;8081&#39;
+ [2024-02-11 20:24:04.894]: read_slab_count:        &#39;10,000&#39;
+ [2024-02-11 20:24:04.894]: reuse_port:             &#39;false&#39;
+ [2024-02-11 20:24:04.894]: threads:                &#39;30&#39;
+ [2024-02-11 20:24:04.894]: tls:                    &#39;false&#39;
+ ----------------------------------------------------------------------------------------------------
+ [2024-02-11 20:24:05.027]: (INFO) Server started in 140 ms.
+ ----------------------------------------------------------------------------------------------------
+ [2024-02-11 20:24:05.027]: (INFO) clients:                &#39;1&#39;
+ [2024-02-11 20:24:05.027]: (INFO) count:                  &#39;1,000&#39;
+ [2024-02-11 20:24:05.027]: (INFO) debug:                  &#39;false&#39;
+ [2024-02-11 20:24:05.027]: (INFO) histo:                  &#39;false&#39;
+ [2024-02-11 20:24:05.027]: (INFO) histo_delta_micros:     &#39;10&#39;
+ [2024-02-11 20:24:05.027]: (INFO) host:                   &#39;127.0.0.1&#39;
+ [2024-02-11 20:24:05.027]: (INFO) iterations:             &#39;100&#39;
+ [2024-02-11 20:24:05.027]: (INFO) max:                    &#39;10&#39;
+ [2024-02-11 20:24:05.027]: (INFO) max_handles_per_thread: &#39;1,000&#39;
+ [2024-02-11 20:24:05.027]: (INFO) min:                    &#39;3&#39;
+ [2024-02-11 20:24:05.027]: (INFO) port:                   &#39;8081&#39;
+ [2024-02-11 20:24:05.027]: (INFO) read_slab_count:        &#39;10,000&#39;
+ [2024-02-11 20:24:05.027]: (INFO) reconns:                &#39;10&#39;
+ [2024-02-11 20:24:05.027]: (INFO) sleep:                  &#39;0&#39;
+ [2024-02-11 20:24:05.027]: (INFO) threads:                &#39;30&#39;
+ [2024-02-11 20:24:05.027]: (INFO) tls:                    &#39;false&#39;
+ ----------------------------------------------------------------------------------------------------
+ [2024-02-11 20:24:05.032]: (INFO) Client started in 5 ms.
+ ----------------------------------------------------------------------------------------------------
+ [2024-02-11 20:24:08.032]: (INFO) 4,683,006 of 30,000,000 messages received. [15.61% complete]
+ [2024-02-11 20:24:08.032]: (INFO) incremental_messages=[4,683,006],elapsed_time=[3.00s]
+ [2024-02-11 20:24:08.032]: (INFO) incremental_mps=[1,561,002],incremental_avg_latency=[9357.27µs]
+ [2024-02-11 20:24:08.032]: (INFO) total_messages=[4,683,006],elapsed_time=[3.01s]
+ [2024-02-11 20:24:08.032]: (INFO) total_mps=[1,558,183],total_avg_latency=[9357.27µs]
+ ----------------------------------------------------------------------------------------------------
+ [2024-02-11 20:24:11.032]: (INFO) 9,241,172 of 30,000,000 messages received. [30.80% complete]
+ [2024-02-11 20:24:11.033]: (INFO) incremental_messages=[4,558,166],elapsed_time=[3.00s]
+ [2024-02-11 20:24:11.033]: (INFO) incremental_mps=[1,519,389],incremental_avg_latency=[9487.47µs]
+ [2024-02-11 20:24:11.033]: (INFO) total_messages=[9,241,172],elapsed_time=[6.01s]
+ [2024-02-11 20:24:11.033]: (INFO) total_mps=[1,538,750],total_avg_latency=[9421.49µs]
+ ----------------------------------------------------------------------------------------------------
+ [2024-02-11 20:24:14.033]: (INFO) 13,847,143 of 30,000,000 messages received. [46.16% complete]
+ [2024-02-11 20:24:14.033]: (INFO) incremental_messages=[4,605,971],elapsed_time=[3.00s]
+ [2024-02-11 20:24:14.033]: (INFO) incremental_mps=[1,535,324],incremental_avg_latency=[10050.20µs]
+ [2024-02-11 20:24:14.033]: (INFO) total_messages=[13,847,143],elapsed_time=[9.01s]
+ [2024-02-11 20:24:14.033]: (INFO) total_mps=[1,537,567],total_avg_latency=[9630.62µs]
+ ----------------------------------------------------------------------------------------------------
+ [2024-02-11 20:24:17.033]: (INFO) 18,472,782 of 30,000,000 messages received. [61.58% complete]
+ [2024-02-11 20:24:17.033]: (INFO) incremental_messages=[4,625,639],elapsed_time=[3.00s]
+ [2024-02-11 20:24:17.033]: (INFO) incremental_mps=[1,541,880],incremental_avg_latency=[9338.16µs]
+ [2024-02-11 20:24:17.033]: (INFO) total_messages=[18,472,782],elapsed_time=[12.01s]
+ [2024-02-11 20:24:17.033]: (INFO) total_mps=[1,538,619],total_avg_latency=[9557.39µs]
+ ----------------------------------------------------------------------------------------------------
+ [2024-02-11 20:24:20.033]: (INFO) 23,062,987 of 30,000,000 messages received. [76.88% complete]
+ [2024-02-11 20:24:20.033]: (INFO) incremental_messages=[4,590,205],elapsed_time=[3.00s]
+ [2024-02-11 20:24:20.033]: (INFO) incremental_mps=[1,530,068],incremental_avg_latency=[10248.32µs]
+ [2024-02-11 20:24:20.033]: (INFO) total_messages=[23,062,987],elapsed_time=[15.01s]
+ [2024-02-11 20:24:20.033]: (INFO) total_mps=[1,536,893],total_avg_latency=[9694.90µs]
+ ----------------------------------------------------------------------------------------------------
+ [2024-02-11 20:24:23.033]: (INFO) 27,576,604 of 30,000,000 messages received. [91.92% complete]
+ [2024-02-11 20:24:23.033]: (INFO) incremental_messages=[4,513,617],elapsed_time=[3.00s]
+ [2024-02-11 20:24:23.033]: (INFO) incremental_mps=[1,504,539],incremental_avg_latency=[10197.02µs]
+ [2024-02-11 20:24:23.033]: (INFO) total_messages=[27,576,604],elapsed_time=[18.01s]
+ [2024-02-11 20:24:23.033]: (INFO) total_mps=[1,531,489],total_avg_latency=[9777.09µs]
+ ----------------------------------------------------------------------------------------------------
+ [2024-02-11 20:24:25.007]: (INFO) Perf test completed successfully!
+ [2024-02-11 20:24:25.007]: (INFO) total_messages=[30,000,000],elapsed_time=[19.98s]
+ [2024-02-11 20:24:25.007]: (INFO) messages_per_second=[1,501,488],average_latency=[9451.47µs]
+</code></pre></div>
+<p>The evh_perf tool also has a –histo option that can display a histogram. Below is the output
+of a histogram on a run of the evh_perf tool on the same system as above.</p>
+<div class="example-wrap"><pre class="language-text"><code>$ ./target/release/evh_perf -e -c -t 3 --count 1 -i 100 --reconns 10  --read_slab_count 10000 --max_handles_per_thread 1000 --histo --histo_delta_micros 3
+ [2024-02-11 20:35:20.101]: evh_perf Client/0.0.3-beta.1
+ ----------------------------------------------------------------------------------------------------
+ [2024-02-11 20:35:20.101]: debug:                  &#39;false&#39;
+ [2024-02-11 20:35:20.101]: host:                   &#39;127.0.0.1&#39;
+ [2024-02-11 20:35:20.101]: max_handles_per_thread: &#39;1,000&#39;
+ [2024-02-11 20:35:20.101]: port:                   &#39;8081&#39;
+ [2024-02-11 20:35:20.101]: read_slab_count:        &#39;10,000&#39;
+ [2024-02-11 20:35:20.101]: reuse_port:             &#39;false&#39;
+ [2024-02-11 20:35:20.101]: threads:                &#39;3&#39;
+ [2024-02-11 20:35:20.101]: tls:                    &#39;false&#39;
+ ----------------------------------------------------------------------------------------------------
+ [2024-02-11 20:35:20.114]: (INFO) Server started in 19 ms.
+ ----------------------------------------------------------------------------------------------------
+ [2024-02-11 20:35:20.115]: (INFO) clients:                &#39;1&#39;
+ [2024-02-11 20:35:20.115]: (INFO) count:                  &#39;1&#39;
+ [2024-02-11 20:35:20.115]: (INFO) debug:                  &#39;false&#39;
+ [2024-02-11 20:35:20.115]: (INFO) histo:                  &#39;true&#39;
+ [2024-02-11 20:35:20.115]: (INFO) histo_delta_micros:     &#39;3&#39;
+ [2024-02-11 20:35:20.115]: (INFO) host:                   &#39;127.0.0.1&#39;
+ [2024-02-11 20:35:20.115]: (INFO) iterations:             &#39;100&#39;
+ [2024-02-11 20:35:20.115]: (INFO) max:                    &#39;10&#39;
+ [2024-02-11 20:35:20.115]: (INFO) max_handles_per_thread: &#39;1,000&#39;
+ [2024-02-11 20:35:20.115]: (INFO) min:                    &#39;3&#39;
+ [2024-02-11 20:35:20.115]: (INFO) port:                   &#39;8081&#39;
+ [2024-02-11 20:35:20.115]: (INFO) read_slab_count:        &#39;10,000&#39;
+ [2024-02-11 20:35:20.115]: (INFO) reconns:                &#39;10&#39;
+ [2024-02-11 20:35:20.115]: (INFO) sleep:                  &#39;0&#39;
+ [2024-02-11 20:35:20.115]: (INFO) threads:                &#39;3&#39;
+ [2024-02-11 20:35:20.115]: (INFO) tls:                    &#39;false&#39;
+ ----------------------------------------------------------------------------------------------------
+ [2024-02-11 20:35:20.116]: (INFO) Client started in 1 ms.
+ ----------------------------------------------------------------------------------------------------
+ [2024-02-11 20:35:20.153]: (INFO) Perf test completed successfully!
+ [2024-02-11 20:35:20.153]: (INFO) total_messages=[3,000],elapsed_time=[0.04s]
+ [2024-02-11 20:35:20.153]: (INFO) messages_per_second=[77,097],average_latency=[22.73µs]
+ ----------------------------------------------------------------------------------------------------
+ Latency Histogram
+ ----------------------------------------------------------------------------------------------------
+ [12µs  - 15µs ]=&gt; 25 (0.83%)
+ [15µs  - 18µs ]====================&gt; 613 (20.43%)
+ [18µs  - 21µs ]=============================================&gt; 1,361 (45.37%)
+ [21µs  - 24µs ]===============&gt; 463 (15.43%)
+ [24µs  - 27µs ]====&gt; 131 (4.37%)
+ [27µs  - 30µs ]====&gt; 120 (4.00%)
+ [30µs  - 33µs ]===&gt; 77 (2.57%)
+ [33µs  - 36µs ]==&gt; 63 (2.10%)
+ [36µs  - 39µs ]=&gt; 44 (1.47%)
+ [39µs  - 42µs ]=&gt; 18 (0.60%)
+ [42µs  - 45µs ]&gt; 13 (0.43%)
+ [45µs  - 48µs ]&gt; 7 (0.23%)
+ [48µs  - 51µs ]&gt; 3 (0.10%)
+ [51µs  - 54µs ]&gt; 1 (0.03%)
+ [54µs  - 57µs ]&gt; 1 (0.03%)
+ [57µs  - 60µs ]&gt; 3 (0.10%)
+ [60µs  - 63µs ]&gt; 5 (0.17%)
+ [63µs  - 66µs ]=&gt; 18 (0.60%)
+ [66µs  - 69µs ]&gt; 1 (0.03%)
+ [69µs  - 72µs ]&gt; 3 (0.10%)
+ [72µs  - 75µs ]&gt; 4 (0.13%)
+ [75µs  - 78µs ]&gt; 6 (0.20%)
+ [78µs  - 81µs ]&gt; 4 (0.13%)
+ [84µs  - 87µs ]&gt; 1 (0.03%)
+ [87µs  - 90µs ]&gt; 4 (0.13%)
+ [90µs  - 93µs ]&gt; 2 (0.07%)
+ [93µs  - 96µs ]&gt; 1 (0.03%)
+ [96µs  - 99µs ]&gt; 3 (0.10%)
+ [99µs  - 102µs]&gt; 2 (0.07%)
+ [111µs - 114µs]&gt; 1 (0.03%)
+ [831µs - 834µs]&gt; 1 (0.03%)
+ [849µs - 852µs]&gt; 1 (0.03%)
+ ----------------------------------------------------------------------------------------------------
+</code></pre></div>
+<p>As seen above, with fewer requests per second, the latency improves.</p>
 <h2 id="using-eventhandlers-in-your-project"><a href="#using-eventhandlers-in-your-project">Using eventhandlers in your project</a></h2>
 <p>Add the following to your Cargo.toml:</p>
 <div class="example-wrap"><pre class="language-text"><code> bmw_evh = { git = &quot;https://github.com/cgilliard/bitcoinmw&quot;  }

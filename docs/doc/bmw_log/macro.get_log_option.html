@@ -3,7 +3,7 @@
     (<span class="macro-nonterminal">$option</span>:expr) =&gt; { ... };
 }</pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Get the current value of the specified log option. The single parameter must be of the
 type <a href="enum.LogConfigOptionName.html" title="enum bmw_log::LogConfigOptionName"><code>crate::LogConfigOptionName</code></a>. The macro returns a <a href="enum.LogConfigOption.html" title="enum bmw_log::LogConfigOption"><code>crate::LogConfigOption</code></a> on
-success and [<code>bmw_err::Error</code>] on error. See <a href="trait.Log.html#tymethod.get_config_option" title="method bmw_log::Log::get_config_option"><code>crate::Log::get_config_option</code></a> which
+success and <a href="../bmw_err/error/struct.Error.html" title="struct bmw_err::error::Error"><code>bmw_err::Error</code></a> on error. See <a href="trait.Log.html#tymethod.get_config_option" title="method bmw_log::Log::get_config_option"><code>crate::Log::get_config_option</code></a> which
 is the underlying function call for full details.</p>
 <h2 id="examples"><a href="#examples">Examples</a></h2>
 <div class="example-wrap"><pre class="rust rust-example-rendered"><code> <span class="kw">use </span>bmw_err::Error;

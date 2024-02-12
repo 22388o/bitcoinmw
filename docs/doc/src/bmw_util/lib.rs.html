@@ -574,7 +574,7 @@
 //! implemented include [`crate::Hashtable`], [`crate::Hashset`], [`crate::List`], [`crate::Array`],
 //! [`crate::ArrayList`], [`crate::Stack`], [`crate::Queue`], and [`crate::SuffixTree`]. Additionally
 //! a [`crate::ThreadPool`] implementation is provided. Each data structure can be instantiated in
-//! a impl and Box form using the [`crate::Builder`] or through macros. The impls completely stack
+//! a impl and Box form using the [`crate::Builder`] or through macros. The impls are completely stack
 //! based and the box forms are Box&lt;dyn ..&gt;'s that can be stored in other structs and Enums. While
 //! the boxed versions do store data on the heap, it is only pointers and the vast majority of the
 //! data, in either form, is stored in pre-allocated slabs. The array based structures do use
