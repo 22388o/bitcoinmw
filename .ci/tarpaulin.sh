@@ -15,7 +15,7 @@ if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" 
       cargo install cargo-tarpaulin
       cargo tarpaulin --all > /tmp/tarpaulin.out
       cd ~
-      git clone https://anything:$(github_pat)@github.com/cgilliard/bitcoinmw.git bmw_new
+      git clone https://anything:$1@github.com/cgilliard/bitcoinmw.git bmw_new
       cd bmw_new
       git config user.name "Pipelines-Bot"
       git checkout main
@@ -42,8 +42,8 @@ if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" 
         git config --global user.name "Pipelines-Bot"
         git pull
         git add --all
-        git commit -m"Pipelines-Bot: Updated repo (via tarpaulin script) Source Version is $(Build.SourceVersion)";
-        git push https://$(github_pat)@github.com/cgilliard/bitcoinmw.git
+        git commit -m"Pipelines-Bot: Updated repo (via tarpaulin script) Source Version is $2";
+        git push https://$1@github.com/cgilliard/bitcoinmw.git
       fi
     else
       echo "not updating too recent"
