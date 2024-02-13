@@ -7958,6 +7958,7 @@
 <a href="#7957" id="7957">7957</a>
 <a href="#7958" id="7958">7958</a>
 <a href="#7959" id="7959">7959</a>
+<a href="#7960" id="7960">7960</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -8034,7 +8035,8 @@
 </span><span class="kw">use </span>std::os::windows::io::{FromRawSocket, IntoRawSocket};
 
 <span class="doccomment">/// The size of the data which is stored in read slabs. This data is followed by 4 bytes which is a
-/// pointer to the next slab in the list.
+/// pointer to the next slab in the list. This is why READ_SLAB_SIZE is 4 bytes greater than
+/// READ_SLAB_DATA_SIZE (518 bytes).
 </span><span class="kw">pub const </span>READ_SLAB_DATA_SIZE: usize = <span class="number">514</span>;
 
 <span class="kw">const </span>READ_SLAB_SIZE: usize = <span class="number">518</span>;
