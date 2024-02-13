@@ -6,7 +6,7 @@ a different implementation due to the differences between these platforms. For l
 used. On macos kqueues are used. On windows, wepoll is used. The result is a cross-platform,
 performant nonblocking i/o event handler.</p>
 <h2 id="performance"><a href="#performance">Performance</a></h2>
-<p>The performance tool included shows the performance of the event handler. The output below
+<p>The performance tool included in <code>etc/evh_perf</code> shows the performance of the event handler. The output below
 shows a run which completed successfully with 30 million messages with an average of
 just over 1.5 million messages per second and an average latency just under 10 ms.
 This run was on a six core linux box with 2.9 ghz cpus. The details on the performance tool can
