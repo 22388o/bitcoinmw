@@ -128,6 +128,6 @@ steps:
     condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))
   - script: |
       chmod 755 ./.ci/pushdocs.sh
-    ./.ci/pushdocs.sh $(github_pat) $(Build.SourceVersion)
+      ./.ci/pushdocs.sh $(github_pat) $(Build.SourceVersion)
     displayName: Create and Push Docs
     condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))
