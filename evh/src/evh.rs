@@ -74,7 +74,8 @@ use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::os::windows::io::{FromRawSocket, IntoRawSocket};
 
 /// The size of the data which is stored in read slabs. This data is followed by 4 bytes which is a
-/// pointer to the next slab in the list.
+/// pointer to the next slab in the list. This is why READ_SLAB_SIZE is 4 bytes greater than
+/// READ_SLAB_DATA_SIZE.
 pub const READ_SLAB_DATA_SIZE: usize = 514;
 
 const READ_SLAB_SIZE: usize = 518;
