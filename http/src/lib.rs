@@ -23,7 +23,7 @@ mod types;
 mod ws;
 
 pub use crate::types::{
-	Builder, ConnectionType, HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType,
-	HttpRequest, HttpRequestType, HttpServer, HttpStats, HttpVersion, PlainConfig, WebSocketData,
-	WebSocketHandle, WebSocketMessage, WebSocketMessageType,
+	Builder, ConnectionType, HttpConfig, HttpConnectionData, HttpHeader, HttpHeaders, HttpInstance,
+	HttpInstanceType, HttpRequest, HttpRequestType, HttpServer, HttpStats, HttpVersion,
+	PlainConfig, WebSocketData, WebSocketHandle, WebSocketMessage, WebSocketMessageType,
 };

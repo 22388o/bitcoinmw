@@ -88,6 +88,7 @@ pub struct HttpConnectionData {
 	pub(crate) websocket_data: Option<WebSocketData>,
 	pub(crate) content: Vec<u8>,
 	pub(crate) headers: Vec<u8>,
+	pub(crate) read_ptr: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -180,8 +181,13 @@ pub struct HttpConfig {
 
 pub struct Builder {}
 
-type HttpCallback =
-	fn(&HttpHeaders, &HttpConfig, &HttpInstance, &mut WriteHandle) -> Result<(), Error>;
+type HttpCallback = fn(
+	&HttpHeaders,
+	&HttpConfig,
+	&HttpInstance,
+	&mut WriteHandle,
+	&mut HttpConnectionData,
+) -> Result<(), Error>;
 
 pub(crate) type RequestCallback = fn(&HttpRequest) -> Result<(), Error>;
 

@@ -281,6 +281,25 @@ impl Default for HttpInstance {
 	}
 }
 
+impl Read for HttpConnectionData {
+	fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
+		let buf_len = buf.len();
+		let content_len = self.content.len();
+		let internal_len = content_len.saturating_sub(self.read_ptr);
+
+		let copy_len = if buf_len > internal_len {
+			internal_len
+		} else {
+			buf_len
+		};
+
+		buf[0..copy_len].copy_from_slice(&self.content[self.read_ptr..self.read_ptr + copy_len]);
+		self.read_ptr += copy_len;
+
+		Ok(copy_len)
+	}
+}
+
 impl HttpHeaders<'_> {
 	pub fn path(&self) -> Result<String, Error> {
 		if self.start_uri > 0 && self.end_uri > self.start_uri {
@@ -1557,6 +1576,7 @@ impl HttpServerImpl {
 			websocket_data: None,
 			content: vec![],
 			headers: vec![],
+			read_ptr: 0,
 		};
 		debug!(
 			"insert handle={}, id={}",
@@ -1732,7 +1752,7 @@ impl HttpServerImpl {
 				let mut build_headers_from_vec = false;
 				loop {
 					let id = conn_data.get_connection_id();
-					let http_connection_data = match ctx.connections.get_mut(&id) {
+					let mut http_connection_data = match ctx.connections.get_mut(&id) {
 						Some(http_connection_data) => http_connection_data,
 						None => {
 							warn!("no connection data found for connection {}", id)?;
@@ -1937,11 +1957,13 @@ impl HttpServerImpl {
 							Some(callback) => {
 								if attachment.callback_mappings.contains(&path) {
 									is_callback = true;
+									http_connection_data.read_ptr = 0;
 									callback(
 										&headers,
 										&config,
 										&attachment,
 										&mut conn_data.write_handle(),
+										&mut http_connection_data,
 									)?;
 								} else if path.contains(r".") {
 									let pos = path.chars().rev().position(|c| c == '.').unwrap();
@@ -1949,11 +1971,13 @@ impl HttpServerImpl {
 									let suffix = path.substring(len - pos, len).to_string();
 									if attachment.callback_extensions.contains(&suffix) {
 										is_callback = true;
+										http_connection_data.read_ptr = 0;
 										callback(
 											&headers,
 											&config,
 											&attachment,
 											&mut conn_data.write_handle(),
+											&mut http_connection_data,
 										)?;
 									}
 								}

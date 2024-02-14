@@ -21,11 +21,12 @@ use bmw_evh::{EventHandlerConfig, WriteHandle};
 use bmw_http::HttpInstanceType::Plain;
 use bmw_http::PlainConfig;
 use bmw_http::{
-	Builder, HttpConfig, HttpHeaders, HttpInstance, WebSocketData, WebSocketHandle,
-	WebSocketMessage, WebSocketMessageType,
+	Builder, HttpConfig, HttpConnectionData, HttpHeaders, HttpInstance, WebSocketData,
+	WebSocketHandle, WebSocketMessage, WebSocketMessageType,
 };
 use bmw_log::*;
 use std::collections::{HashMap, HashSet};
+use std::io::Read;
 use std::mem::size_of;
 #[cfg(not(test))]
 use std::thread::park;
@@ -43,8 +44,25 @@ fn callback(
 	_config: &HttpConfig,
 	_instance: &HttpInstance,
 	write_handle: &mut WriteHandle,
+	http_connection_data: &mut HttpConnectionData,
 ) -> Result<(), Error> {
 	info!("in callback!")?;
+
+	let mut buf = [0; 10];
+
+	info!("start read")?;
+	loop {
+		let len_read = http_connection_data.read(&mut buf[0..10])?;
+		info!(
+			"len_read={},data='{}'",
+			len_read,
+			std::str::from_utf8(&buf[0..len_read]).unwrap_or("utf8err")
+		)?;
+		if len_read == 0 {
+			break;
+		}
+	}
+	info!("end read")?;
 
 	write_handle.write(
 		"\
