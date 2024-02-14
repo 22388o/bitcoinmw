@@ -278,6 +278,8 @@
 <a href="#277" id="277">277</a>
 <a href="#278" id="278">278</a>
 <a href="#279" id="279">279</a>
+<a href="#280" id="280">280</a>
+<a href="#281" id="281">281</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -357,6 +359,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) sec_websocket_key: String,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) sec_websocket_protocol: String,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) accept_gzip: bool,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) content_length: usize,
 }
 
 <span class="attr">#[derive(Debug)]
@@ -365,6 +368,8 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) write_state: Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) tid: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) websocket_data: <span class="prelude-ty">Option</span>&lt;WebSocketData&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) content: Vec&lt;u8&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) headers: Vec&lt;u8&gt;,
 }
 
 <span class="attr">#[derive(Debug, Clone)]
@@ -483,7 +488,6 @@
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpContext {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) suffix_tree: Box&lt;<span class="kw">dyn </span>SuffixTree + Send + Sync&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) matches: [Match; <span class="number">1_000</span>],
-	<span class="kw">pub</span>(<span class="kw">crate</span>) offset: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) connections: HashMap&lt;u128, HttpConnectionData&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) mime_map: HashMap&lt;String, String&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) mime_lookup: HashMap&lt;u32, String&gt;,
