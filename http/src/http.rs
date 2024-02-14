@@ -297,6 +297,10 @@ impl HttpHeaders<'_> {
 		}
 	}
 
+	pub fn content_length(&self) -> usize {
+		self.content_length
+	}
+
 	pub fn query(&self) -> Result<String, Error> {
 		let path = std::str::from_utf8(&self.req[self.start_uri..self.end_uri])?.to_string();
 		let query = if path.contains("?") {
@@ -488,7 +492,6 @@ impl HttpServerImpl {
 			MaxWildcardLength(100)
 		)?);
 		let matches = [bmw_util::Builder::build_match_default(); 1_000];
-		let offset = 0;
 		let connections = HashMap::new();
 		let mut mime_map = HashMap::new();
 		let mut mime_lookup = HashMap::new();
@@ -503,7 +506,6 @@ impl HttpServerImpl {
 		Ok(HttpContext {
 			suffix_tree,
 			matches,
-			offset,
 			connections,
 			mime_map,
 			mime_lookup,
@@ -1197,6 +1199,7 @@ impl HttpServerImpl {
 		slab_offset: usize,
 	) -> Result<HttpHeaders<'a>, Error> {
 		let mut termination_point = 0;
+		debug!("about to build headers req.len={}", req.len())?;
 		let count = suffix_tree.tmatch(&req[start..], &mut matches)?;
 
 		debug!(
@@ -1219,6 +1222,7 @@ impl HttpServerImpl {
 		let mut sec_websocket_key = "".to_string();
 		let mut sec_websocket_protocol = "".to_string();
 		let mut accept_gzip = false;
+		let mut content_length = 0;
 
 		debug!("count={}", count)?;
 		let mut host = "".to_string();
@@ -1248,10 +1252,7 @@ impl HttpServerImpl {
 						None => {}
 					}
 				}
-
-				if end == slab_offset.into() {
-					termination_point = end;
-				}
+				termination_point = end;
 			} else if id == SUFFIX_TREE_GET_ID
 				|| id == SUFFIX_TREE_POST_ID
 				|| id == SUFFIX_TREE_HEAD_ID
@@ -1378,6 +1379,16 @@ impl HttpServerImpl {
 							}
 						} else if &req[headers[header_count].start_header_name
 							..headers[header_count].end_header_name]
+							== CONTENT_LENGTH_BYTES
+						{
+							content_length = from_utf8(
+								&req[headers[header_count].start_header_value
+									..headers[header_count].end_header_value],
+							)?
+							.parse()
+							.unwrap_or(0);
+						} else if &req[headers[header_count].start_header_name
+							..headers[header_count].end_header_name]
 							== IF_NONE_MATCH_BYTES
 						{
 							if_none_match = from_utf8(
@@ -1472,6 +1483,7 @@ impl HttpServerImpl {
 				sec_websocket_key,
 				sec_websocket_protocol,
 				accept_gzip,
+				content_length,
 			})
 		}
 	}
@@ -1543,6 +1555,8 @@ impl HttpServerImpl {
 			write_state: conn_data.write_handle().write_state()?,
 			tid: conn_data.tid(),
 			websocket_data: None,
+			content: vec![],
+			headers: vec![],
 		};
 		debug!(
 			"insert handle={}, id={}",
@@ -1690,6 +1704,7 @@ impl HttpServerImpl {
 			Ok((ret, slab_id_vec, slab_count))
 		})?;
 
+		let slab_req_len = req.len();
 		let mut start = 0;
 		let mut last_term = 0;
 		let mut termination_sum = 0;
@@ -1714,15 +1729,42 @@ impl HttpServerImpl {
 				};
 			}
 			None => {
+				let mut build_headers_from_vec = false;
 				loop {
+					let id = conn_data.get_connection_id();
+					let http_connection_data = match ctx.connections.get_mut(&id) {
+						Some(http_connection_data) => http_connection_data,
+						None => {
+							warn!("no connection data found for connection {}", id)?;
+							return Ok(());
+						}
+					};
+					let headers_clone = http_connection_data.headers.clone();
+
 					debug!("slab_count={}", slab_count)?;
-					let headers = Self::build_request_headers(
-						&req,
-						start,
-						ctx.matches,
-						&mut ctx.suffix_tree,
-						(slab_offset as usize + (slab_count - 1) * READ_SLAB_DATA_SIZE).into(),
-					);
+					let headers = if http_connection_data.headers.len() > 0
+						|| build_headers_from_vec
+					{
+						let len = headers_clone.len();
+						debug!("1: start={}", start)?;
+						build_headers_from_vec = true;
+						Self::build_request_headers(
+							&headers_clone,
+							0,
+							ctx.matches,
+							&mut ctx.suffix_tree,
+							len,
+						)
+					} else {
+						debug!("2: start={},req.len={}", start, req.len())?;
+						Self::build_request_headers(
+							&req,
+							start,
+							ctx.matches,
+							&mut ctx.suffix_tree,
+							(slab_offset as usize + (slab_count - 1) * READ_SLAB_DATA_SIZE).into(),
+						)
+					};
 
 					let headers = match headers {
 						Ok(headers) => headers,
@@ -1760,6 +1802,7 @@ impl HttpServerImpl {
 								sec_websocket_key: "".to_string(),
 								sec_websocket_protocol: "".to_string(),
 								accept_gzip: false,
+								content_length: 0,
 							};
 							Self::header_error(
 								config,
@@ -1775,14 +1818,58 @@ impl HttpServerImpl {
 						}
 					};
 
-					debug!("Request type = {:?}", headers.http_request_type)?;
+					debug!(
+						"headers.path={:?},headers.len={}",
+						headers.path(),
+						http_connection_data.headers.len()
+					)?;
 
-					termination_sum += headers.termination_point;
+					if headers.content_length > 0 {
+						if headers.termination_point > 0 {
+							if http_connection_data.headers.len() == 0 {
+								debug!("incr due to no headers")?;
+								termination_sum += headers.termination_point;
+							}
+							debug!("headers termination found with content-length")?;
+							let mut needed = headers
+								.content_length
+								.saturating_sub(http_connection_data.content.len());
+							let start_content;
+							if !build_headers_from_vec {
+								start_content = headers.termination_point;
+								http_connection_data
+									.headers
+									.extend(&req[0..headers.termination_point]);
+							} else {
+								start_content = 0;
+							}
 
-					debug!("term point = {}", headers.termination_point)?;
-					if headers.termination_point == 0 {
+							if start_content + needed > req.len() {
+								debug!(
+									"in if stmt,req.len={},needed={},start_content={}",
+									req.len(),
+									needed,
+									start_content
+								)?;
+								needed = req.len().saturating_sub(start_content);
+							}
+
+							let ncontent = &req[start_content..start_content + needed];
+							http_connection_data.content.extend(ncontent);
+							termination_sum += ncontent.len();
+						}
+					} else {
+						debug!("incr termination_sum else")?;
+						termination_sum += headers.termination_point;
+					}
+
+					if headers.termination_point == 0
+						|| headers.content_length() > http_connection_data.content.len()
+					{
 						break;
 					} else {
+						http_connection_data.headers.clear();
+						http_connection_data.headers.shrink_to_fit();
 						if headers.version != HttpVersion::HTTP10 && headers.host()?.len() == 0 {
 							Self::header_error(
 								config,
@@ -1817,6 +1904,8 @@ impl HttpServerImpl {
 						if headers.is_websocket_upgrade()? {
 							match attachment.websocket_mappings.get(&path) {
 								Some(mapping) => {
+									http_connection_data.content.clear();
+									http_connection_data.content.shrink_to_fit();
 									// valid upgrade return switching response
 									Self::upgrade_websocket(conn_data, &headers, ctx, mapping)?;
 									break;
@@ -1874,6 +1963,8 @@ impl HttpServerImpl {
 
 						let mut cache_hit = false;
 						if !is_callback {
+							http_connection_data.content.clear();
+							http_connection_data.content.shrink_to_fit();
 							cache_hit = Self::process_file(
 								config,
 								cache.clone(),
@@ -1883,6 +1974,9 @@ impl HttpServerImpl {
 								&headers,
 								ctx,
 							)?;
+						} else {
+							http_connection_data.content.clear();
+							http_connection_data.content.shrink_to_fit();
 						}
 
 						if config.debug {
@@ -1926,7 +2020,7 @@ impl HttpServerImpl {
 		}
 
 		debug!("last term = {}", last_term)?;
-		Self::clean_slabs(termination_sum, req.len(), ctx, &slab_id_vec, conn_data)?;
+		Self::clean_slabs(termination_sum, slab_req_len, ctx, &slab_id_vec, conn_data)?;
 
 		Ok(())
 	}
@@ -1934,16 +2028,16 @@ impl HttpServerImpl {
 	fn clean_slabs(
 		termination_sum: usize,
 		req_len: usize,
-		ctx: &mut HttpContext,
+		_ctx: &mut HttpContext,
 		slab_id_vec: &Vec<u32>,
 		conn_data: &mut ConnectionData,
 	) -> Result<(), Error> {
-		if termination_sum != req_len {
-			ctx.offset = termination_sum % READ_SLAB_DATA_SIZE;
-		}
+		debug!("clean slabs to {}, req_len = {}", termination_sum, req_len)?;
 		let del_slab = slab_id_vec[termination_sum / READ_SLAB_DATA_SIZE];
 
-		if termination_sum > 0 {
+		// TODO: handle multiple slabs correctly
+		if termination_sum == req_len {
+			debug!("clearing slabs through {}", del_slab)?;
 			conn_data.clear_through(del_slab)?;
 		}
 
@@ -1967,7 +2061,15 @@ impl HttpServerImpl {
 		config: &HttpConfig,
 	) -> Result<(), Error> {
 		let ctx = Self::build_ctx(ctx, config)?;
-		ctx.connections.remove(&conn_data.get_connection_id());
+		match ctx.connections.remove(&conn_data.get_connection_id()) {
+			Some(mut http_connection_data) => {
+				http_connection_data.headers.clear();
+				http_connection_data.headers.shrink_to_fit();
+				http_connection_data.content.clear();
+				http_connection_data.content.shrink_to_fit();
+			}
+			None => {}
+		}
 		Ok(())
 	}
 
@@ -1992,7 +2094,15 @@ impl HttpServerImpl {
 		}
 
 		for mut rem in to_remove {
-			ctx.connections.remove(&rem.0);
+			match ctx.connections.remove(&rem.0) {
+				Some(mut http_connection_data) => {
+					http_connection_data.headers.clear();
+					http_connection_data.headers.shrink_to_fit();
+					http_connection_data.content.clear();
+					http_connection_data.content.shrink_to_fit();
+				}
+				None => {}
+			}
 			let mut ch = CloseHandle::new(&mut rem.1, rem.0, &mut event_handler_data[rem.2]);
 			ch.close()?;
 		}

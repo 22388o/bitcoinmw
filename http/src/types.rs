@@ -77,6 +77,7 @@ pub struct HttpHeaders<'a> {
 	pub(crate) sec_websocket_key: String,
 	pub(crate) sec_websocket_protocol: String,
 	pub(crate) accept_gzip: bool,
+	pub(crate) content_length: usize,
 }
 
 #[derive(Debug)]
@@ -85,6 +86,8 @@ pub struct HttpConnectionData {
 	pub(crate) write_state: Box<dyn LockBox<WriteState>>,
 	pub(crate) tid: usize,
 	pub(crate) websocket_data: Option<WebSocketData>,
+	pub(crate) content: Vec<u8>,
+	pub(crate) headers: Vec<u8>,
 }
 
 #[derive(Debug, Clone)]
@@ -203,7 +206,6 @@ pub(crate) struct HttpCacheImpl {
 pub(crate) struct HttpContext {
 	pub(crate) suffix_tree: Box<dyn SuffixTree + Send + Sync>,
 	pub(crate) matches: [Match; 1_000],
-	pub(crate) offset: usize,
 	pub(crate) connections: HashMap<u128, HttpConnectionData>,
 	pub(crate) mime_map: HashMap<String, String>,
 	pub(crate) mime_lookup: HashMap<u32, String>,
