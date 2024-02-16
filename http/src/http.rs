@@ -1738,6 +1738,7 @@ impl HttpServerImpl {
 			read_cumulative: 0,
 			offset: 0,
 			len: 0,
+			content_offset: 0,
 		};
 		debug!(
 			"insert handle={}, id={}",
@@ -1828,6 +1829,7 @@ impl HttpServerImpl {
 		ctx: &mut ThreadContext,
 		attachment: Option<AttachmentHolder>,
 	) -> Result<(), Error> {
+		let id = conn_data.get_connection_id();
 		let attachment = match attachment {
 			Some(attachment) => attachment,
 			None => return Err(err!(ErrKind::Http, "no instance found for this request1")),
@@ -1855,6 +1857,15 @@ impl HttpServerImpl {
 		let last_slab = conn_data.last_slab();
 		let slab_offset = conn_data.slab_offset();
 		debug!("firstslab={},last_slab={}", first_slab, last_slab)?;
+
+		let mut content_offset = match ctx.connections.get(&id) {
+			Some(http_connection_data) => http_connection_data.content_offset,
+			None => {
+				warn!("no connection data found for connection {}", id)?;
+				0
+			}
+		};
+
 		let (req, slab_id_vec, slab_count) = conn_data.borrow_slab_allocator(move |sa| {
 			let mut slab_id_vec = vec![];
 			let mut slab_id = first_slab;
@@ -1871,7 +1882,7 @@ impl HttpServerImpl {
 					READ_SLAB_DATA_SIZE
 				};
 
-				let slab_bytes_data = &slab_bytes[0..offset];
+				let slab_bytes_data = &slab_bytes[content_offset..offset];
 				debug!("read bytes = {:?}", slab_bytes_data)?;
 				ret.extend(slab_bytes_data);
 
@@ -1881,6 +1892,7 @@ impl HttpServerImpl {
 				slab_id = u32::from_be_bytes(try_into!(
 					slab_bytes[READ_SLAB_DATA_SIZE..READ_SLAB_DATA_SIZE + 4]
 				)?);
+				content_offset = 0;
 			}
 			Ok((ret, slab_id_vec, slab_count))
 		})?;
@@ -1912,7 +1924,6 @@ impl HttpServerImpl {
 			None => {
 				let mut build_headers_from_vec = false;
 				loop {
-					let id = conn_data.get_connection_id();
 					let mut http_connection_data = match ctx.connections.get_mut(&id) {
 						Some(http_connection_data) => http_connection_data,
 						None => {
@@ -2222,17 +2233,28 @@ impl HttpServerImpl {
 	fn clean_slabs(
 		termination_sum: usize,
 		req_len: usize,
-		_ctx: &mut HttpContext,
+		ctx: &mut HttpContext,
 		slab_id_vec: &Vec<u32>,
 		conn_data: &mut ConnectionData,
 	) -> Result<(), Error> {
-		debug!("clean slabs to {}, req_len = {}", termination_sum, req_len)?;
+		let id = conn_data.get_connection_id();
+		let http_connection_data = match ctx.connections.get_mut(&id) {
+			Some(http_connection_data) => http_connection_data,
+			None => {
+				warn!("no connection data found for connection {}", id)?;
+				return Ok(());
+			}
+		};
+
 		let del_slab = slab_id_vec[termination_sum / READ_SLAB_DATA_SIZE];
 
 		// TODO: handle multiple slabs correctly
 		if termination_sum == req_len {
 			debug!("clearing slabs through {}", del_slab)?;
 			conn_data.clear_through(del_slab)?;
+			http_connection_data.content_offset = 0;
+		} else if termination_sum != 0 {
+			http_connection_data.content_offset = termination_sum;
 		}
 
 		Ok(())
