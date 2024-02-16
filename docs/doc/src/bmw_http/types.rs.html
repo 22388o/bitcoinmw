@@ -280,6 +280,24 @@
 <a href="#279" id="279">279</a>
 <a href="#280" id="280">280</a>
 <a href="#281" id="281">281</a>
+<a href="#282" id="282">282</a>
+<a href="#283" id="283">283</a>
+<a href="#284" id="284">284</a>
+<a href="#285" id="285">285</a>
+<a href="#286" id="286">286</a>
+<a href="#287" id="287">287</a>
+<a href="#288" id="288">288</a>
+<a href="#289" id="289">289</a>
+<a href="#290" id="290">290</a>
+<a href="#291" id="291">291</a>
+<a href="#292" id="292">292</a>
+<a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -368,8 +386,20 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) write_state: Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) tid: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) websocket_data: <span class="prelude-ty">Option</span>&lt;WebSocketData&gt;,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) content: Vec&lt;u8&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) head_slab: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) tail_slab: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) offset: u16,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) headers: Vec&lt;u8&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) read_slab: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) read_offset: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) read_cumulative: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) len: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) content_offset: usize,
+}
+
+<span class="kw">pub struct </span>HttpContentReader&lt;<span class="lifetime">'a</span>&gt; {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) http_connection_data: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>HttpConnectionData,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) content_allocator: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;,
 }
 
 <span class="attr">#[derive(Debug, Clone)]
@@ -462,8 +492,13 @@
 
 <span class="kw">pub struct </span>Builder {}
 
-<span class="kw">type </span>HttpCallback =
-	<span class="kw">fn</span>(<span class="kw-2">&amp;</span>HttpHeaders, <span class="kw-2">&amp;</span>HttpConfig, <span class="kw-2">&amp;</span>HttpInstance, <span class="kw-2">&amp;mut </span>WriteHandle) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+<span class="kw">type </span>HttpCallback = <span class="kw">fn</span>(
+	<span class="kw-2">&amp;</span>HttpHeaders,
+	<span class="kw-2">&amp;</span>HttpConfig,
+	<span class="kw-2">&amp;</span>HttpInstance,
+	<span class="kw-2">&amp;mut </span>WriteHandle,
+	HttpContentReader&lt;<span class="lifetime">'_</span>&gt;,
+) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">type </span>RequestCallback = <span class="kw">fn</span>(<span class="kw-2">&amp;</span>HttpRequest) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 
@@ -493,6 +528,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) mime_lookup: HashMap&lt;u32, String&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) mime_rev_lookup: HashMap&lt;String, u32&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) now: u128,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) content_allocator: Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;,
 }
 
 <span class="attr">#[derive(PartialEq, Debug)]

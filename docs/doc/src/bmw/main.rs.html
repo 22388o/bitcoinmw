@@ -168,6 +168,24 @@
 <a href="#167" id="167">167</a>
 <a href="#168" id="168">168</a>
 <a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -191,11 +209,12 @@
 <span class="kw">use </span>bmw_http::HttpInstanceType::Plain;
 <span class="kw">use </span>bmw_http::PlainConfig;
 <span class="kw">use </span>bmw_http::{
-	Builder, HttpConfig, HttpHeaders, HttpInstance, WebSocketData, WebSocketHandle,
-	WebSocketMessage, WebSocketMessageType,
+	Builder, HttpConfig, HttpContentReader, HttpHeaders, HttpInstance, WebSocketData,
+	WebSocketHandle, WebSocketMessage, WebSocketMessageType,
 };
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
 <span class="kw">use </span>std::collections::{HashMap, HashSet};
+<span class="kw">use </span>std::io::Read;
 <span class="kw">use </span>std::mem::size_of;
 <span class="attr">#[cfg(not(test))]
 </span><span class="kw">use </span>std::thread::park;
@@ -213,8 +232,25 @@
 	_config: <span class="kw-2">&amp;</span>HttpConfig,
 	_instance: <span class="kw-2">&amp;</span>HttpInstance,
 	write_handle: <span class="kw-2">&amp;mut </span>WriteHandle,
+	<span class="kw-2">mut </span>http_connection_data: HttpContentReader,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 	<span class="macro">info!</span>(<span class="string">"in callback!"</span>)<span class="question-mark">?</span>;
+
+	<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0</span>; <span class="number">10</span>];
+
+	<span class="macro">info!</span>(<span class="string">"start read"</span>)<span class="question-mark">?</span>;
+	<span class="kw">loop </span>{
+		<span class="kw">let </span>len_read = http_connection_data.read(<span class="kw-2">&amp;mut </span>buf[<span class="number">0</span>..<span class="number">10</span>])<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(
+			<span class="string">"len_read={},data='{}'"</span>,
+			len_read,
+			std::str::from_utf8(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len_read]).unwrap_or(<span class="string">"utf8err"</span>)
+		)<span class="question-mark">?</span>;
+		<span class="kw">if </span>len_read == <span class="number">0 </span>{
+			<span class="kw">break</span>;
+		}
+	}
+	<span class="macro">info!</span>(<span class="string">"end read"</span>)<span class="question-mark">?</span>;
 
 	write_handle.write(
 		<span class="string">"\
