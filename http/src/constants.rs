@@ -57,3 +57,7 @@ pub(crate) const OP_CODE_MASK1: u8 = 0x1 << 3;
 pub(crate) const OP_CODE_MASK2: u8 = 0x1 << 2;
 pub(crate) const OP_CODE_MASK3: u8 = 0x1 << 1;
 pub(crate) const OP_CODE_MASK4: u8 = 0x1 << 0;
+
+pub(crate) const CONTENT_SLAB_DATA_SIZE: usize = 514;
+pub(crate) const CONTENT_SLAB_SIZE: usize = 518;
+pub(crate) const CONTENT_SLAB_NEXT_OFFSET: usize = 514;

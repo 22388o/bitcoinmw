@@ -23,8 +23,8 @@ use crate::types::{
 use crate::ws::{process_websocket_data, send_websocket_handshake_response};
 use crate::HttpInstanceType::{Plain, Tls};
 use crate::{
-	ConnectionType, HttpConfig, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType,
-	HttpRequestType, HttpServer, HttpStats, HttpVersion, PlainConfig,
+	ConnectionType, HttpConfig, HttpContentReader, HttpHeader, HttpHeaders, HttpInstance,
+	HttpInstanceType, HttpRequestType, HttpServer, HttpStats, HttpVersion, PlainConfig,
 };
 use bmw_deps::chrono::{DateTime, TimeZone, Utc};
 use bmw_deps::dirs;
@@ -281,22 +281,172 @@ impl Default for HttpInstance {
 	}
 }
 
-impl Read for HttpConnectionData {
+impl HttpConnectionData {
+	pub(crate) fn len(&self) -> usize {
+		self.len
+	}
+
+	pub(crate) fn clear(
+		&mut self,
+		content_allocator: &mut Box<dyn SlabAllocator + Send + Sync>,
+	) -> Result<(), Error> {
+		let mut ptr = self.head_slab;
+		loop {
+			if ptr >= u32::MAX as usize {
+				break;
+			}
+
+			let slab = content_allocator.get(ptr)?;
+			let slab_buf = slab.get();
+			let next = slice_to_usize(&slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_SIZE])?;
+
+			content_allocator.free(ptr)?;
+			ptr = next;
+		}
+
+		self.len = 0;
+		self.head_slab = usize::MAX;
+		self.tail_slab = usize::MAX;
+		self.read_slab = usize::MAX;
+		self.read_cumulative = 0;
+		self.read_offset = 0;
+
+		Ok(())
+	}
+
+	pub(crate) fn extend(
+		&mut self,
+		buf: &[u8],
+		content_allocator: &mut Box<dyn SlabAllocator + Send + Sync>,
+	) -> Result<(), Error> {
+		let mut rem = buf.len();
+		let mut itt = 0;
+		self.len += rem;
+		loop {
+			let mut slab;
+			let slab_buf;
+			let offset = self.offset as usize;
+			if self.tail_slab == usize::MAX {
+				slab = content_allocator.allocate()?;
+				self.tail_slab = slab.id();
+				self.head_slab = slab.id();
+				slab_buf = slab.get_mut();
+				usize_to_slice(
+					usize::MAX,
+					&mut slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_SIZE],
+				)?;
+				self.offset = 0;
+			} else {
+				slab = content_allocator.get_mut(self.tail_slab)?;
+
+				if offset >= CONTENT_SLAB_DATA_SIZE {
+					self.offset = 0;
+					slab = content_allocator.allocate()?;
+					self.tail_slab = slab.id();
+					slab_buf = slab.get_mut();
+					usize_to_slice(
+						usize::MAX,
+						&mut slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_SIZE],
+					)?;
+				} else {
+					slab_buf = slab.get_mut();
+				}
+			}
+
+			let mut wlen = slab_buf[offset..CONTENT_SLAB_DATA_SIZE].len();
+
+			if wlen > rem {
+				wlen = rem;
+			}
+
+			slab_buf[offset..offset + wlen].copy_from_slice(&buf[itt..itt + wlen]);
+			rem = rem.saturating_sub(wlen);
+			itt += wlen;
+			self.offset += wlen as u16;
+			if usize::from(self.offset) >= slab_buf.len() {
+				self.offset = 0;
+			}
+
+			if rem == 0 {
+				break;
+			}
+		}
+
+		Ok(())
+	}
+}
+
+impl Read for HttpContentReader<'_> {
 	fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
-		let buf_len = buf.len();
-		let content_len = self.content.len();
-		let internal_len = content_len.saturating_sub(self.read_ptr);
+		let mut total = 0;
+		let mut rem = buf.len();
+		let mut itt = 0;
+		loop {
+			if self.http_connection_data.read_slab >= u32::MAX as usize || rem == 0 {
+				break;
+			}
 
-		let copy_len = if buf_len > internal_len {
-			internal_len
-		} else {
-			buf_len
-		};
+			let mut slab = match self
+				.content_allocator
+				.get_mut(self.http_connection_data.read_slab)
+			{
+				Ok(slab) => slab,
+				Err(e) => {
+					return Err(std::io::Error::new(
+						std::io::ErrorKind::NotFound,
+						format!("slab not found: {}", e.to_string()),
+					));
+				}
+			};
+			let slab_buf = slab.get_mut();
 
-		buf[0..copy_len].copy_from_slice(&self.content[self.read_ptr..self.read_ptr + copy_len]);
-		self.read_ptr += copy_len;
+			let offset = self.http_connection_data.read_offset;
+			let mut rlen = rem;
 
-		Ok(copy_len)
+			let slab_rem = CONTENT_SLAB_DATA_SIZE.saturating_sub(offset);
+
+			if rem > slab_rem {
+				rlen = slab_rem;
+			}
+
+			let read_rem = self
+				.http_connection_data
+				.len()
+				.saturating_sub(self.http_connection_data.read_cumulative);
+			if rlen > read_rem {
+				rlen = read_rem;
+			}
+
+			if rlen == 0 {
+				break;
+			}
+
+			buf[itt..itt + rlen].copy_from_slice(&slab_buf[offset..offset + rlen]);
+
+			itt += rlen;
+			rem = rem.saturating_sub(rlen);
+			total += rlen;
+			self.http_connection_data.read_cumulative += rlen;
+
+			if rlen + offset >= CONTENT_SLAB_DATA_SIZE {
+				self.http_connection_data.read_offset = 0;
+				self.http_connection_data.read_slab = match slice_to_usize(
+					&slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_NEXT_OFFSET + 4],
+				) {
+					Ok(read_slab) => read_slab,
+					Err(e) => {
+						self.http_connection_data.read_slab = usize::MAX;
+						return Err(std::io::Error::new(
+							std::io::ErrorKind::NotFound,
+							format!("usize conversion err: {}", e.to_string()),
+						));
+					}
+				};
+			} else {
+				self.http_connection_data.read_offset += rlen;
+			}
+		}
+		Ok(total)
 	}
 }
 
@@ -522,6 +672,11 @@ impl HttpServerImpl {
 			mime_map.insert(config.mime_map[i].0.clone(), config.mime_map[i].1.clone());
 		}
 
+		let mut content_allocator = bmw_util::Builder::build_sync_slabs();
+		let mut slab_allocator_config = bmw_util::SlabAllocatorConfig::default();
+		slab_allocator_config.slab_size = CONTENT_SLAB_SIZE;
+		slab_allocator_config.slab_count = 100;
+		content_allocator.init(slab_allocator_config)?;
 		Ok(HttpContext {
 			suffix_tree,
 			matches,
@@ -530,6 +685,7 @@ impl HttpServerImpl {
 			mime_lookup,
 			mime_rev_lookup,
 			now: 0,
+			content_allocator,
 		})
 	}
 
@@ -1574,9 +1730,14 @@ impl HttpServerImpl {
 			write_state: conn_data.write_handle().write_state()?,
 			tid: conn_data.tid(),
 			websocket_data: None,
-			content: vec![],
 			headers: vec![],
-			read_ptr: 0,
+			read_slab: usize::MAX,
+			read_offset: 0,
+			head_slab: usize::MAX,
+			tail_slab: usize::MAX,
+			read_cumulative: 0,
+			offset: 0,
+			len: 0,
 		};
 		debug!(
 			"insert handle={}, id={}",
@@ -1853,7 +2014,7 @@ impl HttpServerImpl {
 							debug!("headers termination found with content-length")?;
 							let mut needed = headers
 								.content_length
-								.saturating_sub(http_connection_data.content.len());
+								.saturating_sub(http_connection_data.len());
 							let start_content;
 							if !build_headers_from_vec {
 								start_content = headers.termination_point;
@@ -1875,7 +2036,7 @@ impl HttpServerImpl {
 							}
 
 							let ncontent = &req[start_content..start_content + needed];
-							http_connection_data.content.extend(ncontent);
+							http_connection_data.extend(ncontent, &mut ctx.content_allocator)?;
 							termination_sum += ncontent.len();
 						}
 					} else {
@@ -1884,7 +2045,7 @@ impl HttpServerImpl {
 					}
 
 					if headers.termination_point == 0
-						|| headers.content_length() > http_connection_data.content.len()
+						|| headers.content_length() > http_connection_data.len()
 					{
 						break;
 					} else {
@@ -1924,8 +2085,6 @@ impl HttpServerImpl {
 						if headers.is_websocket_upgrade()? {
 							match attachment.websocket_mappings.get(&path) {
 								Some(mapping) => {
-									http_connection_data.content.clear();
-									http_connection_data.content.shrink_to_fit();
 									// valid upgrade return switching response
 									Self::upgrade_websocket(conn_data, &headers, ctx, mapping)?;
 									break;
@@ -1957,38 +2116,52 @@ impl HttpServerImpl {
 							Some(callback) => {
 								if attachment.callback_mappings.contains(&path) {
 									is_callback = true;
-									http_connection_data.read_ptr = 0;
+									http_connection_data.read_slab = http_connection_data.head_slab;
+									http_connection_data.read_offset = 0;
+									let http_content_reader = HttpContentReader {
+										content_allocator: &mut ctx.content_allocator,
+										http_connection_data: &mut http_connection_data,
+									};
+									debug!("callback starting")?;
 									callback(
 										&headers,
 										&config,
 										&attachment,
 										&mut conn_data.write_handle(),
-										&mut http_connection_data,
+										http_content_reader,
 									)?;
+									debug!("callback complete")?;
 								} else if path.contains(r".") {
 									let pos = path.chars().rev().position(|c| c == '.').unwrap();
 									let len = path.len();
 									let suffix = path.substring(len - pos, len).to_string();
 									if attachment.callback_extensions.contains(&suffix) {
 										is_callback = true;
-										http_connection_data.read_ptr = 0;
+										http_connection_data.read_slab =
+											http_connection_data.head_slab;
+										http_connection_data.read_offset = 0;
+										let http_content_reader = HttpContentReader {
+											content_allocator: &mut ctx.content_allocator,
+											http_connection_data: &mut http_connection_data,
+										};
+										debug!("callback starting")?;
 										callback(
 											&headers,
 											&config,
 											&attachment,
 											&mut conn_data.write_handle(),
-											&mut http_connection_data,
+											http_content_reader,
 										)?;
+										debug!("callback complete")?;
 									}
 								}
 							}
 							None => {}
 						}
 
+						http_connection_data.clear(&mut ctx.content_allocator)?;
 						let mut cache_hit = false;
 						if !is_callback {
-							http_connection_data.content.clear();
-							http_connection_data.content.shrink_to_fit();
 							cache_hit = Self::process_file(
 								config,
 								cache.clone(),
@@ -1998,9 +2171,6 @@ impl HttpServerImpl {
 								&headers,
 								ctx,
 							)?;
-						} else {
-							http_connection_data.content.clear();
-							http_connection_data.content.shrink_to_fit();
 						}
 
 						if config.debug {
@@ -2089,8 +2259,6 @@ impl HttpServerImpl {
 			Some(mut http_connection_data) => {
 				http_connection_data.headers.clear();
 				http_connection_data.headers.shrink_to_fit();
-				http_connection_data.content.clear();
-				http_connection_data.content.shrink_to_fit();
 			}
 			None => {}
 		}
@@ -2122,8 +2290,6 @@ impl HttpServerImpl {
 				Some(mut http_connection_data) => {
 					http_connection_data.headers.clear();
 					http_connection_data.headers.shrink_to_fit();
-					http_connection_data.content.clear();
-					http_connection_data.content.shrink_to_fit();
 				}
 				None => {}
 			}
@@ -2244,12 +2410,17 @@ impl HttpServer for HttpServerImpl {
 #[cfg(test)]
 mod test {
 	use crate::types::HttpServerImpl;
-	use crate::{HttpConfig, HttpInstance, HttpInstanceType, HttpServer, PlainConfig};
+	use crate::{
+		HttpConfig, HttpContentReader, HttpHeaders, HttpInstance, HttpInstanceType, HttpServer,
+		PlainConfig,
+	};
 	use bmw_err::*;
+	use bmw_evh::WriteHandle;
 	use bmw_log::*;
 	use bmw_test::port::pick_free_port;
 	use bmw_test::testdir::{setup_test_dir, tear_down_test_dir};
 	use std::collections::HashMap;
+	use std::collections::HashSet;
 	use std::fs::File;
 	use std::io::Read;
 	use std::io::Write;
@@ -2365,6 +2536,126 @@ mod test {
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
 		assert_eq!(len, 284);
+
+		std::thread::sleep(std::time::Duration::from_millis(1_000));
+
+		tear_down_test_dir(test_dir)?;
+
+		Ok(())
+	}
+
+	fn test_http_server_post_callback(
+		_headers: &HttpHeaders,
+		_config: &HttpConfig,
+		_instance: &HttpInstance,
+		write_handle: &mut WriteHandle,
+		mut http_connection_data: HttpContentReader,
+	) -> Result<(), Error> {
+		info!("recv callback")?;
+		let mut buf = [0; 10];
+		let mut data: Vec<u8> = vec![];
+
+		info!("start read")?;
+		loop {
+			let len_read = http_connection_data.read(&mut buf[0..10])?;
+			if len_read > 0 {
+				data.extend(&buf[0..len_read]);
+			}
+			info!(
+				"len_read={},data='{}'",
+				len_read,
+				std::str::from_utf8(&buf[0..len_read]).unwrap_or("utf8err")
+			)?;
+			if len_read == 0 {
+				break;
+			}
+		}
+		info!("end read")?;
+
+		if data == b"abcdefghijklm" {
+			write_handle.write(
+				"\
+HTTP/1.1 200 OK\r\n\
+Date: Thu, 12 Oct 2023 22:52:16 GMT\r\n\
+Content-Length: 8\r\n\
+\r\n\
+callbk2\n"
+					.as_bytes(),
+			)?;
+		} else {
+			write_handle.write(
+				"\
+HTTP/1.1 200 OK\r\n\
+Date: Thu, 12 Oct 2023 22:52:16 GMT\r\n\
+Content-Length: 7\r\n\
+\r\n\
+callbk\n"
+					.as_bytes(),
+			)?;
+		}
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_http_server_post() -> Result<(), Error> {
+		let test_dir = ".test_http_server_post.bmw";
+		setup_test_dir(test_dir)?;
+		let mut file = File::create(format!("{}/foo.html", test_dir))?;
+		file.write_all(b"Hello, world!")?;
+		let port = pick_free_port()?;
+		info!("port={}", port)?;
+
+		let mut callback_mappings = HashSet::new();
+		let mut callback_extensions = HashSet::new();
+		callback_mappings.insert("/callbacktest".to_string());
+		callback_extensions.insert("rsp".to_string());
+
+		let config = HttpConfig {
+			instances: vec![HttpInstance {
+				port,
+				instance_type: HttpInstanceType::Plain(PlainConfig {
+					http_dir_map: HashMap::from([("*".to_string(), test_dir.to_string())]),
+				}),
+				callback: Some(test_http_server_post_callback),
+				callback_mappings,
+				callback_extensions,
+				..Default::default()
+			}],
+			server_version: "test1".to_string(),
+			..Default::default()
+		};
+		let mut http = HttpServerImpl::new(&config)?;
+		http.start()?;
+		std::thread::sleep(std::time::Duration::from_millis(1_000));
+		let addr = &format!("127.0.0.1:{}", port)[..];
+		info!("addr={}", addr)?;
+		let mut client = TcpStream::connect(addr)?;
+		std::thread::sleep(std::time::Duration::from_millis(1_000));
+
+		client
+			.write(b"GET /callbacktest HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n")?;
+		std::thread::sleep(std::time::Duration::from_millis(1_000));
+		let mut buf = [0; 512];
+		let len = client.read(&mut buf)?;
+		let data = from_utf8(&buf)?;
+		info!("len={}", len)?;
+		info!("data='{}'", data)?;
+		assert_eq!(len, 82);
+
+		std::thread::sleep(std::time::Duration::from_millis(1_000));
+
+		let mut client = TcpStream::connect(addr)?;
+		std::thread::sleep(std::time::Duration::from_millis(1_000));
+		client
+			.write(b"POST /callbacktest HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\nContent-Length: 13\r\n\r\nabcdefghijklm")?;
+		std::thread::sleep(std::time::Duration::from_millis(1_000));
+		let mut buf = [0; 512];
+		let len = client.read(&mut buf)?;
+		let data = from_utf8(&buf)?;
+		info!("len={}", len)?;
+		info!("data='{}'", data)?;
+		assert_eq!(len, 83);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 

@@ -86,9 +86,19 @@ pub struct HttpConnectionData {
 	pub(crate) write_state: Box<dyn LockBox<WriteState>>,
 	pub(crate) tid: usize,
 	pub(crate) websocket_data: Option<WebSocketData>,
-	pub(crate) content: Vec<u8>,
+	pub(crate) head_slab: usize,
+	pub(crate) tail_slab: usize,
+	pub(crate) offset: u16,
 	pub(crate) headers: Vec<u8>,
-	pub(crate) read_ptr: usize,
+	pub(crate) read_slab: usize,
+	pub(crate) read_offset: usize,
+	pub(crate) read_cumulative: usize,
+	pub(crate) len: usize,
+}
+
+pub struct HttpContentReader<'a> {
+	pub(crate) http_connection_data: &'a mut HttpConnectionData,
+	pub(crate) content_allocator: &'a mut Box<dyn SlabAllocator + Send + Sync>,
 }
 
 #[derive(Debug, Clone)]
@@ -186,7 +196,7 @@ type HttpCallback = fn(
 	&HttpConfig,
 	&HttpInstance,
 	&mut WriteHandle,
-	&mut HttpConnectionData,
+	HttpContentReader<'_>,
 ) -> Result<(), Error>;
 
 pub(crate) type RequestCallback = fn(&HttpRequest) -> Result<(), Error>;
@@ -217,6 +227,7 @@ pub(crate) struct HttpContext {
 	pub(crate) mime_lookup: HashMap<u32, String>,
 	pub(crate) mime_rev_lookup: HashMap<String, u32>,
 	pub(crate) now: u128,
+	pub(crate) content_allocator: Box<dyn SlabAllocator + Send + Sync>,
 }
 
 #[derive(PartialEq, Debug)]

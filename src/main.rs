@@ -21,7 +21,7 @@ use bmw_evh::{EventHandlerConfig, WriteHandle};
 use bmw_http::HttpInstanceType::Plain;
 use bmw_http::PlainConfig;
 use bmw_http::{
-	Builder, HttpConfig, HttpConnectionData, HttpHeaders, HttpInstance, WebSocketData,
+	Builder, HttpConfig, HttpContentReader, HttpHeaders, HttpInstance, WebSocketData,
 	WebSocketHandle, WebSocketMessage, WebSocketMessageType,
 };
 use bmw_log::*;
@@ -44,7 +44,7 @@ fn callback(
 	_config: &HttpConfig,
 	_instance: &HttpInstance,
 	write_handle: &mut WriteHandle,
-	http_connection_data: &mut HttpConnectionData,
+	mut http_connection_data: HttpContentReader,
 ) -> Result<(), Error> {
 	info!("in callback!")?;
 
