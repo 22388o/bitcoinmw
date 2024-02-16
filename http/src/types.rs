@@ -95,11 +95,13 @@ pub struct HttpConnectionData {
 	pub(crate) read_cumulative: usize,
 	pub(crate) len: usize,
 	pub(crate) content_offset: usize,
+	pub(crate) file_id: Option<usize>,
 }
 
 pub struct HttpContentReader<'a> {
 	pub(crate) http_connection_data: &'a mut HttpConnectionData,
 	pub(crate) content_allocator: &'a mut Box<dyn SlabAllocator + Send + Sync>,
+	pub(crate) config: &'a HttpConfig,
 }
 
 #[derive(Debug, Clone)]
@@ -188,6 +190,8 @@ pub struct HttpConfig {
 	pub bring_to_front_weight: f64,
 	pub restat_file_frequency_in_millis: u64,
 	pub request_callback: Option<RequestCallback>,
+	pub base_dir: String,
+	pub content_slab_count: usize,
 }
 
 pub struct Builder {}

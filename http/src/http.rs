@@ -31,7 +31,7 @@ use bmw_deps::dirs;
 use bmw_deps::flate2::bufread::GzEncoder;
 use bmw_deps::flate2::Compression;
 use bmw_deps::math::round::floor;
-use bmw_deps::rand::{self, Rng};
+use bmw_deps::rand::{self, random, Rng};
 use bmw_deps::sha1::{Digest, Sha1};
 use bmw_deps::substring::Substring;
 use bmw_err::*;
@@ -44,9 +44,8 @@ use bmw_log::*;
 use bmw_util::*;
 use std::any::{type_name, Any};
 use std::collections::{HashMap, HashSet};
-use std::fs::metadata;
-use std::fs::{File, Metadata};
-use std::io::{BufReader, Read};
+use std::fs::{create_dir_all, metadata, remove_file, File, Metadata, OpenOptions};
+use std::io::{BufReader, Read, Seek, SeekFrom, Write};
 use std::path::{Component, Path, PathBuf};
 use std::str::from_utf8;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -87,6 +86,8 @@ impl Default for HttpConfig {
 			bring_to_front_weight: 0.1,
 			restat_file_frequency_in_millis: 3_000, // 3 seconds
 			request_callback: None,
+			content_slab_count: 1_000,
+			base_dir: "~/.bitcoinmw".to_string(),
 			mime_map: vec![
 				("html".to_string(), "text/html".to_string()),
 				("htm".to_string(), "text/html".to_string()),
@@ -259,6 +260,14 @@ impl Default for HttpConfig {
 	}
 }
 
+impl HttpConfig {
+	fn tmp_file_dir(&self) -> PathBuf {
+		let mut file_dir = PathBuf::from(self.base_dir.clone());
+		file_dir.push("tmp_files");
+		file_dir
+	}
+}
+
 impl Default for HttpInstance {
 	fn default() -> Self {
 		let mut http_dir_map = HashMap::new();
@@ -266,7 +275,7 @@ impl Default for HttpInstance {
 		Self {
 			port: 8080,
 			addr: "127.0.0.1".to_string(),
-			listen_queue_size: 100,
+			listen_queue_size: 10_000,
 			instance_type: HttpInstanceType::Plain(PlainConfig { http_dir_map }),
 			default_file: vec!["index.html".to_string(), "index.htm".to_string()],
 			error_400file: "error.html".to_string(),
@@ -289,6 +298,7 @@ impl HttpConnectionData {
 	pub(crate) fn clear(
 		&mut self,
 		content_allocator: &mut Box<dyn SlabAllocator + Send + Sync>,
+		config: &HttpConfig,
 	) -> Result<(), Error> {
 		let mut ptr = self.head_slab;
 		loop {
@@ -311,6 +321,15 @@ impl HttpConnectionData {
 		self.read_cumulative = 0;
 		self.read_offset = 0;
 
+		match self.file_id {
+			Some(file_id) => {
+				let mut tmp_file_dir = config.tmp_file_dir();
+				tmp_file_dir.push(format!("{}.tmp", file_id));
+				remove_file(tmp_file_dir.as_path())?;
+			}
+			None => {}
+		}
+
 		Ok(())
 	}
 
@@ -318,17 +337,26 @@ impl HttpConnectionData {
 		&mut self,
 		buf: &[u8],
 		content_allocator: &mut Box<dyn SlabAllocator + Send + Sync>,
+		config: &HttpConfig,
 	) -> Result<(), Error> {
 		let mut rem = buf.len();
 		let mut itt = 0;
 		self.len += rem;
 		let mut old_tail: Option<(usize, usize)> = None;
 		loop {
+			if self.file_id.is_some() {
+				break;
+			}
 			let mut slab;
 			let slab_buf;
 			let offset = self.offset as usize;
 			if self.tail_slab == usize::MAX {
-				slab = content_allocator.allocate()?;
+				let slabres = content_allocator.allocate();
+				if slabres.is_err() {
+					break;
+				}
+				// unwrap ok because we checked errs above
+				slab = slabres.unwrap();
 				self.tail_slab = slab.id();
 				self.head_slab = slab.id();
 				slab_buf = slab.get_mut();
@@ -339,15 +367,19 @@ impl HttpConnectionData {
 				self.offset = 0;
 			} else {
 				if offset >= CONTENT_SLAB_DATA_SIZE {
+					let slabres = content_allocator.allocate();
+					if slabres.is_err() {
+						break;
+					}
+					// unwrap ok because we checked errs above
+					slab = slabres.unwrap();
 					self.offset = 0;
-					slab = content_allocator.allocate()?;
 					let slab_id = slab.id();
 					slab_buf = slab.get_mut();
 					usize_to_slice(
 						usize::MAX,
 						&mut slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_SIZE],
 					)?;
-
 					old_tail = Some((self.tail_slab, slab_id));
 					self.tail_slab = slab_id;
 				} else {
@@ -385,6 +417,35 @@ impl HttpConnectionData {
 			if rem == 0 {
 				break;
 			}
+		}
+
+		if rem > 0 {
+			// we could not allocate slabs so write to file
+			let file_path = match self.file_id {
+				Some(file_id) => {
+					let mut path_buf = config.tmp_file_dir();
+					path_buf.push(format!("{}.tmp", file_id));
+					path_buf.display().to_string()
+				}
+				None => {
+					let file_id: usize = random();
+					self.file_id = Some(file_id);
+					let mut path_buf = config.tmp_file_dir();
+					path_buf.push(format!("{}.tmp", file_id));
+					let path = path_buf.display().to_string();
+					OpenOptions::new()
+						.write(true)
+						.create(true)
+						.open(path.clone())?;
+					path
+				}
+			};
+			let mut file = OpenOptions::new()
+				.write(true)
+				.append(true)
+				.open(file_path.clone())?;
+
+			file.write(&buf[buf.len().saturating_sub(rem)..])?;
 		}
 
 		Ok(())
@@ -461,6 +522,30 @@ impl Read for HttpContentReader<'_> {
 				self.http_connection_data.read_offset += rlen;
 			}
 		}
+
+		if total < buf.len()
+			&& self.http_connection_data.read_cumulative < self.http_connection_data.len()
+		{
+			// we're done reading from slabs, now see if there's a file.
+			match self.http_connection_data.file_id {
+				Some(file_id) => {
+					let mut dir = self.config.tmp_file_dir();
+					dir.push(format!("{}.tmp", file_id));
+					let mut file = OpenOptions::new().read(true).open(dir)?;
+					let end: i64 = try_into!(self
+						.http_connection_data
+						.len()
+						.saturating_sub(self.http_connection_data.read_cumulative))
+					.unwrap_or(0) * -1;
+					file.seek(SeekFrom::End(end))?;
+					let rlen = file.read(&mut buf[itt..])?;
+					total += rlen;
+					self.http_connection_data.read_cumulative += rlen;
+				}
+				None => {}
+			}
+		}
+
 		Ok(total)
 	}
 }
@@ -690,7 +775,7 @@ impl HttpServerImpl {
 		let mut content_allocator = bmw_util::Builder::build_sync_slabs();
 		let mut slab_allocator_config = bmw_util::SlabAllocatorConfig::default();
 		slab_allocator_config.slab_size = CONTENT_SLAB_SIZE;
-		slab_allocator_config.slab_count = 100;
+		slab_allocator_config.slab_count = config.content_slab_count;
 		content_allocator.init(slab_allocator_config)?;
 		Ok(HttpContext {
 			suffix_tree,
@@ -1754,6 +1839,7 @@ impl HttpServerImpl {
 			offset: 0,
 			len: 0,
 			content_offset: 0,
+			file_id: None,
 		};
 		debug!(
 			"insert handle={}, id={}",
@@ -2062,7 +2148,11 @@ impl HttpServerImpl {
 							}
 
 							let ncontent = &req[start_content..start_content + needed];
-							http_connection_data.extend(ncontent, &mut ctx.content_allocator)?;
+							http_connection_data.extend(
+								ncontent,
+								&mut ctx.content_allocator,
+								config,
+							)?;
 							termination_sum += ncontent.len();
 						}
 					} else {
@@ -2147,6 +2237,7 @@ impl HttpServerImpl {
 									let http_content_reader = HttpContentReader {
 										content_allocator: &mut ctx.content_allocator,
 										http_connection_data: &mut http_connection_data,
+										config,
 									};
 									debug!("callback starting")?;
 									callback(
@@ -2169,6 +2260,7 @@ impl HttpServerImpl {
 										let http_content_reader = HttpContentReader {
 											content_allocator: &mut ctx.content_allocator,
 											http_connection_data: &mut http_connection_data,
+											config,
 										};
 										debug!("callback starting")?;
 										callback(
@@ -2185,7 +2277,7 @@ impl HttpServerImpl {
 							None => {}
 						}
 
-						http_connection_data.clear(&mut ctx.content_allocator)?;
+						http_connection_data.clear(&mut ctx.content_allocator, config)?;
 						let mut cache_hit = false;
 						if !is_callback {
 							cache_hit = Self::process_file(
@@ -2358,6 +2450,11 @@ impl HttpServer for HttpServerImpl {
 		.as_path()
 		.display()
 		.to_string();
+
+		self.config.base_dir = self.config.base_dir.replace("~", &home_dir);
+		let mut file_dir = PathBuf::from(self.config.base_dir.clone());
+		file_dir.push("tmp_files");
+		create_dir_all(file_dir.as_path())?;
 
 		for i in 0..self.config.instances.len() {
 			let mut nmap = HashMap::new();
@@ -2743,6 +2840,68 @@ callbk\n"
 				callback_extensions,
 				..Default::default()
 			}],
+			server_version: "test1".to_string(),
+			..Default::default()
+		};
+		let mut http = HttpServerImpl::new(&config)?;
+		http.start()?;
+		sleep(Duration::from_millis(1_000));
+		let addr = &format!("127.0.0.1:{}", port)[..];
+		info!("addr={}", addr)?;
+
+		sleep(Duration::from_millis(1_000));
+
+		let mut client = TcpStream::connect(addr)?;
+		sleep(Duration::from_millis(1_000));
+		client.write(b"POST /callbacktest HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\nContent-Length: 650\r\n\r\n")?;
+		for i in 0..25 {
+			if i == 24 {
+				info!("sleep 2 secs")?;
+				sleep(Duration::from_millis(2_000));
+			}
+			info!("write bytes")?;
+			client.write(b"abcdefghijklmnopqrstuvwxyz")?;
+		}
+		sleep(Duration::from_millis(1_000));
+		let mut buf = [0; 512];
+		let len = client.read(&mut buf)?;
+		let data = from_utf8(&buf)?;
+		info!("len={}", len)?;
+		info!("data='{}'", data)?;
+		assert_eq!(len, 84);
+
+		sleep(Duration::from_millis(1_000));
+
+		tear_down_test_dir(test_dir)?;
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_http_server_out_of_post_slabs() -> Result<(), Error> {
+		let test_dir = ".test_http_server_out_of_post_slabs.bmw";
+		setup_test_dir(test_dir)?;
+		let port = pick_free_port()?;
+		info!("port={}", port)?;
+
+		let mut callback_mappings = HashSet::new();
+		let mut callback_extensions = HashSet::new();
+		callback_mappings.insert("/callbacktest".to_string());
+		callback_extensions.insert("rsp".to_string());
+
+		let config = HttpConfig {
+			instances: vec![HttpInstance {
+				port,
+				instance_type: HttpInstanceType::Plain(PlainConfig {
+					http_dir_map: HashMap::from([("*".to_string(), test_dir.to_string())]),
+				}),
+				callback: Some(test_http_server_post_callback),
+				callback_mappings,
+				callback_extensions,
+				..Default::default()
+			}],
+			base_dir: test_dir.to_string(),
+			content_slab_count: 1,
 			server_version: "test1".to_string(),
 			..Default::default()
 		};
