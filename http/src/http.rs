@@ -322,6 +322,7 @@ impl HttpConnectionData {
 		let mut rem = buf.len();
 		let mut itt = 0;
 		self.len += rem;
+		let mut old_tail: Option<(usize, usize)> = None;
 		loop {
 			let mut slab;
 			let slab_buf;
@@ -337,18 +338,20 @@ impl HttpConnectionData {
 				)?;
 				self.offset = 0;
 			} else {
-				slab = content_allocator.get_mut(self.tail_slab)?;
-
 				if offset >= CONTENT_SLAB_DATA_SIZE {
 					self.offset = 0;
 					slab = content_allocator.allocate()?;
-					self.tail_slab = slab.id();
+					let slab_id = slab.id();
 					slab_buf = slab.get_mut();
 					usize_to_slice(
 						usize::MAX,
 						&mut slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_SIZE],
 					)?;
+
+					old_tail = Some((self.tail_slab, slab_id));
+					self.tail_slab = slab_id;
 				} else {
+					slab = content_allocator.get_mut(self.tail_slab)?;
 					slab_buf = slab.get_mut();
 				}
 			}
@@ -358,7 +361,6 @@ impl HttpConnectionData {
 			if wlen > rem {
 				wlen = rem;
 			}
-
 			slab_buf[offset..offset + wlen].copy_from_slice(&buf[itt..itt + wlen]);
 			rem = rem.saturating_sub(wlen);
 			itt += wlen;
@@ -366,6 +368,19 @@ impl HttpConnectionData {
 			if usize::from(self.offset) >= slab_buf.len() {
 				self.offset = 0;
 			}
+
+			match old_tail {
+				Some((old_tail, ntail)) => {
+					let mut slab = content_allocator.get_mut(old_tail)?;
+					let slab_buf = slab.get_mut();
+					usize_to_slice(
+						ntail,
+						&mut slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_SIZE],
+					)?;
+				}
+				None => {}
+			}
+			old_tail = None;
 
 			if rem == 0 {
 				break;
@@ -2246,15 +2261,20 @@ impl HttpServerImpl {
 			}
 		};
 
-		let del_slab = slab_id_vec[termination_sum / READ_SLAB_DATA_SIZE];
+		debug!(
+			"clean slabs termination_sum={},req_len={},slab_id_vec={:?},content_offset={}",
+			termination_sum, req_len, slab_id_vec, http_connection_data.content_offset
+		)?;
 
-		// TODO: handle multiple slabs correctly
 		if termination_sum == req_len {
-			debug!("clearing slabs through {}", del_slab)?;
-			conn_data.clear_through(del_slab)?;
+			conn_data.clear_through(slab_id_vec[slab_id_vec.len() - 1])?;
 			http_connection_data.content_offset = 0;
 		} else if termination_sum != 0 {
-			http_connection_data.content_offset = termination_sum;
+			http_connection_data.content_offset = termination_sum % READ_SLAB_DATA_SIZE;
+			if termination_sum >= READ_SLAB_DATA_SIZE {
+				let del_slab = slab_id_vec[(termination_sum / READ_SLAB_DATA_SIZE) - 1];
+				conn_data.clear_through(del_slab)?;
+			}
 		}
 
 		Ok(())
@@ -2448,6 +2468,8 @@ mod test {
 	use std::io::Write;
 	use std::net::TcpStream;
 	use std::str::from_utf8;
+	use std::thread::sleep;
+	use std::time::Duration;
 
 	debug!();
 
@@ -2473,16 +2495,16 @@ mod test {
 		};
 		let mut http = HttpServerImpl::new(&config)?;
 		http.start()?;
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
+		sleep(Duration::from_millis(1_000));
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		info!("addr={}", addr)?;
 		let mut client = TcpStream::connect(addr)?;
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
+		sleep(Duration::from_millis(1_000));
 
 		client.write(b"GET /abc.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test")?;
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
+		sleep(Duration::from_millis(1_000));
 		client.write(b"\r\n\r\n")?;
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
+		sleep(Duration::from_millis(1_000));
 		let mut buf = [0; 512];
 		let len = client.read(&mut buf)?;
 		let data = from_utf8(&buf)?;
@@ -2490,20 +2512,20 @@ mod test {
 		info!("data='{}'", data)?;
 		assert_eq!(len, 284);
 
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
+		sleep(Duration::from_millis(1_000));
 
 		let mut client = TcpStream::connect(addr)?;
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
+		sleep(Duration::from_millis(1_000));
 		client.write(b"GET /def1.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n")?;
 		let mut buf = [0; 512];
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
+		sleep(Duration::from_millis(1_000));
 		let len = client.read(&mut buf)?;
 		let data = from_utf8(&buf)?;
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
 		assert_eq!(len, 285);
 
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
+		sleep(Duration::from_millis(1_000));
 
 		tear_down_test_dir(test_dir)?;
 
@@ -2592,7 +2614,11 @@ mod test {
 				break;
 			}
 		}
-		info!("end read")?;
+		info!(
+			"end read with data[len={}] = '{}'",
+			data.len(),
+			std::str::from_utf8(&data).unwrap_or("utf8err")
+		)?;
 
 		if data == b"abcdefghijklm" {
 			write_handle.write(
@@ -2604,6 +2630,16 @@ Content-Length: 8\r\n\
 callbk2\n"
 					.as_bytes(),
 			)?;
+                } else if data == b"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz" {
+                    write_handle.write(
+                                "\
+HTTP/1.1 200 OK\r\n\
+Date: Thu, 12 Oct 2023 22:52:16 GMT\r\n\
+Content-Length: 9\r\n\
+\r\n\
+callbk23\n"
+                                        .as_bytes(),
+                        )?;
 		} else {
 			write_handle.write(
 				"\
@@ -2623,8 +2659,6 @@ callbk\n"
 	fn test_http_server_post() -> Result<(), Error> {
 		let test_dir = ".test_http_server_post.bmw";
 		setup_test_dir(test_dir)?;
-		let mut file = File::create(format!("{}/foo.html", test_dir))?;
-		file.write_all(b"Hello, world!")?;
 		let port = pick_free_port()?;
 		info!("port={}", port)?;
 
@@ -2680,6 +2714,66 @@ callbk\n"
 		assert_eq!(len, 83);
 
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
+
+		tear_down_test_dir(test_dir)?;
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_http_server_multislab_posts() -> Result<(), Error> {
+		let test_dir = ".test_http_server_post_multislab.bmw";
+		setup_test_dir(test_dir)?;
+		let port = pick_free_port()?;
+		info!("port={}", port)?;
+
+		let mut callback_mappings = HashSet::new();
+		let mut callback_extensions = HashSet::new();
+		callback_mappings.insert("/callbacktest".to_string());
+		callback_extensions.insert("rsp".to_string());
+
+		let config = HttpConfig {
+			instances: vec![HttpInstance {
+				port,
+				instance_type: HttpInstanceType::Plain(PlainConfig {
+					http_dir_map: HashMap::from([("*".to_string(), test_dir.to_string())]),
+				}),
+				callback: Some(test_http_server_post_callback),
+				callback_mappings,
+				callback_extensions,
+				..Default::default()
+			}],
+			server_version: "test1".to_string(),
+			..Default::default()
+		};
+		let mut http = HttpServerImpl::new(&config)?;
+		http.start()?;
+		sleep(Duration::from_millis(1_000));
+		let addr = &format!("127.0.0.1:{}", port)[..];
+		info!("addr={}", addr)?;
+
+		sleep(Duration::from_millis(1_000));
+
+		let mut client = TcpStream::connect(addr)?;
+		sleep(Duration::from_millis(1_000));
+		client.write(b"POST /callbacktest HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\nContent-Length: 650\r\n\r\n")?;
+		for i in 0..25 {
+			if i == 24 {
+				info!("sleep 2 secs")?;
+				sleep(Duration::from_millis(2_000));
+			}
+			info!("write bytes")?;
+			client.write(b"abcdefghijklmnopqrstuvwxyz")?;
+		}
+		sleep(Duration::from_millis(1_000));
+		let mut buf = [0; 512];
+		let len = client.read(&mut buf)?;
+		let data = from_utf8(&buf)?;
+		info!("len={}", len)?;
+		info!("data='{}'", data)?;
+		assert_eq!(len, 84);
+
+		sleep(Duration::from_millis(1_000));
 
 		tear_down_test_dir(test_dir)?;
 
