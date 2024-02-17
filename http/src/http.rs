@@ -88,11 +88,9 @@ impl Default for HttpConfig {
 			request_callback: None,
 			content_slab_count: 1_000,
 			base_dir: "~/.bitcoinmw".to_string(),
-			max_headers_size: 8192,
+			max_headers_len: 8192,
 			max_header_count: 100,
-			max_header_name_len: 100,
-			max_header_value_len: 1024,
-			max_uri_len: 8192,
+			max_uri_len: 4096,
 			mime_map: vec![
 				("html".to_string(), "text/html".to_string()),
 				("htm".to_string(), "text/html".to_string()),
@@ -586,6 +584,10 @@ impl HttpHeaders<'_> {
 		Ok(query)
 	}
 
+	pub fn uri_length(&self) -> usize {
+		self.end_uri.saturating_sub(self.start_uri)
+	}
+
 	pub fn http_request_type(&self) -> Result<&HttpRequestType, Error> {
 		Ok(&self.http_request_type)
 	}
@@ -733,12 +735,8 @@ impl HttpServerImpl {
 	fn build_http_context(config: &HttpConfig) -> Result<HttpContext, Error> {
 		debug!("build ctx")?;
 
-		let max_wildcard = if config.max_header_name_len > config.max_uri_len {
-			config.max_header_name_len
-		} else {
-			config.max_uri_len
-		};
-		let termination_length = config.max_headers_size;
+		let max_wildcard = config.max_uri_len + 10_000;
+		let termination_length = config.max_headers_len + config.max_uri_len + 10_000;
 		let slab_allocator = slab_allocator!()?;
 		let mut list =
 			bmw_util::Builder::build_list(ListConfig::default(), &Some(&slab_allocator))?;
@@ -1541,7 +1539,6 @@ impl HttpServerImpl {
 			let end = matches[i].end();
 			let start = matches[i].start();
 			let id = matches[i].id();
-
 			if id == SUFFIX_TREE_TERMINATE_HEADERS_ID {
 				debug!("found term end={}, slab_off={}", end, slab_offset)?;
 
@@ -1814,14 +1811,26 @@ impl HttpServerImpl {
 	) -> Result<(), Error> {
 		debug!("Err: {:?}", err.inner())?;
 		let err_text = err.inner();
-		if err_text == "http_error: headers too large" {
+		if err_text == "http_error: uri too large" {
+			Self::process_error(
+				config,
+				path,
+				conn_data,
+				instance,
+				414,
+				"Request URI too Large",
+				cache,
+				headers,
+				ctx,
+			)?;
+		} else if err_text == "http_error: headers too large" {
 			Self::process_error(
 				config,
 				path,
 				conn_data,
 				instance,
 				431,
-				"Request Header Fields Too Large",
+				"Request Header Fields too Large",
 				cache,
 				headers,
 				ctx,
@@ -2161,9 +2170,61 @@ impl HttpServerImpl {
 						}
 					};
 
+					if headers.uri_length() > config.max_uri_len {
+						// build a mock header. only thing that matters is host and we
+						// can put something that triggers the default instance.
+						let e = err!(ErrKind::Http, "uri too large");
+						let termination_point = 0;
+						let start = 0;
+						let req = &"Host_".to_string().as_bytes().to_vec();
+						let start_uri = 0;
+						let end_uri = 0;
+						let http_request_type = HttpRequestType::GET;
+						let headers = [HttpHeader::default(); 100];
+						let header_count = 0;
+						let version = HttpVersion::UNKNOWN;
+						let host = "".to_string();
+						let connection = ConnectionType::KeepAlive;
+						let headers = HttpHeaders {
+							termination_point,
+							start,
+							req,
+							start_uri,
+							end_uri,
+							http_request_type,
+							version,
+							headers,
+							header_count,
+							host,
+							connection,
+							range_start: 0,
+							range_end: usize::MAX,
+							if_none_match: "".to_string(),
+							if_modified_since: "".to_string(),
+							is_websocket_upgrade: false,
+							sec_websocket_key: "".to_string(),
+							sec_websocket_protocol: "".to_string(),
+							accept_gzip: false,
+							content_length: 0,
+						};
+						Self::header_error(
+							config,
+							"".to_string(),
+							conn_data,
+							attachment,
+							e,
+							cache,
+							&headers,
+							ctx,
+						)?;
+						return Ok(());
+					}
+
 					if headers_from_req
-						&& headers.termination_point == 0
-						&& req.len() > config.max_headers_size
+						&& ((headers.termination_point == 0
+							&& req.len() > config.max_headers_len + config.max_uri_len + 100)
+							|| (headers.termination_point
+								> config.max_headers_len + config.max_uri_len + 100))
 					{
 						let termination_point = 0;
 						let start = 0;
@@ -3065,7 +3126,8 @@ callbk\n"
 			}],
 			base_dir: test_dir.to_string(),
 			content_slab_count: 1,
-			max_headers_size: 10,
+			max_headers_len: 50,
+			max_uri_len: 15,
 			server_version: "test1".to_string(),
 			..Default::default()
 		};
@@ -3079,7 +3141,10 @@ callbk\n"
 
 		let mut client = TcpStream::connect(addr)?;
 		sleep(Duration::from_millis(1_000));
-		client.write(b"POST /callbacktest HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\nContent-Length: 650\r\n\r\n")?;
+		client.write(b"POST /callbacktest HTTP/1.1\r\n\
+Host: localhost\r\n\
+User-agent: testlongname012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\r\n\
+Content-Length: 26\r\n\r\n")?;
 		info!("write bytes")?;
 		client.write(b"abcdefghijklmnopqrstuvwxyz")?;
 		sleep(Duration::from_millis(1_000));
@@ -3089,6 +3154,26 @@ callbk\n"
 		info!("len={}", len)?;
 		info!("data='{}'", data)?;
 		assert_eq!(len, 333);
+
+		sleep(Duration::from_millis(1_000));
+
+		let mut client = TcpStream::connect(addr)?;
+		sleep(Duration::from_millis(1_000));
+		client.write(
+			b"POST /callbacktest?12345678901234567890 HTTP/1.1\r\n\
+Host: localhost\r\n\
+User-agent: test\r\n\
+Content-Length: 26\r\n\r\n",
+		)?;
+		info!("write bytes")?;
+		client.write(b"abcdefghijklmnopqrstuvwxyz")?;
+		sleep(Duration::from_millis(1_000));
+		let mut buf = [0; 512];
+		let len = client.read(&mut buf)?;
+		let data = from_utf8(&buf)?;
+		info!("len={}", len)?;
+		info!("data='{}'", data)?;
+		assert_eq!(len, 313);
 
 		sleep(Duration::from_millis(1_000));
 
