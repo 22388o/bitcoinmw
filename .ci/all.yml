@@ -18,6 +18,7 @@ steps:
     displayName: macOS Eventhandler Perf Test
     condition: eq( variables['Agent.OS'], 'Darwin' )
   - script: |
+      echo "reason=$(Build.Reason)";
       chmod 755 ./.ci/cargo_test.sh
       ./.ci/cargo_test.sh
     displayName: Linux Cargo Test
@@ -31,7 +32,6 @@ steps:
     displayName: Build Release
     condition:  and(succeeded(), contains(variables['Build.SourceBranch'], 'refs/tags/'), ne( variables['Agent.OS'], 'Windows_NT' ))
   - script: |
-      SET OPENSSL_DIR=C:\Program Files\OpenSSL
       cargo build --release --jobs 1
     displayName: Build Release
     condition:  and(succeeded(), contains(variables['Build.SourceBranch'], 'refs/tags/'), eq( variables['Agent.OS'], 'Windows_NT' ))
