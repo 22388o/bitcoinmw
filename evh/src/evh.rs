@@ -482,6 +482,13 @@ impl WriteHandle {
 		}
 	}
 
+	/// Return true if the [`crate::WriteHandle`] is closed. Otherwise return false.
+	pub fn is_closed(&self) -> Result<bool, Error> {
+		let write_state = self.write_state.rlock()?;
+		let guard = write_state.guard();
+		Ok((**guard).is_set(WRITE_STATE_FLAG_CLOSE))
+	}
+
 	/// Return the write state for this write_handle.
 	pub fn write_state(&self) -> Result<Box<dyn LockBox<WriteState>>, Error> {
 		Ok(self.write_state.clone())
@@ -1527,24 +1534,23 @@ where
 						}
 					};
 
-					match on_read(
-						&mut ConnectionData::new(
-							rw,
-							ctx.tid,
-							&mut ctx.read_slabs,
-							self.wakeup[ctx.tid].clone(),
-							self.data[ctx.tid].clone(),
-							self.debug_write_queue,
-							self.debug_pending,
-							self.debug_write_error,
-							self.debug_suspended,
-						),
-						callback_context,
-						attachment,
-					) {
-						Ok(_) => {}
-						Err(e) => {
-							warn!("Callback on_read generated error: {}", e)?;
+					let mut conn_data = ConnectionData::new(
+						rw,
+						ctx.tid,
+						&mut ctx.read_slabs,
+						self.wakeup[ctx.tid].clone(),
+						self.data[ctx.tid].clone(),
+						self.debug_write_queue,
+						self.debug_pending,
+						self.debug_write_error,
+						self.debug_suspended,
+					);
+					if !conn_data.write_handle().is_closed()? {
+						match on_read(&mut conn_data, callback_context, attachment) {
+							Ok(_) => {}
+							Err(e) => {
+								warn!("Callback on_read generated error: {}", e)?;
+							}
 						}
 					}
 				}
@@ -1999,24 +2005,23 @@ where
 					};
 
 					debug!("att set = {:?}", attachment)?;
-					match on_read(
-						&mut ConnectionData::new(
-							rw,
-							ctx.tid,
-							&mut ctx.read_slabs,
-							self.wakeup[ctx.tid].clone(),
-							self.data[ctx.tid].clone(),
-							self.debug_write_queue,
-							self.debug_pending,
-							self.debug_write_error,
-							self.debug_suspended,
-						),
-						callback_context,
-						attachment,
-					) {
-						Ok(_) => {}
-						Err(e) => {
-							warn!("Callback on_read generated error: {}", e)?;
+					let mut conn_data = ConnectionData::new(
+						rw,
+						ctx.tid,
+						&mut ctx.read_slabs,
+						self.wakeup[ctx.tid].clone(),
+						self.data[ctx.tid].clone(),
+						self.debug_write_queue,
+						self.debug_pending,
+						self.debug_write_error,
+						self.debug_suspended,
+					);
+					if !conn_data.write_handle().is_closed()? {
+						match on_read(&mut conn_data, callback_context, attachment) {
+							Ok(_) => {}
+							Err(e) => {
+								warn!("Callback on_read generated error: {}", e)?;
+							}
 						}
 					}
 				}

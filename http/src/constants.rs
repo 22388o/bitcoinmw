@@ -61,3 +61,5 @@ pub(crate) const OP_CODE_MASK4: u8 = 0x1 << 0;
 pub(crate) const CONTENT_SLAB_DATA_SIZE: usize = 514;
 pub(crate) const CONTENT_SLAB_SIZE: usize = 518;
 pub(crate) const CONTENT_SLAB_NEXT_OFFSET: usize = 514;
+
+pub(crate) const MATCH_ARRAY_SIZE: usize = 1_000;

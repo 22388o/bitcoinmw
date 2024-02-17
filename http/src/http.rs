@@ -88,6 +88,11 @@ impl Default for HttpConfig {
 			request_callback: None,
 			content_slab_count: 1_000,
 			base_dir: "~/.bitcoinmw".to_string(),
+			max_headers_size: 8192,
+			max_header_count: 100,
+			max_header_name_len: 100,
+			max_header_value_len: 1024,
+			max_uri_len: 8192,
 			mime_map: vec![
 				("html".to_string(), "text/html".to_string()),
 				("htm".to_string(), "text/html".to_string()),
@@ -698,6 +703,16 @@ impl HttpServerImpl {
 			));
 		}
 
+		if config.max_header_count.saturating_sub(50) > MATCH_ARRAY_SIZE {
+			return Err(err!(
+				ErrKind::IllegalArgument,
+				&format!(
+					"config.max_header_count must be less than or equal to {}.",
+					MATCH_ARRAY_SIZE.saturating_sub(50)
+				)
+			));
+		}
+
 		Ok(())
 	}
 
@@ -717,50 +732,70 @@ impl HttpServerImpl {
 
 	fn build_http_context(config: &HttpConfig) -> Result<HttpContext, Error> {
 		debug!("build ctx")?;
-		global_slab_allocator!(SlabSize(128), SlabCount(1_000))?;
+
+		let max_wildcard = if config.max_header_name_len > config.max_uri_len {
+			config.max_header_name_len
+		} else {
+			config.max_uri_len
+		};
+		let termination_length = config.max_headers_size;
+		let slab_allocator = slab_allocator!()?;
+		let mut list =
+			bmw_util::Builder::build_list(ListConfig::default(), &Some(&slab_allocator))?;
+		list.push(bmw_util::Builder::build_pattern(
+			"\r\n\r\n",
+			true,
+			true,
+			true,
+			SUFFIX_TREE_TERMINATE_HEADERS_ID,
+		))?;
+		list.push(pattern!(Regex("^GET .* "), Id(SUFFIX_TREE_GET_ID))?)?;
+		list.push(pattern!(Regex("^POST .* "), Id(SUFFIX_TREE_POST_ID))?)?;
+		list.push(pattern!(Regex("^HEAD .* "), Id(SUFFIX_TREE_HEAD_ID))?)?;
+		list.push(pattern!(Regex("^PUT .* "), Id(SUFFIX_TREE_PUT_ID))?)?;
+		list.push(pattern!(Regex("^DELETE .* "), Id(SUFFIX_TREE_DELETE_ID))?)?;
+		list.push(pattern!(Regex("^OPTIONS .* "), Id(SUFFIX_TREE_OPTIONS_ID))?)?;
+		list.push(pattern!(Regex("^CONNECT .* "), Id(SUFFIX_TREE_CONNECT_ID))?)?;
+		list.push(pattern!(Regex("^TRACE .* "), Id(SUFFIX_TREE_TRACE_ID))?)?;
+		list.push(pattern!(Regex("^PATCH .* "), Id(SUFFIX_TREE_PATCH_ID))?)?;
+		list.push(pattern!(Regex("^GET .*\n"), Id(SUFFIX_TREE_GET_ID))?)?;
+		list.push(pattern!(Regex("^POST .*\n"), Id(SUFFIX_TREE_POST_ID))?)?;
+		list.push(pattern!(Regex("^HEAD .*\n"), Id(SUFFIX_TREE_HEAD_ID))?)?;
+		list.push(pattern!(Regex("^PUT .*\n"), Id(SUFFIX_TREE_PUT_ID))?)?;
+		list.push(pattern!(Regex("^DELETE .*\n"), Id(SUFFIX_TREE_DELETE_ID))?)?;
+		list.push(pattern!(
+			Regex("^OPTIONS .*\n"),
+			Id(SUFFIX_TREE_OPTIONS_ID)
+		)?)?;
+		list.push(pattern!(
+			Regex("^CONNECT .*\n"),
+			Id(SUFFIX_TREE_CONNECT_ID)
+		)?)?;
+		list.push(pattern!(Regex("^TRACE .*\n"), Id(SUFFIX_TREE_TRACE_ID))?)?;
+		list.push(pattern!(Regex("^PATCH .*\n"), Id(SUFFIX_TREE_PATCH_ID))?)?;
+		list.push(pattern!(Regex("^GET .*\r"), Id(SUFFIX_TREE_GET_ID))?)?;
+		list.push(pattern!(Regex("^POST .*\r"), Id(SUFFIX_TREE_POST_ID))?)?;
+		list.push(pattern!(Regex("^HEAD .*\r"), Id(SUFFIX_TREE_HEAD_ID))?)?;
+		list.push(pattern!(Regex("^PUT .*\r"), Id(SUFFIX_TREE_PUT_ID))?)?;
+		list.push(pattern!(Regex("^DELETE .*\r"), Id(SUFFIX_TREE_DELETE_ID))?)?;
+		list.push(pattern!(
+			Regex("^OPTIONS .*\r"),
+			Id(SUFFIX_TREE_OPTIONS_ID)
+		)?)?;
+		list.push(pattern!(
+			Regex("^CONNECT .*\r"),
+			Id(SUFFIX_TREE_CONNECT_ID)
+		)?)?;
+		list.push(pattern!(Regex("^TRACE .*\r"), Id(SUFFIX_TREE_TRACE_ID))?)?;
+		list.push(pattern!(Regex("^PATCH .*\r"), Id(SUFFIX_TREE_PATCH_ID))?)?;
+		list.push(pattern!(Regex("\r\n.*: "), Id(SUFFIX_TREE_HEADER_ID))?)?;
 
 		let suffix_tree = Box::new(suffix_tree!(
-			list![
-				bmw_util::Builder::build_pattern(
-					"\r\n\r\n",
-					true,
-					true,
-					true,
-					SUFFIX_TREE_TERMINATE_HEADERS_ID
-				),
-				pattern!(Regex("^GET .* "), Id(SUFFIX_TREE_GET_ID))?,
-				pattern!(Regex("^POST .* "), Id(SUFFIX_TREE_POST_ID))?,
-				pattern!(Regex("^HEAD .* "), Id(SUFFIX_TREE_HEAD_ID))?,
-				pattern!(Regex("^PUT .* "), Id(SUFFIX_TREE_PUT_ID))?,
-				pattern!(Regex("^DELETE .* "), Id(SUFFIX_TREE_DELETE_ID))?,
-				pattern!(Regex("^OPTIONS .* "), Id(SUFFIX_TREE_OPTIONS_ID))?,
-				pattern!(Regex("^CONNECT .* "), Id(SUFFIX_TREE_CONNECT_ID))?,
-				pattern!(Regex("^TRACE .* "), Id(SUFFIX_TREE_TRACE_ID))?,
-				pattern!(Regex("^PATCH .* "), Id(SUFFIX_TREE_PATCH_ID))?,
-				pattern!(Regex("^GET .*\n"), Id(SUFFIX_TREE_GET_ID))?,
-				pattern!(Regex("^POST .*\n"), Id(SUFFIX_TREE_POST_ID))?,
-				pattern!(Regex("^HEAD .*\n"), Id(SUFFIX_TREE_HEAD_ID))?,
-				pattern!(Regex("^PUT .*\n"), Id(SUFFIX_TREE_PUT_ID))?,
-				pattern!(Regex("^DELETE .*\n"), Id(SUFFIX_TREE_DELETE_ID))?,
-				pattern!(Regex("^OPTIONS .*\n"), Id(SUFFIX_TREE_OPTIONS_ID))?,
-				pattern!(Regex("^CONNECT .*\n"), Id(SUFFIX_TREE_CONNECT_ID))?,
-				pattern!(Regex("^TRACE .*\n"), Id(SUFFIX_TREE_TRACE_ID))?,
-				pattern!(Regex("^PATCH .*\n"), Id(SUFFIX_TREE_PATCH_ID))?,
-				pattern!(Regex("^GET .*\r"), Id(SUFFIX_TREE_GET_ID))?,
-				pattern!(Regex("^POST .*\r"), Id(SUFFIX_TREE_POST_ID))?,
-				pattern!(Regex("^HEAD .*\r"), Id(SUFFIX_TREE_HEAD_ID))?,
-				pattern!(Regex("^PUT .*\r"), Id(SUFFIX_TREE_PUT_ID))?,
-				pattern!(Regex("^DELETE .*\r"), Id(SUFFIX_TREE_DELETE_ID))?,
-				pattern!(Regex("^OPTIONS .*\r"), Id(SUFFIX_TREE_OPTIONS_ID))?,
-				pattern!(Regex("^CONNECT .*\r"), Id(SUFFIX_TREE_CONNECT_ID))?,
-				pattern!(Regex("^TRACE .*\r"), Id(SUFFIX_TREE_TRACE_ID))?,
-				pattern!(Regex("^PATCH .*\r"), Id(SUFFIX_TREE_PATCH_ID))?,
-				pattern!(Regex("\r\n.*: "), Id(SUFFIX_TREE_HEADER_ID))?
-			],
-			TerminationLength(100_000),
-			MaxWildcardLength(100)
+			list,
+			TerminationLength(termination_length),
+			MaxWildcardLength(max_wildcard)
 		)?);
-		let matches = [bmw_util::Builder::build_match_default(); 1_000];
+		let matches = [bmw_util::Builder::build_match_default(); MATCH_ARRAY_SIZE];
 		let connections = HashMap::new();
 		let mut mime_map = HashMap::new();
 		let mut mime_lookup = HashMap::new();
@@ -1779,7 +1814,19 @@ impl HttpServerImpl {
 	) -> Result<(), Error> {
 		debug!("Err: {:?}", err.inner())?;
 		let err_text = err.inner();
-		if err_text == "http_error: Unknown http request type" {
+		if err_text == "http_error: headers too large" {
+			Self::process_error(
+				config,
+				path,
+				conn_data,
+				instance,
+				431,
+				"Request Header Fields Too Large",
+				cache,
+				headers,
+				ctx,
+			)?;
+		} else if err_text == "http_error: Unknown http request type" {
 			Self::process_error(
 				config,
 				path,
@@ -2035,12 +2082,14 @@ impl HttpServerImpl {
 					let headers_clone = http_connection_data.headers.clone();
 
 					debug!("slab_count={}", slab_count)?;
+					let headers_from_req;
 					let headers = if http_connection_data.headers.len() > 0
 						|| build_headers_from_vec
 					{
 						let len = headers_clone.len();
 						debug!("1: start={}", start)?;
 						build_headers_from_vec = true;
+						headers_from_req = false;
 						Self::build_request_headers(
 							&headers_clone,
 							0,
@@ -2050,6 +2099,7 @@ impl HttpServerImpl {
 						)
 					} else {
 						debug!("2: start={},req.len={}", start, req.len())?;
+						headers_from_req = true;
 						Self::build_request_headers(
 							&req,
 							start,
@@ -2110,6 +2160,57 @@ impl HttpServerImpl {
 							return Ok(());
 						}
 					};
+
+					if headers_from_req
+						&& headers.termination_point == 0
+						&& req.len() > config.max_headers_size
+					{
+						let termination_point = 0;
+						let start = 0;
+						let req = &"Host_".to_string().as_bytes().to_vec();
+						let start_uri = 0;
+						let end_uri = 0;
+						let http_request_type = HttpRequestType::GET;
+						let headers = [HttpHeader::default(); 100];
+						let header_count = 0;
+						let version = HttpVersion::UNKNOWN;
+						let host = "".to_string();
+						let connection = ConnectionType::KeepAlive;
+						let headers = HttpHeaders {
+							termination_point,
+							start,
+							req,
+							start_uri,
+							end_uri,
+							http_request_type,
+							version,
+							headers,
+							header_count,
+							host,
+							connection,
+							range_start: 0,
+							range_end: usize::MAX,
+							if_none_match: "".to_string(),
+							if_modified_since: "".to_string(),
+							is_websocket_upgrade: false,
+							sec_websocket_key: "".to_string(),
+							sec_websocket_protocol: "".to_string(),
+							accept_gzip: false,
+							content_length: 0,
+						};
+						let e = err!(ErrKind::Http, "headers too large");
+						Self::header_error(
+							config,
+							"".to_string(),
+							conn_data,
+							attachment,
+							e,
+							cache,
+							&headers,
+							ctx,
+						)?;
+						return Ok(());
+					}
 
 					debug!(
 						"headers.path={:?},headers.len={}",
@@ -2936,6 +3037,62 @@ callbk\n"
 
 		tear_down_test_dir(test_dir)?;
 
+		Ok(())
+	}
+
+	#[test]
+	fn test_http_server_header_errors() -> Result<(), Error> {
+		let test_dir = ".test_http_handle_errors.bmw";
+		setup_test_dir(test_dir)?;
+		let port = pick_free_port()?;
+		info!("port={}", port)?;
+
+		let mut callback_mappings = HashSet::new();
+		let mut callback_extensions = HashSet::new();
+		callback_mappings.insert("/callbacktest".to_string());
+		callback_extensions.insert("rsp".to_string());
+
+		let config = HttpConfig {
+			instances: vec![HttpInstance {
+				port,
+				instance_type: HttpInstanceType::Plain(PlainConfig {
+					http_dir_map: HashMap::from([("*".to_string(), test_dir.to_string())]),
+				}),
+				callback: Some(test_http_server_post_callback),
+				callback_mappings,
+				callback_extensions,
+				..Default::default()
+			}],
+			base_dir: test_dir.to_string(),
+			content_slab_count: 1,
+			max_headers_size: 10,
+			server_version: "test1".to_string(),
+			..Default::default()
+		};
+		let mut http = HttpServerImpl::new(&config)?;
+		http.start()?;
+		sleep(Duration::from_millis(1_000));
+		let addr = &format!("127.0.0.1:{}", port)[..];
+		info!("addr={}", addr)?;
+
+		sleep(Duration::from_millis(1_000));
+
+		let mut client = TcpStream::connect(addr)?;
+		sleep(Duration::from_millis(1_000));
+		client.write(b"POST /callbacktest HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\nContent-Length: 650\r\n\r\n")?;
+		info!("write bytes")?;
+		client.write(b"abcdefghijklmnopqrstuvwxyz")?;
+		sleep(Duration::from_millis(1_000));
+		let mut buf = [0; 512];
+		let len = client.read(&mut buf)?;
+		let data = from_utf8(&buf)?;
+		info!("len={}", len)?;
+		info!("data='{}'", data)?;
+		assert_eq!(len, 333);
+
+		sleep(Duration::from_millis(1_000));
+
+		tear_down_test_dir(test_dir)?;
 		Ok(())
 	}
 }

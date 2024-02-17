@@ -192,6 +192,11 @@ pub struct HttpConfig {
 	pub request_callback: Option<RequestCallback>,
 	pub base_dir: String,
 	pub content_slab_count: usize,
+	pub max_headers_size: usize,
+	pub max_header_count: usize,
+	pub max_header_value_len: usize,
+	pub max_header_name_len: usize,
+	pub max_uri_len: usize,
 }
 
 pub struct Builder {}
