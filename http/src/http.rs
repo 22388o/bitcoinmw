@@ -735,8 +735,8 @@ impl HttpServerImpl {
 	fn build_http_context(config: &HttpConfig) -> Result<HttpContext, Error> {
 		debug!("build ctx")?;
 
-		let max_wildcard = config.max_uri_len + 10_000;
-		let termination_length = config.max_headers_len + config.max_uri_len + 10_000;
+		let max_wildcard = config.max_uri_len + config.max_uri_len + 100;
+		let termination_length = config.max_headers_len + config.max_uri_len + 100;
 		let slab_allocator = slab_allocator!()?;
 		let mut list =
 			bmw_util::Builder::build_list(ListConfig::default(), &Some(&slab_allocator))?;
