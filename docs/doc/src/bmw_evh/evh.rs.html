@@ -7959,6 +7959,11 @@
 <a href="#7958" id="7958">7958</a>
 <a href="#7959" id="7959">7959</a>
 <a href="#7960" id="7960">7960</a>
+<a href="#7961" id="7961">7961</a>
+<a href="#7962" id="7962">7962</a>
+<a href="#7963" id="7963">7963</a>
+<a href="#7964" id="7964">7964</a>
+<a href="#7965" id="7965">7965</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -8441,6 +8446,13 @@
 			debug_write_error,
 			debug_suspended,
 		}
+	}
+
+	<span class="doccomment">/// Return true if the [`crate::WriteHandle`] is closed. Otherwise return false.
+	</span><span class="kw">pub fn </span>is_closed(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
+		<span class="kw">let </span>write_state = <span class="self">self</span>.write_state.rlock()<span class="question-mark">?</span>;
+		<span class="kw">let </span>guard = write_state.guard();
+		<span class="prelude-val">Ok</span>((<span class="kw-2">**</span>guard).is_set(WRITE_STATE_FLAG_CLOSE))
 	}
 
 	<span class="doccomment">/// Return the write state for this write_handle.
@@ -9488,24 +9500,23 @@
 						}
 					};
 
-					<span class="kw">match </span>on_read(
-						<span class="kw-2">&amp;mut </span>ConnectionData::new(
-							rw,
-							ctx.tid,
-							<span class="kw-2">&amp;mut </span>ctx.read_slabs,
-							<span class="self">self</span>.wakeup[ctx.tid].clone(),
-							<span class="self">self</span>.data[ctx.tid].clone(),
-							<span class="self">self</span>.debug_write_queue,
-							<span class="self">self</span>.debug_pending,
-							<span class="self">self</span>.debug_write_error,
-							<span class="self">self</span>.debug_suspended,
-						),
-						callback_context,
-						attachment,
-					) {
-						<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
-						<span class="prelude-val">Err</span>(e) =&gt; {
-							<span class="macro">warn!</span>(<span class="string">"Callback on_read generated error: {}"</span>, e)<span class="question-mark">?</span>;
+					<span class="kw">let </span><span class="kw-2">mut </span>conn_data = ConnectionData::new(
+						rw,
+						ctx.tid,
+						<span class="kw-2">&amp;mut </span>ctx.read_slabs,
+						<span class="self">self</span>.wakeup[ctx.tid].clone(),
+						<span class="self">self</span>.data[ctx.tid].clone(),
+						<span class="self">self</span>.debug_write_queue,
+						<span class="self">self</span>.debug_pending,
+						<span class="self">self</span>.debug_write_error,
+						<span class="self">self</span>.debug_suspended,
+					);
+					<span class="kw">if </span>!conn_data.write_handle().is_closed()<span class="question-mark">? </span>{
+						<span class="kw">match </span>on_read(<span class="kw-2">&amp;mut </span>conn_data, callback_context, attachment) {
+							<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
+							<span class="prelude-val">Err</span>(e) =&gt; {
+								<span class="macro">warn!</span>(<span class="string">"Callback on_read generated error: {}"</span>, e)<span class="question-mark">?</span>;
+							}
 						}
 					}
 				}
@@ -9960,24 +9971,23 @@
 					};
 
 					<span class="macro">debug!</span>(<span class="string">"att set = {:?}"</span>, attachment)<span class="question-mark">?</span>;
-					<span class="kw">match </span>on_read(
-						<span class="kw-2">&amp;mut </span>ConnectionData::new(
-							rw,
-							ctx.tid,
-							<span class="kw-2">&amp;mut </span>ctx.read_slabs,
-							<span class="self">self</span>.wakeup[ctx.tid].clone(),
-							<span class="self">self</span>.data[ctx.tid].clone(),
-							<span class="self">self</span>.debug_write_queue,
-							<span class="self">self</span>.debug_pending,
-							<span class="self">self</span>.debug_write_error,
-							<span class="self">self</span>.debug_suspended,
-						),
-						callback_context,
-						attachment,
-					) {
-						<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
-						<span class="prelude-val">Err</span>(e) =&gt; {
-							<span class="macro">warn!</span>(<span class="string">"Callback on_read generated error: {}"</span>, e)<span class="question-mark">?</span>;
+					<span class="kw">let </span><span class="kw-2">mut </span>conn_data = ConnectionData::new(
+						rw,
+						ctx.tid,
+						<span class="kw-2">&amp;mut </span>ctx.read_slabs,
+						<span class="self">self</span>.wakeup[ctx.tid].clone(),
+						<span class="self">self</span>.data[ctx.tid].clone(),
+						<span class="self">self</span>.debug_write_queue,
+						<span class="self">self</span>.debug_pending,
+						<span class="self">self</span>.debug_write_error,
+						<span class="self">self</span>.debug_suspended,
+					);
+					<span class="kw">if </span>!conn_data.write_handle().is_closed()<span class="question-mark">? </span>{
+						<span class="kw">match </span>on_read(<span class="kw-2">&amp;mut </span>conn_data, callback_context, attachment) {
+							<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
+							<span class="prelude-val">Err</span>(e) =&gt; {
+								<span class="macro">warn!</span>(<span class="string">"Callback on_read generated error: {}"</span>, e)<span class="question-mark">?</span>;
+							}
 						}
 					}
 				}

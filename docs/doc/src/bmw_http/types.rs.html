@@ -298,6 +298,13 @@
 <a href="#297" id="297">297</a>
 <a href="#298" id="298">298</a>
 <a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -395,11 +402,13 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) read_cumulative: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) len: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) content_offset: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) file_id: <span class="prelude-ty">Option</span>&lt;u128&gt;,
 }
 
 <span class="kw">pub struct </span>HttpContentReader&lt;<span class="lifetime">'a</span>&gt; {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) http_connection_data: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>HttpConnectionData,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) content_allocator: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) config: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>HttpConfig,
 }
 
 <span class="attr">#[derive(Debug, Clone)]
@@ -488,6 +497,11 @@
 	<span class="kw">pub </span>bring_to_front_weight: f64,
 	<span class="kw">pub </span>restat_file_frequency_in_millis: u64,
 	<span class="kw">pub </span>request_callback: <span class="prelude-ty">Option</span>&lt;RequestCallback&gt;,
+	<span class="kw">pub </span>base_dir: String,
+	<span class="kw">pub </span>content_slab_count: usize,
+	<span class="kw">pub </span>max_headers_len: usize,
+	<span class="kw">pub </span>max_header_count: usize,
+	<span class="kw">pub </span>max_uri_len: usize,
 }
 
 <span class="kw">pub struct </span>Builder {}
