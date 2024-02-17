@@ -95,7 +95,7 @@ pub struct HttpConnectionData {
 	pub(crate) read_cumulative: usize,
 	pub(crate) len: usize,
 	pub(crate) content_offset: usize,
-	pub(crate) file_id: Option<usize>,
+	pub(crate) file_id: Option<u128>,
 }
 
 pub struct HttpContentReader<'a> {

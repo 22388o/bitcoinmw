@@ -428,7 +428,7 @@ impl HttpConnectionData {
 					path_buf.display().to_string()
 				}
 				None => {
-					let file_id: usize = random();
+					let file_id: u128 = random();
 					self.file_id = Some(file_id);
 					let mut path_buf = config.tmp_file_dir();
 					path_buf.push(format!("{}.tmp", file_id));
