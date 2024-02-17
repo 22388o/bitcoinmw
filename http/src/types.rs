@@ -22,7 +22,7 @@ use bmw_util::*;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, PartialEq)]
-pub enum HttpRequestType {
+pub enum HttpMethod {
 	GET,
 	POST,
 	HEAD,
@@ -63,7 +63,7 @@ pub struct HttpHeaders<'a> {
 	pub(crate) req: &'a Vec<u8>,
 	pub(crate) start_uri: usize,
 	pub(crate) end_uri: usize,
-	pub(crate) http_request_type: HttpRequestType,
+	pub(crate) http_request_type: HttpMethod,
 	pub(crate) headers: [HttpHeader; 100],
 	pub(crate) header_count: usize,
 	pub(crate) version: HttpVersion,

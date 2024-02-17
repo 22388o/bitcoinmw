@@ -15,16 +15,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod builder;
-mod cache;
-mod constants;
-mod http;
-mod types;
-mod ws;
+#[macro_export]
+macro_rules! rustlet_init {
+	($config:expr) => {};
+}
 
-pub use crate::types::{
-	Builder, ConnectionType, HttpConfig, HttpConnectionData, HttpContentReader, HttpHeader,
-	HttpHeaders, HttpInstance, HttpInstanceType, HttpMethod, HttpRequest, HttpServer, HttpStats,
-	HttpVersion, PlainConfig, WebSocketData, WebSocketHandle, WebSocketMessage,
-	WebSocketMessageType,
-};
+#[macro_export]
+macro_rules! rustlet {
+	($name:expr, $code:expr) => {};
+}
+
+#[macro_export]
+macro_rules! rustlet_mapping {
+	($path:expr, $name:expr) => {};
+}
+
+#[macro_export]
+macro_rules! request {
+	() => {};
+}
+
+#[macro_export]
+macro_rules! response {
+	() => {};
+}
+
+#[macro_export]
+macro_rules! websocket {
+	() => {};
+}
+
+#[macro_export]
+macro_rules! session {
+	// TODO: session will have CRUD for session. SessionOp::Set, SessionOp::Get,
+	// SessionOp::Delete
+	() => {};
+}

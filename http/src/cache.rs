@@ -17,7 +17,7 @@
 
 use crate::constants::*;
 use crate::types::{CacheStreamResult, HttpCache, HttpCacheImpl, HttpContext, HttpServerImpl};
-use crate::{HttpConfig, HttpHeaders, HttpRequestType};
+use crate::{HttpConfig, HttpHeaders, HttpMethod};
 use bmw_deps::chrono::{DateTime, TimeZone, Utc};
 use bmw_err::*;
 use bmw_evh::ConnData;
@@ -170,7 +170,7 @@ impl HttpCache for HttpCacheImpl {
 					};
 					debug!("read blen={},rem={},data={:?}", blen, rem, data)?;
 
-					if http_request_type != &HttpRequestType::HEAD {
+					if http_request_type != &HttpMethod::HEAD {
 						HttpServerImpl::range_write(
 							range_start,
 							range_end,

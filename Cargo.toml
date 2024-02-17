@@ -19,15 +19,16 @@ exclude = ["etc"]
 
 [dependencies]
 
-bmw_deps   = { path = "./deps"   }
-bmw_err    = { path = "./error"  }
-bmw_log    = { path = "./log"    }
-bmw_util   = { path = "./util"   }
-bmw_test   = { path = "./test"   }
-bmw_derive = { path = "./derive" }
-bmw_ser    = { path = "./ser"    }
-bmw_evh    = { path = "./evh"    }
-bmw_http   = { path = "./http"   }
+bmw_deps    = { path = "./deps"    }
+bmw_err     = { path = "./error"   }
+bmw_log     = { path = "./log"     }
+bmw_util    = { path = "./util"    }
+bmw_test    = { path = "./test"    }
+bmw_derive  = { path = "./derive"  }
+bmw_ser     = { path = "./ser"     }
+bmw_evh     = { path = "./evh"     }
+bmw_http    = { path = "./http"    }
+bmw_rustlet = { path = "./rustlet" }
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 jemallocator = "0.5.0"

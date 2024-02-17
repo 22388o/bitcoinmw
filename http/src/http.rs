@@ -24,7 +24,7 @@ use crate::ws::{process_websocket_data, send_websocket_handshake_response};
 use crate::HttpInstanceType::{Plain, Tls};
 use crate::{
 	ConnectionType, HttpConfig, HttpContentReader, HttpHeader, HttpHeaders, HttpInstance,
-	HttpInstanceType, HttpRequestType, HttpServer, HttpStats, HttpVersion, PlainConfig,
+	HttpInstanceType, HttpMethod, HttpServer, HttpStats, HttpVersion, PlainConfig,
 };
 use bmw_deps::chrono::{DateTime, TimeZone, Utc};
 use bmw_deps::dirs;
@@ -588,7 +588,7 @@ impl HttpHeaders<'_> {
 		self.end_uri.saturating_sub(self.start_uri)
 	}
 
-	pub fn http_request_type(&self) -> Result<&HttpRequestType, Error> {
+	pub fn http_request_type(&self) -> Result<&HttpMethod, Error> {
 		Ok(&self.http_request_type)
 	}
 
@@ -1060,7 +1060,7 @@ impl HttpServerImpl {
 
 		let request_type = headers.http_request_type()?;
 
-		if request_type != &HttpRequestType::GET && request_type != &HttpRequestType::HEAD {
+		if request_type != &HttpMethod::GET && request_type != &HttpMethod::HEAD {
 			Self::process_error(
 				config,
 				path,
@@ -1350,7 +1350,7 @@ impl HttpServerImpl {
 
 				debug!("i={},blen={}", i, blen)?;
 
-				if !write_error && http_request_type != &HttpRequestType::HEAD {
+				if !write_error && http_request_type != &HttpMethod::HEAD {
 					Self::range_write(
 						range_start,
 						range_end,
@@ -1517,7 +1517,7 @@ impl HttpServerImpl {
 
 		let mut start_uri = 0;
 		let mut end_uri = 0;
-		let mut http_request_type = HttpRequestType::UNKNOWN;
+		let mut http_request_type = HttpMethod::UNKNOWN;
 		let mut version = HttpVersion::UNKNOWN;
 		let mut header_count = 0;
 		let mut headers = [HttpHeader::default(); 100];
@@ -1573,30 +1573,30 @@ impl HttpServerImpl {
 				debug!("id is GET/POST = {}", id)?;
 				if id == SUFFIX_TREE_GET_ID {
 					start_uri = start + 4;
-					http_request_type = HttpRequestType::GET;
+					http_request_type = HttpMethod::GET;
 				} else if id == SUFFIX_TREE_PUT_ID {
 					start_uri = start + 4;
-					http_request_type = HttpRequestType::PUT;
+					http_request_type = HttpMethod::PUT;
 				} else if id == SUFFIX_TREE_DELETE_ID {
 					start_uri = start + 7;
-					http_request_type = HttpRequestType::DELETE;
+					http_request_type = HttpMethod::DELETE;
 				} else if id == SUFFIX_TREE_OPTIONS_ID {
 					start_uri = start + 8;
-					http_request_type = HttpRequestType::OPTIONS;
+					http_request_type = HttpMethod::OPTIONS;
 				} else if id == SUFFIX_TREE_CONNECT_ID {
 					start_uri = start + 8;
-					http_request_type = HttpRequestType::CONNECT;
+					http_request_type = HttpMethod::CONNECT;
 				} else if id == SUFFIX_TREE_TRACE_ID {
 					start_uri = start + 6;
-					http_request_type = HttpRequestType::TRACE;
+					http_request_type = HttpMethod::TRACE;
 				} else if id == SUFFIX_TREE_PATCH_ID {
 					start_uri = start + 6;
-					http_request_type = HttpRequestType::PATCH;
+					http_request_type = HttpMethod::PATCH;
 				} else {
 					if id == SUFFIX_TREE_POST_ID {
-						http_request_type = HttpRequestType::POST;
+						http_request_type = HttpMethod::POST;
 					} else if id == SUFFIX_TREE_HEAD_ID {
-						http_request_type = HttpRequestType::HEAD;
+						http_request_type = HttpMethod::HEAD;
 					}
 					start_uri = start + 5;
 				}
@@ -1767,7 +1767,7 @@ impl HttpServerImpl {
 
 		if termination_point != 0 && start_uri == 0 {
 			Err(err!(ErrKind::Http, "URI not specified".to_string()))
-		} else if termination_point != 0 && http_request_type == HttpRequestType::UNKNOWN {
+		} else if termination_point != 0 && http_request_type == HttpMethod::UNKNOWN {
 			Err(err!(ErrKind::Http, "Unknown http request type".to_string()))
 		} else {
 			Ok(HttpHeaders {
@@ -2128,7 +2128,7 @@ impl HttpServerImpl {
 							let req = &"Host_".to_string().as_bytes().to_vec();
 							let start_uri = 0;
 							let end_uri = 0;
-							let http_request_type = HttpRequestType::GET;
+							let http_request_type = HttpMethod::GET;
 							let headers = [HttpHeader::default(); 100];
 							let header_count = 0;
 							let version = HttpVersion::UNKNOWN;
@@ -2179,7 +2179,7 @@ impl HttpServerImpl {
 						let req = &"Host_".to_string().as_bytes().to_vec();
 						let start_uri = 0;
 						let end_uri = 0;
-						let http_request_type = HttpRequestType::GET;
+						let http_request_type = HttpMethod::GET;
 						let headers = [HttpHeader::default(); 100];
 						let header_count = 0;
 						let version = HttpVersion::UNKNOWN;
@@ -2231,7 +2231,7 @@ impl HttpServerImpl {
 						let req = &"Host_".to_string().as_bytes().to_vec();
 						let start_uri = 0;
 						let end_uri = 0;
-						let http_request_type = HttpRequestType::GET;
+						let http_request_type = HttpMethod::GET;
 						let headers = [HttpHeader::default(); 100];
 						let header_count = 0;
 						let version = HttpVersion::UNKNOWN;
@@ -2463,7 +2463,7 @@ impl HttpServerImpl {
 						path,
 						query,
                                                 extension,
-						headers.http_request_type().unwrap_or(&HttpRequestType::GET),
+						headers.http_request_type().unwrap_or(&HttpMethod::GET),
 						headers.version().unwrap_or(&HttpVersion::UNKNOWN),
 						header_count,
 						cache_hit,

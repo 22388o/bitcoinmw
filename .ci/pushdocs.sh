@@ -11,6 +11,7 @@ if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" 
   changes_ser=`git diff HEAD^^ HEAD --name-only | grep "^ser\/src" | wc -l`
   changes_evh=`git diff HEAD^^ HEAD --name-only | grep "^evh\/src" | wc -l`
   changes_http=`git diff HEAD^^ HEAD --name-only | grep "^http\/src" | wc -l`
+  changes_rustlet=`git diff HEAD^^ HEAD --name-only | grep "^rustlet\/src" | wc -l`
 
   if [[ $changes_error -eq 0 ]] &&
      [[ $changes_log -eq 0 ]] &&
@@ -18,7 +19,8 @@ if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" 
      [[ $changes_derive -eq 0 ]] &&
      [[ $changes_ser -eq 0 ]] &&
      [[ $changes_evh -eq 0 ]] &&
-     [[ $changes_http -eq 0 ]]
+     [[ $changes_http -eq 0 ]] &&
+     [[ $changes_rustlet -eq 0 ]]
   then
     echo "no changes to relevant directories, not pushing"
   else
