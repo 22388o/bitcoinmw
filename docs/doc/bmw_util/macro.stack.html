@@ -9,10 +9,10 @@ for the stack, these values are never used, but a default is needed to initializ
 underlying array.</li>
 </ul>
 <h2 id="return"><a href="#return">Return</a></h2>
-<p>Returns <code>Ok(impl Stack&lt;T&gt;)</code> on success and a [<code>bmw_err::Error</code>] on failure.</p>
+<p>Returns <code>Ok(impl Stack&lt;T&gt;)</code> on success and a <a href="../bmw_err/error/struct.Error.html" title="struct bmw_err::error::Error"><code>bmw_err::Error</code></a> on failure.</p>
 <h2 id="errors"><a href="#errors">Errors</a></h2>
 <ul>
-<li>[<code>bmw_err::ErrorKind::IllegalArgument</code>] - if the size is 0.</li>
+<li><a href="../bmw_err/error/enum.ErrorKind.html#variant.IllegalArgument" title="variant bmw_err::error::ErrorKind::IllegalArgument"><code>bmw_err::ErrorKind::IllegalArgument</code></a> - if the size is 0.</li>
 </ul>
 <h2 id="examples"><a href="#examples">Examples</a></h2>
 <div class="example-wrap"><pre class="rust rust-example-rendered"><code> <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;

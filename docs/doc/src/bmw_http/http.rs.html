@@ -3208,7 +3208,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::HttpInstanceType::{Plain, Tls};
 <span class="kw">use crate</span>::{
 	ConnectionType, HttpConfig, HttpContentReader, HttpHeader, HttpHeaders, HttpInstance,
-	HttpInstanceType, HttpRequestType, HttpServer, HttpStats, HttpVersion, PlainConfig,
+	HttpInstanceType, HttpMethod, HttpServer, HttpStats, HttpVersion, PlainConfig,
 };
 <span class="kw">use </span>bmw_deps::chrono::{DateTime, TimeZone, Utc};
 <span class="kw">use </span>bmw_deps::dirs;
@@ -3772,7 +3772,7 @@
 		<span class="self">self</span>.end_uri.saturating_sub(<span class="self">self</span>.start_uri)
 	}
 
-	<span class="kw">pub fn </span>http_request_type(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>HttpRequestType, Error&gt; {
+	<span class="kw">pub fn </span>http_request_type(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>HttpMethod, Error&gt; {
 		<span class="prelude-val">Ok</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.http_request_type)
 	}
 
@@ -4244,7 +4244,7 @@
 
 		<span class="kw">let </span>request_type = headers.http_request_type()<span class="question-mark">?</span>;
 
-		<span class="kw">if </span>request_type != <span class="kw-2">&amp;</span>HttpRequestType::GET &amp;&amp; request_type != <span class="kw-2">&amp;</span>HttpRequestType::HEAD {
+		<span class="kw">if </span>request_type != <span class="kw-2">&amp;</span>HttpMethod::GET &amp;&amp; request_type != <span class="kw-2">&amp;</span>HttpMethod::HEAD {
 			<span class="self">Self</span>::process_error(
 				config,
 				path,
@@ -4534,7 +4534,7 @@
 
 				<span class="macro">debug!</span>(<span class="string">"i={},blen={}"</span>, i, blen)<span class="question-mark">?</span>;
 
-				<span class="kw">if </span>!write_error &amp;&amp; http_request_type != <span class="kw-2">&amp;</span>HttpRequestType::HEAD {
+				<span class="kw">if </span>!write_error &amp;&amp; http_request_type != <span class="kw-2">&amp;</span>HttpMethod::HEAD {
 					<span class="self">Self</span>::range_write(
 						range_start,
 						range_end,
@@ -4701,7 +4701,7 @@
 
 		<span class="kw">let </span><span class="kw-2">mut </span>start_uri = <span class="number">0</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>end_uri = <span class="number">0</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>http_request_type = HttpRequestType::UNKNOWN;
+		<span class="kw">let </span><span class="kw-2">mut </span>http_request_type = HttpMethod::UNKNOWN;
 		<span class="kw">let </span><span class="kw-2">mut </span>version = HttpVersion::UNKNOWN;
 		<span class="kw">let </span><span class="kw-2">mut </span>header_count = <span class="number">0</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>headers = [HttpHeader::default(); <span class="number">100</span>];
@@ -4757,30 +4757,30 @@
 				<span class="macro">debug!</span>(<span class="string">"id is GET/POST = {}"</span>, id)<span class="question-mark">?</span>;
 				<span class="kw">if </span>id == SUFFIX_TREE_GET_ID {
 					start_uri = start + <span class="number">4</span>;
-					http_request_type = HttpRequestType::GET;
+					http_request_type = HttpMethod::GET;
 				} <span class="kw">else if </span>id == SUFFIX_TREE_PUT_ID {
 					start_uri = start + <span class="number">4</span>;
-					http_request_type = HttpRequestType::PUT;
+					http_request_type = HttpMethod::PUT;
 				} <span class="kw">else if </span>id == SUFFIX_TREE_DELETE_ID {
 					start_uri = start + <span class="number">7</span>;
-					http_request_type = HttpRequestType::DELETE;
+					http_request_type = HttpMethod::DELETE;
 				} <span class="kw">else if </span>id == SUFFIX_TREE_OPTIONS_ID {
 					start_uri = start + <span class="number">8</span>;
-					http_request_type = HttpRequestType::OPTIONS;
+					http_request_type = HttpMethod::OPTIONS;
 				} <span class="kw">else if </span>id == SUFFIX_TREE_CONNECT_ID {
 					start_uri = start + <span class="number">8</span>;
-					http_request_type = HttpRequestType::CONNECT;
+					http_request_type = HttpMethod::CONNECT;
 				} <span class="kw">else if </span>id == SUFFIX_TREE_TRACE_ID {
 					start_uri = start + <span class="number">6</span>;
-					http_request_type = HttpRequestType::TRACE;
+					http_request_type = HttpMethod::TRACE;
 				} <span class="kw">else if </span>id == SUFFIX_TREE_PATCH_ID {
 					start_uri = start + <span class="number">6</span>;
-					http_request_type = HttpRequestType::PATCH;
+					http_request_type = HttpMethod::PATCH;
 				} <span class="kw">else </span>{
 					<span class="kw">if </span>id == SUFFIX_TREE_POST_ID {
-						http_request_type = HttpRequestType::POST;
+						http_request_type = HttpMethod::POST;
 					} <span class="kw">else if </span>id == SUFFIX_TREE_HEAD_ID {
-						http_request_type = HttpRequestType::HEAD;
+						http_request_type = HttpMethod::HEAD;
 					}
 					start_uri = start + <span class="number">5</span>;
 				}
@@ -4951,7 +4951,7 @@
 
 		<span class="kw">if </span>termination_point != <span class="number">0 </span>&amp;&amp; start_uri == <span class="number">0 </span>{
 			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">"URI not specified"</span>.to_string()))
-		} <span class="kw">else if </span>termination_point != <span class="number">0 </span>&amp;&amp; http_request_type == HttpRequestType::UNKNOWN {
+		} <span class="kw">else if </span>termination_point != <span class="number">0 </span>&amp;&amp; http_request_type == HttpMethod::UNKNOWN {
 			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">"Unknown http request type"</span>.to_string()))
 		} <span class="kw">else </span>{
 			<span class="prelude-val">Ok</span>(HttpHeaders {
@@ -5312,7 +5312,7 @@
 							<span class="kw">let </span>req = <span class="kw-2">&amp;</span><span class="string">"Host_"</span>.to_string().as_bytes().to_vec();
 							<span class="kw">let </span>start_uri = <span class="number">0</span>;
 							<span class="kw">let </span>end_uri = <span class="number">0</span>;
-							<span class="kw">let </span>http_request_type = HttpRequestType::GET;
+							<span class="kw">let </span>http_request_type = HttpMethod::GET;
 							<span class="kw">let </span>headers = [HttpHeader::default(); <span class="number">100</span>];
 							<span class="kw">let </span>header_count = <span class="number">0</span>;
 							<span class="kw">let </span>version = HttpVersion::UNKNOWN;
@@ -5363,7 +5363,7 @@
 						<span class="kw">let </span>req = <span class="kw-2">&amp;</span><span class="string">"Host_"</span>.to_string().as_bytes().to_vec();
 						<span class="kw">let </span>start_uri = <span class="number">0</span>;
 						<span class="kw">let </span>end_uri = <span class="number">0</span>;
-						<span class="kw">let </span>http_request_type = HttpRequestType::GET;
+						<span class="kw">let </span>http_request_type = HttpMethod::GET;
 						<span class="kw">let </span>headers = [HttpHeader::default(); <span class="number">100</span>];
 						<span class="kw">let </span>header_count = <span class="number">0</span>;
 						<span class="kw">let </span>version = HttpVersion::UNKNOWN;
@@ -5415,7 +5415,7 @@
 						<span class="kw">let </span>req = <span class="kw-2">&amp;</span><span class="string">"Host_"</span>.to_string().as_bytes().to_vec();
 						<span class="kw">let </span>start_uri = <span class="number">0</span>;
 						<span class="kw">let </span>end_uri = <span class="number">0</span>;
-						<span class="kw">let </span>http_request_type = HttpRequestType::GET;
+						<span class="kw">let </span>http_request_type = HttpMethod::GET;
 						<span class="kw">let </span>headers = [HttpHeader::default(); <span class="number">100</span>];
 						<span class="kw">let </span>header_count = <span class="number">0</span>;
 						<span class="kw">let </span>version = HttpVersion::UNKNOWN;
@@ -5647,7 +5647,7 @@
 						path,
 						query,
                                                 extension,
-						headers.http_request_type().unwrap_or(<span class="kw-2">&amp;</span>HttpRequestType::GET),
+						headers.http_request_type().unwrap_or(<span class="kw-2">&amp;</span>HttpMethod::GET),
 						headers.version().unwrap_or(<span class="kw-2">&amp;</span>HttpVersion::UNKNOWN),
 						header_count,
 						cache_hit,

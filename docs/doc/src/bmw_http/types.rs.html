@@ -329,7 +329,7 @@
 <span class="kw">use </span>std::collections::{HashMap, HashSet};
 
 <span class="attr">#[derive(Debug, PartialEq)]
-</span><span class="kw">pub enum </span>HttpRequestType {
+</span><span class="kw">pub enum </span>HttpMethod {
 	GET,
 	POST,
 	HEAD,
@@ -370,7 +370,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) req: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Vec&lt;u8&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) start_uri: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) end_uri: usize,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) http_request_type: HttpRequestType,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) http_request_type: HttpMethod,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) headers: [HttpHeader; <span class="number">100</span>],
 	<span class="kw">pub</span>(<span class="kw">crate</span>) header_count: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) version: HttpVersion,

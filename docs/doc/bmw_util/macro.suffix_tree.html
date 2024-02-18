@@ -11,10 +11,10 @@ will use to match.</li>
 <li>MaxWildcardLength(usize) (optional) - The maximum length in bytes of a wild card match.</li>
 </ul>
 <h2 id="return"><a href="#return">Return</a></h2>
-<p>Returns <code>Ok(SuffixTre)</code> on success and on error a [<code>bmw_err::Error</code>] is returned.</p>
+<p>Returns <code>Ok(SuffixTre)</code> on success and on error a <a href="../bmw_err/error/struct.Error.html" title="struct bmw_err::error::Error"><code>bmw_err::Error</code></a> is returned.</p>
 <h2 id="errors"><a href="#errors">Errors</a></h2>
 <ul>
-<li>[<code>bmw_err::ErrorKind::IllegalArgument</code>] - If one of the regular expressions is invalid.
+<li><a href="../bmw_err/error/enum.ErrorKind.html#variant.IllegalArgument" title="variant bmw_err::error::ErrorKind::IllegalArgument"><code>bmw_err::ErrorKind::IllegalArgument</code></a> - If one of the regular expressions is invalid.
 or the length of the patterns list is 0.</li>
 </ul>
 <h2 id="examples"><a href="#examples">Examples</a></h2>
