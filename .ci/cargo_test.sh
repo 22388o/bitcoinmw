@@ -1,6 +1,11 @@
 #!/bin/bash
 
-if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" ]; then
+if [ "$1" != "IndividualCI" ]; then
+	echo "cargo test --all because this is not an individual CI build (probably scheduled): reason: $1";
+	rustup update
+	cargo test --all
+elif [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" ]; then
+	echo "non Pipelines-Bot checkin";
 	rustup update
 	cargo test --all
 else
