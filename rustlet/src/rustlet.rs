@@ -33,8 +33,8 @@ info!();
 
 thread_local!(
 	pub static RUSTLET_CONTEXT: RefCell<(
-					Option<(RustletRequestImpl,RustletResponseImpl)>,
-					Option<WebSocketRequestImpl>
+					Option<(Box<dyn RustletRequest>,Box<dyn RustletResponse>)>,
+					Option<Box<dyn WebSocketRequest>>
 				)> = RefCell::new((None, None))
 );
 
@@ -121,13 +121,13 @@ impl AsyncContext for AsyncContextImpl {
 }
 
 impl WebSocketRequest for WebSocketRequestImpl {
-	fn handle() -> Result<WebSocketHandle, Error> {
+	fn handle(&self) -> Result<WebSocketHandle, Error> {
 		todo!()
 	}
-	fn message() -> Result<WebSocketMessage, Error> {
+	fn message(&mut self) -> Result<WebSocketMessage, Error> {
 		todo!()
 	}
-	fn data() -> Result<WebSocketData, Error> {
+	fn data(&self) -> Result<WebSocketData, Error> {
 		todo!()
 	}
 }

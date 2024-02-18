@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bmw_deps::dyn_clone::{clone_trait_object, DynClone};
 use bmw_err::*;
 use bmw_http::{
 	HttpConfig, HttpContentReader, HttpMethod, HttpVersion, WebSocketData, WebSocketHandle,
@@ -24,7 +25,7 @@ use std::pin::Pin;
 
 pub type Rustlet = Pin<
 	Box<
-		dyn Fn(&mut RustletRequestImpl, &mut RustletResponseImpl) -> Result<(), Error>
+		dyn Fn(&mut Box<dyn RustletRequest>, &mut Box<dyn RustletResponse>) -> Result<(), Error>
 			+ Send
 			+ Sync,
 	>,
@@ -32,7 +33,7 @@ pub type Rustlet = Pin<
 
 /// The main trait used for processing requests in a rustlet. It has all the information needed in
 /// it. It can be accessed by the [`crate::request`] macro.
-pub trait RustletRequest {
+pub trait RustletRequest: DynClone {
 	fn method(&self) -> Result<&HttpMethod, Error>;
 	fn version(&self) -> Result<&HttpVersion, Error>;
 	fn path(&self) -> Result<String, Error>;
@@ -45,8 +46,12 @@ pub trait RustletRequest {
 	fn content(&self) -> Result<HttpContentReader, Error>;
 }
 
-pub trait RustletResponse {
-	fn write<T: AsRef<[u8]>>(&mut self, bytes: T) -> Result<(), Error>;
+clone_trait_object!(RustletRequest);
+
+pub trait RustletResponse: DynClone {
+	fn write<T: AsRef<[u8]>>(&mut self, bytes: T) -> Result<(), Error>
+	where
+		Self: Sized;
 	fn flush(&mut self) -> Result<(), Error>;
 	fn async_context(&mut self) -> Result<Box<dyn AsyncContext>, Error>;
 	fn add_header(&mut self, name: &str, value: &str) -> Result<(), Error>;
@@ -55,11 +60,15 @@ pub trait RustletResponse {
 	fn redirect(&mut self, url: &str) -> Result<(), Error>;
 }
 
-pub trait WebSocketRequest {
-	fn handle() -> Result<WebSocketHandle, Error>;
-	fn message() -> Result<WebSocketMessage, Error>;
-	fn data() -> Result<WebSocketData, Error>;
+clone_trait_object!(RustletResponse);
+
+pub trait WebSocketRequest: DynClone {
+	fn handle(&self) -> Result<WebSocketHandle, Error>;
+	fn message(&mut self) -> Result<WebSocketMessage, Error>;
+	fn data(&self) -> Result<WebSocketData, Error>;
 }
+
+clone_trait_object!(WebSocketRequest);
 
 pub trait AsyncContext {
 	fn async_complete(&mut self) -> Result<(), Error>;
@@ -72,11 +81,12 @@ pub struct RustletConfig {
 pub struct RustletContainer {}
 
 #[derive(Clone)]
-pub struct RustletRequestImpl {}
+pub(crate) struct RustletRequestImpl {}
 
 #[derive(Clone)]
-pub struct RustletResponseImpl {}
+pub(crate) struct RustletResponseImpl {}
 
-pub struct AsyncContextImpl {}
+pub(crate) struct AsyncContextImpl {}
 
-pub struct WebSocketRequestImpl {}
+#[derive(Clone)]
+pub(crate) struct WebSocketRequestImpl {}

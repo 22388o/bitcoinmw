@@ -33,8 +33,8 @@ macro_rules! rustlet {
 				let _res = (*container).add_rustlet(
 					$name,
 					Box::pin(
-						move |request: &mut bmw_rustlet::RustletRequestImpl,
-						      response: &mut bmw_rustlet::RustletResponseImpl| {
+						move |request: &mut Box<dyn bmw_rustlet::RustletRequest>,
+						      response: &mut Box<dyn bmw_rustlet::RustletResponse>| {
 							bmw_rustlet::RUSTLET_CONTEXT.with(|f| {
 								*f.borrow_mut() =
 									(Some(((*request).clone(), (*response).clone())), None);
