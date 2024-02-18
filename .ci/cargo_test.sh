@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ "$1" == "Schedule" ]; then
-	echo "cargo test --all because this is not an individual CI build (probably scheduled): reason: $1";
+	echo "Running a scheduled CI";
 	rustup update
 	cargo test --all
 elif [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" ]; then
