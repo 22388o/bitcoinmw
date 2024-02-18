@@ -27,3 +27,4 @@ pub use crate::types::{
 pub use bmw_err;
 pub use bmw_err::Error;
 pub use bmw_log;
+pub use bmw_log::*;

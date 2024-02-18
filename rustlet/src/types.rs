@@ -80,6 +80,8 @@ pub struct RustletConfig {
 
 pub struct RustletContainer {}
 
+// Crate local structs
+
 #[derive(Clone)]
 pub(crate) struct RustletRequestImpl {}
 
