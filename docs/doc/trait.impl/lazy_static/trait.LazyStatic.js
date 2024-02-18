@@ -1,0 +1,3 @@
+(function() {var implementors = {
+"bmw_rustlet":[["impl <a class=\"trait\" href=\"https://docs.rs/lazy_static/1.4.0/lazy_static/trait.LazyStatic.html\" title=\"trait lazy_static::LazyStatic\">LazyStatic</a> for <a class=\"struct\" href=\"bmw_rustlet/struct.RUSTLET_CONTAINER.html\" title=\"struct bmw_rustlet::RUSTLET_CONTAINER\">RUSTLET_CONTAINER</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
