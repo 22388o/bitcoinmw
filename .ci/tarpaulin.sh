@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" ]; then
+if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" ] || [ "$1" == "Schedule" ]; then
   last_tarpaulin_summary=$( tail -n 1 docs/tarpaulin_summary.txt)
   last_tarpaulin_summary_split=( $last_tarpaulin_summary )
   # only update at most once per hour
