@@ -31,7 +31,7 @@ bmw_http    = { path = "./http"    }
 bmw_rustlet = { path = "./rustlet" }
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
-jemallocator = "0.5.0"
+jemallocator = "0.5.4"
 
 [build-dependencies]
 built = { version = "0.5.1", features = ["git2"]}
