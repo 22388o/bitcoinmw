@@ -45,9 +45,31 @@ macro_rules! websocket {
 	() => {};
 }
 
+/// Returns [`crate::WebSocketRequest`].
+#[macro_export]
+macro_rules! websocket_request {
+	() => {};
+}
+
+/// Three params: name, uri, [protocol list]
+#[macro_export]
+macro_rules! websocket_mapping {
+	() => {};
+}
+
 #[macro_export]
 macro_rules! session {
 	// TODO: session will have CRUD for session. SessionOp::Set, SessionOp::Get,
 	// SessionOp::Delete
 	() => {};
+}
+
+#[cfg(test)]
+mod test {
+	use bmw_err::*;
+
+	#[test]
+	fn test_rustlet_macros() -> Result<(), Error> {
+		Ok(())
+	}
 }

@@ -16,7 +16,10 @@
 // limitations under the License.
 
 use bmw_err::*;
-use bmw_http::{HttpConfig, HttpContentReader, HttpMethod, HttpVersion};
+use bmw_http::{
+	HttpConfig, HttpContentReader, HttpMethod, HttpVersion, WebSocketData, WebSocketHandle,
+	WebSocketMessage,
+};
 
 /// The main trait used for processing requests in a rustlet. It has all the information needed in
 /// it. It can be accessed by the [`crate::request`] macro.
@@ -43,6 +46,12 @@ pub trait RustletResponse {
 	fn redirect(&mut self, url: &str) -> Result<(), Error>;
 }
 
+pub trait WebSocketRequest {
+	fn handle() -> Result<WebSocketHandle, Error>;
+	fn message() -> Result<WebSocketMessage, Error>;
+	fn data() -> Result<WebSocketData, Error>;
+}
+
 pub trait AsyncContext {
 	fn async_complete(&mut self) -> Result<(), Error>;
 }
@@ -57,3 +66,5 @@ pub(crate) struct RustletRequestImpl {}
 pub(crate) struct RustletResponseImpl {}
 
 pub(crate) struct AsyncContextImpl {}
+
+pub(crate) struct WebSocketRequestImpl {}

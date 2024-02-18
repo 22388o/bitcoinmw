@@ -15,10 +15,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::types::{AsyncContextImpl, RustletRequestImpl, RustletResponseImpl};
+use crate::types::{
+	AsyncContextImpl, RustletRequestImpl, RustletResponseImpl, WebSocketRequest,
+	WebSocketRequestImpl,
+};
 use crate::{AsyncContext, RustletRequest, RustletResponse};
 use bmw_err::*;
-use bmw_http::{HttpContentReader, HttpMethod, HttpVersion};
+use bmw_http::{
+	HttpContentReader, HttpMethod, HttpVersion, WebSocketData, WebSocketHandle, WebSocketMessage,
+};
 use bmw_log::*;
 
 info!();
@@ -90,6 +95,18 @@ impl RustletResponseImpl {
 
 impl AsyncContext for AsyncContextImpl {
 	fn async_complete(&mut self) -> Result<(), Error> {
+		todo!()
+	}
+}
+
+impl WebSocketRequest for WebSocketRequestImpl {
+	fn handle() -> Result<WebSocketHandle, Error> {
+		todo!()
+	}
+	fn message() -> Result<WebSocketMessage, Error> {
+		todo!()
+	}
+	fn data() -> Result<WebSocketData, Error> {
 		todo!()
 	}
 }
