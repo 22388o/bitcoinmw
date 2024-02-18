@@ -24,5 +24,5 @@ pub use crate::types::{
 	AsyncContext, RustletConfig, RustletContainer, RustletRequest, RustletRequestImpl,
 	RustletResponse, RustletResponseImpl,
 };
-pub use bmw_err::*;
+pub use bmw_err;
 pub use bmw_log;
