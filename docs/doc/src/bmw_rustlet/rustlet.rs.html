@@ -109,6 +109,23 @@
 <a href="#108" id="108">108</a>
 <a href="#109" id="109">109</a>
 <a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -126,10 +143,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="kw">use </span><span class="kw">crate</span>::types::{AsyncContextImpl, RustletRequestImpl, RustletResponseImpl};
+</span><span class="kw">use </span><span class="kw">crate</span>::types::{
+	AsyncContextImpl, RustletRequestImpl, RustletResponseImpl, WebSocketRequest,
+	WebSocketRequestImpl,
+};
 <span class="kw">use crate</span>::{AsyncContext, RustletRequest, RustletResponse};
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
-<span class="kw">use </span>bmw_http::{HttpContentReader, HttpMethod, HttpVersion};
+<span class="kw">use </span>bmw_http::{
+	HttpContentReader, HttpMethod, HttpVersion, WebSocketData, WebSocketHandle, WebSocketMessage,
+};
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
 
 <span class="macro">info!</span>();
@@ -201,6 +223,18 @@
 
 <span class="kw">impl </span>AsyncContext <span class="kw">for </span>AsyncContextImpl {
 	<span class="kw">fn </span>async_complete(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="macro">todo!</span>()
+	}
+}
+
+<span class="kw">impl </span>WebSocketRequest <span class="kw">for </span>WebSocketRequestImpl {
+	<span class="kw">fn </span>handle() -&gt; <span class="prelude-ty">Result</span>&lt;WebSocketHandle, Error&gt; {
+		<span class="macro">todo!</span>()
+	}
+	<span class="kw">fn </span>message() -&gt; <span class="prelude-ty">Result</span>&lt;WebSocketMessage, Error&gt; {
+		<span class="macro">todo!</span>()
+	}
+	<span class="kw">fn </span>data() -&gt; <span class="prelude-ty">Result</span>&lt;WebSocketData, Error&gt; {
 		<span class="macro">todo!</span>()
 	}
 }

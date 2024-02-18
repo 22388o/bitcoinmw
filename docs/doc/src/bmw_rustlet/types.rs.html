@@ -58,6 +58,17 @@
 <a href="#57" id="57">57</a>
 <a href="#58" id="58">58</a>
 <a href="#59" id="59">59</a>
+<a href="#60" id="60">60</a>
+<a href="#61" id="61">61</a>
+<a href="#62" id="62">62</a>
+<a href="#63" id="63">63</a>
+<a href="#64" id="64">64</a>
+<a href="#65" id="65">65</a>
+<a href="#66" id="66">66</a>
+<a href="#67" id="67">67</a>
+<a href="#68" id="68">68</a>
+<a href="#69" id="69">69</a>
+<a href="#70" id="70">70</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -76,7 +87,10 @@
 // limitations under the License.
 
 </span><span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
-<span class="kw">use </span>bmw_http::{HttpConfig, HttpContentReader, HttpMethod, HttpVersion};
+<span class="kw">use </span>bmw_http::{
+	HttpConfig, HttpContentReader, HttpMethod, HttpVersion, WebSocketData, WebSocketHandle,
+	WebSocketMessage,
+};
 
 <span class="doccomment">/// The main trait used for processing requests in a rustlet. It has all the information needed in
 /// it. It can be accessed by the [`crate::request`] macro.
@@ -103,6 +117,12 @@
 	<span class="kw">fn </span>redirect(<span class="kw-2">&amp;mut </span><span class="self">self</span>, url: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 }
 
+<span class="kw">pub trait </span>WebSocketRequest {
+	<span class="kw">fn </span>handle() -&gt; <span class="prelude-ty">Result</span>&lt;WebSocketHandle, Error&gt;;
+	<span class="kw">fn </span>message() -&gt; <span class="prelude-ty">Result</span>&lt;WebSocketMessage, Error&gt;;
+	<span class="kw">fn </span>data() -&gt; <span class="prelude-ty">Result</span>&lt;WebSocketData, Error&gt;;
+}
+
 <span class="kw">pub trait </span>AsyncContext {
 	<span class="kw">fn </span>async_complete(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 }
@@ -117,4 +137,6 @@
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>RustletResponseImpl {}
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>AsyncContextImpl {}
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>WebSocketRequestImpl {}
 </code></pre></div></section></main></body></html>

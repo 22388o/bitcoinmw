@@ -15,18 +15,18 @@ allocator. If not specified, the default value of
 </li>
 </ul>
 <h2 id="return"><a href="#return">Return</a></h2>
-<p>Return <code>Ok(Rc&lt;RefCell&lt;dyn SlabAllocator&gt;&gt;)</code> on success or <a href="../bmw_err/error/struct.Error.html" title="struct bmw_err::error::Error"><code>bmw_err::Error</code></a> on failure.</p>
+<p>Return <code>Ok(Rc&lt;RefCell&lt;dyn SlabAllocator&gt;&gt;)</code> on success or [<code>bmw_err::Error</code>] on failure.</p>
 <h2 id="errors"><a href="#errors">Errors</a></h2>
 <ul>
 <li>
-<p><a href="../bmw_err/error/enum.ErrorKind.html#variant.Configuration" title="variant bmw_err::error::ErrorKind::Configuration"><code>bmw_err::ErrorKind::Configuration</code></a> - Is returned if a
+<p>[<code>bmw_err::ErrorKind::Configuration</code>] - Is returned if a
 <a href="enum.ConfigOption.html" title="enum bmw_util::ConfigOption"><code>crate::ConfigOption</code></a> other than
 <a href="enum.ConfigOption.html#variant.SlabSize" title="variant bmw_util::ConfigOption::SlabSize"><code>crate::ConfigOption::SlabSize</code></a> or
 <a href="enum.ConfigOption.html#variant.SlabCount" title="variant bmw_util::ConfigOption::SlabCount"><code>crate::ConfigOption::SlabCount</code></a> is
 specified.</p>
 </li>
 <li>
-<p><a href="../bmw_err/error/enum.ErrorKind.html#variant.IllegalArgument" title="variant bmw_err::error::ErrorKind::IllegalArgument"><code>bmw_err::ErrorKind::IllegalArgument</code></a> - Is returned if the SlabSize is 0 or the SlabCount
+<p>[<code>bmw_err::ErrorKind::IllegalArgument</code>] - Is returned if the SlabSize is 0 or the SlabCount
 is 0.</p>
 </li>
 </ul>
