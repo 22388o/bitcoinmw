@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ "$1" != "IndividualCI" ]; then
+if [ "$1" == "Schedule" ]; then
 	echo "cargo test --all because this is not an individual CI build (probably scheduled): reason: $1";
 	rustup update
 	cargo test --all
