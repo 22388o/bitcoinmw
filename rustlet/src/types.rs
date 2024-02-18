@@ -18,6 +18,8 @@
 use bmw_err::*;
 use bmw_http::{HttpConfig, HttpContentReader, HttpMethod, HttpVersion};
 
+/// The main trait used for processing requests in a rustlet. It has all the information needed in
+/// it. It can be accessed by the [`crate::request`] macro.
 pub trait RustletRequest {
 	fn method(&self) -> Result<&HttpMethod, Error>;
 	fn version(&self) -> Result<&HttpVersion, Error>;
