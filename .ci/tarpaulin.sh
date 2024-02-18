@@ -14,6 +14,8 @@ if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" 
       sudo apt-get install -yqq --no-install-recommends libncursesw5-dev tor libssl-dev
       cargo install cargo-tarpaulin
       cargo tarpaulin --all > /tmp/tarpaulin.out
+      echo "cat /tmp/tarpaulin.out"
+      cat /tmp/tarpaulin.out
       cd ~
       git clone https://anything:$1@github.com/cgilliard/bitcoinmw.git bmw_new
       cd bmw_new
