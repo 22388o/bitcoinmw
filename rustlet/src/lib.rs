@@ -25,4 +25,4 @@ pub use crate::types::{
 	RustletResponse, RustletResponseImpl,
 };
 pub use bmw_err::*;
-pub use bmw_log::*;
+pub use bmw_log;
