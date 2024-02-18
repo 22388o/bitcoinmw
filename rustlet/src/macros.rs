@@ -27,7 +27,7 @@ macro_rules! rustlet_init {
 #[macro_export]
 macro_rules! rustlet {
 	($name:expr, $code:expr) => {
-		let container = bmw_rustlet::rustlet::RUSTLET_CONTAINER.write();
+		let container = bmw_rustlet::RUSTLET_CONTAINER.write();
 		match container {
 			Ok(mut container) => {
 				let _res = (*container).add_rustlet(
