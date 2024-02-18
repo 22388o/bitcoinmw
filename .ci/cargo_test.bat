@@ -4,6 +4,11 @@ set /p VAR11=<tmp.txt
 IF "%VAR11%" equ "" (
   rustup update
   cargo test --all --jobs 1
+) ELSE (
+  IF "%1" equ "Schedule" (
+    rustup update
+    cargo test --all --jobs 1
+  )
 )
 set "VAR11="
 del tmp.txt

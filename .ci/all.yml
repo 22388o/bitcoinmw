@@ -1,10 +1,10 @@
 steps:
   - script: |
-      .ci\cargo_test.bat
+      .ci\cargo_test.bat $(Build.Reason)
     displayName: Windows Cargo Test
     condition: eq( variables['Agent.OS'], 'Windows_NT' )
   - script: |
-      .ci\perf.bat
+      .ci\perf.bat $(Build.Reason)
     displayName: Windows Eventhandler Perf Test
     condition: eq( variables['Agent.OS'], 'Windows_NT' )
   - script: |
@@ -12,7 +12,7 @@ steps:
     displayName: macOS Cargo Test
     condition: eq( variables['Agent.OS'], 'Darwin' )
   - script: |
-      ./.ci/perf.sh
+      ./.ci/perf.sh $(Build.Reason)
     displayName: macOS Eventhandler Perf Test
     condition: eq( variables['Agent.OS'], 'Darwin' )
   - script: |
@@ -20,7 +20,7 @@ steps:
     displayName: Linux Cargo Test
     condition: eq( variables['Agent.OS'], 'Linux' )
   - script: |
-      ./.ci/perf.sh
+      ./.ci/perf.sh $(Build.Reason)
     displayName: Linux Eventhandler Perf Test
     condition: eq( variables['Agent.OS'], 'Linux' )
   - script: 'cargo build --release --jobs 1'
