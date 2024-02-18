@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bmw_log::*;
+
+info!();
+
 #[macro_export]
 macro_rules! rustlet_init {
 	($config:expr) => {};
@@ -22,7 +26,32 @@ macro_rules! rustlet_init {
 
 #[macro_export]
 macro_rules! rustlet {
-	($name:expr, $code:expr) => {};
+	($name:expr, $code:expr) => {
+		let container = bmw_rustlet::rustlet::RUSTLET_CONTAINER.write();
+		match container {
+			Ok(mut container) => {
+				let _res = (*container).add_rustlet(
+					$name,
+					Box::pin(
+						move |request: &mut bmw_rustlet::RustletRequestImpl,
+						      response: &mut bmw_rustlet::RustletResponseImpl| {
+							bmw_rustlet::RUSTLET_CONTEXT.with(|f| {
+								*f.borrow_mut() =
+									(Some(((*request).clone(), (*response).clone())), None);
+							});
+							{
+								$code
+							}
+							Ok(())
+						},
+					),
+				);
+			}
+			Err(e) => {
+				warn!("Couldn't add rustlet to the container due to error: {}", e)?;
+			}
+		}
+	};
 }
 
 #[macro_export]
@@ -66,10 +95,15 @@ macro_rules! session {
 
 #[cfg(test)]
 mod test {
+	use crate as bmw_rustlet;
 	use bmw_err::*;
+	use bmw_log::*;
+
+	debug!();
 
 	#[test]
 	fn test_rustlet_macros() -> Result<(), Error> {
+		rustlet!("test", {});
 		Ok(())
 	}
 }

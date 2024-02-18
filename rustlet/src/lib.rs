@@ -19,4 +19,10 @@ mod macros;
 mod rustlet;
 mod types;
 
-pub use crate::types::{AsyncContext, RustletConfig, RustletRequest, RustletResponse};
+pub use crate::rustlet::RUSTLET_CONTEXT;
+pub use crate::types::{
+	AsyncContext, RustletConfig, RustletContainer, RustletRequest, RustletRequestImpl,
+	RustletResponse, RustletResponseImpl,
+};
+pub use bmw_err::*;
+pub use bmw_log::*;

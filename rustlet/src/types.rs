@@ -20,6 +20,15 @@ use bmw_http::{
 	HttpConfig, HttpContentReader, HttpMethod, HttpVersion, WebSocketData, WebSocketHandle,
 	WebSocketMessage,
 };
+use std::pin::Pin;
+
+pub type Rustlet = Pin<
+	Box<
+		dyn Fn(&mut RustletRequestImpl, &mut RustletResponseImpl) -> Result<(), Error>
+			+ Send
+			+ Sync,
+	>,
+>;
 
 /// The main trait used for processing requests in a rustlet. It has all the information needed in
 /// it. It can be accessed by the [`crate::request`] macro.
@@ -60,10 +69,15 @@ pub struct RustletConfig {
 	pub http_config: HttpConfig,
 }
 
-// Crate local types
-pub(crate) struct RustletRequestImpl {}
+pub struct RustletContainer {}
 
-pub(crate) struct RustletResponseImpl {}
+#[derive(Clone)]
+pub struct RustletRequestImpl {}
+
+#[derive(Clone)]
+pub struct RustletResponseImpl {}
+
+// Crate local types
 
 pub(crate) struct AsyncContextImpl {}
 

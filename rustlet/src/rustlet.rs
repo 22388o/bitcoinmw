@@ -16,17 +16,38 @@
 // limitations under the License.
 
 use crate::types::{
-	AsyncContextImpl, RustletRequestImpl, RustletResponseImpl, WebSocketRequest,
-	WebSocketRequestImpl,
+	AsyncContextImpl, Rustlet, RustletContainer, RustletRequestImpl, RustletResponseImpl,
+	WebSocketRequest, WebSocketRequestImpl,
 };
 use crate::{AsyncContext, RustletRequest, RustletResponse};
+use bmw_deps::lazy_static::lazy_static;
 use bmw_err::*;
 use bmw_http::{
 	HttpContentReader, HttpMethod, HttpVersion, WebSocketData, WebSocketHandle, WebSocketMessage,
 };
 use bmw_log::*;
+use std::cell::RefCell;
+use std::sync::{Arc, RwLock};
 
 info!();
+
+thread_local!(
+	pub static RUSTLET_CONTEXT: RefCell<(
+					Option<(RustletRequestImpl,RustletResponseImpl)>,
+					Option<WebSocketRequestImpl>
+				)> = RefCell::new((None, None))
+);
+
+lazy_static! {
+	pub static ref RUSTLET_CONTAINER: Arc<RwLock<RustletContainer>> =
+		Arc::new(RwLock::new(RustletContainer::new()));
+}
+
+impl RustletContainer {
+	fn new() -> Self {
+		Self {}
+	}
+}
 
 impl RustletRequest for RustletRequestImpl {
 	fn method(&self) -> Result<&HttpMethod, Error> {
@@ -108,6 +129,12 @@ impl WebSocketRequest for WebSocketRequestImpl {
 	}
 	fn data() -> Result<WebSocketData, Error> {
 		todo!()
+	}
+}
+
+impl RustletContainer {
+	pub fn add_rustlet(&mut self, _name: &str, _rustlet: Rustlet) -> Result<(), Error> {
+		Ok(())
 	}
 }
 
