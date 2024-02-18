@@ -2732,6 +2732,31 @@ mod test {
 
 	debug!();
 
+	fn wait_assert(value: usize, mut client: &TcpStream) -> Result<(), Error> {
+		let mut count = 0;
+		let mut buf = [0; 512];
+		let mut len_sum = 0;
+		loop {
+			let len = client.read(&mut buf)?;
+			len_sum += len;
+			let data = from_utf8(&buf)?;
+			info!("data = '{}',len={},len_sum={}", data, len, len_sum)?;
+
+			if len_sum == value {
+				break;
+			}
+
+			if count > 120 {
+				break;
+			}
+			count += 1;
+			sleep(Duration::from_millis(1_000));
+		}
+
+		assert_eq!(len_sum, value);
+		Ok(())
+	}
+
 	#[test]
 	fn test_http_slow_requests() -> Result<(), Error> {
 		let port = pick_free_port()?;
@@ -2759,32 +2784,14 @@ mod test {
 		info!("addr={}", addr)?;
 		let mut client = TcpStream::connect(addr)?;
 		sleep(Duration::from_millis(1_000));
-
 		client.write(b"GET /abc.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test")?;
 		sleep(Duration::from_millis(1_000));
 		client.write(b"\r\n\r\n")?;
-		sleep(Duration::from_millis(1_000));
-		let mut buf = [0; 512];
-		let len = client.read(&mut buf)?;
-		let data = from_utf8(&buf)?;
-		info!("len={}", len)?;
-		info!("data='{}'", data)?;
-		assert_eq!(len, 284);
-
-		sleep(Duration::from_millis(1_000));
+		wait_assert(284, &client)?;
 
 		let mut client = TcpStream::connect(addr)?;
-		sleep(Duration::from_millis(1_000));
 		client.write(b"GET /def1.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n")?;
-		let mut buf = [0; 512];
-		sleep(Duration::from_millis(1_000));
-		let len = client.read(&mut buf)?;
-		let data = from_utf8(&buf)?;
-		info!("len={}", len)?;
-		info!("data='{}'", data)?;
-		assert_eq!(len, 285);
-
-		sleep(Duration::from_millis(1_000));
+		wait_assert(285, &client)?;
 
 		tear_down_test_dir(test_dir)?;
 
@@ -2819,28 +2826,12 @@ mod test {
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 
 		client.write(b"GET /foo.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n")?;
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
-		let mut buf = [0; 512];
-		let len = client.read(&mut buf)?;
-		let data = from_utf8(&buf)?;
-		info!("len={}", len)?;
-		info!("data='{}'", data)?;
-		assert_eq!(len, 284);
-
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
+		wait_assert(284, &client)?;
 
 		let mut client = TcpStream::connect(addr)?;
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 		client.write(b"GET /foo.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n")?;
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
-		let mut buf = [0; 512];
-		let len = client.read(&mut buf)?;
-		let data = from_utf8(&buf)?;
-		info!("len={}", len)?;
-		info!("data='{}'", data)?;
-		assert_eq!(len, 284);
-
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
+		wait_assert(284, &client)?;
 
 		tear_down_test_dir(test_dir)?;
 
@@ -2942,37 +2933,20 @@ callbk\n"
 		};
 		let mut http = HttpServerImpl::new(&config)?;
 		http.start()?;
+
 		std::thread::sleep(std::time::Duration::from_millis(1_000));
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		info!("addr={}", addr)?;
 		let mut client = TcpStream::connect(addr)?;
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
 
 		client
 			.write(b"GET /callbacktest HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n")?;
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
-		let mut buf = [0; 512];
-		let len = client.read(&mut buf)?;
-		let data = from_utf8(&buf)?;
-		info!("len={}", len)?;
-		info!("data='{}'", data)?;
-		assert_eq!(len, 82);
-
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
+		wait_assert(82, &client)?;
 
 		let mut client = TcpStream::connect(addr)?;
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
 		client
 			.write(b"POST /callbacktest HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\nContent-Length: 13\r\n\r\nabcdefghijklm")?;
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
-		let mut buf = [0; 512];
-		let len = client.read(&mut buf)?;
-		let data = from_utf8(&buf)?;
-		info!("len={}", len)?;
-		info!("data='{}'", data)?;
-		assert_eq!(len, 83);
-
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
+		wait_assert(83, &client)?;
 
 		tear_down_test_dir(test_dir)?;
 
@@ -3011,10 +2985,7 @@ callbk\n"
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		info!("addr={}", addr)?;
 
-		sleep(Duration::from_millis(1_000));
-
 		let mut client = TcpStream::connect(addr)?;
-		sleep(Duration::from_millis(1_000));
 		client.write(b"POST /callbacktest HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\nContent-Length: 650\r\n\r\n")?;
 		for i in 0..25 {
 			if i == 24 {
@@ -3024,16 +2995,7 @@ callbk\n"
 			info!("write bytes")?;
 			client.write(b"abcdefghijklmnopqrstuvwxyz")?;
 		}
-		sleep(Duration::from_millis(1_000));
-		let mut buf = [0; 512];
-		let len = client.read(&mut buf)?;
-		let data = from_utf8(&buf)?;
-		info!("len={}", len)?;
-		info!("data='{}'", data)?;
-		assert_eq!(len, 84);
-
-		sleep(Duration::from_millis(1_000));
-
+		wait_assert(84, &client)?;
 		tear_down_test_dir(test_dir)?;
 
 		Ok(())
@@ -3072,11 +3034,7 @@ callbk\n"
 		sleep(Duration::from_millis(1_000));
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		info!("addr={}", addr)?;
-
-		sleep(Duration::from_millis(1_000));
-
 		let mut client = TcpStream::connect(addr)?;
-		sleep(Duration::from_millis(1_000));
 		client.write(b"POST /callbacktest HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\nContent-Length: 650\r\n\r\n")?;
 		for i in 0..25 {
 			if i == 24 {
@@ -3086,16 +3044,7 @@ callbk\n"
 			info!("write bytes")?;
 			client.write(b"abcdefghijklmnopqrstuvwxyz")?;
 		}
-		sleep(Duration::from_millis(1_000));
-		let mut buf = [0; 512];
-		let len = client.read(&mut buf)?;
-		let data = from_utf8(&buf)?;
-		info!("len={}", len)?;
-		info!("data='{}'", data)?;
-		assert_eq!(len, 84);
-
-		sleep(Duration::from_millis(1_000));
-
+		wait_assert(84, &client)?;
 		tear_down_test_dir(test_dir)?;
 
 		Ok(())
@@ -3137,28 +3086,16 @@ callbk\n"
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		info!("addr={}", addr)?;
 
-		sleep(Duration::from_millis(1_000));
-
 		let mut client = TcpStream::connect(addr)?;
-		sleep(Duration::from_millis(1_000));
 		client.write(b"POST /callbacktest HTTP/1.1\r\n\
 Host: localhost\r\n\
 User-agent: testlongname012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\r\n\
 Content-Length: 26\r\n\r\n")?;
 		info!("write bytes")?;
 		client.write(b"abcdefghijklmnopqrstuvwxyz")?;
-		sleep(Duration::from_millis(1_000));
-		let mut buf = [0; 512];
-		let len = client.read(&mut buf)?;
-		let data = from_utf8(&buf)?;
-		info!("len={}", len)?;
-		info!("data='{}'", data)?;
-		assert_eq!(len, 333);
-
-		sleep(Duration::from_millis(1_000));
+		wait_assert(333, &client)?;
 
 		let mut client = TcpStream::connect(addr)?;
-		sleep(Duration::from_millis(1_000));
 		client.write(
 			b"POST /callbacktest?12345678901234567890 HTTP/1.1\r\n\
 Host: localhost\r\n\
@@ -3167,16 +3104,7 @@ Content-Length: 26\r\n\r\n",
 		)?;
 		info!("write bytes")?;
 		client.write(b"abcdefghijklmnopqrstuvwxyz")?;
-		sleep(Duration::from_millis(1_000));
-		let mut buf = [0; 512];
-		let len = client.read(&mut buf)?;
-		let data = from_utf8(&buf)?;
-		info!("len={}", len)?;
-		info!("data='{}'", data)?;
-		assert_eq!(len, 313);
-
-		sleep(Duration::from_millis(1_000));
-
+		wait_assert(313, &client)?;
 		tear_down_test_dir(test_dir)?;
 		Ok(())
 	}
