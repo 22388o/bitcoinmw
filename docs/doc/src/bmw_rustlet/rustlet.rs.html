@@ -188,8 +188,8 @@
 
 <span class="macro">thread_local!</span>(
 	<span class="kw">pub static </span>RUSTLET_CONTEXT: RefCell&lt;(
-					<span class="prelude-ty">Option</span>&lt;(RustletRequestImpl,RustletResponseImpl)&gt;,
-					<span class="prelude-ty">Option</span>&lt;WebSocketRequestImpl&gt;
+					<span class="prelude-ty">Option</span>&lt;(Box&lt;<span class="kw">dyn </span>RustletRequest&gt;,Box&lt;<span class="kw">dyn </span>RustletResponse&gt;)&gt;,
+					<span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>WebSocketRequest&gt;&gt;
 				)&gt; = RefCell::new((<span class="prelude-val">None</span>, <span class="prelude-val">None</span>))
 );
 
@@ -276,13 +276,13 @@
 }
 
 <span class="kw">impl </span>WebSocketRequest <span class="kw">for </span>WebSocketRequestImpl {
-	<span class="kw">fn </span>handle() -&gt; <span class="prelude-ty">Result</span>&lt;WebSocketHandle, Error&gt; {
+	<span class="kw">fn </span>handle(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;WebSocketHandle, Error&gt; {
 		<span class="macro">todo!</span>()
 	}
-	<span class="kw">fn </span>message() -&gt; <span class="prelude-ty">Result</span>&lt;WebSocketMessage, Error&gt; {
+	<span class="kw">fn </span>message(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;WebSocketMessage, Error&gt; {
 		<span class="macro">todo!</span>()
 	}
-	<span class="kw">fn </span>data() -&gt; <span class="prelude-ty">Result</span>&lt;WebSocketData, Error&gt; {
+	<span class="kw">fn </span>data(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;WebSocketData, Error&gt; {
 		<span class="macro">todo!</span>()
 	}
 }

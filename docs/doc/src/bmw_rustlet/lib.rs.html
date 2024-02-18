@@ -28,6 +28,7 @@
 <a href="#27" id="27">27</a>
 <a href="#28" id="28">28</a>
 <a href="#29" id="29">29</a>
+<a href="#30" id="30">30</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -51,10 +52,11 @@
 
 <span class="kw">pub use </span><span class="kw">crate</span>::rustlet::{RUSTLET_CONTAINER, RUSTLET_CONTEXT};
 <span class="kw">pub use </span><span class="kw">crate</span>::types::{
-	AsyncContext, RustletConfig, RustletContainer, RustletRequest, RustletRequestImpl,
-	RustletResponse, RustletResponseImpl, WebSocketRequestImpl,
+	AsyncContext, RustletConfig, RustletContainer, RustletRequest, RustletResponse,
+	WebSocketRequest,
 };
 <span class="kw">pub use </span>bmw_err;
 <span class="kw">pub use </span>bmw_err::Error;
 <span class="kw">pub use </span>bmw_log;
+<span class="kw">pub use </span>bmw_log::<span class="kw-2">*</span>;
 </code></pre></div></section></main></body></html>

@@ -143,8 +143,8 @@
 				<span class="kw">let </span>_res = (<span class="kw-2">*</span>container).add_rustlet(
 					<span class="macro-nonterminal">$name</span>,
 					Box::pin(
-						<span class="kw">move </span>|request: <span class="kw-2">&amp;mut </span>bmw_rustlet::RustletRequestImpl,
-						      response: <span class="kw-2">&amp;mut </span>bmw_rustlet::RustletResponseImpl| {
+						<span class="kw">move </span>|request: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>bmw_rustlet::RustletRequest&gt;,
+						      response: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>bmw_rustlet::RustletResponse&gt;| {
 							bmw_rustlet::RUSTLET_CONTEXT.with(|f| {
 								<span class="kw-2">*</span>f.borrow_mut() =
 									(<span class="prelude-val">Some</span>(((<span class="kw-2">*</span>request).clone(), (<span class="kw-2">*</span>response).clone())), <span class="prelude-val">None</span>);
