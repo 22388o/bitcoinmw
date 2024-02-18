@@ -77,8 +77,6 @@ pub struct RustletRequestImpl {}
 #[derive(Clone)]
 pub struct RustletResponseImpl {}
 
-// Crate local types
+pub struct AsyncContextImpl {}
 
-pub(crate) struct AsyncContextImpl {}
-
-pub(crate) struct WebSocketRequestImpl {}
+pub struct WebSocketRequestImpl {}

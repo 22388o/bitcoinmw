@@ -22,7 +22,7 @@ mod types;
 pub use crate::rustlet::{RUSTLET_CONTAINER, RUSTLET_CONTEXT};
 pub use crate::types::{
 	AsyncContext, RustletConfig, RustletContainer, RustletRequest, RustletRequestImpl,
-	RustletResponse, RustletResponseImpl,
+	RustletResponse, RustletResponseImpl, WebSocketRequestImpl,
 };
 pub use bmw_err;
 pub use bmw_err::Error;
