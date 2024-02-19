@@ -25,7 +25,7 @@ macro_rules! rustlet_init {
 		let container = bmw_rustlet::RUSTLET_CONTAINER.write();
 		match container {
 			Ok(mut container) => {
-				(*container) = bmw_rustlet::types::RustletContainer::new($config);
+				(*container) = bmw_rustlet::RustletContainer::new($config);
 			}
 			Err(e) => {
 				error!("Couldn't obtain lock to add rustlet to container: {}", e)?;
