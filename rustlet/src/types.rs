@@ -21,6 +21,7 @@ use bmw_http::{
 	HttpConfig, HttpContentReader, HttpMethod, HttpVersion, WebSocketData, WebSocketHandle,
 	WebSocketMessage,
 };
+use std::collections::HashMap;
 use std::pin::Pin;
 
 pub type Rustlet = Pin<
@@ -78,7 +79,14 @@ pub struct RustletConfig {
 	pub http_config: HttpConfig,
 }
 
-pub struct RustletContainer {}
+pub struct RustletContainer {
+	pub(crate) rustlet_container_data: Option<RustletContainerData>,
+}
+
+pub struct RustletContainerData {
+	pub(crate) rustlets: HashMap<String, Rustlet>,
+	pub(crate) rustlet_mappings: HashMap<String, String>,
+}
 
 // Crate local structs
 

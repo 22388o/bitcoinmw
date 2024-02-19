@@ -21,7 +21,17 @@ info!();
 
 #[macro_export]
 macro_rules! rustlet_init {
-	($config:expr) => {};
+	($config:expr) => {
+		let container = bmw_rustlet::RUSTLET_CONTAINER.write();
+		match container {
+			Ok(mut container) => {
+				(*container) = bmw_rustlet::types::RustletContainer::new($config);
+			}
+			Err(e) => {
+				error!("Couldn't obtain lock to add rustlet to container: {}", e)?;
+			}
+		}
+	};
 }
 
 #[macro_export]
@@ -30,7 +40,7 @@ macro_rules! rustlet {
 		let container = bmw_rustlet::RUSTLET_CONTAINER.write();
 		match container {
 			Ok(mut container) => {
-				let _res = (*container).add_rustlet(
+				let res = (*container).add_rustlet(
 					$name,
 					Box::pin(
 						move |request: &mut Box<dyn bmw_rustlet::RustletRequest>,
@@ -46,9 +56,16 @@ macro_rules! rustlet {
 						},
 					),
 				);
+
+				match res {
+					Ok(_) => {}
+					Err(e) => {
+						error!("error adding rustlet to container: {}", e)?;
+					}
+				}
 			}
 			Err(e) => {
-				warn!("Couldn't add rustlet to the container due to error: {}", e)?;
+				error!("Couldn't obtain lock to add rustlet to container: {}", e)?;
 			}
 		}
 	};
@@ -56,7 +73,23 @@ macro_rules! rustlet {
 
 #[macro_export]
 macro_rules! rustlet_mapping {
-	($path:expr, $name:expr) => {};
+	($path:expr, $name:expr) => {
+		let container = bmw_rustlet::RUSTLET_CONTAINER.write();
+		match container {
+			Ok(mut container) => match (*container).add_rustlet_mapping($path, $name) {
+				Ok(_) => {}
+				Err(e) => {
+					error!("error adding rustlet mapping to container: {}", e)?;
+				}
+			},
+			Err(e) => {
+				error!(
+					"Couldn't obtain lock to add rustlet mapping to container: {}",
+					e
+				)?;
+			}
+		}
+	};
 }
 
 #[macro_export]
@@ -96,14 +129,15 @@ macro_rules! session {
 #[cfg(test)]
 mod test {
 	use crate as bmw_rustlet;
-	use bmw_err::*;
-	use bmw_log::*;
+	use bmw_rustlet::*;
 
 	debug!();
 
 	#[test]
 	fn test_rustlet_macros() -> Result<(), Error> {
+		rustlet_init!(RustletConfig::default());
 		rustlet!("test", {});
+		rustlet_mapping!("/abc", "test");
 		Ok(())
 	}
 }

@@ -16,17 +16,19 @@
 // limitations under the License.
 
 use crate::types::{
-	AsyncContextImpl, Rustlet, RustletContainer, RustletRequestImpl, RustletResponseImpl,
-	WebSocketRequest, WebSocketRequestImpl,
+	AsyncContextImpl, Rustlet, RustletContainer, RustletContainerData, RustletRequestImpl,
+	RustletResponseImpl, WebSocketRequest, WebSocketRequestImpl,
 };
-use crate::{AsyncContext, RustletRequest, RustletResponse};
+use crate::{AsyncContext, RustletConfig, RustletRequest, RustletResponse};
 use bmw_deps::lazy_static::lazy_static;
 use bmw_err::*;
 use bmw_http::{
-	HttpContentReader, HttpMethod, HttpVersion, WebSocketData, WebSocketHandle, WebSocketMessage,
+	HttpConfig, HttpContentReader, HttpMethod, HttpVersion, WebSocketData, WebSocketHandle,
+	WebSocketMessage,
 };
 use bmw_log::*;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 info!();
@@ -40,12 +42,30 @@ thread_local!(
 
 lazy_static! {
 	pub static ref RUSTLET_CONTAINER: Arc<RwLock<RustletContainer>> =
-		Arc::new(RwLock::new(RustletContainer::new()));
+		Arc::new(RwLock::new(RustletContainer::new_uninit()));
+}
+
+impl Default for RustletConfig {
+	fn default() -> Self {
+		Self {
+			http_config: HttpConfig::default(),
+		}
+	}
 }
 
 impl RustletContainer {
-	fn new() -> Self {
-		Self {}
+	fn new_uninit() -> Self {
+		Self {
+			rustlet_container_data: None,
+		}
+	}
+	pub fn new(_config: RustletConfig) -> Self {
+		Self {
+			rustlet_container_data: Some(RustletContainerData {
+				rustlets: HashMap::new(),
+				rustlet_mappings: HashMap::new(),
+			}),
+		}
 	}
 }
 
@@ -133,8 +153,31 @@ impl WebSocketRequest for WebSocketRequestImpl {
 }
 
 impl RustletContainer {
-	pub fn add_rustlet(&mut self, _name: &str, _rustlet: Rustlet) -> Result<(), Error> {
-		Ok(())
+	pub fn add_rustlet(&mut self, name: &str, rustlet: Rustlet) -> Result<(), Error> {
+		match &mut self.rustlet_container_data {
+			Some(r) => {
+				r.rustlets.insert(name.to_string(), rustlet);
+				Ok(())
+			}
+			None => Err(err!(
+				ErrKind::IllegalState,
+				"rustlet container has not been initialized"
+			)),
+		}
+	}
+
+	pub fn add_rustlet_mapping(&mut self, path: &str, name: &str) -> Result<(), Error> {
+		match &mut self.rustlet_container_data {
+			Some(r) => {
+				r.rustlet_mappings
+					.insert(path.to_string(), name.to_string());
+				Ok(())
+			}
+			None => Err(err!(
+				ErrKind::IllegalState,
+				"rustlet container has not been initialized"
+			)),
+		}
 	}
 }
 
