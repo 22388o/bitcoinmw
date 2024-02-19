@@ -108,6 +108,40 @@
 <a href="#107" id="107">107</a>
 <a href="#108" id="108">108</a>
 <a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -131,7 +165,17 @@
 
 <span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>rustlet_init {
-	(<span class="macro-nonterminal">$config</span>:expr) =&gt; {};
+	(<span class="macro-nonterminal">$config</span>:expr) =&gt; {
+		<span class="kw">let </span>container = bmw_rustlet::RUSTLET_CONTAINER.write();
+		<span class="kw">match </span>container {
+			<span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>container) =&gt; {
+				(<span class="kw-2">*</span>container) = bmw_rustlet::RustletContainer::new(<span class="macro-nonterminal">$config</span>);
+			}
+			<span class="prelude-val">Err</span>(e) =&gt; {
+				<span class="macro">error!</span>(<span class="string">"Couldn't obtain lock to add rustlet to container: {}"</span>, e)<span class="question-mark">?</span>;
+			}
+		}
+	};
 }
 
 <span class="attr">#[macro_export]
@@ -140,7 +184,7 @@
 		<span class="kw">let </span>container = bmw_rustlet::RUSTLET_CONTAINER.write();
 		<span class="kw">match </span>container {
 			<span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>container) =&gt; {
-				<span class="kw">let </span>_res = (<span class="kw-2">*</span>container).add_rustlet(
+				<span class="kw">let </span>res = (<span class="kw-2">*</span>container).add_rustlet(
 					<span class="macro-nonterminal">$name</span>,
 					Box::pin(
 						<span class="kw">move </span>|request: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>bmw_rustlet::RustletRequest&gt;,
@@ -156,9 +200,16 @@
 						},
 					),
 				);
+
+				<span class="kw">match </span>res {
+					<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
+					<span class="prelude-val">Err</span>(e) =&gt; {
+						<span class="macro">error!</span>(<span class="string">"error adding rustlet to container: {}"</span>, e)<span class="question-mark">?</span>;
+					}
+				}
 			}
 			<span class="prelude-val">Err</span>(e) =&gt; {
-				<span class="macro">warn!</span>(<span class="string">"Couldn't add rustlet to the container due to error: {}"</span>, e)<span class="question-mark">?</span>;
+				<span class="macro">error!</span>(<span class="string">"Couldn't obtain lock to add rustlet to container: {}"</span>, e)<span class="question-mark">?</span>;
 			}
 		}
 	};
@@ -166,7 +217,23 @@
 
 <span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>rustlet_mapping {
-	(<span class="macro-nonterminal">$path</span>:expr, <span class="macro-nonterminal">$name</span>:expr) =&gt; {};
+	(<span class="macro-nonterminal">$path</span>:expr, <span class="macro-nonterminal">$name</span>:expr) =&gt; {
+		<span class="kw">let </span>container = bmw_rustlet::RUSTLET_CONTAINER.write();
+		<span class="kw">match </span>container {
+			<span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>container) =&gt; <span class="kw">match </span>(<span class="kw-2">*</span>container).add_rustlet_mapping(<span class="macro-nonterminal">$path</span>, <span class="macro-nonterminal">$name</span>) {
+				<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
+				<span class="prelude-val">Err</span>(e) =&gt; {
+					<span class="macro">error!</span>(<span class="string">"error adding rustlet mapping to container: {}"</span>, e)<span class="question-mark">?</span>;
+				}
+			},
+			<span class="prelude-val">Err</span>(e) =&gt; {
+				<span class="macro">error!</span>(
+					<span class="string">"Couldn't obtain lock to add rustlet mapping to container: {}"</span>,
+					e
+				)<span class="question-mark">?</span>;
+			}
+		}
+	};
 }
 
 <span class="attr">#[macro_export]
@@ -206,14 +273,15 @@
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
 	<span class="kw">use crate as </span>bmw_rustlet;
-	<span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
-	<span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
+	<span class="kw">use </span>bmw_rustlet::<span class="kw-2">*</span>;
 
 	<span class="macro">debug!</span>();
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_rustlet_macros() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="macro">rustlet_init!</span>(RustletConfig::default());
 		<span class="macro">rustlet!</span>(<span class="string">"test"</span>, {});
+		<span class="macro">rustlet_mapping!</span>(<span class="string">"/abc"</span>, <span class="string">"test"</span>);
 		<span class="prelude-val">Ok</span>(())
 	}
 }

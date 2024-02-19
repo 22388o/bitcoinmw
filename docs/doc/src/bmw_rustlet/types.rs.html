@@ -93,6 +93,14 @@
 <a href="#92" id="92">92</a>
 <a href="#93" id="93">93</a>
 <a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -116,6 +124,7 @@
 	HttpConfig, HttpContentReader, HttpMethod, HttpVersion, WebSocketData, WebSocketHandle,
 	WebSocketMessage,
 };
+<span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::pin::Pin;
 
 <span class="kw">pub type </span>Rustlet = Pin&lt;
@@ -173,7 +182,14 @@
 	<span class="kw">pub </span>http_config: HttpConfig,
 }
 
-<span class="kw">pub struct </span>RustletContainer {}
+<span class="kw">pub struct </span>RustletContainer {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) rustlet_container_data: <span class="prelude-ty">Option</span>&lt;RustletContainerData&gt;,
+}
+
+<span class="kw">pub struct </span>RustletContainerData {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) rustlets: HashMap&lt;String, Rustlet&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) rustlet_mappings: HashMap&lt;String, String&gt;,
+}
 
 <span class="comment">// Crate local structs
 
