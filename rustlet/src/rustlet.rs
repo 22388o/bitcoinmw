@@ -16,22 +16,24 @@
 // limitations under the License.
 
 use crate::types::{
-	AsyncContextImpl, Rustlet, RustletContainer, RustletContainerData, RustletRequestImpl,
-	RustletResponseImpl, WebSocketRequest, WebSocketRequestImpl,
+	AsyncContextImpl, Rustlet, RustletContainer, RustletRequestImpl, RustletResponseImpl,
+	WebSocketRequest, WebSocketRequestImpl,
 };
 use crate::{AsyncContext, RustletConfig, RustletRequest, RustletResponse};
 use bmw_deps::lazy_static::lazy_static;
 use bmw_err::*;
+use bmw_evh::WriteHandle;
 use bmw_http::{
-	HttpConfig, HttpContentReader, HttpMethod, HttpVersion, WebSocketData, WebSocketHandle,
-	WebSocketMessage,
+	Builder, HttpConfig, HttpContentReader, HttpHeaders, HttpInstance, HttpMethod, HttpVersion,
+	WebSocketData, WebSocketHandle, WebSocketMessage,
 };
 use bmw_log::*;
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, RwLock};
+use std::thread::{current, ThreadId};
 
-info!();
+debug!();
 
 thread_local!(
 	pub static RUSTLET_CONTEXT: RefCell<(
@@ -41,8 +43,8 @@ thread_local!(
 );
 
 lazy_static! {
-	pub static ref RUSTLET_CONTAINER: Arc<RwLock<RustletContainer>> =
-		Arc::new(RwLock::new(RustletContainer::new_uninit()));
+	pub static ref RUSTLET_CONTAINER: Arc<RwLock<HashMap<ThreadId, RustletContainer>>> =
+		Arc::new(RwLock::new(HashMap::new()));
 }
 
 impl Default for RustletConfig {
@@ -54,30 +56,136 @@ impl Default for RustletConfig {
 }
 
 impl RustletContainer {
-	fn new_uninit() -> Self {
-		Self {
-			rustlet_container_data: None,
-		}
-	}
-	pub fn new(_config: RustletConfig) -> Self {
-		Self {
-			rustlet_container_data: Some(RustletContainerData {
+	pub fn init(config: RustletConfig) -> Result<(), Error> {
+		let mut container = RUSTLET_CONTAINER.write()?;
+		(*container).insert(
+			current().id(),
+			RustletContainer {
 				rustlets: HashMap::new(),
 				rustlet_mappings: HashMap::new(),
-			}),
+				http_server: None,
+				http_config: config.http_config,
+			},
+		);
+
+		Ok(())
+	}
+
+	pub fn start(&mut self) -> Result<(), Error> {
+		let tid = current().id();
+		match self.http_server {
+			Some(_) => Err(err!(
+				ErrKind::IllegalState,
+				"rustlet container has already been started"
+			)),
+			None => {
+				let mut callback_mappings = HashSet::new();
+				for key in self.rustlet_mappings.keys() {
+					callback_mappings.insert(key.clone());
+				}
+				for instance in &mut self.http_config.instances {
+					instance.callback = Some(Self::callback);
+					instance.callback_mappings = callback_mappings.clone();
+					instance.attachment = Box::new(tid);
+				}
+				let mut http_server = Builder::build_http_server(&self.http_config)?;
+				http_server.start()?;
+				self.http_server = Some(http_server);
+				Ok(())
+			}
 		}
+	}
+
+	fn callback(
+		headers: &HttpHeaders,
+		_config: &HttpConfig,
+		instance: &HttpInstance,
+		write_handle: &mut WriteHandle,
+		_http_connection_data: HttpContentReader,
+	) -> Result<(), Error> {
+		let container = RUSTLET_CONTAINER.read()?;
+		let tid = instance
+			.attachment
+			.clone()
+			.downcast::<ThreadId>()
+			.unwrap_or(Box::new(current().id()));
+		debug!("tid={:?},current={:?}", tid, current().id())?;
+		match (*container).get(&tid) {
+			Some(rcd) => {
+				let path = headers.path()?;
+				debug!("in callback: {}", path)?;
+
+				let rustlet_request = RustletRequestImpl::from_headers(headers)?;
+				let rustlet_response = RustletResponseImpl::new(write_handle.clone());
+				let rustlet_request: &mut Box<dyn RustletRequest> =
+					&mut (Box::new(rustlet_request) as Box<dyn RustletRequest>);
+				let rustlet_response: &mut Box<dyn RustletResponse> =
+					&mut (Box::new(rustlet_response) as Box<dyn RustletResponse>);
+
+				match rcd.rustlet_mappings.get(&path) {
+					Some(name) => match rcd.rustlets.get(name) {
+						Some(rustlet) => {
+							debug!("found a rustlet")?;
+							match (rustlet)(rustlet_request, rustlet_response) {
+								Ok(_) => {}
+								Err(e) => {
+									return Err(err!(
+										ErrKind::Rustlet,
+										format!("rustlet callback generated error: {}", e)
+									));
+								}
+							}
+						}
+						None => todo!(),
+					},
+					None => todo!(),
+				}
+			}
+			None => {
+				return Err(err!(ErrKind::Rustlet, "rustlet container not initialized"));
+			}
+		};
+
+		Ok(())
+	}
+
+	pub fn add_rustlet(&mut self, name: &str, rustlet: Rustlet) -> Result<(), Error> {
+		debug!("add rustlet name: {}", name)?;
+		self.rustlets.insert(name.to_string(), rustlet);
+		Ok(())
+	}
+
+	pub fn add_rustlet_mapping(&mut self, path: &str, name: &str) -> Result<(), Error> {
+		debug!("add rustlet path: {} -> name: {}", path, name)?;
+		self.rustlet_mappings
+			.insert(path.to_string(), name.to_string());
+		Ok(())
+	}
+
+	pub fn request(&self) -> Result<Box<dyn RustletRequest>, Error> {
+		RUSTLET_CONTEXT.with(|f| match &(*f.borrow()).0 {
+			Some((request, _)) => Ok(request.clone()),
+			None => Err(err!(ErrKind::Rustlet, "Could not find rustlet context")),
+		})
+	}
+
+	pub fn response(&self) -> Result<Box<dyn RustletResponse>, Error> {
+		RUSTLET_CONTEXT.with(|f| match &(*f.borrow()).0 {
+			Some((_, response)) => Ok(response.clone()),
+			None => Err(err!(ErrKind::Rustlet, "Could not find rustlet context")),
+		})
 	}
 }
 
 impl RustletRequest for RustletRequestImpl {
-	fn method(&self) -> Result<&HttpMethod, Error> {
-		todo!()
+	fn method(&self) -> HttpMethod {
+		HttpMethod::GET
 	}
 	fn version(&self) -> Result<&HttpVersion, Error> {
 		todo!()
 	}
-	fn path(&self) -> Result<String, Error> {
-		todo!()
+	fn path(&self) -> &String {
+		&self.path
 	}
 	fn query(&self) -> Result<String, Error> {
 		todo!()
@@ -102,10 +210,19 @@ impl RustletRequest for RustletRequestImpl {
 	}
 }
 
+impl RustletRequestImpl {
+	fn from_headers(headers: &HttpHeaders) -> Result<Self, Error> {
+		Ok(Self {
+			path: headers.path()?,
+		})
+	}
+}
+
 impl RustletResponse for RustletResponseImpl {
-	fn write<T: AsRef<[u8]>>(&mut self, bytes: T) -> Result<(), Error> {
-		let b = bytes.as_ref();
-		debug!("bytes: {:?}", b)?;
+	fn write(&mut self, bytes: &[u8]) -> Result<(), Error> {
+		self.wh.write(bytes)
+	}
+	fn print(&mut self, _text: &str) -> Result<(), Error> {
 		Ok(())
 	}
 	fn flush(&mut self) -> Result<(), Error> {
@@ -129,8 +246,8 @@ impl RustletResponse for RustletResponseImpl {
 }
 
 impl RustletResponseImpl {
-	fn _new() -> Result<RustletResponseImpl, Error> {
-		Ok(RustletResponseImpl {})
+	fn new(wh: WriteHandle) -> Self {
+		RustletResponseImpl { wh }
 	}
 }
 
@@ -149,49 +266,5 @@ impl WebSocketRequest for WebSocketRequestImpl {
 	}
 	fn data(&self) -> Result<WebSocketData, Error> {
 		todo!()
-	}
-}
-
-impl RustletContainer {
-	pub fn add_rustlet(&mut self, name: &str, rustlet: Rustlet) -> Result<(), Error> {
-		match &mut self.rustlet_container_data {
-			Some(r) => {
-				r.rustlets.insert(name.to_string(), rustlet);
-				Ok(())
-			}
-			None => Err(err!(
-				ErrKind::IllegalState,
-				"rustlet container has not been initialized"
-			)),
-		}
-	}
-
-	pub fn add_rustlet_mapping(&mut self, path: &str, name: &str) -> Result<(), Error> {
-		match &mut self.rustlet_container_data {
-			Some(r) => {
-				r.rustlet_mappings
-					.insert(path.to_string(), name.to_string());
-				Ok(())
-			}
-			None => Err(err!(
-				ErrKind::IllegalState,
-				"rustlet container has not been initialized"
-			)),
-		}
-	}
-}
-
-#[cfg(test)]
-mod test {
-	use crate::types::{RustletResponse, RustletResponseImpl};
-	use bmw_err::*;
-
-	#[test]
-	fn test_rustlet_write_into() -> Result<(), Error> {
-		let mut rri = RustletResponseImpl::_new()?;
-		assert!(rri.write(b"test").is_ok());
-		assert!(rri.write("test2").is_ok());
-		assert!(rri.write("test3".to_string()).is_ok());
-		Ok(())
 	}
 }

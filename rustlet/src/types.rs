@@ -17,9 +17,10 @@
 
 use bmw_deps::dyn_clone::{clone_trait_object, DynClone};
 use bmw_err::*;
+use bmw_evh::WriteHandle;
 use bmw_http::{
-	HttpConfig, HttpContentReader, HttpMethod, HttpVersion, WebSocketData, WebSocketHandle,
-	WebSocketMessage,
+	HttpConfig, HttpContentReader, HttpMethod, HttpServer, HttpVersion, WebSocketData,
+	WebSocketHandle, WebSocketMessage,
 };
 use std::collections::HashMap;
 use std::pin::Pin;
@@ -35,9 +36,9 @@ pub type Rustlet = Pin<
 /// The main trait used for processing requests in a rustlet. It has all the information needed in
 /// it. It can be accessed by the [`crate::request`] macro.
 pub trait RustletRequest: DynClone {
-	fn method(&self) -> Result<&HttpMethod, Error>;
+	fn method(&self) -> HttpMethod;
 	fn version(&self) -> Result<&HttpVersion, Error>;
-	fn path(&self) -> Result<String, Error>;
+	fn path(&self) -> &String;
 	fn query(&self) -> Result<String, Error>;
 	fn cookie(&self, name: &str) -> Result<String, Error>;
 	fn headers(&self) -> Result<usize, Error>;
@@ -50,9 +51,8 @@ pub trait RustletRequest: DynClone {
 clone_trait_object!(RustletRequest);
 
 pub trait RustletResponse: DynClone {
-	fn write<T: AsRef<[u8]>>(&mut self, bytes: T) -> Result<(), Error>
-	where
-		Self: Sized;
+	fn write(&mut self, bytes: &[u8]) -> Result<(), Error>;
+	fn print(&mut self, text: &str) -> Result<(), Error>;
 	fn flush(&mut self) -> Result<(), Error>;
 	fn async_context(&mut self) -> Result<Box<dyn AsyncContext>, Error>;
 	fn add_header(&mut self, name: &str, value: &str) -> Result<(), Error>;
@@ -80,21 +80,23 @@ pub struct RustletConfig {
 }
 
 pub struct RustletContainer {
-	pub(crate) rustlet_container_data: Option<RustletContainerData>,
-}
-
-pub struct RustletContainerData {
 	pub(crate) rustlets: HashMap<String, Rustlet>,
 	pub(crate) rustlet_mappings: HashMap<String, String>,
+	pub(crate) http_config: HttpConfig,
+	pub(crate) http_server: Option<Box<dyn HttpServer + Send + Sync>>,
 }
 
 // Crate local structs
 
 #[derive(Clone)]
-pub(crate) struct RustletRequestImpl {}
+pub(crate) struct RustletRequestImpl {
+	pub(crate) path: String,
+}
 
 #[derive(Clone)]
-pub(crate) struct RustletResponseImpl {}
+pub(crate) struct RustletResponseImpl {
+	pub(crate) wh: WriteHandle,
+}
 
 pub(crate) struct AsyncContextImpl {}
 

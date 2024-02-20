@@ -32,6 +32,7 @@ pub use byteorder;
 pub use chrono;
 pub use colored;
 pub use dirs;
+pub use downcast;
 pub use dyn_clone;
 pub use errno;
 pub use failure;

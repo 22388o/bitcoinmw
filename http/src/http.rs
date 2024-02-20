@@ -289,6 +289,7 @@ impl Default for HttpInstance {
 			websocket_mappings: HashMap::new(),
 			callback: None,
 			websocket_handler: None,
+			attachment: Box::new(0),
 		}
 	}
 }

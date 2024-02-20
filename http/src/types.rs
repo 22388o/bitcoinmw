@@ -16,10 +16,13 @@
 // limitations under the License.
 
 use crate::constants::*;
+use bmw_deps::downcast::{downcast, Any};
+use bmw_deps::dyn_clone::{clone_trait_object, DynClone};
 use bmw_err::*;
 use bmw_evh::{ConnectionData, EventHandlerConfig, WriteHandle, WriteState};
 use bmw_util::*;
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 
 #[derive(Debug, PartialEq)]
 pub enum HttpMethod {
@@ -160,6 +163,18 @@ pub enum HttpInstanceType {
 	Tls(TlsConfig),
 }
 
+pub trait Attachment: Send + Sync + DynClone + Any {}
+clone_trait_object!(Attachment);
+downcast!(dyn Attachment);
+
+impl<T: Clone + Any + Send + Sync> Attachment for T {}
+
+impl fmt::Debug for dyn Attachment {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.debug_struct("Attachment").finish_non_exhaustive()
+	}
+}
+
 #[derive(Clone, Debug)]
 pub struct HttpInstance {
 	pub port: u16,
@@ -175,6 +190,7 @@ pub struct HttpInstance {
 	pub callback_extensions: HashSet<String>,
 	pub websocket_mappings: HashMap<String, HashSet<String>>,
 	pub websocket_handler: Option<WebsocketHandler>,
+	pub attachment: Box<dyn Attachment>,
 }
 
 #[derive(Clone)]

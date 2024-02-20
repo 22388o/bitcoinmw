@@ -16,6 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bmw_deps::downcast::DowncastError;
 use bmw_deps::failure::{Backtrace, Context, Fail};
 use bmw_deps::rustls::client::InvalidDnsNameError;
 use bmw_deps::rustls::sign::SignError;
@@ -114,8 +115,12 @@ pub enum ErrorKind {
 	/// BMW Crypt Error
 	#[fail(display = "bmw_crypt error: {}", _0)]
 	Crypt(String),
+	/// Http Error
 	#[fail(display = "http_error: {}", _0)]
 	Http(String),
+	/// Rustlet Error
+	#[fail(display = "rustlet_error: {}", _0)]
+	Rustlet(String),
 }
 
 /// The names of ErrorKinds in this crate. This enum is used to map to error
@@ -168,6 +173,8 @@ pub enum ErrKind {
 	Crypt,
 	/// Http error
 	Http,
+	/// Rustlet error
+	Rustlet,
 }
 
 impl Display for Error {
@@ -211,6 +218,14 @@ impl From<std::io::Error> for Error {
 	fn from(e: std::io::Error) -> Error {
 		Error {
 			inner: Context::new(ErrorKind::IO(format!("{}", e))),
+		}
+	}
+}
+
+impl<T> From<DowncastError<Box<T>>> for Error {
+	fn from(e: DowncastError<Box<T>>) -> Error {
+		Error {
+			inner: Context::new(ErrorKind::Misc(format!("downcast error: {}", e))),
 		}
 	}
 }

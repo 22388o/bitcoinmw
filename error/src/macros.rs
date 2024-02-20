@@ -148,6 +148,10 @@ macro_rules! err {
 				let error: bmw_err::Error = bmw_err::ErrorKind::Http($msg.to_string()).into();
 				error
 			}
+			bmw_err::ErrKind::Rustlet => {
+				let error: bmw_err::Error = bmw_err::ErrorKind::Rustlet($msg.to_string()).into();
+				error
+			}
 		}
 	}};
 }
@@ -244,6 +248,9 @@ macro_rules! map_err {
 				}
 				bmw_err::ErrKind::Http => {
 					bmw_err::ErrorKind::Http(format!("{}: {}", $msg, e)).into()
+				}
+				bmw_err::ErrKind::Rustlet => {
+					bmw_err::ErrorKind::Rustlet(format!("{}: {}", $msg, e)).into()
 				}
 			};
 			error

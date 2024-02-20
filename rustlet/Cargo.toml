@@ -16,7 +16,8 @@ bmw_deps   = { path = "../deps"   }
 bmw_err    = { path = "../error"  }
 bmw_log    = { path = "../log"    }
 bmw_util   = { path = "../util"   }
-bmw_http   = { path = "../http"    }
+bmw_evh    = { path = "../evh"    }
+bmw_http   = { path = "../http"   }
 
 [dev-dependencies]
 bmw_test = { path = "../test" }
