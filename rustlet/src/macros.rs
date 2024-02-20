@@ -225,6 +225,7 @@ mod test {
 		rustlet_mapping!("/abc", "test")?;
 		rustlet_mapping!("/def", "test2")?;
 		rustlet_start!()?;
+		sleep(Duration::from_millis(1_000));
 
 		info!("connection to port {}", port)?;
 		let mut client = TcpStream::connect(addr)?;
