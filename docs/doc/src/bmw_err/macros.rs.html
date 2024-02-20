@@ -435,6 +435,13 @@
 <a href="#434" id="434">434</a>
 <a href="#435" id="435">435</a>
 <a href="#436" id="436">436</a>
+<a href="#437" id="437">437</a>
+<a href="#438" id="438">438</a>
+<a href="#439" id="439">439</a>
+<a href="#440" id="440">440</a>
+<a href="#441" id="441">441</a>
+<a href="#442" id="442">442</a>
+<a href="#443" id="443">443</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -585,6 +592,10 @@
 				<span class="kw">let </span>error: bmw_err::Error = bmw_err::ErrorKind::Http(<span class="macro-nonterminal">$msg</span>.to_string()).into();
 				error
 			}
+			bmw_err::ErrKind::Rustlet =&gt; {
+				<span class="kw">let </span>error: bmw_err::Error = bmw_err::ErrorKind::Rustlet(<span class="macro-nonterminal">$msg</span>.to_string()).into();
+				error
+			}
 		}
 	}};
 }
@@ -681,6 +692,9 @@
 				}
 				bmw_err::ErrKind::Http =&gt; {
 					bmw_err::ErrorKind::Http(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into()
+				}
+				bmw_err::ErrKind::Rustlet =&gt; {
+					bmw_err::ErrorKind::Rustlet(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into()
 				}
 			};
 			error

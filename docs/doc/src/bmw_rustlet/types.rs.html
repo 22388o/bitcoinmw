@@ -101,6 +101,8 @@
 <a href="#100" id="100">100</a>
 <a href="#101" id="101">101</a>
 <a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -120,9 +122,10 @@
 
 </span><span class="kw">use </span>bmw_deps::dyn_clone::{clone_trait_object, DynClone};
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
+<span class="kw">use </span>bmw_evh::WriteHandle;
 <span class="kw">use </span>bmw_http::{
-	HttpConfig, HttpContentReader, HttpMethod, HttpVersion, WebSocketData, WebSocketHandle,
-	WebSocketMessage,
+	HttpConfig, HttpContentReader, HttpMethod, HttpServer, HttpVersion, WebSocketData,
+	WebSocketHandle, WebSocketMessage,
 };
 <span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::pin::Pin;
@@ -138,9 +141,9 @@
 <span class="doccomment">/// The main trait used for processing requests in a rustlet. It has all the information needed in
 /// it. It can be accessed by the [`crate::request`] macro.
 </span><span class="kw">pub trait </span>RustletRequest: DynClone {
-	<span class="kw">fn </span>method(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>HttpMethod, Error&gt;;
+	<span class="kw">fn </span>method(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; HttpMethod;
 	<span class="kw">fn </span>version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>HttpVersion, Error&gt;;
-	<span class="kw">fn </span>path(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;String, Error&gt;;
+	<span class="kw">fn </span>path(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>String;
 	<span class="kw">fn </span>query(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;String, Error&gt;;
 	<span class="kw">fn </span>cookie(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;String, Error&gt;;
 	<span class="kw">fn </span>headers(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt;;
@@ -153,9 +156,8 @@
 <span class="macro">clone_trait_object!</span>(RustletRequest);
 
 <span class="kw">pub trait </span>RustletResponse: DynClone {
-	<span class="kw">fn </span>write&lt;T: AsRef&lt;[u8]&gt;&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, bytes: T) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
-	<span class="kw">where
-		</span><span class="self">Self</span>: Sized;
+	<span class="kw">fn </span>write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+	<span class="kw">fn </span>print(<span class="kw-2">&amp;mut </span><span class="self">self</span>, text: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="kw">fn </span>flush(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="kw">fn </span>async_context(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>AsyncContext&gt;, Error&gt;;
 	<span class="kw">fn </span>add_header(<span class="kw-2">&amp;mut </span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str, value: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
@@ -183,21 +185,23 @@
 }
 
 <span class="kw">pub struct </span>RustletContainer {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) rustlet_container_data: <span class="prelude-ty">Option</span>&lt;RustletContainerData&gt;,
-}
-
-<span class="kw">pub struct </span>RustletContainerData {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) rustlets: HashMap&lt;String, Rustlet&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) rustlet_mappings: HashMap&lt;String, String&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) http_config: HttpConfig,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) http_server: <span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>HttpServer + Send + Sync&gt;&gt;,
 }
 
 <span class="comment">// Crate local structs
 
 </span><span class="attr">#[derive(Clone)]
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>RustletRequestImpl {}
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>RustletRequestImpl {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) path: String,
+}
 
 <span class="attr">#[derive(Clone)]
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>RustletResponseImpl {}
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>RustletResponseImpl {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) wh: WriteHandle,
+}
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>AsyncContextImpl {}
 

@@ -305,6 +305,22 @@
 <a href="#304" id="304">304</a>
 <a href="#305" id="305">305</a>
 <a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -323,10 +339,13 @@
 // limitations under the License.
 
 </span><span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
+<span class="kw">use </span>bmw_deps::downcast::{downcast, Any};
+<span class="kw">use </span>bmw_deps::dyn_clone::{clone_trait_object, DynClone};
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_evh::{ConnectionData, EventHandlerConfig, WriteHandle, WriteState};
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
 <span class="kw">use </span>std::collections::{HashMap, HashSet};
+<span class="kw">use </span>std::fmt;
 
 <span class="attr">#[derive(Debug, PartialEq)]
 </span><span class="kw">pub enum </span>HttpMethod {
@@ -467,6 +486,18 @@
 	Tls(TlsConfig),
 }
 
+<span class="kw">pub trait </span>Attachment: Send + Sync + DynClone + Any {}
+<span class="macro">clone_trait_object!</span>(Attachment);
+<span class="macro">downcast!</span>(<span class="kw">dyn </span>Attachment);
+
+<span class="kw">impl</span>&lt;T: Clone + Any + Send + Sync&gt; Attachment <span class="kw">for </span>T {}
+
+<span class="kw">impl </span>fmt::Debug <span class="kw">for dyn </span>Attachment {
+	<span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
+		f.debug_struct(<span class="string">"Attachment"</span>).finish_non_exhaustive()
+	}
+}
+
 <span class="attr">#[derive(Clone, Debug)]
 </span><span class="kw">pub struct </span>HttpInstance {
 	<span class="kw">pub </span>port: u16,
@@ -482,6 +513,7 @@
 	<span class="kw">pub </span>callback_extensions: HashSet&lt;String&gt;,
 	<span class="kw">pub </span>websocket_mappings: HashMap&lt;String, HashSet&lt;String&gt;&gt;,
 	<span class="kw">pub </span>websocket_handler: <span class="prelude-ty">Option</span>&lt;WebsocketHandler&gt;,
+	<span class="kw">pub </span>attachment: Box&lt;<span class="kw">dyn </span>Attachment&gt;,
 }
 
 <span class="attr">#[derive(Clone)]
