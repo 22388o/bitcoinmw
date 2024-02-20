@@ -546,7 +546,7 @@ impl Builder {
 		is_termination_pattern: bool,
 		is_multi_line: bool,
 		id: usize,
-	) -> Pattern {
+	) -> Result<Pattern, Error> {
 		Pattern::new(
 			regex,
 			is_case_sensitive,

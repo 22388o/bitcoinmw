@@ -156,7 +156,7 @@ impl HttpCache for HttpCacheImpl {
 				let mut rem = len;
 				let mut i = 0;
 				let mut len_sum = 0;
-				let http_request_type = headers.http_request_type()?;
+				let http_request_type = headers.method()?;
 				loop {
 					self.hashtable.raw_read(
 						&Self::hash_path(gzip, fpath),

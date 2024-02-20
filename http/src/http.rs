@@ -589,7 +589,7 @@ impl HttpHeaders<'_> {
 		self.end_uri.saturating_sub(self.start_uri)
 	}
 
-	pub fn http_request_type(&self) -> Result<&HttpMethod, Error> {
+	pub fn method(&self) -> Result<&HttpMethod, Error> {
 		Ok(&self.http_request_type)
 	}
 
@@ -743,11 +743,12 @@ impl HttpServerImpl {
 			bmw_util::Builder::build_list(ListConfig::default(), &Some(&slab_allocator))?;
 		list.push(bmw_util::Builder::build_pattern(
 			"\r\n\r\n",
-			true,
+			false,
 			true,
 			true,
 			SUFFIX_TREE_TERMINATE_HEADERS_ID,
-		))?;
+		)?)?;
+
 		list.push(pattern!(Regex("^GET .* "), Id(SUFFIX_TREE_GET_ID))?)?;
 		list.push(pattern!(Regex("^POST .* "), Id(SUFFIX_TREE_POST_ID))?)?;
 		list.push(pattern!(Regex("^HEAD .* "), Id(SUFFIX_TREE_HEAD_ID))?)?;
@@ -1059,7 +1060,7 @@ impl HttpServerImpl {
 			return Ok(false);
 		}
 
-		let request_type = headers.http_request_type()?;
+		let request_type = headers.method()?;
 
 		if request_type != &HttpMethod::GET && request_type != &HttpMethod::HEAD {
 			Self::process_error(
@@ -1323,7 +1324,7 @@ impl HttpServerImpl {
 		let accept_gzip = headers.accept_gzip()?;
 
 		if code != 304 {
-			let http_request_type = headers.http_request_type()?;
+			let http_request_type = headers.method()?;
 			loop {
 				let mut blen = 0;
 				loop {
@@ -1536,7 +1537,7 @@ impl HttpServerImpl {
 		debug!("count={}", count)?;
 		let mut host = "".to_string();
 		for i in 0..count {
-			debug!("c[{}]={:?}", i, matches[i])?;
+			//info!("c[{}]={:?}", i, matches[i]);
 			let end = matches[i].end();
 			let start = matches[i].start();
 			let id = matches[i].id();
@@ -2055,6 +2056,13 @@ impl HttpServerImpl {
 			Ok((ret, slab_id_vec, slab_count))
 		})?;
 
+		/*
+		info!(
+			"read data = '{}'",
+			std::str::from_utf8(&req).unwrap_or("utf8err")
+		);
+				*/
+
 		let slab_req_len = req.len();
 		let mut start = 0;
 		let mut last_term = 0;
@@ -2170,6 +2178,16 @@ impl HttpServerImpl {
 							return Ok(());
 						}
 					};
+
+					/*
+					info!(
+						"headers={:?},method={:?},clen={}",
+						std::str::from_utf8(&req[0..headers.termination_point])
+							.unwrap_or("utf8err"),
+						headers.method().unwrap(),
+						headers.content_length(),
+					);
+										*/
 
 					if headers.uri_length() > config.max_uri_len {
 						// build a mock header. only thing that matters is host and we
@@ -2464,7 +2482,7 @@ impl HttpServerImpl {
 						path,
 						query,
                                                 extension,
-						headers.http_request_type().unwrap_or(&HttpMethod::GET),
+						headers.method().unwrap_or(&HttpMethod::GET),
 						headers.version().unwrap_or(&HttpVersion::UNKNOWN),
 						header_count,
 						cache_hit,
@@ -2713,8 +2731,8 @@ impl HttpServer for HttpServerImpl {
 mod test {
 	use crate::types::HttpServerImpl;
 	use crate::{
-		HttpConfig, HttpContentReader, HttpHeaders, HttpInstance, HttpInstanceType, HttpServer,
-		PlainConfig,
+		HttpConfig, HttpContentReader, HttpHeaders, HttpInstance, HttpInstanceType, HttpMethod,
+		HttpServer, PlainConfig,
 	};
 	use bmw_err::*;
 	use bmw_evh::WriteHandle;
@@ -2751,7 +2769,6 @@ mod test {
 				break;
 			}
 			count += 1;
-			sleep(Duration::from_millis(1_000));
 		}
 
 		assert_eq!(len_sum, value);
@@ -2820,17 +2837,14 @@ mod test {
 		};
 		let mut http = HttpServerImpl::new(&config)?;
 		http.start()?;
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		info!("addr={}", addr)?;
 		let mut client = TcpStream::connect(addr)?;
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
 
 		client.write(b"GET /foo.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n")?;
 		wait_assert(284, &client)?;
 
 		let mut client = TcpStream::connect(addr)?;
-		std::thread::sleep(std::time::Duration::from_millis(1_000));
 		client.write(b"GET /foo.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n")?;
 		wait_assert(284, &client)?;
 
@@ -2950,6 +2964,120 @@ callbk\n"
 		wait_assert(83, &client)?;
 
 		tear_down_test_dir(test_dir)?;
+
+		Ok(())
+	}
+
+	fn _test_http_server_quick_callback(
+		headers: &HttpHeaders,
+		_config: &HttpConfig,
+		_instance: &HttpInstance,
+		write_handle: &mut WriteHandle,
+		mut http_connection_data: HttpContentReader,
+	) -> Result<(), Error> {
+		info!("recv callback")?;
+		let mut buf = [0; 10];
+		let mut data: Vec<u8> = vec![];
+
+		info!("start read")?;
+		loop {
+			let len_read = http_connection_data.read(&mut buf[0..10])?;
+			if len_read > 0 {
+				data.extend(&buf[0..len_read]);
+			}
+			info!(
+				"len_read={},data='{}'",
+				len_read,
+				std::str::from_utf8(&buf[0..len_read]).unwrap_or("utf8err")
+			)?;
+			if len_read == 0 {
+				break;
+			}
+		}
+		info!(
+			"end read with data[len={}] = '{}'",
+			data.len(),
+			std::str::from_utf8(&data).unwrap_or("utf8err")
+		)?;
+
+		write_handle.write(b"test")?;
+
+		if headers.method()? == &HttpMethod::POST {
+			write_handle.close()?;
+		}
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_http_server_quick() -> Result<(), Error> {
+		/*
+		let test_dir = ".test_http_server_quick.bmw";
+		setup_test_dir(test_dir)?;
+		let port = pick_free_port()?;
+		info!("port={}", port)?;
+
+		let mut callback_mappings = HashSet::new();
+		let mut callback_extensions = HashSet::new();
+		callback_mappings.insert("/callbacktest".to_string());
+		callback_extensions.insert("rsp".to_string());
+
+		let config = HttpConfig {
+			instances: vec![HttpInstance {
+				port,
+				instance_type: HttpInstanceType::Plain(PlainConfig {
+					http_dir_map: HashMap::from([("*".to_string(), test_dir.to_string())]),
+				}),
+				callback: Some(test_http_server_quick_callback),
+				callback_mappings,
+				callback_extensions,
+				..Default::default()
+			}],
+			server_version: "test1".to_string(),
+			..Default::default()
+		};
+		let mut http = HttpServerImpl::new(&config)?;
+		http.start()?;
+
+		std::thread::sleep(std::time::Duration::from_millis(1_000));
+		let addr = &format!("127.0.0.1:{}", port)[..];
+		info!("addr={}", addr)?;
+		let mut client = TcpStream::connect(addr)?;
+		sleep(Duration::from_millis(1_000));
+
+		client
+			.write(b"GET /callbacktest HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n")?;
+
+		client
+			   .write(b"POST /callbacktest HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\nContent-Length: 13\r\n\r\nabcdefghijklm")?;
+
+		let mut count = 0;
+		let mut len_sum = 0;
+		loop {
+			let mut buf = [0u8; 100];
+			let len = client.read(&mut buf)?;
+			if len == 0 {
+				break;
+			}
+			len_sum += len;
+			info!(
+				"len={}, buf={:?}",
+				len,
+				std::str::from_utf8(&buf[0..len]).unwrap_or("utf8err")
+			)?;
+			sleep(Duration::from_millis(100));
+			count += 1;
+
+			if count > 10 {
+				break;
+			}
+		}
+
+		assert_eq!(len_sum, 8);
+
+		sleep(Duration::from_millis(1_000));
+		tear_down_test_dir(test_dir)?;
+			*/
 
 		Ok(())
 	}

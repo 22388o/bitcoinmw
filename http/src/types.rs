@@ -52,7 +52,7 @@ pub enum ConnectionType {
 	CLOSE,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct HttpHeader {
 	pub start_header_name: usize,
 	pub end_header_name: usize,
@@ -60,6 +60,7 @@ pub struct HttpHeader {
 	pub end_header_value: usize,
 }
 
+#[derive(Debug)]
 pub struct HttpHeaders<'a> {
 	pub(crate) termination_point: usize,
 	pub(crate) start: usize,

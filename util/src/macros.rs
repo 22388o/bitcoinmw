@@ -342,7 +342,7 @@ macro_rules! pattern {
 
                 match id {
                         Some(id) => match regex {
-                                Some(regex) => Ok(bmw_util::Builder::build_pattern(regex, is_case_sensitive, is_term, is_multi, id)),
+                                Some(regex) => bmw_util::Builder::build_pattern(regex, is_case_sensitive, is_term, is_multi, id),
                                 None => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, "Regex must be specified")),
                         }
                         None => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, "Id must be specified")),
@@ -2382,7 +2382,7 @@ mod test {
 		let pattern = pattern!(Regex("abc"), Id(0))?;
 		assert_eq!(
 			pattern,
-			Builder::build_pattern("abc", false, false, true, 0)
+			Builder::build_pattern("abc", false, false, true, 0)?
 		);
 
 		// test suffix tree

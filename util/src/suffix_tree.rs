@@ -154,7 +154,7 @@ impl SuffixTree for SuffixTreeImpl {
 				break;
 			}
 		}
-		let match_count = Self::tmatch_impl(
+		let (match_count, term_pos) = Self::tmatch_impl(
 			text,
 			matches,
 			match_count,
@@ -163,6 +163,7 @@ impl SuffixTree for SuffixTreeImpl {
 			max_wildcard_length,
 			&mut self.branch_stack,
 			termination_length,
+			usize::MAX,
 		)?;
 		let dictionary = &self.dictionary_case_sensitive;
 		loop {
@@ -170,7 +171,7 @@ impl SuffixTree for SuffixTreeImpl {
 				break;
 			}
 		}
-		Self::tmatch_impl(
+		let (match_count, _term_pos) = Self::tmatch_impl(
 			text,
 			matches,
 			match_count,
@@ -179,7 +180,10 @@ impl SuffixTree for SuffixTreeImpl {
 			max_wildcard_length,
 			&mut self.branch_stack,
 			termination_length,
-		)
+			term_pos,
+		)?;
+
+		Ok(match_count)
 	}
 }
 
@@ -229,7 +233,8 @@ impl SuffixTreeImpl {
 		max_wildcard_length: usize,
 		branch_stack: &mut Box<dyn Stack<(usize, usize)> + Send + Sync>,
 		termination_length: usize,
-	) -> Result<usize, Error> {
+		term_pos: usize,
+	) -> Result<(usize, usize), Error> {
 		let mut itt = 0;
 		let len = text.len();
 		let mut cur_node = &dictionary.nodes[0];
@@ -311,16 +316,16 @@ impl SuffixTreeImpl {
 							if match_count >= matches.len() {
 								// too many matches return with the
 								// first set of matches
-								return Ok(match_count);
+								return Ok((match_count, usize::MAX));
 							}
 
-							if !has_newline || cur_node.is_multi_line {
+							if (!has_newline || cur_node.is_multi_line) && itt + 1 < term_pos {
 								matches[match_count].set_id(cur_node.pattern_id);
 								matches[match_count].set_end(itt + 1);
 								matches[match_count].set_start(start);
 								match_count += 1;
 								if cur_node.is_term {
-									return Ok(match_count);
+									return Ok((match_count, itt));
 								}
 							}
 						}
@@ -342,7 +347,7 @@ impl SuffixTreeImpl {
 				}
 			}
 		}
-		Ok(match_count)
+		Ok((match_count, usize::MAX))
 	}
 }
 
@@ -377,14 +382,20 @@ impl Pattern {
 		is_termination_pattern: bool,
 		is_multi_line: bool,
 		id: usize,
-	) -> Self {
-		Self {
+	) -> Result<Self, Error> {
+		if is_termination_pattern && is_case_sensitive {
+			return Err(err!(
+				ErrKind::IllegalArgument,
+				"Patterns may not be both a termination pattern and case sensitive"
+			));
+		}
+		Ok(Self {
 			regex: regex.to_string(),
 			is_termination_pattern,
 			is_case_sensitive,
 			is_multi_line,
 			id,
-		}
+		})
 	}
 	pub fn regex(&self) -> &String {
 		&self.regex
@@ -459,8 +470,10 @@ mod test {
 	#[test]
 	fn test_pattern() -> Result<(), Error> {
 		let pattern = Pattern::new("abc", true, true, true, 0);
+		assert!(pattern.is_err());
+		let pattern = Pattern::new("abc", false, true, true, 0)?;
 		assert_eq!(pattern.regex(), "abc");
-		assert_eq!(pattern.is_case_sensitive(), true);
+		assert_eq!(pattern.is_case_sensitive(), false);
 		assert_eq!(pattern.is_termination_pattern(), true);
 		assert_eq!(pattern.id(), 0);
 
@@ -471,9 +484,9 @@ mod test {
 	fn test_suffix_tree1() -> Result<(), Error> {
 		let mut suffix_tree = Builder::build_suffix_tree(
 			list![
-				Builder::build_pattern("p1", false, false, false, 0),
-				Builder::build_pattern("p2", false, false, false, 1),
-				Builder::build_pattern("p3", true, false, false, 2)
+				Builder::build_pattern("p1", false, false, false, 0)?,
+				Builder::build_pattern("p2", false, false, false, 1)?,
+				Builder::build_pattern("p3", true, false, false, 2)?
 			],
 			1_000,
 			100,
@@ -497,9 +510,9 @@ mod test {
 	fn test_suffix_tree_wildcard() -> Result<(), Error> {
 		let mut suffix_tree = Builder::build_suffix_tree(
 			list![
-				Builder::build_pattern("p1.*abc", false, false, false, 0),
-				Builder::build_pattern("p2", false, false, false, 1),
-				Builder::build_pattern("p3", true, false, false, 2)
+				Builder::build_pattern("p1.*abc", false, false, false, 0)?,
+				Builder::build_pattern("p2", false, false, false, 1)?,
+				Builder::build_pattern("p3", true, false, false, 2)?
 			],
 			37,
 			10,
@@ -536,12 +549,12 @@ mod test {
 		// non-repeating wildcard
 		let mut suffix_tree = Builder::build_suffix_tree(
 			list![
-				Builder::build_pattern("p1.abc", false, false, false, 0),
-				Builder::build_pattern("p2", false, false, false, 1),
-				Builder::build_pattern("p3", true, false, false, 2),
-				Builder::build_pattern("p4.", true, false, false, 3),
-				Builder::build_pattern("p5\\\\x", true, false, false, 4),
-				Builder::build_pattern("p6\\.x", true, false, false, 5)
+				Builder::build_pattern("p1.abc", false, false, false, 0)?,
+				Builder::build_pattern("p2", false, false, false, 1)?,
+				Builder::build_pattern("p3", true, false, false, 2)?,
+				Builder::build_pattern("p4.", true, false, false, 3)?,
+				Builder::build_pattern("p5\\\\x", true, false, false, 4)?,
+				Builder::build_pattern("p6\\.x", true, false, false, 5)?
 			],
 			37,
 			10,
@@ -584,8 +597,8 @@ mod test {
 	#[test]
 	fn test_case_sensitivity() -> Result<(), Error> {
 		let mut matches = [Builder::build_match_default(); 10];
-		let pattern1 = Builder::build_pattern("AaAaA", true, false, false, 0);
-		let pattern2 = Builder::build_pattern("AaAaA", false, false, false, 0);
+		let pattern1 = Builder::build_pattern("AaAaA", true, false, false, 0)?;
+		let pattern2 = Builder::build_pattern("AaAaA", false, false, false, 0)?;
 
 		let mut suffix_tree = Builder::build_suffix_tree(list![pattern1], 100, 100)?;
 
@@ -704,28 +717,28 @@ mod test {
 	#[test]
 	fn test_suffix_tree_error_conditions() -> Result<(), Error> {
 		assert!(Builder::build_suffix_tree(
-			list![Builder::build_pattern("", false, false, false, 0)],
+			list![Builder::build_pattern("", false, false, false, 0)?],
 			36,
 			36
 		)
 		.is_err());
 
 		assert!(Builder::build_suffix_tree(
-			list![Builder::build_pattern("^", false, false, false, 0)],
+			list![Builder::build_pattern("^", false, false, false, 0)?],
 			100,
 			100
 		)
 		.is_err());
 
 		assert!(Builder::build_suffix_tree(
-			list![Builder::build_pattern("x\\y", false, false, false, 0)],
+			list![Builder::build_pattern("x\\y", false, false, false, 0)?],
 			100,
 			100
 		)
 		.is_err());
 
 		assert!(Builder::build_suffix_tree(
-			list![Builder::build_pattern("x\\", false, false, false, 0)],
+			list![Builder::build_pattern("x\\", false, false, false, 0)?],
 			100,
 			100
 		)
