@@ -172,11 +172,65 @@ mod test {
 
 	#[test]
 	fn test_rustlet_macros() -> Result<(), Error> {
-		info!("1tid={:?}", current().id())?;
-		rustlet_init!(RustletConfig::default())?;
-		rustlet!("test", {})?;
-		rustlet_mapping!("/abc", "test")?;
+		info!("2tid={:?}", current().id())?;
+		let port = pick_free_port()?;
+		let addr = &format!("127.0.0.1:{}", port)[..];
+		let test_dir = ".test_rustlet_macros.bmw";
+		setup_test_dir(test_dir)?;
+		let rc = RustletConfig {
+			http_config: HttpConfig {
+				instances: vec![HttpInstance {
+					port,
+					instance_type: HttpInstanceType::Plain(PlainConfig {
+						http_dir_map: HashMap::from([("*".to_string(), test_dir.to_string())]),
+					}),
+					..Default::default()
+				}],
+				..Default::default()
+			},
+			..Default::default()
+		};
+		rustlet_init!(rc)?;
+		rustlet!("test", {
+			let mut response = response!()?;
+			let request = request!()?;
+			info!(
+				"in rustlet test_rustlet_simple_request test method={:?},path={}",
+				request.method(),
+				request.path()
+			)?;
+			response.write(b"abc1")?;
+		})?;
+		rustlet!("test2", {
+			let mut response = response!()?;
+			let request = request!()?;
+			info!(
+				"in rustlet test_rustlet_simple_request test2 method={:?},path={}",
+				request.method(),
+				request.path()
+			)?;
+			assert_eq!(request.method(), HttpMethod::GET);
+			response.write(b"def2")?;
+		})?;
+		rustlet_mapping!("/abc1", "test")?;
+		rustlet_mapping!("/def2", "test2")?;
 		rustlet_start!()?;
+		sleep(Duration::from_millis(1_000));
+
+		info!("connection to port {}", port)?;
+		let mut client = TcpStream::connect(addr)?;
+
+		client.write(b"GET /abc1?a=1 HTTP/1.1\r\nHost: localhost\r\n\r\n")?;
+		sleep(Duration::from_millis(1_000));
+		client.write(b"GET /def2?a=1 HTTP/1.1\r\nHost: localhost\r\n\r\n")?;
+		sleep(Duration::from_millis(1_000));
+
+		let mut buf = [0u8; 100];
+		let len = client.read(&mut buf)?;
+		assert_eq!(len, 8);
+		assert_eq!(&buf[0..len], b"abc1def2");
+
+		tear_down_test_dir(test_dir)?;
 		Ok(())
 	}
 
