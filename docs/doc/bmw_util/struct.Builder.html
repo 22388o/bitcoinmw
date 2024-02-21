@@ -294,7 +294,7 @@ to fit the pointer values needed.</p>
     is_termination_pattern: <a class="primitive" href="https://doc.rust-lang.org/1.76.0/std/primitive.bool.html">bool</a>,
     is_multi_line: <a class="primitive" href="https://doc.rust-lang.org/1.76.0/std/primitive.bool.html">bool</a>,
     id: <a class="primitive" href="https://doc.rust-lang.org/1.76.0/std/primitive.usize.html">usize</a>
-) -&gt; <a class="struct" href="struct.Pattern.html" title="struct bmw_util::Pattern">Pattern</a></h4></section></summary><div class="docblock"><p>Build a pattern based on the specified <code>regex</code>. If <code>is_case_sensitive</code> is true, only
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.76.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="struct.Pattern.html" title="struct bmw_util::Pattern">Pattern</a>, Error&gt;</h4></section></summary><div class="docblock"><p>Build a pattern based on the specified <code>regex</code>. If <code>is_case_sensitive</code> is true, only
 case sensitive matches will be returned. Otherwise all case matches will be returned.
 If <code>termination_pattern</code> is true, if the suffix tree finds this pattern, it will stop
 searching for additional patterns.

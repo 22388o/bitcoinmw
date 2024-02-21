@@ -1325,7 +1325,7 @@
 		is_termination_pattern: bool,
 		is_multi_line: bool,
 		id: usize,
-	) -&gt; Pattern {
+	) -&gt; <span class="prelude-ty">Result</span>&lt;Pattern, Error&gt; {
 		Pattern::new(
 			regex,
 			is_case_sensitive,

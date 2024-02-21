@@ -796,6 +796,19 @@
 <a href="#795" id="795">795</a>
 <a href="#796" id="796">796</a>
 <a href="#797" id="797">797</a>
+<a href="#798" id="798">798</a>
+<a href="#799" id="799">799</a>
+<a href="#800" id="800">800</a>
+<a href="#801" id="801">801</a>
+<a href="#802" id="802">802</a>
+<a href="#803" id="803">803</a>
+<a href="#804" id="804">804</a>
+<a href="#805" id="805">805</a>
+<a href="#806" id="806">806</a>
+<a href="#807" id="807">807</a>
+<a href="#808" id="808">808</a>
+<a href="#809" id="809">809</a>
+<a href="#810" id="810">810</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -952,7 +965,7 @@
 				<span class="kw">break</span>;
 			}
 		}
-		<span class="kw">let </span>match_count = <span class="self">Self</span>::tmatch_impl(
+		<span class="kw">let </span>(match_count, term_pos) = <span class="self">Self</span>::tmatch_impl(
 			text,
 			matches,
 			match_count,
@@ -961,6 +974,7 @@
 			max_wildcard_length,
 			<span class="kw-2">&amp;mut </span><span class="self">self</span>.branch_stack,
 			termination_length,
+			usize::MAX,
 		)<span class="question-mark">?</span>;
 		<span class="kw">let </span>dictionary = <span class="kw-2">&amp;</span><span class="self">self</span>.dictionary_case_sensitive;
 		<span class="kw">loop </span>{
@@ -968,7 +982,7 @@
 				<span class="kw">break</span>;
 			}
 		}
-		<span class="self">Self</span>::tmatch_impl(
+		<span class="kw">let </span>(match_count, _term_pos) = <span class="self">Self</span>::tmatch_impl(
 			text,
 			matches,
 			match_count,
@@ -977,7 +991,10 @@
 			max_wildcard_length,
 			<span class="kw-2">&amp;mut </span><span class="self">self</span>.branch_stack,
 			termination_length,
-		)
+			term_pos,
+		)<span class="question-mark">?</span>;
+
+		<span class="prelude-val">Ok</span>(match_count)
 	}
 }
 
@@ -1027,7 +1044,8 @@
 		max_wildcard_length: usize,
 		branch_stack: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Stack&lt;(usize, usize)&gt; + Send + Sync&gt;,
 		termination_length: usize,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
+		term_pos: usize,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;(usize, usize), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>itt = <span class="number">0</span>;
 		<span class="kw">let </span>len = text.len();
 		<span class="kw">let </span><span class="kw-2">mut </span>cur_node = <span class="kw-2">&amp;</span>dictionary.nodes[<span class="number">0</span>];
@@ -1109,16 +1127,16 @@
 							<span class="kw">if </span>match_count &gt;= matches.len() {
 								<span class="comment">// too many matches return with the
 								// first set of matches
-								</span><span class="kw">return </span><span class="prelude-val">Ok</span>(match_count);
+								</span><span class="kw">return </span><span class="prelude-val">Ok</span>((match_count, usize::MAX));
 							}
 
-							<span class="kw">if </span>!has_newline || cur_node.is_multi_line {
+							<span class="kw">if </span>(!has_newline || cur_node.is_multi_line) &amp;&amp; itt + <span class="number">1 </span>&lt; term_pos {
 								matches[match_count].set_id(cur_node.pattern_id);
 								matches[match_count].set_end(itt + <span class="number">1</span>);
 								matches[match_count].set_start(start);
 								match_count += <span class="number">1</span>;
 								<span class="kw">if </span>cur_node.is_term {
-									<span class="kw">return </span><span class="prelude-val">Ok</span>(match_count);
+									<span class="kw">return </span><span class="prelude-val">Ok</span>((match_count, itt));
 								}
 							}
 						}
@@ -1140,7 +1158,7 @@
 				}
 			}
 		}
-		<span class="prelude-val">Ok</span>(match_count)
+		<span class="prelude-val">Ok</span>((match_count, usize::MAX))
 	}
 }
 
@@ -1175,14 +1193,20 @@
 		is_termination_pattern: bool,
 		is_multi_line: bool,
 		id: usize,
-	) -&gt; <span class="self">Self </span>{
-		<span class="self">Self </span>{
+	) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
+		<span class="kw">if </span>is_termination_pattern &amp;&amp; is_case_sensitive {
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
+				ErrKind::IllegalArgument,
+				<span class="string">"Patterns may not be both a termination pattern and case sensitive"
+			</span>));
+		}
+		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
 			regex: regex.to_string(),
 			is_termination_pattern,
 			is_case_sensitive,
 			is_multi_line,
 			id,
-		}
+		})
 	}
 	<span class="kw">pub fn </span>regex(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>String {
 		<span class="kw-2">&amp;</span><span class="self">self</span>.regex
@@ -1257,8 +1281,10 @@
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_pattern() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>pattern = Pattern::new(<span class="string">"abc"</span>, <span class="bool-val">true</span>, <span class="bool-val">true</span>, <span class="bool-val">true</span>, <span class="number">0</span>);
+		<span class="macro">assert!</span>(pattern.is_err());
+		<span class="kw">let </span>pattern = Pattern::new(<span class="string">"abc"</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>, <span class="bool-val">true</span>, <span class="number">0</span>)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(pattern.regex(), <span class="string">"abc"</span>);
-		<span class="macro">assert_eq!</span>(pattern.is_case_sensitive(), <span class="bool-val">true</span>);
+		<span class="macro">assert_eq!</span>(pattern.is_case_sensitive(), <span class="bool-val">false</span>);
 		<span class="macro">assert_eq!</span>(pattern.is_termination_pattern(), <span class="bool-val">true</span>);
 		<span class="macro">assert_eq!</span>(pattern.id(), <span class="number">0</span>);
 
@@ -1269,10 +1295,10 @@
 	</span><span class="kw">fn </span>test_suffix_tree1() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>suffix_tree = Builder::build_suffix_tree(
 			<span class="macro">list!</span>[
-				Builder::build_pattern(<span class="string">"p1"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>),
-				Builder::build_pattern(<span class="string">"p2"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">1</span>),
-				Builder::build_pattern(<span class="string">"p3"</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">2</span>)
-			],
+				Builder::build_pattern(<span class="string">"p1"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)<span class="question-mark">?</span>,
+				Builder::build_pattern(<span class="string">"p2"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">1</span>)<span class="question-mark">?</span>,
+				Builder::build_pattern(<span class="string">"p3"</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">2</span>)<span class="question-mark">?
+			</span>],
 			<span class="number">1_000</span>,
 			<span class="number">100</span>,
 		)<span class="question-mark">?</span>;
@@ -1295,10 +1321,10 @@
 	</span><span class="kw">fn </span>test_suffix_tree_wildcard() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>suffix_tree = Builder::build_suffix_tree(
 			<span class="macro">list!</span>[
-				Builder::build_pattern(<span class="string">"p1.*abc"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>),
-				Builder::build_pattern(<span class="string">"p2"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">1</span>),
-				Builder::build_pattern(<span class="string">"p3"</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">2</span>)
-			],
+				Builder::build_pattern(<span class="string">"p1.*abc"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)<span class="question-mark">?</span>,
+				Builder::build_pattern(<span class="string">"p2"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">1</span>)<span class="question-mark">?</span>,
+				Builder::build_pattern(<span class="string">"p3"</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">2</span>)<span class="question-mark">?
+			</span>],
 			<span class="number">37</span>,
 			<span class="number">10</span>,
 		)<span class="question-mark">?</span>;
@@ -1334,13 +1360,13 @@
 		<span class="comment">// non-repeating wildcard
 		</span><span class="kw">let </span><span class="kw-2">mut </span>suffix_tree = Builder::build_suffix_tree(
 			<span class="macro">list!</span>[
-				Builder::build_pattern(<span class="string">"p1.abc"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>),
-				Builder::build_pattern(<span class="string">"p2"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">1</span>),
-				Builder::build_pattern(<span class="string">"p3"</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">2</span>),
-				Builder::build_pattern(<span class="string">"p4."</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">3</span>),
-				Builder::build_pattern(<span class="string">"p5\\\\x"</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">4</span>),
-				Builder::build_pattern(<span class="string">"p6\\.x"</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">5</span>)
-			],
+				Builder::build_pattern(<span class="string">"p1.abc"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)<span class="question-mark">?</span>,
+				Builder::build_pattern(<span class="string">"p2"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">1</span>)<span class="question-mark">?</span>,
+				Builder::build_pattern(<span class="string">"p3"</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">2</span>)<span class="question-mark">?</span>,
+				Builder::build_pattern(<span class="string">"p4."</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">3</span>)<span class="question-mark">?</span>,
+				Builder::build_pattern(<span class="string">"p5\\\\x"</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">4</span>)<span class="question-mark">?</span>,
+				Builder::build_pattern(<span class="string">"p6\\.x"</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">5</span>)<span class="question-mark">?
+			</span>],
 			<span class="number">37</span>,
 			<span class="number">10</span>,
 		)<span class="question-mark">?</span>;
@@ -1382,8 +1408,8 @@
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_case_sensitivity() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>matches = [Builder::build_match_default(); <span class="number">10</span>];
-		<span class="kw">let </span>pattern1 = Builder::build_pattern(<span class="string">"AaAaA"</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>);
-		<span class="kw">let </span>pattern2 = Builder::build_pattern(<span class="string">"AaAaA"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>);
+		<span class="kw">let </span>pattern1 = Builder::build_pattern(<span class="string">"AaAaA"</span>, <span class="bool-val">true</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span>pattern2 = Builder::build_pattern(<span class="string">"AaAaA"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>suffix_tree = Builder::build_suffix_tree(<span class="macro">list!</span>[pattern1], <span class="number">100</span>, <span class="number">100</span>)<span class="question-mark">?</span>;
 
@@ -1502,28 +1528,28 @@
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_suffix_tree_error_conditions() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="macro">assert!</span>(Builder::build_suffix_tree(
-			<span class="macro">list!</span>[Builder::build_pattern(<span class="string">""</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)],
+			<span class="macro">list!</span>[Builder::build_pattern(<span class="string">""</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)<span class="question-mark">?</span>],
 			<span class="number">36</span>,
 			<span class="number">36
 		</span>)
 		.is_err());
 
 		<span class="macro">assert!</span>(Builder::build_suffix_tree(
-			<span class="macro">list!</span>[Builder::build_pattern(<span class="string">"^"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)],
+			<span class="macro">list!</span>[Builder::build_pattern(<span class="string">"^"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)<span class="question-mark">?</span>],
 			<span class="number">100</span>,
 			<span class="number">100
 		</span>)
 		.is_err());
 
 		<span class="macro">assert!</span>(Builder::build_suffix_tree(
-			<span class="macro">list!</span>[Builder::build_pattern(<span class="string">"x\\y"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)],
+			<span class="macro">list!</span>[Builder::build_pattern(<span class="string">"x\\y"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)<span class="question-mark">?</span>],
 			<span class="number">100</span>,
 			<span class="number">100
 		</span>)
 		.is_err());
 
 		<span class="macro">assert!</span>(Builder::build_suffix_tree(
-			<span class="macro">list!</span>[Builder::build_pattern(<span class="string">"x\\"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)],
+			<span class="macro">list!</span>[Builder::build_pattern(<span class="string">"x\\"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="number">0</span>)<span class="question-mark">?</span>],
 			<span class="number">100</span>,
 			<span class="number">100
 		</span>)

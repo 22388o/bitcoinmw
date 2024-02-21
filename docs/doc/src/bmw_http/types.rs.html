@@ -321,6 +321,7 @@
 <a href="#320" id="320">320</a>
 <a href="#321" id="321">321</a>
 <a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -375,7 +376,7 @@
 	CLOSE,
 }
 
-<span class="attr">#[derive(Clone, Copy)]
+<span class="attr">#[derive(Debug, Clone, Copy)]
 </span><span class="kw">pub struct </span>HttpHeader {
 	<span class="kw">pub </span>start_header_name: usize,
 	<span class="kw">pub </span>end_header_name: usize,
@@ -383,7 +384,8 @@
 	<span class="kw">pub </span>end_header_value: usize,
 }
 
-<span class="kw">pub struct </span>HttpHeaders&lt;<span class="lifetime">'a</span>&gt; {
+<span class="attr">#[derive(Debug)]
+</span><span class="kw">pub struct </span>HttpHeaders&lt;<span class="lifetime">'a</span>&gt; {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) termination_point: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) start: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) req: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Vec&lt;u8&gt;,

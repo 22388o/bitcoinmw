@@ -2774,7 +2774,7 @@
 
                 <span class="kw">match </span>id {
                         <span class="prelude-val">Some</span>(id) =&gt; <span class="kw">match </span>regex {
-                                <span class="prelude-val">Some</span>(regex) =&gt; <span class="prelude-val">Ok</span>(bmw_util::Builder::build_pattern(regex, is_case_sensitive, is_term, is_multi, id)),
+                                <span class="prelude-val">Some</span>(regex) =&gt; bmw_util::Builder::build_pattern(regex, is_case_sensitive, is_term, is_multi, id),
                                 <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::Configuration, <span class="string">"Regex must be specified"</span>)),
                         }
                         <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::Configuration, <span class="string">"Id must be specified"</span>)),
@@ -4814,8 +4814,8 @@
 		</span><span class="kw">let </span>pattern = <span class="macro">pattern!</span>(Regex(<span class="string">"abc"</span>), Id(<span class="number">0</span>))<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(
 			pattern,
-			Builder::build_pattern(<span class="string">"abc"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>, <span class="number">0</span>)
-		);
+			Builder::build_pattern(<span class="string">"abc"</span>, <span class="bool-val">false</span>, <span class="bool-val">false</span>, <span class="bool-val">true</span>, <span class="number">0</span>)<span class="question-mark">?
+		</span>);
 
 		<span class="comment">// test suffix tree
 		</span><span class="kw">let </span><span class="kw-2">mut </span>suffix_tree = <span class="macro">suffix_tree!</span>(
