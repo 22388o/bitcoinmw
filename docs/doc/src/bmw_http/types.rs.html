@@ -322,6 +322,30 @@
 <a href="#321" id="321">321</a>
 <a href="#322" id="322">322</a>
 <a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
+<a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
+<a href="#328" id="328">328</a>
+<a href="#329" id="329">329</a>
+<a href="#330" id="330">330</a>
+<a href="#331" id="331">331</a>
+<a href="#332" id="332">332</a>
+<a href="#333" id="333">333</a>
+<a href="#334" id="334">334</a>
+<a href="#335" id="335">335</a>
+<a href="#336" id="336">336</a>
+<a href="#337" id="337">337</a>
+<a href="#338" id="338">338</a>
+<a href="#339" id="339">339</a>
+<a href="#340" id="340">340</a>
+<a href="#341" id="341">341</a>
+<a href="#342" id="342">342</a>
+<a href="#343" id="343">343</a>
+<a href="#344" id="344">344</a>
+<a href="#345" id="345">345</a>
+<a href="#346" id="346">346</a>
+<a href="#347" id="347">347</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -347,6 +371,7 @@
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
 <span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::fmt;
+<span class="kw">use </span>std::pin::Pin;
 
 <span class="attr">#[derive(Debug, PartialEq)]
 </span><span class="kw">pub enum </span>HttpMethod {
@@ -468,7 +493,6 @@
 }
 
 <span class="kw">pub struct </span>HttpStats {}
-<span class="kw">pub struct </span>HttpRequest {}
 
 <span class="attr">#[derive(Clone, Debug)]
 </span><span class="kw">pub struct </span>PlainConfig {
@@ -530,7 +554,6 @@
 	<span class="kw">pub </span>mime_map: Vec&lt;(String, String)&gt;,
 	<span class="kw">pub </span>bring_to_front_weight: f64,
 	<span class="kw">pub </span>restat_file_frequency_in_millis: u64,
-	<span class="kw">pub </span>request_callback: <span class="prelude-ty">Option</span>&lt;RequestCallback&gt;,
 	<span class="kw">pub </span>base_dir: String,
 	<span class="kw">pub </span>content_slab_count: usize,
 	<span class="kw">pub </span>max_headers_len: usize,
@@ -548,8 +571,6 @@
 	HttpContentReader&lt;<span class="lifetime">'_</span>&gt;,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">type </span>RequestCallback = <span class="kw">fn</span>(<span class="kw-2">&amp;</span>HttpRequest) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
-
 <span class="kw">type </span>WebsocketHandler = <span class="kw">fn</span>(
 	<span class="kw-2">&amp;</span>WebSocketMessage,
 	<span class="kw-2">&amp;</span>HttpConfig,
@@ -558,8 +579,35 @@
 	<span class="kw-2">&amp;</span>WebSocketData,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 
+<span class="kw">pub type </span>HttpHandler = Pin&lt;
+	Box&lt;
+		<span class="kw">dyn </span>Fn(<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>HttpRequest&gt;, <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>HttpResponse&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
+			+ Send
+			+ Sync,
+	&gt;,
+&gt;;
+
+<span class="kw">pub trait </span>HttpRequest {}
+<span class="kw">pub trait </span>HttpResponse {}
+
+<span class="kw">pub trait </span>HttpClient {
+	<span class="kw">fn </span>send(<span class="kw-2">&amp;mut </span><span class="self">self</span>, req: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest&gt;, handler: <span class="kw-2">&amp;</span>HttpHandler) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+}
+
+<span class="kw">pub trait </span>HttpConnection {
+	<span class="kw">fn </span>send(<span class="kw-2">&amp;mut </span><span class="self">self</span>, req: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest&gt;, handler: <span class="kw-2">&amp;</span>HttpHandler) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+}
+
+<span class="kw">pub struct </span>HttpClientConfig {}
+<span class="kw">pub struct </span>HttpConnectionConfig {}
+<span class="kw">pub struct </span>HttpRequestConfig {}
+
 <span class="comment">// Crate local types
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpServerImpl {
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpClientImpl {}
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpRequestImpl {}
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpConnectionImpl {}
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpServerImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) config: HttpConfig,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) cache: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>HttpCache + Send + Sync&gt;&gt;&gt;,
 }
