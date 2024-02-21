@@ -17,14 +17,16 @@
 
 mod builder;
 mod cache;
+mod client;
 mod constants;
 mod http;
 mod types;
 mod ws;
 
 pub use crate::types::{
-	Builder, ConnectionType, HttpConfig, HttpConnectionData, HttpContentReader, HttpHeader,
-	HttpHeaders, HttpInstance, HttpInstanceType, HttpMethod, HttpRequest, HttpServer, HttpStats,
-	HttpVersion, PlainConfig, WebSocketData, WebSocketHandle, WebSocketMessage,
-	WebSocketMessageType,
+	Builder, ConnectionType, HttpClient, HttpClientConfig, HttpConfig, HttpConnection,
+	HttpConnectionConfig, HttpConnectionData, HttpContentReader, HttpHandler, HttpHeader,
+	HttpHeaders, HttpInstance, HttpInstanceType, HttpMethod, HttpRequest, HttpRequestConfig,
+	HttpServer, HttpStats, HttpVersion, PlainConfig, WebSocketData, WebSocketHandle,
+	WebSocketMessage, WebSocketMessageType,
 };

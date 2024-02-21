@@ -85,7 +85,6 @@ impl Default for HttpConfig {
 			server_version: "0.0.0".to_string(),
 			bring_to_front_weight: 0.1,
 			restat_file_frequency_in_millis: 3_000, // 3 seconds
-			request_callback: None,
 			content_slab_count: 1_000,
 			base_dir: "~/.bitcoinmw".to_string(),
 			max_headers_len: 8192,

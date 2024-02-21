@@ -15,9 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::types::HttpServerImpl;
+use crate::types::{HttpClientImpl, HttpConnectionImpl, HttpRequestImpl, HttpServerImpl};
 use crate::Builder;
-use crate::{HttpConfig, HttpServer};
+use crate::{
+	HttpClient, HttpClientConfig, HttpConfig, HttpConnection, HttpConnectionConfig, HttpRequest,
+	HttpRequestConfig, HttpServer,
+};
 use bmw_err::*;
 
 impl Builder {
@@ -25,6 +28,24 @@ impl Builder {
 		config: &HttpConfig,
 	) -> Result<Box<dyn HttpServer + Send + Sync>, Error> {
 		Ok(Box::new(HttpServerImpl::new(config)?))
+	}
+
+	pub fn build_http_client(
+		config: &HttpClientConfig,
+	) -> Result<Box<dyn HttpClient + Send + Sync>, Error> {
+		Ok(Box::new(HttpClientImpl::new(config)?))
+	}
+
+	pub fn build_http_connection(
+		config: &HttpConnectionConfig,
+	) -> Result<Box<dyn HttpConnection + Send + Sync>, Error> {
+		Ok(Box::new(HttpConnectionImpl::new(config)?))
+	}
+
+	pub fn build_http_request(
+		config: &HttpRequestConfig,
+	) -> Result<Box<dyn HttpRequest + Send + Sync>, Error> {
+		Ok(Box::new(HttpRequestImpl::new(config)?))
 	}
 }
 

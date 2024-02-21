@@ -23,6 +23,7 @@ use bmw_evh::{ConnectionData, EventHandlerConfig, WriteHandle, WriteState};
 use bmw_util::*;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
+use std::pin::Pin;
 
 #[derive(Debug, PartialEq)]
 pub enum HttpMethod {
@@ -144,7 +145,6 @@ pub trait HttpServer {
 }
 
 pub struct HttpStats {}
-pub struct HttpRequest {}
 
 #[derive(Clone, Debug)]
 pub struct PlainConfig {
@@ -206,7 +206,6 @@ pub struct HttpConfig {
 	pub mime_map: Vec<(String, String)>,
 	pub bring_to_front_weight: f64,
 	pub restat_file_frequency_in_millis: u64,
-	pub request_callback: Option<RequestCallback>,
 	pub base_dir: String,
 	pub content_slab_count: usize,
 	pub max_headers_len: usize,
@@ -224,8 +223,6 @@ type HttpCallback = fn(
 	HttpContentReader<'_>,
 ) -> Result<(), Error>;
 
-pub(crate) type RequestCallback = fn(&HttpRequest) -> Result<(), Error>;
-
 type WebsocketHandler = fn(
 	&WebSocketMessage,
 	&HttpConfig,
@@ -234,7 +231,34 @@ type WebsocketHandler = fn(
 	&WebSocketData,
 ) -> Result<(), Error>;
 
+pub type HttpHandler = Pin<
+	Box<
+		dyn Fn(&mut Box<dyn HttpRequest>, &mut Box<dyn HttpResponse>) -> Result<(), Error>
+			+ Send
+			+ Sync,
+	>,
+>;
+
+pub trait HttpRequest {}
+pub trait HttpResponse {}
+
+pub trait HttpClient {
+	fn send(&mut self, req: &Box<dyn HttpRequest>, handler: &HttpHandler) -> Result<(), Error>;
+}
+
+pub trait HttpConnection {
+	fn send(&mut self, req: &Box<dyn HttpRequest>, handler: &HttpHandler) -> Result<(), Error>;
+}
+
+pub struct HttpClientConfig {}
+pub struct HttpConnectionConfig {}
+pub struct HttpRequestConfig {}
+
 // Crate local types
+pub(crate) struct HttpClientImpl {}
+pub(crate) struct HttpRequestImpl {}
+pub(crate) struct HttpConnectionImpl {}
+
 pub(crate) struct HttpServerImpl {
 	pub(crate) config: HttpConfig,
 	pub(crate) cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
