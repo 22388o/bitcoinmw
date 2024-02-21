@@ -59,6 +59,7 @@ pub trait RustletResponse: DynClone {
 	fn content_type(&mut self, value: &str) -> Result<(), Error>;
 	fn set_cookie(&mut self, name: &str, value: &str) -> Result<(), Error>;
 	fn redirect(&mut self, url: &str) -> Result<(), Error>;
+	fn close(&mut self) -> Result<(), Error>;
 }
 
 clone_trait_object!(RustletResponse);

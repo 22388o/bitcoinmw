@@ -556,6 +556,10 @@ impl Read for HttpContentReader<'_> {
 
 impl HttpHeaders<'_> {
 	pub fn path(&self) -> Result<String, Error> {
+		debug!(
+			"in path,start_uri={},end_uri={}",
+			self.start_uri, self.end_uri
+		)?;
 		if self.start_uri > 0 && self.end_uri > self.start_uri {
 			let path = std::str::from_utf8(&self.req[self.start_uri..self.end_uri])?.to_string();
 			if path.contains("?") {
@@ -576,6 +580,8 @@ impl HttpHeaders<'_> {
 
 	pub fn query(&self) -> Result<String, Error> {
 		let path = std::str::from_utf8(&self.req[self.start_uri..self.end_uri])?.to_string();
+
+		debug!("path={}", path)?;
 		let query = if path.contains("?") {
 			let pos = path.chars().position(|c| c == '?').unwrap();
 			path.substring(pos + 1, path.len()).to_string()
@@ -1519,6 +1525,8 @@ impl HttpServerImpl {
 
 		let mut start_uri = 0;
 		let mut end_uri = 0;
+		let mut start_version = 0;
+		let mut end_version = 0;
 		let mut http_request_type = HttpMethod::UNKNOWN;
 		let mut version = HttpVersion::UNKNOWN;
 		let mut header_count = 0;
@@ -1533,26 +1541,55 @@ impl HttpServerImpl {
 		let mut sec_websocket_protocol = "".to_string();
 		let mut accept_gzip = false;
 		let mut content_length = 0;
+		let start_headers = start;
 
 		debug!("count={}", count)?;
 		let mut host = "".to_string();
 		for i in 0..count {
-			//info!("c[{}]={:?}", i, matches[i]);
-			let end = matches[i].end();
-			let start = matches[i].start();
+			debug!("c[{}]={:?}", i, matches[i])?;
+			let end = matches[i].end() + start_headers;
+			let start = matches[i].start() + start_headers;
 			let id = matches[i].id();
 			if id == SUFFIX_TREE_TERMINATE_HEADERS_ID {
 				debug!("found term end={}, slab_off={}", end, slab_offset)?;
-
 				if end_uri == 0 {
-					match req.windows(1).position(|window| window == " ".as_bytes()) {
+					match &req[start_headers..]
+						.windows(1)
+						.position(|window| window == " ".as_bytes())
+					{
 						Some(c) => {
-							start_uri = c + 1;
-							end_uri = end;
+							start_uri = c + 1 + start_headers;
+							end_uri = start_uri + 1;
+							debug!("set end_uri to {}", end_uri)?;
 							for j in start_uri..end {
 								if req[j] == '\r' as u8
 									|| req[j] == '\n' as u8 || req[j] == ' ' as u8
 								{
+									if req[j] == ' ' as u8 {
+										start_version = j + 1;
+										for k in j..end {
+											if req[k] == '\n' as u8 || req[k] == '\r' as u8 {
+												end_version = k;
+												break;
+											}
+										}
+									}
+
+									debug!("start_v={},end_v={}", start_version, end_version)?;
+									if end_version > start_version && start_version != 0 {
+										// try to get version
+										let version_str =
+											std::str::from_utf8(&req[start_version..end_version])
+												.unwrap_or("");
+										if version_str == "HTTP/1.1" {
+											version = HttpVersion::HTTP11;
+										} else if version_str == "HTTP/1.0" {
+											version = HttpVersion::HTTP10;
+										} else {
+											version = HttpVersion::OTHER;
+										}
+									}
+
 									end_uri = j;
 									break;
 								}
@@ -1601,33 +1638,6 @@ impl HttpServerImpl {
 						http_request_type = HttpMethod::HEAD;
 					}
 					start_uri = start + 5;
-				}
-
-				let mut end_version = 0;
-				let mut start_version = 0;
-				for i in start_uri..req.len() {
-					if req[start + i] == ' ' as u8 {
-						end_uri = start + i;
-						start_version = start + i + 1;
-					}
-					if req[start + i] == '\r' as u8 || req[start + i] == '\n' as u8 {
-						end_version = start + i;
-						break;
-					}
-				}
-
-				debug!("start_v={},end_v={}", start_version, end_version)?;
-				if end_version > start_version && start_version != 0 {
-					// try to get version
-					let version_str =
-						std::str::from_utf8(&req[start_version..end_version]).unwrap_or("");
-					if version_str == "HTTP/1.1" {
-						version = HttpVersion::HTTP11;
-					} else if version_str == "HTTP/1.0" {
-						version = HttpVersion::HTTP10;
-					} else {
-						version = HttpVersion::OTHER;
-					}
 				}
 			} else if id == SUFFIX_TREE_HEADER_ID {
 				if header_count < headers.len() {
@@ -2056,13 +2066,6 @@ impl HttpServerImpl {
 			Ok((ret, slab_id_vec, slab_count))
 		})?;
 
-		/*
-		info!(
-			"read data = '{}'",
-			std::str::from_utf8(&req).unwrap_or("utf8err")
-		);
-				*/
-
 		let slab_req_len = req.len();
 		let mut start = 0;
 		let mut last_term = 0;
@@ -2178,16 +2181,6 @@ impl HttpServerImpl {
 							return Ok(());
 						}
 					};
-
-					/*
-					info!(
-						"headers={:?},method={:?},clen={}",
-						std::str::from_utf8(&req[0..headers.termination_point])
-							.unwrap_or("utf8err"),
-						headers.method().unwrap(),
-						headers.content_length(),
-					);
-										*/
 
 					if headers.uri_length() > config.max_uri_len {
 						// build a mock header. only thing that matters is host and we
@@ -2968,7 +2961,7 @@ callbk\n"
 		Ok(())
 	}
 
-	fn _test_http_server_quick_callback(
+	fn test_http_server_quick_callback(
 		headers: &HttpHeaders,
 		_config: &HttpConfig,
 		_instance: &HttpInstance,
@@ -3011,7 +3004,6 @@ callbk\n"
 
 	#[test]
 	fn test_http_server_quick() -> Result<(), Error> {
-		/*
 		let test_dir = ".test_http_server_quick.bmw";
 		setup_test_dir(test_dir)?;
 		let port = pick_free_port()?;
@@ -3020,6 +3012,7 @@ callbk\n"
 		let mut callback_mappings = HashSet::new();
 		let mut callback_extensions = HashSet::new();
 		callback_mappings.insert("/callbacktest".to_string());
+		callback_mappings.insert("/x12345678901".to_string());
 		callback_extensions.insert("rsp".to_string());
 
 		let config = HttpConfig {
@@ -3045,11 +3038,12 @@ callbk\n"
 		let mut client = TcpStream::connect(addr)?;
 		sleep(Duration::from_millis(1_000));
 
-		client
-			.write(b"GET /callbacktest HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n")?;
+		client.write(
+			b"GET /callbacktest?abc=1 HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n",
+		)?;
 
 		client
-			   .write(b"POST /callbacktest HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\nContent-Length: 13\r\n\r\nabcdefghijklm")?;
+			   .write(b"POST /x12345678901?x=5 HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\nContent-Length: 13\r\n\r\nabcdefghijklm")?;
 
 		let mut count = 0;
 		let mut len_sum = 0;
@@ -3077,7 +3071,6 @@ callbk\n"
 
 		sleep(Duration::from_millis(1_000));
 		tear_down_test_dir(test_dir)?;
-			*/
 
 		Ok(())
 	}

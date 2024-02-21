@@ -243,6 +243,9 @@ impl RustletResponse for RustletResponseImpl {
 	fn redirect(&mut self, _url: &str) -> Result<(), Error> {
 		todo!()
 	}
+	fn close(&mut self) -> Result<(), Error> {
+		self.wh.close()
+	}
 }
 
 impl RustletResponseImpl {

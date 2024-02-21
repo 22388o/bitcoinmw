@@ -275,24 +275,30 @@ mod test {
 			)?;
 			assert_eq!(request.method(), HttpMethod::GET);
 			response.write(b"def")?;
+			response.close()?;
 		})?;
 		rustlet_mapping!("/abc", "test")?;
 		rustlet_mapping!("/def", "test2")?;
 		rustlet_start!()?;
-		sleep(Duration::from_millis(1_000));
 
 		info!("connection to port {}", port)?;
 		let mut client = TcpStream::connect(addr)?;
 
 		client.write(b"GET /abc?a=1 HTTP/1.1\r\nHost: localhost\r\n\r\n")?;
-		sleep(Duration::from_millis(1_000));
 		client.write(b"GET /def?a=1 HTTP/1.1\r\nHost: localhost\r\n\r\n")?;
-		sleep(Duration::from_millis(1_000));
 
+		let mut len_sum = 0;
 		let mut buf = [0u8; 100];
-		let len = client.read(&mut buf)?;
-		assert_eq!(len, 6);
-		assert_eq!(&buf[0..len], b"abcdef");
+
+		loop {
+			let len = client.read(&mut buf[len_sum..])?;
+			if len == 0 {
+				break;
+			}
+			len_sum += len;
+		}
+		assert_eq!(len_sum, 6);
+		assert_eq!(&buf[0..len_sum], b"abcdef");
 
 		tear_down_test_dir(test_dir)?;
 
