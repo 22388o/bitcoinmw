@@ -27,6 +27,6 @@ pub use crate::types::{
 	Builder, ConnectionType, HttpClient, HttpClientConfig, HttpConfig, HttpConnection,
 	HttpConnectionConfig, HttpConnectionData, HttpContentReader, HttpHandler, HttpHeader,
 	HttpHeaders, HttpInstance, HttpInstanceType, HttpMethod, HttpRequest, HttpRequestConfig,
-	HttpServer, HttpStats, HttpVersion, PlainConfig, WebSocketData, WebSocketHandle,
+	HttpResponse, HttpServer, HttpStats, HttpVersion, PlainConfig, WebSocketData, WebSocketHandle,
 	WebSocketMessage, WebSocketMessageType,
 };

@@ -87,7 +87,6 @@ pub struct ConnectionData<'a> {
 	pub(crate) rwi: &'a mut StreamInfo,
 	pub(crate) tid: usize,
 	pub(crate) slabs: &'a mut Box<dyn SlabAllocator + Send + Sync>,
-	pub(crate) wakeup: Wakeup,
 	pub(crate) event_handler_data: Box<dyn LockBox<EventHandlerData>>,
 	pub(crate) debug_write_queue: bool,
 	pub(crate) debug_pending: bool,
@@ -101,7 +100,6 @@ pub struct WriteHandle {
 	pub(crate) write_state: Box<dyn LockBox<WriteState>>,
 	pub(crate) id: u128,
 	pub(crate) handle: Handle,
-	pub(crate) wakeup: Wakeup,
 	pub(crate) event_handler_data: Box<dyn LockBox<EventHandlerData>>,
 	pub(crate) debug_write_queue: bool,
 	pub(crate) debug_pending: bool,
@@ -249,6 +247,17 @@ where
 	) -> Result<(), Error>;
 	/// Get the eventhandler data array
 	fn event_handler_data(&self) -> Result<Array<Box<dyn LockBox<EventHandlerData>>>, Error>;
+	/// Return an instance of a [`crate::EventHandlerController`] that is associated with this
+	/// [`crate::EventHandler``].
+	fn event_handler_controller(&self) -> Result<EventHandlerController, Error>;
+}
+
+/// Since [`crate::EventHandler'] is returned as an impl trait, it is not possible to store it in
+/// data structures. This struct can be used to do some operations after the
+/// [`crate::EventHandler`] has gone out of scope.
+pub struct EventHandlerController {
+	pub(crate) data: Array<Box<dyn LockBox<EventHandlerData>>>,
+	pub(crate) thread_pool_stopper: Box<dyn LockBox<Option<ThreadPoolStopper>>>,
 }
 
 /// The structure that builds eventhandlers.
@@ -342,8 +351,7 @@ where
 	pub(crate) housekeeper: Option<Pin<Box<HouseKeeper>>>,
 	pub(crate) config: EventHandlerConfig,
 	pub(crate) data: Array<Box<dyn LockBox<EventHandlerData>>>,
-	pub(crate) wakeup: Array<Wakeup>,
-	pub(crate) thread_pool_stopper: Option<ThreadPoolStopper>,
+	pub(crate) thread_pool_stopper: Box<dyn LockBox<Option<ThreadPoolStopper>>>,
 	pub(crate) debug_write_queue: bool,
 	pub(crate) debug_pending: bool,
 	pub(crate) debug_write_error: bool,
@@ -412,6 +420,11 @@ pub struct EventHandlerData {
 	pub(crate) stop: bool,
 	pub(crate) stopped: bool,
 	pub(crate) attachments: HashMap<u128, AttachmentHolder>,
+	pub(crate) wakeup: Wakeup,
+	pub(crate) debug_write_queue: bool,
+	pub(crate) debug_pending: bool,
+	pub(crate) debug_write_error: bool,
+	pub(crate) debug_suspended: bool,
 }
 
 #[derive(Debug, Clone, Serializable, PartialEq)]

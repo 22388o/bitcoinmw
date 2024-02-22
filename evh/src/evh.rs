@@ -21,8 +21,8 @@ use crate::types::{
 	StreamInfo, Wakeup, WriteState,
 };
 use crate::{
-	ClientConnection, ConnData, ConnectionData, EventHandler, EventHandlerConfig, ServerConnection,
-	ThreadContext, WriteHandle,
+	ClientConnection, ConnData, ConnectionData, EventHandler, EventHandlerConfig,
+	EventHandlerController, ServerConnection, ThreadContext, WriteHandle,
 };
 use bmw_deps::errno::{errno, set_errno, Errno};
 use bmw_deps::rand::random;
@@ -457,7 +457,6 @@ impl WriteHandle {
 	fn new(
 		handle: Handle,
 		id: u128,
-		wakeup: Wakeup,
 		write_state: Box<dyn LockBox<WriteState>>,
 		event_handler_data: Box<dyn LockBox<EventHandlerData>>,
 		debug_write_queue: bool,
@@ -470,7 +469,6 @@ impl WriteHandle {
 		Self {
 			handle,
 			id,
-			wakeup,
 			write_state,
 			event_handler_data,
 			debug_write_queue,
@@ -515,8 +513,8 @@ impl WriteHandle {
 			let mut event_handler_data = self.event_handler_data.wlock()?;
 			let guard = event_handler_data.guard();
 			(**guard).write_queue.enqueue(self.id)?;
+			(**guard).wakeup.wakeup()?;
 		}
-		self.wakeup.wakeup()?;
 		Ok(())
 	}
 
@@ -540,8 +538,8 @@ impl WriteHandle {
 			let mut event_handler_data = self.event_handler_data.wlock()?;
 			let guard = event_handler_data.guard();
 			(**guard).write_queue.enqueue(self.id)?;
+			(**guard).wakeup.wakeup()?;
 		}
-		self.wakeup.wakeup()?;
 		Ok(())
 	}
 
@@ -668,8 +666,8 @@ impl WriteHandle {
 			let mut event_handler_data = self.event_handler_data.wlock()?;
 			let guard = event_handler_data.guard();
 			(**guard).write_queue.enqueue(self.id)?;
+			(**guard).wakeup.wakeup()?;
 		}
-		self.wakeup.wakeup()?;
 		Ok(())
 	}
 
@@ -698,8 +696,8 @@ impl WriteHandle {
 			let mut event_handler_data = self.event_handler_data.wlock()?;
 			let guard = event_handler_data.guard();
 			(**guard).write_queue.enqueue(self.id)?;
+			(**guard).wakeup.wakeup()?;
 		}
-		self.wakeup.wakeup()?;
 
 		Ok(())
 	}
@@ -728,7 +726,6 @@ impl<'a> ConnectionData<'a> {
 		rwi: &'a mut StreamInfo,
 		tid: usize,
 		slabs: &'a mut Box<dyn SlabAllocator + Send + Sync>,
-		wakeup: Wakeup,
 		event_handler_data: Box<dyn LockBox<EventHandlerData>>,
 		debug_write_queue: bool,
 		debug_pending: bool,
@@ -739,7 +736,6 @@ impl<'a> ConnectionData<'a> {
 			rwi,
 			tid,
 			slabs,
-			wakeup,
 			event_handler_data,
 			debug_write_queue,
 			debug_pending,
@@ -770,7 +766,6 @@ impl<'a> ConnData for ConnectionData<'a> {
 		WriteHandle::new(
 			self.rwi.handle,
 			self.rwi.id,
-			self.wakeup.clone(),
 			self.rwi.write_state.clone(),
 			self.event_handler_data.clone(),
 			self.debug_write_queue,
@@ -802,7 +797,15 @@ impl<'a> ConnData for ConnectionData<'a> {
 }
 
 impl EventHandlerData {
-	fn new(write_queue_size: usize, nhandles_queue_size: usize) -> Result<Self, Error> {
+	fn new(
+		write_queue_size: usize,
+		nhandles_queue_size: usize,
+		wakeup: Wakeup,
+		debug_pending: bool,
+		debug_suspended: bool,
+		debug_write_error: bool,
+		debug_write_queue: bool,
+	) -> Result<Self, Error> {
 		let connection_info = ConnectionInfo::ListenerInfo(ListenerInfo {
 			handle: 0,
 			id: 0,
@@ -816,6 +819,11 @@ impl EventHandlerData {
 			stop: false,
 			stopped: false,
 			attachments: HashMap::new(),
+			wakeup,
+			debug_pending,
+			debug_suspended,
+			debug_write_error,
+			debug_write_queue,
 		};
 		Ok(evhd)
 	}
@@ -857,16 +865,28 @@ where
 {
 	pub(crate) fn new(config: EventHandlerConfig) -> Result<Self, Error> {
 		Self::check_config(&config)?;
-		let mut data = array!(config.threads, &lock_box!(EventHandlerData::new(1, 1,)?)?)?;
+		let mut data = array!(
+			config.threads,
+			&lock_box!(EventHandlerData::new(
+				1,
+				1,
+				Wakeup::new()?,
+				false,
+				false,
+				false,
+				false
+			)?)?
+		)?;
 		for i in 0..config.threads {
 			data[i] = lock_box!(EventHandlerData::new(
 				config.write_queue_size,
-				config.nhandles_queue_size
+				config.nhandles_queue_size,
+				Wakeup::new()?,
+				false,
+				false,
+				false,
+				false
 			)?)?;
-		}
-		let mut wakeup = array!(config.threads, &Wakeup::new()?)?;
-		for i in 0..config.threads {
-			wakeup[i] = Wakeup::new()?;
 		}
 
 		let ret = Self {
@@ -877,8 +897,7 @@ where
 			on_panic: None,
 			config,
 			data,
-			wakeup,
-			thread_pool_stopper: None,
+			thread_pool_stopper: lock_box!(None)?,
 			debug_write_queue: false,
 			debug_pending: false,
 			debug_write_error: false,
@@ -902,21 +921,45 @@ where
 	#[cfg(test)]
 	fn set_debug_write_queue(&mut self, value: bool) {
 		self.debug_write_queue = value;
+		for i in 0..self.data.size() {
+			// unwrap ok in tests
+			let mut data = self.data[i].wlock_ignore_poison().unwrap();
+			let guard = data.guard();
+			(**guard).debug_write_queue = value;
+		}
 	}
 
 	#[cfg(test)]
 	fn set_debug_pending(&mut self, value: bool) {
 		self.debug_pending = value;
+		for i in 0..self.data.size() {
+			// unwrap ok in tests
+			let mut data = self.data[i].wlock_ignore_poison().unwrap();
+			let guard = data.guard();
+			(**guard).debug_pending = value;
+		}
 	}
 
 	#[cfg(test)]
 	fn set_debug_write_error(&mut self, value: bool) {
 		self.debug_write_error = value;
+		for i in 0..self.data.size() {
+			// unwrap ok in tests
+			let mut data = self.data[i].wlock_ignore_poison().unwrap();
+			let guard = data.guard();
+			(**guard).debug_write_error = value;
+		}
 	}
 
 	#[cfg(test)]
 	fn set_debug_suspended(&mut self, value: bool) {
 		self.debug_suspended = value;
+		for i in 0..self.data.size() {
+			// unwrap ok in tests
+			let mut data = self.data[i].wlock_ignore_poison().unwrap();
+			let guard = data.guard();
+			(**guard).debug_suspended = value;
+		}
 	}
 
 	#[cfg(test)]
@@ -1276,7 +1319,6 @@ where
 								Some(on_accept) => {
 									let tid = ctx.tid;
 									let rslabs = &mut ctx.read_slabs;
-									let wakeup = self.wakeup[tid].clone();
 									let data = data2[tid].clone();
 									let q = self.debug_write_queue;
 									let p = self.debug_pending;
@@ -1285,7 +1327,7 @@ where
 									let mut rwi = rwi.clone();
 									let handle = rwi.handle;
 									let mut cd = ConnectionData::new(
-										&mut rwi, tid, rslabs, wakeup, data, q, p, we, s,
+										&mut rwi, tid, rslabs, data, q, p, we, s,
 									);
 									ctx.last_process_type = LastProcessType::OnAcceptOutOfBand;
 									ctx.last_handle_oob = handle;
@@ -1538,7 +1580,6 @@ where
 						rw,
 						ctx.tid,
 						&mut ctx.read_slabs,
-						self.wakeup[ctx.tid].clone(),
 						self.data[ctx.tid].clone(),
 						self.debug_write_queue,
 						self.debug_pending,
@@ -1618,13 +1659,12 @@ where
 			let rw = &mut rw;
 			let tid = ctx.tid;
 			let rs = &mut ctx.read_slabs;
-			let wakeup = self.wakeup[ctx.tid].clone();
 			let data = self.data[ctx.tid].clone();
 			let d1 = self.debug_write_queue;
 			let d2 = self.debug_pending;
 			let d3 = self.debug_write_error;
 			let d4 = self.debug_suspended;
-			let connection_data = ConnectionData::new(rw, tid, rs, wakeup, data, d1, d2, d3, d4);
+			let connection_data = ConnectionData::new(rw, tid, rs, data, d1, d2, d3, d4);
 			connection_data.write_handle().do_write(&wbuf)?;
 		}
 
@@ -1675,13 +1715,12 @@ where
 			let rw = &mut rw;
 			let tid = ctx.tid;
 			let rs = &mut ctx.read_slabs;
-			let wakeup = self.wakeup[ctx.tid].clone();
 			let data = self.data[ctx.tid].clone();
 			let d1 = self.debug_write_queue;
 			let d2 = self.debug_pending;
 			let d3 = self.debug_write_error;
 			let d4 = self.debug_suspended;
-			let connection_data = ConnectionData::new(rw, tid, rs, wakeup, data, d1, d2, d3, d4);
+			let connection_data = ConnectionData::new(rw, tid, rs, data, d1, d2, d3, d4);
 			connection_data.write_handle().do_write(&wbuf)?;
 		}
 
@@ -2009,7 +2048,6 @@ where
 						rw,
 						ctx.tid,
 						&mut ctx.read_slabs,
-						self.wakeup[ctx.tid].clone(),
 						self.data[ctx.tid].clone(),
 						self.debug_write_queue,
 						self.debug_pending,
@@ -2076,7 +2114,6 @@ where
 						rw,
 						ctx.tid,
 						&mut ctx.read_slabs,
-						self.wakeup[ctx.tid].clone(),
 						self.data[ctx.tid].clone(),
 						self.debug_write_queue,
 						self.debug_pending,
@@ -2212,10 +2249,10 @@ where
 
 				let ci = ConnectionInfo::StreamInfo(rwi);
 				(**guard).nhandles.enqueue(ci)?;
+				(**guard).wakeup.wakeup()?;
 			}
 
 			debug!("wakeup called on tid = {}", tid)?;
-			self.wakeup[tid].wakeup()?;
 		}
 		Ok(handle)
 	}
@@ -2235,13 +2272,12 @@ where
 				let rwi = &mut rwi;
 				let tid = ctx.tid;
 				let rslabs = &mut ctx.read_slabs;
-				let wakeup = self.wakeup[ctx.tid].clone();
 				let data = self.data[ctx.tid].clone();
 				let wq = self.debug_write_queue;
 				let p = self.debug_pending;
 				let we = self.debug_write_error;
 				let s = self.debug_suspended;
-				let mut cd = ConnectionData::new(rwi, tid, rslabs, wakeup, data, wq, p, we, s);
+				let mut cd = ConnectionData::new(rwi, tid, rslabs, data, wq, p, we, s);
 				match on_accept(&mut cd, callback_context) {
 					Ok(_) => {}
 					Err(e) => {
@@ -2344,38 +2380,9 @@ where
 		Ok(())
 	}
 
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn stop(&mut self) -> Result<(), Error> {
-		if self.thread_pool_stopper.is_none() {
-			let err = err!(ErrKind::IllegalState, "start must be called before stop");
-			return Err(err);
-		}
-		for i in 0..self.wakeup.size() {
-			let mut data = self.data[i].wlock_ignore_poison()?;
-			let guard = data.guard();
-			(**guard).stop = true;
-			self.wakeup[i].wakeup()?;
-		}
-
-		loop {
-			let mut stopped = true;
-			for i in 0..self.data.size() {
-				{
-					let mut data = self.data[i].wlock_ignore_poison()?;
-					let guard = data.guard();
-					if !(**guard).stopped {
-						stopped = false;
-					}
-				}
-			}
-			if stopped {
-				break;
-			}
-		}
-
-		self.thread_pool_stopper.as_mut().unwrap().stop()?;
-
-		Ok(())
+		let mut evhctlr = self.event_handler_controller()?;
+		evhctlr.stop()
 	}
 
 	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
@@ -2392,7 +2399,6 @@ where
 		let mut v_panic = vec![];
 		for i in 0..self.config.threads {
 			let evh = self.clone();
-			let wakeup = self.wakeup.clone();
 			let ev_in = self.config.max_events_in;
 			let max_ev = self.config.max_events;
 			let max_hpt = self.config.max_handles_per_thread;
@@ -2403,11 +2409,11 @@ where
 			let thread_context = lock_box!(thread_context)?;
 			v.push((
 				evh.clone(),
-				wakeup.clone(),
+				self.data[i].clone(),
 				ctx.clone(),
 				thread_context.clone(),
 			));
-			v_panic.push((evh, wakeup, ctx, thread_context));
+			v_panic.push((evh, self.data[i].clone(), ctx, thread_context));
 		}
 
 		let mut executor = lock_box!(tp.executor()?)?;
@@ -2418,7 +2424,11 @@ where
 		tp.set_on_panic(move |id, e| -> Result<(), Error> {
 			let id: usize = id.try_into()?;
 			let mut evh = v_panic[id].0.clone();
-			let mut wakeup = v_panic[id].1.clone();
+			let mut wakeup = {
+				let mut data = v_panic[id].1.wlock_ignore_poison()?;
+				let guard = data.guard();
+				(**guard).wakeup.clone()
+			};
 			let mut ctx = v_panic[id].2.clone();
 			let mut thread_context = v_panic[id].3.clone();
 			let mut thread_context_clone = thread_context.clone();
@@ -2453,12 +2463,11 @@ where
 					let thread_context = thread_context.guard();
 
 					let evh = &mut evh;
-					let wakeup = &mut wakeup[id];
 					let ctx = &mut *ctx;
 					let thc = &mut *thread_context;
 					let isr = true;
 
-					Self::execute_thread(evh, wakeup, ctx, thc, isr)
+					Self::execute_thread(evh, &mut wakeup, ctx, thc, isr)
 				},
 				id.try_into()?,
 			)?;
@@ -2475,13 +2484,16 @@ where
 
 		for i in 0..self.config.threads {
 			let mut evh = v[i].0.clone();
-			let mut wakeup = v[i].1.clone();
+			//let mut wakeup = v[i].1.clone();
+			let mut wakeup = {
+				let mut data = v[i].1.wlock_ignore_poison()?;
+				let guard = data.guard();
+				(**guard).wakeup.clone()
+			};
 			let mut ctx = v[i].2.clone();
 			let mut thread_context = v[i].3.clone();
 
 			execute!(tp, i.try_into()?, {
-				let tid = i;
-
 				let mut ctx = ctx.wlock_ignore_poison()?;
 				let ctx = ctx.guard();
 
@@ -2489,86 +2501,27 @@ where
 				let thread_context = thread_context.guard();
 
 				let evh = &mut evh;
-				let wakeup = &mut wakeup[tid];
 				let ctx = &mut *ctx;
 				let thc = &mut *thread_context;
 				let isr = false;
-				Self::execute_thread(evh, wakeup, ctx, thc, isr)
+				Self::execute_thread(evh, &mut wakeup, ctx, thc, isr)
 			})?;
 		}
 
-		self.thread_pool_stopper = Some(tp.stopper()?);
+		let mut thread_pool_stopper = self.thread_pool_stopper.wlock()?;
+		let thread_pool_stopper = thread_pool_stopper.guard();
+		(**thread_pool_stopper) = Some(tp.stopper()?);
 
 		Ok(())
 	}
 
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn add_client(
 		&mut self,
 		connection: ClientConnection,
 		attachment: Box<dyn Any + Send + Sync>,
 	) -> Result<WriteHandle, Error> {
-		let attachment = AttachmentHolder {
-			attachment: Arc::new(attachment),
-		};
-		let tid: usize = random::<usize>() % self.data.size();
-		let id: u128 = random::<u128>();
-		let handle = connection.handle;
-		let ws = WriteState {
-			write_buffer: vec![],
-			flags: 0,
-		};
-		let write_state = lock_box!(ws)?;
-
-		let tls_client = match connection.tls_config {
-			Some(tls_config) => {
-				let server_name: &str = &tls_config.sni_host;
-				let config = make_config(tls_config.trusted_cert_full_chain_file)?;
-				let mut rc_conn = RCConn::new(config, server_name.try_into()?)?;
-				rc_conn.set_buffer_limit(None);
-				let tls_client = Some(lock_box!(rc_conn)?);
-				tls_client
-			}
-			None => None,
-		};
-		let wh = WriteHandle::new(
-			handle,
-			id,
-			self.wakeup[tid].clone(),
-			write_state.clone(),
-			self.data[tid].clone(),
-			self.debug_write_queue,
-			self.debug_pending,
-			self.debug_write_error,
-			self.debug_suspended,
-			None,
-			tls_client.clone(),
-		);
-
-		let rwi = StreamInfo {
-			id,
-			handle,
-			accept_handle: None,
-			accept_id: None,
-			write_state,
-			first_slab: u32::MAX,
-			last_slab: u32::MAX,
-			slab_offset: 0,
-			is_accepted: false,
-			tls_client,
-			tls_server: None,
-		};
-
-		{
-			let mut data = self.data[tid].wlock_ignore_poison()?;
-			let guard = data.guard();
-			let ci = ConnectionInfo::StreamInfo(rwi);
-			(**guard).nhandles.enqueue(ci)?;
-			(**guard).attachments.insert(id, attachment);
-		}
-
-		self.wakeup[tid].wakeup()?;
-		Ok(wh)
+		let mut evhctlr = self.event_handler_controller()?;
+		evhctlr.add_client(connection, attachment)
 	}
 
 	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
@@ -2608,7 +2561,6 @@ where
 			// check for 0 which means to skip this handle (port not reused)
 			if handle != 0 {
 				let mut data = self.data[i].wlock_ignore_poison()?;
-				let wakeup = &mut self.wakeup[i];
 				let guard = data.guard();
 				let id = random();
 				let li = ListenerInfo {
@@ -2628,7 +2580,7 @@ where
 					id,
 					attachment.clone()
 				)?;
-				wakeup.wakeup()?;
+				(**guard).wakeup.wakeup()?;
 			}
 		}
 		Ok(())
@@ -2636,6 +2588,123 @@ where
 
 	fn event_handler_data(&self) -> Result<Array<Box<dyn LockBox<EventHandlerData>>>, Error> {
 		Ok(self.data.clone())
+	}
+
+	fn event_handler_controller(&self) -> Result<EventHandlerController, Error> {
+		Ok(EventHandlerController {
+			data: self.data.clone(),
+			thread_pool_stopper: self.thread_pool_stopper.clone(),
+		})
+	}
+}
+
+impl EventHandlerController {
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
+	pub fn stop(&mut self) -> Result<(), Error> {
+		let mut thread_pool_stopper = self.thread_pool_stopper.wlock()?;
+		let thread_pool_stopper = thread_pool_stopper.guard();
+		if (**thread_pool_stopper).is_none() {
+			let err = err!(ErrKind::IllegalState, "start must be called before stop");
+			return Err(err);
+		}
+		for i in 0..self.data.size() {
+			let mut data = self.data[i].wlock_ignore_poison()?;
+			let guard = data.guard();
+			(**guard).stop = true;
+			(**guard).wakeup.wakeup()?;
+		}
+
+		loop {
+			let mut stopped = true;
+			for i in 0..self.data.size() {
+				{
+					let mut data = self.data[i].wlock_ignore_poison()?;
+					let guard = data.guard();
+					if !(**guard).stopped {
+						stopped = false;
+					}
+				}
+			}
+			if stopped {
+				break;
+			}
+		}
+
+		(**thread_pool_stopper).as_mut().unwrap().stop()?;
+
+		Ok(())
+	}
+
+	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
+	pub fn add_client(
+		&mut self,
+		connection: ClientConnection,
+		attachment: Box<dyn Any + Send + Sync>,
+	) -> Result<WriteHandle, Error> {
+		let attachment = AttachmentHolder {
+			attachment: Arc::new(attachment),
+		};
+		let tid: usize = random::<usize>() % self.data.size();
+		let id: u128 = random::<u128>();
+		let handle = connection.handle;
+		let ws = WriteState {
+			write_buffer: vec![],
+			flags: 0,
+		};
+		let write_state = lock_box!(ws)?;
+
+		let tls_client = match connection.tls_config {
+			Some(tls_config) => {
+				let server_name: &str = &tls_config.sni_host;
+				let config = make_config(tls_config.trusted_cert_full_chain_file)?;
+				let mut rc_conn = RCConn::new(config, server_name.try_into()?)?;
+				rc_conn.set_buffer_limit(None);
+				let tls_client = Some(lock_box!(rc_conn)?);
+				tls_client
+			}
+			None => None,
+		};
+
+		let wh = {
+			let data_clone = self.data[tid].clone();
+			let mut data = self.data[tid].wlock_ignore_poison()?;
+			let guard = data.guard();
+
+			let wh = WriteHandle::new(
+				handle,
+				id,
+				write_state.clone(),
+				data_clone,
+				(**guard).debug_write_queue,
+				(**guard).debug_pending,
+				(**guard).debug_write_error,
+				(**guard).debug_suspended,
+				None,
+				tls_client.clone(),
+			);
+
+			let rwi = StreamInfo {
+				id,
+				handle,
+				accept_handle: None,
+				accept_id: None,
+				write_state,
+				first_slab: u32::MAX,
+				last_slab: u32::MAX,
+				slab_offset: 0,
+				is_accepted: false,
+				tls_client,
+				tls_server: None,
+			};
+
+			let ci = ConnectionInfo::StreamInfo(rwi);
+			(**guard).nhandles.enqueue(ci)?;
+			(**guard).attachments.insert(id, attachment);
+			(**guard).wakeup.wakeup()?;
+			wh
+		};
+
+		Ok(wh)
 	}
 }
 
@@ -2877,7 +2946,7 @@ mod test {
 		let threads = 2;
 		let config = EventHandlerConfig {
 			threads,
-			housekeeping_frequency_millis: 100_000,
+			housekeeping_frequency_millis: 10_000,
 			read_slab_count: 2,
 			max_handles_per_thread: 3,
 			..Default::default()
@@ -2958,9 +3027,12 @@ mod test {
 		assert_eq!(&buf[0..len], b"test1");
 		info!("read back buf[{}] = {:?}", len, buf)?;
 		connection.write(b"test2")?;
+		info!("write complete")?;
 		let len = connection.read(&mut buf)?;
+		info!("read bcak len = {}", len)?;
 		assert_eq!(&buf[0..len], b"test2");
 		evh.stop()?;
+		info!("stop complete")?;
 
 		Ok(())
 	}
@@ -3233,7 +3305,6 @@ mod test {
 				is_reuse_port: false,
 			};
 			evh.add_server(sc, Box::new(""))?;
-			sleep(Duration::from_millis(5_000));
 
 			let connection = TcpStream::connect(addr)?;
 			connection.set_nonblocking(true)?;
@@ -3254,6 +3325,7 @@ mod test {
 				}),
 			};
 			let mut wh = evh.add_client(client, Box::new(""))?;
+			sleep(Duration::from_millis(5_000));
 
 			wh.write(b"test1")?;
 			let mut count = 0;
@@ -3351,6 +3423,7 @@ mod test {
 			};
 			info!("client handle = {}", connection_handle)?;
 			let mut wh = evh.add_client(client, Box::new(""))?;
+			sleep(Duration::from_millis(5_000));
 
 			let _ = wh.write(b"test1");
 			sleep(Duration::from_millis(1_000));
@@ -3841,7 +3914,6 @@ mod test {
 			is_reuse_port: false,
 		};
 		evh.add_server(sc, Box::new(""))?;
-		sleep(Duration::from_millis(5_000));
 
 		let connection = TcpStream::connect(addr)?;
 		#[cfg(unix)]
@@ -3858,6 +3930,7 @@ mod test {
 			tls_config: None,
 		};
 		let mut wh = evh.add_client(client, Box::new(""))?;
+		sleep(Duration::from_millis(1_000));
 
 		wh.write(b"test1")?;
 		let mut count = 0;
@@ -6026,6 +6099,7 @@ mod test {
 		};
 
 		let mut wh = evh.add_client(client, Box::new(""))?;
+		sleep(Duration::from_millis(5_000));
 
 		wh.write(&big_msg_clone)?;
 		info!("big write complete")?;
@@ -6204,6 +6278,7 @@ mod test {
 		};
 
 		let mut wh = evh.add_client(client, Box::new(""))?;
+		sleep(Duration::from_millis(5_000));
 
 		wh.write(&big_msg_clone)?;
 		info!("big write complete")?;
@@ -6379,6 +6454,7 @@ mod test {
 		};
 
 		let mut wh = evh.add_client(client, Box::new(""))?;
+		sleep(Duration::from_millis(5_000));
 
 		wh.write(&big_msg_clone)?;
 		info!("big write complete")?;
@@ -7190,6 +7266,7 @@ mod test {
 			tls_config: None,
 		};
 		let mut wh = evh.add_client(client, Box::new(""))?;
+		sleep(Duration::from_millis(5_000));
 
 		wh.trigger_on_read()?;
 		sleep(Duration::from_millis(1_000));
@@ -7900,7 +7977,15 @@ mod test {
 				flags: 0,
 			})?,
 			0,
-			&mut lock_box!(EventHandlerData::new(100, 100)?)?,
+			&mut lock_box!(EventHandlerData::new(
+				100,
+				100,
+				Wakeup::new()?,
+				false,
+				false,
+				false,
+				false
+			)?)?,
 		)
 		.close()
 		.is_ok());

@@ -250,6 +250,7 @@ pub trait HttpConnection {
 	fn send(&mut self, req: &Box<dyn HttpRequest>, handler: &HttpHandler) -> Result<(), Error>;
 }
 
+#[derive(Clone)]
 pub struct HttpClientConfig {}
 pub struct HttpConnectionConfig {}
 pub struct HttpRequestConfig {}
@@ -258,6 +259,7 @@ pub struct HttpRequestConfig {}
 pub(crate) struct HttpClientImpl {}
 pub(crate) struct HttpRequestImpl {}
 pub(crate) struct HttpConnectionImpl {}
+pub(crate) struct HttpClientContext {}
 
 pub(crate) struct HttpServerImpl {
 	pub(crate) config: HttpConfig,
