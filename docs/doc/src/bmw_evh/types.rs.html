@@ -446,6 +446,19 @@
 <a href="#445" id="445">445</a>
 <a href="#446" id="446">446</a>
 <a href="#447" id="447">447</a>
+<a href="#448" id="448">448</a>
+<a href="#449" id="449">449</a>
+<a href="#450" id="450">450</a>
+<a href="#451" id="451">451</a>
+<a href="#452" id="452">452</a>
+<a href="#453" id="453">453</a>
+<a href="#454" id="454">454</a>
+<a href="#455" id="455">455</a>
+<a href="#456" id="456">456</a>
+<a href="#457" id="457">457</a>
+<a href="#458" id="458">458</a>
+<a href="#459" id="459">459</a>
+<a href="#460" id="460">460</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -535,7 +548,6 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) rwi: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>StreamInfo,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) tid: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) slabs: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) wakeup: Wakeup,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) event_handler_data: Box&lt;<span class="kw">dyn </span>LockBox&lt;EventHandlerData&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_write_queue: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_pending: bool,
@@ -549,7 +561,6 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) write_state: Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) id: u128,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) handle: Handle,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) wakeup: Wakeup,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) event_handler_data: Box&lt;<span class="kw">dyn </span>LockBox&lt;EventHandlerData&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_write_queue: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_pending: bool,
@@ -697,6 +708,17 @@
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="doccomment">/// Get the eventhandler data array
 	</span><span class="kw">fn </span>event_handler_data(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Array&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;EventHandlerData&gt;&gt;&gt;, Error&gt;;
+	<span class="doccomment">/// Return an instance of a [`crate::EventHandlerController`] that is associated with this
+	/// [`crate::EventHandler``].
+	</span><span class="kw">fn </span>event_handler_controller(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;EventHandlerController, Error&gt;;
+}
+
+<span class="doccomment">/// Since [`crate::EventHandler'] is returned as an impl trait, it is not possible to store it in
+/// data structures. This struct can be used to do some operations after the
+/// [`crate::EventHandler`] has gone out of scope.
+</span><span class="kw">pub struct </span>EventHandlerController {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) data: Array&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;EventHandlerData&gt;&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) thread_pool_stopper: Box&lt;<span class="kw">dyn </span>LockBox&lt;<span class="prelude-ty">Option</span>&lt;ThreadPoolStopper&gt;&gt;&gt;,
 }
 
 <span class="doccomment">/// The structure that builds eventhandlers.
@@ -790,8 +812,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) housekeeper: <span class="prelude-ty">Option</span>&lt;Pin&lt;Box&lt;HouseKeeper&gt;&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) config: EventHandlerConfig,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) data: Array&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;EventHandlerData&gt;&gt;&gt;,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) wakeup: Array&lt;Wakeup&gt;,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) thread_pool_stopper: <span class="prelude-ty">Option</span>&lt;ThreadPoolStopper&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) thread_pool_stopper: Box&lt;<span class="kw">dyn </span>LockBox&lt;<span class="prelude-ty">Option</span>&lt;ThreadPoolStopper&gt;&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_write_queue: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_pending: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_write_error: bool,
@@ -860,6 +881,11 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) stop: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) stopped: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) attachments: HashMap&lt;u128, AttachmentHolder&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) wakeup: Wakeup,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_write_queue: bool,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_pending: bool,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_write_error: bool,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_suspended: bool,
 }
 
 <span class="attr">#[derive(Debug, Clone, Serializable, PartialEq)]

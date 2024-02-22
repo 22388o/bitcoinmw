@@ -7964,6 +7964,91 @@
 <a href="#7963" id="7963">7963</a>
 <a href="#7964" id="7964">7964</a>
 <a href="#7965" id="7965">7965</a>
+<a href="#7966" id="7966">7966</a>
+<a href="#7967" id="7967">7967</a>
+<a href="#7968" id="7968">7968</a>
+<a href="#7969" id="7969">7969</a>
+<a href="#7970" id="7970">7970</a>
+<a href="#7971" id="7971">7971</a>
+<a href="#7972" id="7972">7972</a>
+<a href="#7973" id="7973">7973</a>
+<a href="#7974" id="7974">7974</a>
+<a href="#7975" id="7975">7975</a>
+<a href="#7976" id="7976">7976</a>
+<a href="#7977" id="7977">7977</a>
+<a href="#7978" id="7978">7978</a>
+<a href="#7979" id="7979">7979</a>
+<a href="#7980" id="7980">7980</a>
+<a href="#7981" id="7981">7981</a>
+<a href="#7982" id="7982">7982</a>
+<a href="#7983" id="7983">7983</a>
+<a href="#7984" id="7984">7984</a>
+<a href="#7985" id="7985">7985</a>
+<a href="#7986" id="7986">7986</a>
+<a href="#7987" id="7987">7987</a>
+<a href="#7988" id="7988">7988</a>
+<a href="#7989" id="7989">7989</a>
+<a href="#7990" id="7990">7990</a>
+<a href="#7991" id="7991">7991</a>
+<a href="#7992" id="7992">7992</a>
+<a href="#7993" id="7993">7993</a>
+<a href="#7994" id="7994">7994</a>
+<a href="#7995" id="7995">7995</a>
+<a href="#7996" id="7996">7996</a>
+<a href="#7997" id="7997">7997</a>
+<a href="#7998" id="7998">7998</a>
+<a href="#7999" id="7999">7999</a>
+<a href="#8000" id="8000">8000</a>
+<a href="#8001" id="8001">8001</a>
+<a href="#8002" id="8002">8002</a>
+<a href="#8003" id="8003">8003</a>
+<a href="#8004" id="8004">8004</a>
+<a href="#8005" id="8005">8005</a>
+<a href="#8006" id="8006">8006</a>
+<a href="#8007" id="8007">8007</a>
+<a href="#8008" id="8008">8008</a>
+<a href="#8009" id="8009">8009</a>
+<a href="#8010" id="8010">8010</a>
+<a href="#8011" id="8011">8011</a>
+<a href="#8012" id="8012">8012</a>
+<a href="#8013" id="8013">8013</a>
+<a href="#8014" id="8014">8014</a>
+<a href="#8015" id="8015">8015</a>
+<a href="#8016" id="8016">8016</a>
+<a href="#8017" id="8017">8017</a>
+<a href="#8018" id="8018">8018</a>
+<a href="#8019" id="8019">8019</a>
+<a href="#8020" id="8020">8020</a>
+<a href="#8021" id="8021">8021</a>
+<a href="#8022" id="8022">8022</a>
+<a href="#8023" id="8023">8023</a>
+<a href="#8024" id="8024">8024</a>
+<a href="#8025" id="8025">8025</a>
+<a href="#8026" id="8026">8026</a>
+<a href="#8027" id="8027">8027</a>
+<a href="#8028" id="8028">8028</a>
+<a href="#8029" id="8029">8029</a>
+<a href="#8030" id="8030">8030</a>
+<a href="#8031" id="8031">8031</a>
+<a href="#8032" id="8032">8032</a>
+<a href="#8033" id="8033">8033</a>
+<a href="#8034" id="8034">8034</a>
+<a href="#8035" id="8035">8035</a>
+<a href="#8036" id="8036">8036</a>
+<a href="#8037" id="8037">8037</a>
+<a href="#8038" id="8038">8038</a>
+<a href="#8039" id="8039">8039</a>
+<a href="#8040" id="8040">8040</a>
+<a href="#8041" id="8041">8041</a>
+<a href="#8042" id="8042">8042</a>
+<a href="#8043" id="8043">8043</a>
+<a href="#8044" id="8044">8044</a>
+<a href="#8045" id="8045">8045</a>
+<a href="#8046" id="8046">8046</a>
+<a href="#8047" id="8047">8047</a>
+<a href="#8048" id="8048">8048</a>
+<a href="#8049" id="8049">8049</a>
+<a href="#8050" id="8050">8050</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -7987,8 +8072,8 @@
 	StreamInfo, Wakeup, WriteState,
 };
 <span class="kw">use crate</span>::{
-	ClientConnection, ConnData, ConnectionData, EventHandler, EventHandlerConfig, ServerConnection,
-	ThreadContext, WriteHandle,
+	ClientConnection, ConnData, ConnectionData, EventHandler, EventHandlerConfig,
+	EventHandlerController, ServerConnection, ThreadContext, WriteHandle,
 };
 <span class="kw">use </span>bmw_deps::errno::{errno, set_errno, Errno};
 <span class="kw">use </span>bmw_deps::rand::random;
@@ -8423,7 +8508,6 @@
 	<span class="kw">fn </span>new(
 		handle: Handle,
 		id: u128,
-		wakeup: Wakeup,
 		write_state: Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;,
 		event_handler_data: Box&lt;<span class="kw">dyn </span>LockBox&lt;EventHandlerData&gt;&gt;,
 		debug_write_queue: bool,
@@ -8436,7 +8520,6 @@
 		<span class="self">Self </span>{
 			handle,
 			id,
-			wakeup,
 			write_state,
 			event_handler_data,
 			debug_write_queue,
@@ -8481,8 +8564,8 @@
 			<span class="kw">let </span><span class="kw-2">mut </span>event_handler_data = <span class="self">self</span>.event_handler_data.wlock()<span class="question-mark">?</span>;
 			<span class="kw">let </span>guard = event_handler_data.guard();
 			(<span class="kw-2">**</span>guard).write_queue.enqueue(<span class="self">self</span>.id)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>guard).wakeup.wakeup()<span class="question-mark">?</span>;
 		}
-		<span class="self">self</span>.wakeup.wakeup()<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 
@@ -8506,8 +8589,8 @@
 			<span class="kw">let </span><span class="kw-2">mut </span>event_handler_data = <span class="self">self</span>.event_handler_data.wlock()<span class="question-mark">?</span>;
 			<span class="kw">let </span>guard = event_handler_data.guard();
 			(<span class="kw-2">**</span>guard).write_queue.enqueue(<span class="self">self</span>.id)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>guard).wakeup.wakeup()<span class="question-mark">?</span>;
 		}
-		<span class="self">self</span>.wakeup.wakeup()<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 
@@ -8634,8 +8717,8 @@
 			<span class="kw">let </span><span class="kw-2">mut </span>event_handler_data = <span class="self">self</span>.event_handler_data.wlock()<span class="question-mark">?</span>;
 			<span class="kw">let </span>guard = event_handler_data.guard();
 			(<span class="kw-2">**</span>guard).write_queue.enqueue(<span class="self">self</span>.id)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>guard).wakeup.wakeup()<span class="question-mark">?</span>;
 		}
-		<span class="self">self</span>.wakeup.wakeup()<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 
@@ -8664,8 +8747,8 @@
 			<span class="kw">let </span><span class="kw-2">mut </span>event_handler_data = <span class="self">self</span>.event_handler_data.wlock()<span class="question-mark">?</span>;
 			<span class="kw">let </span>guard = event_handler_data.guard();
 			(<span class="kw-2">**</span>guard).write_queue.enqueue(<span class="self">self</span>.id)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>guard).wakeup.wakeup()<span class="question-mark">?</span>;
 		}
-		<span class="self">self</span>.wakeup.wakeup()<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -8694,7 +8777,6 @@
 		rwi: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>StreamInfo,
 		tid: usize,
 		slabs: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;,
-		wakeup: Wakeup,
 		event_handler_data: Box&lt;<span class="kw">dyn </span>LockBox&lt;EventHandlerData&gt;&gt;,
 		debug_write_queue: bool,
 		debug_pending: bool,
@@ -8705,7 +8787,6 @@
 			rwi,
 			tid,
 			slabs,
-			wakeup,
 			event_handler_data,
 			debug_write_queue,
 			debug_pending,
@@ -8736,7 +8817,6 @@
 		WriteHandle::new(
 			<span class="self">self</span>.rwi.handle,
 			<span class="self">self</span>.rwi.id,
-			<span class="self">self</span>.wakeup.clone(),
 			<span class="self">self</span>.rwi.write_state.clone(),
 			<span class="self">self</span>.event_handler_data.clone(),
 			<span class="self">self</span>.debug_write_queue,
@@ -8768,7 +8848,15 @@
 }
 
 <span class="kw">impl </span>EventHandlerData {
-	<span class="kw">fn </span>new(write_queue_size: usize, nhandles_queue_size: usize) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
+	<span class="kw">fn </span>new(
+		write_queue_size: usize,
+		nhandles_queue_size: usize,
+		wakeup: Wakeup,
+		debug_pending: bool,
+		debug_suspended: bool,
+		debug_write_error: bool,
+		debug_write_queue: bool,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
 		<span class="kw">let </span>connection_info = ConnectionInfo::ListenerInfo(ListenerInfo {
 			handle: <span class="number">0</span>,
 			id: <span class="number">0</span>,
@@ -8782,6 +8870,11 @@
 			stop: <span class="bool-val">false</span>,
 			stopped: <span class="bool-val">false</span>,
 			attachments: HashMap::new(),
+			wakeup,
+			debug_pending,
+			debug_suspended,
+			debug_write_error,
+			debug_write_queue,
 		};
 		<span class="prelude-val">Ok</span>(evhd)
 	}
@@ -8823,16 +8916,28 @@
 {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(config: EventHandlerConfig) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
 		<span class="self">Self</span>::check_config(<span class="kw-2">&amp;</span>config)<span class="question-mark">?</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="macro">array!</span>(config.threads, <span class="kw-2">&amp;</span><span class="macro">lock_box!</span>(EventHandlerData::new(<span class="number">1</span>, <span class="number">1</span>,)<span class="question-mark">?</span>)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="macro">array!</span>(
+			config.threads,
+			<span class="kw-2">&amp;</span><span class="macro">lock_box!</span>(EventHandlerData::new(
+				<span class="number">1</span>,
+				<span class="number">1</span>,
+				Wakeup::new()<span class="question-mark">?</span>,
+				<span class="bool-val">false</span>,
+				<span class="bool-val">false</span>,
+				<span class="bool-val">false</span>,
+				<span class="bool-val">false
+			</span>)<span class="question-mark">?</span>)<span class="question-mark">?
+		</span>)<span class="question-mark">?</span>;
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..config.threads {
 			data[i] = <span class="macro">lock_box!</span>(EventHandlerData::new(
 				config.write_queue_size,
-				config.nhandles_queue_size
-			)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		}
-		<span class="kw">let </span><span class="kw-2">mut </span>wakeup = <span class="macro">array!</span>(config.threads, <span class="kw-2">&amp;</span>Wakeup::new()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..config.threads {
-			wakeup[i] = Wakeup::new()<span class="question-mark">?</span>;
+				config.nhandles_queue_size,
+				Wakeup::new()<span class="question-mark">?</span>,
+				<span class="bool-val">false</span>,
+				<span class="bool-val">false</span>,
+				<span class="bool-val">false</span>,
+				<span class="bool-val">false
+			</span>)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 		}
 
 		<span class="kw">let </span>ret = <span class="self">Self </span>{
@@ -8843,8 +8948,7 @@
 			on_panic: <span class="prelude-val">None</span>,
 			config,
 			data,
-			wakeup,
-			thread_pool_stopper: <span class="prelude-val">None</span>,
+			thread_pool_stopper: <span class="macro">lock_box!</span>(<span class="prelude-val">None</span>)<span class="question-mark">?</span>,
 			debug_write_queue: <span class="bool-val">false</span>,
 			debug_pending: <span class="bool-val">false</span>,
 			debug_write_error: <span class="bool-val">false</span>,
@@ -8868,21 +8972,45 @@
 	<span class="attr">#[cfg(test)]
 	</span><span class="kw">fn </span>set_debug_write_queue(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: bool) {
 		<span class="self">self</span>.debug_write_queue = value;
+		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.data.size() {
+			<span class="comment">// unwrap ok in tests
+			</span><span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[i].wlock_ignore_poison().unwrap();
+			<span class="kw">let </span>guard = data.guard();
+			(<span class="kw-2">**</span>guard).debug_write_queue = value;
+		}
 	}
 
 	<span class="attr">#[cfg(test)]
 	</span><span class="kw">fn </span>set_debug_pending(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: bool) {
 		<span class="self">self</span>.debug_pending = value;
+		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.data.size() {
+			<span class="comment">// unwrap ok in tests
+			</span><span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[i].wlock_ignore_poison().unwrap();
+			<span class="kw">let </span>guard = data.guard();
+			(<span class="kw-2">**</span>guard).debug_pending = value;
+		}
 	}
 
 	<span class="attr">#[cfg(test)]
 	</span><span class="kw">fn </span>set_debug_write_error(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: bool) {
 		<span class="self">self</span>.debug_write_error = value;
+		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.data.size() {
+			<span class="comment">// unwrap ok in tests
+			</span><span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[i].wlock_ignore_poison().unwrap();
+			<span class="kw">let </span>guard = data.guard();
+			(<span class="kw-2">**</span>guard).debug_write_error = value;
+		}
 	}
 
 	<span class="attr">#[cfg(test)]
 	</span><span class="kw">fn </span>set_debug_suspended(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: bool) {
 		<span class="self">self</span>.debug_suspended = value;
+		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.data.size() {
+			<span class="comment">// unwrap ok in tests
+			</span><span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[i].wlock_ignore_poison().unwrap();
+			<span class="kw">let </span>guard = data.guard();
+			(<span class="kw-2">**</span>guard).debug_suspended = value;
+		}
 	}
 
 	<span class="attr">#[cfg(test)]
@@ -9242,7 +9370,6 @@
 								<span class="prelude-val">Some</span>(on_accept) =&gt; {
 									<span class="kw">let </span>tid = ctx.tid;
 									<span class="kw">let </span>rslabs = <span class="kw-2">&amp;mut </span>ctx.read_slabs;
-									<span class="kw">let </span>wakeup = <span class="self">self</span>.wakeup[tid].clone();
 									<span class="kw">let </span>data = data2[tid].clone();
 									<span class="kw">let </span>q = <span class="self">self</span>.debug_write_queue;
 									<span class="kw">let </span>p = <span class="self">self</span>.debug_pending;
@@ -9251,7 +9378,7 @@
 									<span class="kw">let </span><span class="kw-2">mut </span>rwi = rwi.clone();
 									<span class="kw">let </span>handle = rwi.handle;
 									<span class="kw">let </span><span class="kw-2">mut </span>cd = ConnectionData::new(
-										<span class="kw-2">&amp;mut </span>rwi, tid, rslabs, wakeup, data, q, p, we, s,
+										<span class="kw-2">&amp;mut </span>rwi, tid, rslabs, data, q, p, we, s,
 									);
 									ctx.last_process_type = LastProcessType::OnAcceptOutOfBand;
 									ctx.last_handle_oob = handle;
@@ -9504,7 +9631,6 @@
 						rw,
 						ctx.tid,
 						<span class="kw-2">&amp;mut </span>ctx.read_slabs,
-						<span class="self">self</span>.wakeup[ctx.tid].clone(),
 						<span class="self">self</span>.data[ctx.tid].clone(),
 						<span class="self">self</span>.debug_write_queue,
 						<span class="self">self</span>.debug_pending,
@@ -9584,13 +9710,12 @@
 			<span class="kw">let </span>rw = <span class="kw-2">&amp;mut </span>rw;
 			<span class="kw">let </span>tid = ctx.tid;
 			<span class="kw">let </span>rs = <span class="kw-2">&amp;mut </span>ctx.read_slabs;
-			<span class="kw">let </span>wakeup = <span class="self">self</span>.wakeup[ctx.tid].clone();
 			<span class="kw">let </span>data = <span class="self">self</span>.data[ctx.tid].clone();
 			<span class="kw">let </span>d1 = <span class="self">self</span>.debug_write_queue;
 			<span class="kw">let </span>d2 = <span class="self">self</span>.debug_pending;
 			<span class="kw">let </span>d3 = <span class="self">self</span>.debug_write_error;
 			<span class="kw">let </span>d4 = <span class="self">self</span>.debug_suspended;
-			<span class="kw">let </span>connection_data = ConnectionData::new(rw, tid, rs, wakeup, data, d1, d2, d3, d4);
+			<span class="kw">let </span>connection_data = ConnectionData::new(rw, tid, rs, data, d1, d2, d3, d4);
 			connection_data.write_handle().do_write(<span class="kw-2">&amp;</span>wbuf)<span class="question-mark">?</span>;
 		}
 
@@ -9641,13 +9766,12 @@
 			<span class="kw">let </span>rw = <span class="kw-2">&amp;mut </span>rw;
 			<span class="kw">let </span>tid = ctx.tid;
 			<span class="kw">let </span>rs = <span class="kw-2">&amp;mut </span>ctx.read_slabs;
-			<span class="kw">let </span>wakeup = <span class="self">self</span>.wakeup[ctx.tid].clone();
 			<span class="kw">let </span>data = <span class="self">self</span>.data[ctx.tid].clone();
 			<span class="kw">let </span>d1 = <span class="self">self</span>.debug_write_queue;
 			<span class="kw">let </span>d2 = <span class="self">self</span>.debug_pending;
 			<span class="kw">let </span>d3 = <span class="self">self</span>.debug_write_error;
 			<span class="kw">let </span>d4 = <span class="self">self</span>.debug_suspended;
-			<span class="kw">let </span>connection_data = ConnectionData::new(rw, tid, rs, wakeup, data, d1, d2, d3, d4);
+			<span class="kw">let </span>connection_data = ConnectionData::new(rw, tid, rs, data, d1, d2, d3, d4);
 			connection_data.write_handle().do_write(<span class="kw-2">&amp;</span>wbuf)<span class="question-mark">?</span>;
 		}
 
@@ -9975,7 +10099,6 @@
 						rw,
 						ctx.tid,
 						<span class="kw-2">&amp;mut </span>ctx.read_slabs,
-						<span class="self">self</span>.wakeup[ctx.tid].clone(),
 						<span class="self">self</span>.data[ctx.tid].clone(),
 						<span class="self">self</span>.debug_write_queue,
 						<span class="self">self</span>.debug_pending,
@@ -10042,7 +10165,6 @@
 						rw,
 						ctx.tid,
 						<span class="kw-2">&amp;mut </span>ctx.read_slabs,
-						<span class="self">self</span>.wakeup[ctx.tid].clone(),
 						<span class="self">self</span>.data[ctx.tid].clone(),
 						<span class="self">self</span>.debug_write_queue,
 						<span class="self">self</span>.debug_pending,
@@ -10178,10 +10300,10 @@
 
 				<span class="kw">let </span>ci = ConnectionInfo::StreamInfo(rwi);
 				(<span class="kw-2">**</span>guard).nhandles.enqueue(ci)<span class="question-mark">?</span>;
+				(<span class="kw-2">**</span>guard).wakeup.wakeup()<span class="question-mark">?</span>;
 			}
 
 			<span class="macro">debug!</span>(<span class="string">"wakeup called on tid = {}"</span>, tid)<span class="question-mark">?</span>;
-			<span class="self">self</span>.wakeup[tid].wakeup()<span class="question-mark">?</span>;
 		}
 		<span class="prelude-val">Ok</span>(handle)
 	}
@@ -10201,13 +10323,12 @@
 				<span class="kw">let </span>rwi = <span class="kw-2">&amp;mut </span>rwi;
 				<span class="kw">let </span>tid = ctx.tid;
 				<span class="kw">let </span>rslabs = <span class="kw-2">&amp;mut </span>ctx.read_slabs;
-				<span class="kw">let </span>wakeup = <span class="self">self</span>.wakeup[ctx.tid].clone();
 				<span class="kw">let </span>data = <span class="self">self</span>.data[ctx.tid].clone();
 				<span class="kw">let </span>wq = <span class="self">self</span>.debug_write_queue;
 				<span class="kw">let </span>p = <span class="self">self</span>.debug_pending;
 				<span class="kw">let </span>we = <span class="self">self</span>.debug_write_error;
 				<span class="kw">let </span>s = <span class="self">self</span>.debug_suspended;
-				<span class="kw">let </span><span class="kw-2">mut </span>cd = ConnectionData::new(rwi, tid, rslabs, wakeup, data, wq, p, we, s);
+				<span class="kw">let </span><span class="kw-2">mut </span>cd = ConnectionData::new(rwi, tid, rslabs, data, wq, p, we, s);
 				<span class="kw">match </span>on_accept(<span class="kw-2">&amp;mut </span>cd, callback_context) {
 					<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
 					<span class="prelude-val">Err</span>(e) =&gt; {
@@ -10310,38 +10431,9 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
-	</span><span class="kw">fn </span>stop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">if </span><span class="self">self</span>.thread_pool_stopper.is_none() {
-			<span class="kw">let </span>err = <span class="macro">err!</span>(ErrKind::IllegalState, <span class="string">"start must be called before stop"</span>);
-			<span class="kw">return </span><span class="prelude-val">Err</span>(err);
-		}
-		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.wakeup.size() {
-			<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[i].wlock_ignore_poison()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = data.guard();
-			(<span class="kw-2">**</span>guard).stop = <span class="bool-val">true</span>;
-			<span class="self">self</span>.wakeup[i].wakeup()<span class="question-mark">?</span>;
-		}
-
-		<span class="kw">loop </span>{
-			<span class="kw">let </span><span class="kw-2">mut </span>stopped = <span class="bool-val">true</span>;
-			<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.data.size() {
-				{
-					<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[i].wlock_ignore_poison()<span class="question-mark">?</span>;
-					<span class="kw">let </span>guard = data.guard();
-					<span class="kw">if </span>!(<span class="kw-2">**</span>guard).stopped {
-						stopped = <span class="bool-val">false</span>;
-					}
-				}
-			}
-			<span class="kw">if </span>stopped {
-				<span class="kw">break</span>;
-			}
-		}
-
-		<span class="self">self</span>.thread_pool_stopper.as_mut().unwrap().stop()<span class="question-mark">?</span>;
-
-		<span class="prelude-val">Ok</span>(())
+	<span class="kw">fn </span>stop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>evhctlr = <span class="self">self</span>.event_handler_controller()<span class="question-mark">?</span>;
+		evhctlr.stop()
 	}
 
 	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
@@ -10358,7 +10450,6 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>v_panic = <span class="macro">vec!</span>[];
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.config.threads {
 			<span class="kw">let </span>evh = <span class="self">self</span>.clone();
-			<span class="kw">let </span>wakeup = <span class="self">self</span>.wakeup.clone();
 			<span class="kw">let </span>ev_in = <span class="self">self</span>.config.max_events_in;
 			<span class="kw">let </span>max_ev = <span class="self">self</span>.config.max_events;
 			<span class="kw">let </span>max_hpt = <span class="self">self</span>.config.max_handles_per_thread;
@@ -10369,11 +10460,11 @@
 			<span class="kw">let </span>thread_context = <span class="macro">lock_box!</span>(thread_context)<span class="question-mark">?</span>;
 			v.push((
 				evh.clone(),
-				wakeup.clone(),
+				<span class="self">self</span>.data[i].clone(),
 				ctx.clone(),
 				thread_context.clone(),
 			));
-			v_panic.push((evh, wakeup, ctx, thread_context));
+			v_panic.push((evh, <span class="self">self</span>.data[i].clone(), ctx, thread_context));
 		}
 
 		<span class="kw">let </span><span class="kw-2">mut </span>executor = <span class="macro">lock_box!</span>(tp.executor()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
@@ -10384,7 +10475,11 @@
 		tp.set_on_panic(<span class="kw">move </span>|id, e| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 			<span class="kw">let </span>id: usize = id.try_into()<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>evh = v_panic[id].<span class="number">0</span>.clone();
-			<span class="kw">let </span><span class="kw-2">mut </span>wakeup = v_panic[id].<span class="number">1</span>.clone();
+			<span class="kw">let </span><span class="kw-2">mut </span>wakeup = {
+				<span class="kw">let </span><span class="kw-2">mut </span>data = v_panic[id].<span class="number">1</span>.wlock_ignore_poison()<span class="question-mark">?</span>;
+				<span class="kw">let </span>guard = data.guard();
+				(<span class="kw-2">**</span>guard).wakeup.clone()
+			};
 			<span class="kw">let </span><span class="kw-2">mut </span>ctx = v_panic[id].<span class="number">2</span>.clone();
 			<span class="kw">let </span><span class="kw-2">mut </span>thread_context = v_panic[id].<span class="number">3</span>.clone();
 			<span class="kw">let </span><span class="kw-2">mut </span>thread_context_clone = thread_context.clone();
@@ -10419,12 +10514,11 @@
 					<span class="kw">let </span>thread_context = thread_context.guard();
 
 					<span class="kw">let </span>evh = <span class="kw-2">&amp;mut </span>evh;
-					<span class="kw">let </span>wakeup = <span class="kw-2">&amp;mut </span>wakeup[id];
 					<span class="kw">let </span>ctx = <span class="kw-2">&amp;mut *</span>ctx;
 					<span class="kw">let </span>thc = <span class="kw-2">&amp;mut *</span>thread_context;
 					<span class="kw">let </span>isr = <span class="bool-val">true</span>;
 
-					<span class="self">Self</span>::execute_thread(evh, wakeup, ctx, thc, isr)
+					<span class="self">Self</span>::execute_thread(evh, <span class="kw-2">&amp;mut </span>wakeup, ctx, thc, isr)
 				},
 				id.try_into()<span class="question-mark">?</span>,
 			)<span class="question-mark">?</span>;
@@ -10441,13 +10535,16 @@
 
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.config.threads {
 			<span class="kw">let </span><span class="kw-2">mut </span>evh = v[i].<span class="number">0</span>.clone();
-			<span class="kw">let </span><span class="kw-2">mut </span>wakeup = v[i].<span class="number">1</span>.clone();
+			<span class="comment">//let mut wakeup = v[i].1.clone();
+			</span><span class="kw">let </span><span class="kw-2">mut </span>wakeup = {
+				<span class="kw">let </span><span class="kw-2">mut </span>data = v[i].<span class="number">1</span>.wlock_ignore_poison()<span class="question-mark">?</span>;
+				<span class="kw">let </span>guard = data.guard();
+				(<span class="kw-2">**</span>guard).wakeup.clone()
+			};
 			<span class="kw">let </span><span class="kw-2">mut </span>ctx = v[i].<span class="number">2</span>.clone();
 			<span class="kw">let </span><span class="kw-2">mut </span>thread_context = v[i].<span class="number">3</span>.clone();
 
 			<span class="macro">execute!</span>(tp, i.try_into()<span class="question-mark">?</span>, {
-				<span class="kw">let </span>tid = i;
-
 				<span class="kw">let </span><span class="kw-2">mut </span>ctx = ctx.wlock_ignore_poison()<span class="question-mark">?</span>;
 				<span class="kw">let </span>ctx = ctx.guard();
 
@@ -10455,86 +10552,27 @@
 				<span class="kw">let </span>thread_context = thread_context.guard();
 
 				<span class="kw">let </span>evh = <span class="kw-2">&amp;mut </span>evh;
-				<span class="kw">let </span>wakeup = <span class="kw-2">&amp;mut </span>wakeup[tid];
 				<span class="kw">let </span>ctx = <span class="kw-2">&amp;mut *</span>ctx;
 				<span class="kw">let </span>thc = <span class="kw-2">&amp;mut *</span>thread_context;
 				<span class="kw">let </span>isr = <span class="bool-val">false</span>;
-				<span class="self">Self</span>::execute_thread(evh, wakeup, ctx, thc, isr)
+				<span class="self">Self</span>::execute_thread(evh, <span class="kw-2">&amp;mut </span>wakeup, ctx, thc, isr)
 			})<span class="question-mark">?</span>;
 		}
 
-		<span class="self">self</span>.thread_pool_stopper = <span class="prelude-val">Some</span>(tp.stopper()<span class="question-mark">?</span>);
+		<span class="kw">let </span><span class="kw-2">mut </span>thread_pool_stopper = <span class="self">self</span>.thread_pool_stopper.wlock()<span class="question-mark">?</span>;
+		<span class="kw">let </span>thread_pool_stopper = thread_pool_stopper.guard();
+		(<span class="kw-2">**</span>thread_pool_stopper) = <span class="prelude-val">Some</span>(tp.stopper()<span class="question-mark">?</span>);
 
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
-	</span><span class="kw">fn </span>add_client(
+	<span class="kw">fn </span>add_client(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		connection: ClientConnection,
 		attachment: Box&lt;<span class="kw">dyn </span>Any + Send + Sync&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;WriteHandle, Error&gt; {
-		<span class="kw">let </span>attachment = AttachmentHolder {
-			attachment: Arc::new(attachment),
-		};
-		<span class="kw">let </span>tid: usize = random::&lt;usize&gt;() % <span class="self">self</span>.data.size();
-		<span class="kw">let </span>id: u128 = random::&lt;u128&gt;();
-		<span class="kw">let </span>handle = connection.handle;
-		<span class="kw">let </span>ws = WriteState {
-			write_buffer: <span class="macro">vec!</span>[],
-			flags: <span class="number">0</span>,
-		};
-		<span class="kw">let </span>write_state = <span class="macro">lock_box!</span>(ws)<span class="question-mark">?</span>;
-
-		<span class="kw">let </span>tls_client = <span class="kw">match </span>connection.tls_config {
-			<span class="prelude-val">Some</span>(tls_config) =&gt; {
-				<span class="kw">let </span>server_name: <span class="kw-2">&amp;</span>str = <span class="kw-2">&amp;</span>tls_config.sni_host;
-				<span class="kw">let </span>config = make_config(tls_config.trusted_cert_full_chain_file)<span class="question-mark">?</span>;
-				<span class="kw">let </span><span class="kw-2">mut </span>rc_conn = RCConn::new(config, server_name.try_into()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-				rc_conn.set_buffer_limit(<span class="prelude-val">None</span>);
-				<span class="kw">let </span>tls_client = <span class="prelude-val">Some</span>(<span class="macro">lock_box!</span>(rc_conn)<span class="question-mark">?</span>);
-				tls_client
-			}
-			<span class="prelude-val">None </span>=&gt; <span class="prelude-val">None</span>,
-		};
-		<span class="kw">let </span>wh = WriteHandle::new(
-			handle,
-			id,
-			<span class="self">self</span>.wakeup[tid].clone(),
-			write_state.clone(),
-			<span class="self">self</span>.data[tid].clone(),
-			<span class="self">self</span>.debug_write_queue,
-			<span class="self">self</span>.debug_pending,
-			<span class="self">self</span>.debug_write_error,
-			<span class="self">self</span>.debug_suspended,
-			<span class="prelude-val">None</span>,
-			tls_client.clone(),
-		);
-
-		<span class="kw">let </span>rwi = StreamInfo {
-			id,
-			handle,
-			accept_handle: <span class="prelude-val">None</span>,
-			accept_id: <span class="prelude-val">None</span>,
-			write_state,
-			first_slab: u32::MAX,
-			last_slab: u32::MAX,
-			slab_offset: <span class="number">0</span>,
-			is_accepted: <span class="bool-val">false</span>,
-			tls_client,
-			tls_server: <span class="prelude-val">None</span>,
-		};
-
-		{
-			<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[tid].wlock_ignore_poison()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = data.guard();
-			<span class="kw">let </span>ci = ConnectionInfo::StreamInfo(rwi);
-			(<span class="kw-2">**</span>guard).nhandles.enqueue(ci)<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>guard).attachments.insert(id, attachment);
-		}
-
-		<span class="self">self</span>.wakeup[tid].wakeup()<span class="question-mark">?</span>;
-		<span class="prelude-val">Ok</span>(wh)
+		<span class="kw">let </span><span class="kw-2">mut </span>evhctlr = <span class="self">self</span>.event_handler_controller()<span class="question-mark">?</span>;
+		evhctlr.add_client(connection, attachment)
 	}
 
 	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
@@ -10574,7 +10612,6 @@
 			<span class="comment">// check for 0 which means to skip this handle (port not reused)
 			</span><span class="kw">if </span>handle != <span class="number">0 </span>{
 				<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[i].wlock_ignore_poison()<span class="question-mark">?</span>;
-				<span class="kw">let </span>wakeup = <span class="kw-2">&amp;mut </span><span class="self">self</span>.wakeup[i];
 				<span class="kw">let </span>guard = data.guard();
 				<span class="kw">let </span>id = random();
 				<span class="kw">let </span>li = ListenerInfo {
@@ -10594,7 +10631,7 @@
 					id,
 					attachment.clone()
 				)<span class="question-mark">?</span>;
-				wakeup.wakeup()<span class="question-mark">?</span>;
+				(<span class="kw-2">**</span>guard).wakeup.wakeup()<span class="question-mark">?</span>;
 			}
 		}
 		<span class="prelude-val">Ok</span>(())
@@ -10602,6 +10639,123 @@
 
 	<span class="kw">fn </span>event_handler_data(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Array&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;EventHandlerData&gt;&gt;&gt;, Error&gt; {
 		<span class="prelude-val">Ok</span>(<span class="self">self</span>.data.clone())
+	}
+
+	<span class="kw">fn </span>event_handler_controller(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;EventHandlerController, Error&gt; {
+		<span class="prelude-val">Ok</span>(EventHandlerController {
+			data: <span class="self">self</span>.data.clone(),
+			thread_pool_stopper: <span class="self">self</span>.thread_pool_stopper.clone(),
+		})
+	}
+}
+
+<span class="kw">impl </span>EventHandlerController {
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">pub fn </span>stop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>thread_pool_stopper = <span class="self">self</span>.thread_pool_stopper.wlock()<span class="question-mark">?</span>;
+		<span class="kw">let </span>thread_pool_stopper = thread_pool_stopper.guard();
+		<span class="kw">if </span>(<span class="kw-2">**</span>thread_pool_stopper).is_none() {
+			<span class="kw">let </span>err = <span class="macro">err!</span>(ErrKind::IllegalState, <span class="string">"start must be called before stop"</span>);
+			<span class="kw">return </span><span class="prelude-val">Err</span>(err);
+		}
+		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.data.size() {
+			<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[i].wlock_ignore_poison()<span class="question-mark">?</span>;
+			<span class="kw">let </span>guard = data.guard();
+			(<span class="kw-2">**</span>guard).stop = <span class="bool-val">true</span>;
+			(<span class="kw-2">**</span>guard).wakeup.wakeup()<span class="question-mark">?</span>;
+		}
+
+		<span class="kw">loop </span>{
+			<span class="kw">let </span><span class="kw-2">mut </span>stopped = <span class="bool-val">true</span>;
+			<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.data.size() {
+				{
+					<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[i].wlock_ignore_poison()<span class="question-mark">?</span>;
+					<span class="kw">let </span>guard = data.guard();
+					<span class="kw">if </span>!(<span class="kw-2">**</span>guard).stopped {
+						stopped = <span class="bool-val">false</span>;
+					}
+				}
+			}
+			<span class="kw">if </span>stopped {
+				<span class="kw">break</span>;
+			}
+		}
+
+		(<span class="kw-2">**</span>thread_pool_stopper).as_mut().unwrap().stop()<span class="question-mark">?</span>;
+
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
+	</span><span class="kw">pub fn </span>add_client(
+		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
+		connection: ClientConnection,
+		attachment: Box&lt;<span class="kw">dyn </span>Any + Send + Sync&gt;,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;WriteHandle, Error&gt; {
+		<span class="kw">let </span>attachment = AttachmentHolder {
+			attachment: Arc::new(attachment),
+		};
+		<span class="kw">let </span>tid: usize = random::&lt;usize&gt;() % <span class="self">self</span>.data.size();
+		<span class="kw">let </span>id: u128 = random::&lt;u128&gt;();
+		<span class="kw">let </span>handle = connection.handle;
+		<span class="kw">let </span>ws = WriteState {
+			write_buffer: <span class="macro">vec!</span>[],
+			flags: <span class="number">0</span>,
+		};
+		<span class="kw">let </span>write_state = <span class="macro">lock_box!</span>(ws)<span class="question-mark">?</span>;
+
+		<span class="kw">let </span>tls_client = <span class="kw">match </span>connection.tls_config {
+			<span class="prelude-val">Some</span>(tls_config) =&gt; {
+				<span class="kw">let </span>server_name: <span class="kw-2">&amp;</span>str = <span class="kw-2">&amp;</span>tls_config.sni_host;
+				<span class="kw">let </span>config = make_config(tls_config.trusted_cert_full_chain_file)<span class="question-mark">?</span>;
+				<span class="kw">let </span><span class="kw-2">mut </span>rc_conn = RCConn::new(config, server_name.try_into()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+				rc_conn.set_buffer_limit(<span class="prelude-val">None</span>);
+				<span class="kw">let </span>tls_client = <span class="prelude-val">Some</span>(<span class="macro">lock_box!</span>(rc_conn)<span class="question-mark">?</span>);
+				tls_client
+			}
+			<span class="prelude-val">None </span>=&gt; <span class="prelude-val">None</span>,
+		};
+
+		<span class="kw">let </span>wh = {
+			<span class="kw">let </span>data_clone = <span class="self">self</span>.data[tid].clone();
+			<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[tid].wlock_ignore_poison()<span class="question-mark">?</span>;
+			<span class="kw">let </span>guard = data.guard();
+
+			<span class="kw">let </span>wh = WriteHandle::new(
+				handle,
+				id,
+				write_state.clone(),
+				data_clone,
+				(<span class="kw-2">**</span>guard).debug_write_queue,
+				(<span class="kw-2">**</span>guard).debug_pending,
+				(<span class="kw-2">**</span>guard).debug_write_error,
+				(<span class="kw-2">**</span>guard).debug_suspended,
+				<span class="prelude-val">None</span>,
+				tls_client.clone(),
+			);
+
+			<span class="kw">let </span>rwi = StreamInfo {
+				id,
+				handle,
+				accept_handle: <span class="prelude-val">None</span>,
+				accept_id: <span class="prelude-val">None</span>,
+				write_state,
+				first_slab: u32::MAX,
+				last_slab: u32::MAX,
+				slab_offset: <span class="number">0</span>,
+				is_accepted: <span class="bool-val">false</span>,
+				tls_client,
+				tls_server: <span class="prelude-val">None</span>,
+			};
+
+			<span class="kw">let </span>ci = ConnectionInfo::StreamInfo(rwi);
+			(<span class="kw-2">**</span>guard).nhandles.enqueue(ci)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>guard).attachments.insert(id, attachment);
+			(<span class="kw-2">**</span>guard).wakeup.wakeup()<span class="question-mark">?</span>;
+			wh
+		};
+
+		<span class="prelude-val">Ok</span>(wh)
 	}
 }
 
@@ -10843,7 +10997,7 @@
 		<span class="kw">let </span>threads = <span class="number">2</span>;
 		<span class="kw">let </span>config = EventHandlerConfig {
 			threads,
-			housekeeping_frequency_millis: <span class="number">100_000</span>,
+			housekeeping_frequency_millis: <span class="number">10_000</span>,
 			read_slab_count: <span class="number">2</span>,
 			max_handles_per_thread: <span class="number">3</span>,
 			..Default::default()
@@ -10924,9 +11078,12 @@
 		<span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len], <span class="string">b"test1"</span>);
 		<span class="macro">info!</span>(<span class="string">"read back buf[{}] = {:?}"</span>, len, buf)<span class="question-mark">?</span>;
 		connection.write(<span class="string">b"test2"</span>)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"write complete"</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>len = connection.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"read bcak len = {}"</span>, len)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len], <span class="string">b"test2"</span>);
 		evh.stop()<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"stop complete"</span>)<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -11199,7 +11356,6 @@
 				is_reuse_port: <span class="bool-val">false</span>,
 			};
 			evh.add_server(sc, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
-			sleep(Duration::from_millis(<span class="number">5_000</span>));
 
 			<span class="kw">let </span>connection = TcpStream::connect(addr)<span class="question-mark">?</span>;
 			connection.set_nonblocking(<span class="bool-val">true</span>)<span class="question-mark">?</span>;
@@ -11220,6 +11376,7 @@
 				}),
 			};
 			<span class="kw">let </span><span class="kw-2">mut </span>wh = evh.add_client(client, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
+			sleep(Duration::from_millis(<span class="number">5_000</span>));
 
 			wh.write(<span class="string">b"test1"</span>)<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
@@ -11317,6 +11474,7 @@
 			};
 			<span class="macro">info!</span>(<span class="string">"client handle = {}"</span>, connection_handle)<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>wh = evh.add_client(client, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
+			sleep(Duration::from_millis(<span class="number">5_000</span>));
 
 			<span class="kw">let _ </span>= wh.write(<span class="string">b"test1"</span>);
 			sleep(Duration::from_millis(<span class="number">1_000</span>));
@@ -11807,7 +11965,6 @@
 			is_reuse_port: <span class="bool-val">false</span>,
 		};
 		evh.add_server(sc, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
-		sleep(Duration::from_millis(<span class="number">5_000</span>));
 
 		<span class="kw">let </span>connection = TcpStream::connect(addr)<span class="question-mark">?</span>;
 		<span class="attr">#[cfg(unix)]
@@ -11824,6 +11981,7 @@
 			tls_config: <span class="prelude-val">None</span>,
 		};
 		<span class="kw">let </span><span class="kw-2">mut </span>wh = evh.add_client(client, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
+		sleep(Duration::from_millis(<span class="number">1_000</span>));
 
 		wh.write(<span class="string">b"test1"</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
@@ -13992,6 +14150,7 @@
 		};
 
 		<span class="kw">let </span><span class="kw-2">mut </span>wh = evh.add_client(client, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
+		sleep(Duration::from_millis(<span class="number">5_000</span>));
 
 		wh.write(<span class="kw-2">&amp;</span>big_msg_clone)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"big write complete"</span>)<span class="question-mark">?</span>;
@@ -14170,6 +14329,7 @@
 		};
 
 		<span class="kw">let </span><span class="kw-2">mut </span>wh = evh.add_client(client, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
+		sleep(Duration::from_millis(<span class="number">5_000</span>));
 
 		wh.write(<span class="kw-2">&amp;</span>big_msg_clone)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"big write complete"</span>)<span class="question-mark">?</span>;
@@ -14345,6 +14505,7 @@
 		};
 
 		<span class="kw">let </span><span class="kw-2">mut </span>wh = evh.add_client(client, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
+		sleep(Duration::from_millis(<span class="number">5_000</span>));
 
 		wh.write(<span class="kw-2">&amp;</span>big_msg_clone)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"big write complete"</span>)<span class="question-mark">?</span>;
@@ -15156,6 +15317,7 @@
 			tls_config: <span class="prelude-val">None</span>,
 		};
 		<span class="kw">let </span><span class="kw-2">mut </span>wh = evh.add_client(client, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
+		sleep(Duration::from_millis(<span class="number">5_000</span>));
 
 		wh.trigger_on_read()<span class="question-mark">?</span>;
 		sleep(Duration::from_millis(<span class="number">1_000</span>));
@@ -15866,7 +16028,15 @@
 				flags: <span class="number">0</span>,
 			})<span class="question-mark">?</span>,
 			<span class="number">0</span>,
-			<span class="kw-2">&amp;mut </span><span class="macro">lock_box!</span>(EventHandlerData::new(<span class="number">100</span>, <span class="number">100</span>)<span class="question-mark">?</span>)<span class="question-mark">?</span>,
+			<span class="kw-2">&amp;mut </span><span class="macro">lock_box!</span>(EventHandlerData::new(
+				<span class="number">100</span>,
+				<span class="number">100</span>,
+				Wakeup::new()<span class="question-mark">?</span>,
+				<span class="bool-val">false</span>,
+				<span class="bool-val">false</span>,
+				<span class="bool-val">false</span>,
+				<span class="bool-val">false
+			</span>)<span class="question-mark">?</span>)<span class="question-mark">?</span>,
 		)
 		.close()
 		.is_ok());

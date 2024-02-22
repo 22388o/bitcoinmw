@@ -346,6 +346,8 @@
 <a href="#345" id="345">345</a>
 <a href="#346" id="346">346</a>
 <a href="#347" id="347">347</a>
+<a href="#348" id="348">348</a>
+<a href="#349" id="349">349</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -598,7 +600,8 @@
 	<span class="kw">fn </span>send(<span class="kw-2">&amp;mut </span><span class="self">self</span>, req: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest&gt;, handler: <span class="kw-2">&amp;</span>HttpHandler) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 }
 
-<span class="kw">pub struct </span>HttpClientConfig {}
+<span class="attr">#[derive(Clone)]
+</span><span class="kw">pub struct </span>HttpClientConfig {}
 <span class="kw">pub struct </span>HttpConnectionConfig {}
 <span class="kw">pub struct </span>HttpRequestConfig {}
 
@@ -606,6 +609,7 @@
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpClientImpl {}
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpRequestImpl {}
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpConnectionImpl {}
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpClientContext {}
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpServerImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) config: HttpConfig,
