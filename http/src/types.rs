@@ -255,6 +255,7 @@ downcast!(dyn HttpRequest);
 
 pub trait HttpResponse {
 	fn content(&self) -> Result<&Vec<u8>, Error>;
+	fn headers(&self) -> Result<&Vec<(String, String)>, Error>;
 }
 
 pub trait HttpClient {

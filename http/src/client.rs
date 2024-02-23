@@ -415,10 +415,17 @@ impl HttpClientImpl {
 			let last_slab = slab_id_vec[slab_id_vec_len - 1];
 			debug!("clear through {}", last_slab)?;
 			conn_data.clear_through(last_slab)?;
-		} else if clear_point < res_len && clear_point > 0 && slab_id_vec_len >= 2 {
-			let last_slab = slab_id_vec[slab_id_vec_len - 2];
+			ctx.slab_start = 0;
+		} else if clear_point < res_len && clear_point > 0 && slab_id_vec_len >= 1 {
+			let last_slab = slab_id_vec[((clear_point + ctx.slab_start) / READ_SLAB_DATA_SIZE) - 1];
 			debug!("clear partial through {}", last_slab)?;
 			conn_data.clear_through(last_slab)?;
+			ctx.slab_start = (clear_point + ctx.slab_start) % READ_SLAB_DATA_SIZE;
+		} else {
+			warn!(
+				"unexpected condition: clear_point={},res_len={},slab_id_vec_len={}",
+				clear_point, res_len, slab_id_vec_len
+			)?;
 		}
 
 		Ok(())
@@ -501,6 +508,10 @@ impl HttpResponse for HttpResponseImpl {
 	fn content(&self) -> Result<&Vec<u8>, Error> {
 		Ok(&self.content)
 	}
+
+	fn headers(&self) -> Result<&Vec<(String, String)>, Error> {
+		Ok(&self.headers)
+	}
 }
 
 impl HttpResponseImpl {
@@ -582,6 +593,18 @@ mod test {
 				let content = from_utf8(&content).unwrap_or("utf8_err");
 				info!("recv req 1: '{}'", content)?;
 				assert_eq!(content, data_text);
+
+				let headers = response.headers()?;
+
+				let mut found = false;
+				for (n, v) in headers {
+					if n == &"Transfer-Encoding".to_string() && v == &"chunked" {
+						found = true;
+					}
+				}
+
+				assert!(found);
+
 				let mut found_count = found_count.wlock()?;
 				let guard = found_count.guard();
 				(**guard) += 1;
