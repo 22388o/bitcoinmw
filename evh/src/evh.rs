@@ -117,6 +117,15 @@ pub fn create_listeners(
 	create_listeners_impl(size, addr, listen_size, reuse_port)
 }
 
+pub fn tcp_stream_to_handle(strm: TcpStream) -> Result<Handle, Error> {
+	strm.set_nonblocking(true)?;
+	#[cfg(unix)]
+	let connection_handle = strm.into_raw_fd();
+	#[cfg(windows)]
+	let connection_handle = strm.into_raw_socket().try_into()?;
+	Ok(connection_handle)
+}
+
 impl Default for Event {
 	fn default() -> Self {
 		Self {
@@ -2531,7 +2540,7 @@ where
 		attachment: Box<dyn Any + Send + Sync>,
 	) -> Result<(), Error> {
 		let attachment = AttachmentHolder {
-			attachment: Arc::new(attachment),
+			attachment: lock_box!(attachment)?,
 		};
 		debug!("add server: {:?}", attachment)?;
 
@@ -2642,7 +2651,7 @@ impl EventHandlerController {
 		attachment: Box<dyn Any + Send + Sync>,
 	) -> Result<WriteHandle, Error> {
 		let attachment = AttachmentHolder {
-			attachment: Arc::new(attachment),
+			attachment: lock_box!(attachment)?,
 		};
 		let tid: usize = random::<usize>() % self.data.size();
 		let id: u128 = random::<u128>();

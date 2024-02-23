@@ -21,3 +21,6 @@
 
 pub mod port;
 pub mod testdir;
+
+pub use crate::port::pick_free_port;
+pub use crate::testdir::{setup_test_dir, tear_down_test_dir};

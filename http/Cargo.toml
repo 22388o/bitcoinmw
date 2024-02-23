@@ -21,4 +21,5 @@ bmw_util   = { path = "../util"   }
 bmw_evh    = { path = "../evh"    }
 
 [dev-dependencies]
-bmw_test = { path = "../test" }
+
+bmw_test   = { path = "../test"   }

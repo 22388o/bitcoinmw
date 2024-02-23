@@ -20,6 +20,7 @@ use bmw_deps::downcast::DowncastError;
 use bmw_deps::failure::{Backtrace, Context, Fail};
 use bmw_deps::rustls::client::InvalidDnsNameError;
 use bmw_deps::rustls::sign::SignError;
+use bmw_deps::url::ParseError;
 use bmw_deps::webpki::Error as WebpkiError;
 use std::alloc::LayoutError;
 use std::convert::Infallible;
@@ -218,6 +219,14 @@ impl From<std::io::Error> for Error {
 	fn from(e: std::io::Error) -> Error {
 		Error {
 			inner: Context::new(ErrorKind::IO(format!("{}", e))),
+		}
+	}
+}
+
+impl From<ParseError> for Error {
+	fn from(e: ParseError) -> Error {
+		Error {
+			inner: Context::new(ErrorKind::Misc(format!("url::ParseError: {}", e))),
 		}
 	}
 }

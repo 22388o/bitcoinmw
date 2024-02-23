@@ -19,7 +19,9 @@ use crate::constants::*;
 use bmw_deps::downcast::{downcast, Any};
 use bmw_deps::dyn_clone::{clone_trait_object, DynClone};
 use bmw_err::*;
-use bmw_evh::{ConnectionData, EventHandlerConfig, WriteHandle, WriteState};
+use bmw_evh::{
+	ConnectionData, EventHandlerConfig, EventHandlerController, WriteHandle, WriteState,
+};
 use bmw_util::*;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -233,33 +235,85 @@ type WebsocketHandler = fn(
 
 pub type HttpHandler = Pin<
 	Box<
-		dyn Fn(&mut Box<dyn HttpRequest>, &mut Box<dyn HttpResponse>) -> Result<(), Error>
+		dyn FnMut(
+				&Box<dyn HttpRequest + Send + Sync>,
+				&mut Box<dyn HttpResponse>,
+			) -> Result<(), Error>
 			+ Send
-			+ Sync,
+			+ Sync
+			+ Unpin,
 	>,
 >;
 
-pub trait HttpRequest {}
-pub trait HttpResponse {}
+pub trait HttpRequest: DynClone + Any {
+	fn request_url(&self) -> Option<String>;
+	fn guid(&self) -> u128;
+}
+
+clone_trait_object!(HttpRequest);
+downcast!(dyn HttpRequest);
+
+pub trait HttpResponse {
+	fn content(&self) -> Result<&Vec<u8>, Error>;
+}
 
 pub trait HttpClient {
-	fn send(&mut self, req: &Box<dyn HttpRequest>, handler: &HttpHandler) -> Result<(), Error>;
+	fn send(
+		&mut self,
+		req: Box<dyn HttpRequest + Send + Sync>,
+		handler: HttpHandler,
+	) -> Result<(), Error>;
 }
 
 pub trait HttpConnection {
-	fn send(&mut self, req: &Box<dyn HttpRequest>, handler: &HttpHandler) -> Result<(), Error>;
+	fn send(
+		&mut self,
+		req: Box<dyn HttpRequest + Send + Sync>,
+		handler: HttpHandler,
+	) -> Result<(), Error>;
 }
 
 #[derive(Clone)]
-pub struct HttpClientConfig {}
+pub struct HttpClientConfig {
+	pub(crate) max_headers_len: usize,
+	pub(crate) debug: bool,
+}
+
 pub struct HttpConnectionConfig {}
-pub struct HttpRequestConfig {}
+
+#[derive(Clone)]
+pub struct HttpRequestConfig {
+	pub request_url: Option<String>,
+}
 
 // Crate local types
-pub(crate) struct HttpClientImpl {}
-pub(crate) struct HttpRequestImpl {}
+pub(crate) struct HttpClientImpl {
+	pub(crate) controller: EventHandlerController,
+}
+
+#[derive(Clone)]
+pub(crate) struct HttpRequestImpl {
+	pub(crate) config: HttpRequestConfig,
+	pub(crate) guid: u128,
+}
+pub(crate) struct HttpResponseImpl {
+	pub(crate) headers: Vec<(String, String)>,
+	pub(crate) chunked: bool,
+	pub(crate) content_length: usize,
+	pub(crate) start_content: usize,
+	pub(crate) content: Vec<u8>,
+}
 pub(crate) struct HttpConnectionImpl {}
-pub(crate) struct HttpClientContext {}
+pub(crate) struct HttpClientContext {
+	pub(crate) slab_start: usize,
+	pub(crate) suffix_tree: Box<dyn SuffixTree + Send + Sync>,
+	pub(crate) matches: [Match; 1_000],
+}
+
+pub(crate) struct HttpClientAttachment {
+	pub(crate) handler: HttpHandler,
+	pub(crate) request: Box<dyn HttpRequest + Send + Sync>,
+}
 
 pub(crate) struct HttpServerImpl {
 	pub(crate) config: HttpConfig,

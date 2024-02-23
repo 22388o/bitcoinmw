@@ -156,6 +156,7 @@ dependencies = [
  "rustls-pemfile",
  "sha-1",
  "substring",
+ "url",
  "webpki",
  "webpki-roots",
  "wepoll-sys",

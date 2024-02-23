@@ -265,7 +265,7 @@ pub struct Builder {}
 
 #[derive(Debug, Clone)]
 pub struct AttachmentHolder {
-	pub attachment: Arc<Box<dyn Any + Send + Sync>>,
+	pub attachment: Box<dyn LockBox<Box<dyn Any + Send + Sync>>>,
 }
 
 // pub(crate) types
