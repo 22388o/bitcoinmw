@@ -256,6 +256,9 @@ downcast!(dyn HttpRequest);
 pub trait HttpResponse {
 	fn content(&self) -> Result<&Vec<u8>, Error>;
 	fn headers(&self) -> Result<&Vec<(String, String)>, Error>;
+	fn code(&self) -> Result<u16, Error>;
+	fn status_text(&self) -> Result<&String, Error>;
+	fn version(&self) -> Result<&HttpVersion, Error>;
 }
 
 pub trait HttpClient {
@@ -303,6 +306,9 @@ pub(crate) struct HttpResponseImpl {
 	pub(crate) content_length: usize,
 	pub(crate) start_content: usize,
 	pub(crate) content: Vec<u8>,
+	pub(crate) code: u16,
+	pub(crate) status_text: String,
+	pub(crate) version: HttpVersion,
 }
 pub(crate) struct HttpConnectionImpl {}
 pub(crate) struct HttpClientContext {

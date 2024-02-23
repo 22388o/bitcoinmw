@@ -22,7 +22,7 @@ use crate::types::{
 };
 use crate::{
 	HttpClient, HttpClientConfig, HttpConnection, HttpConnectionConfig, HttpHandler, HttpRequest,
-	HttpRequestConfig, HttpResponse,
+	HttpRequestConfig, HttpResponse, HttpVersion,
 };
 use bmw_deps::rand::random;
 use bmw_deps::url::Url;
@@ -388,8 +388,21 @@ impl HttpClientImpl {
 						return Ok(());
 					}
 					// the request is complete
+
+					let mut itt2 = 0;
+					loop {
+						if itt2 >= res_len || res[itt2] == '\r' as u8 || res[itt2] == '\n' as u8 {
+							break;
+						}
+						itt2 += 1;
+					}
+					let first_line = from_utf8(&res[0..itt2]).unwrap_or("");
+					(response.version, response.code, response.status_text) =
+						Self::process_first_line(first_line)?;
+
 					let mut resp: Box<dyn HttpResponse> = Box::new(response);
 					handler(req, &mut resp)?;
+					debug!("incr clear point {},itt={}", itt + line_len + 4, itt)?;
 					clear_point = itt + line_len + 4;
 					break;
 				} else if val == usize::MAX {
@@ -417,10 +430,16 @@ impl HttpClientImpl {
 			conn_data.clear_through(last_slab)?;
 			ctx.slab_start = 0;
 		} else if clear_point < res_len && clear_point > 0 && slab_id_vec_len >= 1 {
-			let last_slab = slab_id_vec[((clear_point + ctx.slab_start) / READ_SLAB_DATA_SIZE) - 1];
-			debug!("clear partial through {}", last_slab)?;
-			conn_data.clear_through(last_slab)?;
-			ctx.slab_start = (clear_point + ctx.slab_start) % READ_SLAB_DATA_SIZE;
+			let index = (clear_point + ctx.slab_start) / READ_SLAB_DATA_SIZE;
+			if index > 0 {
+				let last_slab =
+					slab_id_vec[(clear_point + ctx.slab_start) / READ_SLAB_DATA_SIZE - 1];
+				debug!("clear partial through {}", last_slab)?;
+				conn_data.clear_through(last_slab)?;
+			}
+			let slab_start = (clear_point + ctx.slab_start) % READ_SLAB_DATA_SIZE;
+			debug!("Seeing ctx.slab_start to {}", slab_start)?;
+			ctx.slab_start = slab_start;
 		} else {
 			warn!(
 				"unexpected condition: clear_point={},res_len={},slab_id_vec_len={}",
@@ -429,6 +448,45 @@ impl HttpClientImpl {
 		}
 
 		Ok(())
+	}
+
+	fn process_first_line(first_line: &str) -> Result<(HttpVersion, u16, String), Error> {
+		debug!("process_first_line: firstline='{}'", first_line)?;
+		let first_line_spl = first_line.split(" ").collect::<Vec<&str>>();
+		if first_line_spl.len() < 3 {
+			return Err(err!(ErrKind::Http, "bad request"));
+		}
+		let version_str = first_line_spl[0];
+		let version = if version_str == "HTTP/1.1" {
+			HttpVersion::HTTP11
+		} else if version_str == "HTTP/1.0" {
+			HttpVersion::HTTP10
+		} else {
+			HttpVersion::OTHER
+		};
+
+		let code = first_line_spl[1].parse()?;
+
+		let mut start_status_text = 0;
+		let mut space_count = 0;
+		for ch in first_line.chars() {
+			if ch == ' ' {
+				space_count += 1;
+			}
+
+			start_status_text += 1;
+			if space_count == 2 {
+				break;
+			}
+		}
+
+		let status_text = if start_status_text < first_line.len() {
+			&first_line[start_status_text..]
+		} else {
+			""
+		};
+
+		Ok((version, code, status_text.to_string()))
 	}
 
 	fn process_on_accept(
@@ -512,6 +570,18 @@ impl HttpResponse for HttpResponseImpl {
 	fn headers(&self) -> Result<&Vec<(String, String)>, Error> {
 		Ok(&self.headers)
 	}
+
+	fn code(&self) -> Result<u16, Error> {
+		Ok(self.code)
+	}
+
+	fn status_text(&self) -> Result<&String, Error> {
+		Ok(&self.status_text)
+	}
+
+	fn version(&self) -> Result<&HttpVersion, Error> {
+		Ok(&self.version)
+	}
 }
 
 impl HttpResponseImpl {
@@ -522,6 +592,9 @@ impl HttpResponseImpl {
 			content_length: 0,
 			start_content: 0,
 			content: vec![],
+			code: 0,
+			status_text: "".to_string(),
+			version: HttpVersion::UNKNOWN,
 		}
 	}
 }
@@ -531,7 +604,7 @@ mod test {
 	use crate::types::{HttpClientImpl, HttpRequestImpl};
 	use crate::{
 		Builder, HttpClient, HttpClientConfig, HttpConfig, HttpHandler, HttpInstance,
-		HttpInstanceType, HttpRequest, HttpRequestConfig, HttpResponse, PlainConfig,
+		HttpInstanceType, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion, PlainConfig,
 	};
 	use bmw_err::*;
 	use bmw_log::*;
@@ -604,6 +677,9 @@ mod test {
 				}
 
 				assert!(found);
+				assert_eq!(response.code()?, 200);
+				assert_eq!(response.status_text()?, "OK");
+				assert_eq!(response.version()?, &HttpVersion::HTTP11);
 
 				let mut found_count = found_count.wlock()?;
 				let guard = found_count.guard();
@@ -644,7 +720,7 @@ mod test {
 			let found_count = found_count_clone.rlock()?;
 			let guard = found_count.guard();
 			if (**guard) != 1 {
-				info!("guard={}", (**guard))?;
+				info!("guard={},count={} of 10,000", (**guard), count)?;
 				count += 1;
 				continue;
 			}
