@@ -3231,6 +3231,69 @@
 <a href="#3230" id="3230">3230</a>
 <a href="#3231" id="3231">3231</a>
 <a href="#3232" id="3232">3232</a>
+<a href="#3233" id="3233">3233</a>
+<a href="#3234" id="3234">3234</a>
+<a href="#3235" id="3235">3235</a>
+<a href="#3236" id="3236">3236</a>
+<a href="#3237" id="3237">3237</a>
+<a href="#3238" id="3238">3238</a>
+<a href="#3239" id="3239">3239</a>
+<a href="#3240" id="3240">3240</a>
+<a href="#3241" id="3241">3241</a>
+<a href="#3242" id="3242">3242</a>
+<a href="#3243" id="3243">3243</a>
+<a href="#3244" id="3244">3244</a>
+<a href="#3245" id="3245">3245</a>
+<a href="#3246" id="3246">3246</a>
+<a href="#3247" id="3247">3247</a>
+<a href="#3248" id="3248">3248</a>
+<a href="#3249" id="3249">3249</a>
+<a href="#3250" id="3250">3250</a>
+<a href="#3251" id="3251">3251</a>
+<a href="#3252" id="3252">3252</a>
+<a href="#3253" id="3253">3253</a>
+<a href="#3254" id="3254">3254</a>
+<a href="#3255" id="3255">3255</a>
+<a href="#3256" id="3256">3256</a>
+<a href="#3257" id="3257">3257</a>
+<a href="#3258" id="3258">3258</a>
+<a href="#3259" id="3259">3259</a>
+<a href="#3260" id="3260">3260</a>
+<a href="#3261" id="3261">3261</a>
+<a href="#3262" id="3262">3262</a>
+<a href="#3263" id="3263">3263</a>
+<a href="#3264" id="3264">3264</a>
+<a href="#3265" id="3265">3265</a>
+<a href="#3266" id="3266">3266</a>
+<a href="#3267" id="3267">3267</a>
+<a href="#3268" id="3268">3268</a>
+<a href="#3269" id="3269">3269</a>
+<a href="#3270" id="3270">3270</a>
+<a href="#3271" id="3271">3271</a>
+<a href="#3272" id="3272">3272</a>
+<a href="#3273" id="3273">3273</a>
+<a href="#3274" id="3274">3274</a>
+<a href="#3275" id="3275">3275</a>
+<a href="#3276" id="3276">3276</a>
+<a href="#3277" id="3277">3277</a>
+<a href="#3278" id="3278">3278</a>
+<a href="#3279" id="3279">3279</a>
+<a href="#3280" id="3280">3280</a>
+<a href="#3281" id="3281">3281</a>
+<a href="#3282" id="3282">3282</a>
+<a href="#3283" id="3283">3283</a>
+<a href="#3284" id="3284">3284</a>
+<a href="#3285" id="3285">3285</a>
+<a href="#3286" id="3286">3286</a>
+<a href="#3287" id="3287">3287</a>
+<a href="#3288" id="3288">3288</a>
+<a href="#3289" id="3289">3289</a>
+<a href="#3290" id="3290">3290</a>
+<a href="#3291" id="3291">3291</a>
+<a href="#3292" id="3292">3292</a>
+<a href="#3293" id="3293">3293</a>
+<a href="#3294" id="3294">3294</a>
+<a href="#3295" id="3295">3295</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -5231,478 +5294,521 @@
 		attachment: <span class="prelude-ty">Option</span>&lt;AttachmentHolder&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>id = conn_data.get_connection_id();
-		<span class="kw">let </span>attachment = <span class="kw">match </span>attachment {
-			<span class="prelude-val">Some</span>(attachment) =&gt; attachment,
-			<span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">"no instance found for this request1"</span>)),
-		};
 		<span class="macro">debug!</span>(
 			<span class="string">"atttypename={:?},type={}"</span>,
 			attachment.clone(),
 			<span class="self">Self</span>::type_of(attachment.clone())
 		)<span class="question-mark">?</span>;
-		<span class="kw">let </span>attachment = attachment.attachment.downcast_ref::&lt;HttpInstance&gt;();
 
-		<span class="kw">let </span>attachment = <span class="kw">match </span>attachment {
-			<span class="prelude-val">Some</span>(attachment) =&gt; attachment,
-			<span class="prelude-val">None </span>=&gt; {
-				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">"no instance found for this request2"</span>));
-			}
-		};
-		<span class="macro">debug!</span>(<span class="string">"conn_data.tid={},att={:?}"</span>, conn_data.tid(), attachment)<span class="question-mark">?</span>;
-		<span class="kw">let </span>ctx = <span class="self">Self</span>::build_ctx(ctx, config)<span class="question-mark">?</span>;
-		ctx.now = SystemTime::now().duration_since(UNIX_EPOCH)<span class="question-mark">?</span>.as_millis();
-		<span class="self">Self</span>::update_connections_hashtable(ctx.now, ctx, conn_data)<span class="question-mark">?</span>;
-
-		<span class="macro">debug!</span>(<span class="string">"on read slab_offset = {}"</span>, conn_data.slab_offset())<span class="question-mark">?</span>;
-		<span class="kw">let </span>first_slab = conn_data.first_slab();
-		<span class="kw">let </span>last_slab = conn_data.last_slab();
-		<span class="kw">let </span>slab_offset = conn_data.slab_offset();
-		<span class="macro">debug!</span>(<span class="string">"firstslab={},last_slab={}"</span>, first_slab, last_slab)<span class="question-mark">?</span>;
-
-		<span class="kw">let </span><span class="kw-2">mut </span>content_offset = <span class="kw">match </span>ctx.connections.get(<span class="kw-2">&amp;</span>id) {
-			<span class="prelude-val">Some</span>(http_connection_data) =&gt; http_connection_data.content_offset,
-			<span class="prelude-val">None </span>=&gt; {
-				<span class="macro">warn!</span>(<span class="string">"no connection data found for connection {}"</span>, id)<span class="question-mark">?</span>;
-				<span class="number">0
-			</span>}
-		};
-
-		<span class="kw">let </span>(req, slab_id_vec, slab_count) = conn_data.borrow_slab_allocator(<span class="kw">move </span>|sa| {
-			<span class="kw">let </span><span class="kw-2">mut </span>slab_id_vec = <span class="macro">vec!</span>[];
-			<span class="kw">let </span><span class="kw-2">mut </span>slab_id = first_slab;
-			<span class="kw">let </span><span class="kw-2">mut </span>ret: Vec&lt;u8&gt; = <span class="macro">vec!</span>[];
-			<span class="kw">let </span><span class="kw-2">mut </span>slab_count = <span class="number">0</span>;
-			<span class="kw">loop </span>{
-				slab_count += <span class="number">1</span>;
-				slab_id_vec.push(slab_id);
-				<span class="kw">let </span>slab = sa.get(slab_id.try_into()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-				<span class="kw">let </span>slab_bytes = slab.get();
-				<span class="kw">let </span>offset = <span class="kw">if </span>slab_id == last_slab {
-					slab_offset <span class="kw">as </span>usize
-				} <span class="kw">else </span>{
-					READ_SLAB_DATA_SIZE
-				};
-
-				<span class="kw">let </span>slab_bytes_data = <span class="kw-2">&amp;</span>slab_bytes[content_offset..offset];
-				<span class="macro">debug!</span>(<span class="string">"read bytes = {:?}"</span>, slab_bytes_data)<span class="question-mark">?</span>;
-				ret.extend(slab_bytes_data);
-
-				<span class="kw">if </span>slab_id == last_slab {
-					<span class="kw">break</span>;
-				}
-				slab_id = u32::from_be_bytes(<span class="macro">try_into!</span>(
-					slab_bytes[READ_SLAB_DATA_SIZE..READ_SLAB_DATA_SIZE + <span class="number">4</span>]
-				)<span class="question-mark">?</span>);
-				content_offset = <span class="number">0</span>;
-			}
-			<span class="prelude-val">Ok</span>((ret, slab_id_vec, slab_count))
-		})<span class="question-mark">?</span>;
-
-		<span class="kw">let </span>slab_req_len = req.len();
-		<span class="kw">let </span><span class="kw-2">mut </span>start = <span class="number">0</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>last_term = <span class="number">0</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>termination_sum = <span class="number">0</span>;
-
-		<span class="kw">match </span><span class="self">Self</span>::websocket_data(conn_data, ctx)<span class="question-mark">? </span>{
-			<span class="prelude-val">Some</span>(websocket_data) =&gt; {
-				termination_sum = <span class="kw">match </span>process_websocket_data(
-					<span class="kw-2">&amp;</span>req,
-					conn_data,
-					attachment,
-					config,
-					<span class="kw-2">&amp;</span>websocket_data,
-				) {
-					<span class="prelude-val">Ok</span>(termination_sum) =&gt; termination_sum,
-					<span class="prelude-val">Err</span>(e) =&gt; {
-						<span class="comment">// invalid data sent to the websocket connection.
-						// close it.
-						</span><span class="macro">warn!</span>(<span class="string">"Websocket Error [closing connection]: {}"</span>, e.to_string())<span class="question-mark">?</span>;
-						conn_data.write_handle().close()<span class="question-mark">?</span>;
-						req.len()
-					}
-				};
-			}
-			<span class="prelude-val">None </span>=&gt; {
-				<span class="kw">let </span><span class="kw-2">mut </span>build_headers_from_vec = <span class="bool-val">false</span>;
-				<span class="kw">loop </span>{
-					<span class="kw">let </span><span class="kw-2">mut </span>http_connection_data = <span class="kw">match </span>ctx.connections.get_mut(<span class="kw-2">&amp;</span>id) {
-						<span class="prelude-val">Some</span>(http_connection_data) =&gt; http_connection_data,
-						<span class="prelude-val">None </span>=&gt; {
-							<span class="macro">warn!</span>(<span class="string">"no connection data found for connection {}"</span>, id)<span class="question-mark">?</span>;
-							<span class="kw">return </span><span class="prelude-val">Ok</span>(());
-						}
-					};
-					<span class="kw">let </span>headers_clone = http_connection_data.headers.clone();
-
-					<span class="macro">debug!</span>(<span class="string">"slab_count={}"</span>, slab_count)<span class="question-mark">?</span>;
-					<span class="kw">let </span>headers_from_req;
-					<span class="kw">let </span>headers = <span class="kw">if </span>http_connection_data.headers.len() &gt; <span class="number">0
-						</span>|| build_headers_from_vec
-					{
-						<span class="kw">let </span>len = headers_clone.len();
-						<span class="macro">debug!</span>(<span class="string">"1: start={}"</span>, start)<span class="question-mark">?</span>;
-						build_headers_from_vec = <span class="bool-val">true</span>;
-						headers_from_req = <span class="bool-val">false</span>;
-						<span class="self">Self</span>::build_request_headers(
-							<span class="kw-2">&amp;</span>headers_clone,
-							<span class="number">0</span>,
-							ctx.matches,
-							<span class="kw-2">&amp;mut </span>ctx.suffix_tree,
-							len,
-						)
-					} <span class="kw">else </span>{
-						<span class="macro">debug!</span>(<span class="string">"2: start={},req.len={}"</span>, start, req.len())<span class="question-mark">?</span>;
-						headers_from_req = <span class="bool-val">true</span>;
-						<span class="self">Self</span>::build_request_headers(
-							<span class="kw-2">&amp;</span>req,
-							start,
-							ctx.matches,
-							<span class="kw-2">&amp;mut </span>ctx.suffix_tree,
-							(slab_offset <span class="kw">as </span>usize + (slab_count - <span class="number">1</span>) * READ_SLAB_DATA_SIZE).into(),
-						)
-					};
-
-					<span class="kw">let </span>headers = <span class="kw">match </span>headers {
-						<span class="prelude-val">Ok</span>(headers) =&gt; headers,
-						<span class="prelude-val">Err</span>(e) =&gt; {
-							<span class="comment">// build a mock header. only thing that matters is host and we
-							// can put something that triggers the default instance.
-							</span><span class="kw">let </span>termination_point = <span class="number">0</span>;
-							<span class="kw">let </span>start = <span class="number">0</span>;
-							<span class="kw">let </span>req = <span class="kw-2">&amp;</span><span class="string">"Host_"</span>.to_string().as_bytes().to_vec();
-							<span class="kw">let </span>start_uri = <span class="number">0</span>;
-							<span class="kw">let </span>end_uri = <span class="number">0</span>;
-							<span class="kw">let </span>http_request_type = HttpMethod::GET;
-							<span class="kw">let </span>headers = [HttpHeader::default(); <span class="number">100</span>];
-							<span class="kw">let </span>header_count = <span class="number">0</span>;
-							<span class="kw">let </span>version = HttpVersion::UNKNOWN;
-							<span class="kw">let </span>host = <span class="string">""</span>.to_string();
-							<span class="kw">let </span>connection = ConnectionType::KeepAlive;
-							<span class="kw">let </span>headers = HttpHeaders {
-								termination_point,
-								start,
-								req,
-								start_uri,
-								end_uri,
-								http_request_type,
-								version,
-								headers,
-								header_count,
-								host,
-								connection,
-								range_start: <span class="number">0</span>,
-								range_end: usize::MAX,
-								if_none_match: <span class="string">""</span>.to_string(),
-								if_modified_since: <span class="string">""</span>.to_string(),
-								is_websocket_upgrade: <span class="bool-val">false</span>,
-								sec_websocket_key: <span class="string">""</span>.to_string(),
-								sec_websocket_protocol: <span class="string">""</span>.to_string(),
-								accept_gzip: <span class="bool-val">false</span>,
-								content_length: <span class="number">0</span>,
-							};
-							<span class="self">Self</span>::header_error(
-								config,
-								<span class="string">""</span>.to_string(),
-								conn_data,
-								attachment,
-								e,
-								cache,
-								<span class="kw-2">&amp;</span>headers,
-								ctx,
-							)<span class="question-mark">?</span>;
-							<span class="kw">return </span><span class="prelude-val">Ok</span>(());
-						}
-					};
-
-					<span class="kw">if </span>headers.uri_length() &gt; config.max_uri_len {
-						<span class="comment">// build a mock header. only thing that matters is host and we
-						// can put something that triggers the default instance.
-						</span><span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::Http, <span class="string">"uri too large"</span>);
-						<span class="kw">let </span>termination_point = <span class="number">0</span>;
-						<span class="kw">let </span>start = <span class="number">0</span>;
-						<span class="kw">let </span>req = <span class="kw-2">&amp;</span><span class="string">"Host_"</span>.to_string().as_bytes().to_vec();
-						<span class="kw">let </span>start_uri = <span class="number">0</span>;
-						<span class="kw">let </span>end_uri = <span class="number">0</span>;
-						<span class="kw">let </span>http_request_type = HttpMethod::GET;
-						<span class="kw">let </span>headers = [HttpHeader::default(); <span class="number">100</span>];
-						<span class="kw">let </span>header_count = <span class="number">0</span>;
-						<span class="kw">let </span>version = HttpVersion::UNKNOWN;
-						<span class="kw">let </span>host = <span class="string">""</span>.to_string();
-						<span class="kw">let </span>connection = ConnectionType::KeepAlive;
-						<span class="kw">let </span>headers = HttpHeaders {
-							termination_point,
-							start,
-							req,
-							start_uri,
-							end_uri,
-							http_request_type,
-							version,
-							headers,
-							header_count,
-							host,
-							connection,
-							range_start: <span class="number">0</span>,
-							range_end: usize::MAX,
-							if_none_match: <span class="string">""</span>.to_string(),
-							if_modified_since: <span class="string">""</span>.to_string(),
-							is_websocket_upgrade: <span class="bool-val">false</span>,
-							sec_websocket_key: <span class="string">""</span>.to_string(),
-							sec_websocket_protocol: <span class="string">""</span>.to_string(),
-							accept_gzip: <span class="bool-val">false</span>,
-							content_length: <span class="number">0</span>,
-						};
-						<span class="self">Self</span>::header_error(
-							config,
-							<span class="string">""</span>.to_string(),
-							conn_data,
-							attachment,
-							e,
-							cache,
-							<span class="kw-2">&amp;</span>headers,
-							ctx,
-						)<span class="question-mark">?</span>;
-						<span class="kw">return </span><span class="prelude-val">Ok</span>(());
-					}
-
-					<span class="kw">if </span>headers_from_req
-						&amp;&amp; ((headers.termination_point == <span class="number">0
-							</span>&amp;&amp; req.len() &gt; config.max_headers_len + config.max_uri_len + <span class="number">100</span>)
-							|| (headers.termination_point
-								&gt; config.max_headers_len + config.max_uri_len + <span class="number">100</span>))
-					{
-						<span class="kw">let </span>termination_point = <span class="number">0</span>;
-						<span class="kw">let </span>start = <span class="number">0</span>;
-						<span class="kw">let </span>req = <span class="kw-2">&amp;</span><span class="string">"Host_"</span>.to_string().as_bytes().to_vec();
-						<span class="kw">let </span>start_uri = <span class="number">0</span>;
-						<span class="kw">let </span>end_uri = <span class="number">0</span>;
-						<span class="kw">let </span>http_request_type = HttpMethod::GET;
-						<span class="kw">let </span>headers = [HttpHeader::default(); <span class="number">100</span>];
-						<span class="kw">let </span>header_count = <span class="number">0</span>;
-						<span class="kw">let </span>version = HttpVersion::UNKNOWN;
-						<span class="kw">let </span>host = <span class="string">""</span>.to_string();
-						<span class="kw">let </span>connection = ConnectionType::KeepAlive;
-						<span class="kw">let </span>headers = HttpHeaders {
-							termination_point,
-							start,
-							req,
-							start_uri,
-							end_uri,
-							http_request_type,
-							version,
-							headers,
-							header_count,
-							host,
-							connection,
-							range_start: <span class="number">0</span>,
-							range_end: usize::MAX,
-							if_none_match: <span class="string">""</span>.to_string(),
-							if_modified_since: <span class="string">""</span>.to_string(),
-							is_websocket_upgrade: <span class="bool-val">false</span>,
-							sec_websocket_key: <span class="string">""</span>.to_string(),
-							sec_websocket_protocol: <span class="string">""</span>.to_string(),
-							accept_gzip: <span class="bool-val">false</span>,
-							content_length: <span class="number">0</span>,
-						};
-						<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::Http, <span class="string">"headers too large"</span>);
-						<span class="self">Self</span>::header_error(
-							config,
-							<span class="string">""</span>.to_string(),
-							conn_data,
-							attachment,
-							e,
-							cache,
-							<span class="kw-2">&amp;</span>headers,
-							ctx,
-						)<span class="question-mark">?</span>;
-						<span class="kw">return </span><span class="prelude-val">Ok</span>(());
-					}
-
-					<span class="macro">debug!</span>(
-						<span class="string">"headers.path={:?},headers.len={}"</span>,
-						headers.path(),
-						http_connection_data.headers.len()
-					)<span class="question-mark">?</span>;
-
-					<span class="kw">if </span>headers.content_length &gt; <span class="number">0 </span>{
-						<span class="kw">if </span>headers.termination_point &gt; <span class="number">0 </span>{
-							<span class="kw">if </span>http_connection_data.headers.len() == <span class="number">0 </span>{
-								<span class="macro">debug!</span>(<span class="string">"incr due to no headers"</span>)<span class="question-mark">?</span>;
-								termination_sum += headers.termination_point;
+		<span class="kw">match </span>attachment {
+			<span class="prelude-val">Some</span>(<span class="kw-2">mut </span>attachment) =&gt; {
+				<span class="kw">let </span><span class="kw-2">mut </span>attachment = attachment.attachment.wlock()<span class="question-mark">?</span>;
+				<span class="kw">let </span>attachment = attachment.guard();
+				<span class="kw">match </span>(<span class="kw-2">**</span>attachment).downcast_mut::&lt;HttpInstance&gt;() {
+					<span class="prelude-val">Some</span>(<span class="kw-2">ref mut </span>attachment) =&gt; {
+						<span class="comment">/*
+						let attachment = match attachment {
+							Some(attachment) =&gt; attachment,
+							None =&gt; {
+								return Err(err!(
+									ErrKind::Http,
+									"no instance found for this request2"
+								));
 							}
-							<span class="macro">debug!</span>(<span class="string">"headers termination found with content-length"</span>)<span class="question-mark">?</span>;
-							<span class="kw">let </span><span class="kw-2">mut </span>needed = headers
-								.content_length
-								.saturating_sub(http_connection_data.len());
-							<span class="kw">let </span>start_content;
-							<span class="kw">if </span>!build_headers_from_vec {
-								start_content = headers.termination_point;
-								http_connection_data
-									.headers
-									.extend(<span class="kw-2">&amp;</span>req[<span class="number">0</span>..headers.termination_point]);
-							} <span class="kw">else </span>{
-								start_content = <span class="number">0</span>;
-							}
+						};
+											*/
+						</span><span class="macro">debug!</span>(<span class="string">"conn_data.tid={},att={:?}"</span>, conn_data.tid(), attachment)<span class="question-mark">?</span>;
+						<span class="kw">let </span>ctx = <span class="self">Self</span>::build_ctx(ctx, config)<span class="question-mark">?</span>;
+						ctx.now = SystemTime::now().duration_since(UNIX_EPOCH)<span class="question-mark">?</span>.as_millis();
+						<span class="self">Self</span>::update_connections_hashtable(ctx.now, ctx, conn_data)<span class="question-mark">?</span>;
 
-							<span class="kw">if </span>start_content + needed &gt; req.len() {
-								<span class="macro">debug!</span>(
+						<span class="macro">debug!</span>(<span class="string">"on read slab_offset = {}"</span>, conn_data.slab_offset())<span class="question-mark">?</span>;
+						<span class="kw">let </span>first_slab = conn_data.first_slab();
+						<span class="kw">let </span>last_slab = conn_data.last_slab();
+						<span class="kw">let </span>slab_offset = conn_data.slab_offset();
+						<span class="macro">debug!</span>(<span class="string">"firstslab={},last_slab={}"</span>, first_slab, last_slab)<span class="question-mark">?</span>;
+
+						<span class="kw">let </span><span class="kw-2">mut </span>content_offset = <span class="kw">match </span>ctx.connections.get(<span class="kw-2">&amp;</span>id) {
+							<span class="prelude-val">Some</span>(http_connection_data) =&gt; http_connection_data.content_offset,
+							<span class="prelude-val">None </span>=&gt; {
+								<span class="macro">warn!</span>(<span class="string">"no connection data found for connection {}"</span>, id)<span class="question-mark">?</span>;
+								<span class="number">0
+							</span>}
+						};
+
+						<span class="kw">let </span>(req, slab_id_vec, slab_count) =
+							conn_data.borrow_slab_allocator(<span class="kw">move </span>|sa| {
+								<span class="kw">let </span><span class="kw-2">mut </span>slab_id_vec = <span class="macro">vec!</span>[];
+								<span class="kw">let </span><span class="kw-2">mut </span>slab_id = first_slab;
+								<span class="kw">let </span><span class="kw-2">mut </span>ret: Vec&lt;u8&gt; = <span class="macro">vec!</span>[];
+								<span class="kw">let </span><span class="kw-2">mut </span>slab_count = <span class="number">0</span>;
+								<span class="kw">loop </span>{
+									slab_count += <span class="number">1</span>;
+									slab_id_vec.push(slab_id);
+									<span class="kw">let </span>slab = sa.get(slab_id.try_into()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+									<span class="kw">let </span>slab_bytes = slab.get();
+									<span class="kw">let </span>offset = <span class="kw">if </span>slab_id == last_slab {
+										slab_offset <span class="kw">as </span>usize
+									} <span class="kw">else </span>{
+										READ_SLAB_DATA_SIZE
+									};
+
+									<span class="kw">let </span>slab_bytes_data = <span class="kw-2">&amp;</span>slab_bytes[content_offset..offset];
+									<span class="macro">debug!</span>(<span class="string">"read bytes = {:?}"</span>, slab_bytes_data)<span class="question-mark">?</span>;
+									ret.extend(slab_bytes_data);
+
+									<span class="kw">if </span>slab_id == last_slab {
+										<span class="kw">break</span>;
+									}
+									slab_id = u32::from_be_bytes(<span class="macro">try_into!</span>(
+										slab_bytes[READ_SLAB_DATA_SIZE..READ_SLAB_DATA_SIZE + <span class="number">4</span>]
+									)<span class="question-mark">?</span>);
+									content_offset = <span class="number">0</span>;
+								}
+								<span class="prelude-val">Ok</span>((ret, slab_id_vec, slab_count))
+							})<span class="question-mark">?</span>;
+
+						<span class="kw">let </span>slab_req_len = req.len();
+						<span class="kw">let </span><span class="kw-2">mut </span>start = <span class="number">0</span>;
+						<span class="kw">let </span><span class="kw-2">mut </span>last_term = <span class="number">0</span>;
+						<span class="kw">let </span><span class="kw-2">mut </span>termination_sum = <span class="number">0</span>;
+
+						<span class="kw">match </span><span class="self">Self</span>::websocket_data(conn_data, ctx)<span class="question-mark">? </span>{
+							<span class="prelude-val">Some</span>(websocket_data) =&gt; {
+								termination_sum = <span class="kw">match </span>process_websocket_data(
+									<span class="kw-2">&amp;</span>req,
+									conn_data,
+									attachment,
+									config,
+									<span class="kw-2">&amp;</span>websocket_data,
+								) {
+									<span class="prelude-val">Ok</span>(termination_sum) =&gt; termination_sum,
+									<span class="prelude-val">Err</span>(e) =&gt; {
+										<span class="comment">// invalid data sent to the websocket connection.
+										// close it.
+										</span><span class="macro">warn!</span>(
+											<span class="string">"Websocket Error [closing connection]: {}"</span>,
+											e.to_string()
+										)<span class="question-mark">?</span>;
+										conn_data.write_handle().close()<span class="question-mark">?</span>;
+										req.len()
+									}
+								};
+							}
+							<span class="prelude-val">None </span>=&gt; {
+								<span class="kw">let </span><span class="kw-2">mut </span>build_headers_from_vec = <span class="bool-val">false</span>;
+								<span class="kw">loop </span>{
+									<span class="kw">let </span><span class="kw-2">mut </span>http_connection_data =
+										<span class="kw">match </span>ctx.connections.get_mut(<span class="kw-2">&amp;</span>id) {
+											<span class="prelude-val">Some</span>(http_connection_data) =&gt; http_connection_data,
+											<span class="prelude-val">None </span>=&gt; {
+												<span class="macro">warn!</span>(
+													<span class="string">"no connection data found for connection {}"</span>,
+													id
+												)<span class="question-mark">?</span>;
+												<span class="kw">return </span><span class="prelude-val">Ok</span>(());
+											}
+										};
+									<span class="kw">let </span>headers_clone = http_connection_data.headers.clone();
+
+									<span class="macro">debug!</span>(<span class="string">"slab_count={}"</span>, slab_count)<span class="question-mark">?</span>;
+									<span class="kw">let </span>headers_from_req;
+									<span class="kw">let </span>headers = <span class="kw">if </span>http_connection_data.headers.len() &gt; <span class="number">0
+										</span>|| build_headers_from_vec
+									{
+										<span class="kw">let </span>len = headers_clone.len();
+										<span class="macro">debug!</span>(<span class="string">"1: start={}"</span>, start)<span class="question-mark">?</span>;
+										build_headers_from_vec = <span class="bool-val">true</span>;
+										headers_from_req = <span class="bool-val">false</span>;
+										<span class="self">Self</span>::build_request_headers(
+											<span class="kw-2">&amp;</span>headers_clone,
+											<span class="number">0</span>,
+											ctx.matches,
+											<span class="kw-2">&amp;mut </span>ctx.suffix_tree,
+											len,
+										)
+									} <span class="kw">else </span>{
+										<span class="macro">debug!</span>(<span class="string">"2: start={},req.len={}"</span>, start, req.len())<span class="question-mark">?</span>;
+										headers_from_req = <span class="bool-val">true</span>;
+										<span class="self">Self</span>::build_request_headers(
+											<span class="kw-2">&amp;</span>req,
+											start,
+											ctx.matches,
+											<span class="kw-2">&amp;mut </span>ctx.suffix_tree,
+											(slab_offset <span class="kw">as </span>usize
+												+ (slab_count - <span class="number">1</span>) * READ_SLAB_DATA_SIZE)
+												.into(),
+										)
+									};
+
+									<span class="kw">let </span>headers = <span class="kw">match </span>headers {
+										<span class="prelude-val">Ok</span>(headers) =&gt; headers,
+										<span class="prelude-val">Err</span>(e) =&gt; {
+											<span class="comment">// build a mock header. only thing that matters is host and we
+											// can put something that triggers the default instance.
+											</span><span class="kw">let </span>termination_point = <span class="number">0</span>;
+											<span class="kw">let </span>start = <span class="number">0</span>;
+											<span class="kw">let </span>req = <span class="kw-2">&amp;</span><span class="string">"Host_"</span>.to_string().as_bytes().to_vec();
+											<span class="kw">let </span>start_uri = <span class="number">0</span>;
+											<span class="kw">let </span>end_uri = <span class="number">0</span>;
+											<span class="kw">let </span>http_request_type = HttpMethod::GET;
+											<span class="kw">let </span>headers = [HttpHeader::default(); <span class="number">100</span>];
+											<span class="kw">let </span>header_count = <span class="number">0</span>;
+											<span class="kw">let </span>version = HttpVersion::UNKNOWN;
+											<span class="kw">let </span>host = <span class="string">""</span>.to_string();
+											<span class="kw">let </span>connection = ConnectionType::KeepAlive;
+											<span class="kw">let </span>headers = HttpHeaders {
+												termination_point,
+												start,
+												req,
+												start_uri,
+												end_uri,
+												http_request_type,
+												version,
+												headers,
+												header_count,
+												host,
+												connection,
+												range_start: <span class="number">0</span>,
+												range_end: usize::MAX,
+												if_none_match: <span class="string">""</span>.to_string(),
+												if_modified_since: <span class="string">""</span>.to_string(),
+												is_websocket_upgrade: <span class="bool-val">false</span>,
+												sec_websocket_key: <span class="string">""</span>.to_string(),
+												sec_websocket_protocol: <span class="string">""</span>.to_string(),
+												accept_gzip: <span class="bool-val">false</span>,
+												content_length: <span class="number">0</span>,
+											};
+											<span class="self">Self</span>::header_error(
+												config,
+												<span class="string">""</span>.to_string(),
+												conn_data,
+												attachment,
+												e,
+												cache,
+												<span class="kw-2">&amp;</span>headers,
+												ctx,
+											)<span class="question-mark">?</span>;
+											<span class="kw">return </span><span class="prelude-val">Ok</span>(());
+										}
+									};
+
+									<span class="kw">if </span>headers.uri_length() &gt; config.max_uri_len {
+										<span class="comment">// build a mock header. only thing that matters is host and we
+										// can put something that triggers the default instance.
+										</span><span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::Http, <span class="string">"uri too large"</span>);
+										<span class="kw">let </span>termination_point = <span class="number">0</span>;
+										<span class="kw">let </span>start = <span class="number">0</span>;
+										<span class="kw">let </span>req = <span class="kw-2">&amp;</span><span class="string">"Host_"</span>.to_string().as_bytes().to_vec();
+										<span class="kw">let </span>start_uri = <span class="number">0</span>;
+										<span class="kw">let </span>end_uri = <span class="number">0</span>;
+										<span class="kw">let </span>http_request_type = HttpMethod::GET;
+										<span class="kw">let </span>headers = [HttpHeader::default(); <span class="number">100</span>];
+										<span class="kw">let </span>header_count = <span class="number">0</span>;
+										<span class="kw">let </span>version = HttpVersion::UNKNOWN;
+										<span class="kw">let </span>host = <span class="string">""</span>.to_string();
+										<span class="kw">let </span>connection = ConnectionType::KeepAlive;
+										<span class="kw">let </span>headers = HttpHeaders {
+											termination_point,
+											start,
+											req,
+											start_uri,
+											end_uri,
+											http_request_type,
+											version,
+											headers,
+											header_count,
+											host,
+											connection,
+											range_start: <span class="number">0</span>,
+											range_end: usize::MAX,
+											if_none_match: <span class="string">""</span>.to_string(),
+											if_modified_since: <span class="string">""</span>.to_string(),
+											is_websocket_upgrade: <span class="bool-val">false</span>,
+											sec_websocket_key: <span class="string">""</span>.to_string(),
+											sec_websocket_protocol: <span class="string">""</span>.to_string(),
+											accept_gzip: <span class="bool-val">false</span>,
+											content_length: <span class="number">0</span>,
+										};
+										<span class="self">Self</span>::header_error(
+											config,
+											<span class="string">""</span>.to_string(),
+											conn_data,
+											attachment,
+											e,
+											cache,
+											<span class="kw-2">&amp;</span>headers,
+											ctx,
+										)<span class="question-mark">?</span>;
+										<span class="kw">return </span><span class="prelude-val">Ok</span>(());
+									}
+
+									<span class="kw">if </span>headers_from_req
+										&amp;&amp; ((headers.termination_point == <span class="number">0
+											</span>&amp;&amp; req.len()
+												&gt; config.max_headers_len
+													+ config.max_uri_len + <span class="number">100</span>) || (headers
+											.termination_point
+											&gt; config.max_headers_len + config.max_uri_len + <span class="number">100</span>))
+									{
+										<span class="kw">let </span>termination_point = <span class="number">0</span>;
+										<span class="kw">let </span>start = <span class="number">0</span>;
+										<span class="kw">let </span>req = <span class="kw-2">&amp;</span><span class="string">"Host_"</span>.to_string().as_bytes().to_vec();
+										<span class="kw">let </span>start_uri = <span class="number">0</span>;
+										<span class="kw">let </span>end_uri = <span class="number">0</span>;
+										<span class="kw">let </span>http_request_type = HttpMethod::GET;
+										<span class="kw">let </span>headers = [HttpHeader::default(); <span class="number">100</span>];
+										<span class="kw">let </span>header_count = <span class="number">0</span>;
+										<span class="kw">let </span>version = HttpVersion::UNKNOWN;
+										<span class="kw">let </span>host = <span class="string">""</span>.to_string();
+										<span class="kw">let </span>connection = ConnectionType::KeepAlive;
+										<span class="kw">let </span>headers = HttpHeaders {
+											termination_point,
+											start,
+											req,
+											start_uri,
+											end_uri,
+											http_request_type,
+											version,
+											headers,
+											header_count,
+											host,
+											connection,
+											range_start: <span class="number">0</span>,
+											range_end: usize::MAX,
+											if_none_match: <span class="string">""</span>.to_string(),
+											if_modified_since: <span class="string">""</span>.to_string(),
+											is_websocket_upgrade: <span class="bool-val">false</span>,
+											sec_websocket_key: <span class="string">""</span>.to_string(),
+											sec_websocket_protocol: <span class="string">""</span>.to_string(),
+											accept_gzip: <span class="bool-val">false</span>,
+											content_length: <span class="number">0</span>,
+										};
+										<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::Http, <span class="string">"headers too large"</span>);
+										<span class="self">Self</span>::header_error(
+											config,
+											<span class="string">""</span>.to_string(),
+											conn_data,
+											attachment,
+											e,
+											cache,
+											<span class="kw-2">&amp;</span>headers,
+											ctx,
+										)<span class="question-mark">?</span>;
+										<span class="kw">return </span><span class="prelude-val">Ok</span>(());
+									}
+
+									<span class="macro">debug!</span>(
+										<span class="string">"headers.path={:?},headers.len={}"</span>,
+										headers.path(),
+										http_connection_data.headers.len()
+									)<span class="question-mark">?</span>;
+
+									<span class="kw">if </span>headers.content_length &gt; <span class="number">0 </span>{
+										<span class="kw">if </span>headers.termination_point &gt; <span class="number">0 </span>{
+											<span class="kw">if </span>http_connection_data.headers.len() == <span class="number">0 </span>{
+												<span class="macro">debug!</span>(<span class="string">"incr due to no headers"</span>)<span class="question-mark">?</span>;
+												termination_sum += headers.termination_point;
+											}
+											<span class="macro">debug!</span>(
+												<span class="string">"headers termination found with content-length"
+											</span>)<span class="question-mark">?</span>;
+											<span class="kw">let </span><span class="kw-2">mut </span>needed = headers
+												.content_length
+												.saturating_sub(http_connection_data.len());
+											<span class="kw">let </span>start_content;
+											<span class="kw">if </span>!build_headers_from_vec {
+												start_content = headers.termination_point;
+												http_connection_data
+													.headers
+													.extend(<span class="kw-2">&amp;</span>req[<span class="number">0</span>..headers.termination_point]);
+											} <span class="kw">else </span>{
+												start_content = <span class="number">0</span>;
+											}
+
+											<span class="kw">if </span>start_content + needed &gt; req.len() {
+												<span class="macro">debug!</span>(
 									<span class="string">"in if stmt,req.len={},needed={},start_content={}"</span>,
 									req.len(),
 									needed,
 									start_content
 								)<span class="question-mark">?</span>;
-								needed = req.len().saturating_sub(start_content);
-							}
+												needed = req.len().saturating_sub(start_content);
+											}
 
-							<span class="kw">let </span>ncontent = <span class="kw-2">&amp;</span>req[start_content..start_content + needed];
-							http_connection_data.extend(
-								ncontent,
-								<span class="kw-2">&amp;mut </span>ctx.content_allocator,
-								config,
-							)<span class="question-mark">?</span>;
-							termination_sum += ncontent.len();
-						}
-					} <span class="kw">else </span>{
-						<span class="macro">debug!</span>(<span class="string">"incr termination_sum else"</span>)<span class="question-mark">?</span>;
-						termination_sum += headers.termination_point;
-					}
+											<span class="kw">let </span>ncontent =
+												<span class="kw-2">&amp;</span>req[start_content..start_content + needed];
+											http_connection_data.extend(
+												ncontent,
+												<span class="kw-2">&amp;mut </span>ctx.content_allocator,
+												config,
+											)<span class="question-mark">?</span>;
+											termination_sum += ncontent.len();
+										}
+									} <span class="kw">else </span>{
+										<span class="macro">debug!</span>(<span class="string">"incr termination_sum else"</span>)<span class="question-mark">?</span>;
+										termination_sum += headers.termination_point;
+									}
 
-					<span class="kw">if </span>headers.termination_point == <span class="number">0
-						</span>|| headers.content_length() &gt; http_connection_data.len()
-					{
-						<span class="kw">break</span>;
-					} <span class="kw">else </span>{
-						http_connection_data.headers.clear();
-						http_connection_data.headers.shrink_to_fit();
-						<span class="kw">if </span>headers.version != HttpVersion::HTTP10 &amp;&amp; headers.host()<span class="question-mark">?</span>.len() == <span class="number">0 </span>{
-							<span class="self">Self</span>::header_error(
-								config,
-								<span class="string">""</span>.to_string(),
-								conn_data,
-								attachment,
-								<span class="macro">err!</span>(ErrKind::Http, <span class="string">"Host not specified on HTTP/1.1+"</span>),
-								cache.clone(),
-								<span class="kw-2">&amp;</span>headers,
-								ctx,
-							)<span class="question-mark">?</span>;
-							<span class="kw">return </span><span class="prelude-val">Ok</span>(());
-						}
+									<span class="kw">if </span>headers.termination_point == <span class="number">0
+										</span>|| headers.content_length() &gt; http_connection_data.len()
+									{
+										<span class="kw">break</span>;
+									} <span class="kw">else </span>{
+										http_connection_data.headers.clear();
+										http_connection_data.headers.shrink_to_fit();
+										<span class="kw">if </span>headers.version != HttpVersion::HTTP10
+											&amp;&amp; headers.host()<span class="question-mark">?</span>.len() == <span class="number">0
+										</span>{
+											<span class="self">Self</span>::header_error(
+												config,
+												<span class="string">""</span>.to_string(),
+												conn_data,
+												attachment,
+												<span class="macro">err!</span>(
+													ErrKind::Http,
+													<span class="string">"Host not specified on HTTP/1.1+"
+												</span>),
+												cache.clone(),
+												<span class="kw-2">&amp;</span>headers,
+												ctx,
+											)<span class="question-mark">?</span>;
+											<span class="kw">return </span><span class="prelude-val">Ok</span>(());
+										}
 
-						<span class="kw">let </span>path = <span class="kw">match </span>headers.path() {
-							<span class="prelude-val">Ok</span>(path) =&gt; path,
-							<span class="prelude-val">Err</span>(e) =&gt; {
-								<span class="self">Self</span>::header_error(
-									config,
-									<span class="string">""</span>.to_string(),
-									conn_data,
-									attachment,
-									e,
-									cache,
-									<span class="kw-2">&amp;</span>headers,
-									ctx,
-								)<span class="question-mark">?</span>;
-								<span class="kw">break</span>;
-							}
-						};
+										<span class="kw">let </span>path = <span class="kw">match </span>headers.path() {
+											<span class="prelude-val">Ok</span>(path) =&gt; path,
+											<span class="prelude-val">Err</span>(e) =&gt; {
+												<span class="self">Self</span>::header_error(
+													config,
+													<span class="string">""</span>.to_string(),
+													conn_data,
+													attachment,
+													e,
+													cache,
+													<span class="kw-2">&amp;</span>headers,
+													ctx,
+												)<span class="question-mark">?</span>;
+												<span class="kw">break</span>;
+											}
+										};
 
-						<span class="kw">if </span>headers.is_websocket_upgrade()<span class="question-mark">? </span>{
-							<span class="kw">match </span>attachment.websocket_mappings.get(<span class="kw-2">&amp;</span>path) {
-								<span class="prelude-val">Some</span>(mapping) =&gt; {
-									<span class="comment">// valid upgrade return switching response
-									</span><span class="self">Self</span>::upgrade_websocket(conn_data, <span class="kw-2">&amp;</span>headers, ctx, mapping)<span class="question-mark">?</span>;
-									<span class="kw">break</span>;
-								}
-								<span class="prelude-val">None </span>=&gt; {
-									<span class="self">Self</span>::header_error(
-										config,
-										path,
-										conn_data,
-										attachment,
-										<span class="macro">err!</span>(
+										<span class="kw">if </span>headers.is_websocket_upgrade()<span class="question-mark">? </span>{
+											<span class="kw">match </span>attachment.websocket_mappings.get(<span class="kw-2">&amp;</span>path) {
+												<span class="prelude-val">Some</span>(mapping) =&gt; {
+													<span class="comment">// valid upgrade return switching response
+													</span><span class="self">Self</span>::upgrade_websocket(
+														conn_data, <span class="kw-2">&amp;</span>headers, ctx, mapping,
+													)<span class="question-mark">?</span>;
+													<span class="kw">break</span>;
+												}
+												<span class="prelude-val">None </span>=&gt; {
+													<span class="self">Self</span>::header_error(
+														config,
+														path,
+														conn_data,
+														attachment,
+														<span class="macro">err!</span>(
 											ErrKind::Http,
 											<span class="string">"Cannot upgrade to websocket for this URI"
 										</span>),
-										cache,
-										<span class="kw-2">&amp;</span>headers,
-										ctx,
-									)<span class="question-mark">?</span>;
-									<span class="kw">return </span><span class="prelude-val">Ok</span>(());
-								}
-							}
-						}
+														cache,
+														<span class="kw-2">&amp;</span>headers,
+														ctx,
+													)<span class="question-mark">?</span>;
+													<span class="kw">return </span><span class="prelude-val">Ok</span>(());
+												}
+											}
+										}
 
-						start = headers.termination_point;
-						last_term = headers.termination_point;
+										start = headers.termination_point;
+										last_term = headers.termination_point;
 
-						<span class="kw">let </span><span class="kw-2">mut </span>is_callback = <span class="bool-val">false</span>;
-						<span class="kw">match </span>attachment.callback {
-							<span class="prelude-val">Some</span>(callback) =&gt; {
-								<span class="kw">if </span>attachment.callback_mappings.contains(<span class="kw-2">&amp;</span>path) {
-									is_callback = <span class="bool-val">true</span>;
-									http_connection_data.read_slab = http_connection_data.head_slab;
-									http_connection_data.read_offset = <span class="number">0</span>;
-									<span class="kw">let </span>http_content_reader = HttpContentReader {
-										content_allocator: <span class="kw-2">&amp;mut </span>ctx.content_allocator,
-										http_connection_data: <span class="kw-2">&amp;mut </span>http_connection_data,
-										config,
-									};
-									<span class="macro">debug!</span>(<span class="string">"callback starting"</span>)<span class="question-mark">?</span>;
-									callback(
-										<span class="kw-2">&amp;</span>headers,
-										<span class="kw-2">&amp;</span>config,
-										<span class="kw-2">&amp;</span>attachment,
-										<span class="kw-2">&amp;mut </span>conn_data.write_handle(),
-										http_content_reader,
-									)<span class="question-mark">?</span>;
-									<span class="macro">debug!</span>(<span class="string">"callback complete"</span>)<span class="question-mark">?</span>;
-								} <span class="kw">else if </span>path.contains(<span class="string">r"."</span>) {
-									<span class="kw">let </span>pos = path.chars().rev().position(|c| c == <span class="string">'.'</span>).unwrap();
-									<span class="kw">let </span>len = path.len();
-									<span class="kw">let </span>suffix = path.substring(len - pos, len).to_string();
-									<span class="kw">if </span>attachment.callback_extensions.contains(<span class="kw-2">&amp;</span>suffix) {
-										is_callback = <span class="bool-val">true</span>;
-										http_connection_data.read_slab =
-											http_connection_data.head_slab;
-										http_connection_data.read_offset = <span class="number">0</span>;
-										<span class="kw">let </span>http_content_reader = HttpContentReader {
-											content_allocator: <span class="kw-2">&amp;mut </span>ctx.content_allocator,
-											http_connection_data: <span class="kw-2">&amp;mut </span>http_connection_data,
-											config,
-										};
-										<span class="macro">debug!</span>(<span class="string">"callback starting"</span>)<span class="question-mark">?</span>;
-										callback(
-											<span class="kw-2">&amp;</span>headers,
-											<span class="kw-2">&amp;</span>config,
-											<span class="kw-2">&amp;</span>attachment,
-											<span class="kw-2">&amp;mut </span>conn_data.write_handle(),
-											http_content_reader,
-										)<span class="question-mark">?</span>;
-										<span class="macro">debug!</span>(<span class="string">"callback complete"</span>)<span class="question-mark">?</span>;
-									}
-								}
-							}
-							<span class="prelude-val">None </span>=&gt; {}
-						}
+										<span class="kw">let </span><span class="kw-2">mut </span>is_callback = <span class="bool-val">false</span>;
+										<span class="kw">match </span>attachment.callback {
+											<span class="prelude-val">Some</span>(callback) =&gt; {
+												<span class="kw">if </span>attachment.callback_mappings.contains(<span class="kw-2">&amp;</span>path) {
+													is_callback = <span class="bool-val">true</span>;
+													http_connection_data.read_slab =
+														http_connection_data.head_slab;
+													http_connection_data.read_offset = <span class="number">0</span>;
+													<span class="kw">let </span>http_content_reader = HttpContentReader {
+														content_allocator: <span class="kw-2">&amp;mut </span>ctx
+															.content_allocator,
+														http_connection_data:
+															<span class="kw-2">&amp;mut </span>http_connection_data,
+														config,
+													};
+													<span class="macro">debug!</span>(<span class="string">"callback starting"</span>)<span class="question-mark">?</span>;
+													callback(
+														<span class="kw-2">&amp;</span>headers,
+														<span class="kw-2">&amp;</span>config,
+														<span class="kw-2">&amp;</span>attachment,
+														<span class="kw-2">&amp;mut </span>conn_data.write_handle(),
+														http_content_reader,
+													)<span class="question-mark">?</span>;
+													<span class="macro">debug!</span>(<span class="string">"callback complete"</span>)<span class="question-mark">?</span>;
+												} <span class="kw">else if </span>path.contains(<span class="string">r"."</span>) {
+													<span class="kw">let </span>pos = path
+														.chars()
+														.rev()
+														.position(|c| c == <span class="string">'.'</span>)
+														.unwrap();
+													<span class="kw">let </span>len = path.len();
+													<span class="kw">let </span>suffix =
+														path.substring(len - pos, len).to_string();
+													<span class="kw">if </span>attachment
+														.callback_extensions
+														.contains(<span class="kw-2">&amp;</span>suffix)
+													{
+														is_callback = <span class="bool-val">true</span>;
+														http_connection_data.read_slab =
+															http_connection_data.head_slab;
+														http_connection_data.read_offset = <span class="number">0</span>;
+														<span class="kw">let </span>http_content_reader =
+															HttpContentReader {
+																content_allocator: <span class="kw-2">&amp;mut </span>ctx
+																	.content_allocator,
+																http_connection_data:
+																	<span class="kw-2">&amp;mut </span>http_connection_data,
+																config,
+															};
+														<span class="macro">debug!</span>(<span class="string">"callback starting"</span>)<span class="question-mark">?</span>;
+														callback(
+															<span class="kw-2">&amp;</span>headers,
+															<span class="kw-2">&amp;</span>config,
+															<span class="kw-2">&amp;</span>attachment,
+															<span class="kw-2">&amp;mut </span>conn_data.write_handle(),
+															http_content_reader,
+														)<span class="question-mark">?</span>;
+														<span class="macro">debug!</span>(<span class="string">"callback complete"</span>)<span class="question-mark">?</span>;
+													}
+												}
+											}
+											<span class="prelude-val">None </span>=&gt; {}
+										}
 
-						http_connection_data.clear(<span class="kw-2">&amp;mut </span>ctx.content_allocator, config)<span class="question-mark">?</span>;
-						<span class="kw">let </span><span class="kw-2">mut </span>cache_hit = <span class="bool-val">false</span>;
-						<span class="kw">if </span>!is_callback {
-							cache_hit = <span class="self">Self</span>::process_file(
-								config,
-								cache.clone(),
-								path.clone(),
-								conn_data,
-								attachment,
-								<span class="kw-2">&amp;</span>headers,
-								ctx,
-							)<span class="question-mark">?</span>;
-						}
+										http_connection_data
+											.clear(<span class="kw-2">&amp;mut </span>ctx.content_allocator, config)<span class="question-mark">?</span>;
+										<span class="kw">let </span><span class="kw-2">mut </span>cache_hit = <span class="bool-val">false</span>;
+										<span class="kw">if </span>!is_callback {
+											cache_hit = <span class="self">Self</span>::process_file(
+												config,
+												cache.clone(),
+												path.clone(),
+												conn_data,
+												attachment,
+												<span class="kw-2">&amp;</span>headers,
+												ctx,
+											)<span class="question-mark">?</span>;
+										}
 
-						<span class="kw">if </span>config.debug {
-							<span class="kw">let </span>empty = <span class="string">""</span>.to_string();
-							<span class="kw">let </span>query = headers.query().unwrap_or(<span class="string">""</span>.to_string());
-							<span class="kw">let </span>extension = headers.extension().unwrap_or(empty);
-							<span class="kw">let </span>header_count = headers.header_count().unwrap_or(<span class="number">0</span>);
-							<span class="macro">info!</span>(
+										<span class="kw">if </span>config.debug {
+											<span class="kw">let </span>empty = <span class="string">""</span>.to_string();
+											<span class="kw">let </span>query = headers.query().unwrap_or(<span class="string">""</span>.to_string());
+											<span class="kw">let </span>extension = headers.extension().unwrap_or(empty);
+											<span class="kw">let </span>header_count = headers.header_count().unwrap_or(<span class="number">0</span>);
+											<span class="macro">info!</span>(
 						<span class="string">"uri={},query={},extension={},method={:?},version={:?},header_count={},cache_hit={},has_range={},range_start={},range_end={},if_none_match={},if_modified_since={},is_websocket_upgrade={},accept_gzip={}"</span>,
 						path,
 						query,
@@ -5719,26 +5825,46 @@
                                                 headers.is_websocket_upgrade().unwrap_or(<span class="bool-val">false</span>),
                                                 headers.accept_gzip().unwrap_or(<span class="bool-val">false</span>),
 					)<span class="question-mark">?</span>;
-							<span class="macro">info!</span>(<span class="string">"{}"</span>, SEPARATOR_LINE)<span class="question-mark">?</span>;
+											<span class="macro">info!</span>(<span class="string">"{}"</span>, SEPARATOR_LINE)<span class="question-mark">?</span>;
 
-							<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..header_count {
-								<span class="macro">info!</span>(
-									<span class="string">"   header[{}] = ['{}']"</span>,
-									headers.header_name(i).unwrap_or(<span class="string">""</span>.to_string()),
-									headers.header_value(i).unwrap_or(<span class="string">""</span>.to_string())
-								)<span class="question-mark">?</span>;
+											<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..header_count {
+												<span class="macro">info!</span>(
+													<span class="string">"   header[{}] = ['{}']"</span>,
+													headers
+														.header_name(i)
+														.unwrap_or(<span class="string">""</span>.to_string()),
+													headers
+														.header_value(i)
+														.unwrap_or(<span class="string">""</span>.to_string())
+												)<span class="question-mark">?</span>;
+											}
+											<span class="macro">info!</span>(<span class="string">"{}"</span>, SEPARATOR_LINE)<span class="question-mark">?</span>;
+										}
+									}
+
+									<span class="macro">debug!</span>(<span class="string">"start={}"</span>, headers.start)<span class="question-mark">?</span>;
+								}
 							}
-							<span class="macro">info!</span>(<span class="string">"{}"</span>, SEPARATOR_LINE)<span class="question-mark">?</span>;
 						}
-					}
 
-					<span class="macro">debug!</span>(<span class="string">"start={}"</span>, headers.start)<span class="question-mark">?</span>;
+						<span class="macro">debug!</span>(<span class="string">"last term = {}"</span>, last_term)<span class="question-mark">?</span>;
+						<span class="self">Self</span>::clean_slabs(
+							termination_sum,
+							slab_req_len,
+							ctx,
+							<span class="kw-2">&amp;</span>slab_id_vec,
+							conn_data,
+						)<span class="question-mark">?</span>;
+					}
+					<span class="prelude-val">None </span>=&gt; {
+						<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">"no instance found for this request1"</span>));
+					}
 				}
 			}
+			<span class="prelude-val">None </span>=&gt; {
+				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">"no instance found for this request2"</span>));
+			}
 		}
-
-		<span class="macro">debug!</span>(<span class="string">"last term = {}"</span>, last_term)<span class="question-mark">?</span>;
-		<span class="self">Self</span>::clean_slabs(termination_sum, slab_req_len, ctx, <span class="kw-2">&amp;</span>slab_id_vec, conn_data)<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}

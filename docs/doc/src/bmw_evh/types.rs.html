@@ -726,7 +726,7 @@
 
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>AttachmentHolder {
-	<span class="kw">pub </span>attachment: Arc&lt;Box&lt;<span class="kw">dyn </span>Any + Send + Sync&gt;&gt;,
+	<span class="kw">pub </span>attachment: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>Any + Send + Sync&gt;&gt;&gt;,
 }
 
 <span class="comment">// pub(crate) types

@@ -595,6 +595,15 @@
 <a href="#594" id="594">594</a>
 <a href="#595" id="595">595</a>
 <a href="#596" id="596">596</a>
+<a href="#597" id="597">597</a>
+<a href="#598" id="598">598</a>
+<a href="#599" id="599">599</a>
+<a href="#600" id="600">600</a>
+<a href="#601" id="601">601</a>
+<a href="#602" id="602">602</a>
+<a href="#603" id="603">603</a>
+<a href="#604" id="604">604</a>
+<a href="#605" id="605">605</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -617,6 +626,7 @@
 <span class="kw">use </span>bmw_deps::failure::{Backtrace, Context, Fail};
 <span class="kw">use </span>bmw_deps::rustls::client::InvalidDnsNameError;
 <span class="kw">use </span>bmw_deps::rustls::sign::SignError;
+<span class="kw">use </span>bmw_deps::url::ParseError;
 <span class="kw">use </span>bmw_deps::webpki::Error <span class="kw">as </span>WebpkiError;
 <span class="kw">use </span>std::alloc::LayoutError;
 <span class="kw">use </span>std::convert::Infallible;
@@ -815,6 +825,14 @@
 	<span class="kw">fn </span>from(e: std::io::Error) -&gt; Error {
 		Error {
 			inner: Context::new(ErrorKind::IO(<span class="macro">format!</span>(<span class="string">"{}"</span>, e))),
+		}
+	}
+}
+
+<span class="kw">impl </span>From&lt;ParseError&gt; <span class="kw">for </span>Error {
+	<span class="kw">fn </span>from(e: ParseError) -&gt; Error {
+		Error {
+			inner: Context::new(ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">"url::ParseError: {}"</span>, e))),
 		}
 	}
 }

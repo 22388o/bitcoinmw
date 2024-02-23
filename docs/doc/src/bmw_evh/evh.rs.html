@@ -8049,6 +8049,15 @@
 <a href="#8048" id="8048">8048</a>
 <a href="#8049" id="8049">8049</a>
 <a href="#8050" id="8050">8050</a>
+<a href="#8051" id="8051">8051</a>
+<a href="#8052" id="8052">8052</a>
+<a href="#8053" id="8053">8053</a>
+<a href="#8054" id="8054">8054</a>
+<a href="#8055" id="8055">8055</a>
+<a href="#8056" id="8056">8056</a>
+<a href="#8057" id="8057">8057</a>
+<a href="#8058" id="8058">8058</a>
+<a href="#8059" id="8059">8059</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -8166,6 +8175,15 @@
 	reuse_port: bool,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;Array&lt;Handle&gt;, Error&gt; {
 	create_listeners_impl(size, addr, listen_size, reuse_port)
+}
+
+<span class="kw">pub fn </span>tcp_stream_to_handle(strm: TcpStream) -&gt; <span class="prelude-ty">Result</span>&lt;Handle, Error&gt; {
+	strm.set_nonblocking(<span class="bool-val">true</span>)<span class="question-mark">?</span>;
+	<span class="attr">#[cfg(unix)]
+	</span><span class="kw">let </span>connection_handle = strm.into_raw_fd();
+	<span class="attr">#[cfg(windows)]
+	</span><span class="kw">let </span>connection_handle = strm.into_raw_socket().try_into()<span class="question-mark">?</span>;
+	<span class="prelude-val">Ok</span>(connection_handle)
 }
 
 <span class="kw">impl </span>Default <span class="kw">for </span>Event {
@@ -10582,7 +10600,7 @@
 		attachment: Box&lt;<span class="kw">dyn </span>Any + Send + Sync&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>attachment = AttachmentHolder {
-			attachment: Arc::new(attachment),
+			attachment: <span class="macro">lock_box!</span>(attachment)<span class="question-mark">?</span>,
 		};
 		<span class="macro">debug!</span>(<span class="string">"add server: {:?}"</span>, attachment)<span class="question-mark">?</span>;
 
@@ -10693,7 +10711,7 @@
 		attachment: Box&lt;<span class="kw">dyn </span>Any + Send + Sync&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;WriteHandle, Error&gt; {
 		<span class="kw">let </span>attachment = AttachmentHolder {
-			attachment: Arc::new(attachment),
+			attachment: <span class="macro">lock_box!</span>(attachment)<span class="question-mark">?</span>,
 		};
 		<span class="kw">let </span>tid: usize = random::&lt;usize&gt;() % <span class="self">self</span>.data.size();
 		<span class="kw">let </span>id: u128 = random::&lt;u128&gt;();
