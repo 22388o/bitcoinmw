@@ -3294,6 +3294,13 @@
 <a href="#3293" id="3293">3293</a>
 <a href="#3294" id="3294">3294</a>
 <a href="#3295" id="3295">3295</a>
+<a href="#3296" id="3296">3296</a>
+<a href="#3297" id="3297">3297</a>
+<a href="#3298" id="3298">3298</a>
+<a href="#3299" id="3299">3299</a>
+<a href="#3300" id="3300">3300</a>
+<a href="#3301" id="3301">3301</a>
+<a href="#3302" id="3302">3302</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -3346,6 +3353,11 @@
 <span class="kw">use </span>std::str::from_utf8;
 <span class="kw">use </span>std::time::{SystemTime, UNIX_EPOCH};
 
+<span class="comment">// include build information
+</span><span class="kw">pub mod </span>built_info {
+	<span class="macro">include!</span>(<span class="macro">concat!</span>(<span class="macro">env!</span>(<span class="string">"OUT_DIR"</span>), <span class="string">"/built.rs"</span>));
+}
+
 <span class="macro">info!</span>();
 
 <span class="kw">fn </span>rfind_utf8(s: <span class="kw-2">&amp;</span>str, chr: char) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
@@ -3378,7 +3390,7 @@
 			cache_slab_count: <span class="number">10_000</span>,
 			idle_timeout: <span class="number">60_000</span>,
 			server_name: <span class="string">"BitcoinMW HTTP Server"</span>.to_string(),
-			server_version: <span class="string">"0.0.0"</span>.to_string(),
+			server_version: built_info::PKG_VERSION.to_string(),
 			bring_to_front_weight: <span class="number">0.1</span>,
 			restat_file_frequency_in_millis: <span class="number">3_000</span>, <span class="comment">// 3 seconds
 			</span>content_slab_count: <span class="number">1_000</span>,
@@ -6103,6 +6115,7 @@
 	<span class="macro">debug!</span>();
 
 	<span class="kw">fn </span>wait_assert(value: usize, <span class="kw-2">mut </span>client: <span class="kw-2">&amp;</span>TcpStream) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="macro">debug!</span>(<span class="string">"wait_assert. Wait for value = {}"</span>, value)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0</span>; <span class="number">512</span>];
 		<span class="kw">let </span><span class="kw-2">mut </span>len_sum = <span class="number">0</span>;
@@ -6144,6 +6157,7 @@
 				}),
 				..Default::default()
 			}],
+			server_version: <span class="string">"test1"</span>.to_string(),
 			..Default::default()
 		};
 		<span class="kw">let </span><span class="kw-2">mut </span>http = HttpServerImpl::new(<span class="kw-2">&amp;</span>config)<span class="question-mark">?</span>;
