@@ -247,6 +247,9 @@ pub type HttpHandler = Pin<
 
 pub trait HttpRequest: DynClone + Any {
 	fn request_url(&self) -> Option<String>;
+	fn user_agent(&self) -> &String;
+	fn accept(&self) -> &String;
+	fn headers(&self) -> &Vec<(String, String)>;
 	fn guid(&self) -> u128;
 }
 
@@ -288,6 +291,9 @@ pub struct HttpConnectionConfig {}
 #[derive(Clone)]
 pub struct HttpRequestConfig {
 	pub request_url: Option<String>,
+	pub user_agent: String,
+	pub accept: String,
+	pub headers: Vec<(String, String)>,
 }
 
 // Crate local types
@@ -320,6 +326,7 @@ pub(crate) struct HttpClientContext {
 pub(crate) struct HttpClientAttachment {
 	pub(crate) handler: HttpHandler,
 	pub(crate) request: Box<dyn HttpRequest + Send + Sync>,
+	pub(crate) close_on_complete: bool,
 }
 
 pub(crate) struct HttpServerImpl {

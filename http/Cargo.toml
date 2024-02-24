@@ -7,6 +7,7 @@ license = "Apache-2.0"
 repository = "https://github.com/cgilliard/bitcoinmw"
 keywords = [ "crypto", "bitcoinmw" ]
 readme = "README.md"
+build = "src/build/build.rs"
 exclude = ["**/*.bmw", "**/*.bmw"]
 edition = "2021"
 
@@ -23,3 +24,6 @@ bmw_evh    = { path = "../evh"    }
 [dev-dependencies]
 
 bmw_test   = { path = "../test"   }
+
+[build-dependencies]
+built = { version = "0.5.1", features = ["git2"]}

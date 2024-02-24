@@ -37,7 +37,12 @@ use std::any::Any;
 use std::net::TcpStream;
 use std::str::from_utf8;
 
-debug!();
+info!();
+
+// include build information
+pub mod built_info {
+	include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}
 
 impl Default for HttpClientConfig {
 	fn default() -> Self {
@@ -50,7 +55,12 @@ impl Default for HttpClientConfig {
 
 impl Default for HttpRequestConfig {
 	fn default() -> Self {
-		Self { request_url: None }
+		Self {
+			request_url: None,
+			user_agent: format!("BitcoinMW/{}", built_info::PKG_VERSION.to_string()).to_string(),
+			accept: "*/*".to_string(),
+			headers: vec![],
+		}
 	}
 }
 
@@ -61,6 +71,13 @@ impl HttpClient for HttpClientImpl {
 		handler: HttpHandler,
 	) -> Result<(), Error> {
 		let request_url = request.request_url();
+		let user_agent = request.user_agent();
+		let accept = request.accept();
+		let headers = request.headers();
+		let mut headers_str = "".to_string();
+		for header in headers {
+			headers_str = format!("{}\r\n{}: {}", headers_str, header.0, header.1);
+		}
 		debug!("request url = {:?}", request_url)?;
 
 		match request_url {
@@ -96,10 +113,18 @@ impl HttpClient for HttpClientImpl {
 				};
 				let mut wh = self.controller.add_client(
 					client_connection,
-					Box::new(HttpClientAttachment { handler, request }),
+					Box::new(HttpClientAttachment {
+						handler,
+						request: request.clone(),
+						close_on_complete: true,
+					}),
 				)?;
 
-				let req_str = format!("GET {} HTTP/1.1\r\nHost: {}\r\n\r\n", path, addr);
+				let req_str = format!(
+					"GET {} HTTP/1.1\r\nHost: {}\r\nUser-Agent: {}\r\nAccept: {}\r\nConnection: close{}\r\n\r\n",
+					path, addr, user_agent, accept, headers_str
+				);
+
 				wh.write(req_str.as_bytes())?;
 			}
 			None => {}
@@ -204,6 +229,7 @@ impl HttpClientImpl {
 							&attachment.request,
 							ctx,
 							config,
+							attachment.close_on_complete,
 						)?;
 					}
 					None => {
@@ -224,6 +250,7 @@ impl HttpClientImpl {
 		req: &Box<dyn HttpRequest + Send + Sync>,
 		ctx: &mut ThreadContext,
 		config: &HttpClientConfig,
+		close_on_complete: bool,
 	) -> Result<(), Error> {
 		let ctx = Self::build_ctx(ctx, config)?;
 		let id = conn_data.get_connection_id();
@@ -263,7 +290,16 @@ impl HttpClientImpl {
 			Ok((ret, slab_id_vec))
 		})?;
 
-		Self::process_res(conn_data, res, handler, req, ctx, slab_id_vec, config)?;
+		Self::process_res(
+			conn_data,
+			res,
+			handler,
+			req,
+			ctx,
+			slab_id_vec,
+			config,
+			close_on_complete,
+		)?;
 
 		Ok(())
 	}
@@ -276,6 +312,7 @@ impl HttpClientImpl {
 		ctx: &mut HttpClientContext,
 		slab_id_vec: Vec<u32>,
 		config: &HttpClientConfig,
+		close_on_complete: bool,
 	) -> Result<(), Error> {
 		let res_len = res.len();
 		if config.debug {
@@ -341,6 +378,31 @@ impl HttpClientImpl {
 
 		let mut clear_point = 0;
 
+		// try to parse the first line
+		if response.start_content > 0 {
+			let mut itt = 0;
+			loop {
+				if itt >= res_len || res[itt] == '\r' as u8 || res[itt] == '\n' as u8 {
+					break;
+				}
+				itt += 1;
+			}
+
+			if itt >= res_len {
+				// first line not there yet, wait for more data
+				return Ok(());
+			}
+			let first_line = from_utf8(&res[0..itt]).unwrap_or("");
+			(response.version, response.code, response.status_text) =
+				match Self::process_first_line(first_line) {
+					Ok((version, code, status_text)) => (version, code, status_text),
+					Err(e) => {
+						warn!("Error parsing response: {}", e)?;
+						(HttpVersion::HTTP10, 400u16, "bad request".to_string())
+					}
+				};
+		}
+
 		if response.start_content == 0 {
 			// we are not ready to process so return
 			return Ok(());
@@ -387,27 +449,20 @@ impl HttpClientImpl {
 						// not enough data, return for now
 						return Ok(());
 					}
+
 					// the request is complete
-
-					let mut itt2 = 0;
-					loop {
-						if itt2 >= res_len || res[itt2] == '\r' as u8 || res[itt2] == '\n' as u8 {
-							break;
-						}
-						itt2 += 1;
-					}
-					let first_line = from_utf8(&res[0..itt2]).unwrap_or("");
-					(response.version, response.code, response.status_text) =
-						Self::process_first_line(first_line)?;
-
 					let mut resp: Box<dyn HttpResponse> = Box::new(response);
 					handler(req, &mut resp)?;
+
 					debug!("incr clear point {},itt={}", itt + line_len + 4, itt)?;
 					clear_point = itt + line_len + 4;
+					if close_on_complete {
+						let _ = conn_data.write_handle().close();
+					}
 					break;
 				} else if val == usize::MAX {
 					debug!("invalid request. close conn and return.")?;
-					conn_data.write_handle().close()?;
+					let _ = conn_data.write_handle().close();
 					return Ok(());
 				} else {
 					// append data
@@ -418,7 +473,19 @@ impl HttpClientImpl {
 				}
 			}
 		} else {
-			// TODO: content_len is set
+			if response.start_content + response.content_length > res_len {
+				debug!("not enough data yet")?;
+				return Ok(());
+			}
+			// we have the data.
+
+			let start = response.start_content;
+			let end = start + response.content_length;
+
+			response.content.extend(&res[start..end]);
+			let mut resp: Box<dyn HttpResponse> = Box::new(response);
+			handler(req, &mut resp)?;
+			clear_point = end;
 		}
 
 		// we processed data so we need to clear some slabs
@@ -440,7 +507,7 @@ impl HttpClientImpl {
 			let slab_start = (clear_point + ctx.slab_start) % READ_SLAB_DATA_SIZE;
 			debug!("Seeing ctx.slab_start to {}", slab_start)?;
 			ctx.slab_start = slab_start;
-		} else {
+		} else if clear_point > 0 {
 			warn!(
 				"unexpected condition: clear_point={},res_len={},slab_id_vec_len={}",
 				clear_point, res_len, slab_id_vec_len
@@ -502,9 +569,10 @@ impl HttpClientImpl {
 
 	fn process_on_close(
 		_config: &HttpClientConfig,
-		_conn_data: &mut ConnectionData,
+		conn_data: &mut ConnectionData,
 		_ctx: &mut ThreadContext,
 	) -> Result<(), Error> {
+		debug!("Process on close: {}", conn_data.get_connection_id())?;
 		Ok(())
 	}
 
@@ -546,6 +614,16 @@ impl PartialEq for Box<dyn HttpRequest + Send + Sync> {
 impl HttpRequest for HttpRequestImpl {
 	fn request_url(&self) -> Option<String> {
 		self.config.request_url.clone()
+	}
+	fn user_agent(&self) -> &String {
+		&self.config.user_agent
+	}
+	fn accept(&self) -> &String {
+		&self.config.accept
+	}
+
+	fn headers(&self) -> &Vec<(String, String)> {
+		&self.config.headers
 	}
 
 	fn guid(&self) -> u128 {
@@ -640,10 +718,13 @@ mod test {
 				..Default::default()
 			}],
 			server_version: "test1".to_string(),
+			debug: true,
 			..Default::default()
 		};
 		let mut http = Builder::build_http_server(&config)?;
 		http.start()?;
+
+		sleep(Duration::from_millis(1_000));
 
 		let mut http_client = HttpClientImpl::new(&HttpClientConfig {
 			debug: true,
@@ -652,6 +733,10 @@ mod test {
 
 		let http_client_request1 = Box::new(HttpRequestImpl::new(&HttpRequestConfig {
 			request_url: Some(format!("http://{}:{}/foo.html", addr, port).to_string()),
+			headers: vec![
+				("timeout".to_string(), "10".to_string()),
+				("something".to_string(), "else".to_string()),
+			],
 			..Default::default()
 		})?) as Box<dyn HttpRequest + Send + Sync>;
 		let http_client_request1_clone = http_client_request1.clone();
@@ -694,16 +779,23 @@ mod test {
 		)?;
 		http_client.send(http_client_request1, handler1)?;
 
+		let mut found404 = lock_box!(false)?;
+		let found404_clone = found404.clone();
 		let handler2: HttpHandler = Box::pin(
 			move |_request: &Box<dyn HttpRequest + Send + Sync>,
-			      _response: &mut Box<dyn HttpResponse>| {
-				info!("in handler2")?;
+			      response: &mut Box<dyn HttpResponse>| {
+				info!("got response should be 404!")?;
+				assert_eq!(response.code()?, 404);
+				let mut found404 = found404.wlock()?;
+				let guard = found404.guard();
+				(**guard) = true;
 
 				Ok(())
 			},
 		);
 
 		let http_client_request2 = Box::new(HttpRequestImpl::new(&HttpRequestConfig {
+			request_url: Some(format!("http://{}:{}/foo2.html", addr, port).to_string()),
 			..Default::default()
 		})?) as Box<dyn HttpRequest + Send + Sync>;
 
@@ -728,9 +820,17 @@ mod test {
 			break;
 		}
 
-		let found_count = found_count_clone.rlock()?;
-		let guard = found_count.guard();
-		assert_eq!((**guard), 1);
+		{
+			let found_count = found_count_clone.rlock()?;
+			let guard = found_count.guard();
+			assert_eq!((**guard), 1);
+		}
+
+		{
+			let found404 = found404_clone.rlock()?;
+			let guard = found404.guard();
+			assert_eq!((**guard), true);
+		}
 
 		tear_down_test_dir(test_dir)?;
 

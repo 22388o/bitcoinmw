@@ -50,6 +50,11 @@ use std::path::{Component, Path, PathBuf};
 use std::str::from_utf8;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+// include build information
+pub mod built_info {
+	include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}
+
 info!();
 
 fn rfind_utf8(s: &str, chr: char) -> Option<usize> {
@@ -82,7 +87,7 @@ impl Default for HttpConfig {
 			cache_slab_count: 10_000,
 			idle_timeout: 60_000,
 			server_name: "BitcoinMW HTTP Server".to_string(),
-			server_version: "0.0.0".to_string(),
+			server_version: built_info::PKG_VERSION.to_string(),
 			bring_to_front_weight: 0.1,
 			restat_file_frequency_in_millis: 3_000, // 3 seconds
 			content_slab_count: 1_000,
@@ -2807,6 +2812,7 @@ mod test {
 	debug!();
 
 	fn wait_assert(value: usize, mut client: &TcpStream) -> Result<(), Error> {
+		debug!("wait_assert. Wait for value = {}", value)?;
 		let mut count = 0;
 		let mut buf = [0; 512];
 		let mut len_sum = 0;
@@ -2848,6 +2854,7 @@ mod test {
 				}),
 				..Default::default()
 			}],
+			server_version: "test1".to_string(),
 			..Default::default()
 		};
 		let mut http = HttpServerImpl::new(&config)?;
