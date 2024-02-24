@@ -2818,6 +2818,9 @@ mod test {
 		let mut len_sum = 0;
 		loop {
 			let len = client.read(&mut buf)?;
+			if len == 0 {
+				break;
+			}
 			len_sum += len;
 			let data = from_utf8(&buf)?;
 			info!("data = '{}',len={},len_sum={}", data, len, len_sum)?;
