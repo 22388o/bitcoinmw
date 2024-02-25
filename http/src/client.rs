@@ -21,8 +21,8 @@ use crate::types::{
 	HttpConnectionImpl, HttpRequestImpl, HttpResponseImpl,
 };
 use crate::{
-	HttpClient, HttpClientConfig, HttpConnection, HttpConnectionConfig, HttpHandler, HttpRequest,
-	HttpRequestConfig, HttpResponse, HttpVersion,
+	HttpClient, HttpClientConfig, HttpClientContainer, HttpConnection, HttpConnectionConfig,
+	HttpHandler, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion,
 };
 use bmw_deps::rand::random;
 use bmw_deps::url::Url;
@@ -60,6 +60,8 @@ impl Default for HttpClientConfig {
 		Self {
 			max_headers_len: 8192,
 			debug: false,
+			max_handles_per_thread: 100,
+			threads: 4,
 		}
 	}
 }
@@ -103,6 +105,12 @@ fn do_send(
 	wh.write(req_str.as_bytes())?;
 
 	Ok(())
+}
+
+impl HttpClientContainer {
+	pub fn init(config: &HttpClientConfig) -> Result<Box<dyn HttpClient + Send + Sync>, Error> {
+		crate::Builder::build_http_client(&config)
+	}
 }
 
 impl HttpClient for HttpClientImpl {
@@ -161,6 +169,8 @@ impl HttpClient for HttpClientImpl {
 impl HttpClientImpl {
 	pub(crate) fn new(config: &HttpClientConfig) -> Result<HttpClientImpl, Error> {
 		let evh_config = EventHandlerConfig {
+			threads: config.threads,
+			max_handles_per_thread: config.max_handles_per_thread,
 			..Default::default()
 		};
 		let mut evh = Builder::build_evh(evh_config)?;
@@ -765,9 +775,8 @@ impl HttpResponseImpl {
 mod test {
 	use crate::types::{HttpClientImpl, HttpRequestImpl};
 	use crate::{
-		Builder, HttpClient, HttpClientConfig, HttpConfig, HttpConnectionConfig, HttpHandler,
-		HttpInstance, HttpInstanceType, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion,
-		PlainConfig,
+		Builder, HttpClient, HttpClientConfig, HttpConfig, HttpConnectionConfig, HttpInstance,
+		HttpInstanceType, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion, PlainConfig,
 	};
 	use bmw_err::*;
 	use bmw_log::*;
@@ -931,9 +940,13 @@ mod test {
 	fn test_http_connection_basic() -> Result<(), Error> {
 		let test_dir = ".test_http_connection_basic.bmw";
 		let data_text = "Hello World1234!";
+		let data_text2 = "another file";
 		setup_test_dir(test_dir)?;
 		let mut file = File::create(format!("{}/foo.html", test_dir))?;
 		file.write_all(data_text.as_bytes())?;
+		let mut file = File::create(format!("{}/foo2.html", test_dir))?;
+		file.write_all(data_text2.as_bytes())?;
+
 		let port = pick_free_port()?;
 		info!("port={}", port)?;
 		let addr = "127.0.0.1".to_string();
@@ -983,34 +996,37 @@ mod test {
 		let mut found_count = lock_box!(0)?;
 		let found_count_clone = found_count.clone();
 
-		let handler1: HttpHandler = Box::pin(move |request, response| {
-			info!("in handler1,request.guid={}", request.guid())?;
-			if request == &http_client_request1_clone {
-				let content = response.content()?;
-				let content = from_utf8(&content).unwrap_or("utf8_err");
-				info!("recv req 1: '{}'", content)?;
-				assert_eq!(content, data_text);
+		let handler1 = Box::pin(
+			move |request: &Box<dyn HttpRequest + Send + Sync>,
+			      response: &mut Box<dyn HttpResponse + Send + Sync>| {
+				info!("in handler1,request.guid={}", request.guid())?;
+				if request == &http_client_request1_clone {
+					let content = response.content()?;
+					let content = from_utf8(&content).unwrap_or("utf8_err");
+					info!("recv req 1: '{}'", content)?;
+					assert_eq!(content, data_text);
 
-				let headers = response.headers()?;
+					let headers = response.headers()?;
 
-				let mut found = false;
-				for (n, v) in headers {
-					if n == &"Transfer-Encoding".to_string() && v == &"chunked" {
-						found = true;
+					let mut found = false;
+					for (n, v) in headers {
+						if n == &"Transfer-Encoding".to_string() && v == &"chunked" {
+							found = true;
+						}
 					}
+
+					assert!(found);
+					assert_eq!(response.code()?, 200);
+					assert_eq!(response.status_text()?, "OK");
+					assert_eq!(response.version()?, &HttpVersion::HTTP11);
+
+					let mut found_count = found_count.wlock()?;
+					let guard = found_count.guard();
+					(**guard) += 1;
 				}
-
-				assert!(found);
-				assert_eq!(response.code()?, 200);
-				assert_eq!(response.status_text()?, "OK");
-				assert_eq!(response.version()?, &HttpVersion::HTTP11);
-
-				let mut found_count = found_count.wlock()?;
-				let guard = found_count.guard();
-				(**guard) += 1;
-			}
-			Ok(())
-		});
+				Ok(())
+			},
+		);
 
 		info!(
 			"about to send request with guid = {}",
@@ -1020,27 +1036,69 @@ mod test {
 
 		sleep(Duration::from_millis(1_000));
 
-		let mut found404 = lock_box!(false)?;
-		let found404_clone = found404.clone();
-		let handler2 = Box::pin(
-			move |_request: &Box<dyn HttpRequest + Send + Sync>,
-			      response: &mut Box<dyn HttpResponse + Send + Sync>| {
-				info!("got response should be 404!")?;
-				assert_eq!(response.code()?, 404);
-				let mut found404 = found404.wlock()?;
-				let guard = found404.guard();
-				(**guard) = true;
-
-				Ok(())
-			},
-		);
-
 		let http_client_request2 = Box::new(HttpRequestImpl::new(&HttpRequestConfig {
 			request_uri: Some("/foo2.html".to_string()),
 			..Default::default()
 		})?) as Box<dyn HttpRequest + Send + Sync>;
 
-		http_connection.send(http_client_request2, handler2)?;
+		let http_client_request3 = Box::new(HttpRequestImpl::new(&HttpRequestConfig {
+			request_uri: Some("/foo3.html".to_string()),
+			..Default::default()
+		})?) as Box<dyn HttpRequest + Send + Sync>;
+
+		let http_client_request3_clone = http_client_request3.clone();
+		let http_client_request2_clone = http_client_request2.clone();
+
+		let mut found404 = lock_box!(false)?;
+		let found404_clone = found404.clone();
+		let mut found_another_file = lock_box!(false)?;
+		let found_another_file_clone = found_another_file.clone();
+		let handler2 = Box::pin(
+			move |request: &Box<dyn HttpRequest + Send + Sync>,
+			      response: &mut Box<dyn HttpResponse + Send + Sync>| {
+				if request == &http_client_request3_clone {
+					info!("got response should be 404!")?;
+					assert_eq!(response.code()?, 404);
+					let mut found404 = found404.wlock()?;
+					let guard = found404.guard();
+					assert_eq!(**guard, false);
+					(**guard) = true;
+				} else if request == &http_client_request2_clone {
+					let content = response.content()?;
+					let content = from_utf8(&content).unwrap_or("utf8_err");
+					info!("recv req 1: '{}'", content)?;
+					assert_eq!(content, data_text2);
+
+					let headers = response.headers()?;
+
+					let mut found = false;
+					for (n, v) in headers {
+						if n == &"Transfer-Encoding".to_string() && v == &"chunked" {
+							found = true;
+						}
+					}
+
+					assert!(found);
+					assert_eq!(response.code()?, 200);
+					assert_eq!(response.status_text()?, "OK");
+					assert_eq!(response.version()?, &HttpVersion::HTTP11);
+
+					let mut found_another_file = found_another_file.wlock()?;
+					let guard = found_another_file.guard();
+					assert_eq!(**guard, false);
+					(**guard) = true;
+				}
+
+				Ok(())
+			},
+		);
+
+		http_connection.send(http_client_request2, handler2.clone())?;
+
+		sleep(Duration::from_millis(1_000));
+
+		http_connection.send(http_client_request3, handler2)?;
+
 		sleep(Duration::from_millis(1_000));
 
 		let mut count = 0;
@@ -1069,6 +1127,12 @@ mod test {
 		{
 			let found404 = found404_clone.rlock()?;
 			let guard = found404.guard();
+			assert_eq!((**guard), true);
+		}
+
+		{
+			let found_another_file = found_another_file_clone.rlock()?;
+			let guard = found_another_file.guard();
 			assert_eq!((**guard), true);
 		}
 

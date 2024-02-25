@@ -289,6 +289,8 @@ pub trait HttpConnection {
 pub struct HttpClientConfig {
 	pub(crate) max_headers_len: usize,
 	pub(crate) debug: bool,
+	pub(crate) threads: usize,
+	pub(crate) max_handles_per_thread: usize,
 }
 
 #[derive(Clone)]
@@ -305,6 +307,22 @@ pub struct HttpRequestConfig {
 	pub user_agent: String,
 	pub accept: String,
 	pub headers: Vec<(String, String)>,
+}
+
+pub struct HttpClientContainer {}
+
+/// Configuration options used throughout this crate via macro.
+#[derive(Clone, Debug)]
+pub enum ConfigOption<'a> {
+	/// Number of threads. Used in [`crate::http_client_init`].
+	Threads(usize),
+	/// The maximum handles per thread. Used to configure the http client in
+	/// [`crate::http_client_init`].
+	MaxHandlesPerThread(usize),
+	/// Url. Used to specify the url in [`crate::http_client_request`].
+	Url(&'a str),
+	/// Uri. Used to specify the uri in [`crate::http_client_request`].
+	Uri(&'a str),
 }
 
 // Crate local types

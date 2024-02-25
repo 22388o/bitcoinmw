@@ -20,13 +20,16 @@ mod cache;
 mod client;
 mod constants;
 mod http;
+mod macros;
 mod types;
 mod ws;
 
 pub use crate::types::{
-	Builder, ConnectionType, HttpClient, HttpClientConfig, HttpConfig, HttpConnection,
-	HttpConnectionConfig, HttpConnectionData, HttpContentReader, HttpHandler, HttpHeader,
-	HttpHeaders, HttpInstance, HttpInstanceType, HttpMethod, HttpRequest, HttpRequestConfig,
-	HttpResponse, HttpServer, HttpStats, HttpVersion, PlainConfig, WebSocketData, WebSocketHandle,
-	WebSocketMessage, WebSocketMessageType,
+	Builder, ConnectionType, HttpClient, HttpClientConfig, HttpClientContainer, HttpConfig,
+	HttpConnection, HttpConnectionConfig, HttpConnectionData, HttpContentReader, HttpHandler,
+	HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType, HttpMethod, HttpRequest,
+	HttpRequestConfig, HttpResponse, HttpServer, HttpStats, HttpVersion, PlainConfig,
+	WebSocketData, WebSocketHandle, WebSocketMessage, WebSocketMessageType,
 };
+
+pub use crate::types::ConfigOption::*;
