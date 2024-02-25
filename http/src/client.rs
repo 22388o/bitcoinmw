@@ -35,6 +35,7 @@ use bmw_evh::{
 use bmw_log::*;
 use bmw_util::*;
 use std::any::Any;
+use std::collections::VecDeque;
 use std::net::TcpStream;
 use std::str::from_utf8;
 
@@ -146,14 +147,18 @@ impl HttpClient for HttpClientImpl {
 					handle: tcp_stream_to_handle(tcp_stream)?,
 					tls_config: None,
 				};
+
+				let mut vec = VecDeque::new();
+				vec.push_back(HttpClientAttachmentData {
+					request: request.clone(),
+					close_on_complete: true,
+					handler: handler,
+				});
+
 				let mut wh = self.controller.add_client(
 					client_connection,
 					Box::new(HttpClientAttachment {
-						http_client_data: lock_box!(Some(HttpClientAttachmentData {
-							request: request.clone(),
-							close_on_complete: true,
-							handler: handler,
-						}))?,
+						http_client_data: lock_box!(vec)?,
 					}),
 				)?;
 				do_send(request, &mut wh, uri, addr, false)
@@ -259,17 +264,28 @@ impl HttpClientImpl {
 					Some(ref mut attachment) => {
 						let mut attachment = attachment.http_client_data.wlock()?;
 						let guard = attachment.guard();
-						match **guard {
-							Some(ref mut attachment) => Self::process_on_read_data(
-								conn_data,
-								&attachment.request,
-								&mut attachment.handler,
-								ctx,
-								config,
-								attachment.close_on_complete,
-							)?,
-							None => {
-								warn!("process_on_read included invalid attachment. No handler specified. Could not process request!")?;
+						loop {
+							let pop_count = match (**guard).front_mut() {
+								Some(ref mut attachment) => Self::process_on_read_data(
+									conn_data,
+									&attachment.request,
+									&mut attachment.handler,
+									ctx,
+									config,
+									attachment.close_on_complete,
+								)?,
+								None => 0,
+							};
+
+							if pop_count == 0 {
+								break;
+							}
+							for _ in 0..pop_count {
+								(**guard).pop_front();
+							}
+
+							if (**guard).len() == 0 {
+								break;
 							}
 						}
 					}
@@ -292,7 +308,7 @@ impl HttpClientImpl {
 		ctx: &mut ThreadContext,
 		config: &HttpClientConfig,
 		close_on_complete: bool,
-	) -> Result<(), Error> {
+	) -> Result<usize, Error> {
 		let ctx = Self::build_ctx(ctx, config)?;
 		let id = conn_data.get_connection_id();
 		debug!("id={},guid={}", id, req.guid())?;
@@ -307,6 +323,10 @@ impl HttpClientImpl {
 			let mut slab_id = first_slab;
 
 			loop {
+				if slab_id >= u32::MAX {
+					break;
+				}
+
 				slab_id_vec.push(slab_id);
 				let slab = sa.get(slab_id.try_into()?)?;
 				let slab_bytes = slab.get();
@@ -331,18 +351,22 @@ impl HttpClientImpl {
 			Ok((ret, slab_id_vec))
 		})?;
 
-		Self::process_res(
-			conn_data,
-			res,
-			req,
-			handler,
-			ctx,
-			slab_id_vec,
-			config,
-			close_on_complete,
-		)?;
+		let ret = if res.len() > 0 {
+			Self::process_res(
+				conn_data,
+				res,
+				req,
+				handler,
+				ctx,
+				slab_id_vec,
+				config,
+				close_on_complete,
+			)?
+		} else {
+			0
+		};
 
-		Ok(())
+		Ok(ret)
 	}
 
 	fn process_res(
@@ -354,7 +378,8 @@ impl HttpClientImpl {
 		slab_id_vec: Vec<u32>,
 		config: &HttpClientConfig,
 		close_on_complete: bool,
-	) -> Result<(), Error> {
+	) -> Result<usize, Error> {
+		let mut pop_count = 0;
 		let res_len = res.len();
 		if config.debug {
 			info!("res='{}'", std::str::from_utf8(&res).unwrap_or("utf8err"))?;
@@ -431,7 +456,7 @@ impl HttpClientImpl {
 
 			if itt >= res_len {
 				// first line not there yet, wait for more data
-				return Ok(());
+				return Ok(pop_count);
 			}
 			let first_line = from_utf8(&res[0..itt]).unwrap_or("");
 			(response.version, response.code, response.status_text) =
@@ -446,7 +471,7 @@ impl HttpClientImpl {
 
 		if response.start_content == 0 {
 			// we are not ready to process so return
-			return Ok(());
+			return Ok(pop_count);
 		} else if response.chunked {
 			// we are ready to process the request and it's chunked
 
@@ -468,7 +493,7 @@ impl HttpClientImpl {
 
 				if end >= res_len {
 					debug!("not enough data yet")?;
-					return Ok(());
+					return Ok(pop_count);
 				}
 
 				let (val, line_len) = if start < end {
@@ -488,12 +513,13 @@ impl HttpClientImpl {
 					// ensure proper padding per http spec
 					if itt + line_len + 4 > res_len {
 						// not enough data, return for now
-						return Ok(());
+						return Ok(pop_count);
 					}
 
 					// the request is complete
 					let mut resp: Box<dyn HttpResponse + Send + Sync> = Box::new(response);
 					let req_clone = req.clone();
+					pop_count += 1;
 					handler(&req_clone, &mut resp)?;
 
 					debug!("incr clear point {},itt={}", itt + line_len + 4, itt)?;
@@ -505,7 +531,7 @@ impl HttpClientImpl {
 				} else if val == usize::MAX {
 					debug!("invalid request. close conn and return.")?;
 					let _ = conn_data.write_handle().close();
-					return Ok(());
+					return Ok(pop_count);
 				} else {
 					let start = itt + line_len + 2;
 					let end = itt + line_len + 2 + val;
@@ -516,14 +542,14 @@ impl HttpClientImpl {
 						itt += val + line_len + 4; // for '\r\n' twice
 					} else {
 						// not enough data, return for now
-						return Ok(());
+						return Ok(pop_count);
 					}
 				}
 			}
 		} else {
 			if response.start_content + response.content_length > res_len {
 				debug!("not enough data yet")?;
-				return Ok(());
+				return Ok(pop_count);
 			}
 			// we have the data.
 
@@ -532,6 +558,7 @@ impl HttpClientImpl {
 
 			response.content.extend(&res[start..end]);
 			let mut resp: Box<dyn HttpResponse + Send + Sync> = Box::new(response);
+			pop_count += 1;
 			handler(req, &mut resp)?;
 			clear_point = end;
 		}
@@ -541,7 +568,6 @@ impl HttpClientImpl {
 		let slab_id_vec_len = slab_id_vec.len();
 		if clear_point >= res_len && clear_point > 0 && slab_id_vec_len >= 1 {
 			let last_slab = slab_id_vec[slab_id_vec_len - 1];
-			debug!("clear through {}", last_slab)?;
 			conn_data.clear_through(last_slab)?;
 			ctx.slab_start = 0;
 		} else if clear_point < res_len && clear_point > 0 && slab_id_vec_len >= 1 {
@@ -553,7 +579,6 @@ impl HttpClientImpl {
 				conn_data.clear_through(last_slab)?;
 			}
 			let slab_start = (clear_point + ctx.slab_start) % READ_SLAB_DATA_SIZE;
-			debug!("Seeing ctx.slab_start to {}", slab_start)?;
 			ctx.slab_start = slab_start;
 		} else if clear_point > 0 {
 			warn!(
@@ -562,7 +587,7 @@ impl HttpClientImpl {
 			)?;
 		}
 
-		Ok(())
+		Ok(pop_count)
 	}
 
 	fn process_first_line(first_line: &str) -> Result<(HttpVersion, u16, String), Error> {
@@ -652,7 +677,7 @@ impl HttpConnection for HttpConnectionImpl {
 				{
 					let mut http_client_data = self.http_client_data.wlock()?;
 					let guard = http_client_data.guard();
-					(**guard) = Some(HttpClientAttachmentData {
+					(**guard).push_back(HttpClientAttachmentData {
 						request: request.clone(),
 						close_on_complete: false,
 						handler,
@@ -683,7 +708,8 @@ impl HttpConnectionImpl {
 			tls_config: None,
 		};
 
-		let http_client_data = lock_box!(None)?;
+		let vec = VecDeque::new();
+		let http_client_data = lock_box!(vec)?;
 		let wh = http_client.controller().add_client(
 			client_connection,
 			Box::new(HttpClientAttachment {
@@ -973,7 +999,7 @@ mod test {
 		let mut http = Builder::build_http_server(&config)?;
 		http.start()?;
 
-		sleep(Duration::from_millis(1_000));
+		//sleep(Duration::from_millis(1_000));
 
 		let http_client = HttpClientImpl::new(&HttpClientConfig {
 			debug: true,
@@ -1040,7 +1066,7 @@ mod test {
 		)?;
 		http_connection.send(http_client_request1, handler1)?;
 
-		sleep(Duration::from_millis(1_000));
+		//sleep(Duration::from_millis(1_000));
 
 		let http_client_request2 = Box::new(HttpRequestImpl::new(&HttpRequestConfig {
 			request_uri: Some("/foo2.html".to_string()),
@@ -1101,22 +1127,31 @@ mod test {
 
 		http_connection.send(http_client_request2, handler2.clone())?;
 
-		sleep(Duration::from_millis(1_000));
+		//sleep(Duration::from_millis(1_000));
 
 		http_connection.send(http_client_request3, handler2)?;
 
-		sleep(Duration::from_millis(1_000));
+		//sleep(Duration::from_millis(1_000));
 
 		let mut count = 0;
 		loop {
-			sleep(Duration::from_millis(1));
-			if count == 10000 {
+			sleep(Duration::from_millis(100));
+			if count == 10 {
 				break;
 			}
+			let found404 = found404_clone.rlock()?;
 			let found_count = found_count_clone.rlock()?;
 			let guard = found_count.guard();
+			let guard2 = found404.guard();
+
 			if (**guard) != 1 {
 				info!("guard={},count={} of 10,000", (**guard), count)?;
+				count += 1;
+				continue;
+			}
+
+			if !**guard2 {
+				info!("404 not proc,count={} of 10,000", count)?;
 				count += 1;
 				continue;
 			}

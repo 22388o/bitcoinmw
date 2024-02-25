@@ -2015,17 +2015,6 @@ impl HttpServerImpl {
 				let attachment = attachment.guard();
 				match (**attachment).downcast_mut::<HttpInstance>() {
 					Some(ref mut attachment) => {
-						/*
-						let attachment = match attachment {
-							Some(attachment) => attachment,
-							None => {
-								return Err(err!(
-									ErrKind::Http,
-									"no instance found for this request2"
-								));
-							}
-						};
-											*/
 						debug!("conn_data.tid={},att={:?}", conn_data.tid(), attachment)?;
 						let ctx = Self::build_ctx(ctx, config)?;
 						ctx.now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
@@ -2076,6 +2065,13 @@ impl HttpServerImpl {
 								}
 								Ok((ret, slab_id_vec, slab_count))
 							})?;
+
+						if config.debug {
+							info!(
+								"http_server_req='{}'",
+								std::str::from_utf8(&req).unwrap_or("utf8err")
+							)?;
+						}
 
 						let slab_req_len = req.len();
 						let mut start = 0;
@@ -2317,7 +2313,9 @@ impl HttpServerImpl {
 										if headers.termination_point > 0 {
 											if http_connection_data.headers.len() == 0 {
 												debug!("incr due to no headers")?;
-												termination_sum += headers.termination_point;
+												if headers.termination_point != 0 {
+													termination_sum = headers.termination_point;
+												}
 											}
 											debug!(
 												"headers termination found with content-length"
@@ -2356,7 +2354,9 @@ impl HttpServerImpl {
 										}
 									} else {
 										debug!("incr termination_sum else")?;
-										termination_sum += headers.termination_point;
+										if headers.termination_point != 0 {
+											termination_sum = headers.termination_point;
+										}
 									}
 
 									if headers.termination_point == 0

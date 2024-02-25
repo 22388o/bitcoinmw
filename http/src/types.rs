@@ -23,7 +23,7 @@ use bmw_evh::{
 	ConnectionData, EventHandlerConfig, EventHandlerController, WriteHandle, WriteState,
 };
 use bmw_util::*;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::pin::Pin;
 
@@ -350,7 +350,7 @@ pub(crate) struct HttpResponseImpl {
 pub(crate) struct HttpConnectionImpl {
 	pub(crate) config: HttpConnectionConfig,
 	pub(crate) wh: WriteHandle,
-	pub(crate) http_client_data: Box<dyn LockBox<Option<HttpClientAttachmentData>>>,
+	pub(crate) http_client_data: Box<dyn LockBox<VecDeque<HttpClientAttachmentData>>>,
 }
 
 pub(crate) struct HttpClientContext {
@@ -360,7 +360,7 @@ pub(crate) struct HttpClientContext {
 }
 
 pub(crate) struct HttpClientAttachment {
-	pub(crate) http_client_data: Box<dyn LockBox<Option<HttpClientAttachmentData>>>,
+	pub(crate) http_client_data: Box<dyn LockBox<VecDeque<HttpClientAttachmentData>>>,
 }
 
 pub(crate) struct HttpClientAttachmentData {
