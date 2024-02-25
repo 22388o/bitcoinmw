@@ -255,6 +255,7 @@ where
 /// Since [`crate::EventHandler'] is returned as an impl trait, it is not possible to store it in
 /// data structures. This struct can be used to do some operations after the
 /// [`crate::EventHandler`] has gone out of scope.
+#[derive(Clone)]
 pub struct EventHandlerController {
 	pub(crate) data: Array<Box<dyn LockBox<EventHandlerData>>>,
 	pub(crate) thread_pool_stopper: Box<dyn LockBox<Option<ThreadPoolStopper>>>,

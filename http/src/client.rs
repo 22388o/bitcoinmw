@@ -17,8 +17,8 @@
 
 use crate::constants::*;
 use crate::types::{
-	HttpClientAttachment, HttpClientContext, HttpClientImpl, HttpConnectionImpl, HttpRequestImpl,
-	HttpResponseImpl,
+	HttpClientAttachment, HttpClientAttachmentData, HttpClientContext, HttpClientImpl,
+	HttpConnectionImpl, HttpRequestImpl, HttpResponseImpl,
 };
 use crate::{
 	HttpClient, HttpClientConfig, HttpConnection, HttpConnectionConfig, HttpHandler, HttpRequest,
@@ -29,7 +29,8 @@ use bmw_deps::url::Url;
 use bmw_err::*;
 use bmw_evh::{
 	tcp_stream_to_handle, AttachmentHolder, Builder, ClientConnection, ConnData, ConnectionData,
-	EventHandler, EventHandlerConfig, EventHandlerData, ThreadContext, READ_SLAB_DATA_SIZE,
+	EventHandler, EventHandlerConfig, EventHandlerController, EventHandlerData, ThreadContext,
+	WriteHandle, READ_SLAB_DATA_SIZE,
 };
 use bmw_log::*;
 use bmw_util::*;
@@ -42,6 +43,16 @@ info!();
 // include build information
 pub mod built_info {
 	include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}
+
+impl Default for HttpConnectionConfig {
+	fn default() -> Self {
+		Self {
+			host: "127.0.0.1".to_string(),
+			port: 80,
+			tls: false,
+		}
+	}
 }
 
 impl Default for HttpClientConfig {
@@ -57,11 +68,41 @@ impl Default for HttpRequestConfig {
 	fn default() -> Self {
 		Self {
 			request_url: None,
+			request_uri: None,
 			user_agent: format!("BitcoinMW/{}", built_info::PKG_VERSION.to_string()).to_string(),
 			accept: "*/*".to_string(),
 			headers: vec![],
 		}
 	}
+}
+
+fn do_send(
+	request: Box<dyn HttpRequest + Send + Sync>,
+	wh: &mut WriteHandle,
+	uri: String,
+	addr: String,
+	keep_alive: bool,
+) -> Result<(), Error> {
+	let user_agent = request.user_agent();
+	let accept = request.accept();
+	let headers = request.headers();
+	let mut headers_str = "".to_string();
+	for header in headers {
+		headers_str = format!("{}\r\n{}: {}", headers_str, header.0, header.1);
+	}
+	let keep_alive = match keep_alive {
+		true => "keep-alive",
+		false => "close",
+	};
+
+	let req_str = format!(
+		"GET {} HTTP/1.1\r\nHost: {}\r\nUser-Agent: {}\r\nAccept: {}\r\nConnection: {}{}\r\n\r\n",
+		uri, addr, user_agent, accept, keep_alive, headers_str
+	);
+
+	wh.write(req_str.as_bytes())?;
+
+	Ok(())
 }
 
 impl HttpClient for HttpClientImpl {
@@ -70,17 +111,7 @@ impl HttpClient for HttpClientImpl {
 		request: Box<dyn HttpRequest + Send + Sync>,
 		handler: HttpHandler,
 	) -> Result<(), Error> {
-		let request_url = request.request_url();
-		let user_agent = request.user_agent();
-		let accept = request.accept();
-		let headers = request.headers();
-		let mut headers_str = "".to_string();
-		for header in headers {
-			headers_str = format!("{}\r\n{}: {}", headers_str, header.0, header.1);
-		}
-		debug!("request url = {:?}", request_url)?;
-
-		match request_url {
+		match request.request_url() {
 			Some(request_url) => {
 				let url = Url::parse(&request_url)?;
 				let host = match url.host_str() {
@@ -94,19 +125,14 @@ impl HttpClient for HttpClientImpl {
 				};
 				let port = url.port().unwrap_or(80);
 
-				let path = url.path();
+				let mut uri = url.path().to_string();
 				let query = url.query().unwrap_or("");
+				if query.len() > 0 {
+					uri = format!("{}?{}", uri, query);
+				}
 				let addr = format!("{}:{}", host, port);
 				let tcp_stream = TcpStream::connect(addr.clone())?;
 
-				debug!(
-					"host={},port={},path={},query={},guid={}",
-					host,
-					port,
-					path,
-					query,
-					request.guid()
-				)?;
 				let client_connection = ClientConnection {
 					handle: tcp_stream_to_handle(tcp_stream)?,
 					tls_config: None,
@@ -114,23 +140,21 @@ impl HttpClient for HttpClientImpl {
 				let mut wh = self.controller.add_client(
 					client_connection,
 					Box::new(HttpClientAttachment {
-						handler,
-						request: request.clone(),
-						close_on_complete: true,
+						http_client_data: lock_box!(Some(HttpClientAttachmentData {
+							request: request.clone(),
+							close_on_complete: true,
+							handler: handler,
+						}))?,
 					}),
 				)?;
-
-				let req_str = format!(
-					"GET {} HTTP/1.1\r\nHost: {}\r\nUser-Agent: {}\r\nAccept: {}\r\nConnection: close{}\r\n\r\n",
-					path, addr, user_agent, accept, headers_str
-				);
-
-				wh.write(req_str.as_bytes())?;
+				do_send(request, &mut wh, uri, addr, false)
 			}
-			None => {}
+			None => Err(err!(ErrKind::Http, "request_url must be specified")),
 		}
+	}
 
-		Ok(())
+	fn controller(&mut self) -> &mut EventHandlerController {
+		&mut self.controller
 	}
 }
 
@@ -220,17 +244,23 @@ impl HttpClientImpl {
 			Some(mut attachment) => {
 				let mut attachment = attachment.attachment.wlock()?;
 				let attachment = attachment.guard();
-
 				match (**attachment).downcast_mut::<HttpClientAttachment>() {
 					Some(ref mut attachment) => {
-						Self::process_on_read_data(
-							conn_data,
-							&mut attachment.handler,
-							&attachment.request,
-							ctx,
-							config,
-							attachment.close_on_complete,
-						)?;
+						let mut attachment = attachment.http_client_data.wlock()?;
+						let guard = attachment.guard();
+						match **guard {
+							Some(ref mut attachment) => Self::process_on_read_data(
+								conn_data,
+								&attachment.request,
+								&mut attachment.handler,
+								ctx,
+								config,
+								attachment.close_on_complete,
+							)?,
+							None => {
+								warn!("process_on_read included invalid attachment. No handler specified. Could not process request!")?;
+							}
+						}
 					}
 					None => {
 						warn!("process_on_read included invalid attachment. Could not process request!")?;
@@ -240,14 +270,14 @@ impl HttpClientImpl {
 			None => {
 				warn!("process_on_read did not include attachment. Could not process request!")?;
 			}
-		};
+		}
 		Ok(())
 	}
 
 	fn process_on_read_data(
 		conn_data: &mut ConnectionData,
-		handler: &mut HttpHandler,
 		req: &Box<dyn HttpRequest + Send + Sync>,
+		handler: &mut HttpHandler,
 		ctx: &mut ThreadContext,
 		config: &HttpClientConfig,
 		close_on_complete: bool,
@@ -293,8 +323,8 @@ impl HttpClientImpl {
 		Self::process_res(
 			conn_data,
 			res,
-			handler,
 			req,
+			handler,
 			ctx,
 			slab_id_vec,
 			config,
@@ -307,8 +337,8 @@ impl HttpClientImpl {
 	fn process_res(
 		conn_data: &mut ConnectionData,
 		res: Vec<u8>,
-		handler: &mut HttpHandler,
 		req: &Box<dyn HttpRequest + Send + Sync>,
+		handler: &mut HttpHandler,
 		ctx: &mut HttpClientContext,
 		slab_id_vec: Vec<u32>,
 		config: &HttpClientConfig,
@@ -451,8 +481,9 @@ impl HttpClientImpl {
 					}
 
 					// the request is complete
-					let mut resp: Box<dyn HttpResponse> = Box::new(response);
-					handler(req, &mut resp)?;
+					let mut resp: Box<dyn HttpResponse + Send + Sync> = Box::new(response);
+					let req_clone = req.clone();
+					handler(&req_clone, &mut resp)?;
 
 					debug!("incr clear point {},itt={}", itt + line_len + 4, itt)?;
 					clear_point = itt + line_len + 4;
@@ -465,11 +496,17 @@ impl HttpClientImpl {
 					let _ = conn_data.write_handle().close();
 					return Ok(());
 				} else {
-					// append data
-					response
-						.content
-						.extend(&res[itt + line_len + 2..itt + line_len + 2 + val]);
-					itt += val + line_len + 4; // for '\r\n' twice
+					let start = itt + line_len + 2;
+					let end = itt + line_len + 2 + val;
+
+					if end <= res_len {
+						// append data
+						response.content.extend(&res[start..end]);
+						itt += val + line_len + 4; // for '\r\n' twice
+					} else {
+						// not enough data, return for now
+						return Ok(());
+					}
 				}
 			}
 		} else {
@@ -483,7 +520,7 @@ impl HttpClientImpl {
 			let end = start + response.content_length;
 
 			response.content.extend(&res[start..end]);
-			let mut resp: Box<dyn HttpResponse> = Box::new(response);
+			let mut resp: Box<dyn HttpResponse + Send + Sync> = Box::new(response);
 			handler(req, &mut resp)?;
 			clear_point = end;
 		}
@@ -592,16 +629,61 @@ impl HttpClientImpl {
 impl HttpConnection for HttpConnectionImpl {
 	fn send(
 		&mut self,
-		_req: Box<dyn HttpRequest + Send + Sync>,
-		_handler: HttpHandler,
+		request: Box<dyn HttpRequest + Send + Sync>,
+		handler: HttpHandler,
 	) -> Result<(), Error> {
-		todo!()
+		match request.request_uri() {
+			Some(uri) => {
+				let host = &self.config.host;
+				let port = self.config.port;
+				let addr = format!("{}:{}", host, port);
+
+				{
+					let mut http_client_data = self.http_client_data.wlock()?;
+					let guard = http_client_data.guard();
+					(**guard) = Some(HttpClientAttachmentData {
+						request: request.clone(),
+						close_on_complete: false,
+						handler,
+					});
+				}
+
+				do_send(request, &mut self.wh, uri, addr, true)
+			}
+			None => Err(err!(ErrKind::Http, "request_url must be specified")),
+		}
 	}
 }
 
 impl HttpConnectionImpl {
-	pub(crate) fn new(_config: &HttpConnectionConfig) -> Result<HttpConnectionImpl, Error> {
-		Ok(Self {})
+	pub(crate) fn new(
+		config: &HttpConnectionConfig,
+		mut http_client: Box<dyn HttpClient + Send + Sync>,
+	) -> Result<HttpConnectionImpl, Error> {
+		let config = config.clone();
+		let host = config.host.clone();
+		let port = config.port;
+		let addr = format!("{}:{}", host, port);
+		let tcp_stream = TcpStream::connect(addr.clone())?;
+
+		let client_connection = ClientConnection {
+			handle: tcp_stream_to_handle(tcp_stream)?,
+			tls_config: None,
+		};
+
+		let http_client_data = lock_box!(None)?;
+		let wh = http_client.controller().add_client(
+			client_connection,
+			Box::new(HttpClientAttachment {
+				http_client_data: http_client_data.clone(),
+			}),
+		)?;
+
+		Ok(Self {
+			config,
+			wh,
+			http_client_data,
+		})
 	}
 }
 
@@ -615,6 +697,9 @@ impl HttpRequest for HttpRequestImpl {
 	fn request_url(&self) -> Option<String> {
 		self.config.request_url.clone()
 	}
+	fn request_uri(&self) -> Option<String> {
+		self.config.request_uri.clone()
+	}
 	fn user_agent(&self) -> &String {
 		&self.config.user_agent
 	}
@@ -625,7 +710,6 @@ impl HttpRequest for HttpRequestImpl {
 	fn headers(&self) -> &Vec<(String, String)> {
 		&self.config.headers
 	}
-
 	fn guid(&self) -> u128 {
 		self.guid
 	}
@@ -681,8 +765,9 @@ impl HttpResponseImpl {
 mod test {
 	use crate::types::{HttpClientImpl, HttpRequestImpl};
 	use crate::{
-		Builder, HttpClient, HttpClientConfig, HttpConfig, HttpHandler, HttpInstance,
-		HttpInstanceType, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion, PlainConfig,
+		Builder, HttpClient, HttpClientConfig, HttpConfig, HttpConnectionConfig, HttpHandler,
+		HttpInstance, HttpInstanceType, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion,
+		PlainConfig,
 	};
 	use bmw_err::*;
 	use bmw_log::*;
@@ -744,46 +829,51 @@ mod test {
 		let mut found_count = lock_box!(0)?;
 		let found_count_clone = found_count.clone();
 
-		let handler1: HttpHandler = Box::pin(move |request, response| {
-			info!("in handler1,request.guid={}", request.guid())?;
-			if request == &http_client_request1_clone {
-				let content = response.content()?;
-				let content = from_utf8(&content).unwrap_or("utf8_err");
-				info!("recv req 1: '{}'", content)?;
-				assert_eq!(content, data_text);
+		let handler1 = Box::pin(
+			move |request: &Box<dyn HttpRequest + Send + Sync>,
+			      response: &mut Box<dyn HttpResponse + Send + Sync>| {
+				info!("in handler1,request.guid={}", request.guid())?;
+				if request == &http_client_request1_clone {
+					let guid = request.guid();
+					let content = response.content()?;
+					let content = from_utf8(&content).unwrap_or("utf8_err");
+					info!("recv req 1: '{}',guid={}", content, guid)?;
+					assert_eq!(content, data_text);
 
-				let headers = response.headers()?;
+					let headers = response.headers()?;
 
-				let mut found = false;
-				for (n, v) in headers {
-					if n == &"Transfer-Encoding".to_string() && v == &"chunked" {
-						found = true;
+					let mut found = false;
+					for (n, v) in headers {
+						if n == &"Transfer-Encoding".to_string() && v == &"chunked" {
+							found = true;
+						}
 					}
+
+					assert!(found);
+					assert_eq!(response.code()?, 200);
+					assert_eq!(response.status_text()?, "OK");
+					assert_eq!(response.version()?, &HttpVersion::HTTP11);
+
+					let mut found_count = found_count.wlock()?;
+					let guard = found_count.guard();
+					(**guard) += 1;
 				}
-
-				assert!(found);
-				assert_eq!(response.code()?, 200);
-				assert_eq!(response.status_text()?, "OK");
-				assert_eq!(response.version()?, &HttpVersion::HTTP11);
-
-				let mut found_count = found_count.wlock()?;
-				let guard = found_count.guard();
-				(**guard) += 1;
-			}
-			Ok(())
-		});
+				Ok(())
+			},
+		);
 
 		info!(
 			"about to send request with guid = {}",
 			http_client_request1.guid()
 		)?;
+
 		http_client.send(http_client_request1, handler1)?;
 
 		let mut found404 = lock_box!(false)?;
 		let found404_clone = found404.clone();
-		let handler2: HttpHandler = Box::pin(
+		let handler2 = Box::pin(
 			move |_request: &Box<dyn HttpRequest + Send + Sync>,
-			      response: &mut Box<dyn HttpResponse>| {
+			      response: &mut Box<dyn HttpResponse + Send + Sync>| {
 				info!("got response should be 404!")?;
 				assert_eq!(response.code()?, 404);
 				let mut found404 = found404.wlock()?;
@@ -833,6 +923,154 @@ mod test {
 		}
 
 		tear_down_test_dir(test_dir)?;
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_http_connection_basic() -> Result<(), Error> {
+		let test_dir = ".test_http_connection_basic.bmw";
+		let data_text = "Hello World1234!";
+		setup_test_dir(test_dir)?;
+		let mut file = File::create(format!("{}/foo.html", test_dir))?;
+		file.write_all(data_text.as_bytes())?;
+		let port = pick_free_port()?;
+		info!("port={}", port)?;
+		let addr = "127.0.0.1".to_string();
+
+		let config = HttpConfig {
+			instances: vec![HttpInstance {
+				port,
+				addr: addr.clone(),
+				instance_type: HttpInstanceType::Plain(PlainConfig {
+					http_dir_map: HashMap::from([("*".to_string(), test_dir.to_string())]),
+				}),
+				..Default::default()
+			}],
+			server_version: "test1".to_string(),
+			debug: true,
+			..Default::default()
+		};
+		let mut http = Builder::build_http_server(&config)?;
+		http.start()?;
+
+		sleep(Duration::from_millis(1_000));
+
+		let http_client = HttpClientImpl::new(&HttpClientConfig {
+			debug: true,
+			..Default::default()
+		})?;
+
+		let connection_config = HttpConnectionConfig {
+			host: addr.clone(),
+			port,
+			tls: false,
+			..Default::default()
+		};
+		let mut http_connection =
+			Builder::build_http_connection(&connection_config, Box::new(http_client.clone()))?;
+
+		let http_client_request1 = Box::new(HttpRequestImpl::new(&HttpRequestConfig {
+			request_uri: Some("/foo.html".to_string()),
+			headers: vec![
+				("timeout".to_string(), "10".to_string()),
+				("something".to_string(), "else".to_string()),
+			],
+			..Default::default()
+		})?) as Box<dyn HttpRequest + Send + Sync>;
+		let http_client_request1_clone = http_client_request1.clone();
+
+		let mut found_count = lock_box!(0)?;
+		let found_count_clone = found_count.clone();
+
+		let handler1: HttpHandler = Box::pin(move |request, response| {
+			info!("in handler1,request.guid={}", request.guid())?;
+			if request == &http_client_request1_clone {
+				let content = response.content()?;
+				let content = from_utf8(&content).unwrap_or("utf8_err");
+				info!("recv req 1: '{}'", content)?;
+				assert_eq!(content, data_text);
+
+				let headers = response.headers()?;
+
+				let mut found = false;
+				for (n, v) in headers {
+					if n == &"Transfer-Encoding".to_string() && v == &"chunked" {
+						found = true;
+					}
+				}
+
+				assert!(found);
+				assert_eq!(response.code()?, 200);
+				assert_eq!(response.status_text()?, "OK");
+				assert_eq!(response.version()?, &HttpVersion::HTTP11);
+
+				let mut found_count = found_count.wlock()?;
+				let guard = found_count.guard();
+				(**guard) += 1;
+			}
+			Ok(())
+		});
+
+		info!(
+			"about to send request with guid = {}",
+			http_client_request1.guid()
+		)?;
+		http_connection.send(http_client_request1, handler1)?;
+
+		sleep(Duration::from_millis(1_000));
+
+		let mut found404 = lock_box!(false)?;
+		let found404_clone = found404.clone();
+		let handler2 = Box::pin(
+			move |_request: &Box<dyn HttpRequest + Send + Sync>,
+			      response: &mut Box<dyn HttpResponse + Send + Sync>| {
+				info!("got response should be 404!")?;
+				assert_eq!(response.code()?, 404);
+				let mut found404 = found404.wlock()?;
+				let guard = found404.guard();
+				(**guard) = true;
+
+				Ok(())
+			},
+		);
+
+		let http_client_request2 = Box::new(HttpRequestImpl::new(&HttpRequestConfig {
+			request_uri: Some("/foo2.html".to_string()),
+			..Default::default()
+		})?) as Box<dyn HttpRequest + Send + Sync>;
+
+		http_connection.send(http_client_request2, handler2)?;
+		sleep(Duration::from_millis(1_000));
+
+		let mut count = 0;
+		loop {
+			sleep(Duration::from_millis(1));
+			if count == 10000 {
+				break;
+			}
+			let found_count = found_count_clone.rlock()?;
+			let guard = found_count.guard();
+			if (**guard) != 1 {
+				info!("guard={},count={} of 10,000", (**guard), count)?;
+				count += 1;
+				continue;
+			}
+			assert_eq!((**guard), 1);
+			break;
+		}
+
+		{
+			let found_count = found_count_clone.rlock()?;
+			let guard = found_count.guard();
+			assert_eq!((**guard), 1);
+		}
+
+		{
+			let found404 = found404_clone.rlock()?;
+			let guard = found404.guard();
+			assert_eq!((**guard), true);
+		}
 
 		Ok(())
 	}

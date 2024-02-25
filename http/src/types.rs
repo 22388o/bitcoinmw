@@ -237,7 +237,7 @@ pub type HttpHandler = Pin<
 	Box<
 		dyn FnMut(
 				&Box<dyn HttpRequest + Send + Sync>,
-				&mut Box<dyn HttpResponse>,
+				&mut Box<dyn HttpResponse + Send + Sync>,
 			) -> Result<(), Error>
 			+ Send
 			+ Sync
@@ -247,6 +247,7 @@ pub type HttpHandler = Pin<
 
 pub trait HttpRequest: DynClone + Any {
 	fn request_url(&self) -> Option<String>;
+	fn request_uri(&self) -> Option<String>;
 	fn user_agent(&self) -> &String;
 	fn accept(&self) -> &String;
 	fn headers(&self) -> &Vec<(String, String)>;
@@ -270,6 +271,10 @@ pub trait HttpClient {
 		req: Box<dyn HttpRequest + Send + Sync>,
 		handler: HttpHandler,
 	) -> Result<(), Error>;
+
+	// TODO: make this crate(pub) by splitting into a separate mod (see
+	// https://stackoverflow.com/questions/66786429/how-to-have-a-public-trait-with-a-pubcrate-method-in-a-library)
+	fn controller(&mut self) -> &mut EventHandlerController;
 }
 
 pub trait HttpConnection {
@@ -286,17 +291,25 @@ pub struct HttpClientConfig {
 	pub(crate) debug: bool,
 }
 
-pub struct HttpConnectionConfig {}
+#[derive(Clone)]
+pub struct HttpConnectionConfig {
+	pub host: String,
+	pub port: u16,
+	pub tls: bool,
+}
 
 #[derive(Clone)]
 pub struct HttpRequestConfig {
 	pub request_url: Option<String>,
+	pub request_uri: Option<String>,
 	pub user_agent: String,
 	pub accept: String,
 	pub headers: Vec<(String, String)>,
 }
 
 // Crate local types
+
+#[derive(Clone)]
 pub(crate) struct HttpClientImpl {
 	pub(crate) controller: EventHandlerController,
 }
@@ -316,7 +329,12 @@ pub(crate) struct HttpResponseImpl {
 	pub(crate) status_text: String,
 	pub(crate) version: HttpVersion,
 }
-pub(crate) struct HttpConnectionImpl {}
+pub(crate) struct HttpConnectionImpl {
+	pub(crate) config: HttpConnectionConfig,
+	pub(crate) wh: WriteHandle,
+	pub(crate) http_client_data: Box<dyn LockBox<Option<HttpClientAttachmentData>>>,
+}
+
 pub(crate) struct HttpClientContext {
 	pub(crate) slab_start: usize,
 	pub(crate) suffix_tree: Box<dyn SuffixTree + Send + Sync>,
@@ -324,9 +342,13 @@ pub(crate) struct HttpClientContext {
 }
 
 pub(crate) struct HttpClientAttachment {
-	pub(crate) handler: HttpHandler,
+	pub(crate) http_client_data: Box<dyn LockBox<Option<HttpClientAttachmentData>>>,
+}
+
+pub(crate) struct HttpClientAttachmentData {
 	pub(crate) request: Box<dyn HttpRequest + Send + Sync>,
 	pub(crate) close_on_complete: bool,
+	pub(crate) handler: HttpHandler,
 }
 
 pub(crate) struct HttpServerImpl {

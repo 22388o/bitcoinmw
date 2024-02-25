@@ -38,8 +38,9 @@ impl Builder {
 
 	pub fn build_http_connection(
 		config: &HttpConnectionConfig,
+		http_client: Box<dyn HttpClient + Send + Sync>,
 	) -> Result<Box<dyn HttpConnection + Send + Sync>, Error> {
-		Ok(Box::new(HttpConnectionImpl::new(config)?))
+		Ok(Box::new(HttpConnectionImpl::new(config, http_client)?))
 	}
 
 	pub fn build_http_request(
