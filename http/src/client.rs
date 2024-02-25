@@ -912,7 +912,11 @@ mod test {
 			}
 			let found_count = found_count_clone.rlock()?;
 			let guard = found_count.guard();
-			if (**guard) != 1 {
+
+			let found404 = found404_clone.rlock()?;
+			let guard2 = found404.guard();
+
+			if (**guard) != 1 || !(**guard2) {
 				info!("guard={},count={} of 10,000", (**guard), count)?;
 				count += 1;
 				continue;
