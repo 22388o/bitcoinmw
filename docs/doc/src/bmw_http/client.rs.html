@@ -1140,6 +1140,8 @@
 <a href="#1139" id="1139">1139</a>
 <a href="#1140" id="1140">1140</a>
 <a href="#1141" id="1141">1141</a>
+<a href="#1142" id="1142">1142</a>
+<a href="#1143" id="1143">1143</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1282,6 +1284,7 @@
 				}
 				<span class="kw">let </span>addr = <span class="macro">format!</span>(<span class="string">"{}:{}"</span>, host, port);
 				<span class="kw">let </span>tcp_stream = TcpStream::connect(addr.clone())<span class="question-mark">?</span>;
+				tcp_stream.set_nonblocking(<span class="bool-val">true</span>)<span class="question-mark">?</span>;
 
 				<span class="kw">let </span>client_connection = ClientConnection {
 					handle: tcp_stream_to_handle(tcp_stream)<span class="question-mark">?</span>,
@@ -1817,6 +1820,7 @@
 		<span class="kw">let </span>port = config.port;
 		<span class="kw">let </span>addr = <span class="macro">format!</span>(<span class="string">"{}:{}"</span>, host, port);
 		<span class="kw">let </span>tcp_stream = TcpStream::connect(addr.clone())<span class="question-mark">?</span>;
+		tcp_stream.set_nonblocking(<span class="bool-val">true</span>)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>client_connection = ClientConnection {
 			handle: tcp_stream_to_handle(tcp_stream)<span class="question-mark">?</span>,

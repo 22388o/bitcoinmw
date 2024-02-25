@@ -460,6 +460,8 @@
 <a href="#459" id="459">459</a>
 <a href="#460" id="460">460</a>
 <a href="#461" id="461">461</a>
+<a href="#462" id="462">462</a>
+<a href="#463" id="463">463</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -486,6 +488,7 @@
 <span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::net::TcpStream;
 <span class="kw">use </span>std::pin::Pin;
+<span class="kw">use </span>std::sync::mpsc::SyncSender;
 <span class="kw">use </span>std::sync::Arc;
 
 <span class="attr">#[cfg(unix)]
@@ -868,6 +871,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) is_accepted: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) tls_server: <span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;RustlsServerConnection&gt;&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) tls_client: <span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;RustlsClientConnection&gt;&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) tx: <span class="prelude-ty">Option</span>&lt;SyncSender&lt;()&gt;&gt;,
 }
 
 <span class="attr">#[derive(Clone, Debug, Serializable)]

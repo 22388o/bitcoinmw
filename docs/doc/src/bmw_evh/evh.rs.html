@@ -8058,6 +8058,43 @@
 <a href="#8057" id="8057">8057</a>
 <a href="#8058" id="8058">8058</a>
 <a href="#8059" id="8059">8059</a>
+<a href="#8060" id="8060">8060</a>
+<a href="#8061" id="8061">8061</a>
+<a href="#8062" id="8062">8062</a>
+<a href="#8063" id="8063">8063</a>
+<a href="#8064" id="8064">8064</a>
+<a href="#8065" id="8065">8065</a>
+<a href="#8066" id="8066">8066</a>
+<a href="#8067" id="8067">8067</a>
+<a href="#8068" id="8068">8068</a>
+<a href="#8069" id="8069">8069</a>
+<a href="#8070" id="8070">8070</a>
+<a href="#8071" id="8071">8071</a>
+<a href="#8072" id="8072">8072</a>
+<a href="#8073" id="8073">8073</a>
+<a href="#8074" id="8074">8074</a>
+<a href="#8075" id="8075">8075</a>
+<a href="#8076" id="8076">8076</a>
+<a href="#8077" id="8077">8077</a>
+<a href="#8078" id="8078">8078</a>
+<a href="#8079" id="8079">8079</a>
+<a href="#8080" id="8080">8080</a>
+<a href="#8081" id="8081">8081</a>
+<a href="#8082" id="8082">8082</a>
+<a href="#8083" id="8083">8083</a>
+<a href="#8084" id="8084">8084</a>
+<a href="#8085" id="8085">8085</a>
+<a href="#8086" id="8086">8086</a>
+<a href="#8087" id="8087">8087</a>
+<a href="#8088" id="8088">8088</a>
+<a href="#8089" id="8089">8089</a>
+<a href="#8090" id="8090">8090</a>
+<a href="#8091" id="8091">8091</a>
+<a href="#8092" id="8092">8092</a>
+<a href="#8093" id="8093">8093</a>
+<a href="#8094" id="8094">8094</a>
+<a href="#8095" id="8095">8095</a>
+<a href="#8096" id="8096">8096</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -8101,6 +8138,7 @@
 <span class="kw">use </span>std::fs::File;
 <span class="kw">use </span>std::io::{BufReader, Read, Write};
 <span class="kw">use </span>std::net::TcpStream;
+<span class="kw">use </span>std::sync::mpsc::sync_channel;
 <span class="kw">use </span>std::sync::Arc;
 
 <span class="attr">#[cfg(target_os = <span class="string">"linux"</span>)]
@@ -8288,7 +8326,10 @@
 				<span class="kw">let </span>tls_client: Box&lt;<span class="kw">dyn </span>LockBox&lt;RCConn&gt;&gt; = lock_box_from_usize(v);
 				<span class="prelude-val">Some</span>(tls_client)
 			};
-			<span class="kw">let </span>rwi = StreamInfo {
+
+			<span class="comment">// note that tx can be None below because we only use tx with Queues which
+			// are not serialized
+			</span><span class="kw">let </span>rwi = StreamInfo {
 				id,
 				handle,
 				accept_handle,
@@ -8300,6 +8341,7 @@
 				is_accepted,
 				tls_client,
 				tls_server,
+				tx: <span class="prelude-val">None</span>,
 			};
 			<span class="prelude-val">Ok</span>(ConnectionInfo::StreamInfo(rwi))
 		} <span class="kw">else </span>{
@@ -9363,7 +9405,7 @@
 			<span class="kw">let </span><span class="kw-2">mut </span>next = (<span class="kw-2">**</span>guard).nhandles.dequeue();
 			<span class="kw">match </span>next {
 				<span class="prelude-val">Some</span>(<span class="kw-2">ref mut </span>nhandle) =&gt; {
-					<span class="macro">debug!</span>(<span class="string">"handle={:?} on tid={}"</span>, nhandle, ctx.tid)<span class="question-mark">?</span>;
+					<span class="macro">debug!</span>(<span class="string">"dequeue handle={:?} on tid={}"</span>, nhandle, ctx.tid)<span class="question-mark">?</span>;
 					<span class="kw">match </span>nhandle {
 						ConnectionInfo::ListenerInfo(li) =&gt; {
 							<span class="kw">match </span><span class="self">Self</span>::insert_hashtables(ctx, li.id, li.handle, nhandle) {
@@ -9405,6 +9447,22 @@
 										<span class="prelude-val">Err</span>(e) =&gt; {
 											<span class="macro">warn!</span>(<span class="string">"Callback on_accept generated error: {}"</span>, e)<span class="question-mark">?</span>;
 										}
+									}
+								}
+								<span class="prelude-val">None </span>=&gt; {}
+							}
+
+							<span class="comment">// check for tx. we can send to wakeup the
+							// receiver because the event is already
+							// registered
+							</span><span class="macro">debug!</span>(<span class="string">"check for tx"</span>)<span class="question-mark">?</span>;
+							<span class="kw">match </span><span class="kw-2">&amp;</span>rwi.tx {
+								<span class="prelude-val">Some</span>(tx) =&gt; {
+									<span class="macro">debug!</span>(<span class="string">"tx.send() : handle={},id={}"</span>, rwi.handle, rwi.id)<span class="question-mark">?</span>;
+									<span class="comment">// try to send
+									</span><span class="kw">match </span>tx.send(()) {
+										<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
+										<span class="prelude-val">Err</span>(e) =&gt; <span class="macro">warn!</span>(<span class="string">"tx.send generated error: {}"</span>, e)<span class="question-mark">?</span>,
 									}
 								}
 								<span class="prelude-val">None </span>=&gt; {}
@@ -9655,6 +9713,8 @@
 						<span class="self">self</span>.debug_write_error,
 						<span class="self">self</span>.debug_suspended,
 					);
+
+					<span class="macro">debug!</span>(<span class="string">"about to try to do a read"</span>)<span class="question-mark">?</span>;
 					<span class="kw">if </span>!conn_data.write_handle().is_closed()<span class="question-mark">? </span>{
 						<span class="kw">match </span>on_read(<span class="kw-2">&amp;mut </span>conn_data, callback_context, attachment) {
 							<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
@@ -10123,6 +10183,8 @@
 						<span class="self">self</span>.debug_write_error,
 						<span class="self">self</span>.debug_suspended,
 					);
+
+					<span class="macro">debug!</span>(<span class="string">"about to try a read"</span>)<span class="question-mark">?</span>;
 					<span class="kw">if </span>!conn_data.write_handle().is_closed()<span class="question-mark">? </span>{
 						<span class="kw">match </span>on_read(<span class="kw-2">&amp;mut </span>conn_data, callback_context, attachment) {
 							<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
@@ -10284,6 +10346,7 @@
 			is_accepted: <span class="bool-val">true</span>,
 			tls_client: <span class="prelude-val">None</span>,
 			tls_server,
+			tx: <span class="prelude-val">None</span>,
 		};
 
 		<span class="attr">#[cfg(target_os = <span class="string">"windows"</span>)]
@@ -10734,6 +10797,7 @@
 			<span class="prelude-val">None </span>=&gt; <span class="prelude-val">None</span>,
 		};
 
+		<span class="kw">let </span>(tx, rx) = sync_channel::&lt;()&gt;(<span class="number">1</span>);
 		<span class="kw">let </span>wh = {
 			<span class="kw">let </span>data_clone = <span class="self">self</span>.data[tid].clone();
 			<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[tid].wlock_ignore_poison()<span class="question-mark">?</span>;
@@ -10752,6 +10816,8 @@
 				tls_client.clone(),
 			);
 
+			<span class="kw">let </span>tx = <span class="prelude-val">Some</span>(tx);
+
 			<span class="kw">let </span>rwi = StreamInfo {
 				id,
 				handle,
@@ -10764,6 +10830,7 @@
 				is_accepted: <span class="bool-val">false</span>,
 				tls_client,
 				tls_server: <span class="prelude-val">None</span>,
+				tx,
 			};
 
 			<span class="kw">let </span>ci = ConnectionInfo::StreamInfo(rwi);
@@ -10772,6 +10839,12 @@
 			(<span class="kw-2">**</span>guard).wakeup.wakeup()<span class="question-mark">?</span>;
 			wh
 		};
+
+		<span class="macro">debug!</span>(<span class="string">"rx.recv handle={},id={}"</span>, handle, id)<span class="question-mark">?</span>;
+		<span class="kw">match </span>rx.recv() {
+			<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
+			<span class="prelude-val">Err</span>(e) =&gt; <span class="macro">warn!</span>(<span class="string">"rx.recv generated error: {}"</span>, e)<span class="question-mark">?</span>,
+		}
 
 		<span class="prelude-val">Ok</span>(wh)
 	}
@@ -11394,7 +11467,6 @@
 				}),
 			};
 			<span class="kw">let </span><span class="kw-2">mut </span>wh = evh.add_client(client, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
-			sleep(Duration::from_millis(<span class="number">5_000</span>));
 
 			wh.write(<span class="string">b"test1"</span>)<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
@@ -11492,7 +11564,6 @@
 			};
 			<span class="macro">info!</span>(<span class="string">"client handle = {}"</span>, connection_handle)<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>wh = evh.add_client(client, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
-			sleep(Duration::from_millis(<span class="number">5_000</span>));
 
 			<span class="kw">let _ </span>= wh.write(<span class="string">b"test1"</span>);
 			sleep(Duration::from_millis(<span class="number">1_000</span>));
@@ -11999,7 +12070,6 @@
 			tls_config: <span class="prelude-val">None</span>,
 		};
 		<span class="kw">let </span><span class="kw-2">mut </span>wh = evh.add_client(client, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
-		sleep(Duration::from_millis(<span class="number">1_000</span>));
 
 		wh.write(<span class="string">b"test1"</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
@@ -12728,7 +12798,7 @@
 		<span class="kw">let </span>threads = <span class="number">2</span>;
 		<span class="kw">let </span>config = EventHandlerConfig {
 			threads,
-			housekeeping_frequency_millis: <span class="number">10_000</span>,
+			housekeeping_frequency_millis: <span class="number">1_000</span>,
 			read_slab_count: <span class="number">10</span>,
 			max_handles_per_thread: <span class="number">20</span>,
 			..Default::default()
@@ -14010,6 +14080,7 @@
 				write_buffer: <span class="macro">vec!</span>[],
 				flags: <span class="number">0
 			</span>})<span class="question-mark">?</span>,
+			tx: <span class="prelude-val">None</span>,
 		});
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">0</span>, <span class="kw-2">&amp;</span>ci2)<span class="question-mark">?</span>;
 		<span class="kw">let </span>v = hashtable.get(<span class="kw-2">&amp;</span><span class="number">0</span>)<span class="question-mark">?</span>.unwrap();
@@ -14168,7 +14239,6 @@
 		};
 
 		<span class="kw">let </span><span class="kw-2">mut </span>wh = evh.add_client(client, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
-		sleep(Duration::from_millis(<span class="number">5_000</span>));
 
 		wh.write(<span class="kw-2">&amp;</span>big_msg_clone)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"big write complete"</span>)<span class="question-mark">?</span>;
@@ -14347,7 +14417,6 @@
 		};
 
 		<span class="kw">let </span><span class="kw-2">mut </span>wh = evh.add_client(client, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
-		sleep(Duration::from_millis(<span class="number">5_000</span>));
 
 		wh.write(<span class="kw-2">&amp;</span>big_msg_clone)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"big write complete"</span>)<span class="question-mark">?</span>;
@@ -14523,7 +14592,6 @@
 		};
 
 		<span class="kw">let </span><span class="kw-2">mut </span>wh = evh.add_client(client, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
-		sleep(Duration::from_millis(<span class="number">5_000</span>));
 
 		wh.write(<span class="kw-2">&amp;</span>big_msg_clone)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"big write complete"</span>)<span class="question-mark">?</span>;
@@ -15228,6 +15296,7 @@
 			is_accepted: <span class="bool-val">false</span>,
 			tls_client: <span class="prelude-val">None</span>,
 			tls_server: <span class="prelude-val">None</span>,
+			tx: <span class="prelude-val">None</span>,
 		};
 		<span class="kw">let </span>ci = ConnectionInfo::StreamInfo(rwi.clone());
 		ctx.connection_hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1_000</span>, <span class="kw-2">&amp;</span>ci)<span class="question-mark">?</span>;
@@ -15308,6 +15377,8 @@
 		evh.set_housekeeper(<span class="kw">move </span>|_thread_context| <span class="prelude-val">Ok</span>(()))<span class="question-mark">?</span>;
 		evh.set_on_read_none();
 
+		evh.start()<span class="question-mark">?</span>;
+
 		<span class="kw">let </span>handles = create_listeners(threads, addr, <span class="number">10</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"handles.size={},handles={:?}"</span>, handles.size(), handles)<span class="question-mark">?</span>;
 		<span class="kw">let </span>sc = ServerConnection {
@@ -15334,11 +15405,11 @@
 			handle: connection_handle,
 			tls_config: <span class="prelude-val">None</span>,
 		};
+
+		<span class="macro">info!</span>(<span class="string">"about to add client"</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>wh = evh.add_client(client, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
-		sleep(Duration::from_millis(<span class="number">5_000</span>));
 
 		wh.trigger_on_read()<span class="question-mark">?</span>;
-		sleep(Duration::from_millis(<span class="number">1_000</span>));
 
 		<span class="kw">let </span><span class="kw-2">mut </span>ctx = EventHandlerContext::new(<span class="number">0</span>, <span class="number">100</span>, <span class="number">100</span>, <span class="number">100</span>, <span class="number">100</span>)<span class="question-mark">?</span>;
 
@@ -15357,6 +15428,7 @@
 			is_accepted: <span class="bool-val">false</span>,
 			tls_client: <span class="prelude-val">None</span>,
 			tls_server: <span class="prelude-val">None</span>,
+			tx: <span class="prelude-val">None</span>,
 		};
 		<span class="kw">let </span>ci = ConnectionInfo::StreamInfo(rwi.clone());
 		ctx.handle_hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1001</span>, <span class="kw-2">&amp;</span><span class="number">1001</span>)<span class="question-mark">?</span>;
@@ -15427,7 +15499,6 @@
 		};
 
 		evh.add_client(client, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
-		sleep(Duration::from_millis(<span class="number">1_000</span>));
 		<span class="kw">let </span>handles = create_listeners(threads, addr2, <span class="number">10</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"handles.size={},handles={:?}"</span>, handles.size(), handles)<span class="question-mark">?</span>;
 		<span class="kw">let </span>sc = ServerConnection {
@@ -15621,6 +15692,7 @@
 			is_accepted: <span class="bool-val">false</span>,
 			tls_client: <span class="prelude-val">None</span>,
 			tls_server: <span class="prelude-val">None</span>,
+			tx: <span class="prelude-val">None</span>,
 		};
 		<span class="kw">let </span>ci = ConnectionInfo::StreamInfo(rwi.clone());
 		ctx.handle_hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1001</span>, <span class="kw-2">&amp;</span><span class="number">1001</span>)<span class="question-mark">?</span>;
@@ -15911,6 +15983,7 @@
 			is_accepted: <span class="bool-val">false</span>,
 			tls_client: <span class="prelude-val">None</span>,
 			tls_server: <span class="prelude-val">None</span>,
+			tx: <span class="prelude-val">None</span>,
 		};
 		<span class="kw">let </span>ci = ConnectionInfo::StreamInfo(rwi.clone());
 		ctx.handle_hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1001</span>, <span class="kw-2">&amp;</span><span class="number">1001</span>)<span class="question-mark">?</span>;
@@ -16024,6 +16097,7 @@
 			is_accepted: <span class="bool-val">false</span>,
 			tls_client: <span class="prelude-val">None</span>,
 			tls_server: <span class="prelude-val">None</span>,
+			tx: <span class="prelude-val">None</span>,
 		};
 		<span class="kw">let </span>ci = ConnectionInfo::StreamInfo(rwi.clone());
 		ctx.handle_hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1001</span>, <span class="kw-2">&amp;</span><span class="number">1001</span>)<span class="question-mark">?</span>;
