@@ -481,7 +481,7 @@
 	ConnectionData, EventHandlerConfig, EventHandlerController, WriteHandle, WriteState,
 };
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
-<span class="kw">use </span>std::collections::{HashMap, HashSet};
+<span class="kw">use </span>std::collections::{HashMap, HashSet, VecDeque};
 <span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::pin::Pin;
 
@@ -808,7 +808,7 @@
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpConnectionImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) config: HttpConnectionConfig,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) wh: WriteHandle,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) http_client_data: Box&lt;<span class="kw">dyn </span>LockBox&lt;<span class="prelude-ty">Option</span>&lt;HttpClientAttachmentData&gt;&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) http_client_data: Box&lt;<span class="kw">dyn </span>LockBox&lt;VecDeque&lt;HttpClientAttachmentData&gt;&gt;&gt;,
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpClientContext {
@@ -818,7 +818,7 @@
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpClientAttachment {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) http_client_data: Box&lt;<span class="kw">dyn </span>LockBox&lt;<span class="prelude-ty">Option</span>&lt;HttpClientAttachmentData&gt;&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) http_client_data: Box&lt;<span class="kw">dyn </span>LockBox&lt;VecDeque&lt;HttpClientAttachmentData&gt;&gt;&gt;,
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpClientAttachmentData {

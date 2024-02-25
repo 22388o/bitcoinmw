@@ -1142,6 +1142,45 @@
 <a href="#1141" id="1141">1141</a>
 <a href="#1142" id="1142">1142</a>
 <a href="#1143" id="1143">1143</a>
+<a href="#1144" id="1144">1144</a>
+<a href="#1145" id="1145">1145</a>
+<a href="#1146" id="1146">1146</a>
+<a href="#1147" id="1147">1147</a>
+<a href="#1148" id="1148">1148</a>
+<a href="#1149" id="1149">1149</a>
+<a href="#1150" id="1150">1150</a>
+<a href="#1151" id="1151">1151</a>
+<a href="#1152" id="1152">1152</a>
+<a href="#1153" id="1153">1153</a>
+<a href="#1154" id="1154">1154</a>
+<a href="#1155" id="1155">1155</a>
+<a href="#1156" id="1156">1156</a>
+<a href="#1157" id="1157">1157</a>
+<a href="#1158" id="1158">1158</a>
+<a href="#1159" id="1159">1159</a>
+<a href="#1160" id="1160">1160</a>
+<a href="#1161" id="1161">1161</a>
+<a href="#1162" id="1162">1162</a>
+<a href="#1163" id="1163">1163</a>
+<a href="#1164" id="1164">1164</a>
+<a href="#1165" id="1165">1165</a>
+<a href="#1166" id="1166">1166</a>
+<a href="#1167" id="1167">1167</a>
+<a href="#1168" id="1168">1168</a>
+<a href="#1169" id="1169">1169</a>
+<a href="#1170" id="1170">1170</a>
+<a href="#1171" id="1171">1171</a>
+<a href="#1172" id="1172">1172</a>
+<a href="#1173" id="1173">1173</a>
+<a href="#1174" id="1174">1174</a>
+<a href="#1175" id="1175">1175</a>
+<a href="#1176" id="1176">1176</a>
+<a href="#1177" id="1177">1177</a>
+<a href="#1178" id="1178">1178</a>
+<a href="#1179" id="1179">1179</a>
+<a href="#1180" id="1180">1180</a>
+<a href="#1181" id="1181">1181</a>
+<a href="#1182" id="1182">1182</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1179,6 +1218,7 @@
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
 <span class="kw">use </span>std::any::Any;
+<span class="kw">use </span>std::collections::VecDeque;
 <span class="kw">use </span>std::net::TcpStream;
 <span class="kw">use </span>std::str::from_utf8;
 
@@ -1290,14 +1330,18 @@
 					handle: tcp_stream_to_handle(tcp_stream)<span class="question-mark">?</span>,
 					tls_config: <span class="prelude-val">None</span>,
 				};
+
+				<span class="kw">let </span><span class="kw-2">mut </span>vec = VecDeque::new();
+				vec.push_back(HttpClientAttachmentData {
+					request: request.clone(),
+					close_on_complete: <span class="bool-val">true</span>,
+					handler: handler,
+				});
+
 				<span class="kw">let </span><span class="kw-2">mut </span>wh = <span class="self">self</span>.controller.add_client(
 					client_connection,
 					Box::new(HttpClientAttachment {
-						http_client_data: <span class="macro">lock_box!</span>(<span class="prelude-val">Some</span>(HttpClientAttachmentData {
-							request: request.clone(),
-							close_on_complete: <span class="bool-val">true</span>,
-							handler: handler,
-						}))<span class="question-mark">?</span>,
+						http_client_data: <span class="macro">lock_box!</span>(vec)<span class="question-mark">?</span>,
 					}),
 				)<span class="question-mark">?</span>;
 				do_send(request, <span class="kw-2">&amp;mut </span>wh, uri, addr, <span class="bool-val">false</span>)
@@ -1403,17 +1447,28 @@
 					<span class="prelude-val">Some</span>(<span class="kw-2">ref mut </span>attachment) =&gt; {
 						<span class="kw">let </span><span class="kw-2">mut </span>attachment = attachment.http_client_data.wlock()<span class="question-mark">?</span>;
 						<span class="kw">let </span>guard = attachment.guard();
-						<span class="kw">match </span><span class="kw-2">**</span>guard {
-							<span class="prelude-val">Some</span>(<span class="kw-2">ref mut </span>attachment) =&gt; <span class="self">Self</span>::process_on_read_data(
-								conn_data,
-								<span class="kw-2">&amp;</span>attachment.request,
-								<span class="kw-2">&amp;mut </span>attachment.handler,
-								ctx,
-								config,
-								attachment.close_on_complete,
-							)<span class="question-mark">?</span>,
-							<span class="prelude-val">None </span>=&gt; {
-								<span class="macro">warn!</span>(<span class="string">"process_on_read included invalid attachment. No handler specified. Could not process request!"</span>)<span class="question-mark">?</span>;
+						<span class="kw">loop </span>{
+							<span class="kw">let </span>pop_count = <span class="kw">match </span>(<span class="kw-2">**</span>guard).front_mut() {
+								<span class="prelude-val">Some</span>(<span class="kw-2">ref mut </span>attachment) =&gt; <span class="self">Self</span>::process_on_read_data(
+									conn_data,
+									<span class="kw-2">&amp;</span>attachment.request,
+									<span class="kw-2">&amp;mut </span>attachment.handler,
+									ctx,
+									config,
+									attachment.close_on_complete,
+								)<span class="question-mark">?</span>,
+								<span class="prelude-val">None </span>=&gt; <span class="number">0</span>,
+							};
+
+							<span class="kw">if </span>pop_count == <span class="number">0 </span>{
+								<span class="kw">break</span>;
+							}
+							<span class="kw">for _ in </span><span class="number">0</span>..pop_count {
+								(<span class="kw-2">**</span>guard).pop_front();
+							}
+
+							<span class="kw">if </span>(<span class="kw-2">**</span>guard).len() == <span class="number">0 </span>{
+								<span class="kw">break</span>;
 							}
 						}
 					}
@@ -1436,7 +1491,7 @@
 		ctx: <span class="kw-2">&amp;mut </span>ThreadContext,
 		config: <span class="kw-2">&amp;</span>HttpClientConfig,
 		close_on_complete: bool,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
 		<span class="kw">let </span>ctx = <span class="self">Self</span>::build_ctx(ctx, config)<span class="question-mark">?</span>;
 		<span class="kw">let </span>id = conn_data.get_connection_id();
 		<span class="macro">debug!</span>(<span class="string">"id={},guid={}"</span>, id, req.guid())<span class="question-mark">?</span>;
@@ -1451,6 +1506,10 @@
 			<span class="kw">let </span><span class="kw-2">mut </span>slab_id = first_slab;
 
 			<span class="kw">loop </span>{
+				<span class="kw">if </span>slab_id &gt;= u32::MAX {
+					<span class="kw">break</span>;
+				}
+
 				slab_id_vec.push(slab_id);
 				<span class="kw">let </span>slab = sa.get(slab_id.try_into()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 				<span class="kw">let </span>slab_bytes = slab.get();
@@ -1475,18 +1534,22 @@
 			<span class="prelude-val">Ok</span>((ret, slab_id_vec))
 		})<span class="question-mark">?</span>;
 
-		<span class="self">Self</span>::process_res(
-			conn_data,
-			res,
-			req,
-			handler,
-			ctx,
-			slab_id_vec,
-			config,
-			close_on_complete,
-		)<span class="question-mark">?</span>;
+		<span class="kw">let </span>ret = <span class="kw">if </span>res.len() &gt; <span class="number">0 </span>{
+			<span class="self">Self</span>::process_res(
+				conn_data,
+				res,
+				req,
+				handler,
+				ctx,
+				slab_id_vec,
+				config,
+				close_on_complete,
+			)<span class="question-mark">?
+		</span>} <span class="kw">else </span>{
+			<span class="number">0
+		</span>};
 
-		<span class="prelude-val">Ok</span>(())
+		<span class="prelude-val">Ok</span>(ret)
 	}
 
 	<span class="kw">fn </span>process_res(
@@ -1498,7 +1561,8 @@
 		slab_id_vec: Vec&lt;u32&gt;,
 		config: <span class="kw-2">&amp;</span>HttpClientConfig,
 		close_on_complete: bool,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>pop_count = <span class="number">0</span>;
 		<span class="kw">let </span>res_len = res.len();
 		<span class="kw">if </span>config.debug {
 			<span class="macro">info!</span>(<span class="string">"res='{}'"</span>, std::str::from_utf8(<span class="kw-2">&amp;</span>res).unwrap_or(<span class="string">"utf8err"</span>))<span class="question-mark">?</span>;
@@ -1575,7 +1639,7 @@
 
 			<span class="kw">if </span>itt &gt;= res_len {
 				<span class="comment">// first line not there yet, wait for more data
-				</span><span class="kw">return </span><span class="prelude-val">Ok</span>(());
+				</span><span class="kw">return </span><span class="prelude-val">Ok</span>(pop_count);
 			}
 			<span class="kw">let </span>first_line = from_utf8(<span class="kw-2">&amp;</span>res[<span class="number">0</span>..itt]).unwrap_or(<span class="string">""</span>);
 			(response.version, response.code, response.status_text) =
@@ -1590,7 +1654,7 @@
 
 		<span class="kw">if </span>response.start_content == <span class="number">0 </span>{
 			<span class="comment">// we are not ready to process so return
-			</span><span class="kw">return </span><span class="prelude-val">Ok</span>(());
+			</span><span class="kw">return </span><span class="prelude-val">Ok</span>(pop_count);
 		} <span class="kw">else if </span>response.chunked {
 			<span class="comment">// we are ready to process the request and it's chunked
 
@@ -1612,7 +1676,7 @@
 
 				<span class="kw">if </span>end &gt;= res_len {
 					<span class="macro">debug!</span>(<span class="string">"not enough data yet"</span>)<span class="question-mark">?</span>;
-					<span class="kw">return </span><span class="prelude-val">Ok</span>(());
+					<span class="kw">return </span><span class="prelude-val">Ok</span>(pop_count);
 				}
 
 				<span class="kw">let </span>(val, line_len) = <span class="kw">if </span>start &lt; end {
@@ -1632,12 +1696,13 @@
 					<span class="comment">// ensure proper padding per http spec
 					</span><span class="kw">if </span>itt + line_len + <span class="number">4 </span>&gt; res_len {
 						<span class="comment">// not enough data, return for now
-						</span><span class="kw">return </span><span class="prelude-val">Ok</span>(());
+						</span><span class="kw">return </span><span class="prelude-val">Ok</span>(pop_count);
 					}
 
 					<span class="comment">// the request is complete
 					</span><span class="kw">let </span><span class="kw-2">mut </span>resp: Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt; = Box::new(response);
 					<span class="kw">let </span>req_clone = req.clone();
+					pop_count += <span class="number">1</span>;
 					handler(<span class="kw-2">&amp;</span>req_clone, <span class="kw-2">&amp;mut </span>resp)<span class="question-mark">?</span>;
 
 					<span class="macro">debug!</span>(<span class="string">"incr clear point {},itt={}"</span>, itt + line_len + <span class="number">4</span>, itt)<span class="question-mark">?</span>;
@@ -1649,7 +1714,7 @@
 				} <span class="kw">else if </span>val == usize::MAX {
 					<span class="macro">debug!</span>(<span class="string">"invalid request. close conn and return."</span>)<span class="question-mark">?</span>;
 					<span class="kw">let _ </span>= conn_data.write_handle().close();
-					<span class="kw">return </span><span class="prelude-val">Ok</span>(());
+					<span class="kw">return </span><span class="prelude-val">Ok</span>(pop_count);
 				} <span class="kw">else </span>{
 					<span class="kw">let </span>start = itt + line_len + <span class="number">2</span>;
 					<span class="kw">let </span>end = itt + line_len + <span class="number">2 </span>+ val;
@@ -1660,14 +1725,14 @@
 						itt += val + line_len + <span class="number">4</span>; <span class="comment">// for '\r\n' twice
 					</span>} <span class="kw">else </span>{
 						<span class="comment">// not enough data, return for now
-						</span><span class="kw">return </span><span class="prelude-val">Ok</span>(());
+						</span><span class="kw">return </span><span class="prelude-val">Ok</span>(pop_count);
 					}
 				}
 			}
 		} <span class="kw">else </span>{
 			<span class="kw">if </span>response.start_content + response.content_length &gt; res_len {
 				<span class="macro">debug!</span>(<span class="string">"not enough data yet"</span>)<span class="question-mark">?</span>;
-				<span class="kw">return </span><span class="prelude-val">Ok</span>(());
+				<span class="kw">return </span><span class="prelude-val">Ok</span>(pop_count);
 			}
 			<span class="comment">// we have the data.
 
@@ -1676,6 +1741,7 @@
 
 			response.content.extend(<span class="kw-2">&amp;</span>res[start..end]);
 			<span class="kw">let </span><span class="kw-2">mut </span>resp: Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt; = Box::new(response);
+			pop_count += <span class="number">1</span>;
 			handler(req, <span class="kw-2">&amp;mut </span>resp)<span class="question-mark">?</span>;
 			clear_point = end;
 		}
@@ -1685,7 +1751,6 @@
 		<span class="kw">let </span>slab_id_vec_len = slab_id_vec.len();
 		<span class="kw">if </span>clear_point &gt;= res_len &amp;&amp; clear_point &gt; <span class="number">0 </span>&amp;&amp; slab_id_vec_len &gt;= <span class="number">1 </span>{
 			<span class="kw">let </span>last_slab = slab_id_vec[slab_id_vec_len - <span class="number">1</span>];
-			<span class="macro">debug!</span>(<span class="string">"clear through {}"</span>, last_slab)<span class="question-mark">?</span>;
 			conn_data.clear_through(last_slab)<span class="question-mark">?</span>;
 			ctx.slab_start = <span class="number">0</span>;
 		} <span class="kw">else if </span>clear_point &lt; res_len &amp;&amp; clear_point &gt; <span class="number">0 </span>&amp;&amp; slab_id_vec_len &gt;= <span class="number">1 </span>{
@@ -1697,7 +1762,6 @@
 				conn_data.clear_through(last_slab)<span class="question-mark">?</span>;
 			}
 			<span class="kw">let </span>slab_start = (clear_point + ctx.slab_start) % READ_SLAB_DATA_SIZE;
-			<span class="macro">debug!</span>(<span class="string">"Seeing ctx.slab_start to {}"</span>, slab_start)<span class="question-mark">?</span>;
 			ctx.slab_start = slab_start;
 		} <span class="kw">else if </span>clear_point &gt; <span class="number">0 </span>{
 			<span class="macro">warn!</span>(
@@ -1706,7 +1770,7 @@
 			)<span class="question-mark">?</span>;
 		}
 
-		<span class="prelude-val">Ok</span>(())
+		<span class="prelude-val">Ok</span>(pop_count)
 	}
 
 	<span class="kw">fn </span>process_first_line(first_line: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(HttpVersion, u16, String), Error&gt; {
@@ -1796,7 +1860,7 @@
 				{
 					<span class="kw">let </span><span class="kw-2">mut </span>http_client_data = <span class="self">self</span>.http_client_data.wlock()<span class="question-mark">?</span>;
 					<span class="kw">let </span>guard = http_client_data.guard();
-					(<span class="kw-2">**</span>guard) = <span class="prelude-val">Some</span>(HttpClientAttachmentData {
+					(<span class="kw-2">**</span>guard).push_back(HttpClientAttachmentData {
 						request: request.clone(),
 						close_on_complete: <span class="bool-val">false</span>,
 						handler,
@@ -1827,7 +1891,8 @@
 			tls_config: <span class="prelude-val">None</span>,
 		};
 
-		<span class="kw">let </span>http_client_data = <span class="macro">lock_box!</span>(<span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span>vec = VecDeque::new();
+		<span class="kw">let </span>http_client_data = <span class="macro">lock_box!</span>(vec)<span class="question-mark">?</span>;
 		<span class="kw">let </span>wh = http_client.controller().add_client(
 			client_connection,
 			Box::new(HttpClientAttachment {
@@ -2056,7 +2121,11 @@
 			}
 			<span class="kw">let </span>found_count = found_count_clone.rlock()<span class="question-mark">?</span>;
 			<span class="kw">let </span>guard = found_count.guard();
-			<span class="kw">if </span>(<span class="kw-2">**</span>guard) != <span class="number">1 </span>{
+
+			<span class="kw">let </span>found404 = found404_clone.rlock()<span class="question-mark">?</span>;
+			<span class="kw">let </span>guard2 = found404.guard();
+
+			<span class="kw">if </span>(<span class="kw-2">**</span>guard) != <span class="number">1 </span>|| !(<span class="kw-2">**</span>guard2) {
 				<span class="macro">info!</span>(<span class="string">"guard={},count={} of 10,000"</span>, (<span class="kw-2">**</span>guard), count)<span class="question-mark">?</span>;
 				count += <span class="number">1</span>;
 				<span class="kw">continue</span>;
@@ -2113,9 +2182,9 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>http = Builder::build_http_server(<span class="kw-2">&amp;</span>config)<span class="question-mark">?</span>;
 		http.start()<span class="question-mark">?</span>;
 
-		sleep(Duration::from_millis(<span class="number">1_000</span>));
+		<span class="comment">//sleep(Duration::from_millis(1_000));
 
-		<span class="kw">let </span>http_client = HttpClientImpl::new(<span class="kw-2">&amp;</span>HttpClientConfig {
+		</span><span class="kw">let </span>http_client = HttpClientImpl::new(<span class="kw-2">&amp;</span>HttpClientConfig {
 			debug: <span class="bool-val">true</span>,
 			..Default::default()
 		})<span class="question-mark">?</span>;
@@ -2180,9 +2249,9 @@
 		)<span class="question-mark">?</span>;
 		http_connection.send(http_client_request1, handler1)<span class="question-mark">?</span>;
 
-		sleep(Duration::from_millis(<span class="number">1_000</span>));
+		<span class="comment">//sleep(Duration::from_millis(1_000));
 
-		<span class="kw">let </span>http_client_request2 = Box::new(HttpRequestImpl::new(<span class="kw-2">&amp;</span>HttpRequestConfig {
+		</span><span class="kw">let </span>http_client_request2 = Box::new(HttpRequestImpl::new(<span class="kw-2">&amp;</span>HttpRequestConfig {
 			request_uri: <span class="prelude-val">Some</span>(<span class="string">"/foo2.html"</span>.to_string()),
 			..Default::default()
 		})<span class="question-mark">?</span>) <span class="kw">as </span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;;
@@ -2241,22 +2310,31 @@
 
 		http_connection.send(http_client_request2, handler2.clone())<span class="question-mark">?</span>;
 
-		sleep(Duration::from_millis(<span class="number">1_000</span>));
+		<span class="comment">//sleep(Duration::from_millis(1_000));
 
-		http_connection.send(http_client_request3, handler2)<span class="question-mark">?</span>;
+		</span>http_connection.send(http_client_request3, handler2)<span class="question-mark">?</span>;
 
-		sleep(Duration::from_millis(<span class="number">1_000</span>));
+		<span class="comment">//sleep(Duration::from_millis(1_000));
 
-		<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
+		</span><span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
 		<span class="kw">loop </span>{
-			sleep(Duration::from_millis(<span class="number">1</span>));
-			<span class="kw">if </span>count == <span class="number">10000 </span>{
+			sleep(Duration::from_millis(<span class="number">100</span>));
+			<span class="kw">if </span>count == <span class="number">10 </span>{
 				<span class="kw">break</span>;
 			}
+			<span class="kw">let </span>found404 = found404_clone.rlock()<span class="question-mark">?</span>;
 			<span class="kw">let </span>found_count = found_count_clone.rlock()<span class="question-mark">?</span>;
 			<span class="kw">let </span>guard = found_count.guard();
+			<span class="kw">let </span>guard2 = found404.guard();
+
 			<span class="kw">if </span>(<span class="kw-2">**</span>guard) != <span class="number">1 </span>{
 				<span class="macro">info!</span>(<span class="string">"guard={},count={} of 10,000"</span>, (<span class="kw-2">**</span>guard), count)<span class="question-mark">?</span>;
+				count += <span class="number">1</span>;
+				<span class="kw">continue</span>;
+			}
+
+			<span class="kw">if </span>!<span class="kw-2">**</span>guard2 {
+				<span class="macro">info!</span>(<span class="string">"404 not proc,count={} of 10,000"</span>, count)<span class="question-mark">?</span>;
 				count += <span class="number">1</span>;
 				<span class="kw">continue</span>;
 			}
