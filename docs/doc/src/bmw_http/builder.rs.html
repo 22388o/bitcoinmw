@@ -71,6 +71,7 @@
 <a href="#70" id="70">70</a>
 <a href="#71" id="71">71</a>
 <a href="#72" id="72">72</a>
+<a href="#73" id="73">73</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -111,8 +112,9 @@
 
 	<span class="kw">pub fn </span>build_http_connection(
 		config: <span class="kw-2">&amp;</span>HttpConnectionConfig,
+		http_client: Box&lt;<span class="kw">dyn </span>HttpClient + Send + Sync&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>HttpConnection + Send + Sync&gt;, Error&gt; {
-		<span class="prelude-val">Ok</span>(Box::new(HttpConnectionImpl::new(config)<span class="question-mark">?</span>))
+		<span class="prelude-val">Ok</span>(Box::new(HttpConnectionImpl::new(config, http_client)<span class="question-mark">?</span>))
 	}
 
 	<span class="kw">pub fn </span>build_http_request(
