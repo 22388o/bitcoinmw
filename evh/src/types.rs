@@ -24,6 +24,7 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::net::TcpStream;
 use std::pin::Pin;
+use std::sync::mpsc::SyncSender;
 use std::sync::Arc;
 
 #[cfg(unix)]
@@ -406,6 +407,7 @@ pub(crate) struct StreamInfo {
 	pub(crate) is_accepted: bool,
 	pub(crate) tls_server: Option<Box<dyn LockBox<RustlsServerConnection>>>,
 	pub(crate) tls_client: Option<Box<dyn LockBox<RustlsClientConnection>>>,
+	pub(crate) tx: Option<SyncSender<()>>,
 }
 
 #[derive(Clone, Debug, Serializable)]

@@ -140,6 +140,7 @@ impl HttpClient for HttpClientImpl {
 				}
 				let addr = format!("{}:{}", host, port);
 				let tcp_stream = TcpStream::connect(addr.clone())?;
+				tcp_stream.set_nonblocking(true)?;
 
 				let client_connection = ClientConnection {
 					handle: tcp_stream_to_handle(tcp_stream)?,
@@ -675,6 +676,7 @@ impl HttpConnectionImpl {
 		let port = config.port;
 		let addr = format!("{}:{}", host, port);
 		let tcp_stream = TcpStream::connect(addr.clone())?;
+		tcp_stream.set_nonblocking(true)?;
 
 		let client_connection = ClientConnection {
 			handle: tcp_stream_to_handle(tcp_stream)?,

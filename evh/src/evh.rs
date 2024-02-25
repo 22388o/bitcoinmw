@@ -41,6 +41,7 @@ use std::fmt::{Debug, Formatter};
 use std::fs::File;
 use std::io::{BufReader, Read, Write};
 use std::net::TcpStream;
+use std::sync::mpsc::sync_channel;
 use std::sync::Arc;
 
 #[cfg(target_os = "linux")]
@@ -228,6 +229,9 @@ impl Serializable for ConnectionInfo {
 				let tls_client: Box<dyn LockBox<RCConn>> = lock_box_from_usize(v);
 				Some(tls_client)
 			};
+
+			// note that tx can be None below because we only use tx with Queues which
+			// are not serialized
 			let rwi = StreamInfo {
 				id,
 				handle,
@@ -240,6 +244,7 @@ impl Serializable for ConnectionInfo {
 				is_accepted,
 				tls_client,
 				tls_server,
+				tx: None,
 			};
 			Ok(ConnectionInfo::StreamInfo(rwi))
 		} else {
@@ -1303,7 +1308,7 @@ where
 			let mut next = (**guard).nhandles.dequeue();
 			match next {
 				Some(ref mut nhandle) => {
-					debug!("handle={:?} on tid={}", nhandle, ctx.tid)?;
+					debug!("dequeue handle={:?} on tid={}", nhandle, ctx.tid)?;
 					match nhandle {
 						ConnectionInfo::ListenerInfo(li) => {
 							match Self::insert_hashtables(ctx, li.id, li.handle, nhandle) {
@@ -1345,6 +1350,22 @@ where
 										Err(e) => {
 											warn!("Callback on_accept generated error: {}", e)?;
 										}
+									}
+								}
+								None => {}
+							}
+
+							// check for tx. we can send to wakeup the
+							// receiver because the event is already
+							// registered
+							debug!("check for tx")?;
+							match &rwi.tx {
+								Some(tx) => {
+									debug!("tx.send() : handle={},id={}", rwi.handle, rwi.id)?;
+									// try to send
+									match tx.send(()) {
+										Ok(_) => {}
+										Err(e) => warn!("tx.send generated error: {}", e)?,
 									}
 								}
 								None => {}
@@ -1595,6 +1616,8 @@ where
 						self.debug_write_error,
 						self.debug_suspended,
 					);
+
+					debug!("about to try to do a read")?;
 					if !conn_data.write_handle().is_closed()? {
 						match on_read(&mut conn_data, callback_context, attachment) {
 							Ok(_) => {}
@@ -2063,6 +2086,8 @@ where
 						self.debug_write_error,
 						self.debug_suspended,
 					);
+
+					debug!("about to try a read")?;
 					if !conn_data.write_handle().is_closed()? {
 						match on_read(&mut conn_data, callback_context, attachment) {
 							Ok(_) => {}
@@ -2224,6 +2249,7 @@ where
 			is_accepted: true,
 			tls_client: None,
 			tls_server,
+			tx: None,
 		};
 
 		#[cfg(target_os = "windows")]
@@ -2674,6 +2700,7 @@ impl EventHandlerController {
 			None => None,
 		};
 
+		let (tx, rx) = sync_channel::<()>(1);
 		let wh = {
 			let data_clone = self.data[tid].clone();
 			let mut data = self.data[tid].wlock_ignore_poison()?;
@@ -2692,6 +2719,8 @@ impl EventHandlerController {
 				tls_client.clone(),
 			);
 
+			let tx = Some(tx);
+
 			let rwi = StreamInfo {
 				id,
 				handle,
@@ -2704,6 +2733,7 @@ impl EventHandlerController {
 				is_accepted: false,
 				tls_client,
 				tls_server: None,
+				tx,
 			};
 
 			let ci = ConnectionInfo::StreamInfo(rwi);
@@ -2712,6 +2742,12 @@ impl EventHandlerController {
 			(**guard).wakeup.wakeup()?;
 			wh
 		};
+
+		debug!("rx.recv handle={},id={}", handle, id)?;
+		match rx.recv() {
+			Ok(_) => {}
+			Err(e) => warn!("rx.recv generated error: {}", e)?,
+		}
 
 		Ok(wh)
 	}
@@ -3334,7 +3370,6 @@ mod test {
 				}),
 			};
 			let mut wh = evh.add_client(client, Box::new(""))?;
-			sleep(Duration::from_millis(5_000));
 
 			wh.write(b"test1")?;
 			let mut count = 0;
@@ -3432,7 +3467,6 @@ mod test {
 			};
 			info!("client handle = {}", connection_handle)?;
 			let mut wh = evh.add_client(client, Box::new(""))?;
-			sleep(Duration::from_millis(5_000));
 
 			let _ = wh.write(b"test1");
 			sleep(Duration::from_millis(1_000));
@@ -3939,7 +3973,6 @@ mod test {
 			tls_config: None,
 		};
 		let mut wh = evh.add_client(client, Box::new(""))?;
-		sleep(Duration::from_millis(1_000));
 
 		wh.write(b"test1")?;
 		let mut count = 0;
@@ -4668,7 +4701,7 @@ mod test {
 		let threads = 2;
 		let config = EventHandlerConfig {
 			threads,
-			housekeeping_frequency_millis: 10_000,
+			housekeeping_frequency_millis: 1_000,
 			read_slab_count: 10,
 			max_handles_per_thread: 20,
 			..Default::default()
@@ -5950,6 +5983,7 @@ mod test {
 				write_buffer: vec![],
 				flags: 0
 			})?,
+			tx: None,
 		});
 		hashtable.insert(&0, &ci2)?;
 		let v = hashtable.get(&0)?.unwrap();
@@ -6108,7 +6142,6 @@ mod test {
 		};
 
 		let mut wh = evh.add_client(client, Box::new(""))?;
-		sleep(Duration::from_millis(5_000));
 
 		wh.write(&big_msg_clone)?;
 		info!("big write complete")?;
@@ -6287,7 +6320,6 @@ mod test {
 		};
 
 		let mut wh = evh.add_client(client, Box::new(""))?;
-		sleep(Duration::from_millis(5_000));
 
 		wh.write(&big_msg_clone)?;
 		info!("big write complete")?;
@@ -6463,7 +6495,6 @@ mod test {
 		};
 
 		let mut wh = evh.add_client(client, Box::new(""))?;
-		sleep(Duration::from_millis(5_000));
 
 		wh.write(&big_msg_clone)?;
 		info!("big write complete")?;
@@ -7168,6 +7199,7 @@ mod test {
 			is_accepted: false,
 			tls_client: None,
 			tls_server: None,
+			tx: None,
 		};
 		let ci = ConnectionInfo::StreamInfo(rwi.clone());
 		ctx.connection_hashtable.insert(&1_000, &ci)?;
@@ -7248,6 +7280,8 @@ mod test {
 		evh.set_housekeeper(move |_thread_context| Ok(()))?;
 		evh.set_on_read_none();
 
+		evh.start()?;
+
 		let handles = create_listeners(threads, addr, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
@@ -7274,11 +7308,11 @@ mod test {
 			handle: connection_handle,
 			tls_config: None,
 		};
+
+		info!("about to add client")?;
 		let mut wh = evh.add_client(client, Box::new(""))?;
-		sleep(Duration::from_millis(5_000));
 
 		wh.trigger_on_read()?;
-		sleep(Duration::from_millis(1_000));
 
 		let mut ctx = EventHandlerContext::new(0, 100, 100, 100, 100)?;
 
@@ -7297,6 +7331,7 @@ mod test {
 			is_accepted: false,
 			tls_client: None,
 			tls_server: None,
+			tx: None,
 		};
 		let ci = ConnectionInfo::StreamInfo(rwi.clone());
 		ctx.handle_hashtable.insert(&1001, &1001)?;
@@ -7367,7 +7402,6 @@ mod test {
 		};
 
 		evh.add_client(client, Box::new(""))?;
-		sleep(Duration::from_millis(1_000));
 		let handles = create_listeners(threads, addr2, 10, false)?;
 		info!("handles.size={},handles={:?}", handles.size(), handles)?;
 		let sc = ServerConnection {
@@ -7561,6 +7595,7 @@ mod test {
 			is_accepted: false,
 			tls_client: None,
 			tls_server: None,
+			tx: None,
 		};
 		let ci = ConnectionInfo::StreamInfo(rwi.clone());
 		ctx.handle_hashtable.insert(&1001, &1001)?;
@@ -7851,6 +7886,7 @@ mod test {
 			is_accepted: false,
 			tls_client: None,
 			tls_server: None,
+			tx: None,
 		};
 		let ci = ConnectionInfo::StreamInfo(rwi.clone());
 		ctx.handle_hashtable.insert(&1001, &1001)?;
@@ -7964,6 +8000,7 @@ mod test {
 			is_accepted: false,
 			tls_client: None,
 			tls_server: None,
+			tx: None,
 		};
 		let ci = ConnectionInfo::StreamInfo(rwi.clone());
 		ctx.handle_hashtable.insert(&1001, &1001)?;
