@@ -3301,6 +3301,9 @@
 <a href="#3300" id="3300">3300</a>
 <a href="#3301" id="3301">3301</a>
 <a href="#3302" id="3302">3302</a>
+<a href="#3303" id="3303">3303</a>
+<a href="#3304" id="3304">3304</a>
+<a href="#3305" id="3305">3305</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -6121,6 +6124,9 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>len_sum = <span class="number">0</span>;
 		<span class="kw">loop </span>{
 			<span class="kw">let </span>len = client.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+			<span class="kw">if </span>len == <span class="number">0 </span>{
+				<span class="kw">break</span>;
+			}
 			len_sum += len;
 			<span class="kw">let </span>data = from_utf8(<span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
 			<span class="macro">info!</span>(<span class="string">"data = '{}',len={},len_sum={}"</span>, data, len, len_sum)<span class="question-mark">?</span>;
