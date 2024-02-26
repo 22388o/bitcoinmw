@@ -268,7 +268,7 @@ pub trait HttpResponse: DynClone + Any {
 clone_trait_object!(HttpResponse);
 downcast!(dyn HttpResponse);
 
-pub trait HttpClient {
+pub trait HttpClient: DynClone + Any {
 	fn send(
 		&mut self,
 		req: Box<dyn HttpRequest + Send + Sync>,
@@ -279,6 +279,9 @@ pub trait HttpClient {
 	// https://stackoverflow.com/questions/66786429/how-to-have-a-public-trait-with-a-pubcrate-method-in-a-library)
 	fn controller(&mut self) -> &mut EventHandlerController;
 }
+
+clone_trait_object!(HttpClient);
+downcast!(dyn HttpClient);
 
 pub trait HttpConnection {
 	fn send(
@@ -335,6 +338,12 @@ pub enum ConfigOption<'a> {
 	/// Http Header name/value pair. Used to add an http header to a request in
 	/// [`crate::http_client_request`].
 	Header((&'a str, &'a str)),
+	/// Host to connect to. Used for [`crate::http_connection`].
+	Host(&'a str),
+	/// Port to connect to. Used for [`crate::http_connection`].
+	Port(u16),
+	/// Whether to use TLS for a connection. Used for [`crate::http_connection`].
+	Tls(bool),
 }
 
 // Crate local types

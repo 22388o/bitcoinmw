@@ -213,6 +213,115 @@ macro_rules! http_client_send {
 			)),
 		}
 	}};
+	($requests:expr, $connection:expr, $handler:expr) => {{
+		let handler = Box::pin(
+			move |request: &Box<dyn HttpRequest + Send + Sync>,
+			      response: &Box<dyn HttpResponse + Send + Sync>| {
+				bmw_http::HTTP_CLIENT_CONTEXT.with(|f| {
+					*f.borrow_mut() = Some(((*request).clone(), (*response).clone()));
+				});
+				{
+					$handler
+				}
+			},
+		);
+
+		let mut err_vec = vec![];
+		for request in $requests {
+			match $connection.send(request, handler.clone()) {
+				Ok(_) => {}
+				Err(e) => {
+					err_vec.push(e);
+				}
+			}
+		}
+
+		if err_vec.len() > 0 {
+			let mut err_str = "The following errors occurred trying to send: ".to_string();
+			for err in err_vec {
+				err_str = format!("{}, {}", err_str, err);
+			}
+			Err(bmw_err::err!(bmw_err::ErrKind::Http, err_str))
+		} else {
+			Ok(())
+		}
+	}};
+}
+
+#[macro_export]
+macro_rules! http_connection {
+        ( $( $config:expr ),* ) => {{
+                let mut config = bmw_http::HttpConnectionConfig::default();
+                let mut host_specified = false;
+                let mut port_specified = false;
+                let mut tls_specified = false;
+                let mut error: Option<String> = None;
+
+                // to supress compiler warnings
+                if config.port == 0 { config.port = 0; }
+                if error.is_some() { error = None; }
+                if host_specified { host_specified = false; }
+                if port_specified { port_specified = false; }
+                if tls_specified { tls_specified = false; }
+                if host_specified {}
+                if port_specified {}
+                if tls_specified {}
+
+                $(
+                        match $config {
+                                bmw_http::ConfigOption::Host(host) => {
+                                        config.host = host.to_string();
+
+                                        if host_specified {
+                                                error = Some("Host was specified more than once!".to_string());
+                                        }
+                                        host_specified = true;
+                                        if host_specified {}
+
+                                },
+                                bmw_http::ConfigOption::Port(port) => {
+                                        config.port = port;
+
+                                        if port_specified {
+                                                error = Some("Port was specified more than once!".to_string());
+                                        }
+
+                                        port_specified = true;
+                                        if port_specified {}
+                                },
+                                bmw_http::ConfigOption::Tls(tls) => {
+                                        config.tls = tls;
+
+                                        if tls_specified {
+                                                error = Some("TLS was specified more than once!".to_string());
+                                        }
+
+                                        tls_specified = true;
+                                        if tls_specified {}
+                                },
+                                _ => {
+                                        error = Some(format!("'{:?}' is not allowed for http_client", $config));
+                                }
+                        }
+                )*
+
+                match error {
+                        Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, error)),
+                        None => {
+                                match bmw_http::HTTP_CLIENT_CONTAINER.write() {
+                                        Ok(mut container) => {
+                                                match (*container).get_mut(&std::thread::current().id()) {
+                                                        Some(http_client) => {
+                                                                bmw_http::Builder::build_http_connection(&config, http_client.clone())
+                                                        }
+                                                        None => Err(bmw_err::err!(bmw_err::ErrKind::IllegalState, "no http_client found for this thread")),
+                                                }
+                                        }
+                                        Err(e) => Err(bmw_err::err!(bmw_err::ErrKind::IllegalState, format!("could not obtain write lock from http client container: {}", e)))
+                                }
+                        }
+                }
+        }};
 }
 
 #[cfg(test)]
@@ -319,6 +428,63 @@ mod test {
 			}
 
 			assert_eq!(2, rlock!(data_clone));
+			break;
+		}
+
+		let request3 = http_client_request!(Uri("/foo.html"))?;
+		let request3_guid = request3.guid();
+
+		let mut resp_count = lock_box!(0usize)?;
+		let mut resp_count_clone = resp_count.clone();
+		let resp_count_clone2 = resp_count.clone();
+
+		let mut connection = http_connection!(Tls(false), Host("127.0.0.1"), Port(port))?;
+		http_client_send!([request3], connection, {
+			let response = http_client_response!()?;
+			let request = http_client_request!()?;
+
+			assert_eq!(request3_guid, request.guid());
+			assert_eq!(response.code()?, 200);
+
+			wlock!(resp_count) += 1;
+
+			info!(
+				"http_conn response = '{}'",
+				std::str::from_utf8(response.content().unwrap_or(&vec![])).unwrap_or("utf8err")
+			)?;
+
+			Ok(())
+		})?;
+
+		let request4 = http_client_request!(Uri("/foo2.html"))?;
+		let request4_guid = request4.guid();
+
+		http_client_send!([request4], connection, {
+			let response = http_client_response!()?;
+			let request = http_client_request!()?;
+
+			assert_eq!(request4_guid, request.guid());
+			assert_eq!(response.code()?, 404);
+
+			wlock!(resp_count_clone) += 1;
+
+			info!(
+				"http_conn response = '{}'",
+				std::str::from_utf8(response.content().unwrap_or(&vec![])).unwrap_or("utf8err")
+			)?;
+
+			Ok(())
+		})?;
+
+		let mut count = 0;
+		loop {
+			sleep(Duration::from_millis(1));
+			count += 1;
+			if rlock!(resp_count_clone2) != 2 && count < 10_000 {
+				continue;
+			}
+
+			assert_eq!(rlock!(resp_count_clone2), 2);
 			break;
 		}
 
