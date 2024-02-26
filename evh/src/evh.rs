@@ -101,6 +101,11 @@ const TLS_CHUNKS: usize = 5_120;
 
 info!();
 
+/// Close a handle (platform independant)
+pub fn close_handle(handle: Handle) -> Result<(), Error> {
+	close_handle_impl(handle)
+}
+
 /// Create listeners for use with the [`crate::ServerConnection`] struct.
 /// This function crates an array of handles which can be used to construct a [`crate::ServerConnection`]
 /// object. `size` is the size of the array. It must be equal to the number of threads that the

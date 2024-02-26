@@ -20,7 +20,7 @@ use bmw_deps::downcast::{downcast, Any};
 use bmw_deps::dyn_clone::{clone_trait_object, DynClone};
 use bmw_err::*;
 use bmw_evh::{
-	ConnectionData, EventHandlerConfig, EventHandlerController, WriteHandle, WriteState,
+	ConnectionData, EventHandlerConfig, EventHandlerController, Handle, WriteHandle, WriteState,
 };
 use bmw_util::*;
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -395,6 +395,8 @@ pub(crate) struct HttpClientAttachmentData {
 pub(crate) struct HttpServerImpl {
 	pub(crate) config: HttpConfig,
 	pub(crate) cache: Box<dyn LockBox<Box<dyn HttpCache + Send + Sync>>>,
+	pub(crate) controller: Option<EventHandlerController>,
+	pub(crate) handles: Option<Array<Handle>>,
 }
 
 pub(crate) struct HttpCacheImpl {

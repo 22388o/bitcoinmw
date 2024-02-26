@@ -36,9 +36,9 @@ use bmw_deps::sha1::{Digest, Sha1};
 use bmw_deps::substring::Substring;
 use bmw_err::*;
 use bmw_evh::{
-	create_listeners, AttachmentHolder, Builder, CloseHandle, ConnData, ConnectionData,
-	EventHandler, EventHandlerConfig, EventHandlerData, ServerConnection, ThreadContext,
-	TlsServerConfig, WriteHandle, READ_SLAB_DATA_SIZE,
+	close_handle, create_listeners, AttachmentHolder, Builder, CloseHandle, ConnData,
+	ConnectionData, EventHandler, EventHandlerConfig, EventHandlerData, ServerConnection,
+	ThreadContext, TlsServerConfig, WriteHandle, READ_SLAB_DATA_SIZE,
 };
 use bmw_log::*;
 use bmw_util::*;
@@ -705,6 +705,8 @@ impl HttpServerImpl {
 		Ok(Self {
 			config: config.clone(),
 			cache,
+			controller: None,
+			handles: None,
 		})
 	}
 
@@ -2726,6 +2728,7 @@ impl HttpServer for HttpServerImpl {
 		}
 
 		let mut evh = Builder::build_evh(self.config.evh_config.clone())?;
+		self.controller = Some(evh.event_handler_controller()?);
 		let event_handler_data = evh.event_handler_data()?;
 		let config = &self.config;
 		let config = config.clone();
@@ -2753,6 +2756,7 @@ impl HttpServer for HttpServerImpl {
 			debug!("creating listener for {}", port)?;
 			let addr = format!("{}:{}", addr, port);
 			let handles = create_listeners(self.config.evh_config.threads, &addr, 10, false)?;
+			self.handles = Some(handles.clone());
 
 			let tls_config = match &instance.instance_type {
 				Plain(_) => None,
@@ -2779,6 +2783,23 @@ impl HttpServer for HttpServerImpl {
 	}
 
 	fn stop(&mut self) -> Result<(), Error> {
+		match self.controller.as_mut() {
+			Some(controller) => controller.stop()?,
+			None => warn!("Http Server stop was called before it was started!")?,
+		}
+		match &self.handles {
+			Some(handles) => {
+				debug!("handles={:?}", handles)?;
+				// we only have to close the first handle because currently we
+				// don't implement reuse_port so it's alawys the same fd.
+				if handles.size() > 0 {
+					close_handle(handles[0])?;
+				}
+			}
+			None => {
+				warn!("Http Server stop was called before it was started! No handles configured.")?
+			}
+		}
 		Ok(())
 	}
 
@@ -3140,6 +3161,7 @@ callbk\n"
 		}
 
 		assert_eq!(len_sum, 8);
+		http.stop()?;
 
 		sleep(Duration::from_millis(1_000));
 		tear_down_test_dir(test_dir)?;

@@ -431,6 +431,11 @@ pub struct EventHandlerData {
 	pub(crate) debug_suspended: bool,
 }
 
+#[cfg(unix)]
+pub type Handle = RawFd;
+#[cfg(windows)]
+pub type Handle = usize;
+
 #[derive(Debug, Clone, Serializable, PartialEq)]
 pub(crate) enum EventType {
 	Read,
@@ -457,8 +462,3 @@ pub(crate) struct EventIn {
 	pub(crate) handle: Handle,
 	pub(crate) etype: EventTypeIn,
 }
-
-#[cfg(unix)]
-pub(crate) type Handle = RawFd;
-#[cfg(windows)]
-pub(crate) type Handle = usize;
