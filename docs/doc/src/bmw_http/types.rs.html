@@ -470,6 +470,15 @@
 <a href="#469" id="469">469</a>
 <a href="#470" id="470">470</a>
 <a href="#471" id="471">471</a>
+<a href="#472" id="472">472</a>
+<a href="#473" id="473">473</a>
+<a href="#474" id="474">474</a>
+<a href="#475" id="475">475</a>
+<a href="#476" id="476">476</a>
+<a href="#477" id="477">477</a>
+<a href="#478" id="478">478</a>
+<a href="#479" id="479">479</a>
+<a href="#480" id="480">480</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -740,7 +749,7 @@
 <span class="macro">clone_trait_object!</span>(HttpResponse);
 <span class="macro">downcast!</span>(<span class="kw">dyn </span>HttpResponse);
 
-<span class="kw">pub trait </span>HttpClient {
+<span class="kw">pub trait </span>HttpClient: DynClone + Any {
 	<span class="kw">fn </span>send(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		req: Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
@@ -751,6 +760,9 @@
 	// https://stackoverflow.com/questions/66786429/how-to-have-a-public-trait-with-a-pubcrate-method-in-a-library)
 	</span><span class="kw">fn </span>controller(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>EventHandlerController;
 }
+
+<span class="macro">clone_trait_object!</span>(HttpClient);
+<span class="macro">downcast!</span>(<span class="kw">dyn </span>HttpClient);
 
 <span class="kw">pub trait </span>HttpConnection {
 	<span class="kw">fn </span>send(
@@ -807,6 +819,12 @@
 	<span class="doccomment">/// Http Header name/value pair. Used to add an http header to a request in
 	/// [`crate::http_client_request`].
 	</span>Header((<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str, <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str)),
+	<span class="doccomment">/// Host to connect to. Used for [`crate::http_connection`].
+	</span>Host(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str),
+	<span class="doccomment">/// Port to connect to. Used for [`crate::http_connection`].
+	</span>Port(u16),
+	<span class="doccomment">/// Whether to use TLS for a connection. Used for [`crate::http_connection`].
+	</span>Tls(bool),
 }
 
 <span class="comment">// Crate local types
