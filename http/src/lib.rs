@@ -25,11 +25,13 @@ mod types;
 mod ws;
 
 pub use crate::types::{
-	Builder, ConnectionType, HttpClient, HttpClientConfig, HttpClientContainer, HttpConfig,
-	HttpConnection, HttpConnectionConfig, HttpConnectionData, HttpContentReader, HttpHandler,
-	HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType, HttpMethod, HttpRequest,
+	Builder, ConfigOption, ConnectionType, HttpClient, HttpClientConfig, HttpClientContainer,
+	HttpConfig, HttpConnection, HttpConnectionConfig, HttpConnectionData, HttpContentReader,
+	HttpHandler, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType, HttpMethod, HttpRequest,
 	HttpRequestConfig, HttpResponse, HttpServer, HttpStats, HttpVersion, PlainConfig,
 	WebSocketData, WebSocketHandle, WebSocketMessage, WebSocketMessageType,
 };
+
+pub use crate::client::{HTTP_CLIENT_CONTAINER, HTTP_CLIENT_CONTEXT};
 
 pub use crate::types::ConfigOption::*;

@@ -41,7 +41,7 @@ pub enum HttpMethod {
 	UNKNOWN,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum HttpVersion {
 	HTTP10,
 	HTTP11,
@@ -237,7 +237,7 @@ pub type HttpHandler = Pin<
 	Box<
 		dyn FnMut(
 				&Box<dyn HttpRequest + Send + Sync>,
-				&mut Box<dyn HttpResponse + Send + Sync>,
+				&Box<dyn HttpResponse + Send + Sync>,
 			) -> Result<(), Error>
 			+ Send
 			+ Sync
@@ -257,13 +257,16 @@ pub trait HttpRequest: DynClone + Any {
 clone_trait_object!(HttpRequest);
 downcast!(dyn HttpRequest);
 
-pub trait HttpResponse {
+pub trait HttpResponse: DynClone + Any {
 	fn content(&self) -> Result<&Vec<u8>, Error>;
 	fn headers(&self) -> Result<&Vec<(String, String)>, Error>;
 	fn code(&self) -> Result<u16, Error>;
 	fn status_text(&self) -> Result<&String, Error>;
 	fn version(&self) -> Result<&HttpVersion, Error>;
 }
+
+clone_trait_object!(HttpResponse);
+downcast!(dyn HttpResponse);
 
 pub trait HttpClient {
 	fn send(
@@ -323,6 +326,15 @@ pub enum ConfigOption<'a> {
 	Url(&'a str),
 	/// Uri. Used to specify the uri in [`crate::http_client_request`].
 	Uri(&'a str),
+	/// Http User-Agent. Used to specify the User-Agent header in [`crate::http_client_request`].
+	/// The default value is BitcoinMW/`BuildVersion`.
+	UserAgent(&'a str),
+	/// Http Accept. Used to specify the Http Accept header in [`crate::http_client_request`].
+	/// The default value is `*/*`.
+	Accept(&'a str),
+	/// Http Header name/value pair. Used to add an http header to a request in
+	/// [`crate::http_client_request`].
+	Header((&'a str, &'a str)),
 }
 
 // Crate local types
@@ -337,6 +349,8 @@ pub(crate) struct HttpRequestImpl {
 	pub(crate) config: HttpRequestConfig,
 	pub(crate) guid: u128,
 }
+
+#[derive(Clone)]
 pub(crate) struct HttpResponseImpl {
 	pub(crate) headers: Vec<(String, String)>,
 	pub(crate) chunked: bool,

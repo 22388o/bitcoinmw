@@ -276,7 +276,7 @@ macro_rules! slab_allocator {
                         if slab_count_specified {}
                     },
                     _ => {
-                        error = Some(format!("'{:?}' is not allowed for hashset", $config));
+                        error = Some(format!("'{:?}' is not allowed for slab_allocator", $config));
                     }
                 }
             )*

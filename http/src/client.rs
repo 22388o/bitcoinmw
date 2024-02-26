@@ -24,6 +24,7 @@ use crate::{
 	HttpClient, HttpClientConfig, HttpClientContainer, HttpConnection, HttpConnectionConfig,
 	HttpHandler, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion,
 };
+use bmw_deps::lazy_static::lazy_static;
 use bmw_deps::rand::random;
 use bmw_deps::url::Url;
 use bmw_err::*;
@@ -35,11 +36,24 @@ use bmw_evh::{
 use bmw_log::*;
 use bmw_util::*;
 use std::any::Any;
-use std::collections::VecDeque;
+use std::cell::RefCell;
+use std::collections::{HashMap, VecDeque};
 use std::net::TcpStream;
 use std::str::from_utf8;
+use std::sync::{Arc, RwLock};
+use std::thread::{current, ThreadId};
 
 info!();
+
+thread_local! {
+		pub static HTTP_CLIENT_CONTEXT: RefCell<Option<(Box<dyn HttpRequest + Send + Sync>,Box<dyn HttpResponse + Send + Sync>)>> = RefCell::new(None);
+
+}
+
+lazy_static! {
+	pub static ref HTTP_CLIENT_CONTAINER: Arc<RwLock<HashMap<ThreadId, Box<dyn HttpClient + Send + Sync>>>> =
+		Arc::new(RwLock::new(HashMap::new()));
+}
 
 // include build information
 pub mod built_info {
@@ -109,8 +123,10 @@ fn do_send(
 }
 
 impl HttpClientContainer {
-	pub fn init(config: &HttpClientConfig) -> Result<Box<dyn HttpClient + Send + Sync>, Error> {
-		crate::Builder::build_http_client(&config)
+	pub fn init(config: &HttpClientConfig) -> Result<(), Error> {
+		let mut container = HTTP_CLIENT_CONTAINER.write()?;
+		(*container).insert(current().id(), crate::Builder::build_http_client(&config)?);
+		Ok(())
 	}
 }
 
@@ -868,7 +884,7 @@ mod test {
 
 		let handler1 = Box::pin(
 			move |request: &Box<dyn HttpRequest + Send + Sync>,
-			      response: &mut Box<dyn HttpResponse + Send + Sync>| {
+			      response: &Box<dyn HttpResponse + Send + Sync>| {
 				info!("in handler1,request.guid={}", request.guid())?;
 				if request == &http_client_request1_clone {
 					let guid = request.guid();
@@ -910,7 +926,7 @@ mod test {
 		let found404_clone = found404.clone();
 		let handler2 = Box::pin(
 			move |_request: &Box<dyn HttpRequest + Send + Sync>,
-			      response: &mut Box<dyn HttpResponse + Send + Sync>| {
+			      response: &Box<dyn HttpResponse + Send + Sync>| {
 				info!("got response should be 404!")?;
 				assert_eq!(response.code()?, 404);
 				let mut found404 = found404.wlock()?;
@@ -1030,7 +1046,7 @@ mod test {
 
 		let handler1 = Box::pin(
 			move |request: &Box<dyn HttpRequest + Send + Sync>,
-			      response: &mut Box<dyn HttpResponse + Send + Sync>| {
+			      response: &Box<dyn HttpResponse + Send + Sync>| {
 				info!("in handler1,request.guid={}", request.guid())?;
 				if request == &http_client_request1_clone {
 					let content = response.content()?;
@@ -1087,7 +1103,7 @@ mod test {
 		let found_another_file_clone = found_another_file.clone();
 		let handler2 = Box::pin(
 			move |request: &Box<dyn HttpRequest + Send + Sync>,
-			      response: &mut Box<dyn HttpResponse + Send + Sync>| {
+			      response: &Box<dyn HttpResponse + Send + Sync>| {
 				if request == &http_client_request3_clone {
 					info!("got response should be 404!")?;
 					assert_eq!(response.code()?, 404);
