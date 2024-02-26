@@ -479,6 +479,8 @@
 <a href="#478" id="478">478</a>
 <a href="#479" id="479">479</a>
 <a href="#480" id="480">480</a>
+<a href="#481" id="481">481</a>
+<a href="#482" id="482">482</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -501,7 +503,7 @@
 <span class="kw">use </span>bmw_deps::dyn_clone::{clone_trait_object, DynClone};
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_evh::{
-	ConnectionData, EventHandlerConfig, EventHandlerController, WriteHandle, WriteState,
+	ConnectionData, EventHandlerConfig, EventHandlerController, Handle, WriteHandle, WriteState,
 };
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
 <span class="kw">use </span>std::collections::{HashMap, HashSet, VecDeque};
@@ -876,6 +878,8 @@
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpServerImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) config: HttpConfig,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) cache: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>HttpCache + Send + Sync&gt;&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) controller: <span class="prelude-ty">Option</span>&lt;EventHandlerController&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) handles: <span class="prelude-ty">Option</span>&lt;Array&lt;Handle&gt;&gt;,
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpCacheImpl {

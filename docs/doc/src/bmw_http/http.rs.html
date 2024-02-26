@@ -3304,6 +3304,28 @@
 <a href="#3303" id="3303">3303</a>
 <a href="#3304" id="3304">3304</a>
 <a href="#3305" id="3305">3305</a>
+<a href="#3306" id="3306">3306</a>
+<a href="#3307" id="3307">3307</a>
+<a href="#3308" id="3308">3308</a>
+<a href="#3309" id="3309">3309</a>
+<a href="#3310" id="3310">3310</a>
+<a href="#3311" id="3311">3311</a>
+<a href="#3312" id="3312">3312</a>
+<a href="#3313" id="3313">3313</a>
+<a href="#3314" id="3314">3314</a>
+<a href="#3315" id="3315">3315</a>
+<a href="#3316" id="3316">3316</a>
+<a href="#3317" id="3317">3317</a>
+<a href="#3318" id="3318">3318</a>
+<a href="#3319" id="3319">3319</a>
+<a href="#3320" id="3320">3320</a>
+<a href="#3321" id="3321">3321</a>
+<a href="#3322" id="3322">3322</a>
+<a href="#3323" id="3323">3323</a>
+<a href="#3324" id="3324">3324</a>
+<a href="#3325" id="3325">3325</a>
+<a href="#3326" id="3326">3326</a>
+<a href="#3327" id="3327">3327</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -3342,9 +3364,9 @@
 <span class="kw">use </span>bmw_deps::substring::Substring;
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_evh::{
-	create_listeners, AttachmentHolder, Builder, CloseHandle, ConnData, ConnectionData,
-	EventHandler, EventHandlerConfig, EventHandlerData, ServerConnection, ThreadContext,
-	TlsServerConfig, WriteHandle, READ_SLAB_DATA_SIZE,
+	close_handle, create_listeners, AttachmentHolder, Builder, CloseHandle, ConnData,
+	ConnectionData, EventHandler, EventHandlerConfig, EventHandlerData, ServerConnection,
+	ThreadContext, TlsServerConfig, WriteHandle, READ_SLAB_DATA_SIZE,
 };
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
@@ -4011,6 +4033,8 @@
 		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
 			config: config.clone(),
 			cache,
+			controller: <span class="prelude-val">None</span>,
+			handles: <span class="prelude-val">None</span>,
 		})
 	}
 
@@ -6032,6 +6056,7 @@
 		}
 
 		<span class="kw">let </span><span class="kw-2">mut </span>evh = Builder::build_evh(<span class="self">self</span>.config.evh_config.clone())<span class="question-mark">?</span>;
+		<span class="self">self</span>.controller = <span class="prelude-val">Some</span>(evh.event_handler_controller()<span class="question-mark">?</span>);
 		<span class="kw">let </span>event_handler_data = evh.event_handler_data()<span class="question-mark">?</span>;
 		<span class="kw">let </span>config = <span class="kw-2">&amp;</span><span class="self">self</span>.config;
 		<span class="kw">let </span>config = config.clone();
@@ -6059,6 +6084,7 @@
 			<span class="macro">debug!</span>(<span class="string">"creating listener for {}"</span>, port)<span class="question-mark">?</span>;
 			<span class="kw">let </span>addr = <span class="macro">format!</span>(<span class="string">"{}:{}"</span>, addr, port);
 			<span class="kw">let </span>handles = create_listeners(<span class="self">self</span>.config.evh_config.threads, <span class="kw-2">&amp;</span>addr, <span class="number">10</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
+			<span class="self">self</span>.handles = <span class="prelude-val">Some</span>(handles.clone());
 
 			<span class="kw">let </span>tls_config = <span class="kw">match </span><span class="kw-2">&amp;</span>instance.instance_type {
 				Plain(<span class="kw">_</span>) =&gt; <span class="prelude-val">None</span>,
@@ -6085,6 +6111,23 @@
 	}
 
 	<span class="kw">fn </span>stop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">match </span><span class="self">self</span>.controller.as_mut() {
+			<span class="prelude-val">Some</span>(controller) =&gt; controller.stop()<span class="question-mark">?</span>,
+			<span class="prelude-val">None </span>=&gt; <span class="macro">warn!</span>(<span class="string">"Http Server stop was called before it was started!"</span>)<span class="question-mark">?</span>,
+		}
+		<span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.handles {
+			<span class="prelude-val">Some</span>(handles) =&gt; {
+				<span class="macro">debug!</span>(<span class="string">"handles={:?}"</span>, handles)<span class="question-mark">?</span>;
+				<span class="comment">// we only have to close the first handle because currently we
+				// don't implement reuse_port so it's alawys the same fd.
+				</span><span class="kw">if </span>handles.size() &gt; <span class="number">0 </span>{
+					close_handle(handles[<span class="number">0</span>])<span class="question-mark">?</span>;
+				}
+			}
+			<span class="prelude-val">None </span>=&gt; {
+				<span class="macro">warn!</span>(<span class="string">"Http Server stop was called before it was started! No handles configured."</span>)<span class="question-mark">?
+			</span>}
+		}
 		<span class="prelude-val">Ok</span>(())
 	}
 
@@ -6446,6 +6489,7 @@ callbk\n"
 		}
 
 		<span class="macro">assert_eq!</span>(len_sum, <span class="number">8</span>);
+		http.stop()<span class="question-mark">?</span>;
 
 		sleep(Duration::from_millis(<span class="number">1_000</span>));
 		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;

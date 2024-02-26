@@ -896,6 +896,11 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_suspended: bool,
 }
 
+<span class="attr">#[cfg(unix)]
+</span><span class="kw">pub type </span>Handle = RawFd;
+<span class="attr">#[cfg(windows)]
+</span><span class="kw">pub type </span>Handle = usize;
+
 <span class="attr">#[derive(Debug, Clone, Serializable, PartialEq)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum </span>EventType {
 	Read,
@@ -922,9 +927,4 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) handle: Handle,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) etype: EventTypeIn,
 }
-
-<span class="attr">#[cfg(unix)]
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">type </span>Handle = RawFd;
-<span class="attr">#[cfg(windows)]
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">type </span>Handle = usize;
 </code></pre></div></section></main></body></html>
