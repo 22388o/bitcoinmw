@@ -1152,13 +1152,15 @@ mod test {
 		let mut count = 0;
 		loop {
 			sleep(Duration::from_millis(100));
-			if count == 10 {
+			if count == 100 {
 				break;
 			}
 			let found404 = found404_clone.rlock()?;
 			let found_count = found_count_clone.rlock()?;
+			let found_another_file = found_another_file_clone.rlock()?;
 			let guard = found_count.guard();
 			let guard2 = found404.guard();
+			let guard3 = found_another_file.guard();
 
 			if (**guard) != 1 {
 				info!("guard={},count={} of 10,000", (**guard), count)?;
@@ -1167,7 +1169,17 @@ mod test {
 			}
 
 			if !**guard2 {
-				info!("404 not proc,count={} of 10,000", count)?;
+				info!(
+					"404 not proc,guard={},count={} of 10,000",
+					(**guard2),
+					count
+				)?;
+				count += 1;
+				continue;
+			}
+
+			if !**guard3 {
+				info!("another file not found, guard={},count={}", **guard3, count)?;
 				count += 1;
 				continue;
 			}
