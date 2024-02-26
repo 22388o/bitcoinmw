@@ -178,6 +178,42 @@ macro_rules! http_client_response {
 
 #[macro_export]
 macro_rules! http_client_send {
+	($request:expr) => {{
+		match bmw_http::HTTP_CLIENT_CONTAINER.write() {
+			Ok(mut container) => match (*container).get_mut(&std::thread::current().id()) {
+				Some(http_client) => {
+					let (tx, rx) = std::sync::mpsc::sync_channel(1);
+					let handler = Box::pin(
+						move |_request: &Box<dyn HttpRequest + Send + Sync>,
+						      response: &Box<dyn HttpResponse + Send + Sync>| {
+							match tx.send(response.clone()) {
+								Ok(_) => {}
+								Err(e) => {
+									let _ = warn!("tx.send generated error: {}", e);
+								}
+							}
+							Ok(())
+						},
+					);
+
+					http_client.send($request, handler.clone())?;
+					let response = rx.recv()?;
+					Ok(response)
+				}
+				None => Err(bmw_err::err!(
+					bmw_err::ErrKind::IllegalState,
+					"http_client not initialized"
+				)),
+			},
+			Err(e) => Err(bmw_err::err!(
+				bmw_err::ErrKind::IllegalState,
+				format!(
+					"Could not obtain write lock on HTTP_CLIENT_CONTAINER due to: {}",
+					e
+				)
+			)),
+		}
+	}};
 	($requests:expr, $handler:expr) => {{
 		match bmw_http::HTTP_CLIENT_CONTAINER.write() {
 			Ok(mut container) => {
@@ -206,7 +242,12 @@ macro_rules! http_client_send {
 							}
 						}
 					}
-					None => {}
+					None => {
+						return Err(bmw_err::err!(
+							bmw_err::ErrKind::IllegalState,
+							"http_client not initialized"
+						))
+					}
 				}
 				if err_vec.len() > 0 {
 					let mut err_str = "The following errors occurred trying to send: ".to_string();
@@ -501,6 +542,14 @@ mod test {
 			assert_eq!(rlock!(resp_count_clone2), 2);
 			break;
 		}
+
+		let request5 = http_client_request!(Url(&format!("http://{}:{}/foo.html", addr, port)))?;
+		let response = http_client_send!(request5)?;
+
+		let response_code = response.code().unwrap_or(u16::MAX);
+		let response_content = std::str::from_utf8(response.content().unwrap()).unwrap();
+		assert_eq!(response_code, 200);
+		assert_eq!(response_content, "Hello Macro World!");
 
 		tear_down_test_dir(test_dir)?;
 		Ok(())
