@@ -181,6 +181,7 @@ macro_rules! http_client_send {
 	($requests:expr, $handler:expr) => {{
 		match bmw_http::HTTP_CLIENT_CONTAINER.write() {
 			Ok(mut container) => {
+				let mut err_vec = vec![];
 				match (*container).get_mut(&std::thread::current().id()) {
 					Some(http_client) => {
 						let handler = Box::pin(
@@ -197,12 +198,25 @@ macro_rules! http_client_send {
 						);
 
 						for request in $requests {
-							http_client.send(request, handler.clone())?;
+							match http_client.send(request, handler.clone()) {
+								Ok(_) => {}
+								Err(e) => {
+									err_vec.push(e);
+								}
+							}
 						}
 					}
 					None => {}
 				}
-				Ok(())
+				if err_vec.len() > 0 {
+					let mut err_str = "The following errors occurred trying to send: ".to_string();
+					for err in err_vec {
+						err_str = format!("{}, {}", err_str, err);
+					}
+					Err(bmw_err::err!(bmw_err::ErrKind::Http, err_str))
+				} else {
+					Ok(())
+				}
 			}
 			Err(e) => Err(err!(
 				ErrKind::IllegalState,
