@@ -79,6 +79,26 @@ macro_rules! lock_box {
 	}};
 }
 
+/// macro to call wlock and guard function on a [`crate::LockBox`] at the same time. Note that this only allows
+/// a single access to the variable. If more than one operation needs to be done, this macro
+/// should not be used.
+#[macro_export]
+macro_rules! wlock {
+	($value:expr) => {
+		**($value.wlock()?.guard())
+	};
+}
+
+/// macro to call rlock and guard function on a [`crate::LockBox`] at the same time. Note that this only allows
+/// a single access to the variable. If more than one operation needs to be done, this macro
+/// should not be used.
+#[macro_export]
+macro_rules! rlock {
+	($value:expr) => {
+		**($value.rlock()?.guard())
+	};
+}
+
 /// The `global_slab_allocator` macro initializes the global thread local slab allocator
 /// for the thread that it is executed in. It takes the following parameters:
 ///

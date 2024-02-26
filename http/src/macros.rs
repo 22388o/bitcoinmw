@@ -297,10 +297,7 @@ mod test {
 				return Ok(());
 			}
 
-			let mut data = data.wlock()?;
-			let guard = data.guard();
-
-			(**guard) += 1;
+			wlock!(data) += 1;
 
 			info!(
 				"request complete! code={}, guid = {}, guid1 = {}, guid2 = {}",
@@ -317,14 +314,11 @@ mod test {
 			sleep(Duration::from_millis(1));
 			count += 1;
 
-			let data = data_clone.rlock()?;
-			let guard = data.guard();
-
-			if count < 30_000 && (**guard) != 2 {
+			if count < 30_000 && rlock!(data_clone) != 2 {
 				continue;
 			}
 
-			assert_eq!((**guard), 2);
+			assert_eq!(2, rlock!(data_clone));
 			break;
 		}
 
