@@ -193,11 +193,15 @@ impl Serializable for ConnectionInfo {
 				let tls_config: Arc<ServerConfig> = unsafe { Arc::from_raw(r) };
 				Some(tls_config)
 			};
+
+			// note that tx can be None below because we only use tx with Queues which
+			// are not serialized
 			let li = ListenerInfo {
 				id,
 				handle,
 				is_reuse_port,
 				tls_config,
+				tx: None,
 			};
 			let ci = ConnectionInfo::ListenerInfo(li);
 			Ok(ci)
@@ -825,6 +829,7 @@ impl EventHandlerData {
 			id: 0,
 			is_reuse_port: false,
 			tls_config: None,
+			tx: None,
 		});
 
 		let evhd = EventHandlerData {
@@ -1311,6 +1316,18 @@ where
 					debug!("dequeue handle={:?} on tid={}", nhandle, ctx.tid)?;
 					match nhandle {
 						ConnectionInfo::ListenerInfo(li) => {
+							match &li.tx {
+								Some(tx) => {
+									debug!("tx.send() : handle={},id={}", li.handle, li.id)?;
+									// try to send
+									match tx.send(()) {
+										Ok(_) => {}
+										Err(e) => warn!("tx.send (li) generated error: {}", e)?,
+									}
+								}
+								None => {}
+							}
+
 							match Self::insert_hashtables(ctx, li.id, li.handle, nhandle) {
 								Ok(_) => {
 									let ev_in = EventIn {
@@ -2595,27 +2612,32 @@ where
 			let handle = connection.handles[i];
 			// check for 0 which means to skip this handle (port not reused)
 			if handle != 0 {
-				let mut data = self.data[i].wlock_ignore_poison()?;
-				let guard = data.guard();
-				let id = random();
-				let li = ListenerInfo {
-					id,
-					handle,
-					is_reuse_port: connection.is_reuse_port,
-					tls_config: tls_config.clone(),
-				};
-				let ci = ConnectionInfo::ListenerInfo(li);
-				(**guard).nhandles.enqueue(ci)?;
-				(**guard)
-					.attachments
-					.insert(id, attachment.as_ref().clone());
-				debug!(
-					"add handle: {}, id={}, att={:?}",
-					handle,
-					id,
-					attachment.clone()
-				)?;
-				(**guard).wakeup.wakeup()?;
+				let (tx, rx) = sync_channel::<()>(1);
+				{
+					let mut data = self.data[i].wlock_ignore_poison()?;
+					let guard = data.guard();
+					let id = random();
+					let li = ListenerInfo {
+						id,
+						handle,
+						is_reuse_port: connection.is_reuse_port,
+						tls_config: tls_config.clone(),
+						tx: Some(tx),
+					};
+					let ci = ConnectionInfo::ListenerInfo(li);
+					(**guard).nhandles.enqueue(ci)?;
+					(**guard)
+						.attachments
+						.insert(id, attachment.as_ref().clone());
+					debug!(
+						"add handle: {}, id={}, att={:?}",
+						handle,
+						id,
+						attachment.clone()
+					)?;
+					(**guard).wakeup.wakeup()?;
+				}
+				rx.recv()?;
 			}
 		}
 		Ok(())
@@ -5909,6 +5931,7 @@ mod test {
 			handle: 0,
 			is_reuse_port: false,
 			tls_config: None,
+			tx: None,
 		};
 		info!("li={:?}", li)?;
 		assert_eq!(li.id, 0);
@@ -5951,6 +5974,7 @@ mod test {
 			handle: 8,
 			is_reuse_port: false,
 			tls_config: None,
+			tx: None,
 		});
 		hashtable.insert(&0, &ci1)?;
 		let v = hashtable.get(&0)?.unwrap();
@@ -5961,6 +5985,7 @@ mod test {
 			handle: 80,
 			is_reuse_port: true,
 			tls_config: None,
+			tx: None,
 		});
 		let mut v: Vec<u8> = vec![];
 		serialize(&mut v, &ser_out)?;
@@ -7149,6 +7174,7 @@ mod test {
 			handle: 0,
 			is_reuse_port: false,
 			tls_config: None,
+			tx: None,
 		};
 		let ci = ConnectionInfo::ListenerInfo(li.clone());
 		ctx.connection_hashtable.insert(&1_000, &ci)?;
@@ -7748,6 +7774,7 @@ mod test {
 			id: 0,
 			is_reuse_port: false,
 			tls_config: None,
+			tx: None,
 		};
 		let ret = evh.process_accept(&li, &mut ctx, &mut tc)?;
 
@@ -7764,6 +7791,7 @@ mod test {
 			id: 1,
 			is_reuse_port: false,
 			tls_config: None,
+			tx: None,
 		};
 		ctx.debug_bypass_acc_err = true;
 

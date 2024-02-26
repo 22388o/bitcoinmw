@@ -392,6 +392,7 @@ pub(crate) struct ListenerInfo {
 	pub(crate) handle: Handle,
 	pub(crate) is_reuse_port: bool,
 	pub(crate) tls_config: Option<Arc<ServerConfig>>,
+	pub(crate) tx: Option<SyncSender<()>>,
 }
 
 #[derive(Clone, Debug)]
