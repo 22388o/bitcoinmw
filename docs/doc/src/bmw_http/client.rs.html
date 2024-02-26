@@ -1181,6 +1181,34 @@
 <a href="#1180" id="1180">1180</a>
 <a href="#1181" id="1181">1181</a>
 <a href="#1182" id="1182">1182</a>
+<a href="#1183" id="1183">1183</a>
+<a href="#1184" id="1184">1184</a>
+<a href="#1185" id="1185">1185</a>
+<a href="#1186" id="1186">1186</a>
+<a href="#1187" id="1187">1187</a>
+<a href="#1188" id="1188">1188</a>
+<a href="#1189" id="1189">1189</a>
+<a href="#1190" id="1190">1190</a>
+<a href="#1191" id="1191">1191</a>
+<a href="#1192" id="1192">1192</a>
+<a href="#1193" id="1193">1193</a>
+<a href="#1194" id="1194">1194</a>
+<a href="#1195" id="1195">1195</a>
+<a href="#1196" id="1196">1196</a>
+<a href="#1197" id="1197">1197</a>
+<a href="#1198" id="1198">1198</a>
+<a href="#1199" id="1199">1199</a>
+<a href="#1200" id="1200">1200</a>
+<a href="#1201" id="1201">1201</a>
+<a href="#1202" id="1202">1202</a>
+<a href="#1203" id="1203">1203</a>
+<a href="#1204" id="1204">1204</a>
+<a href="#1205" id="1205">1205</a>
+<a href="#1206" id="1206">1206</a>
+<a href="#1207" id="1207">1207</a>
+<a href="#1208" id="1208">1208</a>
+<a href="#1209" id="1209">1209</a>
+<a href="#1210" id="1210">1210</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1207,6 +1235,7 @@
 	HttpClient, HttpClientConfig, HttpClientContainer, HttpConnection, HttpConnectionConfig,
 	HttpHandler, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion,
 };
+<span class="kw">use </span>bmw_deps::lazy_static::lazy_static;
 <span class="kw">use </span>bmw_deps::rand::random;
 <span class="kw">use </span>bmw_deps::url::Url;
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
@@ -1218,11 +1247,24 @@
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
 <span class="kw">use </span>std::any::Any;
-<span class="kw">use </span>std::collections::VecDeque;
+<span class="kw">use </span>std::cell::RefCell;
+<span class="kw">use </span>std::collections::{HashMap, VecDeque};
 <span class="kw">use </span>std::net::TcpStream;
 <span class="kw">use </span>std::str::from_utf8;
+<span class="kw">use </span>std::sync::{Arc, RwLock};
+<span class="kw">use </span>std::thread::{current, ThreadId};
 
 <span class="macro">info!</span>();
+
+<span class="macro">thread_local! </span>{
+		<span class="kw">pub static </span>HTTP_CLIENT_CONTEXT: RefCell&lt;<span class="prelude-ty">Option</span>&lt;(Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;)&gt;&gt; = RefCell::new(<span class="prelude-val">None</span>);
+
+}
+
+<span class="macro">lazy_static! </span>{
+	<span class="kw">pub static </span><span class="kw-2">ref </span>HTTP_CLIENT_CONTAINER: Arc&lt;RwLock&lt;HashMap&lt;ThreadId, Box&lt;<span class="kw">dyn </span>HttpClient + Send + Sync&gt;&gt;&gt;&gt; =
+		Arc::new(RwLock::new(HashMap::new()));
+}
 
 <span class="comment">// include build information
 </span><span class="kw">pub mod </span>built_info {
@@ -1292,8 +1334,10 @@
 }
 
 <span class="kw">impl </span>HttpClientContainer {
-	<span class="kw">pub fn </span>init(config: <span class="kw-2">&amp;</span>HttpClientConfig) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>HttpClient + Send + Sync&gt;, Error&gt; {
-		<span class="kw">crate</span>::Builder::build_http_client(<span class="kw-2">&amp;</span>config)
+	<span class="kw">pub fn </span>init(config: <span class="kw-2">&amp;</span>HttpClientConfig) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>container = HTTP_CLIENT_CONTAINER.write()<span class="question-mark">?</span>;
+		(<span class="kw-2">*</span>container).insert(current().id(), <span class="kw">crate</span>::Builder::build_http_client(<span class="kw-2">&amp;</span>config)<span class="question-mark">?</span>);
+		<span class="prelude-val">Ok</span>(())
 	}
 }
 
@@ -2051,7 +2095,7 @@
 
 		<span class="kw">let </span>handler1 = Box::pin(
 			<span class="kw">move </span>|request: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
-			      response: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
+			      response: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
 				<span class="macro">info!</span>(<span class="string">"in handler1,request.guid={}"</span>, request.guid())<span class="question-mark">?</span>;
 				<span class="kw">if </span>request == <span class="kw-2">&amp;</span>http_client_request1_clone {
 					<span class="kw">let </span>guid = request.guid();
@@ -2093,7 +2137,7 @@
 		<span class="kw">let </span>found404_clone = found404.clone();
 		<span class="kw">let </span>handler2 = Box::pin(
 			<span class="kw">move </span>|_request: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
-			      response: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
+			      response: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
 				<span class="macro">info!</span>(<span class="string">"got response should be 404!"</span>)<span class="question-mark">?</span>;
 				<span class="macro">assert_eq!</span>(response.code()<span class="question-mark">?</span>, <span class="number">404</span>);
 				<span class="kw">let </span><span class="kw-2">mut </span>found404 = found404.wlock()<span class="question-mark">?</span>;
@@ -2213,7 +2257,7 @@
 
 		<span class="kw">let </span>handler1 = Box::pin(
 			<span class="kw">move </span>|request: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
-			      response: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
+			      response: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
 				<span class="macro">info!</span>(<span class="string">"in handler1,request.guid={}"</span>, request.guid())<span class="question-mark">?</span>;
 				<span class="kw">if </span>request == <span class="kw-2">&amp;</span>http_client_request1_clone {
 					<span class="kw">let </span>content = response.content()<span class="question-mark">?</span>;
@@ -2270,7 +2314,7 @@
 		<span class="kw">let </span>found_another_file_clone = found_another_file.clone();
 		<span class="kw">let </span>handler2 = Box::pin(
 			<span class="kw">move </span>|request: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
-			      response: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
+			      response: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
 				<span class="kw">if </span>request == <span class="kw-2">&amp;</span>http_client_request3_clone {
 					<span class="macro">info!</span>(<span class="string">"got response should be 404!"</span>)<span class="question-mark">?</span>;
 					<span class="macro">assert_eq!</span>(response.code()<span class="question-mark">?</span>, <span class="number">404</span>);
@@ -2319,13 +2363,15 @@
 		</span><span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
 		<span class="kw">loop </span>{
 			sleep(Duration::from_millis(<span class="number">100</span>));
-			<span class="kw">if </span>count == <span class="number">10 </span>{
+			<span class="kw">if </span>count == <span class="number">100 </span>{
 				<span class="kw">break</span>;
 			}
 			<span class="kw">let </span>found404 = found404_clone.rlock()<span class="question-mark">?</span>;
 			<span class="kw">let </span>found_count = found_count_clone.rlock()<span class="question-mark">?</span>;
+			<span class="kw">let </span>found_another_file = found_another_file_clone.rlock()<span class="question-mark">?</span>;
 			<span class="kw">let </span>guard = found_count.guard();
 			<span class="kw">let </span>guard2 = found404.guard();
+			<span class="kw">let </span>guard3 = found_another_file.guard();
 
 			<span class="kw">if </span>(<span class="kw-2">**</span>guard) != <span class="number">1 </span>{
 				<span class="macro">info!</span>(<span class="string">"guard={},count={} of 10,000"</span>, (<span class="kw-2">**</span>guard), count)<span class="question-mark">?</span>;
@@ -2334,7 +2380,17 @@
 			}
 
 			<span class="kw">if </span>!<span class="kw-2">**</span>guard2 {
-				<span class="macro">info!</span>(<span class="string">"404 not proc,count={} of 10,000"</span>, count)<span class="question-mark">?</span>;
+				<span class="macro">info!</span>(
+					<span class="string">"404 not proc,guard={},count={} of 10,000"</span>,
+					(<span class="kw-2">**</span>guard2),
+					count
+				)<span class="question-mark">?</span>;
+				count += <span class="number">1</span>;
+				<span class="kw">continue</span>;
+			}
+
+			<span class="kw">if </span>!<span class="kw-2">**</span>guard3 {
+				<span class="macro">info!</span>(<span class="string">"another file not found, guard={},count={}"</span>, <span class="kw-2">**</span>guard3, count)<span class="question-mark">?</span>;
 				count += <span class="number">1</span>;
 				<span class="kw">continue</span>;
 			}

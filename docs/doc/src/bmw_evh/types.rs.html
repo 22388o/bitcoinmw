@@ -462,6 +462,7 @@
 <a href="#461" id="461">461</a>
 <a href="#462" id="462">462</a>
 <a href="#463" id="463">463</a>
+<a href="#464" id="464">464</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -856,6 +857,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) handle: Handle,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) is_reuse_port: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) tls_config: <span class="prelude-ty">Option</span>&lt;Arc&lt;ServerConfig&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) tx: <span class="prelude-ty">Option</span>&lt;SyncSender&lt;()&gt;&gt;,
 }
 
 <span class="attr">#[derive(Clone, Debug)]

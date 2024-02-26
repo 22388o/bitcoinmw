@@ -2430,6 +2430,26 @@
 <a href="#2429" id="2429">2429</a>
 <a href="#2430" id="2430">2430</a>
 <a href="#2431" id="2431">2431</a>
+<a href="#2432" id="2432">2432</a>
+<a href="#2433" id="2433">2433</a>
+<a href="#2434" id="2434">2434</a>
+<a href="#2435" id="2435">2435</a>
+<a href="#2436" id="2436">2436</a>
+<a href="#2437" id="2437">2437</a>
+<a href="#2438" id="2438">2438</a>
+<a href="#2439" id="2439">2439</a>
+<a href="#2440" id="2440">2440</a>
+<a href="#2441" id="2441">2441</a>
+<a href="#2442" id="2442">2442</a>
+<a href="#2443" id="2443">2443</a>
+<a href="#2444" id="2444">2444</a>
+<a href="#2445" id="2445">2445</a>
+<a href="#2446" id="2446">2446</a>
+<a href="#2447" id="2447">2447</a>
+<a href="#2448" id="2448">2448</a>
+<a href="#2449" id="2449">2449</a>
+<a href="#2450" id="2450">2450</a>
+<a href="#2451" id="2451">2451</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2509,6 +2529,26 @@
 	(<span class="macro-nonterminal">$value</span>:expr) =&gt; {{
 		bmw_util::Builder::build_lock_box(<span class="macro-nonterminal">$value</span>)
 	}};
+}
+
+<span class="doccomment">/// macro to call wlock and guard function on a [`crate::LockBox`] at the same time. Note that this only allows
+/// a single access to the variable. If more than one operation needs to be done, this macro
+/// should not be used.
+</span><span class="attr">#[macro_export]
+</span><span class="macro">macro_rules! </span>wlock {
+	(<span class="macro-nonterminal">$value</span>:expr) =&gt; {
+		<span class="kw-2">**</span>(<span class="macro-nonterminal">$value</span>.wlock()<span class="question-mark">?</span>.guard())
+	};
+}
+
+<span class="doccomment">/// macro to call rlock and guard function on a [`crate::LockBox`] at the same time. Note that this only allows
+/// a single access to the variable. If more than one operation needs to be done, this macro
+/// should not be used.
+</span><span class="attr">#[macro_export]
+</span><span class="macro">macro_rules! </span>rlock {
+	(<span class="macro-nonterminal">$value</span>:expr) =&gt; {
+		<span class="kw-2">**</span>(<span class="macro-nonterminal">$value</span>.rlock()<span class="question-mark">?</span>.guard())
+	};
 }
 
 <span class="doccomment">/// The `global_slab_allocator` macro initializes the global thread local slab allocator
@@ -2708,7 +2748,7 @@
                         <span class="kw">if </span>slab_count_specified {}
                     },
                     <span class="kw">_ </span>=&gt; {
-                        error = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">"'{:?}' is not allowed for hashset"</span>, <span class="macro-nonterminal">$config</span>));
+                        error = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">"'{:?}' is not allowed for slab_allocator"</span>, <span class="macro-nonterminal">$config</span>));
                     }
                 }
             )*

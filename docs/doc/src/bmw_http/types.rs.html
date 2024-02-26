@@ -456,6 +456,20 @@
 <a href="#455" id="455">455</a>
 <a href="#456" id="456">456</a>
 <a href="#457" id="457">457</a>
+<a href="#458" id="458">458</a>
+<a href="#459" id="459">459</a>
+<a href="#460" id="460">460</a>
+<a href="#461" id="461">461</a>
+<a href="#462" id="462">462</a>
+<a href="#463" id="463">463</a>
+<a href="#464" id="464">464</a>
+<a href="#465" id="465">465</a>
+<a href="#466" id="466">466</a>
+<a href="#467" id="467">467</a>
+<a href="#468" id="468">468</a>
+<a href="#469" id="469">469</a>
+<a href="#470" id="470">470</a>
+<a href="#471" id="471">471</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -499,7 +513,7 @@
 	UNKNOWN,
 }
 
-<span class="attr">#[derive(Debug, PartialEq)]
+<span class="attr">#[derive(Debug, PartialEq, Clone)]
 </span><span class="kw">pub enum </span>HttpVersion {
 	HTTP10,
 	HTTP11,
@@ -695,7 +709,7 @@
 	Box&lt;
 		<span class="kw">dyn </span>FnMut(
 				<span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
-				<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;,
+				<span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;,
 			) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 			+ Send
 			+ Sync
@@ -715,13 +729,16 @@
 <span class="macro">clone_trait_object!</span>(HttpRequest);
 <span class="macro">downcast!</span>(<span class="kw">dyn </span>HttpRequest);
 
-<span class="kw">pub trait </span>HttpResponse {
+<span class="kw">pub trait </span>HttpResponse: DynClone + Any {
 	<span class="kw">fn </span>content(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>Vec&lt;u8&gt;, Error&gt;;
 	<span class="kw">fn </span>headers(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>Vec&lt;(String, String)&gt;, Error&gt;;
 	<span class="kw">fn </span>code(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u16, Error&gt;;
 	<span class="kw">fn </span>status_text(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>String, Error&gt;;
 	<span class="kw">fn </span>version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>HttpVersion, Error&gt;;
 }
+
+<span class="macro">clone_trait_object!</span>(HttpResponse);
+<span class="macro">downcast!</span>(<span class="kw">dyn </span>HttpResponse);
 
 <span class="kw">pub trait </span>HttpClient {
 	<span class="kw">fn </span>send(
@@ -781,6 +798,15 @@
 	</span>Url(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str),
 	<span class="doccomment">/// Uri. Used to specify the uri in [`crate::http_client_request`].
 	</span>Uri(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str),
+	<span class="doccomment">/// Http User-Agent. Used to specify the User-Agent header in [`crate::http_client_request`].
+	/// The default value is BitcoinMW/`BuildVersion`.
+	</span>UserAgent(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str),
+	<span class="doccomment">/// Http Accept. Used to specify the Http Accept header in [`crate::http_client_request`].
+	/// The default value is `*/*`.
+	</span>Accept(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str),
+	<span class="doccomment">/// Http Header name/value pair. Used to add an http header to a request in
+	/// [`crate::http_client_request`].
+	</span>Header((<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str, <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str)),
 }
 
 <span class="comment">// Crate local types
@@ -795,7 +821,9 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) config: HttpRequestConfig,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) guid: u128,
 }
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpResponseImpl {
+
+<span class="attr">#[derive(Clone)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpResponseImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) headers: Vec&lt;(String, String)&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) chunked: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) content_length: usize,

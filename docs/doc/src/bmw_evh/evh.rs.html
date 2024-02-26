@@ -8095,6 +8095,34 @@
 <a href="#8094" id="8094">8094</a>
 <a href="#8095" id="8095">8095</a>
 <a href="#8096" id="8096">8096</a>
+<a href="#8097" id="8097">8097</a>
+<a href="#8098" id="8098">8098</a>
+<a href="#8099" id="8099">8099</a>
+<a href="#8100" id="8100">8100</a>
+<a href="#8101" id="8101">8101</a>
+<a href="#8102" id="8102">8102</a>
+<a href="#8103" id="8103">8103</a>
+<a href="#8104" id="8104">8104</a>
+<a href="#8105" id="8105">8105</a>
+<a href="#8106" id="8106">8106</a>
+<a href="#8107" id="8107">8107</a>
+<a href="#8108" id="8108">8108</a>
+<a href="#8109" id="8109">8109</a>
+<a href="#8110" id="8110">8110</a>
+<a href="#8111" id="8111">8111</a>
+<a href="#8112" id="8112">8112</a>
+<a href="#8113" id="8113">8113</a>
+<a href="#8114" id="8114">8114</a>
+<a href="#8115" id="8115">8115</a>
+<a href="#8116" id="8116">8116</a>
+<a href="#8117" id="8117">8117</a>
+<a href="#8118" id="8118">8118</a>
+<a href="#8119" id="8119">8119</a>
+<a href="#8120" id="8120">8120</a>
+<a href="#8121" id="8121">8121</a>
+<a href="#8122" id="8122">8122</a>
+<a href="#8123" id="8123">8123</a>
+<a href="#8124" id="8124">8124</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -8290,11 +8318,15 @@
 				<span class="kw">let </span>tls_config: Arc&lt;ServerConfig&gt; = <span class="kw">unsafe </span>{ Arc::from_raw(r) };
 				<span class="prelude-val">Some</span>(tls_config)
 			};
-			<span class="kw">let </span>li = ListenerInfo {
+
+			<span class="comment">// note that tx can be None below because we only use tx with Queues which
+			// are not serialized
+			</span><span class="kw">let </span>li = ListenerInfo {
 				id,
 				handle,
 				is_reuse_port,
 				tls_config,
+				tx: <span class="prelude-val">None</span>,
 			};
 			<span class="kw">let </span>ci = ConnectionInfo::ListenerInfo(li);
 			<span class="prelude-val">Ok</span>(ci)
@@ -8922,6 +8954,7 @@
 			id: <span class="number">0</span>,
 			is_reuse_port: <span class="bool-val">false</span>,
 			tls_config: <span class="prelude-val">None</span>,
+			tx: <span class="prelude-val">None</span>,
 		});
 
 		<span class="kw">let </span>evhd = EventHandlerData {
@@ -9408,6 +9441,18 @@
 					<span class="macro">debug!</span>(<span class="string">"dequeue handle={:?} on tid={}"</span>, nhandle, ctx.tid)<span class="question-mark">?</span>;
 					<span class="kw">match </span>nhandle {
 						ConnectionInfo::ListenerInfo(li) =&gt; {
+							<span class="kw">match </span><span class="kw-2">&amp;</span>li.tx {
+								<span class="prelude-val">Some</span>(tx) =&gt; {
+									<span class="macro">debug!</span>(<span class="string">"tx.send() : handle={},id={}"</span>, li.handle, li.id)<span class="question-mark">?</span>;
+									<span class="comment">// try to send
+									</span><span class="kw">match </span>tx.send(()) {
+										<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
+										<span class="prelude-val">Err</span>(e) =&gt; <span class="macro">warn!</span>(<span class="string">"tx.send (li) generated error: {}"</span>, e)<span class="question-mark">?</span>,
+									}
+								}
+								<span class="prelude-val">None </span>=&gt; {}
+							}
+
 							<span class="kw">match </span><span class="self">Self</span>::insert_hashtables(ctx, li.id, li.handle, nhandle) {
 								<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {
 									<span class="kw">let </span>ev_in = EventIn {
@@ -10692,27 +10737,32 @@
 			<span class="kw">let </span>handle = connection.handles[i];
 			<span class="comment">// check for 0 which means to skip this handle (port not reused)
 			</span><span class="kw">if </span>handle != <span class="number">0 </span>{
-				<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[i].wlock_ignore_poison()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = data.guard();
-				<span class="kw">let </span>id = random();
-				<span class="kw">let </span>li = ListenerInfo {
-					id,
-					handle,
-					is_reuse_port: connection.is_reuse_port,
-					tls_config: tls_config.clone(),
-				};
-				<span class="kw">let </span>ci = ConnectionInfo::ListenerInfo(li);
-				(<span class="kw-2">**</span>guard).nhandles.enqueue(ci)<span class="question-mark">?</span>;
-				(<span class="kw-2">**</span>guard)
-					.attachments
-					.insert(id, attachment.as_ref().clone());
-				<span class="macro">debug!</span>(
-					<span class="string">"add handle: {}, id={}, att={:?}"</span>,
-					handle,
-					id,
-					attachment.clone()
-				)<span class="question-mark">?</span>;
-				(<span class="kw-2">**</span>guard).wakeup.wakeup()<span class="question-mark">?</span>;
+				<span class="kw">let </span>(tx, rx) = sync_channel::&lt;()&gt;(<span class="number">1</span>);
+				{
+					<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[i].wlock_ignore_poison()<span class="question-mark">?</span>;
+					<span class="kw">let </span>guard = data.guard();
+					<span class="kw">let </span>id = random();
+					<span class="kw">let </span>li = ListenerInfo {
+						id,
+						handle,
+						is_reuse_port: connection.is_reuse_port,
+						tls_config: tls_config.clone(),
+						tx: <span class="prelude-val">Some</span>(tx),
+					};
+					<span class="kw">let </span>ci = ConnectionInfo::ListenerInfo(li);
+					(<span class="kw-2">**</span>guard).nhandles.enqueue(ci)<span class="question-mark">?</span>;
+					(<span class="kw-2">**</span>guard)
+						.attachments
+						.insert(id, attachment.as_ref().clone());
+					<span class="macro">debug!</span>(
+						<span class="string">"add handle: {}, id={}, att={:?}"</span>,
+						handle,
+						id,
+						attachment.clone()
+					)<span class="question-mark">?</span>;
+					(<span class="kw-2">**</span>guard).wakeup.wakeup()<span class="question-mark">?</span>;
+				}
+				rx.recv()<span class="question-mark">?</span>;
 			}
 		}
 		<span class="prelude-val">Ok</span>(())
@@ -14006,6 +14056,7 @@
 			handle: <span class="number">0</span>,
 			is_reuse_port: <span class="bool-val">false</span>,
 			tls_config: <span class="prelude-val">None</span>,
+			tx: <span class="prelude-val">None</span>,
 		};
 		<span class="macro">info!</span>(<span class="string">"li={:?}"</span>, li)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(li.id, <span class="number">0</span>);
@@ -14048,6 +14099,7 @@
 			handle: <span class="number">8</span>,
 			is_reuse_port: <span class="bool-val">false</span>,
 			tls_config: <span class="prelude-val">None</span>,
+			tx: <span class="prelude-val">None</span>,
 		});
 		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">0</span>, <span class="kw-2">&amp;</span>ci1)<span class="question-mark">?</span>;
 		<span class="kw">let </span>v = hashtable.get(<span class="kw-2">&amp;</span><span class="number">0</span>)<span class="question-mark">?</span>.unwrap();
@@ -14058,6 +14110,7 @@
 			handle: <span class="number">80</span>,
 			is_reuse_port: <span class="bool-val">true</span>,
 			tls_config: <span class="prelude-val">None</span>,
+			tx: <span class="prelude-val">None</span>,
 		});
 		<span class="kw">let </span><span class="kw-2">mut </span>v: Vec&lt;u8&gt; = <span class="macro">vec!</span>[];
 		serialize(<span class="kw-2">&amp;mut </span>v, <span class="kw-2">&amp;</span>ser_out)<span class="question-mark">?</span>;
@@ -15246,6 +15299,7 @@
 			handle: <span class="number">0</span>,
 			is_reuse_port: <span class="bool-val">false</span>,
 			tls_config: <span class="prelude-val">None</span>,
+			tx: <span class="prelude-val">None</span>,
 		};
 		<span class="kw">let </span>ci = ConnectionInfo::ListenerInfo(li.clone());
 		ctx.connection_hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1_000</span>, <span class="kw-2">&amp;</span>ci)<span class="question-mark">?</span>;
@@ -15845,6 +15899,7 @@
 			id: <span class="number">0</span>,
 			is_reuse_port: <span class="bool-val">false</span>,
 			tls_config: <span class="prelude-val">None</span>,
+			tx: <span class="prelude-val">None</span>,
 		};
 		<span class="kw">let </span>ret = evh.process_accept(<span class="kw-2">&amp;</span>li, <span class="kw-2">&amp;mut </span>ctx, <span class="kw-2">&amp;mut </span>tc)<span class="question-mark">?</span>;
 
@@ -15861,6 +15916,7 @@
 			id: <span class="number">1</span>,
 			is_reuse_port: <span class="bool-val">false</span>,
 			tls_config: <span class="prelude-val">None</span>,
+			tx: <span class="prelude-val">None</span>,
 		};
 		ctx.debug_bypass_acc_err = <span class="bool-val">true</span>;
 

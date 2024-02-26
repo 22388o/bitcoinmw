@@ -34,6 +34,8 @@
 <a href="#33" id="33">33</a>
 <a href="#34" id="34">34</a>
 <a href="#35" id="35">35</a>
+<a href="#36" id="36">36</a>
+<a href="#37" id="37">37</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -61,12 +63,14 @@
 <span class="kw">mod </span>ws;
 
 <span class="kw">pub use </span><span class="kw">crate</span>::types::{
-	Builder, ConnectionType, HttpClient, HttpClientConfig, HttpClientContainer, HttpConfig,
-	HttpConnection, HttpConnectionConfig, HttpConnectionData, HttpContentReader, HttpHandler,
-	HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType, HttpMethod, HttpRequest,
+	Builder, ConfigOption, ConnectionType, HttpClient, HttpClientConfig, HttpClientContainer,
+	HttpConfig, HttpConnection, HttpConnectionConfig, HttpConnectionData, HttpContentReader,
+	HttpHandler, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType, HttpMethod, HttpRequest,
 	HttpRequestConfig, HttpResponse, HttpServer, HttpStats, HttpVersion, PlainConfig,
 	WebSocketData, WebSocketHandle, WebSocketMessage, WebSocketMessageType,
 };
+
+<span class="kw">pub use </span><span class="kw">crate</span>::client::{HTTP_CLIENT_CONTAINER, HTTP_CLIENT_CONTEXT};
 
 <span class="kw">pub use </span><span class="kw">crate</span>::types::ConfigOption::<span class="kw-2">*</span>;
 </code></pre></div></section></main></body></html>
