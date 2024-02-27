@@ -1209,6 +1209,8 @@
 <a href="#1208" id="1208">1208</a>
 <a href="#1209" id="1209">1209</a>
 <a href="#1210" id="1210">1210</a>
+<a href="#1211" id="1211">1211</a>
+<a href="#1212" id="1212">1212</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2415,6 +2417,8 @@
 			<span class="kw">let </span>guard = found_another_file.guard();
 			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>guard), <span class="bool-val">true</span>);
 		}
+
+		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}
