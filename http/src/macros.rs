@@ -25,6 +25,7 @@ macro_rules! http_client_init {
                 let mut config = bmw_http::HttpClientConfig::default();
                 let mut threads_specified = false;
                 let mut max_handles_per_thread_specified = false;
+                let mut base_dir_specified = false;
                 let mut error: Option<String> = None;
 
                 // to supress compiler warnings
@@ -32,8 +33,10 @@ macro_rules! http_client_init {
                 if error.is_some() { error = None; }
                 if threads_specified { threads_specified = false; }
                 if max_handles_per_thread_specified { max_handles_per_thread_specified = false; }
+                if base_dir_specified { base_dir_specified = false; }
                 if threads_specified {}
                 if max_handles_per_thread_specified {}
+                if base_dir_specified {}
 
                 $(
                         match $config {
@@ -56,6 +59,16 @@ macro_rules! http_client_init {
 
                                         max_handles_per_thread_specified = true;
                                         if max_handles_per_thread_specified {}
+                                },
+                                bmw_http::ConfigOption::BaseDir(base_dir) => {
+                                        config.base_dir = base_dir.to_string();
+
+                                        if base_dir_specified {
+                                                error = Some("BaseDir was specified more than once!".to_string());
+                                        }
+
+                                        base_dir_specified = true;
+                                        if base_dir_specified {}
                                 },
                                 _ => {
                                         error = Some(format!("'{:?}' is not allowed for http_client", $config));
@@ -419,6 +432,7 @@ mod test {
 				}),
 				..Default::default()
 			}],
+			base_dir: test_dir.to_string(),
 			server_version: "test1".to_string(),
 			debug: true,
 			..Default::default()
@@ -427,7 +441,7 @@ mod test {
 		http.start()?;
 
 		// begin macros
-		http_client_init!()?;
+		http_client_init!(BaseDir(test_dir))?;
 		let request1 = http_client_request!(
 			Url(&format!("http://{}:{}/foo.html", addr, port)),
 			Header(("some", "thing")),

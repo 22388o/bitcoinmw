@@ -54,20 +54,27 @@ impl Builder {
 mod test {
 	use crate::{Builder, HttpConfig, HttpInstance};
 	use bmw_err::*;
-	use bmw_test::port::pick_free_port;
+	use bmw_test::*;
 
 	#[test]
 	fn test_http_builder() -> Result<(), Error> {
 		let port = pick_free_port()?;
+		let test_dir = ".test_http_builder.bmw";
+		setup_test_dir(test_dir)?;
+
 		let config = HttpConfig {
 			instances: vec![HttpInstance {
 				port,
 				..Default::default()
 			}],
+			base_dir: test_dir.to_string(),
 			..Default::default()
 		};
 		let mut server = Builder::build_http_server(&config)?;
 		server.start()?;
+
+		tear_down_test_dir(test_dir)?;
+
 		Ok(())
 	}
 }

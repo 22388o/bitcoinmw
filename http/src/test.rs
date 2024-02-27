@@ -42,6 +42,7 @@ mod test {
 				}),
 				..Default::default()
 			}],
+			base_dir: directory.to_string(),
 			server_name: "bitcoinmwtest".to_string(),
 			server_version: "test1".to_string(),
 			debug: true,
@@ -70,7 +71,7 @@ mod test {
 			file.write_all(data_text.as_bytes())?;
 		}
 
-		http_client_init!()?;
+		http_client_init!(BaseDir(test_dir))?;
 
 		let request = http_client_request!(Url(&format!("{}/foo.html", addr)))?;
 

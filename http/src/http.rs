@@ -17,8 +17,8 @@
 
 use crate::constants::*;
 use crate::types::{
-	CacheStreamResult, HttpCache, HttpCacheImpl, HttpConnectionData, HttpContext, HttpServerImpl,
-	WebSocketData,
+	CacheStreamResult, HttpCache, HttpCacheImpl, HttpConnectionData, HttpContentReaderData,
+	HttpContext, HttpServerImpl, WebSocketData,
 };
 use crate::ws::{process_websocket_data, send_websocket_handshake_response};
 use crate::HttpInstanceType::{Plain, Tls};
@@ -300,36 +300,52 @@ impl Default for HttpInstance {
 
 impl HttpConnectionData {
 	pub(crate) fn len(&self) -> usize {
-		self.len
+		self.http_content_reader_data.len
 	}
 
 	pub(crate) fn clear(
 		&mut self,
-		content_allocator: &mut Box<dyn SlabAllocator + Send + Sync>,
+		mut content_allocator: Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>,
 		config: &HttpConfig,
 	) -> Result<(), Error> {
-		let mut ptr = self.head_slab;
-		loop {
-			if ptr >= u32::MAX as usize {
-				break;
+		let mut ptr = self.http_content_reader_data.head_slab;
+		match content_allocator.wlock() {
+			Ok(mut content_allocator) => {
+				let content_allocator = content_allocator.guard();
+
+				loop {
+					if ptr >= u32::MAX as usize {
+						break;
+					}
+
+					let slab = content_allocator.get(ptr)?;
+					let slab_buf = slab.get();
+					let next =
+						slice_to_usize(&slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_SIZE])?;
+
+					content_allocator.free(ptr)?;
+					ptr = next;
+				}
 			}
-
-			let slab = content_allocator.get(ptr)?;
-			let slab_buf = slab.get();
-			let next = slice_to_usize(&slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_SIZE])?;
-
-			content_allocator.free(ptr)?;
-			ptr = next;
+			Err(e) => {
+				return Err(err!(
+					ErrKind::IllegalState,
+					format!(
+						"clear could not obtain content_allocator's write lock due to: {}",
+						e
+					)
+				));
+			}
 		}
 
-		self.len = 0;
-		self.head_slab = usize::MAX;
-		self.tail_slab = usize::MAX;
-		self.read_slab = usize::MAX;
-		self.read_cumulative = 0;
-		self.read_offset = 0;
+		self.http_content_reader_data.len = 0;
+		self.http_content_reader_data.head_slab = usize::MAX;
+		self.http_content_reader_data.tail_slab = usize::MAX;
+		self.http_content_reader_data.read_slab = usize::MAX;
+		self.http_content_reader_data.read_cumulative = 0;
+		self.http_content_reader_data.read_offset = 0;
 
-		match self.file_id {
+		match self.http_content_reader_data.file_id {
 			Some(file_id) => {
 				let mut tmp_file_dir = config.tmp_file_dir();
 				tmp_file_dir.push(format!("{}.tmp", file_id));
@@ -344,92 +360,108 @@ impl HttpConnectionData {
 	pub(crate) fn extend(
 		&mut self,
 		buf: &[u8],
-		content_allocator: &mut Box<dyn SlabAllocator + Send + Sync>,
+		mut content_allocator: Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>,
 		config: &HttpConfig,
 	) -> Result<(), Error> {
 		let mut rem = buf.len();
 		let mut itt = 0;
-		self.len += rem;
+		self.http_content_reader_data.len += rem;
 		let mut old_tail: Option<(usize, usize)> = None;
-		loop {
-			if self.file_id.is_some() {
-				break;
-			}
-			let mut slab;
-			let slab_buf;
-			let offset = self.offset as usize;
-			if self.tail_slab == usize::MAX {
-				let slabres = content_allocator.allocate();
-				if slabres.is_err() {
-					break;
-				}
-				// unwrap ok because we checked errs above
-				slab = slabres.unwrap();
-				self.tail_slab = slab.id();
-				self.head_slab = slab.id();
-				slab_buf = slab.get_mut();
-				usize_to_slice(
-					usize::MAX,
-					&mut slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_SIZE],
-				)?;
-				self.offset = 0;
-			} else {
-				if offset >= CONTENT_SLAB_DATA_SIZE {
-					let slabres = content_allocator.allocate();
-					if slabres.is_err() {
+
+		match content_allocator.wlock() {
+			Ok(mut content_allocator) => {
+				let content_allocator = content_allocator.guard();
+				loop {
+					if self.http_content_reader_data.file_id.is_some() {
 						break;
 					}
-					// unwrap ok because we checked errs above
-					slab = slabres.unwrap();
-					self.offset = 0;
-					let slab_id = slab.id();
-					slab_buf = slab.get_mut();
-					usize_to_slice(
-						usize::MAX,
-						&mut slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_SIZE],
-					)?;
-					old_tail = Some((self.tail_slab, slab_id));
-					self.tail_slab = slab_id;
-				} else {
-					slab = content_allocator.get_mut(self.tail_slab)?;
-					slab_buf = slab.get_mut();
+					let mut slab;
+					let slab_buf;
+					let offset = self.http_content_reader_data.offset as usize;
+					if self.http_content_reader_data.tail_slab == usize::MAX {
+						let slabres = (**content_allocator).allocate();
+						if slabres.is_err() {
+							break;
+						}
+						// unwrap ok because we checked errs above
+						slab = slabres.unwrap();
+						self.http_content_reader_data.tail_slab = slab.id();
+						self.http_content_reader_data.head_slab = slab.id();
+						slab_buf = slab.get_mut();
+						usize_to_slice(
+							usize::MAX,
+							&mut slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_SIZE],
+						)?;
+						self.http_content_reader_data.offset = 0;
+					} else {
+						if offset >= CONTENT_SLAB_DATA_SIZE {
+							let slabres = (**content_allocator).allocate();
+							if slabres.is_err() {
+								break;
+							}
+							// unwrap ok because we checked errs above
+							slab = slabres.unwrap();
+							self.http_content_reader_data.offset = 0;
+							let slab_id = slab.id();
+							slab_buf = slab.get_mut();
+							usize_to_slice(
+								usize::MAX,
+								&mut slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_SIZE],
+							)?;
+							old_tail = Some((self.http_content_reader_data.tail_slab, slab_id));
+							self.http_content_reader_data.tail_slab = slab_id;
+						} else {
+							slab = (**content_allocator)
+								.get_mut(self.http_content_reader_data.tail_slab)?;
+							slab_buf = slab.get_mut();
+						}
+					}
+
+					let mut wlen = slab_buf[offset..CONTENT_SLAB_DATA_SIZE].len();
+
+					if wlen > rem {
+						wlen = rem;
+					}
+					slab_buf[offset..offset + wlen].copy_from_slice(&buf[itt..itt + wlen]);
+					rem = rem.saturating_sub(wlen);
+					itt += wlen;
+					self.http_content_reader_data.offset += wlen as u16;
+					if usize::from(self.http_content_reader_data.offset) >= slab_buf.len() {
+						self.http_content_reader_data.offset = 0;
+					}
+
+					match old_tail {
+						Some((old_tail, ntail)) => {
+							let mut slab = content_allocator.get_mut(old_tail)?;
+							let slab_buf = slab.get_mut();
+							usize_to_slice(
+								ntail,
+								&mut slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_SIZE],
+							)?;
+						}
+						None => {}
+					}
+					old_tail = None;
+
+					if rem == 0 {
+						break;
+					}
 				}
 			}
-
-			let mut wlen = slab_buf[offset..CONTENT_SLAB_DATA_SIZE].len();
-
-			if wlen > rem {
-				wlen = rem;
-			}
-			slab_buf[offset..offset + wlen].copy_from_slice(&buf[itt..itt + wlen]);
-			rem = rem.saturating_sub(wlen);
-			itt += wlen;
-			self.offset += wlen as u16;
-			if usize::from(self.offset) >= slab_buf.len() {
-				self.offset = 0;
-			}
-
-			match old_tail {
-				Some((old_tail, ntail)) => {
-					let mut slab = content_allocator.get_mut(old_tail)?;
-					let slab_buf = slab.get_mut();
-					usize_to_slice(
-						ntail,
-						&mut slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_SIZE],
-					)?;
-				}
-				None => {}
-			}
-			old_tail = None;
-
-			if rem == 0 {
-				break;
+			Err(e) => {
+				return Err(err!(
+					ErrKind::IllegalState,
+					format!(
+						"could not obtain content_allocator's write lock due to: {}",
+						e
+					)
+				));
 			}
 		}
 
 		if rem > 0 {
 			// we could not allocate slabs so write to file
-			let file_path = match self.file_id {
+			let file_path = match self.http_content_reader_data.file_id {
 				Some(file_id) => {
 					let mut path_buf = config.tmp_file_dir();
 					path_buf.push(format!("{}.tmp", file_id));
@@ -437,7 +469,7 @@ impl HttpConnectionData {
 				}
 				None => {
 					let file_id: u128 = random();
-					self.file_id = Some(file_id);
+					self.http_content_reader_data.file_id = Some(file_id);
 					let mut path_buf = config.tmp_file_dir();
 					path_buf.push(format!("{}.tmp", file_id));
 					let path = path_buf.display().to_string();
@@ -460,101 +492,150 @@ impl HttpConnectionData {
 	}
 }
 
+impl HttpContentReaderData {
+	pub(crate) fn new() -> Self {
+		Self {
+			read_slab: usize::MAX,
+			read_offset: 0,
+			head_slab: usize::MAX,
+			tail_slab: usize::MAX,
+			read_cumulative: 0,
+			offset: 0,
+			len: 0,
+			content_offset: 0,
+			file_id: None,
+		}
+	}
+}
+
+impl HttpContentReader<'_> {
+	pub fn new() -> Self {
+		Self {
+			content_allocator: None,
+			tmp_file_dir: PathBuf::new(),
+			http_content_reader_data: None,
+		}
+	}
+}
+
 impl Read for HttpContentReader<'_> {
 	fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
 		let mut total = 0;
 		let mut rem = buf.len();
 		let mut itt = 0;
-		loop {
-			if self.http_connection_data.read_slab >= u32::MAX as usize || rem == 0 {
-				break;
+
+		let content_allocator = match self.content_allocator.as_ref() {
+			Some(content_allocator) => content_allocator,
+			None => {
+				return Err(std::io::Error::new(
+					std::io::ErrorKind::NotFound,
+					"content_allocator was not found",
+				));
 			}
+		};
 
-			let mut slab = match self
-				.content_allocator
-				.get_mut(self.http_connection_data.read_slab)
-			{
-				Ok(slab) => slab,
-				Err(e) => {
-					return Err(std::io::Error::new(
-						std::io::ErrorKind::NotFound,
-						format!("slab not found: {}", e.to_string()),
-					));
-				}
-			};
-			let slab_buf = slab.get_mut();
-
-			let offset = self.http_connection_data.read_offset;
-			let mut rlen = rem;
-
-			let slab_rem = CONTENT_SLAB_DATA_SIZE.saturating_sub(offset);
-
-			if rem > slab_rem {
-				rlen = slab_rem;
-			}
-
-			let read_rem = self
-				.http_connection_data
-				.len()
-				.saturating_sub(self.http_connection_data.read_cumulative);
-			if rlen > read_rem {
-				rlen = read_rem;
-			}
-
-			if rlen == 0 {
-				break;
-			}
-
-			buf[itt..itt + rlen].copy_from_slice(&slab_buf[offset..offset + rlen]);
-
-			itt += rlen;
-			rem = rem.saturating_sub(rlen);
-			total += rlen;
-			self.http_connection_data.read_cumulative += rlen;
-
-			if rlen + offset >= CONTENT_SLAB_DATA_SIZE {
-				self.http_connection_data.read_offset = 0;
-				self.http_connection_data.read_slab = match slice_to_usize(
-					&slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_NEXT_OFFSET + 4],
-				) {
-					Ok(read_slab) => read_slab,
-					Err(e) => {
-						self.http_connection_data.read_slab = usize::MAX;
-						return Err(std::io::Error::new(
-							std::io::ErrorKind::NotFound,
-							format!("usize conversion err: {}", e.to_string()),
-						));
+		match self.http_content_reader_data.as_mut() {
+			Some(ref mut hcrd) => {
+				loop {
+					if hcrd.read_slab >= u32::MAX as usize || rem == 0 {
+						break;
 					}
-				};
-			} else {
-				self.http_connection_data.read_offset += rlen;
-			}
-		}
 
-		if total < buf.len()
-			&& self.http_connection_data.read_cumulative < self.http_connection_data.len()
-		{
-			// we're done reading from slabs, now see if there's a file.
-			match self.http_connection_data.file_id {
-				Some(file_id) => {
-					let mut dir = self.config.tmp_file_dir();
-					dir.push(format!("{}.tmp", file_id));
-					let mut file = OpenOptions::new().read(true).open(dir)?;
-					let end: i64 = try_into!(self
-						.http_connection_data
-						.len()
-						.saturating_sub(self.http_connection_data.read_cumulative))
-					.unwrap_or(0) * -1;
-					file.seek(SeekFrom::End(end))?;
-					let rlen = file.read(&mut buf[itt..])?;
+					let content_allocator = match content_allocator.rlock() {
+						Ok(c) => c,
+						Err(e) => {
+							return Err(std::io::Error::new(
+								std::io::ErrorKind::Other,
+								format!(
+									"could not obtain read lock on content_allocator: {}",
+									e.to_string()
+								),
+							));
+						}
+					};
+					let guard = content_allocator.guard();
+					let slab = match (**guard).get(hcrd.read_slab) {
+						Ok(slab) => slab,
+						Err(e) => {
+							return Err(std::io::Error::new(
+								std::io::ErrorKind::NotFound,
+								format!("slab not found: {}", e.to_string()),
+							));
+						}
+					};
+					let slab_buf = slab.get();
+
+					let offset = hcrd.read_offset;
+					let mut rlen = rem;
+
+					let slab_rem = CONTENT_SLAB_DATA_SIZE.saturating_sub(offset);
+
+					if rem > slab_rem {
+						rlen = slab_rem;
+					}
+
+					let read_rem = hcrd.len.saturating_sub(hcrd.read_cumulative);
+					if rlen > read_rem {
+						rlen = read_rem;
+					}
+
+					if rlen == 0 {
+						break;
+					}
+
+					buf[itt..itt + rlen].copy_from_slice(&slab_buf[offset..offset + rlen]);
+
+					itt += rlen;
+					rem = rem.saturating_sub(rlen);
 					total += rlen;
-					self.http_connection_data.read_cumulative += rlen;
-				}
-				None => {}
-			}
-		}
+					hcrd.read_cumulative += rlen;
 
-		Ok(total)
+					if rlen + offset >= CONTENT_SLAB_DATA_SIZE {
+						hcrd.read_offset = 0;
+						hcrd.read_slab = match slice_to_usize(
+							&slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_NEXT_OFFSET + 4],
+						) {
+							Ok(read_slab) => read_slab,
+							Err(e) => {
+								hcrd.read_slab = usize::MAX;
+								return Err(std::io::Error::new(
+									std::io::ErrorKind::NotFound,
+									format!("usize conversion err: {}", e.to_string()),
+								));
+							}
+						};
+					} else {
+						hcrd.read_offset += rlen;
+					}
+				}
+
+				if total < buf.len() && hcrd.read_cumulative < hcrd.len {
+					// we're done reading from slabs, now see if there's a file.
+					match hcrd.file_id {
+						Some(file_id) => {
+							let mut dir = self.tmp_file_dir.clone();
+							let dir = &mut dir;
+							dir.push(format!("{}.tmp", file_id));
+							let mut file = OpenOptions::new().read(true).open(dir)?;
+							let end: i64 = try_into!(hcrd.len.saturating_sub(hcrd.read_cumulative))
+								.unwrap_or(0) * -1;
+
+							file.seek(SeekFrom::End(end))?;
+							let rlen = file.read(&mut buf[itt..])?;
+							total += rlen;
+							hcrd.read_cumulative += rlen;
+						}
+						None => {}
+					}
+				}
+				Ok(total)
+			}
+
+			None => Err(std::io::Error::new(
+				std::io::ErrorKind::NotFound,
+				"http_content_reader_data not found",
+			)),
+		}
 	}
 }
 
@@ -832,7 +913,7 @@ impl HttpServerImpl {
 			mime_lookup,
 			mime_rev_lookup,
 			now: 0,
-			content_allocator,
+			content_allocator: lock_box!(content_allocator)?,
 		})
 	}
 
@@ -1905,15 +1986,7 @@ impl HttpServerImpl {
 			tid: conn_data.tid(),
 			websocket_data: None,
 			headers: vec![],
-			read_slab: usize::MAX,
-			read_offset: 0,
-			head_slab: usize::MAX,
-			tail_slab: usize::MAX,
-			read_cumulative: 0,
-			offset: 0,
-			len: 0,
-			content_offset: 0,
-			file_id: None,
+			http_content_reader_data: HttpContentReaderData::new(),
 		};
 		debug!(
 			"insert handle={}, id={}",
@@ -2029,7 +2102,9 @@ impl HttpServerImpl {
 						debug!("firstslab={},last_slab={}", first_slab, last_slab)?;
 
 						let mut content_offset = match ctx.connections.get(&id) {
-							Some(http_connection_data) => http_connection_data.content_offset,
+							Some(http_connection_data) => {
+								http_connection_data.http_content_reader_data.content_offset
+							}
 							None => {
 								warn!("no connection data found for connection {}", id)?;
 								0
@@ -2105,17 +2180,16 @@ impl HttpServerImpl {
 							None => {
 								let mut build_headers_from_vec = false;
 								loop {
-									let mut http_connection_data =
-										match ctx.connections.get_mut(&id) {
-											Some(http_connection_data) => http_connection_data,
-											None => {
-												warn!(
-													"no connection data found for connection {}",
-													id
-												)?;
-												return Ok(());
-											}
-										};
+									let http_connection_data = match ctx.connections.get_mut(&id) {
+										Some(http_connection_data) => http_connection_data,
+										None => {
+											warn!(
+												"no connection data found for connection {}",
+												id
+											)?;
+											return Ok(());
+										}
+									};
 									let headers_clone = http_connection_data.headers.clone();
 
 									debug!("slab_count={}", slab_count)?;
@@ -2322,9 +2396,9 @@ impl HttpServerImpl {
 											debug!(
 												"headers termination found with content-length"
 											)?;
-											let mut needed = headers
-												.content_length
-												.saturating_sub(http_connection_data.len());
+											let mut needed = headers.content_length.saturating_sub(
+												http_connection_data.http_content_reader_data.len,
+											);
 											let start_content;
 											if !build_headers_from_vec {
 												start_content = headers.termination_point;
@@ -2349,7 +2423,7 @@ impl HttpServerImpl {
 												&req[start_content..start_content + needed];
 											http_connection_data.extend(
 												ncontent,
-												&mut ctx.content_allocator,
+												ctx.content_allocator.clone(),
 												config,
 											)?;
 											termination_sum += ncontent.len();
@@ -2440,15 +2514,23 @@ impl HttpServerImpl {
 											Some(callback) => {
 												if attachment.callback_mappings.contains(&path) {
 													is_callback = true;
-													http_connection_data.read_slab =
-														http_connection_data.head_slab;
-													http_connection_data.read_offset = 0;
+													http_connection_data
+														.http_content_reader_data
+														.read_slab = http_connection_data
+														.http_content_reader_data
+														.head_slab;
+													http_connection_data
+														.http_content_reader_data
+														.read_offset = 0;
 													let http_content_reader = HttpContentReader {
-														content_allocator: &mut ctx
-															.content_allocator,
-														http_connection_data:
-															&mut http_connection_data,
-														config,
+														content_allocator: Some(
+															ctx.content_allocator.clone(),
+														),
+														http_content_reader_data: Some(
+															&mut http_connection_data
+																.http_content_reader_data,
+														),
+														tmp_file_dir: config.tmp_file_dir(),
 													};
 													debug!("callback starting")?;
 													callback(
@@ -2473,16 +2555,24 @@ impl HttpServerImpl {
 														.contains(&suffix)
 													{
 														is_callback = true;
-														http_connection_data.read_slab =
-															http_connection_data.head_slab;
-														http_connection_data.read_offset = 0;
+														http_connection_data
+															.http_content_reader_data
+															.read_slab = http_connection_data
+															.http_content_reader_data
+															.head_slab;
+														http_connection_data
+															.http_content_reader_data
+															.read_offset = 0;
 														let http_content_reader =
 															HttpContentReader {
-																content_allocator: &mut ctx
-																	.content_allocator,
-																http_connection_data:
-																	&mut http_connection_data,
-																config,
+																content_allocator: Some(
+																	ctx.content_allocator.clone(),
+																),
+																http_content_reader_data: Some(
+																	&mut http_connection_data
+																		.http_content_reader_data,
+																),
+																tmp_file_dir: config.tmp_file_dir(),
 															};
 														debug!("callback starting")?;
 														callback(
@@ -2500,7 +2590,7 @@ impl HttpServerImpl {
 										}
 
 										http_connection_data
-											.clear(&mut ctx.content_allocator, config)?;
+											.clear(ctx.content_allocator.clone(), config)?;
 										let mut cache_hit = false;
 										if !is_callback {
 											cache_hit = Self::process_file(
@@ -2598,14 +2688,18 @@ impl HttpServerImpl {
 
 		debug!(
 			"clean slabs termination_sum={},req_len={},slab_id_vec={:?},content_offset={}",
-			termination_sum, req_len, slab_id_vec, http_connection_data.content_offset
+			termination_sum,
+			req_len,
+			slab_id_vec,
+			http_connection_data.http_content_reader_data.content_offset
 		)?;
 
 		if termination_sum == req_len {
 			conn_data.clear_through(slab_id_vec[slab_id_vec.len() - 1])?;
-			http_connection_data.content_offset = 0;
+			http_connection_data.http_content_reader_data.content_offset = 0;
 		} else if termination_sum != 0 {
-			http_connection_data.content_offset = termination_sum % READ_SLAB_DATA_SIZE;
+			http_connection_data.http_content_reader_data.content_offset =
+				termination_sum % READ_SLAB_DATA_SIZE;
 			if termination_sum >= READ_SLAB_DATA_SIZE {
 				let del_slab = slab_id_vec[(termination_sum / READ_SLAB_DATA_SIZE) - 1];
 				conn_data.clear_through(del_slab)?;
@@ -2693,6 +2787,14 @@ impl HttpServer for HttpServerImpl {
 		.as_path()
 		.display()
 		.to_string();
+
+		#[cfg(test)]
+		if self.config.base_dir.contains("~") {
+			panic!(
+				"base_directory contains home_dir in a test: {}",
+				self.config.base_dir
+			);
+		}
 
 		self.config.base_dir = self.config.base_dir.replace("~", &home_dir);
 		let mut file_dir = PathBuf::from(self.config.base_dir.clone());
@@ -2878,6 +2980,7 @@ mod test {
 				}),
 				..Default::default()
 			}],
+			base_dir: test_dir.to_string(),
 			server_version: "test1".to_string(),
 			..Default::default()
 		};
@@ -2918,6 +3021,7 @@ mod test {
 				}),
 				..Default::default()
 			}],
+			base_dir: test_dir.to_string(),
 			server_version: "test1".to_string(),
 			..Default::default()
 		};
@@ -3029,6 +3133,7 @@ callbk\n"
 				callback_extensions,
 				..Default::default()
 			}],
+			base_dir: test_dir.to_string(),
 			server_version: "test1".to_string(),
 			..Default::default()
 		};
@@ -3119,6 +3224,7 @@ callbk\n"
 				callback_extensions,
 				..Default::default()
 			}],
+			base_dir: test_dir.to_string(),
 			server_version: "test1".to_string(),
 			..Default::default()
 		};
@@ -3192,6 +3298,7 @@ callbk\n"
 				callback_extensions,
 				..Default::default()
 			}],
+			base_dir: test_dir.to_string(),
 			server_version: "test1".to_string(),
 			..Default::default()
 		};

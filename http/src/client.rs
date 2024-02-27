@@ -18,12 +18,13 @@
 use crate::constants::*;
 use crate::types::{
 	HttpClientAttachment, HttpClientAttachmentData, HttpClientContext, HttpClientImpl,
-	HttpConnectionImpl, HttpRequestImpl, HttpResponseImpl,
+	HttpConnectionImpl, HttpContentReaderData, HttpRequestImpl, HttpResponseImpl,
 };
 use crate::{
 	HttpClient, HttpClientConfig, HttpClientContainer, HttpConnection, HttpConnectionConfig,
-	HttpHandler, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion,
+	HttpContentReader, HttpHandler, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion,
 };
+use bmw_deps::dirs;
 use bmw_deps::lazy_static::lazy_static;
 use bmw_deps::rand::random;
 use bmw_deps::url::Url;
@@ -38,7 +39,9 @@ use bmw_util::*;
 use std::any::Any;
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
+use std::fs::{canonicalize, create_dir_all};
 use std::net::TcpStream;
+use std::path::PathBuf;
 use std::str::from_utf8;
 use std::sync::{Arc, RwLock};
 use std::thread::{current, ThreadId};
@@ -77,6 +80,9 @@ impl Default for HttpClientConfig {
 			debug: false,
 			max_handles_per_thread: 100,
 			threads: 4,
+			slab_size: 514,
+			slab_count: 100,
+			base_dir: "~/.bitcoinmw".to_string(),
 		}
 	}
 }
@@ -190,6 +196,19 @@ impl HttpClient for HttpClientImpl {
 
 impl HttpClientImpl {
 	pub(crate) fn new(config: &HttpClientConfig) -> Result<HttpClientImpl, Error> {
+		let mut config = config.clone();
+		let home_dir = match dirs::home_dir() {
+			Some(p) => p,
+			None => PathBuf::new(),
+		}
+		.as_path()
+		.display()
+		.to_string();
+
+		config.base_dir = config.base_dir.replace("~", &home_dir);
+		let tmp_file_dir = format!("{}/client/tmp_files", config.base_dir);
+		create_dir_all(tmp_file_dir)?;
+
 		let evh_config = EventHandlerConfig {
 			threads: config.threads,
 			max_handles_per_thread: config.max_handles_per_thread,
@@ -198,12 +217,26 @@ impl HttpClientImpl {
 		let mut evh = Builder::build_evh(evh_config)?;
 		let event_handler_data = evh.event_handler_data()?;
 
+		let mut content_allocator = bmw_util::Builder::build_sync_slabs();
+		content_allocator.init(SlabAllocatorConfig {
+			slab_size: config.slab_size,
+			slab_count: config.slab_count,
+		})?;
+		let content_allocator = lock_box!(content_allocator)?;
+
 		let config = config.clone();
 		let config2 = config.clone();
 		let config3 = config.clone();
 		let config4 = config.clone();
+		let content_allocator_clone = content_allocator.clone();
 		evh.set_on_read(move |conn_data, ctx, attach| {
-			Self::process_on_read(&config, conn_data, ctx, attach)
+			Self::process_on_read(
+				&config,
+				conn_data,
+				ctx,
+				attach,
+				content_allocator_clone.clone(),
+			)
 		})?;
 		evh.set_on_accept(move |conn_data, ctx| Self::process_on_accept(&config2, conn_data, ctx))?;
 		evh.set_on_close(move |conn_data, ctx| Self::process_on_close(&config3, conn_data, ctx))?;
@@ -213,8 +246,10 @@ impl HttpClientImpl {
 		})?;
 
 		evh.start()?;
+
 		Ok(Self {
 			controller: evh.event_handler_controller()?,
+			content_allocator,
 		})
 	}
 
@@ -271,6 +306,7 @@ impl HttpClientImpl {
 		conn_data: &mut ConnectionData,
 		ctx: &mut ThreadContext,
 		attachment: Option<AttachmentHolder>,
+		slab_allocator: Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>,
 	) -> Result<(), Error> {
 		match attachment {
 			Some(mut attachment) => {
@@ -289,6 +325,7 @@ impl HttpClientImpl {
 									ctx,
 									config,
 									attachment.close_on_complete,
+									slab_allocator.clone(),
 								)?,
 								None => 0,
 							};
@@ -324,6 +361,7 @@ impl HttpClientImpl {
 		ctx: &mut ThreadContext,
 		config: &HttpClientConfig,
 		close_on_complete: bool,
+		slab_allocator: Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>,
 	) -> Result<usize, Error> {
 		let ctx = Self::build_ctx(ctx, config)?;
 		let id = conn_data.get_connection_id();
@@ -377,6 +415,7 @@ impl HttpClientImpl {
 				slab_id_vec,
 				config,
 				close_on_complete,
+				slab_allocator,
 			)?
 		} else {
 			0
@@ -394,6 +433,7 @@ impl HttpClientImpl {
 		slab_id_vec: Vec<u32>,
 		config: &HttpClientConfig,
 		close_on_complete: bool,
+		slab_allocator: Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>,
 	) -> Result<usize, Error> {
 		let mut pop_count = 0;
 		let res_len = res.len();
@@ -401,7 +441,9 @@ impl HttpClientImpl {
 			info!("res='{}'", std::str::from_utf8(&res).unwrap_or("utf8err"))?;
 		}
 		let count = ctx.suffix_tree.tmatch(&res, &mut ctx.matches)?;
-		let mut response = HttpResponseImpl::new();
+		let tmp_file_dir = canonicalize(config.base_dir.clone())?;
+		let mut response =
+			HttpResponseImpl::new(HttpContentReaderData::new(), tmp_file_dir, slab_allocator)?;
 
 		for i in 0..count {
 			if ctx.matches[i].id() == SUFFIX_TREE_HEADER_ID {
@@ -798,11 +840,22 @@ impl HttpResponse for HttpResponseImpl {
 	fn version(&self) -> Result<&HttpVersion, Error> {
 		Ok(&self.version)
 	}
+
+	fn content_reader<'a>(&'a mut self, hcr: &'a mut HttpContentReader<'a>) -> Result<(), Error> {
+		hcr.http_content_reader_data = Some(&mut self.http_content_reader_data);
+		hcr.content_allocator = Some(self.content_allocator.clone());
+		hcr.tmp_file_dir = self.tmp_file_dir.clone();
+		Ok(())
+	}
 }
 
 impl HttpResponseImpl {
-	fn new() -> Self {
-		Self {
+	fn new(
+		http_content_reader_data: HttpContentReaderData,
+		tmp_file_dir: PathBuf,
+		content_allocator: Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>,
+	) -> Result<Self, Error> {
+		Ok(Self {
 			headers: vec![],
 			chunked: false,
 			content_length: 0,
@@ -811,7 +864,10 @@ impl HttpResponseImpl {
 			code: 0,
 			status_text: "".to_string(),
 			version: HttpVersion::UNKNOWN,
-		}
+			http_content_reader_data,
+			tmp_file_dir,
+			content_allocator,
+		})
 	}
 }
 
@@ -855,6 +911,7 @@ mod test {
 				}),
 				..Default::default()
 			}],
+			base_dir: test_dir.to_string(),
 			server_version: "test1".to_string(),
 			debug: true,
 			..Default::default()
@@ -866,6 +923,7 @@ mod test {
 
 		let mut http_client = HttpClientImpl::new(&HttpClientConfig {
 			debug: true,
+			base_dir: test_dir.to_string(),
 			..Default::default()
 		})?;
 
@@ -1008,6 +1066,7 @@ mod test {
 				}),
 				..Default::default()
 			}],
+			base_dir: test_dir.to_string(),
 			server_version: "test1".to_string(),
 			debug: true,
 			..Default::default()
@@ -1015,9 +1074,8 @@ mod test {
 		let mut http = Builder::build_http_server(&config)?;
 		http.start()?;
 
-		//sleep(Duration::from_millis(1_000));
-
 		let http_client = HttpClientImpl::new(&HttpClientConfig {
+			base_dir: test_dir.to_string(),
 			debug: true,
 			..Default::default()
 		})?;

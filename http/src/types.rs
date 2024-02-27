@@ -25,6 +25,7 @@ use bmw_evh::{
 use bmw_util::*;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
+use std::path::PathBuf;
 use std::pin::Pin;
 
 #[derive(Debug, PartialEq)]
@@ -93,10 +94,15 @@ pub struct HttpConnectionData {
 	pub(crate) write_state: Box<dyn LockBox<WriteState>>,
 	pub(crate) tid: usize,
 	pub(crate) websocket_data: Option<WebSocketData>,
+	pub(crate) headers: Vec<u8>,
+	pub(crate) http_content_reader_data: HttpContentReaderData,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct HttpContentReaderData {
+	pub(crate) offset: u16,
 	pub(crate) head_slab: usize,
 	pub(crate) tail_slab: usize,
-	pub(crate) offset: u16,
-	pub(crate) headers: Vec<u8>,
 	pub(crate) read_slab: usize,
 	pub(crate) read_offset: usize,
 	pub(crate) read_cumulative: usize,
@@ -106,9 +112,10 @@ pub struct HttpConnectionData {
 }
 
 pub struct HttpContentReader<'a> {
-	pub(crate) http_connection_data: &'a mut HttpConnectionData,
-	pub(crate) content_allocator: &'a mut Box<dyn SlabAllocator + Send + Sync>,
-	pub(crate) config: &'a HttpConfig,
+	pub(crate) http_content_reader_data: Option<&'a mut HttpContentReaderData>,
+	//pub(crate) content_allocator: Option<&'a mut Box<dyn SlabAllocator + Send + Sync>>,
+	pub(crate) content_allocator: Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>,
+	pub(crate) tmp_file_dir: PathBuf,
 }
 
 #[derive(Debug, Clone)]
@@ -263,6 +270,7 @@ pub trait HttpResponse: DynClone + Any {
 	fn code(&self) -> Result<u16, Error>;
 	fn status_text(&self) -> Result<&String, Error>;
 	fn version(&self) -> Result<&HttpVersion, Error>;
+	fn content_reader<'a>(&'a mut self, hcr: &'a mut HttpContentReader<'a>) -> Result<(), Error>;
 }
 
 clone_trait_object!(HttpResponse);
@@ -297,6 +305,9 @@ pub struct HttpClientConfig {
 	pub(crate) debug: bool,
 	pub(crate) threads: usize,
 	pub(crate) max_handles_per_thread: usize,
+	pub(crate) slab_size: usize,
+	pub(crate) slab_count: usize,
+	pub(crate) base_dir: String,
 }
 
 #[derive(Clone)]
@@ -344,6 +355,8 @@ pub enum ConfigOption<'a> {
 	Port(u16),
 	/// Whether to use TLS for a connection. Used for [`crate::http_connection`].
 	Tls(bool),
+	/// Base directory for the [`crate::HttpClient`]. The default value is `~/.bitcoinmw`.
+	BaseDir(&'a str),
 }
 
 // Crate local types
@@ -351,6 +364,7 @@ pub enum ConfigOption<'a> {
 #[derive(Clone)]
 pub(crate) struct HttpClientImpl {
 	pub(crate) controller: EventHandlerController,
+	pub(crate) content_allocator: Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>,
 }
 
 #[derive(Clone)]
@@ -369,6 +383,9 @@ pub(crate) struct HttpResponseImpl {
 	pub(crate) code: u16,
 	pub(crate) status_text: String,
 	pub(crate) version: HttpVersion,
+	pub(crate) content_allocator: Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>,
+	pub(crate) tmp_file_dir: PathBuf,
+	pub(crate) http_content_reader_data: HttpContentReaderData,
 }
 pub(crate) struct HttpConnectionImpl {
 	pub(crate) config: HttpConnectionConfig,
@@ -411,7 +428,7 @@ pub(crate) struct HttpContext {
 	pub(crate) mime_lookup: HashMap<u32, String>,
 	pub(crate) mime_rev_lookup: HashMap<String, u32>,
 	pub(crate) now: u128,
-	pub(crate) content_allocator: Box<dyn SlabAllocator + Send + Sync>,
+	pub(crate) content_allocator: Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>,
 }
 
 #[derive(PartialEq, Debug)]
