@@ -21,6 +21,7 @@ mod client;
 mod constants;
 mod http;
 mod macros;
+mod test;
 mod types;
 mod ws;
 

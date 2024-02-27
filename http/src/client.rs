@@ -1205,6 +1205,8 @@ mod test {
 			assert_eq!((**guard), true);
 		}
 
+		tear_down_test_dir(test_dir)?;
+
 		Ok(())
 	}
 }
