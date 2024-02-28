@@ -40,6 +40,7 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::fs::{canonicalize, create_dir_all};
+use std::io::Read;
 use std::net::TcpStream;
 use std::path::PathBuf;
 use std::str::from_utf8;
@@ -63,6 +64,14 @@ pub mod built_info {
 	include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
 
+impl HttpClientConfig {
+	fn tmp_file_dir(&self) -> PathBuf {
+		let mut file_dir = PathBuf::from(self.base_dir.clone());
+		file_dir.push("tmp_files");
+		file_dir
+	}
+}
+
 impl Default for HttpConnectionConfig {
 	fn default() -> Self {
 		Self {
@@ -80,7 +89,6 @@ impl Default for HttpClientConfig {
 			debug: false,
 			max_handles_per_thread: 100,
 			threads: 4,
-			slab_size: 514,
 			slab_count: 100,
 			base_dir: "~/.bitcoinmw".to_string(),
 		}
@@ -219,7 +227,7 @@ impl HttpClientImpl {
 
 		let mut content_allocator = bmw_util::Builder::build_sync_slabs();
 		content_allocator.init(SlabAllocatorConfig {
-			slab_size: config.slab_size,
+			slab_size: CONTENT_SLAB_SIZE,
 			slab_count: config.slab_count,
 		})?;
 		let content_allocator = lock_box!(content_allocator)?;
@@ -442,8 +450,11 @@ impl HttpClientImpl {
 		}
 		let count = ctx.suffix_tree.tmatch(&res, &mut ctx.matches)?;
 		let tmp_file_dir = canonicalize(config.base_dir.clone())?;
-		let mut response =
-			HttpResponseImpl::new(HttpContentReaderData::new(), tmp_file_dir, slab_allocator)?;
+		let mut response = HttpResponseImpl::new(
+			HttpContentReaderData::new(),
+			tmp_file_dir,
+			slab_allocator.clone(),
+		)?;
 
 		for i in 0..count {
 			if ctx.matches[i].id() == SUFFIX_TREE_HEADER_ID {
@@ -596,7 +607,11 @@ impl HttpClientImpl {
 
 					if end <= res_len {
 						// append data
-						response.content.extend(&res[start..end]);
+						response.http_content_reader_data.extend(
+							&res[start..end],
+							slab_allocator.clone(),
+							config.tmp_file_dir(),
+						)?;
 						itt += val + line_len + 4; // for '\r\n' twice
 					} else {
 						// not enough data, return for now
@@ -614,7 +629,11 @@ impl HttpClientImpl {
 			let start = response.start_content;
 			let end = start + response.content_length;
 
-			response.content.extend(&res[start..end]);
+			response.http_content_reader_data.extend(
+				&res[start..end],
+				slab_allocator,
+				config.tmp_file_dir(),
+			)?;
 			let mut resp: Box<dyn HttpResponse + Send + Sync> = Box::new(response);
 			pop_count += 1;
 			handler(req, &mut resp)?;
@@ -821,10 +840,28 @@ impl HttpRequestImpl {
 }
 
 impl HttpResponse for HttpResponseImpl {
-	fn content(&self) -> Result<&Vec<u8>, Error> {
-		Ok(&self.content)
-	}
+	fn content(&mut self) -> Result<Vec<u8>, Error> {
+		self.http_content_reader_data.read_slab = self.http_content_reader_data.head_slab;
+		self.http_content_reader_data.read_offset = 0;
+		let mut binding = self.http_content_reader_data.clone();
+		let binding2 = self.content_allocator.clone();
+		let mut hcr = HttpContentReader {
+			http_content_reader_data: Some(&mut binding),
+			content_allocator: Some(binding2),
+			tmp_file_dir: self.tmp_file_dir.clone(),
+		};
 
+		let mut buf = [0u8; 1_000];
+		let mut ret = vec![];
+		loop {
+			let len = hcr.read(&mut buf)?;
+			if len == 0 {
+				break;
+			}
+			ret.extend(&buf[0..len]);
+		}
+		Ok(ret)
+	}
 	fn headers(&self) -> Result<&Vec<(String, String)>, Error> {
 		Ok(&self.headers)
 	}
@@ -860,7 +897,6 @@ impl HttpResponseImpl {
 			chunked: false,
 			content_length: 0,
 			start_content: 0,
-			content: vec![],
 			code: 0,
 			status_text: "".to_string(),
 			version: HttpVersion::UNKNOWN,
@@ -875,8 +911,9 @@ impl HttpResponseImpl {
 mod test {
 	use crate::types::{HttpClientImpl, HttpRequestImpl};
 	use crate::{
-		Builder, HttpClient, HttpClientConfig, HttpConfig, HttpConnectionConfig, HttpInstance,
-		HttpInstanceType, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion, PlainConfig,
+		Builder, HttpClient, HttpClientConfig, HttpConfig, HttpConnectionConfig, HttpContentReader,
+		HttpInstance, HttpInstanceType, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion,
+		PlainConfig,
 	};
 	use bmw_err::*;
 	use bmw_log::*;
@@ -884,6 +921,7 @@ mod test {
 	use bmw_util::lock_box;
 	use std::collections::HashMap;
 	use std::fs::File;
+	use std::io::Read;
 	use std::io::Write;
 	use std::str::from_utf8;
 	use std::thread::sleep;
@@ -942,13 +980,31 @@ mod test {
 
 		let handler1 = Box::pin(
 			move |request: &Box<dyn HttpRequest + Send + Sync>,
-			      response: &Box<dyn HttpResponse + Send + Sync>| {
+			      response: &mut Box<dyn HttpResponse + Send + Sync>| {
 				info!("in handler1,request.guid={}", request.guid())?;
 				if request == &http_client_request1_clone {
 					let guid = request.guid();
 					let content = response.content()?;
 					let content = from_utf8(&content).unwrap_or("utf8_err");
 					info!("recv req 1: '{}',guid={}", content, guid)?;
+
+					/*
+					let mut hcr = HttpContentReader::new();
+					response.content_reader(&mut hcr)?;
+
+					let mut buf = [0u8; 1_000];
+					let mut content = vec![];
+					loop {
+						let len = hcr.read(&mut buf)?;
+						if len == 0 {
+							break;
+						}
+						content.extend(&buf[0..len]);
+					}
+
+					let content = std::str::from_utf8(&content).unwrap();
+										*/
+
 					assert_eq!(content, data_text);
 
 					let headers = response.headers()?;
@@ -984,7 +1040,7 @@ mod test {
 		let found404_clone = found404.clone();
 		let handler2 = Box::pin(
 			move |_request: &Box<dyn HttpRequest + Send + Sync>,
-			      response: &Box<dyn HttpResponse + Send + Sync>| {
+			      response: &mut Box<dyn HttpResponse + Send + Sync>| {
 				info!("got response should be 404!")?;
 				assert_eq!(response.code()?, 404);
 				let mut found404 = found404.wlock()?;
@@ -1104,7 +1160,7 @@ mod test {
 
 		let handler1 = Box::pin(
 			move |request: &Box<dyn HttpRequest + Send + Sync>,
-			      response: &Box<dyn HttpResponse + Send + Sync>| {
+			      response: &mut Box<dyn HttpResponse + Send + Sync>| {
 				info!("in handler1,request.guid={}", request.guid())?;
 				if request == &http_client_request1_clone {
 					let content = response.content()?;
@@ -1161,7 +1217,7 @@ mod test {
 		let found_another_file_clone = found_another_file.clone();
 		let handler2 = Box::pin(
 			move |request: &Box<dyn HttpRequest + Send + Sync>,
-			      response: &Box<dyn HttpResponse + Send + Sync>| {
+			      response: &mut Box<dyn HttpResponse + Send + Sync>| {
 				if request == &http_client_request3_clone {
 					info!("got response should be 404!")?;
 					assert_eq!(response.code()?, 404);

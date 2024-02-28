@@ -113,7 +113,6 @@ pub(crate) struct HttpContentReaderData {
 
 pub struct HttpContentReader<'a> {
 	pub(crate) http_content_reader_data: Option<&'a mut HttpContentReaderData>,
-	//pub(crate) content_allocator: Option<&'a mut Box<dyn SlabAllocator + Send + Sync>>,
 	pub(crate) content_allocator: Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>,
 	pub(crate) tmp_file_dir: PathBuf,
 }
@@ -244,7 +243,7 @@ pub type HttpHandler = Pin<
 	Box<
 		dyn FnMut(
 				&Box<dyn HttpRequest + Send + Sync>,
-				&Box<dyn HttpResponse + Send + Sync>,
+				&mut Box<dyn HttpResponse + Send + Sync>,
 			) -> Result<(), Error>
 			+ Send
 			+ Sync
@@ -265,7 +264,7 @@ clone_trait_object!(HttpRequest);
 downcast!(dyn HttpRequest);
 
 pub trait HttpResponse: DynClone + Any {
-	fn content(&self) -> Result<&Vec<u8>, Error>;
+	fn content(&mut self) -> Result<Vec<u8>, Error>;
 	fn headers(&self) -> Result<&Vec<(String, String)>, Error>;
 	fn code(&self) -> Result<u16, Error>;
 	fn status_text(&self) -> Result<&String, Error>;
@@ -305,7 +304,6 @@ pub struct HttpClientConfig {
 	pub(crate) debug: bool,
 	pub(crate) threads: usize,
 	pub(crate) max_handles_per_thread: usize,
-	pub(crate) slab_size: usize,
 	pub(crate) slab_count: usize,
 	pub(crate) base_dir: String,
 }
@@ -379,7 +377,6 @@ pub(crate) struct HttpResponseImpl {
 	pub(crate) chunked: bool,
 	pub(crate) content_length: usize,
 	pub(crate) start_content: usize,
-	pub(crate) content: Vec<u8>,
 	pub(crate) code: u16,
 	pub(crate) status_text: String,
 	pub(crate) version: HttpVersion,

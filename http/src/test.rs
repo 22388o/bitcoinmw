@@ -75,14 +75,10 @@ mod test {
 
 		let request = http_client_request!(Url(&format!("{}/foo.html", addr)))?;
 
-		let response = http_client_send!(request)?;
+		let mut response = http_client_send!(request)?;
 		let headers = response.headers()?;
 
 		assert_eq!(response.code().unwrap(), 200);
-		assert_eq!(
-			std::str::from_utf8(response.content().unwrap()).unwrap(),
-			"Hello test World!"
-		);
 
 		let mut found_server = false;
 		let mut found_date = false;
@@ -129,6 +125,11 @@ mod test {
 		assert!(found_last_modified);
 		assert!(found_etag);
 		assert!(found_transfer_encoding);
+
+		assert_eq!(
+			std::str::from_utf8(&response.content().unwrap()).unwrap(),
+			"Hello test World!"
+		);
 
 		tear_down_server(http)?;
 
