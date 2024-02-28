@@ -1,5 +1,6 @@
 #!/bin/bash
 
+echo $1
 if [ "$1" == "Schedule" ]; then
 	echo "Running a scheduled CI";
 	rustup update
