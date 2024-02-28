@@ -481,6 +481,23 @@
 <a href="#480" id="480">480</a>
 <a href="#481" id="481">481</a>
 <a href="#482" id="482">482</a>
+<a href="#483" id="483">483</a>
+<a href="#484" id="484">484</a>
+<a href="#485" id="485">485</a>
+<a href="#486" id="486">486</a>
+<a href="#487" id="487">487</a>
+<a href="#488" id="488">488</a>
+<a href="#489" id="489">489</a>
+<a href="#490" id="490">490</a>
+<a href="#491" id="491">491</a>
+<a href="#492" id="492">492</a>
+<a href="#493" id="493">493</a>
+<a href="#494" id="494">494</a>
+<a href="#495" id="495">495</a>
+<a href="#496" id="496">496</a>
+<a href="#497" id="497">497</a>
+<a href="#498" id="498">498</a>
+<a href="#499" id="499">499</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -508,6 +525,7 @@
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
 <span class="kw">use </span>std::collections::{HashMap, HashSet, VecDeque};
 <span class="kw">use </span>std::fmt;
+<span class="kw">use </span>std::path::PathBuf;
 <span class="kw">use </span>std::pin::Pin;
 
 <span class="attr">#[derive(Debug, PartialEq)]
@@ -576,10 +594,15 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) write_state: Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) tid: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) websocket_data: <span class="prelude-ty">Option</span>&lt;WebSocketData&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) headers: Vec&lt;u8&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) http_content_reader_data: HttpContentReaderData,
+}
+
+<span class="attr">#[derive(Debug, Clone)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpContentReaderData {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) offset: u16,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) head_slab: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) tail_slab: usize,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) offset: u16,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) headers: Vec&lt;u8&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) read_slab: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) read_offset: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) read_cumulative: usize,
@@ -589,9 +612,10 @@
 }
 
 <span class="kw">pub struct </span>HttpContentReader&lt;<span class="lifetime">'a</span>&gt; {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) http_connection_data: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>HttpConnectionData,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) content_allocator: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) config: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>HttpConfig,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) http_content_reader_data: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>HttpContentReaderData&gt;,
+	<span class="comment">//pub(crate) content_allocator: Option&lt;&amp;'a mut Box&lt;dyn SlabAllocator + Send + Sync&gt;&gt;,
+	</span><span class="kw">pub</span>(<span class="kw">crate</span>) content_allocator: <span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;&gt;&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) tmp_file_dir: PathBuf,
 }
 
 <span class="attr">#[derive(Debug, Clone)]
@@ -746,6 +770,7 @@
 	<span class="kw">fn </span>code(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u16, Error&gt;;
 	<span class="kw">fn </span>status_text(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>String, Error&gt;;
 	<span class="kw">fn </span>version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>HttpVersion, Error&gt;;
+	<span class="kw">fn </span>content_reader&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>, hcr: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>HttpContentReader&lt;<span class="lifetime">'a</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 }
 
 <span class="macro">clone_trait_object!</span>(HttpResponse);
@@ -780,6 +805,9 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) threads: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) max_handles_per_thread: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) slab_size: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) slab_count: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) base_dir: String,
 }
 
 <span class="attr">#[derive(Clone)]
@@ -827,6 +855,8 @@
 	</span>Port(u16),
 	<span class="doccomment">/// Whether to use TLS for a connection. Used for [`crate::http_connection`].
 	</span>Tls(bool),
+	<span class="doccomment">/// Base directory for the [`crate::HttpClient`]. The default value is `~/.bitcoinmw`.
+	</span>BaseDir(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str),
 }
 
 <span class="comment">// Crate local types
@@ -834,6 +864,7 @@
 </span><span class="attr">#[derive(Clone)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpClientImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) controller: EventHandlerController,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) content_allocator: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;&gt;&gt;,
 }
 
 <span class="attr">#[derive(Clone)]
@@ -852,6 +883,9 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) code: u16,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) status_text: String,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) version: HttpVersion,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) content_allocator: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) tmp_file_dir: PathBuf,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) http_content_reader_data: HttpContentReaderData,
 }
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpConnectionImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) config: HttpConnectionConfig,
@@ -894,7 +928,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) mime_lookup: HashMap&lt;u32, String&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) mime_rev_lookup: HashMap&lt;String, u32&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) now: u128,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) content_allocator: Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) content_allocator: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;&gt;&gt;,
 }
 
 <span class="attr">#[derive(PartialEq, Debug)]
