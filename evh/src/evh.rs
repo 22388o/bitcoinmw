@@ -3623,24 +3623,15 @@ mod test {
 			is_reuse_port: false,
 		};
 		evh.add_server(sc, Box::new(""))?;
-		sleep(Duration::from_millis(5_000));
 
-		let mut handle = lock_box!(None)?;
+		let mut handle = lock_box!(0)?;
 		let handle_clone = handle.clone();
-
-		sleep(Duration::from_millis(5_000));
 
 		std::thread::spawn(move || -> Result<(), Error> {
 			std::thread::sleep(Duration::from_millis(600_000));
-			let handle = handle_clone.rlock()?;
-			let guard = handle.guard();
-			match **guard {
-				Some(handle) => {
-					info!("due to timeout closing handle = {}", handle)?;
-					close_handle_impl(handle)?;
-				}
-				_ => {}
-			}
+			let handle = rlock!(handle_clone);
+			info!("due to timeout closing handle = {}", handle)?;
+			close_handle_impl(handle)?;
 			Ok(())
 		});
 
@@ -3648,15 +3639,14 @@ mod test {
 		for i in 0..total {
 			info!("loop {}", i)?;
 			let mut connection = TcpStream::connect(addr)?;
+
 			#[cfg(unix)]
 			let rhandle = connection.as_raw_fd();
 			#[cfg(windows)]
 			let rhandle = connection.as_raw_socket();
 
 			{
-				let mut handle = handle.wlock()?;
-				let guard = handle.guard();
-				**guard = Some(rhandle.try_into().unwrap());
+				wlock!(handle) = rhandle;
 			}
 
 			info!("loop {} connected", i)?;
@@ -3673,12 +3663,6 @@ mod test {
 			let len = connection.read(&mut buf)?;
 			assert_eq!(&buf[0..len], b"test2");
 			info!("loop {} complete", i)?;
-
-			{
-				let mut handle = handle.wlock()?;
-				let guard = handle.guard();
-				**guard = None;
-			}
 		}
 
 		info!("complete")?;
@@ -3700,11 +3684,6 @@ mod test {
 		}
 
 		evh.stop()?;
-
-		sleep(Duration::from_millis(1_000));
-		info!("stop complete. Waiting for 10 seconds")?;
-		sleep(Duration::from_millis(10_000));
-		info!("10 seconds elapsed")?;
 
 		Ok(())
 	}
@@ -7774,9 +7753,10 @@ mod test {
 
 		let mut ctx = EventHandlerContext::new(0, 10, 10, 10, 100)?;
 		let mut tc = ThreadContext::new();
+		let handles = create_listeners(threads, addr, 10, false)?;
 		let li = ListenerInfo {
-			handle: 0,
-			id: 0,
+			handle: handles[0],
+			id: random(),
 			is_reuse_port: false,
 			tls_config: None,
 			tx: None,
@@ -7790,7 +7770,6 @@ mod test {
 
 		info!("about to call create listeners")?;
 		// try with an actual socket
-		let handles = create_listeners(threads, addr, 1, false)?;
 		let li = ListenerInfo {
 			handle: handles[0],
 			id: 1,
