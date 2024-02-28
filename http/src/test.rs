@@ -24,7 +24,7 @@ mod test {
 	use bmw_test::*;
 	use std::collections::HashMap;
 	use std::fs::File;
-	use std::io::Write;
+	use std::io::{Read, Write};
 
 	debug!();
 
@@ -74,10 +74,9 @@ mod test {
 		http_client_init!(BaseDir(test_dir))?;
 
 		let request = http_client_request!(Url(&format!("{}/foo.html", addr)))?;
+		let response = http_client_send!(request)?;
 
-		let mut response = http_client_send!(request)?;
 		let headers = response.headers()?;
-
 		assert_eq!(response.code().unwrap(), 200);
 
 		let mut found_server = false;
@@ -126,10 +125,19 @@ mod test {
 		assert!(found_etag);
 		assert!(found_transfer_encoding);
 
-		assert_eq!(
-			std::str::from_utf8(&response.content().unwrap()).unwrap(),
-			"Hello test World!"
-		);
+		let mut hcr = response.content_reader()?;
+		let mut buf = [0u8; 1_000];
+		let mut content = vec![];
+		loop {
+			let len = hcr.read(&mut buf)?;
+			if len == 0 {
+				break;
+			}
+			content.extend(&buf[0..len]);
+		}
+		let content = std::str::from_utf8(&content).unwrap();
+
+		assert_eq!(content, "Hello test World!");
 
 		tear_down_server(http)?;
 

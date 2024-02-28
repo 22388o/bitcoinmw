@@ -198,7 +198,7 @@ macro_rules! http_client_send {
 					let (tx, rx) = std::sync::mpsc::sync_channel(1);
 					let handler = Box::pin(
 						move |_request: &Box<dyn HttpRequest + Send + Sync>,
-						      response: &mut Box<dyn HttpResponse + Send + Sync>| {
+						      response: &Box<dyn HttpResponse + Send + Sync>| {
 							match tx.send(response.clone()) {
 								Ok(_) => {}
 								Err(e) => {
@@ -235,7 +235,7 @@ macro_rules! http_client_send {
 					Some(http_client) => {
 						let handler = Box::pin(
 							move |request: &Box<dyn HttpRequest + Send + Sync>,
-							      response: &mut Box<dyn HttpResponse + Send + Sync>| {
+							      response: &Box<dyn HttpResponse + Send + Sync>| {
 								bmw_http::HTTP_CLIENT_CONTEXT.with(|f| {
 									*f.borrow_mut() =
 										Some(((*request).clone(), (*response).clone()));
@@ -284,7 +284,7 @@ macro_rules! http_client_send {
 	($requests:expr, $connection:expr, $handler:expr) => {{
 		let handler = Box::pin(
 			move |request: &Box<dyn HttpRequest + Send + Sync>,
-			      response: &mut Box<dyn HttpResponse + Send + Sync>| {
+			      response: &Box<dyn HttpResponse + Send + Sync>| {
 				bmw_http::HTTP_CLIENT_CONTEXT.with(|f| {
 					*f.borrow_mut() = Some(((*request).clone(), (*response).clone()));
 				});
@@ -403,7 +403,7 @@ mod test {
 	use bmw_util::*;
 	use std::collections::HashMap;
 	use std::fs::File;
-	use std::io::Write;
+	use std::io::{Read, Write};
 	use std::thread::sleep;
 	use std::time::Duration;
 
@@ -459,15 +459,25 @@ mod test {
 		let data_clone = data.clone();
 
 		http_client_send!([request1, request2], {
-			let mut response = http_client_response!()?;
+			let response = http_client_response!()?;
 			let request = http_client_request!()?;
 
 			if guid1 == request.guid() {
 				assert_eq!(response.code().unwrap_or(u16::MAX), 200);
-				assert_eq!(
-					std::str::from_utf8(&response.content()?).unwrap_or("utf8err"),
-					data_text.to_string()
-				);
+
+				let mut hcr = response.content_reader()?;
+				let mut buf = [0u8; 1_000];
+				let mut content = vec![];
+				loop {
+					let len = hcr.read(&mut buf)?;
+					if len == 0 {
+						break;
+					}
+					content.extend(&buf[0..len]);
+				}
+				let content = std::str::from_utf8(&content).unwrap();
+
+				assert_eq!(content.to_string(), data_text.to_string());
 			} else if guid2 == request.guid() {
 				assert_eq!(response.code().unwrap_or(u16::MAX), 404);
 			} else {
@@ -509,7 +519,7 @@ mod test {
 
 		let mut connection = http_connection!(Tls(false), Host("127.0.0.1"), Port(port))?;
 		http_client_send!([request3], connection, {
-			let mut response = http_client_response!()?;
+			let response = http_client_response!()?;
 			let request = http_client_request!()?;
 
 			assert_eq!(request3_guid, request.guid());
@@ -517,10 +527,19 @@ mod test {
 
 			wlock!(resp_count) += 1;
 
-			info!(
-				"http_conn response = '{}'",
-				std::str::from_utf8(&response.content().unwrap_or(vec![])).unwrap_or("utf8err")
-			)?;
+			let mut hcr = response.content_reader()?;
+			let mut buf = [0u8; 1_000];
+			let mut content = vec![];
+			loop {
+				let len = hcr.read(&mut buf)?;
+				if len == 0 {
+					break;
+				}
+				content.extend(&buf[0..len]);
+			}
+			let content = std::str::from_utf8(&content).unwrap();
+
+			info!("http_conn response = '{}'", content)?;
 
 			Ok(())
 		})?;
@@ -529,7 +548,7 @@ mod test {
 		let request4_guid = request4.guid();
 
 		http_client_send!([request4], connection, {
-			let mut response = http_client_response!()?;
+			let response = http_client_response!()?;
 			let request = http_client_request!()?;
 
 			assert_eq!(request4_guid, request.guid());
@@ -537,10 +556,19 @@ mod test {
 
 			wlock!(resp_count_clone) += 1;
 
-			info!(
-				"http_conn response = '{}'",
-				std::str::from_utf8(&response.content().unwrap_or(vec![])).unwrap_or("utf8err")
-			)?;
+			let mut hcr = response.content_reader()?;
+			let mut buf = [0u8; 1_000];
+			let mut content = vec![];
+			loop {
+				let len = hcr.read(&mut buf)?;
+				if len == 0 {
+					break;
+				}
+				content.extend(&buf[0..len]);
+			}
+			let content = std::str::from_utf8(&content).unwrap();
+
+			info!("http_conn response = '{}'", content)?;
 
 			Ok(())
 		})?;
@@ -558,13 +586,24 @@ mod test {
 		}
 
 		let request5 = http_client_request!(Url(&format!("http://{}:{}/foo.html", addr, port)))?;
-		let mut response = http_client_send!(request5)?;
+		let response = http_client_send!(request5)?;
 
 		let response_code = response.code().unwrap_or(u16::MAX);
-		let rc = response.content().unwrap();
-		let response_content = std::str::from_utf8(&rc).unwrap();
+
+		let mut hcr = response.content_reader()?;
+		let mut buf = [0u8; 1_000];
+		let mut content = vec![];
+		loop {
+			let len = hcr.read(&mut buf)?;
+			if len == 0 {
+				break;
+			}
+			content.extend(&buf[0..len]);
+		}
+		let content = std::str::from_utf8(&content).unwrap();
+
 		assert_eq!(response_code, 200);
-		assert_eq!(response_content, "Hello Macro World!");
+		assert_eq!(content, "Hello Macro World!");
 
 		tear_down_test_dir(test_dir)?;
 		Ok(())

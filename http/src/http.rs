@@ -526,7 +526,7 @@ impl HttpContentReaderData {
 	}
 }
 
-impl HttpContentReader<'_> {
+impl HttpContentReader {
 	pub fn new() -> Self {
 		Self {
 			content_allocator: None,
@@ -536,7 +536,7 @@ impl HttpContentReader<'_> {
 	}
 }
 
-impl Read for HttpContentReader<'_> {
+impl Read for HttpContentReader {
 	fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
 		let mut total = 0;
 		let mut rem = buf.len();
@@ -2545,8 +2545,9 @@ impl HttpServerImpl {
 															ctx.content_allocator.clone(),
 														),
 														http_content_reader_data: Some(
-															&mut http_connection_data
-																.http_content_reader_data,
+															http_connection_data
+																.http_content_reader_data
+																.clone(),
 														),
 														tmp_file_dir: config.tmp_file_dir(),
 													};
@@ -2587,8 +2588,9 @@ impl HttpServerImpl {
 																	ctx.content_allocator.clone(),
 																),
 																http_content_reader_data: Some(
-																	&mut http_connection_data
-																		.http_content_reader_data,
+																	http_connection_data
+																		.http_content_reader_data
+																		.clone(),
 																),
 																tmp_file_dir: config.tmp_file_dir(),
 															};

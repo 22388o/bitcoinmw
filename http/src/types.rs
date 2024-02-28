@@ -111,8 +111,8 @@ pub(crate) struct HttpContentReaderData {
 	pub(crate) file_id: Option<u128>,
 }
 
-pub struct HttpContentReader<'a> {
-	pub(crate) http_content_reader_data: Option<&'a mut HttpContentReaderData>,
+pub struct HttpContentReader {
+	pub(crate) http_content_reader_data: Option<HttpContentReaderData>,
 	pub(crate) content_allocator: Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>,
 	pub(crate) tmp_file_dir: PathBuf,
 }
@@ -228,7 +228,7 @@ type HttpCallback = fn(
 	&HttpConfig,
 	&HttpInstance,
 	&mut WriteHandle,
-	HttpContentReader<'_>,
+	HttpContentReader,
 ) -> Result<(), Error>;
 
 type WebsocketHandler = fn(
@@ -243,7 +243,7 @@ pub type HttpHandler = Pin<
 	Box<
 		dyn FnMut(
 				&Box<dyn HttpRequest + Send + Sync>,
-				&mut Box<dyn HttpResponse + Send + Sync>,
+				&Box<dyn HttpResponse + Send + Sync>,
 			) -> Result<(), Error>
 			+ Send
 			+ Sync
@@ -264,12 +264,11 @@ clone_trait_object!(HttpRequest);
 downcast!(dyn HttpRequest);
 
 pub trait HttpResponse: DynClone + Any {
-	fn content(&mut self) -> Result<Vec<u8>, Error>;
 	fn headers(&self) -> Result<&Vec<(String, String)>, Error>;
 	fn code(&self) -> Result<u16, Error>;
 	fn status_text(&self) -> Result<&String, Error>;
 	fn version(&self) -> Result<&HttpVersion, Error>;
-	fn content_reader<'a>(&'a mut self, hcr: &'a mut HttpContentReader<'a>) -> Result<(), Error>;
+	fn content_reader(&self) -> Result<HttpContentReader, Error>;
 }
 
 clone_trait_object!(HttpResponse);
@@ -362,7 +361,6 @@ pub enum ConfigOption<'a> {
 #[derive(Clone)]
 pub(crate) struct HttpClientImpl {
 	pub(crate) controller: EventHandlerController,
-	pub(crate) content_allocator: Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>,
 }
 
 #[derive(Clone)]

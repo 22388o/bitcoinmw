@@ -40,7 +40,6 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::fs::{canonicalize, create_dir_all};
-use std::io::Read;
 use std::net::TcpStream;
 use std::path::PathBuf;
 use std::str::from_utf8;
@@ -236,15 +235,8 @@ impl HttpClientImpl {
 		let config2 = config.clone();
 		let config3 = config.clone();
 		let config4 = config.clone();
-		let content_allocator_clone = content_allocator.clone();
 		evh.set_on_read(move |conn_data, ctx, attach| {
-			Self::process_on_read(
-				&config,
-				conn_data,
-				ctx,
-				attach,
-				content_allocator_clone.clone(),
-			)
+			Self::process_on_read(&config, conn_data, ctx, attach, content_allocator.clone())
 		})?;
 		evh.set_on_accept(move |conn_data, ctx| Self::process_on_accept(&config2, conn_data, ctx))?;
 		evh.set_on_close(move |conn_data, ctx| Self::process_on_close(&config3, conn_data, ctx))?;
@@ -257,7 +249,6 @@ impl HttpClientImpl {
 
 		Ok(Self {
 			controller: evh.event_handler_controller()?,
-			content_allocator,
 		})
 	}
 
@@ -840,28 +831,6 @@ impl HttpRequestImpl {
 }
 
 impl HttpResponse for HttpResponseImpl {
-	fn content(&mut self) -> Result<Vec<u8>, Error> {
-		self.http_content_reader_data.read_slab = self.http_content_reader_data.head_slab;
-		self.http_content_reader_data.read_offset = 0;
-		let mut binding = self.http_content_reader_data.clone();
-		let binding2 = self.content_allocator.clone();
-		let mut hcr = HttpContentReader {
-			http_content_reader_data: Some(&mut binding),
-			content_allocator: Some(binding2),
-			tmp_file_dir: self.tmp_file_dir.clone(),
-		};
-
-		let mut buf = [0u8; 1_000];
-		let mut ret = vec![];
-		loop {
-			let len = hcr.read(&mut buf)?;
-			if len == 0 {
-				break;
-			}
-			ret.extend(&buf[0..len]);
-		}
-		Ok(ret)
-	}
 	fn headers(&self) -> Result<&Vec<(String, String)>, Error> {
 		Ok(&self.headers)
 	}
@@ -878,11 +847,15 @@ impl HttpResponse for HttpResponseImpl {
 		Ok(&self.version)
 	}
 
-	fn content_reader<'a>(&'a mut self, hcr: &'a mut HttpContentReader<'a>) -> Result<(), Error> {
-		hcr.http_content_reader_data = Some(&mut self.http_content_reader_data);
+	fn content_reader(&self) -> Result<HttpContentReader, Error> {
+		let mut ncontent_reader = self.http_content_reader_data.clone();
+		ncontent_reader.read_slab = self.http_content_reader_data.head_slab;
+		ncontent_reader.read_offset = 0;
+		let mut hcr = HttpContentReader::new();
+		hcr.http_content_reader_data = Some(ncontent_reader);
 		hcr.content_allocator = Some(self.content_allocator.clone());
 		hcr.tmp_file_dir = self.tmp_file_dir.clone();
-		Ok(())
+		Ok(hcr)
 	}
 }
 
@@ -911,9 +884,8 @@ impl HttpResponseImpl {
 mod test {
 	use crate::types::{HttpClientImpl, HttpRequestImpl};
 	use crate::{
-		Builder, HttpClient, HttpClientConfig, HttpConfig, HttpConnectionConfig, HttpContentReader,
-		HttpInstance, HttpInstanceType, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion,
-		PlainConfig,
+		Builder, HttpClient, HttpClientConfig, HttpConfig, HttpConnectionConfig, HttpInstance,
+		HttpInstanceType, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion, PlainConfig,
 	};
 	use bmw_err::*;
 	use bmw_log::*;
@@ -923,7 +895,6 @@ mod test {
 	use std::fs::File;
 	use std::io::Read;
 	use std::io::Write;
-	use std::str::from_utf8;
 	use std::thread::sleep;
 	use std::time::Duration;
 
@@ -980,18 +951,13 @@ mod test {
 
 		let handler1 = Box::pin(
 			move |request: &Box<dyn HttpRequest + Send + Sync>,
-			      response: &mut Box<dyn HttpResponse + Send + Sync>| {
+			      response: &Box<dyn HttpResponse + Send + Sync>| {
 				info!("in handler1,request.guid={}", request.guid())?;
 				if request == &http_client_request1_clone {
 					let guid = request.guid();
-					let content = response.content()?;
-					let content = from_utf8(&content).unwrap_or("utf8_err");
-					info!("recv req 1: '{}',guid={}", content, guid)?;
+					assert_eq!(guid, http_client_request1_clone.guid());
 
-					/*
-					let mut hcr = HttpContentReader::new();
-					response.content_reader(&mut hcr)?;
-
+					let mut hcr = response.content_reader()?;
 					let mut buf = [0u8; 1_000];
 					let mut content = vec![];
 					loop {
@@ -1001,9 +967,7 @@ mod test {
 						}
 						content.extend(&buf[0..len]);
 					}
-
 					let content = std::str::from_utf8(&content).unwrap();
-										*/
 
 					assert_eq!(content, data_text);
 
@@ -1040,7 +1004,7 @@ mod test {
 		let found404_clone = found404.clone();
 		let handler2 = Box::pin(
 			move |_request: &Box<dyn HttpRequest + Send + Sync>,
-			      response: &mut Box<dyn HttpResponse + Send + Sync>| {
+			      response: &Box<dyn HttpResponse + Send + Sync>| {
 				info!("got response should be 404!")?;
 				assert_eq!(response.code()?, 404);
 				let mut found404 = found404.wlock()?;
@@ -1160,12 +1124,20 @@ mod test {
 
 		let handler1 = Box::pin(
 			move |request: &Box<dyn HttpRequest + Send + Sync>,
-			      response: &mut Box<dyn HttpResponse + Send + Sync>| {
+			      response: &Box<dyn HttpResponse + Send + Sync>| {
 				info!("in handler1,request.guid={}", request.guid())?;
 				if request == &http_client_request1_clone {
-					let content = response.content()?;
-					let content = from_utf8(&content).unwrap_or("utf8_err");
-					info!("recv req 1: '{}'", content)?;
+					let mut hcr = response.content_reader()?;
+					let mut buf = [0u8; 1_000];
+					let mut content = vec![];
+					loop {
+						let len = hcr.read(&mut buf)?;
+						if len == 0 {
+							break;
+						}
+						content.extend(&buf[0..len]);
+					}
+					let content = std::str::from_utf8(&content).unwrap();
 					assert_eq!(content, data_text);
 
 					let headers = response.headers()?;
@@ -1217,7 +1189,7 @@ mod test {
 		let found_another_file_clone = found_another_file.clone();
 		let handler2 = Box::pin(
 			move |request: &Box<dyn HttpRequest + Send + Sync>,
-			      response: &mut Box<dyn HttpResponse + Send + Sync>| {
+			      response: &Box<dyn HttpResponse + Send + Sync>| {
 				if request == &http_client_request3_clone {
 					info!("got response should be 404!")?;
 					assert_eq!(response.code()?, 404);
@@ -1226,9 +1198,17 @@ mod test {
 					assert_eq!(**guard, false);
 					(**guard) = true;
 				} else if request == &http_client_request2_clone {
-					let content = response.content()?;
-					let content = from_utf8(&content).unwrap_or("utf8_err");
-					info!("recv req 1: '{}'", content)?;
+					let mut hcr = response.content_reader()?;
+					let mut buf = [0u8; 1_000];
+					let mut content = vec![];
+					loop {
+						let len = hcr.read(&mut buf)?;
+						if len == 0 {
+							break;
+						}
+						content.extend(&buf[0..len]);
+					}
+					let content = std::str::from_utf8(&content).unwrap();
 					assert_eq!(content, data_text2);
 
 					let headers = response.headers()?;
