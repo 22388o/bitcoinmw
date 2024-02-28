@@ -8,6 +8,11 @@ IF "%VAR11%" equ "" (
   IF "%1" equ "Schedule" (
     rustup update
     cargo test --all --jobs 1
+  ) ELSE (
+    IF "%1" equ "Manual" (
+      rustup update
+      cargo test --all --jobs 1
+    )
   )
 )
 set "VAR11="
