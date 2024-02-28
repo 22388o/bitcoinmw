@@ -306,7 +306,7 @@ impl HttpConnectionData {
 	pub(crate) fn clear(
 		&mut self,
 		mut content_allocator: Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>,
-		config: &HttpConfig,
+		tmp_file_dir: PathBuf,
 	) -> Result<(), Error> {
 		let mut ptr = self.http_content_reader_data.head_slab;
 		match content_allocator.wlock() {
@@ -347,7 +347,7 @@ impl HttpConnectionData {
 
 		match self.http_content_reader_data.file_id {
 			Some(file_id) => {
-				let mut tmp_file_dir = config.tmp_file_dir();
+				let mut tmp_file_dir = tmp_file_dir.clone();
 				tmp_file_dir.push(format!("{}.tmp", file_id));
 				remove_file(tmp_file_dir.as_path())?;
 			}
@@ -361,7 +361,7 @@ impl HttpConnectionData {
 		&mut self,
 		buf: &[u8],
 		mut content_allocator: Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>,
-		config: &HttpConfig,
+		tmp_file_dir: PathBuf,
 	) -> Result<(), Error> {
 		let mut rem = buf.len();
 		let mut itt = 0;
@@ -463,14 +463,14 @@ impl HttpConnectionData {
 			// we could not allocate slabs so write to file
 			let file_path = match self.http_content_reader_data.file_id {
 				Some(file_id) => {
-					let mut path_buf = config.tmp_file_dir();
+					let mut path_buf = tmp_file_dir.clone();
 					path_buf.push(format!("{}.tmp", file_id));
 					path_buf.display().to_string()
 				}
 				None => {
 					let file_id: u128 = random();
 					self.http_content_reader_data.file_id = Some(file_id);
-					let mut path_buf = config.tmp_file_dir();
+					let mut path_buf = tmp_file_dir.clone();
 					path_buf.push(format!("{}.tmp", file_id));
 					let path = path_buf.display().to_string();
 					OpenOptions::new()
@@ -2424,7 +2424,7 @@ impl HttpServerImpl {
 											http_connection_data.extend(
 												ncontent,
 												ctx.content_allocator.clone(),
-												config,
+												config.tmp_file_dir(),
 											)?;
 											termination_sum += ncontent.len();
 										}
@@ -2589,8 +2589,10 @@ impl HttpServerImpl {
 											None => {}
 										}
 
-										http_connection_data
-											.clear(ctx.content_allocator.clone(), config)?;
+										http_connection_data.clear(
+											ctx.content_allocator.clone(),
+											config.tmp_file_dir(),
+										)?;
 										let mut cache_hit = false;
 										if !is_callback {
 											cache_hit = Self::process_file(
