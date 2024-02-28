@@ -1269,6 +1269,62 @@
 <a href="#1268" id="1268">1268</a>
 <a href="#1269" id="1269">1269</a>
 <a href="#1270" id="1270">1270</a>
+<a href="#1271" id="1271">1271</a>
+<a href="#1272" id="1272">1272</a>
+<a href="#1273" id="1273">1273</a>
+<a href="#1274" id="1274">1274</a>
+<a href="#1275" id="1275">1275</a>
+<a href="#1276" id="1276">1276</a>
+<a href="#1277" id="1277">1277</a>
+<a href="#1278" id="1278">1278</a>
+<a href="#1279" id="1279">1279</a>
+<a href="#1280" id="1280">1280</a>
+<a href="#1281" id="1281">1281</a>
+<a href="#1282" id="1282">1282</a>
+<a href="#1283" id="1283">1283</a>
+<a href="#1284" id="1284">1284</a>
+<a href="#1285" id="1285">1285</a>
+<a href="#1286" id="1286">1286</a>
+<a href="#1287" id="1287">1287</a>
+<a href="#1288" id="1288">1288</a>
+<a href="#1289" id="1289">1289</a>
+<a href="#1290" id="1290">1290</a>
+<a href="#1291" id="1291">1291</a>
+<a href="#1292" id="1292">1292</a>
+<a href="#1293" id="1293">1293</a>
+<a href="#1294" id="1294">1294</a>
+<a href="#1295" id="1295">1295</a>
+<a href="#1296" id="1296">1296</a>
+<a href="#1297" id="1297">1297</a>
+<a href="#1298" id="1298">1298</a>
+<a href="#1299" id="1299">1299</a>
+<a href="#1300" id="1300">1300</a>
+<a href="#1301" id="1301">1301</a>
+<a href="#1302" id="1302">1302</a>
+<a href="#1303" id="1303">1303</a>
+<a href="#1304" id="1304">1304</a>
+<a href="#1305" id="1305">1305</a>
+<a href="#1306" id="1306">1306</a>
+<a href="#1307" id="1307">1307</a>
+<a href="#1308" id="1308">1308</a>
+<a href="#1309" id="1309">1309</a>
+<a href="#1310" id="1310">1310</a>
+<a href="#1311" id="1311">1311</a>
+<a href="#1312" id="1312">1312</a>
+<a href="#1313" id="1313">1313</a>
+<a href="#1314" id="1314">1314</a>
+<a href="#1315" id="1315">1315</a>
+<a href="#1316" id="1316">1316</a>
+<a href="#1317" id="1317">1317</a>
+<a href="#1318" id="1318">1318</a>
+<a href="#1319" id="1319">1319</a>
+<a href="#1320" id="1320">1320</a>
+<a href="#1321" id="1321">1321</a>
+<a href="#1322" id="1322">1322</a>
+<a href="#1323" id="1323">1323</a>
+<a href="#1324" id="1324">1324</a>
+<a href="#1325" id="1325">1325</a>
+<a href="#1326" id="1326">1326</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1311,6 +1367,7 @@
 <span class="kw">use </span>std::cell::RefCell;
 <span class="kw">use </span>std::collections::{HashMap, VecDeque};
 <span class="kw">use </span>std::fs::{canonicalize, create_dir_all};
+<span class="kw">use </span>std::io::Read;
 <span class="kw">use </span>std::net::TcpStream;
 <span class="kw">use </span>std::path::PathBuf;
 <span class="kw">use </span>std::str::from_utf8;
@@ -1334,6 +1391,14 @@
 	<span class="macro">include!</span>(<span class="macro">concat!</span>(<span class="macro">env!</span>(<span class="string">"OUT_DIR"</span>), <span class="string">"/built.rs"</span>));
 }
 
+<span class="kw">impl </span>HttpClientConfig {
+	<span class="kw">fn </span>tmp_file_dir(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; PathBuf {
+		<span class="kw">let </span><span class="kw-2">mut </span>file_dir = PathBuf::from(<span class="self">self</span>.base_dir.clone());
+		file_dir.push(<span class="string">"tmp_files"</span>);
+		file_dir
+	}
+}
+
 <span class="kw">impl </span>Default <span class="kw">for </span>HttpConnectionConfig {
 	<span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
 		<span class="self">Self </span>{
@@ -1351,7 +1416,6 @@
 			debug: <span class="bool-val">false</span>,
 			max_handles_per_thread: <span class="number">100</span>,
 			threads: <span class="number">4</span>,
-			slab_size: <span class="number">514</span>,
 			slab_count: <span class="number">100</span>,
 			base_dir: <span class="string">"~/.bitcoinmw"</span>.to_string(),
 		}
@@ -1490,7 +1554,7 @@
 
 		<span class="kw">let </span><span class="kw-2">mut </span>content_allocator = bmw_util::Builder::build_sync_slabs();
 		content_allocator.init(SlabAllocatorConfig {
-			slab_size: config.slab_size,
+			slab_size: CONTENT_SLAB_SIZE,
 			slab_count: config.slab_count,
 		})<span class="question-mark">?</span>;
 		<span class="kw">let </span>content_allocator = <span class="macro">lock_box!</span>(content_allocator)<span class="question-mark">?</span>;
@@ -1713,8 +1777,11 @@
 		}
 		<span class="kw">let </span>count = ctx.suffix_tree.tmatch(<span class="kw-2">&amp;</span>res, <span class="kw-2">&amp;mut </span>ctx.matches)<span class="question-mark">?</span>;
 		<span class="kw">let </span>tmp_file_dir = canonicalize(config.base_dir.clone())<span class="question-mark">?</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>response =
-			HttpResponseImpl::new(HttpContentReaderData::new(), tmp_file_dir, slab_allocator)<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>response = HttpResponseImpl::new(
+			HttpContentReaderData::new(),
+			tmp_file_dir,
+			slab_allocator.clone(),
+		)<span class="question-mark">?</span>;
 
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..count {
 			<span class="kw">if </span>ctx.matches[i].id() == SUFFIX_TREE_HEADER_ID {
@@ -1867,7 +1934,11 @@
 
 					<span class="kw">if </span>end &lt;= res_len {
 						<span class="comment">// append data
-						</span>response.content.extend(<span class="kw-2">&amp;</span>res[start..end]);
+						</span>response.http_content_reader_data.extend(
+							<span class="kw-2">&amp;</span>res[start..end],
+							slab_allocator.clone(),
+							config.tmp_file_dir(),
+						)<span class="question-mark">?</span>;
 						itt += val + line_len + <span class="number">4</span>; <span class="comment">// for '\r\n' twice
 					</span>} <span class="kw">else </span>{
 						<span class="comment">// not enough data, return for now
@@ -1885,7 +1956,11 @@
 			</span><span class="kw">let </span>start = response.start_content;
 			<span class="kw">let </span>end = start + response.content_length;
 
-			response.content.extend(<span class="kw-2">&amp;</span>res[start..end]);
+			response.http_content_reader_data.extend(
+				<span class="kw-2">&amp;</span>res[start..end],
+				slab_allocator,
+				config.tmp_file_dir(),
+			)<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>resp: Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt; = Box::new(response);
 			pop_count += <span class="number">1</span>;
 			handler(req, <span class="kw-2">&amp;mut </span>resp)<span class="question-mark">?</span>;
@@ -2092,10 +2167,28 @@
 }
 
 <span class="kw">impl </span>HttpResponse <span class="kw">for </span>HttpResponseImpl {
-	<span class="kw">fn </span>content(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>Vec&lt;u8&gt;, Error&gt; {
-		<span class="prelude-val">Ok</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.content)
-	}
+	<span class="kw">fn </span>content(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, Error&gt; {
+		<span class="self">self</span>.http_content_reader_data.read_slab = <span class="self">self</span>.http_content_reader_data.head_slab;
+		<span class="self">self</span>.http_content_reader_data.read_offset = <span class="number">0</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>binding = <span class="self">self</span>.http_content_reader_data.clone();
+		<span class="kw">let </span>binding2 = <span class="self">self</span>.content_allocator.clone();
+		<span class="kw">let </span><span class="kw-2">mut </span>hcr = HttpContentReader {
+			http_content_reader_data: <span class="prelude-val">Some</span>(<span class="kw-2">&amp;mut </span>binding),
+			content_allocator: <span class="prelude-val">Some</span>(binding2),
+			tmp_file_dir: <span class="self">self</span>.tmp_file_dir.clone(),
+		};
 
+		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">1_000</span>];
+		<span class="kw">let </span><span class="kw-2">mut </span>ret = <span class="macro">vec!</span>[];
+		<span class="kw">loop </span>{
+			<span class="kw">let </span>len = hcr.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+			<span class="kw">if </span>len == <span class="number">0 </span>{
+				<span class="kw">break</span>;
+			}
+			ret.extend(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len]);
+		}
+		<span class="prelude-val">Ok</span>(ret)
+	}
 	<span class="kw">fn </span>headers(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>Vec&lt;(String, String)&gt;, Error&gt; {
 		<span class="prelude-val">Ok</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.headers)
 	}
@@ -2131,7 +2224,6 @@
 			chunked: <span class="bool-val">false</span>,
 			content_length: <span class="number">0</span>,
 			start_content: <span class="number">0</span>,
-			content: <span class="macro">vec!</span>[],
 			code: <span class="number">0</span>,
 			status_text: <span class="string">""</span>.to_string(),
 			version: HttpVersion::UNKNOWN,
@@ -2146,8 +2238,9 @@
 </span><span class="kw">mod </span>test {
 	<span class="kw">use </span><span class="kw">crate</span>::types::{HttpClientImpl, HttpRequestImpl};
 	<span class="kw">use crate</span>::{
-		Builder, HttpClient, HttpClientConfig, HttpConfig, HttpConnectionConfig, HttpInstance,
-		HttpInstanceType, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion, PlainConfig,
+		Builder, HttpClient, HttpClientConfig, HttpConfig, HttpConnectionConfig, HttpContentReader,
+		HttpInstance, HttpInstanceType, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion,
+		PlainConfig,
 	};
 	<span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
@@ -2155,6 +2248,7 @@
 	<span class="kw">use </span>bmw_util::lock_box;
 	<span class="kw">use </span>std::collections::HashMap;
 	<span class="kw">use </span>std::fs::File;
+	<span class="kw">use </span>std::io::Read;
 	<span class="kw">use </span>std::io::Write;
 	<span class="kw">use </span>std::str::from_utf8;
 	<span class="kw">use </span>std::thread::sleep;
@@ -2213,14 +2307,32 @@
 
 		<span class="kw">let </span>handler1 = Box::pin(
 			<span class="kw">move </span>|request: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
-			      response: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
+			      response: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
 				<span class="macro">info!</span>(<span class="string">"in handler1,request.guid={}"</span>, request.guid())<span class="question-mark">?</span>;
 				<span class="kw">if </span>request == <span class="kw-2">&amp;</span>http_client_request1_clone {
 					<span class="kw">let </span>guid = request.guid();
 					<span class="kw">let </span>content = response.content()<span class="question-mark">?</span>;
 					<span class="kw">let </span>content = from_utf8(<span class="kw-2">&amp;</span>content).unwrap_or(<span class="string">"utf8_err"</span>);
 					<span class="macro">info!</span>(<span class="string">"recv req 1: '{}',guid={}"</span>, content, guid)<span class="question-mark">?</span>;
-					<span class="macro">assert_eq!</span>(content, data_text);
+
+					<span class="comment">/*
+					let mut hcr = HttpContentReader::new();
+					response.content_reader(&amp;mut hcr)?;
+
+					let mut buf = [0u8; 1_000];
+					let mut content = vec![];
+					loop {
+						let len = hcr.read(&amp;mut buf)?;
+						if len == 0 {
+							break;
+						}
+						content.extend(&amp;buf[0..len]);
+					}
+
+					let content = std::str::from_utf8(&amp;content).unwrap();
+										*/
+
+					</span><span class="macro">assert_eq!</span>(content, data_text);
 
 					<span class="kw">let </span>headers = response.headers()<span class="question-mark">?</span>;
 
@@ -2255,7 +2367,7 @@
 		<span class="kw">let </span>found404_clone = found404.clone();
 		<span class="kw">let </span>handler2 = Box::pin(
 			<span class="kw">move </span>|_request: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
-			      response: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
+			      response: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
 				<span class="macro">info!</span>(<span class="string">"got response should be 404!"</span>)<span class="question-mark">?</span>;
 				<span class="macro">assert_eq!</span>(response.code()<span class="question-mark">?</span>, <span class="number">404</span>);
 				<span class="kw">let </span><span class="kw-2">mut </span>found404 = found404.wlock()<span class="question-mark">?</span>;
@@ -2375,7 +2487,7 @@
 
 		<span class="kw">let </span>handler1 = Box::pin(
 			<span class="kw">move </span>|request: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
-			      response: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
+			      response: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
 				<span class="macro">info!</span>(<span class="string">"in handler1,request.guid={}"</span>, request.guid())<span class="question-mark">?</span>;
 				<span class="kw">if </span>request == <span class="kw-2">&amp;</span>http_client_request1_clone {
 					<span class="kw">let </span>content = response.content()<span class="question-mark">?</span>;
@@ -2432,7 +2544,7 @@
 		<span class="kw">let </span>found_another_file_clone = found_another_file.clone();
 		<span class="kw">let </span>handler2 = Box::pin(
 			<span class="kw">move </span>|request: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
-			      response: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
+			      response: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
 				<span class="kw">if </span>request == <span class="kw-2">&amp;</span>http_client_request3_clone {
 					<span class="macro">info!</span>(<span class="string">"got response should be 404!"</span>)<span class="question-mark">?</span>;
 					<span class="macro">assert_eq!</span>(response.code()<span class="question-mark">?</span>, <span class="number">404</span>);

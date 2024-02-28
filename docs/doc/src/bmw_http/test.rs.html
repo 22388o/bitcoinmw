@@ -136,6 +136,7 @@
 <a href="#135" id="135">135</a>
 <a href="#136" id="136">136</a>
 <a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -213,14 +214,10 @@
 
 		<span class="kw">let </span>request = <span class="macro">http_client_request!</span>(Url(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"{}/foo.html"</span>, addr)))<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>response = <span class="macro">http_client_send!</span>(request)<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>response = <span class="macro">http_client_send!</span>(request)<span class="question-mark">?</span>;
 		<span class="kw">let </span>headers = response.headers()<span class="question-mark">?</span>;
 
 		<span class="macro">assert_eq!</span>(response.code().unwrap(), <span class="number">200</span>);
-		<span class="macro">assert_eq!</span>(
-			std::str::from_utf8(response.content().unwrap()).unwrap(),
-			<span class="string">"Hello test World!"
-		</span>);
 
 		<span class="kw">let </span><span class="kw-2">mut </span>found_server = <span class="bool-val">false</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>found_date = <span class="bool-val">false</span>;
@@ -267,6 +264,11 @@
 		<span class="macro">assert!</span>(found_last_modified);
 		<span class="macro">assert!</span>(found_etag);
 		<span class="macro">assert!</span>(found_transfer_encoding);
+
+		<span class="macro">assert_eq!</span>(
+			std::str::from_utf8(<span class="kw-2">&amp;</span>response.content().unwrap()).unwrap(),
+			<span class="string">"Hello test World!"
+		</span>);
 
 		tear_down_server(http)<span class="question-mark">?</span>;
 
