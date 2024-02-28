@@ -297,5 +297,9 @@ fn duration_to_timespec(d: Duration) -> timespec {
 fn get_socket(family: AddressFamily) -> Result<RawFd, Error> {
 	let raw_fd = socket(family, SockType::Stream, SockFlag::empty(), None)?;
 
-	Ok(raw_fd)
+	if raw_fd <= 0 {
+		Err(err!(ErrKind::IO, "socket returned an invalid fd"))
+	} else {
+		Ok(raw_fd)
+	}
 }
