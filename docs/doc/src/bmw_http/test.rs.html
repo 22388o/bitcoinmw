@@ -135,6 +135,7 @@
 <a href="#134" id="134">134</a>
 <a href="#135" id="135">135</a>
 <a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -179,6 +180,7 @@
 				}),
 				..Default::default()
 			}],
+			base_dir: directory.to_string(),
 			server_name: <span class="string">"bitcoinmwtest"</span>.to_string(),
 			server_version: <span class="string">"test1"</span>.to_string(),
 			debug: <span class="bool-val">true</span>,
@@ -207,7 +209,7 @@
 			file.write_all(data_text.as_bytes())<span class="question-mark">?</span>;
 		}
 
-		<span class="macro">http_client_init!</span>()<span class="question-mark">?</span>;
+		<span class="macro">http_client_init!</span>(BaseDir(test_dir))<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>request = <span class="macro">http_client_request!</span>(Url(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"{}/foo.html"</span>, addr)))<span class="question-mark">?</span>;
 

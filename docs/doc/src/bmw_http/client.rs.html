@@ -1211,6 +1211,64 @@
 <a href="#1210" id="1210">1210</a>
 <a href="#1211" id="1211">1211</a>
 <a href="#1212" id="1212">1212</a>
+<a href="#1213" id="1213">1213</a>
+<a href="#1214" id="1214">1214</a>
+<a href="#1215" id="1215">1215</a>
+<a href="#1216" id="1216">1216</a>
+<a href="#1217" id="1217">1217</a>
+<a href="#1218" id="1218">1218</a>
+<a href="#1219" id="1219">1219</a>
+<a href="#1220" id="1220">1220</a>
+<a href="#1221" id="1221">1221</a>
+<a href="#1222" id="1222">1222</a>
+<a href="#1223" id="1223">1223</a>
+<a href="#1224" id="1224">1224</a>
+<a href="#1225" id="1225">1225</a>
+<a href="#1226" id="1226">1226</a>
+<a href="#1227" id="1227">1227</a>
+<a href="#1228" id="1228">1228</a>
+<a href="#1229" id="1229">1229</a>
+<a href="#1230" id="1230">1230</a>
+<a href="#1231" id="1231">1231</a>
+<a href="#1232" id="1232">1232</a>
+<a href="#1233" id="1233">1233</a>
+<a href="#1234" id="1234">1234</a>
+<a href="#1235" id="1235">1235</a>
+<a href="#1236" id="1236">1236</a>
+<a href="#1237" id="1237">1237</a>
+<a href="#1238" id="1238">1238</a>
+<a href="#1239" id="1239">1239</a>
+<a href="#1240" id="1240">1240</a>
+<a href="#1241" id="1241">1241</a>
+<a href="#1242" id="1242">1242</a>
+<a href="#1243" id="1243">1243</a>
+<a href="#1244" id="1244">1244</a>
+<a href="#1245" id="1245">1245</a>
+<a href="#1246" id="1246">1246</a>
+<a href="#1247" id="1247">1247</a>
+<a href="#1248" id="1248">1248</a>
+<a href="#1249" id="1249">1249</a>
+<a href="#1250" id="1250">1250</a>
+<a href="#1251" id="1251">1251</a>
+<a href="#1252" id="1252">1252</a>
+<a href="#1253" id="1253">1253</a>
+<a href="#1254" id="1254">1254</a>
+<a href="#1255" id="1255">1255</a>
+<a href="#1256" id="1256">1256</a>
+<a href="#1257" id="1257">1257</a>
+<a href="#1258" id="1258">1258</a>
+<a href="#1259" id="1259">1259</a>
+<a href="#1260" id="1260">1260</a>
+<a href="#1261" id="1261">1261</a>
+<a href="#1262" id="1262">1262</a>
+<a href="#1263" id="1263">1263</a>
+<a href="#1264" id="1264">1264</a>
+<a href="#1265" id="1265">1265</a>
+<a href="#1266" id="1266">1266</a>
+<a href="#1267" id="1267">1267</a>
+<a href="#1268" id="1268">1268</a>
+<a href="#1269" id="1269">1269</a>
+<a href="#1270" id="1270">1270</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1231,12 +1289,13 @@
 </span><span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
 <span class="kw">use </span><span class="kw">crate</span>::types::{
 	HttpClientAttachment, HttpClientAttachmentData, HttpClientContext, HttpClientImpl,
-	HttpConnectionImpl, HttpRequestImpl, HttpResponseImpl,
+	HttpConnectionImpl, HttpContentReaderData, HttpRequestImpl, HttpResponseImpl,
 };
 <span class="kw">use crate</span>::{
 	HttpClient, HttpClientConfig, HttpClientContainer, HttpConnection, HttpConnectionConfig,
-	HttpHandler, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion,
+	HttpContentReader, HttpHandler, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion,
 };
+<span class="kw">use </span>bmw_deps::dirs;
 <span class="kw">use </span>bmw_deps::lazy_static::lazy_static;
 <span class="kw">use </span>bmw_deps::rand::random;
 <span class="kw">use </span>bmw_deps::url::Url;
@@ -1251,7 +1310,9 @@
 <span class="kw">use </span>std::any::Any;
 <span class="kw">use </span>std::cell::RefCell;
 <span class="kw">use </span>std::collections::{HashMap, VecDeque};
+<span class="kw">use </span>std::fs::{canonicalize, create_dir_all};
 <span class="kw">use </span>std::net::TcpStream;
+<span class="kw">use </span>std::path::PathBuf;
 <span class="kw">use </span>std::str::from_utf8;
 <span class="kw">use </span>std::sync::{Arc, RwLock};
 <span class="kw">use </span>std::thread::{current, ThreadId};
@@ -1290,6 +1351,9 @@
 			debug: <span class="bool-val">false</span>,
 			max_handles_per_thread: <span class="number">100</span>,
 			threads: <span class="number">4</span>,
+			slab_size: <span class="number">514</span>,
+			slab_count: <span class="number">100</span>,
+			base_dir: <span class="string">"~/.bitcoinmw"</span>.to_string(),
 		}
 	}
 }
@@ -1403,6 +1467,19 @@
 
 <span class="kw">impl </span>HttpClientImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(config: <span class="kw-2">&amp;</span>HttpClientConfig) -&gt; <span class="prelude-ty">Result</span>&lt;HttpClientImpl, Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>config = config.clone();
+		<span class="kw">let </span>home_dir = <span class="kw">match </span>dirs::home_dir() {
+			<span class="prelude-val">Some</span>(p) =&gt; p,
+			<span class="prelude-val">None </span>=&gt; PathBuf::new(),
+		}
+		.as_path()
+		.display()
+		.to_string();
+
+		config.base_dir = config.base_dir.replace(<span class="string">"~"</span>, <span class="kw-2">&amp;</span>home_dir);
+		<span class="kw">let </span>tmp_file_dir = <span class="macro">format!</span>(<span class="string">"{}/client/tmp_files"</span>, config.base_dir);
+		create_dir_all(tmp_file_dir)<span class="question-mark">?</span>;
+
 		<span class="kw">let </span>evh_config = EventHandlerConfig {
 			threads: config.threads,
 			max_handles_per_thread: config.max_handles_per_thread,
@@ -1411,12 +1488,26 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>evh = Builder::build_evh(evh_config)<span class="question-mark">?</span>;
 		<span class="kw">let </span>event_handler_data = evh.event_handler_data()<span class="question-mark">?</span>;
 
+		<span class="kw">let </span><span class="kw-2">mut </span>content_allocator = bmw_util::Builder::build_sync_slabs();
+		content_allocator.init(SlabAllocatorConfig {
+			slab_size: config.slab_size,
+			slab_count: config.slab_count,
+		})<span class="question-mark">?</span>;
+		<span class="kw">let </span>content_allocator = <span class="macro">lock_box!</span>(content_allocator)<span class="question-mark">?</span>;
+
 		<span class="kw">let </span>config = config.clone();
 		<span class="kw">let </span>config2 = config.clone();
 		<span class="kw">let </span>config3 = config.clone();
 		<span class="kw">let </span>config4 = config.clone();
+		<span class="kw">let </span>content_allocator_clone = content_allocator.clone();
 		evh.set_on_read(<span class="kw">move </span>|conn_data, ctx, attach| {
-			<span class="self">Self</span>::process_on_read(<span class="kw-2">&amp;</span>config, conn_data, ctx, attach)
+			<span class="self">Self</span>::process_on_read(
+				<span class="kw-2">&amp;</span>config,
+				conn_data,
+				ctx,
+				attach,
+				content_allocator_clone.clone(),
+			)
 		})<span class="question-mark">?</span>;
 		evh.set_on_accept(<span class="kw">move </span>|conn_data, ctx| <span class="self">Self</span>::process_on_accept(<span class="kw-2">&amp;</span>config2, conn_data, ctx))<span class="question-mark">?</span>;
 		evh.set_on_close(<span class="kw">move </span>|conn_data, ctx| <span class="self">Self</span>::process_on_close(<span class="kw-2">&amp;</span>config3, conn_data, ctx))<span class="question-mark">?</span>;
@@ -1426,8 +1517,10 @@
 		})<span class="question-mark">?</span>;
 
 		evh.start()<span class="question-mark">?</span>;
+
 		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
 			controller: evh.event_handler_controller()<span class="question-mark">?</span>,
+			content_allocator,
 		})
 	}
 
@@ -1484,6 +1577,7 @@
 		conn_data: <span class="kw-2">&amp;mut </span>ConnectionData,
 		ctx: <span class="kw-2">&amp;mut </span>ThreadContext,
 		attachment: <span class="prelude-ty">Option</span>&lt;AttachmentHolder&gt;,
+		slab_allocator: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;&gt;&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">match </span>attachment {
 			<span class="prelude-val">Some</span>(<span class="kw-2">mut </span>attachment) =&gt; {
@@ -1502,6 +1596,7 @@
 									ctx,
 									config,
 									attachment.close_on_complete,
+									slab_allocator.clone(),
 								)<span class="question-mark">?</span>,
 								<span class="prelude-val">None </span>=&gt; <span class="number">0</span>,
 							};
@@ -1537,6 +1632,7 @@
 		ctx: <span class="kw-2">&amp;mut </span>ThreadContext,
 		config: <span class="kw-2">&amp;</span>HttpClientConfig,
 		close_on_complete: bool,
+		slab_allocator: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;&gt;&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
 		<span class="kw">let </span>ctx = <span class="self">Self</span>::build_ctx(ctx, config)<span class="question-mark">?</span>;
 		<span class="kw">let </span>id = conn_data.get_connection_id();
@@ -1590,6 +1686,7 @@
 				slab_id_vec,
 				config,
 				close_on_complete,
+				slab_allocator,
 			)<span class="question-mark">?
 		</span>} <span class="kw">else </span>{
 			<span class="number">0
@@ -1607,6 +1704,7 @@
 		slab_id_vec: Vec&lt;u32&gt;,
 		config: <span class="kw-2">&amp;</span>HttpClientConfig,
 		close_on_complete: bool,
+		slab_allocator: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;&gt;&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>pop_count = <span class="number">0</span>;
 		<span class="kw">let </span>res_len = res.len();
@@ -1614,7 +1712,9 @@
 			<span class="macro">info!</span>(<span class="string">"res='{}'"</span>, std::str::from_utf8(<span class="kw-2">&amp;</span>res).unwrap_or(<span class="string">"utf8err"</span>))<span class="question-mark">?</span>;
 		}
 		<span class="kw">let </span>count = ctx.suffix_tree.tmatch(<span class="kw-2">&amp;</span>res, <span class="kw-2">&amp;mut </span>ctx.matches)<span class="question-mark">?</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>response = HttpResponseImpl::new();
+		<span class="kw">let </span>tmp_file_dir = canonicalize(config.base_dir.clone())<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>response =
+			HttpResponseImpl::new(HttpContentReaderData::new(), tmp_file_dir, slab_allocator)<span class="question-mark">?</span>;
 
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..count {
 			<span class="kw">if </span>ctx.matches[i].id() == SUFFIX_TREE_HEADER_ID {
@@ -2011,11 +2111,22 @@
 	<span class="kw">fn </span>version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>HttpVersion, Error&gt; {
 		<span class="prelude-val">Ok</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.version)
 	}
+
+	<span class="kw">fn </span>content_reader&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>, hcr: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>HttpContentReader&lt;<span class="lifetime">'a</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		hcr.http_content_reader_data = <span class="prelude-val">Some</span>(<span class="kw-2">&amp;mut </span><span class="self">self</span>.http_content_reader_data);
+		hcr.content_allocator = <span class="prelude-val">Some</span>(<span class="self">self</span>.content_allocator.clone());
+		hcr.tmp_file_dir = <span class="self">self</span>.tmp_file_dir.clone();
+		<span class="prelude-val">Ok</span>(())
+	}
 }
 
 <span class="kw">impl </span>HttpResponseImpl {
-	<span class="kw">fn </span>new() -&gt; <span class="self">Self </span>{
-		<span class="self">Self </span>{
+	<span class="kw">fn </span>new(
+		http_content_reader_data: HttpContentReaderData,
+		tmp_file_dir: PathBuf,
+		content_allocator: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;&gt;&gt;,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
+		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
 			headers: <span class="macro">vec!</span>[],
 			chunked: <span class="bool-val">false</span>,
 			content_length: <span class="number">0</span>,
@@ -2024,7 +2135,10 @@
 			code: <span class="number">0</span>,
 			status_text: <span class="string">""</span>.to_string(),
 			version: HttpVersion::UNKNOWN,
-		}
+			http_content_reader_data,
+			tmp_file_dir,
+			content_allocator,
+		})
 	}
 }
 
@@ -2068,6 +2182,7 @@
 				}),
 				..Default::default()
 			}],
+			base_dir: test_dir.to_string(),
 			server_version: <span class="string">"test1"</span>.to_string(),
 			debug: <span class="bool-val">true</span>,
 			..Default::default()
@@ -2079,6 +2194,7 @@
 
 		<span class="kw">let </span><span class="kw-2">mut </span>http_client = HttpClientImpl::new(<span class="kw-2">&amp;</span>HttpClientConfig {
 			debug: <span class="bool-val">true</span>,
+			base_dir: test_dir.to_string(),
 			..Default::default()
 		})<span class="question-mark">?</span>;
 
@@ -2221,6 +2337,7 @@
 				}),
 				..Default::default()
 			}],
+			base_dir: test_dir.to_string(),
 			server_version: <span class="string">"test1"</span>.to_string(),
 			debug: <span class="bool-val">true</span>,
 			..Default::default()
@@ -2228,9 +2345,8 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>http = Builder::build_http_server(<span class="kw-2">&amp;</span>config)<span class="question-mark">?</span>;
 		http.start()<span class="question-mark">?</span>;
 
-		<span class="comment">//sleep(Duration::from_millis(1_000));
-
-		</span><span class="kw">let </span>http_client = HttpClientImpl::new(<span class="kw-2">&amp;</span>HttpClientConfig {
+		<span class="kw">let </span>http_client = HttpClientImpl::new(<span class="kw-2">&amp;</span>HttpClientConfig {
+			base_dir: test_dir.to_string(),
 			debug: <span class="bool-val">true</span>,
 			..Default::default()
 		})<span class="question-mark">?</span>;

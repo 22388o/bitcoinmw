@@ -72,6 +72,13 @@
 <a href="#71" id="71">71</a>
 <a href="#72" id="72">72</a>
 <a href="#73" id="73">73</a>
+<a href="#74" id="74">74</a>
+<a href="#75" id="75">75</a>
+<a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -128,20 +135,27 @@
 </span><span class="kw">mod </span>test {
 	<span class="kw">use crate</span>::{Builder, HttpConfig, HttpInstance};
 	<span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
-	<span class="kw">use </span>bmw_test::port::pick_free_port;
+	<span class="kw">use </span>bmw_test::<span class="kw-2">*</span>;
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_http_builder() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_dir = <span class="string">".test_http_builder.bmw"</span>;
+		setup_test_dir(test_dir)<span class="question-mark">?</span>;
+
 		<span class="kw">let </span>config = HttpConfig {
 			instances: <span class="macro">vec!</span>[HttpInstance {
 				port,
 				..Default::default()
 			}],
+			base_dir: test_dir.to_string(),
 			..Default::default()
 		};
 		<span class="kw">let </span><span class="kw-2">mut </span>server = Builder::build_http_server(<span class="kw-2">&amp;</span>config)<span class="question-mark">?</span>;
 		server.start()<span class="question-mark">?</span>;
+
+		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
+
 		<span class="prelude-val">Ok</span>(())
 	}
 }
