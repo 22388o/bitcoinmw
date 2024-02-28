@@ -577,7 +577,7 @@ impl HttpClientImpl {
 					}
 
 					// the request is complete
-					let mut resp: Box<dyn HttpResponse + Send + Sync> = Box::new(response);
+					let mut resp: Box<dyn HttpResponse + Send + Sync> = Box::new(response.clone());
 					let req_clone = req.clone();
 					pop_count += 1;
 					handler(&req_clone, &mut resp)?;
@@ -587,10 +587,16 @@ impl HttpClientImpl {
 					if close_on_complete {
 						let _ = conn_data.write_handle().close();
 					}
+					let _ = response
+						.http_content_reader_data
+						.clear(slab_allocator, config.tmp_file_dir());
 					break;
 				} else if val == usize::MAX {
 					debug!("invalid request. close conn and return.")?;
 					let _ = conn_data.write_handle().close();
+					let _ = response
+						.http_content_reader_data
+						.clear(slab_allocator, config.tmp_file_dir());
 					return Ok(pop_count);
 				} else {
 					let start = itt + line_len + 2;
@@ -606,6 +612,9 @@ impl HttpClientImpl {
 						itt += val + line_len + 4; // for '\r\n' twice
 					} else {
 						// not enough data, return for now
+						let _ = response
+							.http_content_reader_data
+							.clear(slab_allocator, config.tmp_file_dir());
 						return Ok(pop_count);
 					}
 				}
@@ -613,6 +622,11 @@ impl HttpClientImpl {
 		} else {
 			if response.start_content + response.content_length > res_len {
 				debug!("not enough data yet")?;
+
+				let _ = response
+					.http_content_reader_data
+					.clear(slab_allocator, config.tmp_file_dir());
+
 				return Ok(pop_count);
 			}
 			// we have the data.
@@ -622,13 +636,19 @@ impl HttpClientImpl {
 
 			response.http_content_reader_data.extend(
 				&res[start..end],
-				slab_allocator,
+				slab_allocator.clone(),
 				config.tmp_file_dir(),
 			)?;
-			let mut resp: Box<dyn HttpResponse + Send + Sync> = Box::new(response);
+			let mut resp: Box<dyn HttpResponse + Send + Sync> = Box::new(response.clone());
 			pop_count += 1;
 			handler(req, &mut resp)?;
 			clear_point = end;
+			if close_on_complete {
+				let _ = conn_data.write_handle().close();
+			}
+			let _ = response
+				.http_content_reader_data
+				.clear(slab_allocator, config.tmp_file_dir());
 		}
 
 		// we processed data so we need to clear some slabs
