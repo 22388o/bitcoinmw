@@ -137,6 +137,14 @@
 <a href="#136" id="136">136</a>
 <a href="#137" id="137">137</a>
 <a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -163,7 +171,7 @@
 	<span class="kw">use </span>bmw_test::<span class="kw-2">*</span>;
 	<span class="kw">use </span>std::collections::HashMap;
 	<span class="kw">use </span>std::fs::File;
-	<span class="kw">use </span>std::io::Write;
+	<span class="kw">use </span>std::io::{Read, Write};
 
 	<span class="macro">debug!</span>();
 
@@ -213,10 +221,9 @@
 		<span class="macro">http_client_init!</span>(BaseDir(test_dir))<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>request = <span class="macro">http_client_request!</span>(Url(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"{}/foo.html"</span>, addr)))<span class="question-mark">?</span>;
+		<span class="kw">let </span>response = <span class="macro">http_client_send!</span>(request)<span class="question-mark">?</span>;
 
-		<span class="kw">let </span><span class="kw-2">mut </span>response = <span class="macro">http_client_send!</span>(request)<span class="question-mark">?</span>;
 		<span class="kw">let </span>headers = response.headers()<span class="question-mark">?</span>;
-
 		<span class="macro">assert_eq!</span>(response.code().unwrap(), <span class="number">200</span>);
 
 		<span class="kw">let </span><span class="kw-2">mut </span>found_server = <span class="bool-val">false</span>;
@@ -265,10 +272,19 @@
 		<span class="macro">assert!</span>(found_etag);
 		<span class="macro">assert!</span>(found_transfer_encoding);
 
-		<span class="macro">assert_eq!</span>(
-			std::str::from_utf8(<span class="kw-2">&amp;</span>response.content().unwrap()).unwrap(),
-			<span class="string">"Hello test World!"
-		</span>);
+		<span class="kw">let </span><span class="kw-2">mut </span>hcr = response.content_reader()<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">1_000</span>];
+		<span class="kw">let </span><span class="kw-2">mut </span>content = <span class="macro">vec!</span>[];
+		<span class="kw">loop </span>{
+			<span class="kw">let </span>len = hcr.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+			<span class="kw">if </span>len == <span class="number">0 </span>{
+				<span class="kw">break</span>;
+			}
+			content.extend(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len]);
+		}
+		<span class="kw">let </span>content = std::str::from_utf8(<span class="kw-2">&amp;</span>content).unwrap();
+
+		<span class="macro">assert_eq!</span>(content, <span class="string">"Hello test World!"</span>);
 
 		tear_down_server(http)<span class="question-mark">?</span>;
 

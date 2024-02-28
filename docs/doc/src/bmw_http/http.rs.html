@@ -3453,6 +3453,8 @@
 <a href="#3452" id="3452">3452</a>
 <a href="#3453" id="3453">3453</a>
 <a href="#3454" id="3454">3454</a>
+<a href="#3455" id="3455">3455</a>
+<a href="#3456" id="3456">3456</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -3981,7 +3983,7 @@
 	}
 }
 
-<span class="kw">impl </span>HttpContentReader&lt;<span class="lifetime">'_</span>&gt; {
+<span class="kw">impl </span>HttpContentReader {
 	<span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
 		<span class="self">Self </span>{
 			content_allocator: <span class="prelude-val">None</span>,
@@ -3991,7 +3993,7 @@
 	}
 }
 
-<span class="kw">impl </span>Read <span class="kw">for </span>HttpContentReader&lt;<span class="lifetime">'_</span>&gt; {
+<span class="kw">impl </span>Read <span class="kw">for </span>HttpContentReader {
 	<span class="kw">fn </span>read(<span class="kw-2">&amp;mut </span><span class="self">self</span>, buf: <span class="kw-2">&amp;mut </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;usize, std::io::Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>total = <span class="number">0</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>rem = buf.len();
@@ -6000,8 +6002,9 @@
 															ctx.content_allocator.clone(),
 														),
 														http_content_reader_data: <span class="prelude-val">Some</span>(
-															<span class="kw-2">&amp;mut </span>http_connection_data
-																.http_content_reader_data,
+															http_connection_data
+																.http_content_reader_data
+																.clone(),
 														),
 														tmp_file_dir: config.tmp_file_dir(),
 													};
@@ -6042,8 +6045,9 @@
 																	ctx.content_allocator.clone(),
 																),
 																http_content_reader_data: <span class="prelude-val">Some</span>(
-																	<span class="kw-2">&amp;mut </span>http_connection_data
-																		.http_content_reader_data,
+																	http_connection_data
+																		.http_content_reader_data
+																		.clone(),
 																),
 																tmp_file_dir: config.tmp_file_dir(),
 															};

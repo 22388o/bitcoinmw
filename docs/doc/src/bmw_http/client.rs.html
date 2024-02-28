@@ -1367,7 +1367,6 @@
 <span class="kw">use </span>std::cell::RefCell;
 <span class="kw">use </span>std::collections::{HashMap, VecDeque};
 <span class="kw">use </span>std::fs::{canonicalize, create_dir_all};
-<span class="kw">use </span>std::io::Read;
 <span class="kw">use </span>std::net::TcpStream;
 <span class="kw">use </span>std::path::PathBuf;
 <span class="kw">use </span>std::str::from_utf8;
@@ -1563,15 +1562,8 @@
 		<span class="kw">let </span>config2 = config.clone();
 		<span class="kw">let </span>config3 = config.clone();
 		<span class="kw">let </span>config4 = config.clone();
-		<span class="kw">let </span>content_allocator_clone = content_allocator.clone();
 		evh.set_on_read(<span class="kw">move </span>|conn_data, ctx, attach| {
-			<span class="self">Self</span>::process_on_read(
-				<span class="kw-2">&amp;</span>config,
-				conn_data,
-				ctx,
-				attach,
-				content_allocator_clone.clone(),
-			)
+			<span class="self">Self</span>::process_on_read(<span class="kw-2">&amp;</span>config, conn_data, ctx, attach, content_allocator.clone())
 		})<span class="question-mark">?</span>;
 		evh.set_on_accept(<span class="kw">move </span>|conn_data, ctx| <span class="self">Self</span>::process_on_accept(<span class="kw-2">&amp;</span>config2, conn_data, ctx))<span class="question-mark">?</span>;
 		evh.set_on_close(<span class="kw">move </span>|conn_data, ctx| <span class="self">Self</span>::process_on_close(<span class="kw-2">&amp;</span>config3, conn_data, ctx))<span class="question-mark">?</span>;
@@ -1584,7 +1576,6 @@
 
 		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
 			controller: evh.event_handler_controller()<span class="question-mark">?</span>,
-			content_allocator,
 		})
 	}
 
@@ -1913,7 +1904,7 @@
 					}
 
 					<span class="comment">// the request is complete
-					</span><span class="kw">let </span><span class="kw-2">mut </span>resp: Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt; = Box::new(response);
+					</span><span class="kw">let </span><span class="kw-2">mut </span>resp: Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt; = Box::new(response.clone());
 					<span class="kw">let </span>req_clone = req.clone();
 					pop_count += <span class="number">1</span>;
 					handler(<span class="kw-2">&amp;</span>req_clone, <span class="kw-2">&amp;mut </span>resp)<span class="question-mark">?</span>;
@@ -1923,10 +1914,16 @@
 					<span class="kw">if </span>close_on_complete {
 						<span class="kw">let _ </span>= conn_data.write_handle().close();
 					}
+					<span class="kw">let _ </span>= response
+						.http_content_reader_data
+						.clear(slab_allocator, config.tmp_file_dir());
 					<span class="kw">break</span>;
 				} <span class="kw">else if </span>val == usize::MAX {
 					<span class="macro">debug!</span>(<span class="string">"invalid request. close conn and return."</span>)<span class="question-mark">?</span>;
 					<span class="kw">let _ </span>= conn_data.write_handle().close();
+					<span class="kw">let _ </span>= response
+						.http_content_reader_data
+						.clear(slab_allocator, config.tmp_file_dir());
 					<span class="kw">return </span><span class="prelude-val">Ok</span>(pop_count);
 				} <span class="kw">else </span>{
 					<span class="kw">let </span>start = itt + line_len + <span class="number">2</span>;
@@ -1942,13 +1939,21 @@
 						itt += val + line_len + <span class="number">4</span>; <span class="comment">// for '\r\n' twice
 					</span>} <span class="kw">else </span>{
 						<span class="comment">// not enough data, return for now
-						</span><span class="kw">return </span><span class="prelude-val">Ok</span>(pop_count);
+						</span><span class="kw">let _ </span>= response
+							.http_content_reader_data
+							.clear(slab_allocator, config.tmp_file_dir());
+						<span class="kw">return </span><span class="prelude-val">Ok</span>(pop_count);
 					}
 				}
 			}
 		} <span class="kw">else </span>{
 			<span class="kw">if </span>response.start_content + response.content_length &gt; res_len {
 				<span class="macro">debug!</span>(<span class="string">"not enough data yet"</span>)<span class="question-mark">?</span>;
+
+				<span class="kw">let _ </span>= response
+					.http_content_reader_data
+					.clear(slab_allocator, config.tmp_file_dir());
+
 				<span class="kw">return </span><span class="prelude-val">Ok</span>(pop_count);
 			}
 			<span class="comment">// we have the data.
@@ -1958,13 +1963,19 @@
 
 			response.http_content_reader_data.extend(
 				<span class="kw-2">&amp;</span>res[start..end],
-				slab_allocator,
+				slab_allocator.clone(),
 				config.tmp_file_dir(),
 			)<span class="question-mark">?</span>;
-			<span class="kw">let </span><span class="kw-2">mut </span>resp: Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt; = Box::new(response);
+			<span class="kw">let </span><span class="kw-2">mut </span>resp: Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt; = Box::new(response.clone());
 			pop_count += <span class="number">1</span>;
 			handler(req, <span class="kw-2">&amp;mut </span>resp)<span class="question-mark">?</span>;
 			clear_point = end;
+			<span class="kw">if </span>close_on_complete {
+				<span class="kw">let _ </span>= conn_data.write_handle().close();
+			}
+			<span class="kw">let _ </span>= response
+				.http_content_reader_data
+				.clear(slab_allocator, config.tmp_file_dir());
 		}
 
 		<span class="comment">// we processed data so we need to clear some slabs
@@ -2167,28 +2178,6 @@
 }
 
 <span class="kw">impl </span>HttpResponse <span class="kw">for </span>HttpResponseImpl {
-	<span class="kw">fn </span>content(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, Error&gt; {
-		<span class="self">self</span>.http_content_reader_data.read_slab = <span class="self">self</span>.http_content_reader_data.head_slab;
-		<span class="self">self</span>.http_content_reader_data.read_offset = <span class="number">0</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>binding = <span class="self">self</span>.http_content_reader_data.clone();
-		<span class="kw">let </span>binding2 = <span class="self">self</span>.content_allocator.clone();
-		<span class="kw">let </span><span class="kw-2">mut </span>hcr = HttpContentReader {
-			http_content_reader_data: <span class="prelude-val">Some</span>(<span class="kw-2">&amp;mut </span>binding),
-			content_allocator: <span class="prelude-val">Some</span>(binding2),
-			tmp_file_dir: <span class="self">self</span>.tmp_file_dir.clone(),
-		};
-
-		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">1_000</span>];
-		<span class="kw">let </span><span class="kw-2">mut </span>ret = <span class="macro">vec!</span>[];
-		<span class="kw">loop </span>{
-			<span class="kw">let </span>len = hcr.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
-			<span class="kw">if </span>len == <span class="number">0 </span>{
-				<span class="kw">break</span>;
-			}
-			ret.extend(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len]);
-		}
-		<span class="prelude-val">Ok</span>(ret)
-	}
 	<span class="kw">fn </span>headers(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>Vec&lt;(String, String)&gt;, Error&gt; {
 		<span class="prelude-val">Ok</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.headers)
 	}
@@ -2205,11 +2194,15 @@
 		<span class="prelude-val">Ok</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.version)
 	}
 
-	<span class="kw">fn </span>content_reader&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>, hcr: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>HttpContentReader&lt;<span class="lifetime">'a</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		hcr.http_content_reader_data = <span class="prelude-val">Some</span>(<span class="kw-2">&amp;mut </span><span class="self">self</span>.http_content_reader_data);
+	<span class="kw">fn </span>content_reader(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;HttpContentReader, Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>ncontent_reader = <span class="self">self</span>.http_content_reader_data.clone();
+		ncontent_reader.read_slab = <span class="self">self</span>.http_content_reader_data.head_slab;
+		ncontent_reader.read_offset = <span class="number">0</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>hcr = HttpContentReader::new();
+		hcr.http_content_reader_data = <span class="prelude-val">Some</span>(ncontent_reader);
 		hcr.content_allocator = <span class="prelude-val">Some</span>(<span class="self">self</span>.content_allocator.clone());
 		hcr.tmp_file_dir = <span class="self">self</span>.tmp_file_dir.clone();
-		<span class="prelude-val">Ok</span>(())
+		<span class="prelude-val">Ok</span>(hcr)
 	}
 }
 
@@ -2238,9 +2231,8 @@
 </span><span class="kw">mod </span>test {
 	<span class="kw">use </span><span class="kw">crate</span>::types::{HttpClientImpl, HttpRequestImpl};
 	<span class="kw">use crate</span>::{
-		Builder, HttpClient, HttpClientConfig, HttpConfig, HttpConnectionConfig, HttpContentReader,
-		HttpInstance, HttpInstanceType, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion,
-		PlainConfig,
+		Builder, HttpClient, HttpClientConfig, HttpConfig, HttpConnectionConfig, HttpInstance,
+		HttpInstanceType, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion, PlainConfig,
 	};
 	<span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
@@ -2250,7 +2242,6 @@
 	<span class="kw">use </span>std::fs::File;
 	<span class="kw">use </span>std::io::Read;
 	<span class="kw">use </span>std::io::Write;
-	<span class="kw">use </span>std::str::from_utf8;
 	<span class="kw">use </span>std::thread::sleep;
 	<span class="kw">use </span>std::time::Duration;
 
@@ -2307,32 +2298,25 @@
 
 		<span class="kw">let </span>handler1 = Box::pin(
 			<span class="kw">move </span>|request: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
-			      response: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
+			      response: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
 				<span class="macro">info!</span>(<span class="string">"in handler1,request.guid={}"</span>, request.guid())<span class="question-mark">?</span>;
 				<span class="kw">if </span>request == <span class="kw-2">&amp;</span>http_client_request1_clone {
 					<span class="kw">let </span>guid = request.guid();
-					<span class="kw">let </span>content = response.content()<span class="question-mark">?</span>;
-					<span class="kw">let </span>content = from_utf8(<span class="kw-2">&amp;</span>content).unwrap_or(<span class="string">"utf8_err"</span>);
-					<span class="macro">info!</span>(<span class="string">"recv req 1: '{}',guid={}"</span>, content, guid)<span class="question-mark">?</span>;
+					<span class="macro">assert_eq!</span>(guid, http_client_request1_clone.guid());
 
-					<span class="comment">/*
-					let mut hcr = HttpContentReader::new();
-					response.content_reader(&amp;mut hcr)?;
-
-					let mut buf = [0u8; 1_000];
-					let mut content = vec![];
-					loop {
-						let len = hcr.read(&amp;mut buf)?;
-						if len == 0 {
-							break;
+					<span class="kw">let </span><span class="kw-2">mut </span>hcr = response.content_reader()<span class="question-mark">?</span>;
+					<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">1_000</span>];
+					<span class="kw">let </span><span class="kw-2">mut </span>content = <span class="macro">vec!</span>[];
+					<span class="kw">loop </span>{
+						<span class="kw">let </span>len = hcr.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+						<span class="kw">if </span>len == <span class="number">0 </span>{
+							<span class="kw">break</span>;
 						}
-						content.extend(&amp;buf[0..len]);
+						content.extend(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len]);
 					}
+					<span class="kw">let </span>content = std::str::from_utf8(<span class="kw-2">&amp;</span>content).unwrap();
 
-					let content = std::str::from_utf8(&amp;content).unwrap();
-										*/
-
-					</span><span class="macro">assert_eq!</span>(content, data_text);
+					<span class="macro">assert_eq!</span>(content, data_text);
 
 					<span class="kw">let </span>headers = response.headers()<span class="question-mark">?</span>;
 
@@ -2367,7 +2351,7 @@
 		<span class="kw">let </span>found404_clone = found404.clone();
 		<span class="kw">let </span>handler2 = Box::pin(
 			<span class="kw">move </span>|_request: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
-			      response: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
+			      response: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
 				<span class="macro">info!</span>(<span class="string">"got response should be 404!"</span>)<span class="question-mark">?</span>;
 				<span class="macro">assert_eq!</span>(response.code()<span class="question-mark">?</span>, <span class="number">404</span>);
 				<span class="kw">let </span><span class="kw-2">mut </span>found404 = found404.wlock()<span class="question-mark">?</span>;
@@ -2487,12 +2471,20 @@
 
 		<span class="kw">let </span>handler1 = Box::pin(
 			<span class="kw">move </span>|request: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
-			      response: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
+			      response: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
 				<span class="macro">info!</span>(<span class="string">"in handler1,request.guid={}"</span>, request.guid())<span class="question-mark">?</span>;
 				<span class="kw">if </span>request == <span class="kw-2">&amp;</span>http_client_request1_clone {
-					<span class="kw">let </span>content = response.content()<span class="question-mark">?</span>;
-					<span class="kw">let </span>content = from_utf8(<span class="kw-2">&amp;</span>content).unwrap_or(<span class="string">"utf8_err"</span>);
-					<span class="macro">info!</span>(<span class="string">"recv req 1: '{}'"</span>, content)<span class="question-mark">?</span>;
+					<span class="kw">let </span><span class="kw-2">mut </span>hcr = response.content_reader()<span class="question-mark">?</span>;
+					<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">1_000</span>];
+					<span class="kw">let </span><span class="kw-2">mut </span>content = <span class="macro">vec!</span>[];
+					<span class="kw">loop </span>{
+						<span class="kw">let </span>len = hcr.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+						<span class="kw">if </span>len == <span class="number">0 </span>{
+							<span class="kw">break</span>;
+						}
+						content.extend(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len]);
+					}
+					<span class="kw">let </span>content = std::str::from_utf8(<span class="kw-2">&amp;</span>content).unwrap();
 					<span class="macro">assert_eq!</span>(content, data_text);
 
 					<span class="kw">let </span>headers = response.headers()<span class="question-mark">?</span>;
@@ -2544,7 +2536,7 @@
 		<span class="kw">let </span>found_another_file_clone = found_another_file.clone();
 		<span class="kw">let </span>handler2 = Box::pin(
 			<span class="kw">move </span>|request: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
-			      response: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
+			      response: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
 				<span class="kw">if </span>request == <span class="kw-2">&amp;</span>http_client_request3_clone {
 					<span class="macro">info!</span>(<span class="string">"got response should be 404!"</span>)<span class="question-mark">?</span>;
 					<span class="macro">assert_eq!</span>(response.code()<span class="question-mark">?</span>, <span class="number">404</span>);
@@ -2553,9 +2545,17 @@
 					<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>guard, <span class="bool-val">false</span>);
 					(<span class="kw-2">**</span>guard) = <span class="bool-val">true</span>;
 				} <span class="kw">else if </span>request == <span class="kw-2">&amp;</span>http_client_request2_clone {
-					<span class="kw">let </span>content = response.content()<span class="question-mark">?</span>;
-					<span class="kw">let </span>content = from_utf8(<span class="kw-2">&amp;</span>content).unwrap_or(<span class="string">"utf8_err"</span>);
-					<span class="macro">info!</span>(<span class="string">"recv req 1: '{}'"</span>, content)<span class="question-mark">?</span>;
+					<span class="kw">let </span><span class="kw-2">mut </span>hcr = response.content_reader()<span class="question-mark">?</span>;
+					<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">1_000</span>];
+					<span class="kw">let </span><span class="kw-2">mut </span>content = <span class="macro">vec!</span>[];
+					<span class="kw">loop </span>{
+						<span class="kw">let </span>len = hcr.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+						<span class="kw">if </span>len == <span class="number">0 </span>{
+							<span class="kw">break</span>;
+						}
+						content.extend(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len]);
+					}
+					<span class="kw">let </span>content = std::str::from_utf8(<span class="kw-2">&amp;</span>content).unwrap();
 					<span class="macro">assert_eq!</span>(content, data_text2);
 
 					<span class="kw">let </span>headers = response.headers()<span class="question-mark">?</span>;

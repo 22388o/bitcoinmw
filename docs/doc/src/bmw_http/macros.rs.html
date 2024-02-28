@@ -571,6 +571,45 @@
 <a href="#570" id="570">570</a>
 <a href="#571" id="571">571</a>
 <a href="#572" id="572">572</a>
+<a href="#573" id="573">573</a>
+<a href="#574" id="574">574</a>
+<a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
+<a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
+<a href="#583" id="583">583</a>
+<a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
+<a href="#590" id="590">590</a>
+<a href="#591" id="591">591</a>
+<a href="#592" id="592">592</a>
+<a href="#593" id="593">593</a>
+<a href="#594" id="594">594</a>
+<a href="#595" id="595">595</a>
+<a href="#596" id="596">596</a>
+<a href="#597" id="597">597</a>
+<a href="#598" id="598">598</a>
+<a href="#599" id="599">599</a>
+<a href="#600" id="600">600</a>
+<a href="#601" id="601">601</a>
+<a href="#602" id="602">602</a>
+<a href="#603" id="603">603</a>
+<a href="#604" id="604">604</a>
+<a href="#605" id="605">605</a>
+<a href="#606" id="606">606</a>
+<a href="#607" id="607">607</a>
+<a href="#608" id="608">608</a>
+<a href="#609" id="609">609</a>
+<a href="#610" id="610">610</a>
+<a href="#611" id="611">611</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -771,7 +810,7 @@
 					<span class="kw">let </span>(tx, rx) = std::sync::mpsc::sync_channel(<span class="number">1</span>);
 					<span class="kw">let </span>handler = Box::pin(
 						<span class="kw">move </span>|_request: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
-						      response: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
+						      response: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
 							<span class="kw">match </span>tx.send(response.clone()) {
 								<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
 								<span class="prelude-val">Err</span>(e) =&gt; {
@@ -808,7 +847,7 @@
 					<span class="prelude-val">Some</span>(http_client) =&gt; {
 						<span class="kw">let </span>handler = Box::pin(
 							<span class="kw">move </span>|request: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
-							      response: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
+							      response: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
 								bmw_http::HTTP_CLIENT_CONTEXT.with(|f| {
 									<span class="kw-2">*</span>f.borrow_mut() =
 										<span class="prelude-val">Some</span>(((<span class="kw-2">*</span>request).clone(), (<span class="kw-2">*</span>response).clone()));
@@ -857,7 +896,7 @@
 	(<span class="macro-nonterminal">$requests</span>:expr, <span class="macro-nonterminal">$connection</span>:expr, <span class="macro-nonterminal">$handler</span>:expr) =&gt; {{
 		<span class="kw">let </span>handler = Box::pin(
 			<span class="kw">move </span>|request: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
-			      response: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
+			      response: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
 				bmw_http::HTTP_CLIENT_CONTEXT.with(|f| {
 					<span class="kw-2">*</span>f.borrow_mut() = <span class="prelude-val">Some</span>(((<span class="kw-2">*</span>request).clone(), (<span class="kw-2">*</span>response).clone()));
 				});
@@ -976,7 +1015,7 @@
 	<span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
 	<span class="kw">use </span>std::collections::HashMap;
 	<span class="kw">use </span>std::fs::File;
-	<span class="kw">use </span>std::io::Write;
+	<span class="kw">use </span>std::io::{Read, Write};
 	<span class="kw">use </span>std::thread::sleep;
 	<span class="kw">use </span>std::time::Duration;
 
@@ -1032,15 +1071,25 @@
 		<span class="kw">let </span>data_clone = data.clone();
 
 		<span class="macro">http_client_send!</span>([request1, request2], {
-			<span class="kw">let </span><span class="kw-2">mut </span>response = <span class="macro">http_client_response!</span>()<span class="question-mark">?</span>;
+			<span class="kw">let </span>response = <span class="macro">http_client_response!</span>()<span class="question-mark">?</span>;
 			<span class="kw">let </span>request = <span class="macro">http_client_request!</span>()<span class="question-mark">?</span>;
 
 			<span class="kw">if </span>guid1 == request.guid() {
 				<span class="macro">assert_eq!</span>(response.code().unwrap_or(u16::MAX), <span class="number">200</span>);
-				<span class="macro">assert_eq!</span>(
-					std::str::from_utf8(<span class="kw-2">&amp;</span>response.content()<span class="question-mark">?</span>).unwrap_or(<span class="string">"utf8err"</span>),
-					data_text.to_string()
-				);
+
+				<span class="kw">let </span><span class="kw-2">mut </span>hcr = response.content_reader()<span class="question-mark">?</span>;
+				<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">1_000</span>];
+				<span class="kw">let </span><span class="kw-2">mut </span>content = <span class="macro">vec!</span>[];
+				<span class="kw">loop </span>{
+					<span class="kw">let </span>len = hcr.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+					<span class="kw">if </span>len == <span class="number">0 </span>{
+						<span class="kw">break</span>;
+					}
+					content.extend(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len]);
+				}
+				<span class="kw">let </span>content = std::str::from_utf8(<span class="kw-2">&amp;</span>content).unwrap();
+
+				<span class="macro">assert_eq!</span>(content.to_string(), data_text.to_string());
 			} <span class="kw">else if </span>guid2 == request.guid() {
 				<span class="macro">assert_eq!</span>(response.code().unwrap_or(u16::MAX), <span class="number">404</span>);
 			} <span class="kw">else </span>{
@@ -1082,7 +1131,7 @@
 
 		<span class="kw">let </span><span class="kw-2">mut </span>connection = <span class="macro">http_connection!</span>(Tls(<span class="bool-val">false</span>), Host(<span class="string">"127.0.0.1"</span>), Port(port))<span class="question-mark">?</span>;
 		<span class="macro">http_client_send!</span>([request3], connection, {
-			<span class="kw">let </span><span class="kw-2">mut </span>response = <span class="macro">http_client_response!</span>()<span class="question-mark">?</span>;
+			<span class="kw">let </span>response = <span class="macro">http_client_response!</span>()<span class="question-mark">?</span>;
 			<span class="kw">let </span>request = <span class="macro">http_client_request!</span>()<span class="question-mark">?</span>;
 
 			<span class="macro">assert_eq!</span>(request3_guid, request.guid());
@@ -1090,10 +1139,19 @@
 
 			<span class="macro">wlock!</span>(resp_count) += <span class="number">1</span>;
 
-			<span class="macro">info!</span>(
-				<span class="string">"http_conn response = '{}'"</span>,
-				std::str::from_utf8(<span class="kw-2">&amp;</span>response.content().unwrap_or(<span class="macro">vec!</span>[])).unwrap_or(<span class="string">"utf8err"</span>)
-			)<span class="question-mark">?</span>;
+			<span class="kw">let </span><span class="kw-2">mut </span>hcr = response.content_reader()<span class="question-mark">?</span>;
+			<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">1_000</span>];
+			<span class="kw">let </span><span class="kw-2">mut </span>content = <span class="macro">vec!</span>[];
+			<span class="kw">loop </span>{
+				<span class="kw">let </span>len = hcr.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+				<span class="kw">if </span>len == <span class="number">0 </span>{
+					<span class="kw">break</span>;
+				}
+				content.extend(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len]);
+			}
+			<span class="kw">let </span>content = std::str::from_utf8(<span class="kw-2">&amp;</span>content).unwrap();
+
+			<span class="macro">info!</span>(<span class="string">"http_conn response = '{}'"</span>, content)<span class="question-mark">?</span>;
 
 			<span class="prelude-val">Ok</span>(())
 		})<span class="question-mark">?</span>;
@@ -1102,7 +1160,7 @@
 		<span class="kw">let </span>request4_guid = request4.guid();
 
 		<span class="macro">http_client_send!</span>([request4], connection, {
-			<span class="kw">let </span><span class="kw-2">mut </span>response = <span class="macro">http_client_response!</span>()<span class="question-mark">?</span>;
+			<span class="kw">let </span>response = <span class="macro">http_client_response!</span>()<span class="question-mark">?</span>;
 			<span class="kw">let </span>request = <span class="macro">http_client_request!</span>()<span class="question-mark">?</span>;
 
 			<span class="macro">assert_eq!</span>(request4_guid, request.guid());
@@ -1110,10 +1168,19 @@
 
 			<span class="macro">wlock!</span>(resp_count_clone) += <span class="number">1</span>;
 
-			<span class="macro">info!</span>(
-				<span class="string">"http_conn response = '{}'"</span>,
-				std::str::from_utf8(<span class="kw-2">&amp;</span>response.content().unwrap_or(<span class="macro">vec!</span>[])).unwrap_or(<span class="string">"utf8err"</span>)
-			)<span class="question-mark">?</span>;
+			<span class="kw">let </span><span class="kw-2">mut </span>hcr = response.content_reader()<span class="question-mark">?</span>;
+			<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">1_000</span>];
+			<span class="kw">let </span><span class="kw-2">mut </span>content = <span class="macro">vec!</span>[];
+			<span class="kw">loop </span>{
+				<span class="kw">let </span>len = hcr.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+				<span class="kw">if </span>len == <span class="number">0 </span>{
+					<span class="kw">break</span>;
+				}
+				content.extend(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len]);
+			}
+			<span class="kw">let </span>content = std::str::from_utf8(<span class="kw-2">&amp;</span>content).unwrap();
+
+			<span class="macro">info!</span>(<span class="string">"http_conn response = '{}'"</span>, content)<span class="question-mark">?</span>;
 
 			<span class="prelude-val">Ok</span>(())
 		})<span class="question-mark">?</span>;
@@ -1131,13 +1198,24 @@
 		}
 
 		<span class="kw">let </span>request5 = <span class="macro">http_client_request!</span>(Url(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"http://{}:{}/foo.html"</span>, addr, port)))<span class="question-mark">?</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>response = <span class="macro">http_client_send!</span>(request5)<span class="question-mark">?</span>;
+		<span class="kw">let </span>response = <span class="macro">http_client_send!</span>(request5)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>response_code = response.code().unwrap_or(u16::MAX);
-		<span class="kw">let </span>rc = response.content().unwrap();
-		<span class="kw">let </span>response_content = std::str::from_utf8(<span class="kw-2">&amp;</span>rc).unwrap();
+
+		<span class="kw">let </span><span class="kw-2">mut </span>hcr = response.content_reader()<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">1_000</span>];
+		<span class="kw">let </span><span class="kw-2">mut </span>content = <span class="macro">vec!</span>[];
+		<span class="kw">loop </span>{
+			<span class="kw">let </span>len = hcr.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+			<span class="kw">if </span>len == <span class="number">0 </span>{
+				<span class="kw">break</span>;
+			}
+			content.extend(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len]);
+		}
+		<span class="kw">let </span>content = std::str::from_utf8(<span class="kw-2">&amp;</span>content).unwrap();
+
 		<span class="macro">assert_eq!</span>(response_code, <span class="number">200</span>);
-		<span class="macro">assert_eq!</span>(response_content, <span class="string">"Hello Macro World!"</span>);
+		<span class="macro">assert_eq!</span>(content, <span class="string">"Hello Macro World!"</span>);
 
 		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
