@@ -305,10 +305,45 @@ impl HttpConnectionData {
 
 	pub(crate) fn clear(
 		&mut self,
+		content_allocator: Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>,
+		tmp_file_dir: PathBuf,
+	) -> Result<(), Error> {
+		self.http_content_reader_data
+			.clear(content_allocator, tmp_file_dir)
+	}
+
+	pub(crate) fn extend(
+		&mut self,
+		buf: &[u8],
+		content_allocator: Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>,
+		tmp_file_dir: PathBuf,
+	) -> Result<(), Error> {
+		self.http_content_reader_data
+			.extend(buf, content_allocator, tmp_file_dir)
+	}
+}
+
+impl HttpContentReaderData {
+	pub(crate) fn new() -> Self {
+		Self {
+			read_slab: usize::MAX,
+			read_offset: 0,
+			head_slab: usize::MAX,
+			tail_slab: usize::MAX,
+			read_cumulative: 0,
+			offset: 0,
+			len: 0,
+			content_offset: 0,
+			file_id: None,
+		}
+	}
+
+	pub(crate) fn clear(
+		&mut self,
 		mut content_allocator: Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>,
 		tmp_file_dir: PathBuf,
 	) -> Result<(), Error> {
-		let mut ptr = self.http_content_reader_data.head_slab;
+		let mut ptr = self.head_slab;
 		match content_allocator.wlock() {
 			Ok(mut content_allocator) => {
 				let content_allocator = content_allocator.guard();
@@ -338,14 +373,14 @@ impl HttpConnectionData {
 			}
 		}
 
-		self.http_content_reader_data.len = 0;
-		self.http_content_reader_data.head_slab = usize::MAX;
-		self.http_content_reader_data.tail_slab = usize::MAX;
-		self.http_content_reader_data.read_slab = usize::MAX;
-		self.http_content_reader_data.read_cumulative = 0;
-		self.http_content_reader_data.read_offset = 0;
+		self.len = 0;
+		self.head_slab = usize::MAX;
+		self.tail_slab = usize::MAX;
+		self.read_slab = usize::MAX;
+		self.read_cumulative = 0;
+		self.read_offset = 0;
 
-		match self.http_content_reader_data.file_id {
+		match self.file_id {
 			Some(file_id) => {
 				let mut tmp_file_dir = tmp_file_dir.clone();
 				tmp_file_dir.push(format!("{}.tmp", file_id));
@@ -365,34 +400,34 @@ impl HttpConnectionData {
 	) -> Result<(), Error> {
 		let mut rem = buf.len();
 		let mut itt = 0;
-		self.http_content_reader_data.len += rem;
+		self.len += rem;
 		let mut old_tail: Option<(usize, usize)> = None;
 
 		match content_allocator.wlock() {
 			Ok(mut content_allocator) => {
 				let content_allocator = content_allocator.guard();
 				loop {
-					if self.http_content_reader_data.file_id.is_some() {
+					if self.file_id.is_some() {
 						break;
 					}
 					let mut slab;
 					let slab_buf;
-					let offset = self.http_content_reader_data.offset as usize;
-					if self.http_content_reader_data.tail_slab == usize::MAX {
+					let offset = self.offset as usize;
+					if self.tail_slab == usize::MAX {
 						let slabres = (**content_allocator).allocate();
 						if slabres.is_err() {
 							break;
 						}
 						// unwrap ok because we checked errs above
 						slab = slabres.unwrap();
-						self.http_content_reader_data.tail_slab = slab.id();
-						self.http_content_reader_data.head_slab = slab.id();
+						self.tail_slab = slab.id();
+						self.head_slab = slab.id();
 						slab_buf = slab.get_mut();
 						usize_to_slice(
 							usize::MAX,
 							&mut slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_SIZE],
 						)?;
-						self.http_content_reader_data.offset = 0;
+						self.offset = 0;
 					} else {
 						if offset >= CONTENT_SLAB_DATA_SIZE {
 							let slabres = (**content_allocator).allocate();
@@ -401,18 +436,17 @@ impl HttpConnectionData {
 							}
 							// unwrap ok because we checked errs above
 							slab = slabres.unwrap();
-							self.http_content_reader_data.offset = 0;
+							self.offset = 0;
 							let slab_id = slab.id();
 							slab_buf = slab.get_mut();
 							usize_to_slice(
 								usize::MAX,
 								&mut slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_SIZE],
 							)?;
-							old_tail = Some((self.http_content_reader_data.tail_slab, slab_id));
-							self.http_content_reader_data.tail_slab = slab_id;
+							old_tail = Some((self.tail_slab, slab_id));
+							self.tail_slab = slab_id;
 						} else {
-							slab = (**content_allocator)
-								.get_mut(self.http_content_reader_data.tail_slab)?;
+							slab = (**content_allocator).get_mut(self.tail_slab)?;
 							slab_buf = slab.get_mut();
 						}
 					}
@@ -425,9 +459,9 @@ impl HttpConnectionData {
 					slab_buf[offset..offset + wlen].copy_from_slice(&buf[itt..itt + wlen]);
 					rem = rem.saturating_sub(wlen);
 					itt += wlen;
-					self.http_content_reader_data.offset += wlen as u16;
-					if usize::from(self.http_content_reader_data.offset) >= slab_buf.len() {
-						self.http_content_reader_data.offset = 0;
+					self.offset += wlen as u16;
+					if usize::from(self.offset) >= slab_buf.len() {
+						self.offset = 0;
 					}
 
 					match old_tail {
@@ -461,7 +495,7 @@ impl HttpConnectionData {
 
 		if rem > 0 {
 			// we could not allocate slabs so write to file
-			let file_path = match self.http_content_reader_data.file_id {
+			let file_path = match self.file_id {
 				Some(file_id) => {
 					let mut path_buf = tmp_file_dir.clone();
 					path_buf.push(format!("{}.tmp", file_id));
@@ -469,7 +503,7 @@ impl HttpConnectionData {
 				}
 				None => {
 					let file_id: u128 = random();
-					self.http_content_reader_data.file_id = Some(file_id);
+					self.file_id = Some(file_id);
 					let mut path_buf = tmp_file_dir.clone();
 					path_buf.push(format!("{}.tmp", file_id));
 					let path = path_buf.display().to_string();
@@ -489,22 +523,6 @@ impl HttpConnectionData {
 		}
 
 		Ok(())
-	}
-}
-
-impl HttpContentReaderData {
-	pub(crate) fn new() -> Self {
-		Self {
-			read_slab: usize::MAX,
-			read_offset: 0,
-			head_slab: usize::MAX,
-			tail_slab: usize::MAX,
-			read_cumulative: 0,
-			offset: 0,
-			len: 0,
-			content_offset: 0,
-			file_id: None,
-		}
 	}
 }
 
