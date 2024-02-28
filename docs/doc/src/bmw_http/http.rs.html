@@ -3435,6 +3435,24 @@
 <a href="#3434" id="3434">3434</a>
 <a href="#3435" id="3435">3435</a>
 <a href="#3436" id="3436">3436</a>
+<a href="#3437" id="3437">3437</a>
+<a href="#3438" id="3438">3438</a>
+<a href="#3439" id="3439">3439</a>
+<a href="#3440" id="3440">3440</a>
+<a href="#3441" id="3441">3441</a>
+<a href="#3442" id="3442">3442</a>
+<a href="#3443" id="3443">3443</a>
+<a href="#3444" id="3444">3444</a>
+<a href="#3445" id="3445">3445</a>
+<a href="#3446" id="3446">3446</a>
+<a href="#3447" id="3447">3447</a>
+<a href="#3448" id="3448">3448</a>
+<a href="#3449" id="3449">3449</a>
+<a href="#3450" id="3450">3450</a>
+<a href="#3451" id="3451">3451</a>
+<a href="#3452" id="3452">3452</a>
+<a href="#3453" id="3453">3453</a>
+<a href="#3454" id="3454">3454</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -3742,10 +3760,45 @@
 
 	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>clear(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
+		content_allocator: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;&gt;&gt;,
+		tmp_file_dir: PathBuf,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="self">self</span>.http_content_reader_data
+			.clear(content_allocator, tmp_file_dir)
+	}
+
+	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>extend(
+		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
+		buf: <span class="kw-2">&amp;</span>[u8],
+		content_allocator: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;&gt;&gt;,
+		tmp_file_dir: PathBuf,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="self">self</span>.http_content_reader_data
+			.extend(buf, content_allocator, tmp_file_dir)
+	}
+}
+
+<span class="kw">impl </span>HttpContentReaderData {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new() -&gt; <span class="self">Self </span>{
+		<span class="self">Self </span>{
+			read_slab: usize::MAX,
+			read_offset: <span class="number">0</span>,
+			head_slab: usize::MAX,
+			tail_slab: usize::MAX,
+			read_cumulative: <span class="number">0</span>,
+			offset: <span class="number">0</span>,
+			len: <span class="number">0</span>,
+			content_offset: <span class="number">0</span>,
+			file_id: <span class="prelude-val">None</span>,
+		}
+	}
+
+	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>clear(
+		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		<span class="kw-2">mut </span>content_allocator: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;&gt;&gt;,
 		tmp_file_dir: PathBuf,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span><span class="kw-2">mut </span>ptr = <span class="self">self</span>.http_content_reader_data.head_slab;
+		<span class="kw">let </span><span class="kw-2">mut </span>ptr = <span class="self">self</span>.head_slab;
 		<span class="kw">match </span>content_allocator.wlock() {
 			<span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>content_allocator) =&gt; {
 				<span class="kw">let </span>content_allocator = content_allocator.guard();
@@ -3775,14 +3828,14 @@
 			}
 		}
 
-		<span class="self">self</span>.http_content_reader_data.len = <span class="number">0</span>;
-		<span class="self">self</span>.http_content_reader_data.head_slab = usize::MAX;
-		<span class="self">self</span>.http_content_reader_data.tail_slab = usize::MAX;
-		<span class="self">self</span>.http_content_reader_data.read_slab = usize::MAX;
-		<span class="self">self</span>.http_content_reader_data.read_cumulative = <span class="number">0</span>;
-		<span class="self">self</span>.http_content_reader_data.read_offset = <span class="number">0</span>;
+		<span class="self">self</span>.len = <span class="number">0</span>;
+		<span class="self">self</span>.head_slab = usize::MAX;
+		<span class="self">self</span>.tail_slab = usize::MAX;
+		<span class="self">self</span>.read_slab = usize::MAX;
+		<span class="self">self</span>.read_cumulative = <span class="number">0</span>;
+		<span class="self">self</span>.read_offset = <span class="number">0</span>;
 
-		<span class="kw">match </span><span class="self">self</span>.http_content_reader_data.file_id {
+		<span class="kw">match </span><span class="self">self</span>.file_id {
 			<span class="prelude-val">Some</span>(file_id) =&gt; {
 				<span class="kw">let </span><span class="kw-2">mut </span>tmp_file_dir = tmp_file_dir.clone();
 				tmp_file_dir.push(<span class="macro">format!</span>(<span class="string">"{}.tmp"</span>, file_id));
@@ -3802,34 +3855,34 @@
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>rem = buf.len();
 		<span class="kw">let </span><span class="kw-2">mut </span>itt = <span class="number">0</span>;
-		<span class="self">self</span>.http_content_reader_data.len += rem;
+		<span class="self">self</span>.len += rem;
 		<span class="kw">let </span><span class="kw-2">mut </span>old_tail: <span class="prelude-ty">Option</span>&lt;(usize, usize)&gt; = <span class="prelude-val">None</span>;
 
 		<span class="kw">match </span>content_allocator.wlock() {
 			<span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>content_allocator) =&gt; {
 				<span class="kw">let </span>content_allocator = content_allocator.guard();
 				<span class="kw">loop </span>{
-					<span class="kw">if </span><span class="self">self</span>.http_content_reader_data.file_id.is_some() {
+					<span class="kw">if </span><span class="self">self</span>.file_id.is_some() {
 						<span class="kw">break</span>;
 					}
 					<span class="kw">let </span><span class="kw-2">mut </span>slab;
 					<span class="kw">let </span>slab_buf;
-					<span class="kw">let </span>offset = <span class="self">self</span>.http_content_reader_data.offset <span class="kw">as </span>usize;
-					<span class="kw">if </span><span class="self">self</span>.http_content_reader_data.tail_slab == usize::MAX {
+					<span class="kw">let </span>offset = <span class="self">self</span>.offset <span class="kw">as </span>usize;
+					<span class="kw">if </span><span class="self">self</span>.tail_slab == usize::MAX {
 						<span class="kw">let </span>slabres = (<span class="kw-2">**</span>content_allocator).allocate();
 						<span class="kw">if </span>slabres.is_err() {
 							<span class="kw">break</span>;
 						}
 						<span class="comment">// unwrap ok because we checked errs above
 						</span>slab = slabres.unwrap();
-						<span class="self">self</span>.http_content_reader_data.tail_slab = slab.id();
-						<span class="self">self</span>.http_content_reader_data.head_slab = slab.id();
+						<span class="self">self</span>.tail_slab = slab.id();
+						<span class="self">self</span>.head_slab = slab.id();
 						slab_buf = slab.get_mut();
 						usize_to_slice(
 							usize::MAX,
 							<span class="kw-2">&amp;mut </span>slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_SIZE],
 						)<span class="question-mark">?</span>;
-						<span class="self">self</span>.http_content_reader_data.offset = <span class="number">0</span>;
+						<span class="self">self</span>.offset = <span class="number">0</span>;
 					} <span class="kw">else </span>{
 						<span class="kw">if </span>offset &gt;= CONTENT_SLAB_DATA_SIZE {
 							<span class="kw">let </span>slabres = (<span class="kw-2">**</span>content_allocator).allocate();
@@ -3838,18 +3891,17 @@
 							}
 							<span class="comment">// unwrap ok because we checked errs above
 							</span>slab = slabres.unwrap();
-							<span class="self">self</span>.http_content_reader_data.offset = <span class="number">0</span>;
+							<span class="self">self</span>.offset = <span class="number">0</span>;
 							<span class="kw">let </span>slab_id = slab.id();
 							slab_buf = slab.get_mut();
 							usize_to_slice(
 								usize::MAX,
 								<span class="kw-2">&amp;mut </span>slab_buf[CONTENT_SLAB_NEXT_OFFSET..CONTENT_SLAB_SIZE],
 							)<span class="question-mark">?</span>;
-							old_tail = <span class="prelude-val">Some</span>((<span class="self">self</span>.http_content_reader_data.tail_slab, slab_id));
-							<span class="self">self</span>.http_content_reader_data.tail_slab = slab_id;
+							old_tail = <span class="prelude-val">Some</span>((<span class="self">self</span>.tail_slab, slab_id));
+							<span class="self">self</span>.tail_slab = slab_id;
 						} <span class="kw">else </span>{
-							slab = (<span class="kw-2">**</span>content_allocator)
-								.get_mut(<span class="self">self</span>.http_content_reader_data.tail_slab)<span class="question-mark">?</span>;
+							slab = (<span class="kw-2">**</span>content_allocator).get_mut(<span class="self">self</span>.tail_slab)<span class="question-mark">?</span>;
 							slab_buf = slab.get_mut();
 						}
 					}
@@ -3862,9 +3914,9 @@
 					slab_buf[offset..offset + wlen].copy_from_slice(<span class="kw-2">&amp;</span>buf[itt..itt + wlen]);
 					rem = rem.saturating_sub(wlen);
 					itt += wlen;
-					<span class="self">self</span>.http_content_reader_data.offset += wlen <span class="kw">as </span>u16;
-					<span class="kw">if </span>usize::from(<span class="self">self</span>.http_content_reader_data.offset) &gt;= slab_buf.len() {
-						<span class="self">self</span>.http_content_reader_data.offset = <span class="number">0</span>;
+					<span class="self">self</span>.offset += wlen <span class="kw">as </span>u16;
+					<span class="kw">if </span>usize::from(<span class="self">self</span>.offset) &gt;= slab_buf.len() {
+						<span class="self">self</span>.offset = <span class="number">0</span>;
 					}
 
 					<span class="kw">match </span>old_tail {
@@ -3898,7 +3950,7 @@
 
 		<span class="kw">if </span>rem &gt; <span class="number">0 </span>{
 			<span class="comment">// we could not allocate slabs so write to file
-			</span><span class="kw">let </span>file_path = <span class="kw">match </span><span class="self">self</span>.http_content_reader_data.file_id {
+			</span><span class="kw">let </span>file_path = <span class="kw">match </span><span class="self">self</span>.file_id {
 				<span class="prelude-val">Some</span>(file_id) =&gt; {
 					<span class="kw">let </span><span class="kw-2">mut </span>path_buf = tmp_file_dir.clone();
 					path_buf.push(<span class="macro">format!</span>(<span class="string">"{}.tmp"</span>, file_id));
@@ -3906,7 +3958,7 @@
 				}
 				<span class="prelude-val">None </span>=&gt; {
 					<span class="kw">let </span>file_id: u128 = random();
-					<span class="self">self</span>.http_content_reader_data.file_id = <span class="prelude-val">Some</span>(file_id);
+					<span class="self">self</span>.file_id = <span class="prelude-val">Some</span>(file_id);
 					<span class="kw">let </span><span class="kw-2">mut </span>path_buf = tmp_file_dir.clone();
 					path_buf.push(<span class="macro">format!</span>(<span class="string">"{}.tmp"</span>, file_id));
 					<span class="kw">let </span>path = path_buf.display().to_string();
@@ -3926,22 +3978,6 @@
 		}
 
 		<span class="prelude-val">Ok</span>(())
-	}
-}
-
-<span class="kw">impl </span>HttpContentReaderData {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new() -&gt; <span class="self">Self </span>{
-		<span class="self">Self </span>{
-			read_slab: usize::MAX,
-			read_offset: <span class="number">0</span>,
-			head_slab: usize::MAX,
-			tail_slab: usize::MAX,
-			read_cumulative: <span class="number">0</span>,
-			offset: <span class="number">0</span>,
-			len: <span class="number">0</span>,
-			content_offset: <span class="number">0</span>,
-			file_id: <span class="prelude-val">None</span>,
-		}
 	}
 }
 
