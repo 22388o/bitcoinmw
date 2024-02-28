@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [ "$1" == "Schedule" ]; then
-	echo "Running a scheduled CI";
+if [ "$1" == "Schedule" ] || [ "$1" == "Manual" ]; then
+	echo "Running a scheduled/manual CI";
 	cd etc/evh_perf
 	cargo build --release
 	./target/release/evh_perf -e -c -i 100 --count 10 --clients 2 -t 10
