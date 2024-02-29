@@ -1329,6 +1329,16 @@
 <a href="#1328" id="1328">1328</a>
 <a href="#1329" id="1329">1329</a>
 <a href="#1330" id="1330">1330</a>
+<a href="#1331" id="1331">1331</a>
+<a href="#1332" id="1332">1332</a>
+<a href="#1333" id="1333">1333</a>
+<a href="#1334" id="1334">1334</a>
+<a href="#1335" id="1335">1335</a>
+<a href="#1336" id="1336">1336</a>
+<a href="#1337" id="1337">1337</a>
+<a href="#1338" id="1338">1338</a>
+<a href="#1339" id="1339">1339</a>
+<a href="#1340" id="1340">1340</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1353,7 +1363,8 @@
 };
 <span class="kw">use crate</span>::{
 	HttpClient, HttpClientConfig, HttpClientContainer, HttpConnection, HttpConnectionConfig,
-	HttpContentReader, HttpHandler, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion,
+	HttpContentReader, HttpHandler, HttpMethod, HttpRequest, HttpRequestConfig, HttpResponse,
+	HttpVersion,
 };
 <span class="kw">use </span>bmw_deps::dirs;
 <span class="kw">use </span>bmw_deps::lazy_static::lazy_static;
@@ -1434,6 +1445,8 @@
 			accept: <span class="string">"*/*"</span>.to_string(),
 			headers: <span class="macro">vec!</span>[],
 			timeout_millis: <span class="number">0</span>,
+			method: HttpMethod::GET,
+			version: HttpVersion::HTTP11,
 		}
 	}
 }
@@ -1457,9 +1470,11 @@
 		<span class="bool-val">false </span>=&gt; <span class="string">"close"</span>,
 	};
 
+	<span class="kw">let </span>method = request.method().to_string();
+	<span class="kw">let </span>version = request.version().to_string();
 	<span class="kw">let </span>req_str = <span class="macro">format!</span>(
-		<span class="string">"GET {} HTTP/1.1\r\nHost: {}\r\nUser-Agent: {}\r\nAccept: {}\r\nConnection: {}{}\r\n\r\n"</span>,
-		uri, addr, user_agent, accept, keep_alive, headers_str
+		<span class="string">"{} {} {}\r\nHost: {}\r\nUser-Agent: {}\r\nAccept: {}\r\nConnection: {}{}\r\n\r\n"</span>,
+		method, uri, version, addr, user_agent, accept, keep_alive, headers_str
 	);
 
 	wh.write(req_str.as_bytes())<span class="question-mark">?</span>;
@@ -2164,9 +2179,14 @@
 	<span class="kw">fn </span>accept(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>String {
 		<span class="kw-2">&amp;</span><span class="self">self</span>.config.accept
 	}
-
 	<span class="kw">fn </span>headers(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Vec&lt;(String, String)&gt; {
 		<span class="kw-2">&amp;</span><span class="self">self</span>.config.headers
+	}
+	<span class="kw">fn </span>method(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>HttpMethod {
+		<span class="kw-2">&amp;</span><span class="self">self</span>.config.method
+	}
+	<span class="kw">fn </span>version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>HttpVersion {
+		<span class="kw-2">&amp;</span><span class="self">self</span>.config.version
 	}
 	<span class="kw">fn </span>timeout_millis(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u64 {
 		<span class="self">self</span>.config.timeout_millis

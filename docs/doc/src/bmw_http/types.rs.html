@@ -498,6 +498,14 @@
 <a href="#497" id="497">497</a>
 <a href="#498" id="498">498</a>
 <a href="#499" id="499">499</a>
+<a href="#500" id="500">500</a>
+<a href="#501" id="501">501</a>
+<a href="#502" id="502">502</a>
+<a href="#503" id="503">503</a>
+<a href="#504" id="504">504</a>
+<a href="#505" id="505">505</a>
+<a href="#506" id="506">506</a>
+<a href="#507" id="507">507</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -528,7 +536,7 @@
 <span class="kw">use </span>std::path::PathBuf;
 <span class="kw">use </span>std::pin::Pin;
 
-<span class="attr">#[derive(Debug, PartialEq)]
+<span class="attr">#[derive(Debug, PartialEq, Clone)]
 </span><span class="kw">pub enum </span>HttpMethod {
 	GET,
 	POST,
@@ -757,6 +765,8 @@
 	<span class="kw">fn </span>user_agent(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>String;
 	<span class="kw">fn </span>accept(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>String;
 	<span class="kw">fn </span>headers(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Vec&lt;(String, String)&gt;;
+	<span class="kw">fn </span>method(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>HttpMethod;
+	<span class="kw">fn </span>version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>HttpVersion;
 	<span class="kw">fn </span>timeout_millis(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u64;
 	<span class="kw">fn </span>guid(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u128;
 }
@@ -823,6 +833,8 @@
 	<span class="kw">pub </span>accept: String,
 	<span class="kw">pub </span>headers: Vec&lt;(String, String)&gt;,
 	<span class="kw">pub </span>timeout_millis: u64,
+	<span class="kw">pub </span>method: HttpMethod,
+	<span class="kw">pub </span>version: HttpVersion,
 }
 
 <span class="kw">pub struct </span>HttpClientContainer {}
@@ -859,6 +871,10 @@
 	<span class="doccomment">/// Timeout in milliseconds for [`crate::http_client_request`]. Note: this may only be used
 	/// for synchronous requests.
 	</span>TimeoutMillis(u64),
+	<span class="doccomment">/// HttpMethod used in [`crate::http_client_request`].
+	</span>Method(HttpMethod),
+	<span class="doccomment">/// HttpVersion used in [`crate::http_client_request`].
+	</span>Version(HttpVersion),
 }
 
 <span class="comment">// Crate local types

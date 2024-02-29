@@ -3458,6 +3458,31 @@
 <a href="#3457" id="3457">3457</a>
 <a href="#3458" id="3458">3458</a>
 <a href="#3459" id="3459">3459</a>
+<a href="#3460" id="3460">3460</a>
+<a href="#3461" id="3461">3461</a>
+<a href="#3462" id="3462">3462</a>
+<a href="#3463" id="3463">3463</a>
+<a href="#3464" id="3464">3464</a>
+<a href="#3465" id="3465">3465</a>
+<a href="#3466" id="3466">3466</a>
+<a href="#3467" id="3467">3467</a>
+<a href="#3468" id="3468">3468</a>
+<a href="#3469" id="3469">3469</a>
+<a href="#3470" id="3470">3470</a>
+<a href="#3471" id="3471">3471</a>
+<a href="#3472" id="3472">3472</a>
+<a href="#3473" id="3473">3473</a>
+<a href="#3474" id="3474">3474</a>
+<a href="#3475" id="3475">3475</a>
+<a href="#3476" id="3476">3476</a>
+<a href="#3477" id="3477">3477</a>
+<a href="#3478" id="3478">3478</a>
+<a href="#3479" id="3479">3479</a>
+<a href="#3480" id="3480">3480</a>
+<a href="#3481" id="3481">3481</a>
+<a href="#3482" id="3482">3482</a>
+<a href="#3483" id="3483">3483</a>
+<a href="#3484" id="3484">3484</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -3504,6 +3529,7 @@
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
 <span class="kw">use </span>std::any::{type_name, Any};
 <span class="kw">use </span>std::collections::{HashMap, HashSet};
+<span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::fs::{create_dir_all, metadata, remove_file, File, Metadata, OpenOptions};
 <span class="kw">use </span>std::io::{BufReader, Read, Seek, SeekFrom, Write};
 <span class="kw">use </span>std::path::{Component, Path, PathBuf};
@@ -3523,6 +3549,21 @@
 	} <span class="kw">else </span>{
 		<span class="prelude-val">None
 	</span>}
+}
+
+<span class="kw">impl </span>fmt::Display <span class="kw">for </span><span class="kw-2">&amp;</span>HttpMethod {
+	<span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter) -&gt; fmt::Result {
+		<span class="macro">write!</span>(f, <span class="string">"{:?}"</span>, <span class="self">self</span>)
+	}
+}
+
+<span class="kw">impl </span>fmt::Display <span class="kw">for </span><span class="kw-2">&amp;</span>HttpVersion {
+	<span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter) -&gt; fmt::Result {
+		<span class="kw">match </span><span class="self">self </span>{
+			HttpVersion::HTTP11 =&gt; <span class="macro">write!</span>(f, <span class="string">"HTTP/1.1"</span>),
+			<span class="kw">_ </span>=&gt; <span class="macro">write!</span>(f, <span class="string">"HTTP/1.0"</span>),
+		}
+	}
 }
 
 <span class="kw">impl </span>Default <span class="kw">for </span>HttpHeader {
@@ -6323,9 +6364,18 @@
 
 		evh.set_on_read(<span class="kw">move </span>|conn_data, ctx, attach| {
 			<span class="macro">debug!</span>(<span class="string">"in evh on_read handler, ctx.tid={}"</span>, conn_data.tid())<span class="question-mark">?</span>;
-			<span class="kw">let </span>ret = <span class="self">Self</span>::process_on_read(<span class="kw-2">&amp;</span>config, cache.clone(), conn_data, ctx, attach);
+			<span class="kw">match </span><span class="self">Self</span>::process_on_read(<span class="kw-2">&amp;</span>config, cache.clone(), conn_data, ctx, attach) {
+				<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
+				<span class="prelude-val">Err</span>(e) =&gt; <span class="kw">match </span>e.kind() {
+					<span class="comment">// supress the i/o error messages because they are normal. Just
+					// a closed connection
+					</span>ErrorKind::IO(<span class="kw">_</span>) =&gt; <span class="macro">debug!</span>(<span class="string">"I/O error occurred: {}"</span>, e)<span class="question-mark">?</span>,
+					<span class="comment">// display other errors
+					</span><span class="kw">_ </span>=&gt; <span class="macro">warn!</span>(<span class="string">"non I/O error occurred: {}"</span>, e)<span class="question-mark">?</span>,
+				},
+			}
 			<span class="macro">debug!</span>(<span class="string">"evh handler complete"</span>)<span class="question-mark">?</span>;
-			ret
+			<span class="prelude-val">Ok</span>(())
 		})<span class="question-mark">?</span>;
 		evh.set_on_accept(<span class="kw">move </span>|conn_data, ctx| <span class="self">Self</span>::process_on_accept(conn_data, ctx, <span class="kw-2">&amp;</span>config2))<span class="question-mark">?</span>;
 		evh.set_on_close(<span class="kw">move </span>|conn_data, ctx| <span class="self">Self</span>::process_on_close(conn_data, ctx, <span class="kw-2">&amp;</span>config3))<span class="question-mark">?</span>;

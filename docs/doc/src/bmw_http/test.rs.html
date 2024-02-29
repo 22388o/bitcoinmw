@@ -287,6 +287,74 @@
 <a href="#286" id="286">286</a>
 <a href="#287" id="287">287</a>
 <a href="#288" id="288">288</a>
+<a href="#289" id="289">289</a>
+<a href="#290" id="290">290</a>
+<a href="#291" id="291">291</a>
+<a href="#292" id="292">292</a>
+<a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
+<a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
+<a href="#328" id="328">328</a>
+<a href="#329" id="329">329</a>
+<a href="#330" id="330">330</a>
+<a href="#331" id="331">331</a>
+<a href="#332" id="332">332</a>
+<a href="#333" id="333">333</a>
+<a href="#334" id="334">334</a>
+<a href="#335" id="335">335</a>
+<a href="#336" id="336">336</a>
+<a href="#337" id="337">337</a>
+<a href="#338" id="338">338</a>
+<a href="#339" id="339">339</a>
+<a href="#340" id="340">340</a>
+<a href="#341" id="341">341</a>
+<a href="#342" id="342">342</a>
+<a href="#343" id="343">343</a>
+<a href="#344" id="344">344</a>
+<a href="#345" id="345">345</a>
+<a href="#346" id="346">346</a>
+<a href="#347" id="347">347</a>
+<a href="#348" id="348">348</a>
+<a href="#349" id="349">349</a>
+<a href="#350" id="350">350</a>
+<a href="#351" id="351">351</a>
+<a href="#352" id="352">352</a>
+<a href="#353" id="353">353</a>
+<a href="#354" id="354">354</a>
+<a href="#355" id="355">355</a>
+<a href="#356" id="356">356</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -312,6 +380,7 @@
 	<span class="kw">use </span>bmw_http::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_test::<span class="kw-2">*</span>;
+	<span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
 	<span class="kw">use </span>std::collections::{HashMap, HashSet};
 	<span class="kw">use </span>std::fs::File;
 	<span class="kw">use </span>std::io::{Read, Write};
@@ -368,10 +437,10 @@
 			base_dir: directory.to_string(),
 			server_name: <span class="string">"bitcoinmwtest"</span>.to_string(),
 			server_version: <span class="string">"test1"</span>.to_string(),
-			debug: <span class="bool-val">false</span>,
+			debug: <span class="bool-val">true</span>,
 			..Default::default()
 		};
-		<span class="kw">let </span><span class="kw-2">mut </span>http = Builder::build_http_server(<span class="kw-2">&amp;</span>config)<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>http = bmw_http::Builder::build_http_server(<span class="kw-2">&amp;</span>config)<span class="question-mark">?</span>;
 		http.start()<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>((port, http, directory))
 	}
@@ -384,8 +453,9 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_http_client_errors() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_http_client_closed_port"</span>;
+		<span class="kw">let </span>test_dir = <span class="string">".test_http_client_errors"</span>;
 		setup_test_dir(test_dir)<span class="question-mark">?</span>;
+
 		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
 		<span class="kw">let </span>url = <span class="macro">format!</span>(<span class="string">"http://127.0.0.1:{}/"</span>, port);
 
@@ -406,6 +476,12 @@
 		<span class="comment">// start a server
 		</span><span class="kw">let </span>http = build_server(test_dir)<span class="question-mark">?</span>;
 
+		<span class="kw">let </span>data_text = <span class="string">"Hello test World!"</span>;
+		{
+			<span class="kw">let </span><span class="kw-2">mut </span>file = File::create(<span class="macro">format!</span>(<span class="string">"{}/foo.html"</span>, test_dir))<span class="question-mark">?</span>;
+			file.write_all(data_text.as_bytes())<span class="question-mark">?</span>;
+		}
+
 		<span class="kw">let </span>request = <span class="macro">http_client_request!</span>(Uri(<span class="string">"/abc.html"</span>))<span class="question-mark">?</span>;
 		<span class="comment">// Uris can only be specified on a URL connection. A url must be specfied on
 		// http_client_sends without a connection that's already established.
@@ -422,7 +498,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>connection = <span class="macro">http_connection!</span>(Host(host), Port(port), Tls(<span class="bool-val">false</span>))<span class="question-mark">?</span>;
 		<span class="kw">let </span>request = <span class="macro">http_client_request!</span>(Uri(<span class="string">"/test.html"</span>))<span class="question-mark">?</span>;
 
-		<span class="comment">// can't send urls without a connection
+		<span class="comment">// can't send uris without a connection
 		</span><span class="macro">assert!</span>(<span class="macro">http_client_send!</span>(request.clone()).is_err());
 		<span class="macro">assert!</span>(<span class="macro">http_client_send!</span>([request], connection, {
 			<span class="macro">trace!</span>(<span class="string">"got response"</span>)<span class="question-mark">?</span>;
@@ -483,6 +559,66 @@
 		// set to 3 seconds.
 		</span><span class="macro">assert!</span>(<span class="macro">http_client_send!</span>(request).is_err());
 		<span class="macro">info!</span>(<span class="string">"error asserted correctly"</span>)<span class="question-mark">?</span>;
+
+		<span class="kw">let </span>request = <span class="macro">http_client_request!</span>(
+			Url(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"http://localhost:{}/foo.html"</span>, port)),
+			Method(HttpMethod::GET)
+		)<span class="question-mark">?</span>;
+
+		<span class="kw">let </span>response = <span class="macro">http_client_send!</span>(request)<span class="question-mark">?</span>;
+		<span class="macro">assert_eq!</span>(response.code().unwrap(), <span class="number">200</span>);
+
+		<span class="comment">// now send a POST which will not be allowed (error code 405)
+		</span><span class="kw">let </span>request = <span class="macro">http_client_request!</span>(
+			Url(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"http://localhost:{}/foo.html"</span>, port)),
+			Method(HttpMethod::POST)
+		)<span class="question-mark">?</span>;
+
+		<span class="kw">let </span>response = <span class="macro">http_client_send!</span>(request)<span class="question-mark">?</span>;
+		<span class="macro">assert_eq!</span>(response.code().unwrap(), <span class="number">405</span>);
+
+		<span class="comment">// now use a post on the sleep callback (should succeed)
+		</span><span class="kw">let </span>request = <span class="macro">http_client_request!</span>(
+			Url(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"http://localhost:{}/sleep?time=1"</span>, port)),
+			Method(HttpMethod::POST)
+		)<span class="question-mark">?</span>;
+
+		<span class="kw">let </span>response = <span class="macro">http_client_send!</span>(request)<span class="question-mark">?</span>;
+		<span class="macro">assert_eq!</span>(response.code().unwrap(), <span class="number">200</span>);
+
+		<span class="kw">let </span>count = <span class="macro">lock_box!</span>(<span class="number">0</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>count_clone1 = count.clone();
+		<span class="kw">let </span><span class="kw-2">mut </span>count_clone2 = count.clone();
+		<span class="macro">info!</span>(<span class="string">"send request"</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>connection = <span class="macro">http_connection!</span>(Host(host), Port(port), Tls(<span class="bool-val">false</span>))<span class="question-mark">?</span>;
+		<span class="kw">let </span>request = <span class="macro">http_client_request!</span>(Uri(<span class="string">"/foo.html"</span>), Version(HttpVersion::HTTP11))<span class="question-mark">?</span>;
+		<span class="macro">http_client_send!</span>([request], connection, {
+			<span class="kw">let </span>response = <span class="macro">http_client_response!</span>()<span class="question-mark">?</span>;
+			<span class="macro">assert_eq!</span>(response.version().unwrap(), <span class="kw-2">&amp;</span>HttpVersion::HTTP11);
+			<span class="macro">info!</span>(<span class="string">"got response. version: {}"</span>, response.version().unwrap())<span class="question-mark">?</span>;
+			<span class="macro">wlock!</span>(count_clone1) += <span class="number">1</span>;
+			<span class="prelude-val">Ok</span>(())
+		})<span class="question-mark">?</span>;
+
+		<span class="kw">let </span>request = <span class="macro">http_client_request!</span>(Uri(<span class="string">"/test.html"</span>), Version(HttpVersion::HTTP10))<span class="question-mark">?</span>;
+		<span class="macro">http_client_send!</span>([request], connection, {
+			<span class="kw">let </span>response = <span class="macro">http_client_response!</span>()<span class="question-mark">?</span>;
+			<span class="macro">assert_eq!</span>(response.version().unwrap(), <span class="kw-2">&amp;</span>HttpVersion::HTTP10);
+			<span class="macro">info!</span>(<span class="string">"got response2. version: {}"</span>, response.version().unwrap())<span class="question-mark">?</span>;
+			<span class="macro">wlock!</span>(count_clone2) += <span class="number">1</span>;
+			<span class="prelude-val">Ok</span>(())
+		})<span class="question-mark">?</span>;
+
+		<span class="kw">let </span><span class="kw-2">mut </span>counter = <span class="number">0</span>;
+		<span class="kw">loop </span>{
+			sleep(Duration::from_millis(<span class="number">1</span>));
+			counter += <span class="number">1</span>;
+			<span class="kw">if </span>counter &gt; <span class="number">10_000 </span>|| <span class="macro">rlock!</span>(count) == <span class="number">2 </span>{
+				<span class="kw">break</span>;
+			}
+		}
+
+		<span class="macro">assert_eq!</span>(<span class="macro">rlock!</span>(count), <span class="number">2</span>);
 
 		tear_down_server(http)<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"tear down complete"</span>)<span class="question-mark">?</span>;
