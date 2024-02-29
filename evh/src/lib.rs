@@ -389,4 +389,7 @@ pub use crate::types::{
 	ServerConnection, ThreadContext, TlsClientConfig, TlsServerConfig, WriteHandle, WriteState,
 };
 
-pub use crate::evh::{close_handle, create_listeners, tcp_stream_to_handle, READ_SLAB_DATA_SIZE};
+pub use crate::evh::{
+	close_handle, create_listeners, tcp_stream_to_handle, READ_SLAB_DATA_SIZE,
+	READ_SLAB_NEXT_OFFSET, READ_SLAB_SIZE,
+};

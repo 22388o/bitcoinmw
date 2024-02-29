@@ -915,7 +915,6 @@ fn update_histo_vec(
 }
 
 fn main() -> Result<(), Error> {
-    a
 	let start = Instant::now();
 
 	global_slab_allocator!()?;

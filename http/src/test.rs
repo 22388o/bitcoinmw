@@ -96,7 +96,7 @@ mod test {
 
 	#[test]
 	fn test_http_client_errors() -> Result<(), Error> {
-		let test_dir = ".test_http_client_errors";
+		let test_dir = ".test_http_client_errors..bmw";
 		setup_test_dir(test_dir)?;
 
 		let port = pick_free_port()?;

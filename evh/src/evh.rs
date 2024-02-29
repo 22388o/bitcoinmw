@@ -79,8 +79,8 @@ use std::os::windows::io::{FromRawSocket, IntoRawSocket};
 /// READ_SLAB_DATA_SIZE (518 bytes).
 pub const READ_SLAB_DATA_SIZE: usize = 514;
 
-pub(crate) const READ_SLAB_SIZE: usize = 518;
-pub(crate) const READ_SLAB_NEXT_OFFSET: usize = 514;
+pub const READ_SLAB_SIZE: usize = 518;
+pub const READ_SLAB_NEXT_OFFSET: usize = 514;
 
 pub(crate) const HANDLE_SLAB_SIZE: usize = 42;
 pub(crate) const CONNECTION_SLAB_SIZE: usize = 98;
