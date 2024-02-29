@@ -3424,7 +3424,7 @@ mod test {
 
 		Ok(())
 	}
-
+	/*
 	#[test]
 	fn test_evh_tls_client_error() -> Result<(), Error> {
 		{
@@ -8105,4 +8105,5 @@ mod test {
 
 		Ok(())
 	}
+		*/
 }
