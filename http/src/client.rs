@@ -102,6 +102,7 @@ impl Default for HttpRequestConfig {
 			user_agent: format!("BitcoinMW/{}", built_info::PKG_VERSION.to_string()).to_string(),
 			accept: "*/*".to_string(),
 			headers: vec![],
+			timeout_millis: 0,
 		}
 	}
 }
@@ -835,6 +836,9 @@ impl HttpRequest for HttpRequestImpl {
 
 	fn headers(&self) -> &Vec<(String, String)> {
 		&self.config.headers
+	}
+	fn timeout_millis(&self) -> u64 {
+		self.config.timeout_millis
 	}
 	fn guid(&self) -> u128 {
 		self.guid

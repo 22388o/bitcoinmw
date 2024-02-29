@@ -71,7 +71,7 @@ macro_rules! http_client_init {
                                         if base_dir_specified {}
                                 },
                                 _ => {
-                                        error = Some(format!("'{:?}' is not allowed for http_client", $config));
+                                        error = Some(format!("'{:?}' is not allowed for http_client_init", $config));
                                 }
                         }
                 )*
@@ -102,6 +102,7 @@ macro_rules! http_client_request {
                 let mut request_uri_specified = false;
                 let mut user_agent_specified = false;
                 let mut accept_specified = false;
+                let mut timeout_millis_specified = false;
                 let mut error: Option<String> = None;
 
                 // to supress compiler warnings
@@ -111,10 +112,12 @@ macro_rules! http_client_request {
                 if request_uri_specified { request_uri_specified = false; }
                 if user_agent_specified { user_agent_specified = false; }
                 if accept_specified { accept_specified = false; }
+                if timeout_millis_specified { timeout_millis_specified = false; }
                 if request_url_specified {}
                 if request_uri_specified {}
                 if user_agent_specified {}
                 if accept_specified {}
+                if timeout_millis_specified {}
 
                 $(
                         match $config {
@@ -158,11 +161,21 @@ macro_rules! http_client_request {
                                         accept_specified = true;
                                         if accept_specified {}
                                 },
+                                bmw_http::ConfigOption::TimeoutMillis(millis) => {
+                                        config.timeout_millis = millis;
+
+                                        if timeout_millis_specified {
+
+                                        }
+
+                                        timeout_millis_specified = true;
+                                        if timeout_millis_specified {}
+                                },
                                 bmw_http::ConfigOption::Header((header_name, header_value)) => {
                                         config.headers.push((header_name.to_string(), header_value.to_string()));
                                 },
                                 _ => {
-                                        error = Some(format!("'{:?}' is not allowed for http_client", $config));
+                                        error = Some(format!("'{:?}' is not allowed for http_client_request", $config));
                                 }
                         }
                 )*
@@ -196,22 +209,61 @@ macro_rules! http_client_send {
 			Ok(mut container) => match (*container).get_mut(&std::thread::current().id()) {
 				Some(http_client) => {
 					let (tx, rx) = std::sync::mpsc::sync_channel(1);
+					let tx_clone = tx.clone();
 					let handler = Box::pin(
 						move |_request: &Box<dyn HttpRequest + Send + Sync>,
 						      response: &Box<dyn HttpResponse + Send + Sync>| {
-							match tx.send(response.clone()) {
+							let res: Result<Box<dyn HttpResponse + Send + Sync>, bmw_err::Error> =
+								Ok(response.clone());
+							match tx.send(res) {
 								Ok(_) => {}
-								Err(e) => {
-									let _ = warn!("tx.send generated error: {}", e);
+								Err(_) => {
+									// this probably means a
+									// timeout occurred
 								}
 							}
 							Ok(())
 						},
 					);
 
-					http_client.send($request, handler.clone())?;
-					let response = rx.recv()?;
-					Ok(response)
+					let timeout_millis = $request.timeout_millis();
+					if timeout_millis > 0 {
+						std::thread::spawn(move || {
+							let tx = tx_clone.clone();
+							std::thread::sleep(Duration::from_millis(timeout_millis));
+							match tx.send(Err(err!(
+								ErrKind::IO,
+								format!("timeout error: {} milliseconds expired", timeout_millis)
+							))) {
+								Ok(_) => {}
+								Err(_) => {
+									// this is ok because it means
+									// the channel is closed
+									// already due to a success
+								}
+							}
+						});
+					}
+
+					match http_client.send($request, handler.clone()) {
+						Ok(_) => match rx.recv() {
+							Ok(response) => match response {
+								Ok(response) => Ok(response),
+								Err(e) => Err(bmw_err::err!(
+									bmw_err::ErrKind::IO,
+									format!("timeout error: {}", e)
+								)),
+							},
+							Err(e) => Err(bmw_err::err!(
+								bmw_err::ErrKind::IO,
+								format!("recv_error: {}", e)
+							)),
+						},
+						Err(e) => Err(bmw_err::err!(
+							bmw_err::ErrKind::IO,
+							format!("http_client send failed: {}", e)
+						)),
+					}
 				}
 				None => Err(bmw_err::err!(
 					bmw_err::ErrKind::IllegalState,
@@ -368,7 +420,7 @@ macro_rules! http_connection {
                                         if tls_specified {}
                                 },
                                 _ => {
-                                        error = Some(format!("'{:?}' is not allowed for http_client", $config));
+                                        error = Some(format!("'{:?}' is not allowed for http_connection", $config));
                                 }
                         }
                 )*

@@ -2103,11 +2103,11 @@ impl HttpServerImpl {
 		)?;
 
 		match attachment {
-			Some(mut attachment) => {
-				let mut attachment = attachment.attachment.wlock()?;
+			Some(attachment) => {
+				let attachment = attachment.attachment.rlock()?;
 				let attachment = attachment.guard();
-				match (**attachment).downcast_mut::<HttpInstance>() {
-					Some(ref mut attachment) => {
+				match (**attachment).downcast_ref::<HttpInstance>() {
+					Some(ref attachment) => {
 						debug!("conn_data.tid={},att={:?}", conn_data.tid(), attachment)?;
 						let ctx = Self::build_ctx(ctx, config)?;
 						ctx.now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
@@ -2862,7 +2862,10 @@ impl HttpServer for HttpServerImpl {
 		let cache = self.cache.clone();
 
 		evh.set_on_read(move |conn_data, ctx, attach| {
-			Self::process_on_read(&config, cache.clone(), conn_data, ctx, attach)
+			debug!("in evh on_read handler, ctx.tid={}", conn_data.tid())?;
+			let ret = Self::process_on_read(&config, cache.clone(), conn_data, ctx, attach);
+			debug!("evh handler complete")?;
+			ret
 		})?;
 		evh.set_on_accept(move |conn_data, ctx| Self::process_on_accept(conn_data, ctx, &config2))?;
 		evh.set_on_close(move |conn_data, ctx| Self::process_on_close(conn_data, ctx, &config3))?;

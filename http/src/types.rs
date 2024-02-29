@@ -257,6 +257,7 @@ pub trait HttpRequest: DynClone + Any {
 	fn user_agent(&self) -> &String;
 	fn accept(&self) -> &String;
 	fn headers(&self) -> &Vec<(String, String)>;
+	fn timeout_millis(&self) -> u64;
 	fn guid(&self) -> u128;
 }
 
@@ -321,6 +322,7 @@ pub struct HttpRequestConfig {
 	pub user_agent: String,
 	pub accept: String,
 	pub headers: Vec<(String, String)>,
+	pub timeout_millis: u64,
 }
 
 pub struct HttpClientContainer {}
@@ -354,6 +356,9 @@ pub enum ConfigOption<'a> {
 	Tls(bool),
 	/// Base directory for the [`crate::HttpClient`]. The default value is `~/.bitcoinmw`.
 	BaseDir(&'a str),
+	/// Timeout in milliseconds for [`crate::http_client_request`]. Note: this may only be used
+	/// for synchronous requests.
+	TimeoutMillis(u64),
 }
 
 // Crate local types
