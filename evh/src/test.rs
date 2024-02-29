@@ -67,17 +67,24 @@ mod test {
 		let mut wakeup = Wakeup::new()?;
 		let wakeup_clone = wakeup.clone();
 
+		let (tx, rx) = sync_channel(1);
+
 		std::thread::spawn(move || -> Result<(), Error> {
 			let mut wakeup = wakeup_clone;
 			{
 				let wakeup_clone = wakeup.clone();
 
+				let mut count = 0;
 				loop {
 					let len;
 
-					sleep(Duration::from_millis(100));
 					{
 						let (_requested, _lock) = wakeup.pre_block()?;
+
+						if count == 0 {
+							tx.send(())?;
+						}
+						count += 1;
 						let mut buffer = [0u8; 1];
 						info!("reader = {}", wakeup_clone.reader)?;
 						info!("writer = {}", wakeup_clone.writer)?;
@@ -87,8 +94,10 @@ mod test {
 							break;
 						}
 					}
+					sleep(Duration::from_millis(1));
 				}
 			}
+
 			wakeup.post_block()?;
 
 			let mut check = check_clone.wlock()?;
@@ -97,7 +106,7 @@ mod test {
 			Ok(())
 		});
 
-		sleep(Duration::from_millis(10_000));
+		rx.recv()?;
 		wakeup.wakeup()?;
 
 		let mut count = 0;
