@@ -378,6 +378,7 @@ mod linux;
 #[cfg(target_os = "macos")]
 mod mac;
 mod macros;
+mod test;
 mod types;
 #[cfg(windows)]
 mod win;

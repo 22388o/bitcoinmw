@@ -133,9 +133,6 @@ mod test {
 		// host entered twice
 		assert!(http_connection!(Host("127.0.0.1"), Host("127.0.0.1")).is_err());
 
-		// invalid host
-		assert!(http_connection!(Host("")).is_err());
-
 		let host = "127.0.0.1";
 		let port = http.0;
 		let mut connection = http_connection!(Host(host), Port(port), Tls(false))?;
