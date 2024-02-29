@@ -22,7 +22,8 @@ use crate::types::{
 };
 use crate::{
 	HttpClient, HttpClientConfig, HttpClientContainer, HttpConnection, HttpConnectionConfig,
-	HttpContentReader, HttpHandler, HttpRequest, HttpRequestConfig, HttpResponse, HttpVersion,
+	HttpContentReader, HttpHandler, HttpMethod, HttpRequest, HttpRequestConfig, HttpResponse,
+	HttpVersion,
 };
 use bmw_deps::dirs;
 use bmw_deps::lazy_static::lazy_static;
@@ -103,6 +104,7 @@ impl Default for HttpRequestConfig {
 			accept: "*/*".to_string(),
 			headers: vec![],
 			timeout_millis: 0,
+			method: HttpMethod::GET,
 		}
 	}
 }
@@ -126,9 +128,10 @@ fn do_send(
 		false => "close",
 	};
 
+	let method = request.method().to_string();
 	let req_str = format!(
-		"GET {} HTTP/1.1\r\nHost: {}\r\nUser-Agent: {}\r\nAccept: {}\r\nConnection: {}{}\r\n\r\n",
-		uri, addr, user_agent, accept, keep_alive, headers_str
+		"{} {} HTTP/1.1\r\nHost: {}\r\nUser-Agent: {}\r\nAccept: {}\r\nConnection: {}{}\r\n\r\n",
+		method, uri, addr, user_agent, accept, keep_alive, headers_str
 	);
 
 	wh.write(req_str.as_bytes())?;
@@ -833,9 +836,11 @@ impl HttpRequest for HttpRequestImpl {
 	fn accept(&self) -> &String {
 		&self.config.accept
 	}
-
 	fn headers(&self) -> &Vec<(String, String)> {
 		&self.config.headers
+	}
+	fn method(&self) -> &HttpMethod {
+		&self.config.method
 	}
 	fn timeout_millis(&self) -> u64 {
 		self.config.timeout_millis

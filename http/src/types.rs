@@ -28,7 +28,7 @@ use std::fmt;
 use std::path::PathBuf;
 use std::pin::Pin;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum HttpMethod {
 	GET,
 	POST,
@@ -257,6 +257,7 @@ pub trait HttpRequest: DynClone + Any {
 	fn user_agent(&self) -> &String;
 	fn accept(&self) -> &String;
 	fn headers(&self) -> &Vec<(String, String)>;
+	fn method(&self) -> &HttpMethod;
 	fn timeout_millis(&self) -> u64;
 	fn guid(&self) -> u128;
 }
@@ -323,6 +324,7 @@ pub struct HttpRequestConfig {
 	pub accept: String,
 	pub headers: Vec<(String, String)>,
 	pub timeout_millis: u64,
+	pub method: HttpMethod,
 }
 
 pub struct HttpClientContainer {}
@@ -359,6 +361,8 @@ pub enum ConfigOption<'a> {
 	/// Timeout in milliseconds for [`crate::http_client_request`]. Note: this may only be used
 	/// for synchronous requests.
 	TimeoutMillis(u64),
+	/// HttpMethod used in [`crate::http_client_request`].
+	Method(HttpMethod),
 }
 
 // Crate local types

@@ -95,8 +95,9 @@ mod test {
 
 	#[test]
 	fn test_http_client_errors() -> Result<(), Error> {
-		let test_dir = ".test_http_client_closed_port";
+		let test_dir = ".test_http_client_errors";
 		setup_test_dir(test_dir)?;
+
 		let port = pick_free_port()?;
 		let url = format!("http://127.0.0.1:{}/", port);
 
@@ -116,6 +117,12 @@ mod test {
 
 		// start a server
 		let http = build_server(test_dir)?;
+
+		let data_text = "Hello test World!";
+		{
+			let mut file = File::create(format!("{}/foo.html", test_dir))?;
+			file.write_all(data_text.as_bytes())?;
+		}
 
 		let request = http_client_request!(Uri("/abc.html"))?;
 		// Uris can only be specified on a URL connection. A url must be specfied on
@@ -194,6 +201,32 @@ mod test {
 		// set to 3 seconds.
 		assert!(http_client_send!(request).is_err());
 		info!("error asserted correctly")?;
+
+		let request = http_client_request!(
+			Url(&format!("http://localhost:{}/foo.html", port)),
+			Method(HttpMethod::GET)
+		)?;
+
+		let response = http_client_send!(request)?;
+		assert_eq!(response.code().unwrap(), 200);
+
+		// now send a POST which will not be allowed (error code 405)
+		let request = http_client_request!(
+			Url(&format!("http://localhost:{}/foo.html", port)),
+			Method(HttpMethod::POST)
+		)?;
+
+		let response = http_client_send!(request)?;
+		assert_eq!(response.code().unwrap(), 405);
+
+		// now use a post on the sleep callback (should succeed)
+		let request = http_client_request!(
+			Url(&format!("http://localhost:{}/sleep?time=1", port)),
+			Method(HttpMethod::POST)
+		)?;
+
+		let response = http_client_send!(request)?;
+		assert_eq!(response.code().unwrap(), 200);
 
 		tear_down_server(http)?;
 		info!("tear down complete")?;

@@ -103,6 +103,7 @@ macro_rules! http_client_request {
                 let mut user_agent_specified = false;
                 let mut accept_specified = false;
                 let mut timeout_millis_specified = false;
+                let mut method_specified = false;
                 let mut error: Option<String> = None;
 
                 // to supress compiler warnings
@@ -113,11 +114,13 @@ macro_rules! http_client_request {
                 if user_agent_specified { user_agent_specified = false; }
                 if accept_specified { accept_specified = false; }
                 if timeout_millis_specified { timeout_millis_specified = false; }
+                if method_specified { method_specified = false; }
                 if request_url_specified {}
                 if request_uri_specified {}
                 if user_agent_specified {}
                 if accept_specified {}
                 if timeout_millis_specified {}
+                if method_specified {}
 
                 $(
                         match $config {
@@ -170,6 +173,16 @@ macro_rules! http_client_request {
 
                                         timeout_millis_specified = true;
                                         if timeout_millis_specified {}
+                                },
+                                bmw_http::ConfigOption::Method(method) => {
+                                        config.method = method;
+
+                                        if method_specified {
+
+                                        }
+
+                                        method_specified = true;
+                                        if method_specified {}
                                 },
                                 bmw_http::ConfigOption::Header((header_name, header_value)) => {
                                         config.headers.push((header_name.to_string(), header_value.to_string()));

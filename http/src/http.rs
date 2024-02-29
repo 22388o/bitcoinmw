@@ -44,6 +44,7 @@ use bmw_log::*;
 use bmw_util::*;
 use std::any::{type_name, Any};
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 use std::fs::{create_dir_all, metadata, remove_file, File, Metadata, OpenOptions};
 use std::io::{BufReader, Read, Seek, SeekFrom, Write};
 use std::path::{Component, Path, PathBuf};
@@ -62,6 +63,12 @@ fn rfind_utf8(s: &str, chr: char) -> Option<usize> {
 		Some(s.chars().count() - rev_pos - 1)
 	} else {
 		None
+	}
+}
+
+impl fmt::Display for &HttpMethod {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "{:?}", self)
 	}
 }
 
