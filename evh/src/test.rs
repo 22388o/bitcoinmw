@@ -97,16 +97,23 @@ mod test {
 			Ok(())
 		});
 
-		sleep(Duration::from_millis(300));
+		sleep(Duration::from_millis(10_000));
 		wakeup.wakeup()?;
 
+		let mut count = 0;
 		loop {
+			count += 1;
+			if count > 10_000 {
+				break;
+			}
 			sleep(Duration::from_millis(1));
 			let check = check.rlock()?;
 			if **(check).guard() == 1 {
 				break;
 			}
 		}
+
+		assert_eq!(rlock!(check), 1);
 		Ok(())
 	}
 
