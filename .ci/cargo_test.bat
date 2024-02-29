@@ -1,4 +1,5 @@
 @echo OFF
+systeminfo |find "Available Physical Memory"
 git show --summary | findstr "Author" | findstr "Pipelines-Bot" > tmp.txt
 set /p VAR11=<tmp.txt
 IF "%VAR11%" equ "" (
