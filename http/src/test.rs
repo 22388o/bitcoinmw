@@ -63,7 +63,7 @@ mod test {
 
 		let config = HttpConfig {
 			evh_config: EventHandlerConfig {
-				threads: 20,
+				threads: 1,
 				..Default::default()
 			},
 			instances: vec![HttpInstance {
@@ -150,6 +150,17 @@ mod test {
 		.is_err());
 
 		let request = http_client_request!(
+			Url(&format!("http://localhost:{}/sleep?time=3000", port)),
+			TimeoutMillis(10_000)
+		)?;
+
+		// this request is ok because timeout is 10 seconds, but response happens in 3 seconds
+		info!("sending request should respond in 3 seconds")?;
+		let response = http_client_send!(request)?;
+		info!("got response")?;
+		assert_eq!(response.code().unwrap(), 200);
+
+		let request = http_client_request!(
 			Url(&format!("http://localhost:{}/sleep?time=10000", port)),
 			TimeoutMillis(3_000)
 		)?;
@@ -159,17 +170,6 @@ mod test {
 		// set to 3 seconds.
 		assert!(http_client_send!(request).is_err());
 		info!("error asserted correctly")?;
-
-		let request = http_client_request!(
-			Url(&format!("http://localhost:{}/sleep?time=3000", port)),
-			TimeoutMillis(10_000)
-		)?;
-
-		// the inverse is ok because timeout is 10 seconds, but response happens in 3 seconds
-		info!("sending request should respond in 3 seconds")?;
-		let response = http_client_send!(request)?;
-		info!("got response")?;
-		assert_eq!(response.code().unwrap(), 200);
 
 		tear_down_server(http)?;
 		info!("tear down complete")?;
