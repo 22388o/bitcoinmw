@@ -299,11 +299,20 @@ macro_rules! http_client_send {
 						);
 
 						for request in $requests {
-							match http_client.send(request, handler.clone()) {
-								Ok(_) => {}
-								Err(e) => {
-									err_vec.push(e);
-								}
+							match request.timeout_millis() != 0 {
+								true => {
+                                                                        err_vec.push(
+                                                                            bmw_err::err!(
+                                                                                bmw_err::ErrKind::IllegalState,
+                                                                                "cannot set timeout for a request that is not synchronous")
+                                                                            );
+                                                                }
+								false => match http_client.send(request, handler.clone()) {
+									Ok(_) => {}
+									Err(e) => {
+										err_vec.push(e);
+									}
+								},
 							}
 						}
 					}
@@ -348,12 +357,22 @@ macro_rules! http_client_send {
 
 		let mut err_vec = vec![];
 		for request in $requests {
-			match $connection.send(request, handler.clone()) {
-				Ok(_) => {}
-				Err(e) => {
-					err_vec.push(e);
-				}
-			}
+                        match request.timeout_millis() != 0 {
+                                true => {
+                                        err_vec.push(
+                                                bmw_err::err!(
+                                                        bmw_err::ErrKind::IllegalState,
+                                                        "cannot set timeout for a request that is not synchronous"
+                                                )
+                                        );
+                                }
+                                false => match $connection.send(request, handler.clone()) {
+				        Ok(_) => {}
+				        Err(e) => {
+					        err_vec.push(e);
+				        }
+			        }
+                        }
 		}
 
 		if err_vec.len() > 0 {

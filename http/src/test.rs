@@ -154,6 +154,30 @@ mod test {
 			TimeoutMillis(10_000)
 		)?;
 
+		// can't set timeouts for async
+		assert!(http_client_send!([request], {
+			trace!("got response")?;
+			Ok(())
+		})
+		.is_err());
+
+		let request = http_client_request!(
+			Url(&format!("http://localhost:{}/sleep?time=3000", port)),
+			TimeoutMillis(10_000)
+		)?;
+
+		// can't set timeouts for async (connections also)
+		assert!(http_client_send!([request], connection, {
+			trace!("got response")?;
+			Ok(())
+		})
+		.is_err());
+
+		let request = http_client_request!(
+			Url(&format!("http://localhost:{}/sleep?time=3000", port)),
+			TimeoutMillis(10_000)
+		)?;
+
 		// this request is ok because timeout is 10 seconds, but response happens in 3 seconds
 		info!("sending request should respond in 3 seconds")?;
 		let response = http_client_send!(request)?;
