@@ -242,7 +242,7 @@ mod test {
 			wlock!(count_clone1) += 1;
 			Ok(())
 		})?;
-z
+
 		let request = http_client_request!(Uri("/test.html"), Version(HttpVersion::HTTP10))?;
 		http_client_send!([request], connection, {
 			let response = http_client_response!()?;
