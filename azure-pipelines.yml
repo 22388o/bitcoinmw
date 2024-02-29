@@ -52,7 +52,7 @@ jobs:
     - template: '.ci/all.yml'
 - job: macos
   pool:
-    vmImage: macos-latest
+    vmImage: macOS-14
   strategy:
     matrix:
       all:
@@ -61,7 +61,7 @@ jobs:
   steps:
     - script: |
         sw_vers
-      displayName: MacOs print out os version
+      displayName: macOS print out os version
     - template: '.ci/all.yml'
 - job: windows
   pool:
