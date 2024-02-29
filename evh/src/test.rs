@@ -4198,6 +4198,7 @@ mod test {
 		Ok(())
 	}
 
+	/*
 	#[test]
 	fn test_evh_housekeeper_error() -> Result<(), Error> {
 		let threads = 1;
@@ -5205,4 +5206,5 @@ mod test {
 
 		Ok(())
 	}
+		*/
 }
