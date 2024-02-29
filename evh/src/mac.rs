@@ -34,6 +34,7 @@ use std::os::raw::c_int;
 use std::os::unix::prelude::RawFd;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::thread::sleep;
 use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -294,11 +295,18 @@ fn duration_to_timespec(d: Duration) -> timespec {
 }
 
 fn get_socket(family: c_int) -> Result<RawFd, Error> {
-	let raw_fd = unsafe { socket(family, libc::SOCK_STREAM, 0) };
+	let mut count = 0;
+	loop {
+		count += 1;
+		let raw_fd = unsafe { socket(family, libc::SOCK_STREAM, 0) };
 
-	if raw_fd <= 0 {
-		Err(err!(ErrKind::IO, "socket returned an invalid fd"))
-	} else {
-		Ok(raw_fd)
+		if raw_fd <= 0 {
+			if count > 10 {
+				return Err(err!(ErrKind::IO, "socket returned an invalid fd"));
+			}
+			sleep(Duration::from_millis(1));
+		} else {
+			return Ok(raw_fd);
+		}
 	}
 }
