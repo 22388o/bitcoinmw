@@ -2925,8 +2925,8 @@ mod test {
 	};
 	use crate::{
 		ClientConnection, CloseHandle, ConnData, EventHandler, EventHandlerConfig,
-		EventHandlerData, ServerConnection, ThreadContext, TlsClientConfig, TlsServerConfig,
-		READ_SLAB_DATA_SIZE,
+		EventHandlerData, Handle, ServerConnection, ThreadContext, TlsClientConfig,
+		TlsServerConfig, READ_SLAB_DATA_SIZE,
 	};
 
 	use bmw_deps::rand::random;
@@ -3624,7 +3624,8 @@ mod test {
 		};
 		evh.add_server(sc, Box::new(""))?;
 
-		let mut handle = lock_box!(0)?;
+		let v: Handle = 0;
+		let mut handle = lock_box!(v)?;
 		let handle_clone = handle.clone();
 
 		std::thread::spawn(move || -> Result<(), Error> {
