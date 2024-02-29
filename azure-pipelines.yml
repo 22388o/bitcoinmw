@@ -52,7 +52,7 @@ jobs:
     - template: '.ci/all.yml'
 - job: macos
   pool:
-    vmImage: macOS-14
+    vmImage: macOS-13
   strategy:
     matrix:
       all:
