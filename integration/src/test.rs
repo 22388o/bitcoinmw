@@ -40,7 +40,7 @@ mod test {
 	#[cfg(unix)]
 	use std::os::unix::io::AsRawFd;
 	#[cfg(windows)]
-	use std::os::windows::io::{AsRawSocket, FromRawSocket};
+	use std::os::windows::io::AsRawSocket;
 
 	info!();
 
