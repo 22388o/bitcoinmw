@@ -59,6 +59,9 @@ jobs:
         CI_JOB: all
         PLATFORM: macos
   steps:
+    - script: |
+      sw_vers
+      displayName: MacOs print out os version
     - template: '.ci/all.yml'
 - job: windows
   pool:
