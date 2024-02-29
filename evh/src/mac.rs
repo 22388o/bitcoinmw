@@ -21,11 +21,10 @@ use crate::types::{
 use bmw_deps::errno::{errno, set_errno, Errno};
 use bmw_deps::kqueue_sys::{kevent, EventFilter, EventFlag, FilterFlag};
 use bmw_deps::libc::{
-	self, accept, c_void, close, fcntl, pipe, read, sockaddr, timespec, write, F_SETFL, O_NONBLOCK,
+	self, accept, c_void, close, fcntl, pipe, read, sockaddr, socket, timespec, write, F_SETFL,
+	O_NONBLOCK,
 };
-use bmw_deps::nix::sys::socket::{
-	bind, listen, socket, AddressFamily, SockFlag, SockType, SockaddrIn, SockaddrIn6,
-};
+use bmw_deps::nix::sys::socket::{bind, listen, SockaddrIn, SockaddrIn6};
 use bmw_err::*;
 use bmw_log::*;
 use bmw_util::*;
@@ -75,7 +74,7 @@ pub(crate) fn create_listeners_impl(
 ) -> Result<Array<Handle>, Error> {
 	let fd = match SockaddrIn::from_str(addr) {
 		Ok(sock_addr) => {
-			let fd = get_socket(AddressFamily::Inet)?;
+			let fd = get_socket(libc::AF_INET)?;
 			unsafe {
 				let optval: libc::c_int = 1;
 				libc::setsockopt(
@@ -93,7 +92,7 @@ pub(crate) fn create_listeners_impl(
 		}
 		Err(_) => {
 			let sock_addr = SockaddrIn6::from_str(addr)?;
-			let fd = get_socket(AddressFamily::Inet6)?;
+			let fd = get_socket(libc::AF_INET6)?;
 			unsafe {
 				let optval: libc::c_int = 1;
 				libc::setsockopt(
@@ -294,8 +293,8 @@ fn duration_to_timespec(d: Duration) -> timespec {
 	timespec { tv_sec, tv_nsec }
 }
 
-fn get_socket(family: AddressFamily) -> Result<RawFd, Error> {
-	let raw_fd = socket(family, SockType::Stream, SockFlag::empty(), None)?;
+fn get_socket(family: c_int) -> Result<RawFd, Error> {
+	let raw_fd = unsafe { socket(family, libc::SOCK_STREAM, 0) };
 
 	if raw_fd <= 0 {
 		Err(err!(ErrKind::IO, "socket returned an invalid fd"))
