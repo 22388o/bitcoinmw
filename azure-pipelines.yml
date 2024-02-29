@@ -60,7 +60,7 @@ jobs:
         PLATFORM: macos
   steps:
     - script: |
-      sw_vers
+        sw_vers
       displayName: MacOs print out os version
     - template: '.ci/all.yml'
 - job: windows
