@@ -3455,6 +3455,9 @@
 <a href="#3454" id="3454">3454</a>
 <a href="#3455" id="3455">3455</a>
 <a href="#3456" id="3456">3456</a>
+<a href="#3457" id="3457">3457</a>
+<a href="#3458" id="3458">3458</a>
+<a href="#3459" id="3459">3459</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -5560,11 +5563,11 @@
 		)<span class="question-mark">?</span>;
 
 		<span class="kw">match </span>attachment {
-			<span class="prelude-val">Some</span>(<span class="kw-2">mut </span>attachment) =&gt; {
-				<span class="kw">let </span><span class="kw-2">mut </span>attachment = attachment.attachment.wlock()<span class="question-mark">?</span>;
+			<span class="prelude-val">Some</span>(attachment) =&gt; {
+				<span class="kw">let </span>attachment = attachment.attachment.rlock()<span class="question-mark">?</span>;
 				<span class="kw">let </span>attachment = attachment.guard();
-				<span class="kw">match </span>(<span class="kw-2">**</span>attachment).downcast_mut::&lt;HttpInstance&gt;() {
-					<span class="prelude-val">Some</span>(<span class="kw-2">ref mut </span>attachment) =&gt; {
+				<span class="kw">match </span>(<span class="kw-2">**</span>attachment).downcast_ref::&lt;HttpInstance&gt;() {
+					<span class="prelude-val">Some</span>(<span class="kw-2">ref </span>attachment) =&gt; {
 						<span class="macro">debug!</span>(<span class="string">"conn_data.tid={},att={:?}"</span>, conn_data.tid(), attachment)<span class="question-mark">?</span>;
 						<span class="kw">let </span>ctx = <span class="self">Self</span>::build_ctx(ctx, config)<span class="question-mark">?</span>;
 						ctx.now = SystemTime::now().duration_since(UNIX_EPOCH)<span class="question-mark">?</span>.as_millis();
@@ -6319,7 +6322,10 @@
 		<span class="kw">let </span>cache = <span class="self">self</span>.cache.clone();
 
 		evh.set_on_read(<span class="kw">move </span>|conn_data, ctx, attach| {
-			<span class="self">Self</span>::process_on_read(<span class="kw-2">&amp;</span>config, cache.clone(), conn_data, ctx, attach)
+			<span class="macro">debug!</span>(<span class="string">"in evh on_read handler, ctx.tid={}"</span>, conn_data.tid())<span class="question-mark">?</span>;
+			<span class="kw">let </span>ret = <span class="self">Self</span>::process_on_read(<span class="kw-2">&amp;</span>config, cache.clone(), conn_data, ctx, attach);
+			<span class="macro">debug!</span>(<span class="string">"evh handler complete"</span>)<span class="question-mark">?</span>;
+			ret
 		})<span class="question-mark">?</span>;
 		evh.set_on_accept(<span class="kw">move </span>|conn_data, ctx| <span class="self">Self</span>::process_on_accept(conn_data, ctx, <span class="kw-2">&amp;</span>config2))<span class="question-mark">?</span>;
 		evh.set_on_close(<span class="kw">move </span>|conn_data, ctx| <span class="self">Self</span>::process_on_close(conn_data, ctx, <span class="kw-2">&amp;</span>config3))<span class="question-mark">?</span>;
