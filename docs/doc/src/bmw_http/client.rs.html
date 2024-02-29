@@ -1325,6 +1325,10 @@
 <a href="#1324" id="1324">1324</a>
 <a href="#1325" id="1325">1325</a>
 <a href="#1326" id="1326">1326</a>
+<a href="#1327" id="1327">1327</a>
+<a href="#1328" id="1328">1328</a>
+<a href="#1329" id="1329">1329</a>
+<a href="#1330" id="1330">1330</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1429,6 +1433,7 @@
 			user_agent: <span class="macro">format!</span>(<span class="string">"BitcoinMW/{}"</span>, built_info::PKG_VERSION.to_string()).to_string(),
 			accept: <span class="string">"*/*"</span>.to_string(),
 			headers: <span class="macro">vec!</span>[],
+			timeout_millis: <span class="number">0</span>,
 		}
 	}
 }
@@ -2162,6 +2167,9 @@
 
 	<span class="kw">fn </span>headers(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Vec&lt;(String, String)&gt; {
 		<span class="kw-2">&amp;</span><span class="self">self</span>.config.headers
+	}
+	<span class="kw">fn </span>timeout_millis(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u64 {
+		<span class="self">self</span>.config.timeout_millis
 	}
 	<span class="kw">fn </span>guid(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u128 {
 		<span class="self">self</span>.guid
