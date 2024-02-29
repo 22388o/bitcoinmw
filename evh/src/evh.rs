@@ -2925,8 +2925,8 @@ mod test {
 	};
 	use crate::{
 		ClientConnection, CloseHandle, ConnData, EventHandler, EventHandlerConfig,
-		EventHandlerData, Handle, ServerConnection, ThreadContext, TlsClientConfig,
-		TlsServerConfig, READ_SLAB_DATA_SIZE,
+		EventHandlerData, ServerConnection, ThreadContext, TlsClientConfig, TlsServerConfig,
+		READ_SLAB_DATA_SIZE,
 	};
 
 	use bmw_deps::rand::random;
@@ -3624,8 +3624,7 @@ mod test {
 		};
 		evh.add_server(sc, Box::new(""))?;
 
-		let v: Handle = 0;
-		let mut handle = lock_box!(v)?;
+		let mut handle = lock_box!(0)?;
 		let handle_clone = handle.clone();
 
 		std::thread::spawn(move || -> Result<(), Error> {
@@ -3647,7 +3646,7 @@ mod test {
 			let rhandle = connection.as_raw_socket();
 
 			{
-				wlock!(handle) = rhandle;
+				wlock!(handle) = try_into!(rhandle)?;
 			}
 
 			info!("loop {} connected", i)?;
