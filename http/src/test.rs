@@ -96,6 +96,7 @@ mod test {
 
 	#[test]
 	fn test_http_client_errors() -> Result<(), Error> {
+            a
 		let test_dir = ".test_http_client_errors";
 		setup_test_dir(test_dir)?;
 
