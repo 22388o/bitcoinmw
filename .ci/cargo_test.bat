@@ -4,7 +4,7 @@ set /p VAR11=<tmp.txt
 IF "%VAR11%" equ "" (
   rustup update
   set ERRORLEVEL=0
-  cargo test --jobs 1
+  cargo test --all --jobs 1
   echo "e=%ERRORLEVEL%"
   IF %ERRORLEVEL% GEQ 1 (
     EXIT /B 2
@@ -13,7 +13,7 @@ IF "%VAR11%" equ "" (
   IF "%1" equ "Schedule" (
     rustup update
     set ERRORLEVEL=0
-    cargo test --jobs 1
+    cargo test --all --jobs 1
     echo "e=%ERRORLEVEL%"
     IF %ERRORLEVEL% GEQ 1 (
       EXIT /B 2
@@ -22,7 +22,7 @@ IF "%VAR11%" equ "" (
     IF "%1" equ "Manual" (
       rustup update
       set ERRORLEVEL=0
-      cargo test --jobs 1
+      cargo test --all --jobs 1
       echo "e=%ERRORLEVEL%"
       IF %ERRORLEVEL% GEQ 1 (
         EXIT /B 2
