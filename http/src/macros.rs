@@ -104,6 +104,7 @@ macro_rules! http_client_request {
                 let mut accept_specified = false;
                 let mut timeout_millis_specified = false;
                 let mut method_specified = false;
+                let mut version_specified = false;
                 let mut error: Option<String> = None;
 
                 // to supress compiler warnings
@@ -115,6 +116,7 @@ macro_rules! http_client_request {
                 if accept_specified { accept_specified = false; }
                 if timeout_millis_specified { timeout_millis_specified = false; }
                 if method_specified { method_specified = false; }
+                if version_specified { version_specified = false; }
                 if request_url_specified {}
                 if request_uri_specified {}
                 if user_agent_specified {}
@@ -183,6 +185,16 @@ macro_rules! http_client_request {
 
                                         method_specified = true;
                                         if method_specified {}
+                                },
+                                bmw_http::ConfigOption::Version(version) => {
+                                        config.version = version;
+
+                                        if version_specified {
+
+                                        }
+
+                                        version_specified = true;
+                                        if version_specified {}
                                 },
                                 bmw_http::ConfigOption::Header((header_name, header_value)) => {
                                         config.headers.push((header_name.to_string(), header_value.to_string()));

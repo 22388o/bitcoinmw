@@ -72,6 +72,15 @@ impl fmt::Display for &HttpMethod {
 	}
 }
 
+impl fmt::Display for &HttpVersion {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		match self {
+			HttpVersion::HTTP11 => write!(f, "HTTP/1.1"),
+			_ => write!(f, "HTTP/1.0"),
+		}
+	}
+}
+
 impl Default for HttpHeader {
 	fn default() -> Self {
 		Self {
@@ -2870,9 +2879,18 @@ impl HttpServer for HttpServerImpl {
 
 		evh.set_on_read(move |conn_data, ctx, attach| {
 			debug!("in evh on_read handler, ctx.tid={}", conn_data.tid())?;
-			let ret = Self::process_on_read(&config, cache.clone(), conn_data, ctx, attach);
+			match Self::process_on_read(&config, cache.clone(), conn_data, ctx, attach) {
+				Ok(_) => {}
+				Err(e) => match e.kind() {
+					// supress the i/o error messages because they are normal. Just
+					// a closed connection
+					ErrorKind::IO(_) => debug!("I/O error occurred: {}", e)?,
+					// display other errors
+					_ => warn!("non I/O error occurred: {}", e)?,
+				},
+			}
 			debug!("evh handler complete")?;
-			ret
+			Ok(())
 		})?;
 		evh.set_on_accept(move |conn_data, ctx| Self::process_on_accept(conn_data, ctx, &config2))?;
 		evh.set_on_close(move |conn_data, ctx| Self::process_on_close(conn_data, ctx, &config3))?;

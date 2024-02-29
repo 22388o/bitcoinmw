@@ -23,6 +23,7 @@ mod test {
 	use bmw_http::*;
 	use bmw_log::*;
 	use bmw_test::*;
+	use bmw_util::*;
 	use std::collections::{HashMap, HashSet};
 	use std::fs::File;
 	use std::io::{Read, Write};
@@ -79,10 +80,10 @@ mod test {
 			base_dir: directory.to_string(),
 			server_name: "bitcoinmwtest".to_string(),
 			server_version: "test1".to_string(),
-			debug: false,
+			debug: true,
 			..Default::default()
 		};
-		let mut http = Builder::build_http_server(&config)?;
+		let mut http = bmw_http::Builder::build_http_server(&config)?;
 		http.start()?;
 		Ok((port, http, directory))
 	}
@@ -140,7 +141,7 @@ mod test {
 		let mut connection = http_connection!(Host(host), Port(port), Tls(false))?;
 		let request = http_client_request!(Uri("/test.html"))?;
 
-		// can't send urls without a connection
+		// can't send uris without a connection
 		assert!(http_client_send!(request.clone()).is_err());
 		assert!(http_client_send!([request], connection, {
 			trace!("got response")?;
@@ -227,6 +228,40 @@ mod test {
 
 		let response = http_client_send!(request)?;
 		assert_eq!(response.code().unwrap(), 200);
+
+		let count = lock_box!(0)?;
+		let mut count_clone1 = count.clone();
+		let mut count_clone2 = count.clone();
+		info!("send request")?;
+		let mut connection = http_connection!(Host(host), Port(port), Tls(false))?;
+		let request = http_client_request!(Uri("/foo.html"), Version(HttpVersion::HTTP11))?;
+		http_client_send!([request], connection, {
+			let response = http_client_response!()?;
+			assert_eq!(response.version().unwrap(), &HttpVersion::HTTP11);
+			info!("got response. version: {}", response.version().unwrap())?;
+			wlock!(count_clone1) += 1;
+			Ok(())
+		})?;
+
+		let request = http_client_request!(Uri("/test.html"), Version(HttpVersion::HTTP10))?;
+		http_client_send!([request], connection, {
+			let response = http_client_response!()?;
+			assert_eq!(response.version().unwrap(), &HttpVersion::HTTP10);
+			info!("got response2. version: {}", response.version().unwrap())?;
+			wlock!(count_clone2) += 1;
+			Ok(())
+		})?;
+
+		let mut counter = 0;
+		loop {
+			sleep(Duration::from_millis(1));
+			counter += 1;
+			if counter > 10_000 || rlock!(count) == 2 {
+				break;
+			}
+		}
+
+		assert_eq!(rlock!(count), 2);
 
 		tear_down_server(http)?;
 		info!("tear down complete")?;

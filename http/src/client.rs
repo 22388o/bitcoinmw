@@ -105,6 +105,7 @@ impl Default for HttpRequestConfig {
 			headers: vec![],
 			timeout_millis: 0,
 			method: HttpMethod::GET,
+			version: HttpVersion::HTTP11,
 		}
 	}
 }
@@ -129,9 +130,10 @@ fn do_send(
 	};
 
 	let method = request.method().to_string();
+	let version = request.version().to_string();
 	let req_str = format!(
-		"{} {} HTTP/1.1\r\nHost: {}\r\nUser-Agent: {}\r\nAccept: {}\r\nConnection: {}{}\r\n\r\n",
-		method, uri, addr, user_agent, accept, keep_alive, headers_str
+		"{} {} {}\r\nHost: {}\r\nUser-Agent: {}\r\nAccept: {}\r\nConnection: {}{}\r\n\r\n",
+		method, uri, version, addr, user_agent, accept, keep_alive, headers_str
 	);
 
 	wh.write(req_str.as_bytes())?;
@@ -841,6 +843,9 @@ impl HttpRequest for HttpRequestImpl {
 	}
 	fn method(&self) -> &HttpMethod {
 		&self.config.method
+	}
+	fn version(&self) -> &HttpVersion {
+		&self.config.version
 	}
 	fn timeout_millis(&self) -> u64 {
 		self.config.timeout_millis

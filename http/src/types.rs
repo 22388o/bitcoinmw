@@ -258,6 +258,7 @@ pub trait HttpRequest: DynClone + Any {
 	fn accept(&self) -> &String;
 	fn headers(&self) -> &Vec<(String, String)>;
 	fn method(&self) -> &HttpMethod;
+	fn version(&self) -> &HttpVersion;
 	fn timeout_millis(&self) -> u64;
 	fn guid(&self) -> u128;
 }
@@ -325,6 +326,7 @@ pub struct HttpRequestConfig {
 	pub headers: Vec<(String, String)>,
 	pub timeout_millis: u64,
 	pub method: HttpMethod,
+	pub version: HttpVersion,
 }
 
 pub struct HttpClientContainer {}
@@ -363,6 +365,8 @@ pub enum ConfigOption<'a> {
 	TimeoutMillis(u64),
 	/// HttpMethod used in [`crate::http_client_request`].
 	Method(HttpMethod),
+	/// HttpVersion used in [`crate::http_client_request`].
+	Version(HttpVersion),
 }
 
 // Crate local types
