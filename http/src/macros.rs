@@ -105,6 +105,7 @@ macro_rules! http_client_request {
                 let mut timeout_millis_specified = false;
                 let mut method_specified = false;
                 let mut version_specified = false;
+                let mut full_chain_specified = false;
                 let mut error: Option<String> = None;
 
                 // to supress compiler warnings
@@ -117,6 +118,8 @@ macro_rules! http_client_request {
                 if timeout_millis_specified { timeout_millis_specified = false; }
                 if method_specified { method_specified = false; }
                 if version_specified { version_specified = false; }
+                if full_chain_specified { full_chain_specified = false; }
+                if full_chain_specified {}
                 if request_url_specified {}
                 if request_uri_specified {}
                 if user_agent_specified {}
@@ -165,6 +168,16 @@ macro_rules! http_client_request {
 
                                         accept_specified = true;
                                         if accept_specified {}
+                                },
+                                bmw_http::ConfigOption::FullChainCertFile(file) => {
+                                        config.full_chain = Some(file.to_string());
+
+                                        if full_chain_specified {
+                                                error = Some("FullCHainCertFile was specified more than once!".to_string());
+                                        }
+
+                                        full_chain_specified = true;
+                                        if full_chain_specified {}
                                 },
                                 bmw_http::ConfigOption::TimeoutMillis(millis) => {
                                         config.timeout_millis = millis;
@@ -419,6 +432,7 @@ macro_rules! http_connection {
                 let mut host_specified = false;
                 let mut port_specified = false;
                 let mut tls_specified = false;
+                let mut full_chain_cert_file_specified = false;
                 let mut error: Option<String> = None;
 
                 // to supress compiler warnings
@@ -427,9 +441,11 @@ macro_rules! http_connection {
                 if host_specified { host_specified = false; }
                 if port_specified { port_specified = false; }
                 if tls_specified { tls_specified = false; }
+                if full_chain_cert_file_specified { full_chain_cert_file_specified = false; }
                 if host_specified {}
                 if port_specified {}
                 if tls_specified {}
+                if full_chain_cert_file_specified {}
 
                 $(
                         match $config {
@@ -463,6 +479,16 @@ macro_rules! http_connection {
                                         tls_specified = true;
                                         if tls_specified {}
                                 },
+                                bmw_http::ConfigOption::FullChainCertFile(file) => {
+                                        config.full_chain_cert_file = Some(file.to_string());
+
+                                        if full_chain_cert_file_specified {
+                                                error = Some("FullChainCertFile was specified more than once!".to_string());
+                                        }
+
+                                        full_chain_cert_file_specified = true;
+                                        if full_chain_cert_file_specified {}
+                                }
                                 _ => {
                                         error = Some(format!("'{:?}' is not allowed for http_connection", $config));
                                 }

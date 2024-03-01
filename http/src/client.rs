@@ -33,13 +33,14 @@ use bmw_err::*;
 use bmw_evh::{
 	tcp_stream_to_handle, AttachmentHolder, Builder, ClientConnection, ConnData, ConnectionData,
 	EventHandler, EventHandlerConfig, EventHandlerController, EventHandlerData, ThreadContext,
-	WriteHandle, READ_SLAB_DATA_SIZE,
+	TlsClientConfig, WriteHandle, READ_SLAB_DATA_SIZE,
 };
 use bmw_log::*;
 use bmw_util::*;
 use std::any::Any;
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
+use std::fmt::{self, Formatter};
 use std::fs::{canonicalize, create_dir_all};
 use std::net::TcpStream;
 use std::path::PathBuf;
@@ -64,6 +65,30 @@ pub mod built_info {
 	include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
 
+impl fmt::Display for Box<dyn HttpResponse + Send + Sync> {
+	fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+		write!(
+			f,
+			"response_code={},status_text={},version={}",
+			self.code().unwrap_or(0),
+			self.status_text().unwrap_or(&"".to_string()),
+			self.version().unwrap_or(&HttpVersion::UNKNOWN),
+		)?;
+
+		match self.headers() {
+			Ok(headers) => {
+				for header in headers {
+					write!(f, "\nheader['{}']: '{}'", header.0, header.1)?;
+				}
+				write!(f, "\n")?;
+			}
+			Err(_) => {}
+		}
+
+		Ok(())
+	}
+}
+
 impl HttpClientConfig {
 	fn tmp_file_dir(&self) -> PathBuf {
 		let mut file_dir = PathBuf::from(self.base_dir.clone());
@@ -78,6 +103,7 @@ impl Default for HttpConnectionConfig {
 			host: "127.0.0.1".to_string(),
 			port: 80,
 			tls: false,
+			full_chain_cert_file: None,
 		}
 	}
 }
@@ -106,6 +132,7 @@ impl Default for HttpRequestConfig {
 			timeout_millis: 0,
 			method: HttpMethod::GET,
 			version: HttpVersion::HTTP11,
+			full_chain: None,
 		}
 	}
 }
@@ -158,6 +185,8 @@ impl HttpClient for HttpClientImpl {
 		match request.request_url() {
 			Some(request_url) => {
 				let url = Url::parse(&request_url)?;
+
+				let scheme = url.scheme();
 				let host = match url.host_str() {
 					Some(host) => host,
 					None => {
@@ -180,7 +209,16 @@ impl HttpClient for HttpClientImpl {
 
 				let client_connection = ClientConnection {
 					handle: tcp_stream_to_handle(tcp_stream)?,
-					tls_config: None,
+					tls_config: if scheme == "https" {
+						Some(TlsClientConfig {
+							sni_host: host.to_string(),
+							trusted_cert_full_chain_file: request.full_chain().clone(),
+						})
+					} else if scheme == "http" {
+						None
+					} else {
+						return Err(err!(ErrKind::Http, "scheme must be either http or https"));
+					},
 				};
 
 				let mut vec = VecDeque::new();
@@ -799,7 +837,14 @@ impl HttpConnectionImpl {
 
 		let client_connection = ClientConnection {
 			handle: tcp_stream_to_handle(tcp_stream)?,
-			tls_config: None,
+			tls_config: if config.tls {
+				Some(TlsClientConfig {
+					sni_host: host,
+					trusted_cert_full_chain_file: config.full_chain_cert_file.clone(),
+				})
+			} else {
+				None
+			},
 		};
 
 		let vec = VecDeque::new();
@@ -846,6 +891,9 @@ impl HttpRequest for HttpRequestImpl {
 	}
 	fn version(&self) -> &HttpVersion {
 		&self.config.version
+	}
+	fn full_chain(&self) -> &Option<String> {
+		&self.config.full_chain
 	}
 	fn timeout_millis(&self) -> u64 {
 		self.config.timeout_millis

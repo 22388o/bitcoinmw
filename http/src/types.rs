@@ -259,6 +259,7 @@ pub trait HttpRequest: DynClone + Any {
 	fn headers(&self) -> &Vec<(String, String)>;
 	fn method(&self) -> &HttpMethod;
 	fn version(&self) -> &HttpVersion;
+	fn full_chain(&self) -> &Option<String>;
 	fn timeout_millis(&self) -> u64;
 	fn guid(&self) -> u128;
 }
@@ -315,6 +316,7 @@ pub struct HttpConnectionConfig {
 	pub host: String,
 	pub port: u16,
 	pub tls: bool,
+	pub full_chain_cert_file: Option<String>,
 }
 
 #[derive(Clone)]
@@ -327,6 +329,7 @@ pub struct HttpRequestConfig {
 	pub timeout_millis: u64,
 	pub method: HttpMethod,
 	pub version: HttpVersion,
+	pub full_chain: Option<String>,
 }
 
 pub struct HttpClientContainer {}
@@ -367,6 +370,8 @@ pub enum ConfigOption<'a> {
 	Method(HttpMethod),
 	/// HttpVersion used in [`crate::http_client_request`].
 	Version(HttpVersion),
+	/// Full chain cert file to trust for an [`crate::http_client_request`].
+	FullChainCertFile(&'a str),
 }
 
 // Crate local types

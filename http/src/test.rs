@@ -27,6 +27,7 @@ mod test {
 	use std::collections::{HashMap, HashSet};
 	use std::fs::File;
 	use std::io::{Read, Write};
+	use std::sync::mpsc::sync_channel;
 	use std::thread::sleep;
 	use std::time::Duration;
 
@@ -46,15 +47,18 @@ mod test {
 			let mut query = query.split('=');
 			let time = query.nth_back(0).unwrap();
 
-			sleep(Duration::from_millis(time.parse()?));
+			let millis = time.parse()?;
+			if millis > 0 {
+				sleep(Duration::from_millis(millis));
+			}
 			write_handle.write(
-				b"HTTP/1.1 200 Ok\r\nServer: test\r\nContent-Length: 10\r\n\r\n0123456789",
+				b"HTTP/1.1 200 OK\r\nServer: test\r\nContent-Length: 10\r\n\r\n0123456789",
 			)?;
 		}
 		Ok(())
 	}
 
-	fn build_server(directory: &str) -> Result<(u16, Box<dyn HttpServer>, &str), Error> {
+	fn build_server(directory: &str, tls: bool) -> Result<(u16, Box<dyn HttpServer>, &str), Error> {
 		setup_test_dir(directory)?;
 		let port = pick_free_port()?;
 		let addr = "127.0.0.1".to_string();
@@ -70,9 +74,17 @@ mod test {
 			instances: vec![HttpInstance {
 				port,
 				addr: addr.clone(),
-				instance_type: HttpInstanceType::Plain(PlainConfig {
-					http_dir_map: HashMap::from([("*".to_string(), directory.to_string())]),
-				}),
+				instance_type: match tls {
+					true => HttpInstanceType::Tls(TlsConfig {
+						http_dir_map: HashMap::from([("*".to_string(), directory.to_string())]),
+						cert_file: "./resources/cert.pem".to_string(),
+						privkey_file: "./resources/key.pem".to_string(),
+					}),
+
+					false => HttpInstanceType::Plain(PlainConfig {
+						http_dir_map: HashMap::from([("*".to_string(), directory.to_string())]),
+					}),
+				},
 				callback_mappings,
 				callback: Some(callback),
 				..Default::default()
@@ -95,8 +107,58 @@ mod test {
 	}
 
 	#[test]
+	fn test_http_client_tls() -> Result<(), Error> {
+		let test_dir = ".test_http_client_tls.bmw";
+		let http = build_server(test_dir, true)?;
+
+		http_client_init!(BaseDir(test_dir))?;
+		let url = &format!("https://localhost:{}/sleep?time=0", http.0);
+		let request = http_client_request!(
+			Url(url),
+			FullChainCertFile("./resources/cert.pem"),
+			TimeoutMillis(30_000)
+		)?;
+		let response = http_client_send!(request)?;
+
+		assert_eq!(response.code().unwrap(), 200);
+
+		info!("response: {}", response)?;
+
+		let mut connection = http_connection!(
+			Host("localhost"),
+			Port(http.0),
+			Tls(true),
+			FullChainCertFile("./resources/cert.pem")
+		)?;
+		let request = http_client_request!(Uri("/sleep?time=0"))?;
+		let guid = request.guid();
+		let (tx, rx) = sync_channel(1);
+		let count = lock_box!(0)?;
+		let mut count_clone = count.clone();
+		http_client_send!([request], connection, {
+			let request = http_client_request!()?;
+			let response = http_client_response!()?;
+			info!("got a response")?;
+			assert_eq!(request.guid(), guid);
+			assert_eq!(response.code()?, 200);
+			assert_eq!(response.status_text()?, "OK");
+			info!("guid match")?;
+			wlock!(count_clone) += 1;
+
+			tx.send(())?;
+			Ok(())
+		})?;
+
+		rx.recv()?;
+		assert_eq!(rlock!(count), 1);
+
+		tear_down_server(http)?;
+		Ok(())
+	}
+
+	#[test]
 	fn test_http_client_errors() -> Result<(), Error> {
-		let test_dir = ".test_http_client_errors..bmw";
+		let test_dir = ".test_http_client_errors.bmw";
 		setup_test_dir(test_dir)?;
 
 		let port = pick_free_port()?;
@@ -117,7 +179,7 @@ mod test {
 		tear_down_test_dir(test_dir)?;
 
 		// start a server
-		let http = build_server(test_dir)?;
+		let http = build_server(test_dir, false)?;
 
 		let data_text = "Hello test World!";
 		{
@@ -219,7 +281,7 @@ mod test {
 
 		// now use a post on the sleep callback (should succeed)
 		let request = http_client_request!(
-			Url(&format!("http://localhost:{}/sleep?time=1", port)),
+			Url(&format!("http://localhost:{}/sleep?time=0", port)),
 			Method(HttpMethod::POST)
 		)?;
 
@@ -269,7 +331,7 @@ mod test {
 	#[test]
 	fn test_http_client_server() -> Result<(), Error> {
 		let test_dir = ".test_http_client_server.bmw";
-		let http = build_server(test_dir)?;
+		let http = build_server(test_dir, false)?;
 		let addr = format!("http://127.0.0.1:{}", http.0);
 
 		let data_text = "Hello test World!";
