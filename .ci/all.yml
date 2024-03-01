@@ -121,6 +121,6 @@ steps:
     displayName: Tarpaulin
     condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))
   - script: |
-      ./.ci/pushdocs.sh $(github_pat) $(Build.SourceVersion)
+      ./.ci/pushdocs.sh $(github_pat) $(Build.SourceVersion) $(Build.Reason)
     displayName: Create and Push Docs
     condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))

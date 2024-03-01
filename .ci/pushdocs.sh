@@ -1,6 +1,7 @@
 #!/bin/bash
 
-if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" ] || [ "$1" == "Schedule" ] || [ "$1" == "Manual" ]; then
+echo "Reason=$3";
+if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" ] || [ "$3" == "Schedule" ] || [ "$3" == "Manual" ]; then
   cd ~
   git clone https://anything:$1@github.com/cgilliard/bitcoinmw.git bmw_new2
   cd bmw_new2
