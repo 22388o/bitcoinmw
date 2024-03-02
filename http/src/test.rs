@@ -56,7 +56,7 @@ mod test {
 			)?;
 		} else if path == "/content" {
 			let mut buf = [0u8; 100];
-			let len = http_connection_data.read(&mut buf)?;
+			http_connection_data.read(&mut buf)?;
 			assert_eq!(&buf[0..4], b"test");
 			write_handle.write(
 				b"HTTP/1.1 200 OK\r\nServer: test\r\nContent-Length: 10\r\n\r\nabcdefghij",
