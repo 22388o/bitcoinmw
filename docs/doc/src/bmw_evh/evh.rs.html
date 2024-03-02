@@ -2904,22 +2904,6 @@
 <a href="#2903" id="2903">2903</a>
 <a href="#2904" id="2904">2904</a>
 <a href="#2905" id="2905">2905</a>
-<a href="#2906" id="2906">2906</a>
-<a href="#2907" id="2907">2907</a>
-<a href="#2908" id="2908">2908</a>
-<a href="#2909" id="2909">2909</a>
-<a href="#2910" id="2910">2910</a>
-<a href="#2911" id="2911">2911</a>
-<a href="#2912" id="2912">2912</a>
-<a href="#2913" id="2913">2913</a>
-<a href="#2914" id="2914">2914</a>
-<a href="#2915" id="2915">2915</a>
-<a href="#2916" id="2916">2916</a>
-<a href="#2917" id="2917">2917</a>
-<a href="#2918" id="2918">2918</a>
-<a href="#2919" id="2919">2919</a>
-<a href="#2920" id="2920">2920</a>
-<a href="#2921" id="2921">2921</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2963,7 +2947,7 @@
 <span class="kw">use </span>std::fs::File;
 <span class="kw">use </span>std::io::{BufReader, Read, Write};
 <span class="kw">use </span>std::net::TcpStream;
-<span class="kw">use </span>std::sync::mpsc::sync_channel;
+<span class="kw">use </span>std::sync::mpsc::{sync_channel, SyncSender};
 <span class="kw">use </span>std::sync::Arc;
 
 <span class="attr">#[cfg(target_os = <span class="string">"linux"</span>)]
@@ -4238,7 +4222,9 @@
 		}
 		<span class="kw">loop </span>{
 			<span class="kw">let </span><span class="kw-2">mut </span>attachment: <span class="prelude-ty">Option</span>&lt;AttachmentHolder&gt;;
-			<span class="kw">let </span>id;
+			<span class="kw">let </span><span class="kw-2">mut </span>tx_to_send: <span class="prelude-ty">Option</span>&lt;SyncSender&lt;()&gt;&gt; = <span class="prelude-val">None</span>;
+			<span class="kw">if </span>tx_to_send.is_some() {} <span class="comment">// supress compiler warning
+			</span><span class="kw">let </span>id;
 
 			<span class="kw">let </span><span class="kw-2">mut </span>next = (<span class="kw-2">**</span>guard).nhandles.dequeue();
 			<span class="kw">match </span>next {
@@ -4246,18 +4232,7 @@
 					<span class="macro">debug!</span>(<span class="string">"dequeue handle={:?} on tid={}"</span>, nhandle, ctx.tid)<span class="question-mark">?</span>;
 					<span class="kw">match </span>nhandle {
 						ConnectionInfo::ListenerInfo(li) =&gt; {
-							<span class="kw">match </span><span class="kw-2">&amp;</span>li.tx {
-								<span class="prelude-val">Some</span>(tx) =&gt; {
-									<span class="macro">debug!</span>(<span class="string">"tx.send() : handle={},id={}"</span>, li.handle, li.id)<span class="question-mark">?</span>;
-									<span class="comment">// try to send
-									</span><span class="kw">match </span>tx.send(()) {
-										<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
-										<span class="prelude-val">Err</span>(e) =&gt; <span class="macro">warn!</span>(<span class="string">"tx.send (li) generated error: {}"</span>, e)<span class="question-mark">?</span>,
-									}
-								}
-								<span class="prelude-val">None </span>=&gt; {}
-							}
-
+							tx_to_send = li.tx.clone();
 							<span class="kw">match </span><span class="self">Self</span>::insert_hashtables(ctx, li.id, li.handle, nhandle) {
 								<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {
 									<span class="kw">let </span>ev_in = EventIn {
@@ -4302,21 +4277,7 @@
 								<span class="prelude-val">None </span>=&gt; {}
 							}
 
-							<span class="comment">// check for tx. we can send to wakeup the
-							// receiver because the event is already
-							// registered
-							</span><span class="macro">debug!</span>(<span class="string">"check for tx"</span>)<span class="question-mark">?</span>;
-							<span class="kw">match </span><span class="kw-2">&amp;</span>rwi.tx {
-								<span class="prelude-val">Some</span>(tx) =&gt; {
-									<span class="macro">debug!</span>(<span class="string">"tx.send() : handle={},id={}"</span>, rwi.handle, rwi.id)<span class="question-mark">?</span>;
-									<span class="comment">// try to send
-									</span><span class="kw">match </span>tx.send(()) {
-										<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
-										<span class="prelude-val">Err</span>(e) =&gt; <span class="macro">warn!</span>(<span class="string">"tx.send generated error: {}"</span>, e)<span class="question-mark">?</span>,
-									}
-								}
-								<span class="prelude-val">None </span>=&gt; {}
-							}
+							tx_to_send = rwi.tx.clone();
 
 							<span class="kw">match </span><span class="self">Self</span>::insert_hashtables(ctx, rwi.id, rwi.handle, nhandle) {
 								<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {
@@ -4350,6 +4311,13 @@
 			<span class="kw">match </span>attachment {
 				<span class="prelude-val">Some</span>(attachment) =&gt; {
 					ctx.attachments.insert(id, attachment);
+				}
+				<span class="prelude-val">None </span>=&gt; {}
+			}
+
+			<span class="kw">match </span>tx_to_send {
+				<span class="prelude-val">Some</span>(tx) =&gt; {
+					tx.send(())<span class="question-mark">?</span>;
 				}
 				<span class="prelude-val">None </span>=&gt; {}
 			}

@@ -522,7 +522,7 @@
 			)<span class="question-mark">?</span>;
 		} <span class="kw">else if </span>path == <span class="string">"/content" </span>{
 			<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">100</span>];
-			<span class="kw">let </span>len = http_connection_data.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+			http_connection_data.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
 			<span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..<span class="number">4</span>], <span class="string">b"test"</span>);
 			write_handle.write(
 				<span class="string">b"HTTP/1.1 200 OK\r\nServer: test\r\nContent-Length: 10\r\n\r\nabcdefghij"</span>,
@@ -542,7 +542,7 @@
 
 		<span class="kw">let </span>config = HttpConfig {
 			evh_config: EventHandlerConfig {
-				threads: <span class="number">1</span>,
+				threads: <span class="number">10</span>,
 				..Default::default()
 			},
 			instances: <span class="macro">vec!</span>[HttpInstance {
