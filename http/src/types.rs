@@ -261,6 +261,8 @@ pub trait HttpRequest: DynClone + Any {
 	fn version(&self) -> &HttpVersion;
 	fn full_chain(&self) -> &Option<String>;
 	fn timeout_millis(&self) -> u64;
+	fn content_file(&self) -> &Option<String>;
+	fn content_data(&self) -> &Option<Vec<u8>>;
 	fn guid(&self) -> u128;
 }
 
@@ -330,6 +332,8 @@ pub struct HttpRequestConfig {
 	pub method: HttpMethod,
 	pub version: HttpVersion,
 	pub full_chain: Option<String>,
+	pub content_file: Option<String>,
+	pub content_data: Option<Vec<u8>>,
 }
 
 pub struct HttpClientContainer {}
@@ -372,6 +376,11 @@ pub enum ConfigOption<'a> {
 	Version(HttpVersion),
 	/// Full chain cert file to trust for an [`crate::http_client_request`].
 	FullChainCertFile(&'a str),
+	/// Content to be sent in a [`crate::http_client_request`].
+	ContentData(&'a [u8]),
+	/// The contents of the specified path will be sent to the server as the content for this
+	/// [`crate::http_client_request`].
+	ContentFile(&'a str),
 }
 
 // Crate local types

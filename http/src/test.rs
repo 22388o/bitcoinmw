@@ -38,7 +38,7 @@ mod test {
 		_config: &HttpConfig,
 		_instance: &HttpInstance,
 		write_handle: &mut WriteHandle,
-		_http_connection_data: HttpContentReader,
+		mut http_connection_data: HttpContentReader,
 	) -> Result<(), Error> {
 		let path = headers.path()?;
 		let query = headers.query()?;
@@ -54,6 +54,14 @@ mod test {
 			write_handle.write(
 				b"HTTP/1.1 200 OK\r\nServer: test\r\nContent-Length: 10\r\n\r\n0123456789",
 			)?;
+		} else if path == "/content" {
+			let mut buf = [0u8; 100];
+			let len = http_connection_data.read(&mut buf)?;
+			assert_eq!(len, 5);
+			assert_eq!(&buf[0..len], b"test\n");
+			write_handle.write(
+				b"HTTP/1.1 200 OK\r\nServer: test\r\nContent-Length: 10\r\n\r\nabcdefghij",
+			)?;
 		}
 		Ok(())
 	}
@@ -65,6 +73,7 @@ mod test {
 
 		let mut callback_mappings = HashSet::new();
 		callback_mappings.insert("/sleep".to_string());
+		callback_mappings.insert("/content".to_string());
 
 		let config = HttpConfig {
 			evh_config: EventHandlerConfig {
@@ -409,6 +418,48 @@ mod test {
 		assert_eq!(content, "Hello test World!");
 
 		tear_down_server(http)?;
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_http_client_send_content() -> Result<(), Error> {
+		let test_dir = ".test_http_client_send_content.bmw";
+		let http = build_server(test_dir, false)?;
+		let addr = format!("http://127.0.0.1:{}", http.0);
+
+		http_client_init!(BaseDir(test_dir))?;
+
+		let request = http_client_request!(
+			Url(&format!("{}/content", addr)),
+			ContentData(b"test\n"),
+			Method(HttpMethod::POST)
+		)?;
+
+		let response = http_client_send!(request)?;
+
+		assert_eq!(response.code()?, 200);
+
+		let mut reader = response.content_reader()?;
+		let mut buf = [0u8; 100];
+		let len = reader.read(&mut buf)?;
+
+		assert_eq!(len, 10);
+		assert_eq!(&buf[0..len], b"abcdefghij");
+
+		let request = http_client_request!(
+			Url(&format!("{}/content", addr)),
+			ContentFile("./resources/content_test.txt"),
+			Method(HttpMethod::POST)
+		)?;
+
+		let response = http_client_send!(request)?;
+
+		let mut reader = response.content_reader()?;
+		let len = reader.read(&mut buf)?;
+
+		assert_eq!(len, 10);
+		assert_eq!(&buf[0..len], b"abcdefghij");
 
 		Ok(())
 	}

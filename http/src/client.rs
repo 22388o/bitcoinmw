@@ -41,7 +41,8 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::fmt::{self, Formatter};
-use std::fs::{canonicalize, create_dir_all};
+use std::fs::{canonicalize, create_dir_all, metadata, File};
+use std::io::Read;
 use std::net::TcpStream;
 use std::path::PathBuf;
 use std::str::from_utf8;
@@ -133,6 +134,8 @@ impl Default for HttpRequestConfig {
 			method: HttpMethod::GET,
 			version: HttpVersion::HTTP11,
 			full_chain: None,
+			content_file: None,
+			content_data: None,
 		}
 	}
 }
@@ -144,6 +147,14 @@ fn do_send(
 	addr: String,
 	keep_alive: bool,
 ) -> Result<(), Error> {
+	let content_file = request.content_file();
+	let content_data = request.content_data();
+	if content_file.is_some() && content_data.is_some() {
+		return Err(err!(
+			ErrKind::IllegalArgument,
+			"a request may not have both content_file and content_data specified"
+		));
+	}
 	let user_agent = request.user_agent();
 	let accept = request.accept();
 	let headers = request.headers();
@@ -158,12 +169,61 @@ fn do_send(
 
 	let method = request.method().to_string();
 	let version = request.version().to_string();
+
+	let content_length_header = match content_file {
+		Some(content_file) => {
+			format!("Content-Length: {}\r\n", metadata(content_file)?.len())
+		}
+		None => match content_data {
+			Some(content_data) => {
+				if content_data.len() == 0 {
+					"".to_string()
+				} else {
+					format!("Content-Length: {}\r\n", content_data.len())
+				}
+			}
+			None => "".to_string(),
+		},
+	};
+
 	let req_str = format!(
-		"{} {} {}\r\nHost: {}\r\nUser-Agent: {}\r\nAccept: {}\r\nConnection: {}{}\r\n\r\n",
-		method, uri, version, addr, user_agent, accept, keep_alive, headers_str
+		"{} {} {}\r\nHost: {}\r\nUser-Agent: {}\r\nAccept: {}\r\n{}Connection: {}{}\r\n\r\n",
+		method,
+		uri,
+		version,
+		addr,
+		user_agent,
+		accept,
+		content_length_header,
+		keep_alive,
+		headers_str
 	);
 
 	wh.write(req_str.as_bytes())?;
+
+	match content_data {
+		Some(content_data) => {
+			wh.write(content_data)?;
+		}
+		None => {}
+	}
+
+	match content_file {
+		Some(content_file) => {
+			let mut file = File::open(content_file)?;
+			let mut buf = [0u8; 1024];
+			loop {
+				let len = file.read(&mut buf)?;
+
+				if len == 0 {
+					break;
+				}
+
+				wh.write(&buf[0..len])?;
+			}
+		}
+		None => {}
+	}
 
 	Ok(())
 }
@@ -891,6 +951,12 @@ impl HttpRequest for HttpRequestImpl {
 	}
 	fn version(&self) -> &HttpVersion {
 		&self.config.version
+	}
+	fn content_file(&self) -> &Option<String> {
+		&self.config.content_file
+	}
+	fn content_data(&self) -> &Option<Vec<u8>> {
+		&self.config.content_data
 	}
 	fn full_chain(&self) -> &Option<String> {
 		&self.config.full_chain

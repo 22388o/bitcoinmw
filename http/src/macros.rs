@@ -106,6 +106,8 @@ macro_rules! http_client_request {
                 let mut method_specified = false;
                 let mut version_specified = false;
                 let mut full_chain_specified = false;
+                let mut content_data_specified = false;
+                let mut content_file_specified = false;
                 let mut error: Option<String> = None;
 
                 // to supress compiler warnings
@@ -119,6 +121,8 @@ macro_rules! http_client_request {
                 if method_specified { method_specified = false; }
                 if version_specified { version_specified = false; }
                 if full_chain_specified { full_chain_specified = false; }
+                if content_data_specified { content_data_specified = false; }
+                if content_file_specified { content_file_specified = false; }
                 if full_chain_specified {}
                 if request_url_specified {}
                 if request_uri_specified {}
@@ -126,6 +130,8 @@ macro_rules! http_client_request {
                 if accept_specified {}
                 if timeout_millis_specified {}
                 if method_specified {}
+                if content_data_specified {}
+                if content_file_specified {}
 
                 $(
                         match $config {
@@ -188,6 +194,26 @@ macro_rules! http_client_request {
 
                                         timeout_millis_specified = true;
                                         if timeout_millis_specified {}
+                                },
+                                bmw_http::ConfigOption::ContentData(data) => {
+                                        config.content_data = Some(data.to_vec());
+
+                                        if content_data_specified {
+
+                                        }
+
+                                        content_data_specified = true;
+                                        if content_data_specified {}
+                                },
+                                bmw_http::ConfigOption::ContentFile(file) => {
+                                        config.content_file = Some(file.to_string());
+
+                                        if content_file_specified {
+
+                                        }
+
+                                        content_file_specified = true;
+                                        if content_file_specified {}
                                 },
                                 bmw_http::ConfigOption::Method(method) => {
                                         config.method = method;
