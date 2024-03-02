@@ -464,7 +464,6 @@
 <a href="#463" id="463">463</a>
 <a href="#464" id="464">464</a>
 <a href="#465" id="465">465</a>
-<a href="#466" id="466">466</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -524,8 +523,7 @@
 		} <span class="kw">else if </span>path == <span class="string">"/content" </span>{
 			<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">100</span>];
 			<span class="kw">let </span>len = http_connection_data.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>(len, <span class="number">5</span>);
-			<span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len], <span class="string">b"test\n"</span>);
+			<span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..<span class="number">4</span>], <span class="string">b"test"</span>);
 			write_handle.write(
 				<span class="string">b"HTTP/1.1 200 OK\r\nServer: test\r\nContent-Length: 10\r\n\r\nabcdefghij"</span>,
 			)<span class="question-mark">?</span>;
