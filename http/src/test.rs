@@ -76,7 +76,7 @@ mod test {
 
 		let config = HttpConfig {
 			evh_config: EventHandlerConfig {
-				threads: 1,
+				threads: 10,
 				..Default::default()
 			},
 			instances: vec![HttpInstance {

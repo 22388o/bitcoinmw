@@ -41,7 +41,7 @@ use std::fmt::{Debug, Formatter};
 use std::fs::File;
 use std::io::{BufReader, Read, Write};
 use std::net::TcpStream;
-use std::sync::mpsc::sync_channel;
+use std::sync::mpsc::{sync_channel, SyncSender};
 use std::sync::Arc;
 
 #[cfg(target_os = "linux")]
@@ -1316,6 +1316,8 @@ where
 		}
 		loop {
 			let mut attachment: Option<AttachmentHolder>;
+			let mut tx_to_send: Option<SyncSender<()>> = None;
+			if tx_to_send.is_some() {} // supress compiler warning
 			let id;
 
 			let mut next = (**guard).nhandles.dequeue();
@@ -1324,18 +1326,7 @@ where
 					debug!("dequeue handle={:?} on tid={}", nhandle, ctx.tid)?;
 					match nhandle {
 						ConnectionInfo::ListenerInfo(li) => {
-							match &li.tx {
-								Some(tx) => {
-									debug!("tx.send() : handle={},id={}", li.handle, li.id)?;
-									// try to send
-									match tx.send(()) {
-										Ok(_) => {}
-										Err(e) => warn!("tx.send (li) generated error: {}", e)?,
-									}
-								}
-								None => {}
-							}
-
+							tx_to_send = li.tx.clone();
 							match Self::insert_hashtables(ctx, li.id, li.handle, nhandle) {
 								Ok(_) => {
 									let ev_in = EventIn {
@@ -1380,21 +1371,7 @@ where
 								None => {}
 							}
 
-							// check for tx. we can send to wakeup the
-							// receiver because the event is already
-							// registered
-							debug!("check for tx")?;
-							match &rwi.tx {
-								Some(tx) => {
-									debug!("tx.send() : handle={},id={}", rwi.handle, rwi.id)?;
-									// try to send
-									match tx.send(()) {
-										Ok(_) => {}
-										Err(e) => warn!("tx.send generated error: {}", e)?,
-									}
-								}
-								None => {}
-							}
+							tx_to_send = rwi.tx.clone();
 
 							match Self::insert_hashtables(ctx, rwi.id, rwi.handle, nhandle) {
 								Ok(_) => {
@@ -1428,6 +1405,13 @@ where
 			match attachment {
 				Some(attachment) => {
 					ctx.attachments.insert(id, attachment);
+				}
+				None => {}
+			}
+
+			match tx_to_send {
+				Some(tx) => {
+					tx.send(())?;
 				}
 				None => {}
 			}
