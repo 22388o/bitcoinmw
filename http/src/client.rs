@@ -136,6 +136,7 @@ impl Default for HttpRequestConfig {
 			full_chain: None,
 			content_file: None,
 			content_data: None,
+			keep_alive: true,
 		}
 	}
 }
@@ -410,6 +411,11 @@ impl HttpClientImpl {
 			SUFFIX_TREE_TERMINATE_HEADERS_ID,
 		)?)?;
 
+		list.push(pattern!(
+			Regex("Connection: close"),
+			Id(CONNECTION_CLOSE_ID)
+		)?)?;
+
 		list.push(pattern!(Regex("\r\n.*: "), Id(SUFFIX_TREE_HEADER_ID))?)?;
 
 		let suffix_tree = Box::new(suffix_tree!(
@@ -570,10 +576,13 @@ impl HttpClientImpl {
 			HttpContentReaderData::new(),
 			tmp_file_dir,
 			slab_allocator.clone(),
+			true,
 		)?;
 
 		for i in 0..count {
-			if ctx.matches[i].id() == SUFFIX_TREE_HEADER_ID {
+			if ctx.matches[i].id() == CONNECTION_CLOSE_ID {
+				response.keep_alive = false;
+			} else if ctx.matches[i].id() == SUFFIX_TREE_HEADER_ID {
 				let start = ctx.matches[i].start() + 2;
 				let end = ctx.matches[i].end() - 2;
 				let header_name = if start < end && end < res_len {
@@ -599,10 +608,6 @@ impl HttpClientImpl {
 				} else {
 					""
 				};
-				debug!(
-					"matches[{}]={:?},header_name='{}',header_value='{}'",
-					i, ctx.matches[i], header_name, header_value
-				)?;
 
 				let header_name_lower = header_name.to_lowercase();
 				if header_name_lower == "transfer-encoding"
@@ -701,6 +706,9 @@ impl HttpClientImpl {
 						return Ok(pop_count);
 					}
 
+					if !response.keep_alive {
+						conn_data.write_handle().close()?;
+					}
 					// the request is complete
 					let mut resp: Box<dyn HttpResponse + Send + Sync> = Box::new(response.clone());
 					let req_clone = req.clone();
@@ -763,6 +771,16 @@ impl HttpClientImpl {
 				&res[start..end],
 				slab_allocator.clone(),
 				config.tmp_file_dir(),
+			)?;
+
+			if !response.keep_alive {
+				conn_data.write_handle().close()?;
+			}
+
+			debug!(
+				"is_closed={}, keep_alive={}",
+				conn_data.write_handle().is_closed().unwrap_or(true),
+				response.keep_alive
 			)?;
 			let mut resp: Box<dyn HttpResponse + Send + Sync> = Box::new(response.clone());
 			pop_count += 1;
@@ -881,6 +899,7 @@ impl HttpConnection for HttpConnectionImpl {
 		request: Box<dyn HttpRequest + Send + Sync>,
 		handler: HttpHandler,
 	) -> Result<(), Error> {
+		let keep_alive = request.keep_alive();
 		match request.request_uri() {
 			Some(uri) => {
 				let host = &self.config.host;
@@ -897,7 +916,7 @@ impl HttpConnection for HttpConnectionImpl {
 					});
 				}
 
-				do_send(request, &mut self.wh, uri, addr, true)
+				do_send(request, &mut self.wh, uri, addr, keep_alive)
 			}
 			None => Err(err!(ErrKind::Http, "request_url must be specified")),
 		}
@@ -987,6 +1006,9 @@ impl HttpRequest for HttpRequestImpl {
 	fn version(&self) -> &HttpVersion {
 		&self.config.version
 	}
+	fn keep_alive(&self) -> bool {
+		self.config.keep_alive
+	}
 	fn content_file(&self) -> &Option<String> {
 		&self.config.content_file
 	}
@@ -1047,6 +1069,7 @@ impl HttpResponseImpl {
 		http_content_reader_data: HttpContentReaderData,
 		tmp_file_dir: PathBuf,
 		content_allocator: Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>,
+		keep_alive: bool,
 	) -> Result<Self, Error> {
 		Ok(Self {
 			headers: vec![],
@@ -1059,6 +1082,7 @@ impl HttpResponseImpl {
 			http_content_reader_data,
 			tmp_file_dir,
 			content_allocator,
+			keep_alive,
 		})
 	}
 }

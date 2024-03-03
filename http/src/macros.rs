@@ -115,6 +115,7 @@ macro_rules! http_client_request {
                 let mut full_chain_specified = false;
                 let mut content_data_specified = false;
                 let mut content_file_specified = false;
+                let mut keep_alive_specified = false;
                 let mut error: Option<String> = None;
 
                 // to supress compiler warnings
@@ -130,6 +131,7 @@ macro_rules! http_client_request {
                 if full_chain_specified { full_chain_specified = false; }
                 if content_data_specified { content_data_specified = false; }
                 if content_file_specified { content_file_specified = false; }
+                if keep_alive_specified { keep_alive_specified = false; }
                 if full_chain_specified {}
                 if request_url_specified {}
                 if request_uri_specified {}
@@ -139,6 +141,7 @@ macro_rules! http_client_request {
                 if method_specified {}
                 if content_data_specified {}
                 if content_file_specified {}
+                if keep_alive_specified {}
 
                 $(
                         match $config {
@@ -241,6 +244,17 @@ macro_rules! http_client_request {
 
                                         version_specified = true;
                                         if version_specified {}
+                                },
+                                bmw_http::ConfigOption::KeepAlive(keep_alive) => {
+                                        config.keep_alive = keep_alive;
+
+                                        if keep_alive_specified {
+
+                                        }
+
+                                        keep_alive_specified = true;
+
+                                        if keep_alive_specified {}
                                 },
                                 bmw_http::ConfigOption::Header((header_name, header_value)) => {
                                         config.headers.push((header_name.to_string(), header_value.to_string()));

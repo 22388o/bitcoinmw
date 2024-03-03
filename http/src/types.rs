@@ -263,6 +263,7 @@ pub trait HttpRequest: DynClone + Any {
 	fn timeout_millis(&self) -> u64;
 	fn content_file(&self) -> &Option<String>;
 	fn content_data(&self) -> &Option<Vec<u8>>;
+	fn keep_alive(&self) -> bool;
 	fn guid(&self) -> u128;
 }
 
@@ -335,6 +336,7 @@ pub struct HttpRequestConfig {
 	pub timeout_millis: u64,
 	pub method: HttpMethod,
 	pub version: HttpVersion,
+	pub keep_alive: bool,
 	pub full_chain: Option<String>,
 	pub content_file: Option<String>,
 	pub content_data: Option<Vec<u8>>,
@@ -385,6 +387,8 @@ pub enum ConfigOption<'a> {
 	/// The contents of the specified path will be sent to the server as the content for this
 	/// [`crate::http_client_request`].
 	ContentFile(&'a str),
+	/// For [`crate::http_connection`]'s, whether or not to keep the connection alive.
+	KeepAlive(bool),
 }
 
 // Crate local types
@@ -409,6 +413,7 @@ pub(crate) struct HttpResponseImpl {
 	pub(crate) code: u16,
 	pub(crate) status_text: String,
 	pub(crate) version: HttpVersion,
+	pub(crate) keep_alive: bool,
 	pub(crate) content_allocator: Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>,
 	pub(crate) tmp_file_dir: PathBuf,
 	pub(crate) http_content_reader_data: HttpContentReaderData,

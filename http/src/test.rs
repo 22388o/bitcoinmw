@@ -464,6 +464,62 @@ mod test {
 	}
 
 	#[test]
+	fn test_http_connection_keep_alive() -> Result<(), Error> {
+		let test_dir = ".test_http_connection_keep_alive.bmw";
+		let http = build_server(test_dir, false)?;
+
+		let data_text = "Hello test World!";
+		{
+			let mut file = File::create(format!("{}/foo.html", test_dir))?;
+			file.write_all(data_text.as_bytes())?;
+		}
+
+		http_client_init!(BaseDir(test_dir))?;
+		let mut connection = http_connection!(Host("127.0.0.1"), Port(http.0), Tls(false))?;
+
+		let request = http_client_request!(Uri("/foo.html"), KeepAlive(true))?;
+
+		let (tx, rx) = sync_channel(1);
+		http_client_send!([request], connection, {
+			let response = http_client_response!()?;
+			assert_eq!(response.code()?, 200);
+			tx.send(())?;
+			Ok(())
+		})?;
+
+		rx.recv()?;
+
+		info!("complete")?;
+
+		let request = http_client_request!(Uri("/foo.html"), KeepAlive(false))?;
+
+		let (tx, rx) = sync_channel(1);
+		http_client_send!([request], connection, {
+			let response = http_client_response!()?;
+			assert_eq!(response.code()?, 200);
+			tx.send(())?;
+			Ok(())
+		})?;
+
+		rx.recv()?;
+
+		info!("complete2")?;
+
+		let request = http_client_request!(Uri("/foo.html"))?;
+
+		assert!(http_client_send!([request], connection, {
+			let response = http_client_response!()?;
+			assert_eq!(response.code()?, 200);
+			Ok(())
+		})
+		.is_err());
+
+		sleep(Duration::from_millis(3_000));
+
+		Ok(())
+	}
+
+	#[test]
 	fn simple1() -> Result<(), Error> {
 		let test_dir = ".simple1.bmw";
 		let http = build_server(test_dir, false)?;

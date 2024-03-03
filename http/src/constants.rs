@@ -26,6 +26,7 @@ pub(crate) const SUFFIX_TREE_OPTIONS_ID: usize = 7;
 pub(crate) const SUFFIX_TREE_CONNECT_ID: usize = 8;
 pub(crate) const SUFFIX_TREE_TRACE_ID: usize = 9;
 pub(crate) const SUFFIX_TREE_PATCH_ID: usize = 10;
+pub(crate) const CONNECTION_CLOSE_ID: usize = 11;
 
 pub(crate) const CACHE_BUFFER_SIZE: usize = 412;
 pub(crate) const CACHE_OVERHEAD_BYTES: usize = 100;
