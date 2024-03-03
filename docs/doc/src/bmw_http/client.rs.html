@@ -1453,6 +1453,41 @@
 <a href="#1452" id="1452">1452</a>
 <a href="#1453" id="1453">1453</a>
 <a href="#1454" id="1454">1454</a>
+<a href="#1455" id="1455">1455</a>
+<a href="#1456" id="1456">1456</a>
+<a href="#1457" id="1457">1457</a>
+<a href="#1458" id="1458">1458</a>
+<a href="#1459" id="1459">1459</a>
+<a href="#1460" id="1460">1460</a>
+<a href="#1461" id="1461">1461</a>
+<a href="#1462" id="1462">1462</a>
+<a href="#1463" id="1463">1463</a>
+<a href="#1464" id="1464">1464</a>
+<a href="#1465" id="1465">1465</a>
+<a href="#1466" id="1466">1466</a>
+<a href="#1467" id="1467">1467</a>
+<a href="#1468" id="1468">1468</a>
+<a href="#1469" id="1469">1469</a>
+<a href="#1470" id="1470">1470</a>
+<a href="#1471" id="1471">1471</a>
+<a href="#1472" id="1472">1472</a>
+<a href="#1473" id="1473">1473</a>
+<a href="#1474" id="1474">1474</a>
+<a href="#1475" id="1475">1475</a>
+<a href="#1476" id="1476">1476</a>
+<a href="#1477" id="1477">1477</a>
+<a href="#1478" id="1478">1478</a>
+<a href="#1479" id="1479">1479</a>
+<a href="#1480" id="1480">1480</a>
+<a href="#1481" id="1481">1481</a>
+<a href="#1482" id="1482">1482</a>
+<a href="#1483" id="1483">1483</a>
+<a href="#1484" id="1484">1484</a>
+<a href="#1485" id="1485">1485</a>
+<a href="#1486" id="1486">1486</a>
+<a href="#1487" id="1487">1487</a>
+<a href="#1488" id="1488">1488</a>
+<a href="#1489" id="1489">1489</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1689,6 +1724,18 @@
 		(<span class="kw-2">*</span>container).insert(current().id(), <span class="kw">crate</span>::Builder::build_http_client(<span class="kw-2">&amp;</span>config)<span class="question-mark">?</span>);
 		<span class="prelude-val">Ok</span>(())
 	}
+
+	<span class="kw">pub fn </span>stop() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span>id = current().id();
+		<span class="kw">let </span><span class="kw-2">mut </span>container = HTTP_CLIENT_CONTAINER.write()<span class="question-mark">?</span>;
+		<span class="kw">match </span>(<span class="kw-2">*</span>container).remove(<span class="kw-2">&amp;</span>id) {
+			<span class="prelude-val">Some</span>(<span class="kw-2">mut </span>http_client) =&gt; http_client.stop(),
+			<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(
+				ErrKind::IllegalState,
+				<span class="string">"http_client_init has not been called for this thread and stop was called!"
+			</span>)),
+		}
+	}
 }
 
 <span class="kw">impl </span>HttpClient <span class="kw">for </span>HttpClientImpl {
@@ -1755,6 +1802,10 @@
 		}
 	}
 
+	<span class="kw">fn </span>stop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="self">self</span>.do_stop()
+	}
+
 	<span class="kw">fn </span>controller(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>EventHandlerController {
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>.controller
 	}
@@ -1809,6 +1860,11 @@
 		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
 			controller: evh.event_handler_controller()<span class="question-mark">?</span>,
 		})
+	}
+
+	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>do_stop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="self">self</span>.controller.stop()<span class="question-mark">?</span>;
+		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="kw">fn </span>build_ctx&lt;<span class="lifetime">'a</span>&gt;(
@@ -2335,6 +2391,20 @@
 			}
 			<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">"request_url must be specified"</span>)),
 		}
+	}
+
+	<span class="kw">fn </span>close(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">match </span><span class="self">self</span>.wh.close() {
+			<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
+			<span class="prelude-val">Err</span>(e) =&gt; <span class="macro">debug!</span>(<span class="string">"closing write handle generated error: {}"</span>, e)<span class="question-mark">?</span>,
+		}
+
+		<span class="kw">let </span><span class="kw-2">mut </span>http_client_data = <span class="self">self</span>.http_client_data.wlock()<span class="question-mark">?</span>;
+		<span class="kw">let </span>http_client_data = http_client_data.guard();
+		(<span class="kw-2">**</span>http_client_data).clear();
+		(<span class="kw-2">**</span>http_client_data).shrink_to_fit();
+
+		<span class="prelude-val">Ok</span>(())
 	}
 }
 

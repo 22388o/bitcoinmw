@@ -520,6 +520,10 @@
 <a href="#519" id="519">519</a>
 <a href="#520" id="520">520</a>
 <a href="#521" id="521">521</a>
+<a href="#522" id="522">522</a>
+<a href="#523" id="523">523</a>
+<a href="#524" id="524">524</a>
+<a href="#525" id="525">525</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -809,6 +813,8 @@
 		handler: HttpHandler,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 
+	<span class="kw">fn </span>stop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+
 	<span class="comment">// TODO: make this crate(pub) by splitting into a separate mod (see
 	// https://stackoverflow.com/questions/66786429/how-to-have-a-public-trait-with-a-pubcrate-method-in-a-library)
 	</span><span class="kw">fn </span>controller(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>EventHandlerController;
@@ -823,6 +829,8 @@
 		req: Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
 		handler: HttpHandler,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+
+	<span class="kw">fn </span>close(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 }
 
 <span class="attr">#[derive(Clone)]
