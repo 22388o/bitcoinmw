@@ -234,6 +234,18 @@ impl HttpClientContainer {
 		(*container).insert(current().id(), crate::Builder::build_http_client(&config)?);
 		Ok(())
 	}
+
+	pub fn stop() -> Result<(), Error> {
+		let id = current().id();
+		let mut container = HTTP_CLIENT_CONTAINER.write()?;
+		match (*container).remove(&id) {
+			Some(mut http_client) => http_client.stop(),
+			None => Err(err!(
+				ErrKind::IllegalState,
+				"http_client_init has not been called for this thread and stop was called!"
+			)),
+		}
+	}
 }
 
 impl HttpClient for HttpClientImpl {
@@ -300,6 +312,10 @@ impl HttpClient for HttpClientImpl {
 		}
 	}
 
+	fn stop(&mut self) -> Result<(), Error> {
+		self.do_stop()
+	}
+
 	fn controller(&mut self) -> &mut EventHandlerController {
 		&mut self.controller
 	}
@@ -354,6 +370,11 @@ impl HttpClientImpl {
 		Ok(Self {
 			controller: evh.event_handler_controller()?,
 		})
+	}
+
+	pub(crate) fn do_stop(&mut self) -> Result<(), Error> {
+		self.controller.stop()?;
+		Ok(())
 	}
 
 	fn build_ctx<'a>(
@@ -880,6 +901,20 @@ impl HttpConnection for HttpConnectionImpl {
 			}
 			None => Err(err!(ErrKind::Http, "request_url must be specified")),
 		}
+	}
+
+	fn close(&mut self) -> Result<(), Error> {
+		match self.wh.close() {
+			Ok(_) => {}
+			Err(e) => debug!("closing write handle generated error: {}", e)?,
+		}
+
+		let mut http_client_data = self.http_client_data.wlock()?;
+		let http_client_data = http_client_data.guard();
+		(**http_client_data).clear();
+		(**http_client_data).shrink_to_fit();
+
+		Ok(())
 	}
 }
 

@@ -86,6 +86,13 @@ macro_rules! http_client_init {
 }
 
 #[macro_export]
+macro_rules! http_client_stop {
+	() => {{
+		bmw_http::HttpClientContainer::stop()
+	}};
+}
+
+#[macro_export]
 macro_rules! http_client_request {
         () => {{
                 bmw_http::HTTP_CLIENT_CONTEXT.with(|f| match &(*f.borrow()) {
@@ -540,6 +547,19 @@ macro_rules! http_connection {
         }};
 }
 
+#[macro_export]
+macro_rules! http_connection_close {
+	($connection:expr) => {{
+		match $connection.close() {
+			Ok(_) => Ok(()),
+			Err(e) => Err(bmw_err::err!(
+				bmw_err::ErrKind::IO,
+				format!("connection.close generated error: {}", e)
+			)),
+		}
+	}};
+}
+
 #[cfg(test)]
 mod test {
 	use crate as bmw_http;
@@ -753,7 +773,10 @@ mod test {
 		assert_eq!(response_code, 200);
 		assert_eq!(content, "Hello Macro World!");
 
+		http_connection_close!(connection)?;
+		http_client_stop!()?;
 		tear_down_test_dir(test_dir)?;
+
 		Ok(())
 	}
 }

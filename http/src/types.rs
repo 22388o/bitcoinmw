@@ -287,6 +287,8 @@ pub trait HttpClient: DynClone + Any {
 		handler: HttpHandler,
 	) -> Result<(), Error>;
 
+	fn stop(&mut self) -> Result<(), Error>;
+
 	// TODO: make this crate(pub) by splitting into a separate mod (see
 	// https://stackoverflow.com/questions/66786429/how-to-have-a-public-trait-with-a-pubcrate-method-in-a-library)
 	fn controller(&mut self) -> &mut EventHandlerController;
@@ -301,6 +303,8 @@ pub trait HttpConnection {
 		req: Box<dyn HttpRequest + Send + Sync>,
 		handler: HttpHandler,
 	) -> Result<(), Error>;
+
+	fn close(&mut self) -> Result<(), Error>;
 }
 
 #[derive(Clone)]
