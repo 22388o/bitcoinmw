@@ -43,6 +43,8 @@ use std::io::{BufReader, Read, Write};
 use std::net::TcpStream;
 use std::sync::mpsc::{sync_channel, SyncSender};
 use std::sync::Arc;
+use std::thread::sleep;
+use std::time::Duration;
 
 #[cfg(target_os = "linux")]
 use crate::linux::*;
@@ -200,13 +202,15 @@ impl Serializable for ConnectionInfo {
 			};
 
 			// note that tx can be None below because we only use tx with Queues which
-			// are not serialized
+			// are not serialized. ready must be true here because we're always ready
+			// once it's serialized.
 			let li = ListenerInfo {
 				id,
 				handle,
 				is_reuse_port,
 				tls_config,
 				tx: None,
+				ready: lock_box!(true)?,
 			};
 			let ci = ConnectionInfo::ListenerInfo(li);
 			Ok(ci)
@@ -835,6 +839,7 @@ impl EventHandlerData {
 			is_reuse_port: false,
 			tls_config: None,
 			tx: None,
+			ready: lock_box!(true)?,
 		});
 
 		let evhd = EventHandlerData {
@@ -1345,6 +1350,10 @@ where
 							debug!("id={},att={:?}", id, attachment)?;
 						}
 						ConnectionInfo::StreamInfo(rwi) => {
+							debug!(
+								"rwi found id={},tid={},handle={}",
+								rwi.id, ctx.tid, rwi.handle
+							)?;
 							match &mut self.on_accept {
 								Some(on_accept) => {
 									let tid = ctx.tid;
@@ -1389,9 +1398,14 @@ where
 							id = rwi.id;
 							let acc_id = rwi.accept_id;
 							attachment = (**guard).attachments.remove(&id);
+							debug!("att.is_none = {}", attachment.is_none())?;
 							if attachment.is_none() {
 								match acc_id {
-									Some(id) => attachment = (**guard).attachments.remove(&id),
+									Some(id) => {
+										let att = (**guard).attachments.remove(&id);
+										debug!("att={:?}", att)?;
+										attachment = att;
+									}
 									None => {}
 								}
 							}
@@ -2198,6 +2212,15 @@ where
 		ctx: &mut EventHandlerContext,
 		callback_context: &mut ThreadContext,
 	) -> Result<Handle, Error> {
+		// wait until we're ready (up to 10ms).
+		let mut count = 0;
+		loop {
+			if rlock!(li.ready) || count >= 10 {
+				break;
+			}
+			count += 1;
+			sleep(Duration::from_millis(1));
+		}
 		set_errno(Errno(0));
 		let handle = match accept_impl(li.handle) {
 			Ok(handle) => handle,
@@ -2243,6 +2266,7 @@ where
 		}
 
 		let id = random();
+
 		let rwi = StreamInfo {
 			id,
 			handle,
@@ -2600,6 +2624,8 @@ where
 
 		let attachment = Arc::new(attachment);
 
+		let mut ready = lock_box!(false)?;
+
 		for i in 0..connection.handles.size() {
 			let handle = connection.handles[i];
 			// check for 0 which means to skip this handle (port not reused)
@@ -2615,6 +2641,7 @@ where
 						is_reuse_port: connection.is_reuse_port,
 						tls_config: tls_config.clone(),
 						tx: Some(tx),
+						ready: ready.clone(),
 					};
 					let ci = ConnectionInfo::ListenerInfo(li);
 					(**guard).nhandles.enqueue(ci)?;
@@ -2632,6 +2659,8 @@ where
 				rx.recv()?;
 			}
 		}
+
+		wlock!(ready) = true;
 		Ok(())
 	}
 

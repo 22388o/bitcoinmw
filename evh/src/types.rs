@@ -393,6 +393,7 @@ pub(crate) struct ListenerInfo {
 	pub(crate) is_reuse_port: bool,
 	pub(crate) tls_config: Option<Arc<ServerConfig>>,
 	pub(crate) tx: Option<SyncSender<()>>,
+	pub(crate) ready: Box<dyn LockBox<bool>>,
 }
 
 #[derive(Clone, Debug)]

@@ -2168,6 +2168,7 @@ mod test {
 			is_reuse_port: false,
 			tls_config: None,
 			tx: None,
+			ready: lock_box!(true)?,
 		};
 		info!("li={:?}", li)?;
 		assert_eq!(li.id, 0);
@@ -2211,6 +2212,7 @@ mod test {
 			is_reuse_port: false,
 			tls_config: None,
 			tx: None,
+			ready: lock_box!(true)?,
 		});
 		hashtable.insert(&0, &ci1)?;
 		let v = hashtable.get(&0)?.unwrap();
@@ -2222,6 +2224,7 @@ mod test {
 			is_reuse_port: true,
 			tls_config: None,
 			tx: None,
+			ready: lock_box!(true)?,
 		});
 		let mut v: Vec<u8> = vec![];
 		serialize(&mut v, &ser_out)?;
@@ -3411,6 +3414,7 @@ mod test {
 			is_reuse_port: false,
 			tls_config: None,
 			tx: None,
+			ready: lock_box!(true)?,
 		};
 		let ci = ConnectionInfo::ListenerInfo(li.clone());
 		ctx.connection_hashtable.insert(&1_000, &ci)?;
@@ -4012,6 +4016,7 @@ mod test {
 			is_reuse_port: false,
 			tls_config: None,
 			tx: None,
+			ready: lock_box!(true)?,
 		};
 		let ret = evh.process_accept(&li, &mut ctx, &mut tc)?;
 
@@ -4028,6 +4033,7 @@ mod test {
 			is_reuse_port: false,
 			tls_config: None,
 			tx: None,
+			ready: lock_box!(true)?,
 		};
 		ctx.debug_bypass_acc_err = true;
 

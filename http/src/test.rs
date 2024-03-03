@@ -462,4 +462,25 @@ mod test {
 
 		Ok(())
 	}
+
+	#[test]
+	fn simple1() -> Result<(), Error> {
+		let test_dir = ".simple1.bmw";
+		let http = build_server(test_dir, false)?;
+		let addr = format!("http://127.0.0.1:{}", http.0);
+
+		http_client_init!(BaseDir(test_dir))?;
+
+		let request = http_client_request!(
+			Url(&format!("{}/content", addr)),
+			ContentData(b"test\n"),
+			Method(HttpMethod::POST)
+		)?;
+
+		let response = http_client_send!(request)?;
+
+		assert_eq!(response.code()?, 200);
+
+		Ok(())
+	}
 }
