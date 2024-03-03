@@ -1488,6 +1488,30 @@
 <a href="#1487" id="1487">1487</a>
 <a href="#1488" id="1488">1488</a>
 <a href="#1489" id="1489">1489</a>
+<a href="#1490" id="1490">1490</a>
+<a href="#1491" id="1491">1491</a>
+<a href="#1492" id="1492">1492</a>
+<a href="#1493" id="1493">1493</a>
+<a href="#1494" id="1494">1494</a>
+<a href="#1495" id="1495">1495</a>
+<a href="#1496" id="1496">1496</a>
+<a href="#1497" id="1497">1497</a>
+<a href="#1498" id="1498">1498</a>
+<a href="#1499" id="1499">1499</a>
+<a href="#1500" id="1500">1500</a>
+<a href="#1501" id="1501">1501</a>
+<a href="#1502" id="1502">1502</a>
+<a href="#1503" id="1503">1503</a>
+<a href="#1504" id="1504">1504</a>
+<a href="#1505" id="1505">1505</a>
+<a href="#1506" id="1506">1506</a>
+<a href="#1507" id="1507">1507</a>
+<a href="#1508" id="1508">1508</a>
+<a href="#1509" id="1509">1509</a>
+<a href="#1510" id="1510">1510</a>
+<a href="#1511" id="1511">1511</a>
+<a href="#1512" id="1512">1512</a>
+<a href="#1513" id="1513">1513</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1626,6 +1650,7 @@
 			full_chain: <span class="prelude-val">None</span>,
 			content_file: <span class="prelude-val">None</span>,
 			content_data: <span class="prelude-val">None</span>,
+			keep_alive: <span class="bool-val">true</span>,
 		}
 	}
 }
@@ -1900,6 +1925,11 @@
 			SUFFIX_TREE_TERMINATE_HEADERS_ID,
 		)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"Connection: close"</span>),
+			Id(CONNECTION_CLOSE_ID)
+		)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+
 		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"\r\n.*: "</span>), Id(SUFFIX_TREE_HEADER_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>suffix_tree = Box::new(<span class="macro">suffix_tree!</span>(
@@ -2060,10 +2090,13 @@
 			HttpContentReaderData::new(),
 			tmp_file_dir,
 			slab_allocator.clone(),
+			<span class="bool-val">true</span>,
 		)<span class="question-mark">?</span>;
 
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..count {
-			<span class="kw">if </span>ctx.matches[i].id() == SUFFIX_TREE_HEADER_ID {
+			<span class="kw">if </span>ctx.matches[i].id() == CONNECTION_CLOSE_ID {
+				response.keep_alive = <span class="bool-val">false</span>;
+			} <span class="kw">else if </span>ctx.matches[i].id() == SUFFIX_TREE_HEADER_ID {
 				<span class="kw">let </span>start = ctx.matches[i].start() + <span class="number">2</span>;
 				<span class="kw">let </span>end = ctx.matches[i].end() - <span class="number">2</span>;
 				<span class="kw">let </span>header_name = <span class="kw">if </span>start &lt; end &amp;&amp; end &lt; res_len {
@@ -2089,10 +2122,6 @@
 				} <span class="kw">else </span>{
 					<span class="string">""
 				</span>};
-				<span class="macro">debug!</span>(
-					<span class="string">"matches[{}]={:?},header_name='{}',header_value='{}'"</span>,
-					i, ctx.matches[i], header_name, header_value
-				)<span class="question-mark">?</span>;
 
 				<span class="kw">let </span>header_name_lower = header_name.to_lowercase();
 				<span class="kw">if </span>header_name_lower == <span class="string">"transfer-encoding"
@@ -2191,6 +2220,9 @@
 						</span><span class="kw">return </span><span class="prelude-val">Ok</span>(pop_count);
 					}
 
+					<span class="kw">if </span>!response.keep_alive {
+						conn_data.write_handle().close()<span class="question-mark">?</span>;
+					}
 					<span class="comment">// the request is complete
 					</span><span class="kw">let </span><span class="kw-2">mut </span>resp: Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt; = Box::new(response.clone());
 					<span class="kw">let </span>req_clone = req.clone();
@@ -2253,6 +2285,16 @@
 				<span class="kw-2">&amp;</span>res[start..end],
 				slab_allocator.clone(),
 				config.tmp_file_dir(),
+			)<span class="question-mark">?</span>;
+
+			<span class="kw">if </span>!response.keep_alive {
+				conn_data.write_handle().close()<span class="question-mark">?</span>;
+			}
+
+			<span class="macro">debug!</span>(
+				<span class="string">"is_closed={}, keep_alive={}"</span>,
+				conn_data.write_handle().is_closed().unwrap_or(<span class="bool-val">true</span>),
+				response.keep_alive
 			)<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>resp: Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt; = Box::new(response.clone());
 			pop_count += <span class="number">1</span>;
@@ -2371,6 +2413,7 @@
 		request: Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
 		handler: HttpHandler,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span>keep_alive = request.keep_alive();
 		<span class="kw">match </span>request.request_uri() {
 			<span class="prelude-val">Some</span>(uri) =&gt; {
 				<span class="kw">let </span>host = <span class="kw-2">&amp;</span><span class="self">self</span>.config.host;
@@ -2387,7 +2430,7 @@
 					});
 				}
 
-				do_send(request, <span class="kw-2">&amp;mut </span><span class="self">self</span>.wh, uri, addr, <span class="bool-val">true</span>)
+				do_send(request, <span class="kw-2">&amp;mut </span><span class="self">self</span>.wh, uri, addr, keep_alive)
 			}
 			<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">"request_url must be specified"</span>)),
 		}
@@ -2477,6 +2520,9 @@
 	<span class="kw">fn </span>version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>HttpVersion {
 		<span class="kw-2">&amp;</span><span class="self">self</span>.config.version
 	}
+	<span class="kw">fn </span>keep_alive(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+		<span class="self">self</span>.config.keep_alive
+	}
 	<span class="kw">fn </span>content_file(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;String&gt; {
 		<span class="kw-2">&amp;</span><span class="self">self</span>.config.content_file
 	}
@@ -2537,6 +2583,7 @@
 		http_content_reader_data: HttpContentReaderData,
 		tmp_file_dir: PathBuf,
 		content_allocator: Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;&gt;&gt;,
+		keep_alive: bool,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
 		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
 			headers: <span class="macro">vec!</span>[],
@@ -2549,6 +2596,7 @@
 			http_content_reader_data,
 			tmp_file_dir,
 			content_allocator,
+			keep_alive,
 		})
 	}
 }

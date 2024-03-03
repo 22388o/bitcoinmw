@@ -781,6 +781,20 @@
 <a href="#780" id="780">780</a>
 <a href="#781" id="781">781</a>
 <a href="#782" id="782">782</a>
+<a href="#783" id="783">783</a>
+<a href="#784" id="784">784</a>
+<a href="#785" id="785">785</a>
+<a href="#786" id="786">786</a>
+<a href="#787" id="787">787</a>
+<a href="#788" id="788">788</a>
+<a href="#789" id="789">789</a>
+<a href="#790" id="790">790</a>
+<a href="#791" id="791">791</a>
+<a href="#792" id="792">792</a>
+<a href="#793" id="793">793</a>
+<a href="#794" id="794">794</a>
+<a href="#795" id="795">795</a>
+<a href="#796" id="796">796</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -898,6 +912,7 @@
                 <span class="kw">let </span><span class="kw-2">mut </span>full_chain_specified = <span class="bool-val">false</span>;
                 <span class="kw">let </span><span class="kw-2">mut </span>content_data_specified = <span class="bool-val">false</span>;
                 <span class="kw">let </span><span class="kw-2">mut </span>content_file_specified = <span class="bool-val">false</span>;
+                <span class="kw">let </span><span class="kw-2">mut </span>keep_alive_specified = <span class="bool-val">false</span>;
                 <span class="kw">let </span><span class="kw-2">mut </span>error: <span class="prelude-ty">Option</span>&lt;String&gt; = <span class="prelude-val">None</span>;
 
                 <span class="comment">// to supress compiler warnings
@@ -913,6 +928,7 @@
                 <span class="kw">if </span>full_chain_specified { full_chain_specified = <span class="bool-val">false</span>; }
                 <span class="kw">if </span>content_data_specified { content_data_specified = <span class="bool-val">false</span>; }
                 <span class="kw">if </span>content_file_specified { content_file_specified = <span class="bool-val">false</span>; }
+                <span class="kw">if </span>keep_alive_specified { keep_alive_specified = <span class="bool-val">false</span>; }
                 <span class="kw">if </span>full_chain_specified {}
                 <span class="kw">if </span>request_url_specified {}
                 <span class="kw">if </span>request_uri_specified {}
@@ -922,6 +938,7 @@
                 <span class="kw">if </span>method_specified {}
                 <span class="kw">if </span>content_data_specified {}
                 <span class="kw">if </span>content_file_specified {}
+                <span class="kw">if </span>keep_alive_specified {}
 
                 $(
                         <span class="kw">match </span><span class="macro-nonterminal">$config </span>{
@@ -1024,6 +1041,17 @@
 
                                         version_specified = <span class="bool-val">true</span>;
                                         <span class="kw">if </span>version_specified {}
+                                },
+                                bmw_http::ConfigOption::KeepAlive(keep_alive) =&gt; {
+                                        config.keep_alive = keep_alive;
+
+                                        <span class="kw">if </span>keep_alive_specified {
+
+                                        }
+
+                                        keep_alive_specified = <span class="bool-val">true</span>;
+
+                                        <span class="kw">if </span>keep_alive_specified {}
                                 },
                                 bmw_http::ConfigOption::Header((header_name, header_value)) =&gt; {
                                         config.headers.push((header_name.to_string(), header_value.to_string()));
