@@ -2922,17 +2922,6 @@
 <a href="#2921" id="2921">2921</a>
 <a href="#2922" id="2922">2922</a>
 <a href="#2923" id="2923">2923</a>
-<a href="#2924" id="2924">2924</a>
-<a href="#2925" id="2925">2925</a>
-<a href="#2926" id="2926">2926</a>
-<a href="#2927" id="2927">2927</a>
-<a href="#2928" id="2928">2928</a>
-<a href="#2929" id="2929">2929</a>
-<a href="#2930" id="2930">2930</a>
-<a href="#2931" id="2931">2931</a>
-<a href="#2932" id="2932">2932</a>
-<a href="#2933" id="2933">2933</a>
-<a href="#2934" id="2934">2934</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -4255,7 +4244,7 @@
 			<span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">true</span>);
 		}
 		<span class="kw">loop </span>{
-			<span class="kw">let </span><span class="kw-2">mut </span>attachment: <span class="prelude-ty">Option</span>&lt;AttachmentHolder&gt;;
+			<span class="kw">let </span>attachment: <span class="prelude-ty">Option</span>&lt;AttachmentHolder&gt;;
 			<span class="kw">let </span><span class="kw-2">mut </span>tx_to_send: <span class="prelude-ty">Option</span>&lt;SyncSender&lt;()&gt;&gt; = <span class="prelude-val">None</span>;
 			<span class="kw">if </span>tx_to_send.is_some() {} <span class="comment">// supress compiler warning
 			</span><span class="kw">let </span>id;
@@ -4331,19 +4320,8 @@
 								}
 							}
 							id = rwi.id;
-							<span class="kw">let </span>acc_id = rwi.accept_id;
 							attachment = (<span class="kw-2">**</span>guard).attachments.remove(<span class="kw-2">&amp;</span>id);
 							<span class="macro">debug!</span>(<span class="string">"att.is_none = {}"</span>, attachment.is_none())<span class="question-mark">?</span>;
-							<span class="kw">if </span>attachment.is_none() {
-								<span class="kw">match </span>acc_id {
-									<span class="prelude-val">Some</span>(id) =&gt; {
-										<span class="kw">let </span>att = (<span class="kw-2">**</span>guard).attachments.remove(<span class="kw-2">&amp;</span>id);
-										<span class="macro">debug!</span>(<span class="string">"att={:?}"</span>, att)<span class="question-mark">?</span>;
-										attachment = att;
-									}
-									<span class="prelude-val">None </span>=&gt; {}
-								}
-							}
 						}
 					}
 				}
@@ -5242,8 +5220,8 @@
 				<span class="kw">let </span>guard = data.guard();
 
 				<span class="comment">// unwrap is ok because accept_id is always set above
-				</span><span class="kw">let </span>id = rwi.accept_id.unwrap();
-				<span class="kw">match </span>ctx.attachments.get(<span class="kw-2">&amp;</span>id) {
+				</span><span class="kw">let </span>acc_id = rwi.accept_id.unwrap();
+				<span class="kw">match </span>ctx.attachments.get(<span class="kw-2">&amp;</span>acc_id) {
 					<span class="prelude-val">Some</span>(attachment) =&gt; {
 						(<span class="kw-2">**</span>guard).attachments.insert(id, attachment.clone());
 					}
