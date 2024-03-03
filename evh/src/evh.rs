@@ -1320,7 +1320,7 @@ where
 			return Ok(true);
 		}
 		loop {
-			let mut attachment: Option<AttachmentHolder>;
+			let attachment: Option<AttachmentHolder>;
 			let mut tx_to_send: Option<SyncSender<()>> = None;
 			if tx_to_send.is_some() {} // supress compiler warning
 			let id;
@@ -1396,19 +1396,8 @@ where
 								}
 							}
 							id = rwi.id;
-							let acc_id = rwi.accept_id;
 							attachment = (**guard).attachments.remove(&id);
 							debug!("att.is_none = {}", attachment.is_none())?;
-							if attachment.is_none() {
-								match acc_id {
-									Some(id) => {
-										let att = (**guard).attachments.remove(&id);
-										debug!("att={:?}", att)?;
-										attachment = att;
-									}
-									None => {}
-								}
-							}
 						}
 					}
 				}
@@ -2307,8 +2296,8 @@ where
 				let guard = data.guard();
 
 				// unwrap is ok because accept_id is always set above
-				let id = rwi.accept_id.unwrap();
-				match ctx.attachments.get(&id) {
+				let acc_id = rwi.accept_id.unwrap();
+				match ctx.attachments.get(&acc_id) {
 					Some(attachment) => {
 						(**guard).attachments.insert(id, attachment.clone());
 					}
