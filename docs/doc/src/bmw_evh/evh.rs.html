@@ -2904,6 +2904,35 @@
 <a href="#2903" id="2903">2903</a>
 <a href="#2904" id="2904">2904</a>
 <a href="#2905" id="2905">2905</a>
+<a href="#2906" id="2906">2906</a>
+<a href="#2907" id="2907">2907</a>
+<a href="#2908" id="2908">2908</a>
+<a href="#2909" id="2909">2909</a>
+<a href="#2910" id="2910">2910</a>
+<a href="#2911" id="2911">2911</a>
+<a href="#2912" id="2912">2912</a>
+<a href="#2913" id="2913">2913</a>
+<a href="#2914" id="2914">2914</a>
+<a href="#2915" id="2915">2915</a>
+<a href="#2916" id="2916">2916</a>
+<a href="#2917" id="2917">2917</a>
+<a href="#2918" id="2918">2918</a>
+<a href="#2919" id="2919">2919</a>
+<a href="#2920" id="2920">2920</a>
+<a href="#2921" id="2921">2921</a>
+<a href="#2922" id="2922">2922</a>
+<a href="#2923" id="2923">2923</a>
+<a href="#2924" id="2924">2924</a>
+<a href="#2925" id="2925">2925</a>
+<a href="#2926" id="2926">2926</a>
+<a href="#2927" id="2927">2927</a>
+<a href="#2928" id="2928">2928</a>
+<a href="#2929" id="2929">2929</a>
+<a href="#2930" id="2930">2930</a>
+<a href="#2931" id="2931">2931</a>
+<a href="#2932" id="2932">2932</a>
+<a href="#2933" id="2933">2933</a>
+<a href="#2934" id="2934">2934</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2949,6 +2978,8 @@
 <span class="kw">use </span>std::net::TcpStream;
 <span class="kw">use </span>std::sync::mpsc::{sync_channel, SyncSender};
 <span class="kw">use </span>std::sync::Arc;
+<span class="kw">use </span>std::thread::sleep;
+<span class="kw">use </span>std::time::Duration;
 
 <span class="attr">#[cfg(target_os = <span class="string">"linux"</span>)]
 </span><span class="kw">use </span><span class="kw">crate</span>::linux::<span class="kw-2">*</span>;
@@ -3106,13 +3137,15 @@
 			};
 
 			<span class="comment">// note that tx can be None below because we only use tx with Queues which
-			// are not serialized
+			// are not serialized. ready must be true here because we're always ready
+			// once it's serialized.
 			</span><span class="kw">let </span>li = ListenerInfo {
 				id,
 				handle,
 				is_reuse_port,
 				tls_config,
 				tx: <span class="prelude-val">None</span>,
+				ready: <span class="macro">lock_box!</span>(<span class="bool-val">true</span>)<span class="question-mark">?</span>,
 			};
 			<span class="kw">let </span>ci = ConnectionInfo::ListenerInfo(li);
 			<span class="prelude-val">Ok</span>(ci)
@@ -3741,6 +3774,7 @@
 			is_reuse_port: <span class="bool-val">false</span>,
 			tls_config: <span class="prelude-val">None</span>,
 			tx: <span class="prelude-val">None</span>,
+			ready: <span class="macro">lock_box!</span>(<span class="bool-val">true</span>)<span class="question-mark">?</span>,
 		});
 
 		<span class="kw">let </span>evhd = EventHandlerData {
@@ -4251,6 +4285,10 @@
 							<span class="macro">debug!</span>(<span class="string">"id={},att={:?}"</span>, id, attachment)<span class="question-mark">?</span>;
 						}
 						ConnectionInfo::StreamInfo(rwi) =&gt; {
+							<span class="macro">debug!</span>(
+								<span class="string">"rwi found id={},tid={},handle={}"</span>,
+								rwi.id, ctx.tid, rwi.handle
+							)<span class="question-mark">?</span>;
 							<span class="kw">match </span><span class="kw-2">&amp;mut </span><span class="self">self</span>.on_accept {
 								<span class="prelude-val">Some</span>(on_accept) =&gt; {
 									<span class="kw">let </span>tid = ctx.tid;
@@ -4295,9 +4333,14 @@
 							id = rwi.id;
 							<span class="kw">let </span>acc_id = rwi.accept_id;
 							attachment = (<span class="kw-2">**</span>guard).attachments.remove(<span class="kw-2">&amp;</span>id);
+							<span class="macro">debug!</span>(<span class="string">"att.is_none = {}"</span>, attachment.is_none())<span class="question-mark">?</span>;
 							<span class="kw">if </span>attachment.is_none() {
 								<span class="kw">match </span>acc_id {
-									<span class="prelude-val">Some</span>(id) =&gt; attachment = (<span class="kw-2">**</span>guard).attachments.remove(<span class="kw-2">&amp;</span>id),
+									<span class="prelude-val">Some</span>(id) =&gt; {
+										<span class="kw">let </span>att = (<span class="kw-2">**</span>guard).attachments.remove(<span class="kw-2">&amp;</span>id);
+										<span class="macro">debug!</span>(<span class="string">"att={:?}"</span>, att)<span class="question-mark">?</span>;
+										attachment = att;
+									}
 									<span class="prelude-val">None </span>=&gt; {}
 								}
 							}
@@ -5104,6 +5147,15 @@
 		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
 		callback_context: <span class="kw-2">&amp;mut </span>ThreadContext,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;Handle, Error&gt; {
+		<span class="comment">// wait until we're ready (up to 10ms).
+		</span><span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
+		<span class="kw">loop </span>{
+			<span class="kw">if </span><span class="macro">rlock!</span>(li.ready) || count &gt;= <span class="number">10 </span>{
+				<span class="kw">break</span>;
+			}
+			count += <span class="number">1</span>;
+			sleep(Duration::from_millis(<span class="number">1</span>));
+		}
 		set_errno(Errno(<span class="number">0</span>));
 		<span class="kw">let </span>handle = <span class="kw">match </span>accept_impl(li.handle) {
 			<span class="prelude-val">Ok</span>(handle) =&gt; handle,
@@ -5149,6 +5201,7 @@
 		}
 
 		<span class="kw">let </span>id = random();
+
 		<span class="kw">let </span>rwi = StreamInfo {
 			id,
 			handle,
@@ -5506,6 +5559,8 @@
 
 		<span class="kw">let </span>attachment = Arc::new(attachment);
 
+		<span class="kw">let </span><span class="kw-2">mut </span>ready = <span class="macro">lock_box!</span>(<span class="bool-val">false</span>)<span class="question-mark">?</span>;
+
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..connection.handles.size() {
 			<span class="kw">let </span>handle = connection.handles[i];
 			<span class="comment">// check for 0 which means to skip this handle (port not reused)
@@ -5521,6 +5576,7 @@
 						is_reuse_port: connection.is_reuse_port,
 						tls_config: tls_config.clone(),
 						tx: <span class="prelude-val">Some</span>(tx),
+						ready: ready.clone(),
 					};
 					<span class="kw">let </span>ci = ConnectionInfo::ListenerInfo(li);
 					(<span class="kw-2">**</span>guard).nhandles.enqueue(ci)<span class="question-mark">?</span>;
@@ -5538,6 +5594,8 @@
 				rx.recv()<span class="question-mark">?</span>;
 			}
 		}
+
+		<span class="macro">wlock!</span>(ready) = <span class="bool-val">true</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 
