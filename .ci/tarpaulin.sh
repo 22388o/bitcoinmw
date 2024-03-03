@@ -14,7 +14,7 @@ if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" 
       sudo apt-get update -yqq
       sudo apt-get install -yqq --no-install-recommends libncursesw5-dev tor libssl-dev
       cargo install cargo-tarpaulin
-      cargo tarpaulin --all > /tmp/tarpaulin.out
+      cargo tarpaulin > /tmp/tarpaulin.out
       echo "cat /tmp/tarpaulin.out"
       cat /tmp/tarpaulin.out
       cd ~
@@ -43,13 +43,18 @@ if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" 
 
         git config --global user.email "pipelinesbot.noreply@example.com"
         git config --global user.name "Pipelines-Bot"
-        git pull
-        git add --all
-        git commit -m"Pipelines-Bot: Updated repo (via tarpaulin script) Source Version is $2";
-        git push https://$1@github.com/cgilliard/bitcoinmw.git
+
+	if [`git diff origin/main | wc -l | xargs` = "0" ]; then
+          git pull
+          git add --all
+          git commit -m"Pipelines-Bot: Updated repo (via tarpaulin script) Source Version is $2";
+          git push https://$1@github.com/cgilliard/bitcoinmw.git
+        else
+	  echo "There are changes after this checkout. Not committing!"
+	fi
       fi
     else
-      echo "not updating too recent"
+      echo "Not updating too recent."
     fi
   else
     echo "This is a Pipelines-Bot checkin. Will not execute."
