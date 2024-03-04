@@ -4797,7 +4797,7 @@
 		<span class="macro">debug!</span>(<span class="string">"try cache: {}"</span>, path)<span class="question-mark">?</span>;
 		<span class="kw">let </span>hit: CacheStreamResult;
 		{
-			<span class="kw">let </span>cache = cache.rlock()<span class="question-mark">?</span>;
+			<span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
 			hit = (<span class="kw-2">**</span>cache.guard()).stream_file(
 				path,
 				conn_data,
