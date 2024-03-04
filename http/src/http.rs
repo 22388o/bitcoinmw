@@ -1312,7 +1312,7 @@ impl HttpServerImpl {
 		debug!("try cache: {}", path)?;
 		let hit: CacheStreamResult;
 		{
-			let cache = cache.rlock()?;
+			let mut cache = cache.wlock()?;
 			hit = (**cache.guard()).stream_file(
 				path,
 				conn_data,
