@@ -1512,6 +1512,20 @@
 <a href="#1511" id="1511">1511</a>
 <a href="#1512" id="1512">1512</a>
 <a href="#1513" id="1513">1513</a>
+<a href="#1514" id="1514">1514</a>
+<a href="#1515" id="1515">1515</a>
+<a href="#1516" id="1516">1516</a>
+<a href="#1517" id="1517">1517</a>
+<a href="#1518" id="1518">1518</a>
+<a href="#1519" id="1519">1519</a>
+<a href="#1520" id="1520">1520</a>
+<a href="#1521" id="1521">1521</a>
+<a href="#1522" id="1522">1522</a>
+<a href="#1523" id="1523">1523</a>
+<a href="#1524" id="1524">1524</a>
+<a href="#1525" id="1525">1525</a>
+<a href="#1526" id="1526">1526</a>
+<a href="#1527" id="1527">1527</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1578,6 +1592,20 @@
 <span class="comment">// include build information
 </span><span class="kw">pub mod </span>built_info {
 	<span class="macro">include!</span>(<span class="macro">concat!</span>(<span class="macro">env!</span>(<span class="string">"OUT_DIR"</span>), <span class="string">"/built.rs"</span>));
+}
+
+<span class="kw">impl </span>fmt::Display <span class="kw">for </span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt; {
+	<span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), std::fmt::Error&gt; {
+		<span class="kw">match </span><span class="self">self</span>.request_url() {
+			<span class="prelude-val">Some</span>(url) =&gt; <span class="macro">write!</span>(f, <span class="string">"url={}"</span>, url)<span class="question-mark">?</span>,
+			<span class="prelude-val">None </span>=&gt; {}
+		}
+		<span class="kw">match </span><span class="self">self</span>.request_uri() {
+			<span class="prelude-val">Some</span>(uri) =&gt; <span class="macro">write!</span>(f, <span class="string">"uri={}"</span>, uri)<span class="question-mark">?</span>,
+			<span class="prelude-val">None </span>=&gt; {}
+		}
+		<span class="prelude-val">Ok</span>(())
+	}
 }
 
 <span class="kw">impl </span>fmt::Display <span class="kw">for </span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt; {
