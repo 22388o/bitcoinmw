@@ -20,6 +20,7 @@ struct HttpHitConfig {
 	iterations: usize,
 	connections: usize,
 	urls: Vec<String>,
+	count: usize,
 }
 
 fn load_config(args: ArgMatches<'_>) -> Result<HttpHitConfig, Error> {
@@ -50,11 +51,17 @@ fn load_config(args: ArgMatches<'_>) -> Result<HttpHitConfig, Error> {
 		false => vec![],
 	};
 
+	let count: usize = match args.is_present("count") {
+		true => args.value_of("count").unwrap().parse()?,
+		false => 1,
+	};
+
 	Ok(HttpHitConfig {
 		threads,
 		iterations,
 		connections,
 		urls,
+		count,
 	})
 }
 
@@ -77,11 +84,9 @@ fn url_path(url: &String) -> Result<String, Error> {
 }
 
 fn execute_thread(i: usize, config: &HttpHitConfig) -> Result<(), Error> {
-	http_client_init!(Threads(config.threads))?;
-	let (tx, rx) = sync_channel(1);
-	let len = config.connections * config.urls.len();
-	let count = lock_box!(0)?;
+	info!("Executing thread {}", i)?;
 
+	let len = config.connections * config.urls.len();
 	let mut url_hash = HashSet::new();
 	let mut host = "".to_string();
 	let mut port = 80;
@@ -125,34 +130,38 @@ fn execute_thread(i: usize, config: &HttpHitConfig) -> Result<(), Error> {
 		}
 	}
 
-	let mut count = count.clone();
-	let tx = tx.clone();
-	match connection {
-		Some(ref mut connection) => {
-			http_client_send!(requests, connection, {
-				let mut count = count.wlock()?;
-				let guard = count.guard();
-				**guard += 1;
-				//info!("guard={},len={},tid={}", **guard, len, i);
-				if (**guard) == len {
-					tx.send(())?;
-				}
-				Ok(())
-			})?;
+	for _ in 0..config.count {
+		let count = lock_box!(0)?;
+		let (tx, rx) = sync_channel(1);
+		let mut count = count.clone();
+		let tx = tx.clone();
+		match connection {
+			Some(ref mut connection) => {
+				http_client_send!(requests.clone(), connection, {
+					let mut count = count.wlock()?;
+					let guard = count.guard();
+					**guard += 1;
+					//info!("guard={},len={},tid={}", **guard, len, i);
+					if (**guard) == len {
+						tx.send(())?;
+					}
+					Ok(())
+				})?;
+			}
+			None => {
+				http_client_send!(requests.clone(), {
+					let mut count = count.wlock()?;
+					let guard = count.guard();
+					**guard += 1;
+					if (**guard) == len {
+						tx.send(())?;
+					}
+					Ok(())
+				})?;
+			}
 		}
-		None => {
-			http_client_send!(requests, {
-				let mut count = count.wlock()?;
-				let guard = count.guard();
-				**guard += 1;
-				if (**guard) == len {
-					tx.send(())?;
-				}
-				Ok(())
-			})?;
-		}
+		rx.recv()?;
 	}
-	rx.recv()?;
 
 	Ok(())
 }
@@ -164,25 +173,26 @@ fn run_client(config: &HttpHitConfig) -> Result<(), Error> {
 		Ok(())
 	})?;
 
-	for _ in 0..config.iterations {
-		let mut completions = vec![];
-		for i in 0..config.threads {
-			let config = config.clone();
-			completions.push(execute!(pool, {
+	let mut completions = vec![];
+	for i in 0..config.threads {
+		let config = config.clone();
+		completions.push(execute!(pool, {
+			http_client_init!(Threads(config.threads))?;
+			for _ in 0..config.iterations {
 				match execute_thread(i, &config) {
 					Ok(_) => {}
 					Err(e) => {
 						error!("execute_thread generated error: {}", e)?;
 					}
 				}
+			}
 
-				Ok(())
-			})?);
-		}
+			Ok(())
+		})?);
+	}
 
-		for completion in &completions {
-			block_on!(completion);
-		}
+	for completion in &completions {
+		block_on!(completion);
 	}
 
 	Ok(())
@@ -200,7 +210,8 @@ fn main() -> Result<(), Error> {
 	run_client(&config)?;
 
 	let elapsed = start.elapsed().as_millis();
-	let total = config.threads * config.connections * config.urls.len() * config.iterations;
+	let total =
+		config.threads * config.connections * config.urls.len() * config.iterations * config.count;
 	let qps = total as f64 * 1000 as f64 / elapsed as f64;
 	info!("elapsed={},requests={},qps={}", elapsed, total, qps)?;
 

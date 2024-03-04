@@ -14,6 +14,12 @@ args:
         short: c
         takes_value: true
         value_name: connections
+    - count:
+        help: number of times to send the requests per connection
+        long: count
+        short: x
+        takes_value: true
+        value_name: count
     - threads:
         help: number of threads
         long: threads
