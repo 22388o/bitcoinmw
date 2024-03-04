@@ -76,6 +76,87 @@ fn url_path(url: &String) -> Result<String, Error> {
 	Ok(path)
 }
 
+fn execute_thread(i: usize, config: &HttpHitConfig) -> Result<(), Error> {
+	http_client_init!(Threads(config.threads))?;
+	let (tx, rx) = sync_channel(1);
+	let len = config.connections * config.urls.len();
+	let count = lock_box!(0)?;
+
+	let mut url_hash = HashSet::new();
+	let mut host = "".to_string();
+	let mut port = 80;
+	let mut tls = false;
+	for url in &config.urls {
+		let url_info = bmw_deps::url::Url::parse(url)?;
+		host = match url_info.host() {
+			Some(host) => host.to_string(),
+			None => {
+				return Err(err!(
+					ErrKind::Http,
+					format!("Host not specicifed for url: {}", url)
+				));
+			}
+		};
+		port = url_info.port().unwrap_or(80);
+		tls = url_info.scheme().to_string() == "https";
+
+		url_hash.insert((tls, host.clone(), port));
+	}
+	let mut connection = if url_hash.len() == 1 {
+		// we have a single connection to make. Reuse for all requests
+		let connection = http_connection!(Host(&host), Port(port), Tls(tls))?;
+		Some(connection)
+	} else {
+		// different connections, so do not reuse connection.
+		None
+	};
+
+	let mut requests = vec![];
+	for url in &config.urls {
+		for _ in 0..config.connections {
+			let request = match connection {
+				Some(ref _c) => {
+					let path = url_path(&url)?;
+					http_client_request!(Uri(&path))?
+				}
+				None => http_client_request!(Url(&url))?,
+			};
+			requests.push(request);
+		}
+	}
+
+	let mut count = count.clone();
+	let tx = tx.clone();
+	match connection {
+		Some(ref mut connection) => {
+			http_client_send!(requests, connection, {
+				let mut count = count.wlock()?;
+				let guard = count.guard();
+				**guard += 1;
+				//info!("guard={},len={},tid={}", **guard, len, i);
+				if (**guard) == len {
+					tx.send(())?;
+				}
+				Ok(())
+			})?;
+		}
+		None => {
+			http_client_send!(requests, {
+				let mut count = count.wlock()?;
+				let guard = count.guard();
+				**guard += 1;
+				if (**guard) == len {
+					tx.send(())?;
+				}
+				Ok(())
+			})?;
+		}
+	}
+	rx.recv()?;
+
+	Ok(())
+}
+
 fn run_client(config: &HttpHitConfig) -> Result<(), Error> {
 	let mut pool = thread_pool!(MaxSize(config.threads), MinSize(config.threads))?;
 	pool.set_on_panic(move |_, e| -> Result<(), Error> {
@@ -85,91 +166,22 @@ fn run_client(config: &HttpHitConfig) -> Result<(), Error> {
 
 	for _ in 0..config.iterations {
 		let mut completions = vec![];
-		for _ in 0..config.threads {
+		for i in 0..config.threads {
 			let config = config.clone();
 			completions.push(execute!(pool, {
-				http_client_init!(Threads(config.threads))?;
-				let (tx, rx) = sync_channel(1);
-				let len = config.connections * config.urls.len();
-				let count = lock_box!(0)?;
-
-				let mut url_hash = HashSet::new();
-				let mut host = "".to_string();
-				let mut port = 80;
-				let mut tls = false;
-				for url in &config.urls {
-					let url_info = bmw_deps::url::Url::parse(url)?;
-					host = match url_info.host() {
-						Some(host) => host.to_string(),
-						None => {
-							return Err(err!(
-								ErrKind::Http,
-								format!("Host not specicifed for url: {}", url)
-							));
-						}
-					};
-					port = url_info.port().unwrap_or(80);
-					tls = url_info.scheme().to_string() == "https";
-
-					url_hash.insert((tls, host.clone(), port));
-				}
-				let mut connection = if url_hash.len() == 1 {
-					// we have a single connection to make. Reuse for all requests
-					let connection = http_connection!(Host(&host), Port(port), Tls(tls))?;
-					Some(connection)
-				} else {
-					// different connections, so do not reuse connection.
-					None
-				};
-
-				let mut requests = vec![];
-				for url in &config.urls {
-					for _ in 0..config.connections {
-						let request = match connection {
-							Some(ref _c) => {
-								let path = url_path(&url)?;
-								http_client_request!(Uri(&path))?
-							}
-							None => http_client_request!(Url(&url))?,
-						};
-						requests.push(request);
+				match execute_thread(i, &config) {
+					Ok(_) => {}
+					Err(e) => {
+						error!("execute_thread generated error: {}", e)?;
 					}
 				}
-
-				let mut count = count.clone();
-				let tx = tx.clone();
-				match connection {
-					Some(ref mut connection) => {
-						http_client_send!(requests, connection, {
-							let mut count = count.wlock()?;
-							let guard = count.guard();
-							**guard += 1;
-							if (**guard) == len {
-								tx.send(())?;
-							}
-							Ok(())
-						})?;
-					}
-					None => {
-						http_client_send!(requests, {
-							let mut count = count.wlock()?;
-							let guard = count.guard();
-							**guard += 1;
-							if (**guard) == len {
-								tx.send(())?;
-							}
-							Ok(())
-						})?;
-					}
-				}
-				rx.recv()?;
 
 				Ok(())
 			})?);
+		}
 
-			for completion in &completions {
-				block_on!(completion);
-			}
+		for completion in &completions {
+			block_on!(completion);
 		}
 	}
 

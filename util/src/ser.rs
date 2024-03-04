@@ -21,12 +21,11 @@ use crate::ConfigOption::*;
 use crate::{
 	Array, ArrayList, BinReader, BinWriter, Builder, ConfigOption, Hashset, HashsetConfig,
 	Hashtable, HashtableConfig, List, ListConfig, Reader, Serializable, SlabAllocator,
-	SlabAllocatorConfig, SlabMut, SlabReader, SlabWriter, SortableList, Writer,
-	GLOBAL_SLAB_ALLOCATOR,
+	SlabAllocatorConfig, SlabReader, SlabWriter, SortableList, Writer, GLOBAL_SLAB_ALLOCATOR,
 };
 use bmw_err::{err, ErrKind, Error};
 use bmw_log::*;
-use std::cell::{Ref, RefCell, RefMut};
+use std::cell::{Ref, RefCell};
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::io::{Read, Write};
@@ -304,22 +303,7 @@ impl SlabWriter {
 	}
 
 	pub fn skip_bytes(&mut self, count: usize) -> Result<(), Error> {
-		match self.slabs.clone() {
-			Some(slabs) => {
-				let slabs = slabs.borrow_mut();
-				self.do_write_fixed_bytes_impl(&[0u8; 0], Some(count), Some(slabs))
-			}
-			None => self.do_write_fixed_bytes_impl(&[0u8; 0], Some(count), None),
-		}
-	}
-
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
-	pub(crate) fn write_fixed_bytes_impl<T: AsRef<[u8]>>(
-		&mut self,
-		bytes: T,
-		slabs: Option<RefMut<dyn SlabAllocator>>,
-	) -> Result<(), Error> {
-		self.do_write_fixed_bytes_impl(bytes, None, slabs)
+		self.do_write_fixed_bytes_impl(&[0u8; 0], Some(count))
 	}
 
 	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
@@ -328,7 +312,6 @@ impl SlabWriter {
 		bytes: &[u8],
 		bytes_len: usize,
 		skip: bool,
-		mut slabs: &mut Option<RefMut<dyn SlabAllocator>>,
 	) -> Result<usize, Error> {
 		let mut wlen = bytes_len;
 		let space_left_in_slab = self.bytes_per_slab.saturating_sub(self.offset);
@@ -338,8 +321,9 @@ impl SlabWriter {
 		}
 
 		if !skip {
-			match &mut slabs {
+			match self.slabs.as_mut() {
 				Some(slabs) => {
+					let mut slabs = slabs.borrow_mut();
 					let mut slab_mut = slabs.get_mut(self.slab_id)?;
 
 					debug!(
@@ -370,7 +354,6 @@ impl SlabWriter {
 		&mut self,
 		bytes: T,
 		count: Option<usize>,
-		mut slabs: Option<RefMut<dyn SlabAllocator>>,
 	) -> Result<(), Error> {
 		let bytes = bytes.as_ref();
 		let bytes_len = match count {
@@ -408,14 +391,14 @@ impl SlabWriter {
 			if self.offset >= self.bytes_per_slab {
 				debug!("alloc slab b_offset={}, b_len={}", bytes_offset, bytes_len)?;
 				// we need to allocate another slab
-				self.next_slab(&mut slabs, max_value)?;
+				self.next_slab(max_value)?;
 			}
 
 			let index = if skip { 0 } else { bytes_offset };
 
 			let b = &bytes[index..];
 			let l = bytes_len.saturating_sub(bytes_offset);
-			let wlen = self.process_write(b, l, skip, &mut slabs)?;
+			let wlen = self.process_write(b, l, skip)?;
 			debug!("wlen = {}", wlen)?;
 			bytes_offset += wlen;
 			self.offset += wlen;
@@ -424,29 +407,32 @@ impl SlabWriter {
 		Ok(())
 	}
 
-	fn read_next(&mut self, cur_slab: SlabMut) -> Result<usize, Error> {
-		let next = slice_to_usize(&cur_slab.get()[self.bytes_per_slab..self.slab_size])?;
+	fn read_next(&mut self) -> Result<usize, Error> {
+		let next = match self.slabs.as_mut() {
+			Some(slabs) => {
+				let mut slabs = slabs.borrow_mut();
+				let cur_slab = slabs.get_mut(self.slab_id)?;
+				slice_to_usize(&cur_slab.get()[self.bytes_per_slab..self.slab_size])?
+			}
+			None => GLOBAL_SLAB_ALLOCATOR.with(|f| -> Result<usize, Error> {
+				let slabs = unsafe { f.get().as_mut().unwrap() };
+				let cur_slab = slabs.get_mut(self.slab_id)?;
+				Ok(slice_to_usize(
+					&cur_slab.get()[self.bytes_per_slab..self.slab_size],
+				)?)
+			})?,
+		};
 		Ok(next)
 	}
 
-	fn next_slab(
-		&mut self,
-		mut slabs: &mut Option<RefMut<dyn SlabAllocator>>,
-		max_value: usize,
-	) -> Result<(), Error> {
+	fn next_slab(&mut self, max_value: usize) -> Result<(), Error> {
 		self.offset = 0;
-
-		let next = match &mut slabs {
-			Some(slabs) => self.read_next(slabs.get_mut(self.slab_id)?)?,
-			None => GLOBAL_SLAB_ALLOCATOR.with(|f| -> Result<usize, Error> {
-				let slabs = unsafe { f.get().as_mut().unwrap() };
-				self.read_next(slabs.get_mut(self.slab_id)?)
-			})?,
-		};
+		let next = self.read_next()?;
 
 		if next == max_value {
-			let new_id = match &mut slabs {
+			let new_id = match self.slabs.as_mut() {
 				Some(slabs) => {
+					let mut slabs = slabs.borrow_mut();
 					let mut nslab = slabs.allocate()?;
 					let nslab_mut = nslab.get_mut();
 					for i in self.bytes_per_slab..self.slab_size {
@@ -466,8 +452,9 @@ impl SlabWriter {
 				})?,
 			};
 
-			match &mut slabs {
+			match self.slabs.as_mut() {
 				Some(slabs) => {
+					let mut slabs = slabs.borrow_mut();
 					let mut slab = slabs.get_mut(self.slab_id)?;
 					let prev = &mut slab.get_mut()[self.bytes_per_slab..self.slab_size];
 					debug!("writing pointer to {} -> {}", self.slab_id, new_id)?;
@@ -494,14 +481,7 @@ impl SlabWriter {
 
 impl Writer for SlabWriter {
 	fn write_fixed_bytes<'a, T: AsRef<[u8]>>(&mut self, bytes: T) -> Result<(), Error> {
-		match &self.slabs {
-			Some(slabs) => {
-				let slabs = slabs.clone();
-				let slabs: RefMut<_> = slabs.borrow_mut();
-				self.write_fixed_bytes_impl(bytes, Some(slabs))
-			}
-			None => self.write_fixed_bytes_impl(bytes, None),
-		}
+		self.do_write_fixed_bytes_impl(bytes, None)
 	}
 }
 
