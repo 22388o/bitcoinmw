@@ -310,12 +310,12 @@ pub trait HttpConnection {
 
 #[derive(Clone)]
 pub struct HttpClientConfig {
-	pub(crate) max_headers_len: usize,
-	pub(crate) debug: bool,
-	pub(crate) threads: usize,
-	pub(crate) max_handles_per_thread: usize,
-	pub(crate) slab_count: usize,
-	pub(crate) base_dir: String,
+	pub max_headers_len: usize,
+	pub debug: bool,
+	pub threads: usize,
+	pub max_handles_per_thread: usize,
+	pub slab_count: usize,
+	pub base_dir: String,
 }
 
 #[derive(Clone)]

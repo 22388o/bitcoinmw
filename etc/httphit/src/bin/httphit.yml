@@ -1,0 +1,29 @@
+name: httphit
+author: The BitcoinMW Developers
+
+args:
+    - iterations:
+        help: number of iterations
+        long: iterations
+        short: i
+        takes_value: true
+        value_name: iterations
+    - connections:
+        help: number of connections per thread
+        long: connections
+        short: c
+        takes_value: true
+        value_name: connections
+    - threads:
+        help: number of threads
+        long: threads
+        short: t
+        takes_value: true
+        value_name: threads
+    - url:
+        help: Url to send requests to
+        long: url
+        short: u
+        takes_value: true
+        multiple: true
+        value_name: url

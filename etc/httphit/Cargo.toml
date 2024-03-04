@@ -1,0 +1,26 @@
+[package]
+name = "httphit"
+version = "0.0.3-beta.1"
+edition = "2021"
+description = "Http testing utility"
+license = "Apache-2.0"
+repository = "https://github.com/cgilliard/bitcoinmw"
+readme = "README.md"
+exclude = ["**/*.bmw", "**/*.bmw"]
+build = "src/build/build.rs"
+
+[[bin]]
+name = "httphit"
+
+[dependencies]
+bmw_deps = { path = "../../deps" }
+bmw_log = { path = "../../log" }
+bmw_util = { path = "../../util" }
+bmw_err = { path = "../../error" }
+bmw_evh = { path = "../../evh" }
+bmw_http = { path = "../../http" }
+
+clap = { version = "2.33", features = ["yaml"] }
+
+[build-dependencies]
+built = { version = "0.5.1", features = ["git2"]}

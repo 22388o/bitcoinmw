@@ -66,6 +66,20 @@ pub mod built_info {
 	include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
 
+impl fmt::Display for Box<dyn HttpRequest + Send + Sync> {
+	fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+		match self.request_url() {
+			Some(url) => write!(f, "url={}", url)?,
+			None => {}
+		}
+		match self.request_uri() {
+			Some(uri) => write!(f, "uri={}", uri)?,
+			None => {}
+		}
+		Ok(())
+	}
+}
+
 impl fmt::Display for Box<dyn HttpResponse + Send + Sync> {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
 		write!(

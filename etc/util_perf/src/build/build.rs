@@ -28,7 +28,7 @@ fn main() {
 	// Setting up git hooks in the project: rustfmt and so on.
 	let git_hooks = format!(
 		"git config core.hooksPath {}",
-		PathBuf::from("./.hooks").to_str().unwrap()
+		PathBuf::from("../../.hooks").to_str().unwrap()
 	);
 
 	if cfg!(target_os = "windows") {

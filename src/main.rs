@@ -150,7 +150,7 @@ fn real_main(debug_startup_32: bool) -> Result<(), Error> {
 			..Default::default()
 		}],
 		server_version: built_info::PKG_VERSION.to_string(),
-		debug: true,
+		debug: false,
 		evh_config: EventHandlerConfig {
 			threads: 2,
 			..Default::default()
