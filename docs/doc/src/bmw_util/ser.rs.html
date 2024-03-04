@@ -1414,26 +1414,6 @@
 <a href="#1413" id="1413">1413</a>
 <a href="#1414" id="1414">1414</a>
 <a href="#1415" id="1415">1415</a>
-<a href="#1416" id="1416">1416</a>
-<a href="#1417" id="1417">1417</a>
-<a href="#1418" id="1418">1418</a>
-<a href="#1419" id="1419">1419</a>
-<a href="#1420" id="1420">1420</a>
-<a href="#1421" id="1421">1421</a>
-<a href="#1422" id="1422">1422</a>
-<a href="#1423" id="1423">1423</a>
-<a href="#1424" id="1424">1424</a>
-<a href="#1425" id="1425">1425</a>
-<a href="#1426" id="1426">1426</a>
-<a href="#1427" id="1427">1427</a>
-<a href="#1428" id="1428">1428</a>
-<a href="#1429" id="1429">1429</a>
-<a href="#1430" id="1430">1430</a>
-<a href="#1431" id="1431">1431</a>
-<a href="#1432" id="1432">1432</a>
-<a href="#1433" id="1433">1433</a>
-<a href="#1434" id="1434">1434</a>
-<a href="#1435" id="1435">1435</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1457,12 +1437,11 @@
 <span class="kw">use crate</span>::{
 	Array, ArrayList, BinReader, BinWriter, Builder, ConfigOption, Hashset, HashsetConfig,
 	Hashtable, HashtableConfig, List, ListConfig, Reader, Serializable, SlabAllocator,
-	SlabAllocatorConfig, SlabMut, SlabReader, SlabWriter, SortableList, Writer,
-	GLOBAL_SLAB_ALLOCATOR,
+	SlabAllocatorConfig, SlabReader, SlabWriter, SortableList, Writer, GLOBAL_SLAB_ALLOCATOR,
 };
 <span class="kw">use </span>bmw_err::{err, ErrKind, Error};
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
-<span class="kw">use </span>std::cell::{Ref, RefCell, RefMut};
+<span class="kw">use </span>std::cell::{Ref, RefCell};
 <span class="kw">use </span>std::fmt::Debug;
 <span class="kw">use </span>std::hash::Hash;
 <span class="kw">use </span>std::io::{Read, Write};
@@ -1740,22 +1719,7 @@
 	}
 
 	<span class="kw">pub fn </span>skip_bytes(<span class="kw-2">&amp;mut </span><span class="self">self</span>, count: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">match </span><span class="self">self</span>.slabs.clone() {
-			<span class="prelude-val">Some</span>(slabs) =&gt; {
-				<span class="kw">let </span>slabs = slabs.borrow_mut();
-				<span class="self">self</span>.do_write_fixed_bytes_impl(<span class="kw-2">&amp;</span>[<span class="number">0u8</span>; <span class="number">0</span>], <span class="prelude-val">Some</span>(count), <span class="prelude-val">Some</span>(slabs))
-			}
-			<span class="prelude-val">None </span>=&gt; <span class="self">self</span>.do_write_fixed_bytes_impl(<span class="kw-2">&amp;</span>[<span class="number">0u8</span>; <span class="number">0</span>], <span class="prelude-val">Some</span>(count), <span class="prelude-val">None</span>),
-		}
-	}
-
-	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
-	</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>write_fixed_bytes_impl&lt;T: AsRef&lt;[u8]&gt;&gt;(
-		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
-		bytes: T,
-		slabs: <span class="prelude-ty">Option</span>&lt;RefMut&lt;<span class="kw">dyn </span>SlabAllocator&gt;&gt;,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="self">self</span>.do_write_fixed_bytes_impl(bytes, <span class="prelude-val">None</span>, slabs)
+		<span class="self">self</span>.do_write_fixed_bytes_impl(<span class="kw-2">&amp;</span>[<span class="number">0u8</span>; <span class="number">0</span>], <span class="prelude-val">Some</span>(count))
 	}
 
 	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
@@ -1764,7 +1728,6 @@
 		bytes: <span class="kw-2">&amp;</span>[u8],
 		bytes_len: usize,
 		skip: bool,
-		<span class="kw-2">mut </span>slabs: <span class="kw-2">&amp;mut </span><span class="prelude-ty">Option</span>&lt;RefMut&lt;<span class="kw">dyn </span>SlabAllocator&gt;&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>wlen = bytes_len;
 		<span class="kw">let </span>space_left_in_slab = <span class="self">self</span>.bytes_per_slab.saturating_sub(<span class="self">self</span>.offset);
@@ -1774,8 +1737,9 @@
 		}
 
 		<span class="kw">if </span>!skip {
-			<span class="kw">match </span><span class="kw-2">&amp;mut </span>slabs {
+			<span class="kw">match </span><span class="self">self</span>.slabs.as_mut() {
 				<span class="prelude-val">Some</span>(slabs) =&gt; {
+					<span class="kw">let </span><span class="kw-2">mut </span>slabs = slabs.borrow_mut();
 					<span class="kw">let </span><span class="kw-2">mut </span>slab_mut = slabs.get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>;
 
 					<span class="macro">debug!</span>(
@@ -1806,7 +1770,6 @@
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		bytes: T,
 		count: <span class="prelude-ty">Option</span>&lt;usize&gt;,
-		<span class="kw-2">mut </span>slabs: <span class="prelude-ty">Option</span>&lt;RefMut&lt;<span class="kw">dyn </span>SlabAllocator&gt;&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>bytes = bytes.as_ref();
 		<span class="kw">let </span>bytes_len = <span class="kw">match </span>count {
@@ -1844,14 +1807,14 @@
 			<span class="kw">if </span><span class="self">self</span>.offset &gt;= <span class="self">self</span>.bytes_per_slab {
 				<span class="macro">debug!</span>(<span class="string">"alloc slab b_offset={}, b_len={}"</span>, bytes_offset, bytes_len)<span class="question-mark">?</span>;
 				<span class="comment">// we need to allocate another slab
-				</span><span class="self">self</span>.next_slab(<span class="kw-2">&amp;mut </span>slabs, max_value)<span class="question-mark">?</span>;
+				</span><span class="self">self</span>.next_slab(max_value)<span class="question-mark">?</span>;
 			}
 
 			<span class="kw">let </span>index = <span class="kw">if </span>skip { <span class="number">0 </span>} <span class="kw">else </span>{ bytes_offset };
 
 			<span class="kw">let </span>b = <span class="kw-2">&amp;</span>bytes[index..];
 			<span class="kw">let </span>l = bytes_len.saturating_sub(bytes_offset);
-			<span class="kw">let </span>wlen = <span class="self">self</span>.process_write(b, l, skip, <span class="kw-2">&amp;mut </span>slabs)<span class="question-mark">?</span>;
+			<span class="kw">let </span>wlen = <span class="self">self</span>.process_write(b, l, skip)<span class="question-mark">?</span>;
 			<span class="macro">debug!</span>(<span class="string">"wlen = {}"</span>, wlen)<span class="question-mark">?</span>;
 			bytes_offset += wlen;
 			<span class="self">self</span>.offset += wlen;
@@ -1860,29 +1823,32 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">fn </span>read_next(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cur_slab: SlabMut) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
-		<span class="kw">let </span>next = slice_to_usize(<span class="kw-2">&amp;</span>cur_slab.get()[<span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size])<span class="question-mark">?</span>;
+	<span class="kw">fn </span>read_next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
+		<span class="kw">let </span>next = <span class="kw">match </span><span class="self">self</span>.slabs.as_mut() {
+			<span class="prelude-val">Some</span>(slabs) =&gt; {
+				<span class="kw">let </span><span class="kw-2">mut </span>slabs = slabs.borrow_mut();
+				<span class="kw">let </span>cur_slab = slabs.get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>;
+				slice_to_usize(<span class="kw-2">&amp;</span>cur_slab.get()[<span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size])<span class="question-mark">?
+			</span>}
+			<span class="prelude-val">None </span>=&gt; GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
+				<span class="kw">let </span>slabs = <span class="kw">unsafe </span>{ f.get().as_mut().unwrap() };
+				<span class="kw">let </span>cur_slab = slabs.get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>;
+				<span class="prelude-val">Ok</span>(slice_to_usize(
+					<span class="kw-2">&amp;</span>cur_slab.get()[<span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size],
+				)<span class="question-mark">?</span>)
+			})<span class="question-mark">?</span>,
+		};
 		<span class="prelude-val">Ok</span>(next)
 	}
 
-	<span class="kw">fn </span>next_slab(
-		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
-		<span class="kw-2">mut </span>slabs: <span class="kw-2">&amp;mut </span><span class="prelude-ty">Option</span>&lt;RefMut&lt;<span class="kw">dyn </span>SlabAllocator&gt;&gt;,
-		max_value: usize,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">fn </span>next_slab(<span class="kw-2">&amp;mut </span><span class="self">self</span>, max_value: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.offset = <span class="number">0</span>;
-
-		<span class="kw">let </span>next = <span class="kw">match </span><span class="kw-2">&amp;mut </span>slabs {
-			<span class="prelude-val">Some</span>(slabs) =&gt; <span class="self">self</span>.read_next(slabs.get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>)<span class="question-mark">?</span>,
-			<span class="prelude-val">None </span>=&gt; GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
-				<span class="kw">let </span>slabs = <span class="kw">unsafe </span>{ f.get().as_mut().unwrap() };
-				<span class="self">self</span>.read_next(slabs.get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>)
-			})<span class="question-mark">?</span>,
-		};
+		<span class="kw">let </span>next = <span class="self">self</span>.read_next()<span class="question-mark">?</span>;
 
 		<span class="kw">if </span>next == max_value {
-			<span class="kw">let </span>new_id = <span class="kw">match </span><span class="kw-2">&amp;mut </span>slabs {
+			<span class="kw">let </span>new_id = <span class="kw">match </span><span class="self">self</span>.slabs.as_mut() {
 				<span class="prelude-val">Some</span>(slabs) =&gt; {
+					<span class="kw">let </span><span class="kw-2">mut </span>slabs = slabs.borrow_mut();
 					<span class="kw">let </span><span class="kw-2">mut </span>nslab = slabs.allocate()<span class="question-mark">?</span>;
 					<span class="kw">let </span>nslab_mut = nslab.get_mut();
 					<span class="kw">for </span>i <span class="kw">in </span><span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size {
@@ -1902,8 +1868,9 @@
 				})<span class="question-mark">?</span>,
 			};
 
-			<span class="kw">match </span><span class="kw-2">&amp;mut </span>slabs {
+			<span class="kw">match </span><span class="self">self</span>.slabs.as_mut() {
 				<span class="prelude-val">Some</span>(slabs) =&gt; {
+					<span class="kw">let </span><span class="kw-2">mut </span>slabs = slabs.borrow_mut();
 					<span class="kw">let </span><span class="kw-2">mut </span>slab = slabs.get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>;
 					<span class="kw">let </span>prev = <span class="kw-2">&amp;mut </span>slab.get_mut()[<span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size];
 					<span class="macro">debug!</span>(<span class="string">"writing pointer to {} -&gt; {}"</span>, <span class="self">self</span>.slab_id, new_id)<span class="question-mark">?</span>;
@@ -1930,14 +1897,7 @@
 
 <span class="kw">impl </span>Writer <span class="kw">for </span>SlabWriter {
 	<span class="kw">fn </span>write_fixed_bytes&lt;<span class="lifetime">'a</span>, T: AsRef&lt;[u8]&gt;&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, bytes: T) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.slabs {
-			<span class="prelude-val">Some</span>(slabs) =&gt; {
-				<span class="kw">let </span>slabs = slabs.clone();
-				<span class="kw">let </span>slabs: RefMut&lt;<span class="kw">_</span>&gt; = slabs.borrow_mut();
-				<span class="self">self</span>.write_fixed_bytes_impl(bytes, <span class="prelude-val">Some</span>(slabs))
-			}
-			<span class="prelude-val">None </span>=&gt; <span class="self">self</span>.write_fixed_bytes_impl(bytes, <span class="prelude-val">None</span>),
-		}
+		<span class="self">self</span>.do_write_fixed_bytes_impl(bytes, <span class="prelude-val">None</span>)
 	}
 }
 
