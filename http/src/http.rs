@@ -107,7 +107,7 @@ impl Default for HttpConfig {
 			bring_to_front_weight: 0.1,
 			restat_file_frequency_in_millis: 3_000, // 3 seconds
 			content_slab_count: 1_000,
-			base_dir: "~/.bitcoinmw".to_string(),
+			base_dir: "~/.bmw".to_string(),
 			max_headers_len: 8192,
 			max_header_count: 100,
 			max_uri_len: 4096,

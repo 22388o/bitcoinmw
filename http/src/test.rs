@@ -460,6 +460,8 @@ mod test {
 		assert_eq!(len, 10);
 		assert_eq!(&buf[0..len], b"abcdefghij");
 
+		tear_down_test_dir(test_dir)?;
+
 		Ok(())
 	}
 
@@ -514,7 +516,7 @@ mod test {
 		})
 		.is_err());
 
-		sleep(Duration::from_millis(3_000));
+		tear_down_server(http)?;
 
 		Ok(())
 	}
@@ -536,6 +538,8 @@ mod test {
 		let response = http_client_send!(request)?;
 
 		assert_eq!(response.code()?, 200);
+
+		tear_down_server(http)?;
 
 		Ok(())
 	}

@@ -26,10 +26,20 @@ macro_rules! http_client_init {
                 let mut threads_specified = false;
                 let mut max_handles_per_thread_specified = false;
                 let mut base_dir_specified = false;
+                let mut debug_specified = false;
+                let mut max_headers_len_specified = false;
+                let mut sync_channel_size_specified = false;
+                let mut write_queue_size_specified = false;
+                let mut nhandles_queue_size_specified = false;
+                let mut max_events_in_specified = false;
+                let mut max_events_specified = false;
+                let mut housekeeping_frequency_millis_specified = false;
+                let mut evh_read_slab_count_specified = false;
+                let mut slab_count_specified = false;
                 let mut error: Option<String> = None;
 
                 // to supress compiler warnings
-                if config.threads == 0 { config.threads = 0; }
+                if config.evh_threads == 0 { config.evh_threads = 0; }
                 if error.is_some() { error = None; }
                 if threads_specified { threads_specified = false; }
                 if max_handles_per_thread_specified { max_handles_per_thread_specified = false; }
@@ -41,7 +51,7 @@ macro_rules! http_client_init {
                 $(
                         match $config {
                                 bmw_http::ConfigOption::Threads(threads) => {
-                                        config.threads = threads;
+                                        config.evh_threads = threads;
 
                                         if threads_specified {
                                                 error = Some("Threads was specified more than once!".to_string());
@@ -51,7 +61,7 @@ macro_rules! http_client_init {
 
                                 },
                                 bmw_http::ConfigOption::MaxHandlesPerThread(mhpt) => {
-                                        config.max_handles_per_thread = mhpt;
+                                        config.evh_max_handles_per_thread = mhpt;
 
                                         if max_handles_per_thread_specified {
                                                 error = Some("MaxHandlesPerThread was specified more than once!".to_string());
@@ -70,12 +80,111 @@ macro_rules! http_client_init {
                                         base_dir_specified = true;
                                         if base_dir_specified {}
                                 },
+                                bmw_http::ConfigOption::Debug(debug) => {
+                                        config.debug = debug;
+
+                                        if debug_specified {
+                                                error = Some("DEBUG was specified more than once!".to_string());
+                                        }
+
+                                        debug_specified = true;
+                                        if debug_specified {}
+                                },
+                                bmw_http::ConfigOption::MaxHeadersLen(max_headers_len) => {
+                                        config.max_headers_len= max_headers_len;
+
+                                        if max_headers_len_specified {
+                                                error = Some("MaxHeadersLen was specified more than once!".to_string());
+                                        }
+
+                                        max_headers_len_specified = true;
+                                        if max_headers_len_specified {}
+                                },
+                                bmw_http::ConfigOption::SyncChannelSize(sync_channel_size) => {
+                                        config.evh_sync_channel_size = sync_channel_size;
+
+                                        if sync_channel_size_specified {
+                                                error = Some("SyncChannelSize was specified more than once!".to_string());
+                                        }
+
+                                        sync_channel_size_specified = true;
+                                        if sync_channel_size_specified {}
+                                },
+                                bmw_http::ConfigOption::WriteQueueSize(write_queue_size) => {
+                                        config.evh_write_queue_size = write_queue_size;
+
+                                        if write_queue_size_specified {
+                                                error = Some("WriteQueueSize was specified more than once!".to_string());
+                                        }
+
+                                        write_queue_size_specified = true;
+                                        if write_queue_size_specified {}
+                                },
+                                bmw_http::ConfigOption::NhandlesQueueSize(nhandles_queue_size) => {
+                                        config.evh_nhandles_queue_size = nhandles_queue_size;
+
+                                        if nhandles_queue_size_specified {
+                                                error = Some("NhandlesQueueSize was specified more than once!".to_string());
+                                        }
+
+                                        nhandles_queue_size_specified = true;
+                                        if nhandles_queue_size_specified {}
+                                },
+                                bmw_http::ConfigOption::MaxEventsIn(max_events_in) => {
+                                        config.evh_max_events_in = max_events_in;
+
+                                        if max_events_in_specified {
+                                                error = Some("MaxEventsIn was specified more than once!".to_string());
+                                        }
+
+                                        max_events_in_specified = true;
+                                        if max_events_in_specified {}
+                                },
+                                bmw_http::ConfigOption::MaxEvents(max_events) => {
+                                        config.evh_max_events = max_events;
+
+                                        if max_events_specified {
+                                                error = Some("MaxEvents was specified more than once!".to_string());
+                                        }
+
+                                        max_events_specified = true;
+                                        if max_events_specified {}
+                                },
+                                bmw_http::ConfigOption::HouseKeepingFrequencyMillis(housekeeping_frequency_millis) => {
+                                        config.evh_housekeeping_frequency_millis = housekeeping_frequency_millis;
+
+                                        if housekeeping_frequency_millis_specified {
+                                                error = Some("HouseKeepingFrequencyMillis was specified more than once!".to_string());
+                                        }
+
+                                        housekeeping_frequency_millis_specified = true;
+                                        if housekeeping_frequency_millis_specified {}
+                                },
+                                bmw_http::ConfigOption::EvhReadSlabCount(evh_read_slab_count) => {
+                                        config.evh_read_slab_count = evh_read_slab_count;
+
+                                        if evh_read_slab_count_specified {
+                                                error = Some(" was specified more than once!".to_string());
+                                        }
+
+                                        evh_read_slab_count_specified = true;
+                                        if evh_read_slab_count_specified {}
+                                },
+                                bmw_http::ConfigOption::SlabCount(slab_count) => {
+                                        config.slab_count = slab_count;
+
+                                        if slab_count_specified {
+                                                error = Some("SlabCount was specified more than once!".to_string());
+                                        }
+
+                                        slab_count_specified = true;
+                                        if slab_count_specified {}
+                                },
                                 _ => {
                                         error = Some(format!("'{:?}' is not allowed for http_client_init", $config));
                                 }
                         }
                 )*
-
                 match error {
                         Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, error)),
                         None => {
@@ -586,7 +695,7 @@ mod test {
 	use std::collections::HashMap;
 	use std::fs::File;
 	use std::io::{Read, Write};
-	use std::thread::sleep;
+	use std::thread::{current, sleep};
 	use std::time::Duration;
 
 	info!();
@@ -788,6 +897,34 @@ mod test {
 		assert_eq!(content, "Hello Macro World!");
 
 		http_connection_close!(connection)?;
+		http_client_stop!()?;
+		tear_down_test_dir(test_dir)?;
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_http_client_macros_init() -> Result<(), Error> {
+		let test_dir = ".test_http_client_macros_init.bmw";
+		const EVH_THREADS: usize = 3;
+		const MAX_HANDLES_PER_THREAD: usize = 5;
+
+		setup_test_dir(test_dir)?;
+		http_client_init!(
+			BaseDir(test_dir),
+			Threads(EVH_THREADS),
+			MaxHandlesPerThread(MAX_HANDLES_PER_THREAD)
+		)?;
+
+		{
+			let container = HTTP_CLIENT_CONTAINER.read()?;
+			let http_client = (*container).get(&current().id()).unwrap();
+			let config = http_client.config();
+			assert_eq!(config.base_dir, test_dir);
+			assert_eq!(config.evh_threads, EVH_THREADS);
+			assert_eq!(config.evh_max_handles_per_thread, MAX_HANDLES_PER_THREAD);
+		}
+
 		http_client_stop!()?;
 		tear_down_test_dir(test_dir)?;
 

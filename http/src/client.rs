@@ -125,13 +125,21 @@ impl Default for HttpConnectionConfig {
 
 impl Default for HttpClientConfig {
 	fn default() -> Self {
+		let evhc = EventHandlerConfig::default();
 		Self {
 			max_headers_len: 8192,
 			debug: false,
-			max_handles_per_thread: 100,
-			threads: 4,
+			evh_max_handles_per_thread: evhc.max_handles_per_thread,
+			evh_threads: evhc.threads,
+			evh_sync_channel_size: evhc.sync_channel_size,
+			evh_write_queue_size: evhc.write_queue_size,
+			evh_nhandles_queue_size: evhc.nhandles_queue_size,
+			evh_max_events_in: evhc.max_events_in,
+			evh_housekeeping_frequency_millis: evhc.housekeeping_frequency_millis,
+			evh_read_slab_count: evhc.read_slab_count,
+			evh_max_events: evhc.max_events,
 			slab_count: 100,
-			base_dir: "~/.bitcoinmw".to_string(),
+			base_dir: "~/.bmw".to_string(),
 		}
 	}
 }
@@ -334,6 +342,10 @@ impl HttpClient for HttpClientImpl {
 	fn controller(&mut self) -> &mut EventHandlerController {
 		&mut self.controller
 	}
+
+	fn config(&self) -> &HttpClientConfig {
+		&self.config
+	}
 }
 
 impl HttpClientImpl {
@@ -352,9 +364,15 @@ impl HttpClientImpl {
 		create_dir_all(tmp_file_dir)?;
 
 		let evh_config = EventHandlerConfig {
-			threads: config.threads,
-			max_handles_per_thread: config.max_handles_per_thread,
-			..Default::default()
+			threads: config.evh_threads,
+			max_handles_per_thread: config.evh_max_handles_per_thread,
+			sync_channel_size: config.evh_sync_channel_size,
+			write_queue_size: config.evh_write_queue_size,
+			nhandles_queue_size: config.evh_nhandles_queue_size,
+			max_events_in: config.evh_max_events_in,
+			housekeeping_frequency_millis: config.evh_housekeeping_frequency_millis,
+			max_events: config.evh_max_events,
+			read_slab_count: config.evh_read_slab_count,
 		};
 		let mut evh = Builder::build_evh(evh_config)?;
 		let event_handler_data = evh.event_handler_data()?;
@@ -370,20 +388,22 @@ impl HttpClientImpl {
 		let config2 = config.clone();
 		let config3 = config.clone();
 		let config4 = config.clone();
+		let config5 = config.clone();
 		evh.set_on_read(move |conn_data, ctx, attach| {
-			Self::process_on_read(&config, conn_data, ctx, attach, content_allocator.clone())
+			Self::process_on_read(&config2, conn_data, ctx, attach, content_allocator.clone())
 		})?;
-		evh.set_on_accept(move |conn_data, ctx| Self::process_on_accept(&config2, conn_data, ctx))?;
-		evh.set_on_close(move |conn_data, ctx| Self::process_on_close(&config3, conn_data, ctx))?;
+		evh.set_on_accept(move |conn_data, ctx| Self::process_on_accept(&config3, conn_data, ctx))?;
+		evh.set_on_close(move |conn_data, ctx| Self::process_on_close(&config4, conn_data, ctx))?;
 		evh.set_on_panic(move |ctx, e| Self::process_on_panic(ctx, e))?;
 		evh.set_housekeeper(move |ctx| {
-			Self::process_housekeeper(config4.clone(), ctx, event_handler_data.clone())
+			Self::process_housekeeper(config5.clone(), ctx, event_handler_data.clone())
 		})?;
 
 		evh.start()?;
 
 		Ok(Self {
 			controller: evh.event_handler_controller()?,
+			config,
 		})
 	}
 

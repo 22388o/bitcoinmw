@@ -293,6 +293,7 @@ pub trait HttpClient: DynClone + Any {
 	// TODO: make this crate(pub) by splitting into a separate mod (see
 	// https://stackoverflow.com/questions/66786429/how-to-have-a-public-trait-with-a-pubcrate-method-in-a-library)
 	fn controller(&mut self) -> &mut EventHandlerController;
+	fn config(&self) -> &HttpClientConfig;
 }
 
 clone_trait_object!(HttpClient);
@@ -312,8 +313,15 @@ pub trait HttpConnection {
 pub struct HttpClientConfig {
 	pub max_headers_len: usize,
 	pub debug: bool,
-	pub threads: usize,
-	pub max_handles_per_thread: usize,
+	pub evh_threads: usize,
+	pub evh_max_handles_per_thread: usize,
+	pub evh_sync_channel_size: usize,
+	pub evh_write_queue_size: usize,
+	pub evh_nhandles_queue_size: usize,
+	pub evh_max_events_in: usize,
+	pub evh_housekeeping_frequency_millis: u128,
+	pub evh_read_slab_count: usize,
+	pub evh_max_events: usize,
 	pub slab_count: usize,
 	pub base_dir: String,
 }
@@ -352,6 +360,36 @@ pub enum ConfigOption<'a> {
 	/// The maximum handles per thread. Used to configure the http client in
 	/// [`crate::http_client_init`].
 	MaxHandlesPerThread(usize),
+	/// Whether to print debugging information. Used to configure http client in
+	/// [`crate::http_client_init`].
+	Debug(bool),
+	/// Maximum headers length. Used to configure http client in
+	/// [`crate::http_client_init`].
+	MaxHeadersLen(usize),
+	/// EventHandler SyncChannel size. Used to configure http client in
+	/// [`crate::http_client_init`].
+	SyncChannelSize(usize),
+	/// EventHandler WriteQueueSize. Used to configure http client in
+	/// [`crate::http_client_init`].
+	WriteQueueSize(usize),
+	/// EventHandler Nhandles queue size. Used to configure http client in
+	/// [`crate::http_client_init`].
+	NhandlesQueueSize(usize),
+	/// Max Events In for EventHandler. Used to configure http client in
+	/// [`crate::http_client_init`].
+	MaxEventsIn(usize),
+	/// MaxEvents for EventHandler. Used to configure http client in
+	/// [`crate::http_client_init`].
+	MaxEvents(usize),
+	/// Eventhandler housekeeping frequency. Used to configure http client in
+	/// [`crate::http_client_init`].
+	HouseKeepingFrequencyMillis(u128),
+	/// EventHandler Read Slab count. Used to configure http client in
+	/// [`crate::http_client_init`].
+	EvhReadSlabCount(usize),
+	/// Http client's own slab count. Used to configure http client in
+	/// [`crate::http_client_init`].
+	SlabCount(usize),
 	/// Url. Used to specify the url in [`crate::http_client_request`].
 	Url(&'a str),
 	/// Uri. Used to specify the uri in [`crate::http_client_request`].
@@ -371,7 +409,7 @@ pub enum ConfigOption<'a> {
 	Port(u16),
 	/// Whether to use TLS for a connection. Used for [`crate::http_connection`].
 	Tls(bool),
-	/// Base directory for the [`crate::HttpClient`]. The default value is `~/.bitcoinmw`.
+	/// Base directory for the [`crate::HttpClient`]. The default value is `~/.bmw`.
 	BaseDir(&'a str),
 	/// Timeout in milliseconds for [`crate::http_client_request`]. Note: this may only be used
 	/// for synchronous requests.
@@ -396,6 +434,7 @@ pub enum ConfigOption<'a> {
 #[derive(Clone)]
 pub(crate) struct HttpClientImpl {
 	pub(crate) controller: EventHandlerController,
+	pub(crate) config: HttpClientConfig,
 }
 
 #[derive(Clone)]
