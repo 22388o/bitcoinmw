@@ -1,4 +1,4 @@
-// Copyright (c) 2023, The BitcoinMW Developers
+// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
 // * Arti: https://gitlab.torproject.org/tpo/core/arti
