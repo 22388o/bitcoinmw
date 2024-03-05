@@ -1526,6 +1526,26 @@
 <a href="#1525" id="1525">1525</a>
 <a href="#1526" id="1526">1526</a>
 <a href="#1527" id="1527">1527</a>
+<a href="#1528" id="1528">1528</a>
+<a href="#1529" id="1529">1529</a>
+<a href="#1530" id="1530">1530</a>
+<a href="#1531" id="1531">1531</a>
+<a href="#1532" id="1532">1532</a>
+<a href="#1533" id="1533">1533</a>
+<a href="#1534" id="1534">1534</a>
+<a href="#1535" id="1535">1535</a>
+<a href="#1536" id="1536">1536</a>
+<a href="#1537" id="1537">1537</a>
+<a href="#1538" id="1538">1538</a>
+<a href="#1539" id="1539">1539</a>
+<a href="#1540" id="1540">1540</a>
+<a href="#1541" id="1541">1541</a>
+<a href="#1542" id="1542">1542</a>
+<a href="#1543" id="1543">1543</a>
+<a href="#1544" id="1544">1544</a>
+<a href="#1545" id="1545">1545</a>
+<a href="#1546" id="1546">1546</a>
+<a href="#1547" id="1547">1547</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1653,13 +1673,21 @@
 
 <span class="kw">impl </span>Default <span class="kw">for </span>HttpClientConfig {
 	<span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
+		<span class="kw">let </span>evhc = EventHandlerConfig::default();
 		<span class="self">Self </span>{
 			max_headers_len: <span class="number">8192</span>,
 			debug: <span class="bool-val">false</span>,
-			max_handles_per_thread: <span class="number">100</span>,
-			threads: <span class="number">4</span>,
+			evh_max_handles_per_thread: evhc.max_handles_per_thread,
+			evh_threads: evhc.threads,
+			evh_sync_channel_size: evhc.sync_channel_size,
+			evh_write_queue_size: evhc.write_queue_size,
+			evh_nhandles_queue_size: evhc.nhandles_queue_size,
+			evh_max_events_in: evhc.max_events_in,
+			evh_housekeeping_frequency_millis: evhc.housekeeping_frequency_millis,
+			evh_read_slab_count: evhc.read_slab_count,
+			evh_max_events: evhc.max_events,
 			slab_count: <span class="number">100</span>,
-			base_dir: <span class="string">"~/.bitcoinmw"</span>.to_string(),
+			base_dir: <span class="string">"~/.bmw"</span>.to_string(),
 		}
 	}
 }
@@ -1862,6 +1890,10 @@
 	<span class="kw">fn </span>controller(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>EventHandlerController {
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>.controller
 	}
+
+	<span class="kw">fn </span>config(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>HttpClientConfig {
+		<span class="kw-2">&amp;</span><span class="self">self</span>.config
+	}
 }
 
 <span class="kw">impl </span>HttpClientImpl {
@@ -1880,9 +1912,15 @@
 		create_dir_all(tmp_file_dir)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>evh_config = EventHandlerConfig {
-			threads: config.threads,
-			max_handles_per_thread: config.max_handles_per_thread,
-			..Default::default()
+			threads: config.evh_threads,
+			max_handles_per_thread: config.evh_max_handles_per_thread,
+			sync_channel_size: config.evh_sync_channel_size,
+			write_queue_size: config.evh_write_queue_size,
+			nhandles_queue_size: config.evh_nhandles_queue_size,
+			max_events_in: config.evh_max_events_in,
+			housekeeping_frequency_millis: config.evh_housekeeping_frequency_millis,
+			max_events: config.evh_max_events,
+			read_slab_count: config.evh_read_slab_count,
 		};
 		<span class="kw">let </span><span class="kw-2">mut </span>evh = Builder::build_evh(evh_config)<span class="question-mark">?</span>;
 		<span class="kw">let </span>event_handler_data = evh.event_handler_data()<span class="question-mark">?</span>;
@@ -1898,20 +1936,22 @@
 		<span class="kw">let </span>config2 = config.clone();
 		<span class="kw">let </span>config3 = config.clone();
 		<span class="kw">let </span>config4 = config.clone();
+		<span class="kw">let </span>config5 = config.clone();
 		evh.set_on_read(<span class="kw">move </span>|conn_data, ctx, attach| {
-			<span class="self">Self</span>::process_on_read(<span class="kw-2">&amp;</span>config, conn_data, ctx, attach, content_allocator.clone())
+			<span class="self">Self</span>::process_on_read(<span class="kw-2">&amp;</span>config2, conn_data, ctx, attach, content_allocator.clone())
 		})<span class="question-mark">?</span>;
-		evh.set_on_accept(<span class="kw">move </span>|conn_data, ctx| <span class="self">Self</span>::process_on_accept(<span class="kw-2">&amp;</span>config2, conn_data, ctx))<span class="question-mark">?</span>;
-		evh.set_on_close(<span class="kw">move </span>|conn_data, ctx| <span class="self">Self</span>::process_on_close(<span class="kw-2">&amp;</span>config3, conn_data, ctx))<span class="question-mark">?</span>;
+		evh.set_on_accept(<span class="kw">move </span>|conn_data, ctx| <span class="self">Self</span>::process_on_accept(<span class="kw-2">&amp;</span>config3, conn_data, ctx))<span class="question-mark">?</span>;
+		evh.set_on_close(<span class="kw">move </span>|conn_data, ctx| <span class="self">Self</span>::process_on_close(<span class="kw-2">&amp;</span>config4, conn_data, ctx))<span class="question-mark">?</span>;
 		evh.set_on_panic(<span class="kw">move </span>|ctx, e| <span class="self">Self</span>::process_on_panic(ctx, e))<span class="question-mark">?</span>;
 		evh.set_housekeeper(<span class="kw">move </span>|ctx| {
-			<span class="self">Self</span>::process_housekeeper(config4.clone(), ctx, event_handler_data.clone())
+			<span class="self">Self</span>::process_housekeeper(config5.clone(), ctx, event_handler_data.clone())
 		})<span class="question-mark">?</span>;
 
 		evh.start()<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
 			controller: evh.event_handler_controller()<span class="question-mark">?</span>,
+			config,
 		})
 	}
 

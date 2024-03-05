@@ -541,6 +541,10 @@
 <a href="#540" id="540">540</a>
 <a href="#541" id="541">541</a>
 <a href="#542" id="542">542</a>
+<a href="#543" id="543">543</a>
+<a href="#544" id="544">544</a>
+<a href="#545" id="545">545</a>
+<a href="#546" id="546">546</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1003,6 +1007,8 @@
 		<span class="macro">assert_eq!</span>(len, <span class="number">10</span>);
 		<span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len], <span class="string">b"abcdefghij"</span>);
 
+		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
+
 		<span class="prelude-val">Ok</span>(())
 	}
 
@@ -1057,7 +1063,7 @@
 		})
 		.is_err());
 
-		sleep(Duration::from_millis(<span class="number">3_000</span>));
+		tear_down_server(http)<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -1079,6 +1085,8 @@
 		<span class="kw">let </span>response = <span class="macro">http_client_send!</span>(request)<span class="question-mark">?</span>;
 
 		<span class="macro">assert_eq!</span>(response.code()<span class="question-mark">?</span>, <span class="number">200</span>);
+
+		tear_down_server(http)<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}
