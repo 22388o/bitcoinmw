@@ -17,6 +17,7 @@
 
 mod macros;
 mod rustlet;
+mod test;
 mod types;
 
 pub use crate::rustlet::{RUSTLET_CONTAINER, RUSTLET_CONTEXT};

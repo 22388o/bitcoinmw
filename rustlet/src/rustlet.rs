@@ -17,7 +17,7 @@
 
 use crate::types::{
 	AsyncContextImpl, Rustlet, RustletContainer, RustletRequestImpl, RustletResponseImpl,
-	WebSocketRequest, WebSocketRequestImpl,
+	RustletResponseState, WebSocketRequest, WebSocketRequestImpl,
 };
 use crate::{AsyncContext, RustletConfig, RustletRequest, RustletResponse};
 use bmw_deps::lazy_static::lazy_static;
@@ -28,10 +28,14 @@ use bmw_http::{
 	WebSocketData, WebSocketHandle, WebSocketMessage,
 };
 use bmw_log::*;
+use bmw_util::*;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, RwLock};
 use std::thread::{current, ThreadId};
+
+const HTTP_NEW_LINE_BYTES: &[u8] = b"\r\n";
+const HTTP_COMPLETE_BYTES: &[u8] = b"0\r\n\r\n";
 
 debug!();
 
@@ -96,6 +100,13 @@ impl RustletContainer {
 		}
 	}
 
+	pub fn stop(&mut self) -> Result<(), Error> {
+		match &mut self.http_server {
+			Some(http_server) => http_server.stop(),
+			None => Err(err!(ErrKind::Rustlet, "rustlet container was not started")),
+		}
+	}
+
 	fn callback(
 		headers: &HttpHeaders,
 		_config: &HttpConfig,
@@ -116,7 +127,7 @@ impl RustletContainer {
 				debug!("in callback: {}", path)?;
 
 				let rustlet_request = RustletRequestImpl::from_headers(headers)?;
-				let rustlet_response = RustletResponseImpl::new(write_handle.clone());
+				let rustlet_response = RustletResponseImpl::new(write_handle.clone())?;
 				let rustlet_request: &mut Box<dyn RustletRequest> =
 					&mut (Box::new(rustlet_request) as Box<dyn RustletRequest>);
 				let rustlet_response: &mut Box<dyn RustletResponse> =
@@ -140,6 +151,8 @@ impl RustletContainer {
 					},
 					None => todo!(),
 				}
+
+				rustlet_response.complete()?;
 			}
 			None => {
 				return Err(err!(ErrKind::Rustlet, "rustlet container not initialized"));
@@ -220,10 +233,19 @@ impl RustletRequestImpl {
 
 impl RustletResponse for RustletResponseImpl {
 	fn write(&mut self, bytes: &[u8]) -> Result<(), Error> {
-		self.wh.write(bytes)
-	}
-	fn print(&mut self, _text: &str) -> Result<(), Error> {
+		let bytes_len = bytes.len();
+		debug!("write byteslen={}", bytes_len)?;
+		if !rlock!(self.state).sent_headers {
+			self.send_headers()?;
+		}
+		let msglen = format!("{:X}\r\n", bytes_len);
+		self.wh.write(&msglen.as_bytes()[..])?;
+		self.wh.write(bytes)?;
+		self.wh.write(HTTP_NEW_LINE_BYTES)?;
 		Ok(())
+	}
+	fn print(&mut self, text: &str) -> Result<(), Error> {
+		self.write(text.as_bytes())
 	}
 	fn flush(&mut self) -> Result<(), Error> {
 		todo!()
@@ -240,17 +262,72 @@ impl RustletResponse for RustletResponseImpl {
 	fn set_cookie(&mut self, _name: &str, _value: &str) -> Result<(), Error> {
 		todo!()
 	}
+	fn close(&mut self) -> Result<(), Error> {
+		if rlock!(self.state).sent_headers {
+			Err(err!(
+				ErrKind::Rustlet,
+				"Cannot call close after headers have been sent"
+			))
+		} else {
+			wlock!(self.state).close = true;
+			Ok(())
+		}
+	}
 	fn redirect(&mut self, _url: &str) -> Result<(), Error> {
 		todo!()
 	}
-	fn close(&mut self) -> Result<(), Error> {
-		self.wh.close()
+	fn complete(&mut self) -> Result<(), Error> {
+		self.complete_impl()
 	}
 }
 
 impl RustletResponseImpl {
-	fn new(wh: WriteHandle) -> Self {
-		RustletResponseImpl { wh }
+	fn new(wh: WriteHandle) -> Result<Self, Error> {
+		Ok(RustletResponseImpl {
+			wh,
+			state: lock_box!(RustletResponseState {
+				sent_headers: false,
+				completed: false,
+				close: false,
+			})?,
+		})
+	}
+
+	fn send_headers(&mut self) -> Result<(), Error> {
+		debug!("send headers")?;
+		if rlock!(self.state).close {
+			self.wh.write(
+				b"HTTP/1.1 200 OK\r\nConnection: close\r\nTransfer-Encoding: chunked\r\n\r\n",
+			)?;
+		} else {
+			self.wh
+				.write(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n")?;
+		}
+		wlock!(self.state).sent_headers = true;
+		Ok(())
+	}
+
+	fn complete_impl(&mut self) -> Result<(), Error> {
+		let (completed, sent_headers, close) = {
+			let state = self.state.rlock()?;
+			let guard = state.guard();
+			((**guard).completed, (**guard).sent_headers, (**guard).close)
+		};
+		debug!("in complete")?;
+		if !completed {
+			debug!("has not completed yet")?;
+			if !sent_headers {
+				self.send_headers()?;
+			}
+			debug!("write complete bytes")?;
+			self.wh.write(HTTP_COMPLETE_BYTES)?;
+			wlock!(self.state).completed = true;
+		}
+
+		if close {
+			self.wh.close()?;
+		}
+		Ok(())
 	}
 }
 

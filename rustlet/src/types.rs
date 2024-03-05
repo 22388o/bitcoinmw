@@ -22,6 +22,7 @@ use bmw_http::{
 	HttpConfig, HttpContentReader, HttpMethod, HttpServer, HttpVersion, WebSocketData,
 	WebSocketHandle, WebSocketMessage,
 };
+use bmw_util::*;
 use std::collections::HashMap;
 use std::pin::Pin;
 
@@ -60,6 +61,7 @@ pub trait RustletResponse: DynClone {
 	fn set_cookie(&mut self, name: &str, value: &str) -> Result<(), Error>;
 	fn redirect(&mut self, url: &str) -> Result<(), Error>;
 	fn close(&mut self) -> Result<(), Error>;
+	fn complete(&mut self) -> Result<(), Error>;
 }
 
 clone_trait_object!(RustletResponse);
@@ -97,8 +99,14 @@ pub(crate) struct RustletRequestImpl {
 #[derive(Clone)]
 pub(crate) struct RustletResponseImpl {
 	pub(crate) wh: WriteHandle,
+	pub(crate) state: Box<dyn LockBox<RustletResponseState>>,
 }
 
+pub(crate) struct RustletResponseState {
+	pub(crate) sent_headers: bool,
+	pub(crate) completed: bool,
+	pub(crate) close: bool,
+}
 pub(crate) struct AsyncContextImpl {}
 
 #[derive(Clone)]

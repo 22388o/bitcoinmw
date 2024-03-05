@@ -52,6 +52,25 @@ macro_rules! rustlet_start {
 }
 
 #[macro_export]
+macro_rules! rustlet_stop {
+	() => {{
+		match bmw_rustlet::RUSTLET_CONTAINER.write() {
+			Ok(mut container) => match container.get_mut(&std::thread::current().id()) {
+				Some(container) => Ok(container.stop()?),
+				None => Err(bmw_err::err!(
+					bmw_err::ErrKind::IllegalState,
+					format!("could not obtain container for given thread")
+				)),
+			},
+			Err(e) => Err(bmw_err::err!(
+				bmw_err::ErrKind::IllegalState,
+				format!("could not obtain lock to stop rustlet container: {}", e)
+			)),
+		}
+	}};
+}
+
+#[macro_export]
 macro_rules! rustlet {
 	($name:expr, $code:expr) => {{
 		match bmw_rustlet::RUSTLET_CONTAINER.write() {
@@ -210,6 +229,7 @@ mod test {
 				request.path()
 			)?;
 			assert_eq!(request.method(), HttpMethod::GET);
+			response.close()?;
 			response.write(b"def2")?;
 		})?;
 		rustlet_mapping!("/abc1", "test")?;
@@ -225,10 +245,35 @@ mod test {
 		client.write(b"GET /def2?a=1 HTTP/1.1\r\nHost: localhost\r\n\r\n")?;
 		sleep(Duration::from_millis(1_000));
 
-		let mut buf = [0u8; 100];
-		let len = client.read(&mut buf)?;
-		assert_eq!(len, 8);
-		assert_eq!(&buf[0..len], b"abc1def2");
+		let mut len_sum = 0;
+		let mut buf = [0u8; 1_000];
+
+		loop {
+			let len = client.read(&mut buf[len_sum..])?;
+			if len == 0 {
+				break;
+			}
+			len_sum += len;
+		}
+
+		assert_eq!(len_sum, 141);
+
+		let data = b"HTTP/1.1 200 OK\r\n\
+Transfer-Encoding: chunked\r\n\
+\r\n\
+4\r\n\
+abc1\r\n\
+0\r\n\
+\r\n\
+HTTP/1.1 200 OK\r\n\
+Connection: close\r\n\
+Transfer-Encoding: chunked\r\n\
+\r\n\
+4\r\n\
+def2\r\n\
+0\r\n\
+\r\n";
+		assert_eq!(&buf[0..len_sum], data);
 
 		tear_down_test_dir(test_dir)?;
 		Ok(())
@@ -274,8 +319,8 @@ mod test {
 				request.path()
 			)?;
 			assert_eq!(request.method(), HttpMethod::GET);
-			response.write(b"def")?;
 			response.close()?;
+			response.write(b"def")?;
 		})?;
 		rustlet_mapping!("/abc", "test")?;
 		rustlet_mapping!("/def", "test2")?;
@@ -288,7 +333,7 @@ mod test {
 		client.write(b"GET /def?a=1 HTTP/1.1\r\nHost: localhost\r\n\r\n")?;
 
 		let mut len_sum = 0;
-		let mut buf = [0u8; 100];
+		let mut buf = [0u8; 1_000];
 
 		loop {
 			let len = client.read(&mut buf[len_sum..])?;
@@ -297,8 +342,25 @@ mod test {
 			}
 			len_sum += len;
 		}
-		assert_eq!(len_sum, 6);
-		assert_eq!(&buf[0..len_sum], b"abcdef");
+		assert_eq!(len_sum, 139);
+
+		let data = b"HTTP/1.1 200 OK\r\n\
+Transfer-Encoding: chunked\r\n\
+\r\n\
+3\r\n\
+abc\r\n\
+0\r\n\
+\r\n\
+HTTP/1.1 200 OK\r\n\
+Connection: close\r\n\
+Transfer-Encoding: chunked\r\n\
+\r\n\
+3\r\n\
+def\r\n\
+0\r\n\
+\r\n";
+
+		assert_eq!(&buf[0..len_sum], data);
 
 		tear_down_test_dir(test_dir)?;
 

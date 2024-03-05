@@ -424,9 +424,9 @@ macro_rules! http_client_send {
 					if timeout_millis > 0 {
 						std::thread::spawn(move || {
 							let tx = tx_clone.clone();
-							std::thread::sleep(Duration::from_millis(timeout_millis));
-							match tx.send(Err(err!(
-								ErrKind::IO,
+							std::thread::sleep(std::time::Duration::from_millis(timeout_millis));
+							match tx.send(Err(bmw_err::err!(
+								bmw_err::ErrKind::IO,
 								format!("timeout error: {} milliseconds expired", timeout_millis)
 							))) {
 								Ok(_) => {}

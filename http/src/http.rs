@@ -1592,10 +1592,6 @@ impl HttpServerImpl {
 
 		if start < end {
 			if !has_range {
-				//let mut e = GzEncoder::new(Vec::new(), Compression::default());
-				//e.write_all(&buf[start..end])?;
-				//let mut res = e.finish()?;
-				//let len = res.len();
 				let len = end - start;
 
 				match write_handle.write(&format!("{:X}\r\n", len).as_bytes()[..]) {
