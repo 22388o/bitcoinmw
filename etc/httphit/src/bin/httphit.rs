@@ -158,7 +158,6 @@ fn execute_thread(i: usize, config: &HttpHitConfig) -> Result<(), Error> {
 					let mut count = count.wlock()?;
 					let guard = count.guard();
 					**guard += 1;
-					//info!("guard={},len={},tid={}", **guard, len, i);
 					if (**guard) == len {
 						tx.send(())?;
 					}
@@ -178,6 +177,13 @@ fn execute_thread(i: usize, config: &HttpHitConfig) -> Result<(), Error> {
 			}
 		}
 		rx.recv()?;
+	}
+
+	match connection {
+		Some(mut connection) => {
+			http_connection_close!(connection)?;
+		}
+		None => {}
 	}
 
 	Ok(())
