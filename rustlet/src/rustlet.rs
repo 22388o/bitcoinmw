@@ -256,17 +256,25 @@ impl RustletResponse for RustletResponseImpl {
 	fn add_header(&mut self, _name: &str, _value: &str) -> Result<(), Error> {
 		todo!()
 	}
-	fn content_type(&mut self, _value: &str) -> Result<(), Error> {
-		todo!()
+	fn set_content_type(&mut self, value: &str) -> Result<(), Error> {
+		if rlock!(self.state).sent_headers {
+			Err(err!(
+				ErrKind::Rustlet,
+				"Cannot call set_content_type after headers have been sent"
+			))
+		} else {
+			wlock!(self.state).content_type = value.to_string();
+			Ok(())
+		}
 	}
 	fn set_cookie(&mut self, _name: &str, _value: &str) -> Result<(), Error> {
 		todo!()
 	}
-	fn close(&mut self) -> Result<(), Error> {
+	fn set_connection_close(&mut self) -> Result<(), Error> {
 		if rlock!(self.state).sent_headers {
 			Err(err!(
 				ErrKind::Rustlet,
-				"Cannot call close after headers have been sent"
+				"Cannot call set_connection_close after headers have been sent"
 			))
 		} else {
 			wlock!(self.state).close = true;
@@ -289,20 +297,34 @@ impl RustletResponseImpl {
 				sent_headers: false,
 				completed: false,
 				close: false,
+				content_type: "text/html".to_string(),
 			})?,
 		})
 	}
 
 	fn send_headers(&mut self) -> Result<(), Error> {
 		debug!("send headers")?;
-		if rlock!(self.state).close {
-			self.wh.write(
-				b"HTTP/1.1 200 OK\r\nConnection: close\r\nTransfer-Encoding: chunked\r\n\r\n",
-			)?;
-		} else {
-			self.wh
-				.write(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n")?;
-		}
+
+		let (close_text, content_type_text) = {
+			let state = self.state.rlock()?;
+			let guard = state.guard();
+			let close_text = if (**guard).close {
+				"Connection: close\r\n"
+			} else {
+				"Connecction: keep-alive\r\n"
+			};
+			let content_type_text = format!("Content-Type: {}\r\n", (**guard).content_type);
+
+			(close_text, content_type_text)
+		};
+
+		self.wh.write(
+			format!(
+				"HTTP/1.1 200 OK\r\n{}{}Transfer-Encoding: chunked\r\n\r\n",
+				close_text, content_type_text,
+			)
+			.as_bytes(),
+		)?;
 		wlock!(self.state).sent_headers = true;
 		Ok(())
 	}

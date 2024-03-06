@@ -26,24 +26,29 @@ mod test {
 
 	debug!();
 
-	fn build_server(directory: &str, _tls: bool) -> Result<u16, Error> {
+	fn build_server(directory: &str, tls: bool) -> Result<u16, Error> {
 		setup_test_dir(directory)?;
 		let port = pick_free_port()?;
-		let rc = RustletConfig {
-			http_config: HttpConfig {
-				instances: vec![HttpInstance {
-					port,
-					instance_type: HttpInstanceType::Plain(PlainConfig {
-						http_dir_map: HashMap::from([("*".to_string(), directory.to_string())]),
-					}),
-					..Default::default()
-				}],
-				..Default::default()
-			},
-			..Default::default()
-		};
 
-		rustlet_init!(rc)?;
+		let base_dir = format!("{}/www", directory);
+		if tls {
+			rustlet_init!(
+				instance!(
+					BaseDir(&base_dir),
+					Port(port),
+					TlsServerConfig(tls_config!(
+						PrivKeyFile("./resources/key.pem"),
+						FullChainCertFile("./resources/cert.pem")
+					)?)
+				)?,
+				BaseDir(directory)
+			)?;
+		} else {
+			rustlet_init!(
+				instance!(BaseDir(&base_dir), Port(port))?,
+				BaseDir(directory)
+			)?;
+		}
 
 		rustlet!("test", {
 			let mut response = response!()?;
@@ -64,8 +69,8 @@ mod test {
 				request.path()
 			)?;
 			assert_eq!(request.method(), HttpMethod::GET);
-			response.close()?;
-			response.write(b"def")?;
+			response.set_connection_close()?;
+			response.write(b"defg")?;
 		})?;
 		rustlet_mapping!("/abc", "test")?;
 		rustlet_mapping!("/def", "test2")?;
@@ -92,38 +97,51 @@ mod test {
 		let response = http_client_send!(request)?;
 
 		assert_eq!(response.code().unwrap(), 200);
-		let mut hcr = response.content_reader()?;
-		let mut buf = [0u8; 1_000];
-		let mut content: Vec<u8> = vec![];
-		loop {
-			let len = hcr.read(&mut buf)?;
-			if len == 0 {
-				break;
-			}
-			content.extend(&buf[0..len]);
-		}
-		assert_eq!(content, b"abc");
+		let mut buf = vec![];
+		assert_eq!(response.content_reader()?.read_to_end(&mut buf)?, 3);
+		assert_eq!(buf, b"abc");
 
 		let url = &format!("http://127.0.0.1:{}/def", port);
 		let request = http_client_request!(Url(url), TimeoutMillis(30_000))?;
 		let response = http_client_send!(request)?;
 
 		assert_eq!(response.code().unwrap(), 200);
-		let mut hcr = response.content_reader()?;
-		let mut buf = [0u8; 1_000];
-		let mut content: Vec<u8> = vec![];
-		loop {
-			let len = hcr.read(&mut buf)?;
-			if len == 0 {
-				break;
-			}
-			content.extend(&buf[0..len]);
+		let mut buf = vec![];
+		assert_eq!(response.content_reader()?.read_to_end(&mut buf)?, 4);
+		assert_eq!(buf, b"defg");
+
+		let mut i = 0;
+		for header in response.headers()? {
+			info!("header[{}] = {}: {}", i, header.0, header.1)?;
+			i += 1;
 		}
-		assert_eq!(content, b"def");
 
 		tear_down_server(test_dir)?;
 
-		info!("response: {}", response)?;
+		Ok(())
+	}
+
+	#[test]
+	fn test_rustlet_tls() -> Result<(), Error> {
+		let test_dir = ".test_rustlet_tls.bmw";
+		let port = build_server(test_dir, true)?;
+
+		http_client_init!(BaseDir(test_dir))?;
+		let url = &format!("https://localhost:{}/abc", port);
+		let request = http_client_request!(
+			Url(url),
+			TimeoutMillis(30_000),
+			FullChainCertFile("./resources/cert.pem")
+		)?;
+		let response = http_client_send!(request)?;
+
+		assert_eq!(response.code().unwrap(), 200);
+		let mut buf = vec![];
+		assert_eq!(response.content_reader()?.read_to_end(&mut buf)?, 3);
+		assert_eq!(buf, b"abc");
+
+		tear_down_server(test_dir)?;
+
 		Ok(())
 	}
 }

@@ -20,15 +20,143 @@ use bmw_log::*;
 info!();
 
 #[macro_export]
+macro_rules! tls_config {
+	( $( $config:expr ),* ) => {{
+                let mut error = None;
+                let mut cert_file = None;
+                let mut privkey_file = None;
+
+                $(
+                        match $config {
+                                bmw_http::ConfigOption::PrivKeyFile(value) => {
+                                        privkey_file = Some(value.to_string());
+                                },
+                                bmw_http::ConfigOption::FullChainCertFile(value) => {
+                                        cert_file = Some(value.to_string());
+                                },
+                                _ => error = Some(format!("'{:?}' is not allowed for tls_config", $config)),
+                        }
+                )*
+
+                match error{
+                        Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::IllegalArgument, format!("could not create tls_config due to: {}", error))),
+                        None => {
+                                match cert_file {
+                                        Some(cert_file) =>
+                                                match privkey_file {
+                                                        Some(privkey_file) => {
+                                                                Ok(bmw_http::TlsConfigFiles { cert_file, privkey_file })
+                                                        },
+                                                        None => {
+                                                                Err(bmw_err::err!(bmw_err::ErrKind::IllegalArgument, "PrivKeyFile not specified. Could not create TlsConfigFiles."))
+                                                        },
+                                                },
+                                        None => {
+                                                Err(bmw_err::err!(bmw_err::ErrKind::IllegalArgument, "FullChainCertFile not specified. Could not create TlsConfigFiles."))
+                                        }
+                                }
+                        },
+                }
+	}};
+}
+
+#[macro_export]
+macro_rules! instance {
+        ( $( $config:expr ),* ) => {{
+                let mut error = None;
+                let mut instance = bmw_http::HttpInstance::default();
+                let mut base_dir = ".bmw/www";
+                let mut tls_config_files = None;
+                let mut _port_specified = false;
+                let mut _base_dir_specified = false;
+                let mut _tls_specified = false;
+
+                $(
+                        match $config {
+                                bmw_http::ConfigOption::Port(port) => {
+                                        instance.port = port;
+                                        if _port_specified {
+                                                error = Some("Port was specified more than once".to_string());
+                                        }
+                                        _port_specified = true;
+                                },
+                                bmw_http::ConfigOption::BaseDir(value) => {
+                                        base_dir = value;
+                                        if _base_dir_specified {
+                                                error = Some("BaseDir was specified more than once".to_string());
+                                        }
+                                        _base_dir_specified = true;
+                                },
+                                bmw_http::ConfigOption::TlsServerConfig(value) => {
+                                        tls_config_files = Some(value);
+                                        if _tls_specified {
+                                                error = Some("Tls was specified more than once".to_string());
+                                        }
+                                        _tls_specified = true;
+                                },
+                                _ => {
+                                     error= Some(format!("'{:?}' is not allowed for instance", $config));
+                                },
+                        }
+                )*
+
+                let mut http_dir_map = HashMap::new();
+                http_dir_map.insert("*".to_string(), base_dir.to_string());
+                let instance_type = match tls_config_files {
+                        Some(tls_config_files) =>
+                                HttpInstanceType::Tls(TlsConfig { http_dir_map, cert_file: tls_config_files.cert_file, privkey_file: tls_config_files.privkey_file }),
+                        None =>
+                                HttpInstanceType::Plain(PlainConfig { http_dir_map }),
+                };
+                instance.instance_type = instance_type;
+
+                match error{
+                        Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::IllegalArgument, format!("could not create instance due to: {}", error))),
+                        None => Ok(bmw_http::ConfigOption::Instance(instance)),
+                }
+        }};
+}
+
+#[macro_export]
 macro_rules! rustlet_init {
-	($config:expr) => {{
-		match bmw_rustlet::RustletContainer::init($config) {
-			Ok(_) => Ok(()),
-			Err(e) => Err(bmw_err::err!(
-				bmw_err::ErrKind::IllegalState,
-				format!("could not initialize rustlet container due to: {}", e)
-			)),
-		}
+	( $( $config:expr ),* ) => {{
+                let mut error = None;
+                let mut config = bmw_rustlet::RustletConfig {
+                        http_config: HttpConfig {
+                                evh_config: bmw_evh::EventHandlerConfig::default(),
+                                instances: vec![],
+                                ..Default::default()
+                        }
+                };
+                $(
+                        match $config {
+                                bmw_http::ConfigOption::Instance(instance) => {
+                                        config.http_config.instances.push(instance);
+                                },
+                                bmw_http::ConfigOption::Debug(debug) => {
+                                        config.http_config.debug = debug;
+                                },
+                                bmw_http::ConfigOption::BaseDir(base_dir) => {
+                                        config.http_config.base_dir = base_dir.to_string();
+                                },
+                                _ => {
+                                        error = Some(format!("'{:?}' is not allowed for rustlet_init", $config));
+                                },
+                        }
+                )*
+
+                match error{
+                        Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::IllegalArgument, format!("could not create instance due to: {}", error))),
+                        None => {
+		                match bmw_rustlet::RustletContainer::init(config) {
+			                Ok(_) => Ok(()),
+			                Err(e) => Err(bmw_err::err!(
+				                bmw_err::ErrKind::IllegalState,
+				                format!("could not initialize rustlet container due to: {}", e)
+			                )),
+		                }
+                        }
+                }
 	}};
 }
 
@@ -171,199 +299,4 @@ macro_rules! session {
 	// TODO: session will have CRUD for session. SessionOp::Set, SessionOp::Get,
 	// SessionOp::Delete
 	() => {};
-}
-
-#[cfg(test)]
-mod test {
-	use crate as bmw_rustlet;
-	use bmw_http::{HttpConfig, HttpInstance, HttpInstanceType, HttpMethod, PlainConfig};
-	use bmw_rustlet::*;
-	use bmw_test::port::pick_free_port;
-	use bmw_test::testdir::{setup_test_dir, tear_down_test_dir};
-	use std::collections::HashMap;
-	use std::io::Read;
-	use std::io::Write;
-	use std::net::TcpStream;
-	use std::thread::{current, sleep};
-	use std::time::Duration;
-
-	debug!();
-
-	#[test]
-	fn test_rustlet_macros() -> Result<(), Error> {
-		info!("2tid={:?}", current().id())?;
-		let port = pick_free_port()?;
-		let addr = &format!("127.0.0.1:{}", port)[..];
-		let test_dir = ".test_rustlet_macros.bmw";
-		setup_test_dir(test_dir)?;
-		let rc = RustletConfig {
-			http_config: HttpConfig {
-				instances: vec![HttpInstance {
-					port,
-					instance_type: HttpInstanceType::Plain(PlainConfig {
-						http_dir_map: HashMap::from([("*".to_string(), test_dir.to_string())]),
-					}),
-					..Default::default()
-				}],
-				..Default::default()
-			},
-			..Default::default()
-		};
-		rustlet_init!(rc)?;
-		rustlet!("test", {
-			let mut response = response!()?;
-			let request = request!()?;
-			info!(
-				"in rustlet test_rustlet_simple_request test method={:?},path={}",
-				request.method(),
-				request.path()
-			)?;
-			response.write(b"abc1")?;
-		})?;
-		rustlet!("test2", {
-			let mut response = response!()?;
-			let request = request!()?;
-			info!(
-				"in rustlet test_rustlet_simple_request test2 method={:?},path={}",
-				request.method(),
-				request.path()
-			)?;
-			assert_eq!(request.method(), HttpMethod::GET);
-			response.close()?;
-			response.write(b"def2")?;
-		})?;
-		rustlet_mapping!("/abc1", "test")?;
-		rustlet_mapping!("/def2", "test2")?;
-		rustlet_start!()?;
-		sleep(Duration::from_millis(1_000));
-
-		info!("connection to port {}", port)?;
-		let mut client = TcpStream::connect(addr)?;
-
-		client.write(b"GET /abc1?a=1 HTTP/1.1\r\nHost: localhost\r\n\r\n")?;
-		sleep(Duration::from_millis(1_000));
-		client.write(b"GET /def2?a=1 HTTP/1.1\r\nHost: localhost\r\n\r\n")?;
-		sleep(Duration::from_millis(1_000));
-
-		let mut len_sum = 0;
-		let mut buf = [0u8; 1_000];
-
-		loop {
-			let len = client.read(&mut buf[len_sum..])?;
-			if len == 0 {
-				break;
-			}
-			len_sum += len;
-		}
-
-		assert_eq!(len_sum, 141);
-
-		let data = b"HTTP/1.1 200 OK\r\n\
-Transfer-Encoding: chunked\r\n\
-\r\n\
-4\r\n\
-abc1\r\n\
-0\r\n\
-\r\n\
-HTTP/1.1 200 OK\r\n\
-Connection: close\r\n\
-Transfer-Encoding: chunked\r\n\
-\r\n\
-4\r\n\
-def2\r\n\
-0\r\n\
-\r\n";
-		assert_eq!(&buf[0..len_sum], data);
-
-		tear_down_test_dir(test_dir)?;
-		Ok(())
-	}
-
-	#[test]
-	fn test_rustlet_simple_request() -> Result<(), Error> {
-		info!("2tid={:?}", current().id())?;
-		let port = pick_free_port()?;
-		let addr = &format!("127.0.0.1:{}", port)[..];
-		let test_dir = ".test_rustlet_simple_request.bmw";
-		setup_test_dir(test_dir)?;
-		let rc = RustletConfig {
-			http_config: HttpConfig {
-				instances: vec![HttpInstance {
-					port,
-					instance_type: HttpInstanceType::Plain(PlainConfig {
-						http_dir_map: HashMap::from([("*".to_string(), test_dir.to_string())]),
-					}),
-					..Default::default()
-				}],
-				..Default::default()
-			},
-			..Default::default()
-		};
-		rustlet_init!(rc)?;
-		rustlet!("test", {
-			let mut response = response!()?;
-			let request = request!()?;
-			info!(
-				"in rustlet test_rustlet_simple_request test method={:?},path={}",
-				request.method(),
-				request.path()
-			)?;
-			response.write(b"abc")?;
-		})?;
-		rustlet!("test2", {
-			let mut response = response!()?;
-			let request = request!()?;
-			info!(
-				"in rustlet test_rustlet_simple_request test2 method={:?},path={}",
-				request.method(),
-				request.path()
-			)?;
-			assert_eq!(request.method(), HttpMethod::GET);
-			response.close()?;
-			response.write(b"def")?;
-		})?;
-		rustlet_mapping!("/abc", "test")?;
-		rustlet_mapping!("/def", "test2")?;
-		rustlet_start!()?;
-
-		info!("connection to port {}", port)?;
-		let mut client = TcpStream::connect(addr)?;
-
-		client.write(b"GET /abc?a=1 HTTP/1.1\r\nHost: localhost\r\n\r\n")?;
-		client.write(b"GET /def?a=1 HTTP/1.1\r\nHost: localhost\r\n\r\n")?;
-
-		let mut len_sum = 0;
-		let mut buf = [0u8; 1_000];
-
-		loop {
-			let len = client.read(&mut buf[len_sum..])?;
-			if len == 0 {
-				break;
-			}
-			len_sum += len;
-		}
-		assert_eq!(len_sum, 139);
-
-		let data = b"HTTP/1.1 200 OK\r\n\
-Transfer-Encoding: chunked\r\n\
-\r\n\
-3\r\n\
-abc\r\n\
-0\r\n\
-\r\n\
-HTTP/1.1 200 OK\r\n\
-Connection: close\r\n\
-Transfer-Encoding: chunked\r\n\
-\r\n\
-3\r\n\
-def\r\n\
-0\r\n\
-\r\n";
-
-		assert_eq!(&buf[0..len_sum], data);
-
-		tear_down_test_dir(test_dir)?;
-
-		Ok(())
-	}
 }

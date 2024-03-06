@@ -57,10 +57,10 @@ pub trait RustletResponse: DynClone {
 	fn flush(&mut self) -> Result<(), Error>;
 	fn async_context(&mut self) -> Result<Box<dyn AsyncContext>, Error>;
 	fn add_header(&mut self, name: &str, value: &str) -> Result<(), Error>;
-	fn content_type(&mut self, value: &str) -> Result<(), Error>;
+	fn set_content_type(&mut self, value: &str) -> Result<(), Error>;
 	fn set_cookie(&mut self, name: &str, value: &str) -> Result<(), Error>;
 	fn redirect(&mut self, url: &str) -> Result<(), Error>;
-	fn close(&mut self) -> Result<(), Error>;
+	fn set_connection_close(&mut self) -> Result<(), Error>;
 	fn complete(&mut self) -> Result<(), Error>;
 }
 
@@ -106,6 +106,7 @@ pub(crate) struct RustletResponseState {
 	pub(crate) sent_headers: bool,
 	pub(crate) completed: bool,
 	pub(crate) close: bool,
+	pub(crate) content_type: String,
 }
 pub(crate) struct AsyncContextImpl {}
 
