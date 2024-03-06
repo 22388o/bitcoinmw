@@ -1539,13 +1539,6 @@
 <a href="#1538" id="1538">1538</a>
 <a href="#1539" id="1539">1539</a>
 <a href="#1540" id="1540">1540</a>
-<a href="#1541" id="1541">1541</a>
-<a href="#1542" id="1542">1542</a>
-<a href="#1543" id="1543">1543</a>
-<a href="#1544" id="1544">1544</a>
-<a href="#1545" id="1545">1545</a>
-<a href="#1546" id="1546">1546</a>
-<a href="#1547" id="1547">1547</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1712,7 +1705,7 @@
 }
 
 <span class="kw">fn </span>do_send(
-	request: Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
+	request: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
 	wh: <span class="kw-2">&amp;mut </span>WriteHandle,
 	uri: String,
 	addr: String,
@@ -1822,7 +1815,7 @@
 <span class="kw">impl </span>HttpClient <span class="kw">for </span>HttpClientImpl {
 	<span class="kw">fn </span>send(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
-		request: Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
+		request: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
 		handler: HttpHandler,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">match </span>request.request_url() {
@@ -2478,7 +2471,7 @@
 <span class="kw">impl </span>HttpConnection <span class="kw">for </span>HttpConnectionImpl {
 	<span class="kw">fn </span>send(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
-		request: Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
+		request: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
 		handler: HttpHandler,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>keep_alive = request.keep_alive();
@@ -2787,7 +2780,7 @@
 			http_client_request1.guid()
 		)<span class="question-mark">?</span>;
 
-		http_client.send(http_client_request1, handler1)<span class="question-mark">?</span>;
+		http_client.send(<span class="kw-2">&amp;</span>http_client_request1, handler1)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>found404 = <span class="macro">lock_box!</span>(<span class="bool-val">false</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>found404_clone = found404.clone();
@@ -2809,7 +2802,7 @@
 			..Default::default()
 		})<span class="question-mark">?</span>) <span class="kw">as </span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;;
 
-		http_client.send(http_client_request2, handler2)<span class="question-mark">?</span>;
+		http_client.send(<span class="kw-2">&amp;</span>http_client_request2, handler2)<span class="question-mark">?</span>;
 
 		sleep(Duration::from_millis(<span class="number">1_000</span>));
 
@@ -2955,11 +2948,9 @@
 			<span class="string">"about to send request with guid = {}"</span>,
 			http_client_request1.guid()
 		)<span class="question-mark">?</span>;
-		http_connection.send(http_client_request1, handler1)<span class="question-mark">?</span>;
+		http_connection.send(<span class="kw-2">&amp;</span>http_client_request1, handler1)<span class="question-mark">?</span>;
 
-		<span class="comment">//sleep(Duration::from_millis(1_000));
-
-		</span><span class="kw">let </span>http_client_request2 = Box::new(HttpRequestImpl::new(<span class="kw-2">&amp;</span>HttpRequestConfig {
+		<span class="kw">let </span>http_client_request2 = Box::new(HttpRequestImpl::new(<span class="kw-2">&amp;</span>HttpRequestConfig {
 			request_uri: <span class="prelude-val">Some</span>(<span class="string">"/foo2.html"</span>.to_string()),
 			..Default::default()
 		})<span class="question-mark">?</span>) <span class="kw">as </span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;;
@@ -3024,15 +3015,10 @@
 			},
 		);
 
-		http_connection.send(http_client_request2, handler2.clone())<span class="question-mark">?</span>;
+		http_connection.send(<span class="kw-2">&amp;</span>http_client_request2, handler2.clone())<span class="question-mark">?</span>;
+		http_connection.send(<span class="kw-2">&amp;</span>http_client_request3, handler2)<span class="question-mark">?</span>;
 
-		<span class="comment">//sleep(Duration::from_millis(1_000));
-
-		</span>http_connection.send(http_client_request3, handler2)<span class="question-mark">?</span>;
-
-		<span class="comment">//sleep(Duration::from_millis(1_000));
-
-		</span><span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
 		<span class="kw">loop </span>{
 			sleep(Duration::from_millis(<span class="number">100</span>));
 			<span class="kw">if </span>count == <span class="number">100 </span>{
