@@ -37,7 +37,7 @@ use std::thread::{current, ThreadId};
 const HTTP_NEW_LINE_BYTES: &[u8] = b"\r\n";
 const HTTP_COMPLETE_BYTES: &[u8] = b"0\r\n\r\n";
 
-debug!();
+info!();
 
 thread_local!(
 	pub static RUSTLET_CONTEXT: RefCell<(
@@ -200,8 +200,8 @@ impl RustletRequest for RustletRequestImpl {
 	fn path(&self) -> &String {
 		&self.path
 	}
-	fn query(&self) -> Result<String, Error> {
-		todo!()
+	fn query(&self) -> &String {
+		&self.query
 	}
 	fn cookie(&self, _name: &str) -> Result<String, Error> {
 		todo!()
@@ -227,6 +227,7 @@ impl RustletRequestImpl {
 	fn from_headers(headers: &HttpHeaders) -> Result<Self, Error> {
 		Ok(Self {
 			path: headers.path()?,
+			query: headers.query()?,
 		})
 	}
 }

@@ -104,9 +104,13 @@ macro_rules! instance {
                 http_dir_map.insert("*".to_string(), base_dir.to_string());
                 let instance_type = match tls_config_files {
                         Some(tls_config_files) =>
-                                HttpInstanceType::Tls(TlsConfig { http_dir_map, cert_file: tls_config_files.cert_file, privkey_file: tls_config_files.privkey_file }),
+                                bmw_http::HttpInstanceType::Tls(bmw_http::TlsConfig {
+                                        http_dir_map,
+                                        cert_file: tls_config_files.cert_file,
+                                        privkey_file: tls_config_files.privkey_file
+                                }),
                         None =>
-                                HttpInstanceType::Plain(PlainConfig { http_dir_map }),
+                                bmw_http::HttpInstanceType::Plain(bmw_http::PlainConfig { http_dir_map }),
                 };
                 instance.instance_type = instance_type;
 
@@ -122,7 +126,7 @@ macro_rules! rustlet_init {
 	( $( $config:expr ),* ) => {{
                 let mut error = None;
                 let mut config = bmw_rustlet::RustletConfig {
-                        http_config: HttpConfig {
+                        http_config: bmw_http::HttpConfig {
                                 evh_config: bmw_evh::EventHandlerConfig::default(),
                                 instances: vec![],
                                 ..Default::default()

@@ -15,12 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use bmw_deps::dirs;
-use bmw_http::{HttpConfig, HttpInstance, HttpInstanceType, PlainConfig};
 use bmw_rustlet::*;
 use clap::{load_yaml, App, ArgMatches};
 use std::collections::HashMap;
-use std::fs::canonicalize;
 use std::path::PathBuf;
 use std::thread::park;
 
@@ -46,17 +43,6 @@ fn load_config(args: ArgMatches<'_>) -> Result<RustletContainerConfig, Error> {
 	}
 	.to_string();
 
-	let home_dir = match dirs::home_dir() {
-		Some(p) => p,
-		None => PathBuf::new(),
-	}
-	.as_path()
-	.display()
-	.to_string();
-
-	let base_dir = base_dir.replace("~", &home_dir);
-	let base_dir = canonicalize(base_dir)?.display().to_string();
-
 	let port = match args.is_present("port") {
 		true => args.value_of("port").unwrap().parse()?,
 		false => 8080,
@@ -76,24 +62,15 @@ fn show_startup_config(config: &RustletContainerConfig) -> Result<(), Error> {
 }
 
 fn init_rustlet_container(config: &RustletContainerConfig) -> Result<(), Error> {
-	let rc = RustletConfig {
-		http_config: HttpConfig {
-			instances: vec![HttpInstance {
-				port: config.port,
-				instance_type: HttpInstanceType::Plain(PlainConfig {
-					http_dir_map: HashMap::from([(
-						"*".to_string(),
-						format!("{}/www", config.base_dir.clone()),
-					)]),
-				}),
-				..Default::default()
-			}],
-			debug: config.debug,
-			..Default::default()
-		},
-		..Default::default()
-	};
-	rustlet_init!(rc)?;
+	let mut instance_dir = PathBuf::new();
+	instance_dir.push(config.base_dir.clone());
+	instance_dir.push("www");
+	let instance_dir = &instance_dir.display().to_string();
+	rustlet_init!(
+		BaseDir(&config.base_dir),
+		Debug(config.debug),
+		instance!(Port(config.port), BaseDir(&instance_dir))?
+	)?;
 	Ok(())
 }
 
@@ -110,9 +87,20 @@ fn load_rustlets(_config: &RustletContainerConfig) -> Result<(), Error> {
 			request.path()
 		)?;
 		response.write(b"abc")?;
+		Ok(())
+	})?;
+
+	rustlet!("echo", {
+		let request = request!()?;
+		let mut response = response!()?;
+		let query = request.query();
+		response
+			.write(format!("<br/><br/><br/><br/><br/><br/><br/>query was: {}", query).as_bytes())?;
+		Ok(())
 	})?;
 
 	rustlet_mapping!("/abc", "test")?;
+	rustlet_mapping!("/echo", "echo")?;
 
 	Ok(())
 }

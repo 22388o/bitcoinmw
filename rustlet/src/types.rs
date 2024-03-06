@@ -40,7 +40,7 @@ pub trait RustletRequest: DynClone {
 	fn method(&self) -> HttpMethod;
 	fn version(&self) -> Result<&HttpVersion, Error>;
 	fn path(&self) -> &String;
-	fn query(&self) -> Result<String, Error>;
+	fn query(&self) -> &String;
 	fn cookie(&self, name: &str) -> Result<String, Error>;
 	fn headers(&self) -> Result<usize, Error>;
 	fn header_name(&self, n: usize) -> Result<String, Error>;
@@ -94,6 +94,7 @@ pub struct RustletContainer {
 #[derive(Clone)]
 pub(crate) struct RustletRequestImpl {
 	pub(crate) path: String,
+	pub(crate) query: String,
 }
 
 #[derive(Clone)]
