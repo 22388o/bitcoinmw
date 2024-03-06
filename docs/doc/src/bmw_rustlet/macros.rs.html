@@ -300,12 +300,6 @@
 <a href="#299" id="299">299</a>
 <a href="#300" id="300">300</a>
 <a href="#301" id="301">301</a>
-<a href="#302" id="302">302</a>
-<a href="#303" id="303">303</a>
-<a href="#304" id="304">304</a>
-<a href="#305" id="305">305</a>
-<a href="#306" id="306">306</a>
-<a href="#307" id="307">307</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -328,15 +322,143 @@
 <span class="macro">info!</span>();
 
 <span class="attr">#[macro_export]
+</span><span class="macro">macro_rules! </span>tls_config {
+	( $( <span class="macro-nonterminal">$config</span>:expr ),* ) =&gt; {{
+                <span class="kw">let </span><span class="kw-2">mut </span>error = <span class="prelude-val">None</span>;
+                <span class="kw">let </span><span class="kw-2">mut </span>cert_file = <span class="prelude-val">None</span>;
+                <span class="kw">let </span><span class="kw-2">mut </span>privkey_file = <span class="prelude-val">None</span>;
+
+                $(
+                        <span class="kw">match </span><span class="macro-nonterminal">$config </span>{
+                                bmw_http::ConfigOption::PrivKeyFile(value) =&gt; {
+                                        privkey_file = <span class="prelude-val">Some</span>(value.to_string());
+                                },
+                                bmw_http::ConfigOption::FullChainCertFile(value) =&gt; {
+                                        cert_file = <span class="prelude-val">Some</span>(value.to_string());
+                                },
+                                <span class="kw">_ </span>=&gt; error = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">"'{:?}' is not allowed for tls_config"</span>, <span class="macro-nonterminal">$config</span>)),
+                        }
+                )*
+
+                <span class="kw">match </span>error{
+                        <span class="prelude-val">Some</span>(error) =&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::IllegalArgument, <span class="macro">format!</span>(<span class="string">"could not create tls_config due to: {}"</span>, error))),
+                        <span class="prelude-val">None </span>=&gt; {
+                                <span class="kw">match </span>cert_file {
+                                        <span class="prelude-val">Some</span>(cert_file) =&gt;
+                                                <span class="kw">match </span>privkey_file {
+                                                        <span class="prelude-val">Some</span>(privkey_file) =&gt; {
+                                                                <span class="prelude-val">Ok</span>(bmw_http::TlsConfigFiles { cert_file, privkey_file })
+                                                        },
+                                                        <span class="prelude-val">None </span>=&gt; {
+                                                                <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::IllegalArgument, <span class="string">"PrivKeyFile not specified. Could not create TlsConfigFiles."</span>))
+                                                        },
+                                                },
+                                        <span class="prelude-val">None </span>=&gt; {
+                                                <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::IllegalArgument, <span class="string">"FullChainCertFile not specified. Could not create TlsConfigFiles."</span>))
+                                        }
+                                }
+                        },
+                }
+	}};
+}
+
+<span class="attr">#[macro_export]
+</span><span class="macro">macro_rules! </span>instance {
+        ( $( <span class="macro-nonterminal">$config</span>:expr ),* ) =&gt; {{
+                <span class="kw">let </span><span class="kw-2">mut </span>error = <span class="prelude-val">None</span>;
+                <span class="kw">let </span><span class="kw-2">mut </span>instance = bmw_http::HttpInstance::default();
+                <span class="kw">let </span><span class="kw-2">mut </span>base_dir = <span class="string">".bmw/www"</span>;
+                <span class="kw">let </span><span class="kw-2">mut </span>tls_config_files = <span class="prelude-val">None</span>;
+                <span class="kw">let </span><span class="kw-2">mut </span>_port_specified = <span class="bool-val">false</span>;
+                <span class="kw">let </span><span class="kw-2">mut </span>_base_dir_specified = <span class="bool-val">false</span>;
+                <span class="kw">let </span><span class="kw-2">mut </span>_tls_specified = <span class="bool-val">false</span>;
+
+                $(
+                        <span class="kw">match </span><span class="macro-nonterminal">$config </span>{
+                                bmw_http::ConfigOption::Port(port) =&gt; {
+                                        instance.port = port;
+                                        <span class="kw">if </span>_port_specified {
+                                                error = <span class="prelude-val">Some</span>(<span class="string">"Port was specified more than once"</span>.to_string());
+                                        }
+                                        _port_specified = <span class="bool-val">true</span>;
+                                },
+                                bmw_http::ConfigOption::BaseDir(value) =&gt; {
+                                        base_dir = value;
+                                        <span class="kw">if </span>_base_dir_specified {
+                                                error = <span class="prelude-val">Some</span>(<span class="string">"BaseDir was specified more than once"</span>.to_string());
+                                        }
+                                        _base_dir_specified = <span class="bool-val">true</span>;
+                                },
+                                bmw_http::ConfigOption::TlsServerConfig(value) =&gt; {
+                                        tls_config_files = <span class="prelude-val">Some</span>(value);
+                                        <span class="kw">if </span>_tls_specified {
+                                                error = <span class="prelude-val">Some</span>(<span class="string">"Tls was specified more than once"</span>.to_string());
+                                        }
+                                        _tls_specified = <span class="bool-val">true</span>;
+                                },
+                                <span class="kw">_ </span>=&gt; {
+                                     error= <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">"'{:?}' is not allowed for instance"</span>, <span class="macro-nonterminal">$config</span>));
+                                },
+                        }
+                )*
+
+                <span class="kw">let </span><span class="kw-2">mut </span>http_dir_map = HashMap::new();
+                http_dir_map.insert(<span class="string">"*"</span>.to_string(), base_dir.to_string());
+                <span class="kw">let </span>instance_type = <span class="kw">match </span>tls_config_files {
+                        <span class="prelude-val">Some</span>(tls_config_files) =&gt;
+                                HttpInstanceType::Tls(TlsConfig { http_dir_map, cert_file: tls_config_files.cert_file, privkey_file: tls_config_files.privkey_file }),
+                        <span class="prelude-val">None </span>=&gt;
+                                HttpInstanceType::Plain(PlainConfig { http_dir_map }),
+                };
+                instance.instance_type = instance_type;
+
+                <span class="kw">match </span>error{
+                        <span class="prelude-val">Some</span>(error) =&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::IllegalArgument, <span class="macro">format!</span>(<span class="string">"could not create instance due to: {}"</span>, error))),
+                        <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Ok</span>(bmw_http::ConfigOption::Instance(instance)),
+                }
+        }};
+}
+
+<span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>rustlet_init {
-	(<span class="macro-nonterminal">$config</span>:expr) =&gt; {{
-		<span class="kw">match </span>bmw_rustlet::RustletContainer::init(<span class="macro-nonterminal">$config</span>) {
-			<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
-			<span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(
-				bmw_err::ErrKind::IllegalState,
-				<span class="macro">format!</span>(<span class="string">"could not initialize rustlet container due to: {}"</span>, e)
-			)),
-		}
+	( $( <span class="macro-nonterminal">$config</span>:expr ),* ) =&gt; {{
+                <span class="kw">let </span><span class="kw-2">mut </span>error = <span class="prelude-val">None</span>;
+                <span class="kw">let </span><span class="kw-2">mut </span>config = bmw_rustlet::RustletConfig {
+                        http_config: HttpConfig {
+                                evh_config: bmw_evh::EventHandlerConfig::default(),
+                                instances: <span class="macro">vec!</span>[],
+                                ..Default::default()
+                        }
+                };
+                $(
+                        <span class="kw">match </span><span class="macro-nonterminal">$config </span>{
+                                bmw_http::ConfigOption::Instance(instance) =&gt; {
+                                        config.http_config.instances.push(instance);
+                                },
+                                bmw_http::ConfigOption::Debug(debug) =&gt; {
+                                        config.http_config.debug = debug;
+                                },
+                                bmw_http::ConfigOption::BaseDir(base_dir) =&gt; {
+                                        config.http_config.base_dir = base_dir.to_string();
+                                },
+                                <span class="kw">_ </span>=&gt; {
+                                        error = <span class="prelude-val">Some</span>(<span class="macro">format!</span>(<span class="string">"'{:?}' is not allowed for rustlet_init"</span>, <span class="macro-nonterminal">$config</span>));
+                                },
+                        }
+                )*
+
+                <span class="kw">match </span>error{
+                        <span class="prelude-val">Some</span>(error) =&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::IllegalArgument, <span class="macro">format!</span>(<span class="string">"could not create instance due to: {}"</span>, error))),
+                        <span class="prelude-val">None </span>=&gt; {
+		                <span class="kw">match </span>bmw_rustlet::RustletContainer::init(config) {
+			                <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+			                <span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(
+				                bmw_err::ErrKind::IllegalState,
+				                <span class="macro">format!</span>(<span class="string">"could not initialize rustlet container due to: {}"</span>, e)
+			                )),
+		                }
+                        }
+                }
 	}};
 }
 
@@ -360,6 +482,25 @@
 }
 
 <span class="attr">#[macro_export]
+</span><span class="macro">macro_rules! </span>rustlet_stop {
+	() =&gt; {{
+		<span class="kw">match </span>bmw_rustlet::RUSTLET_CONTAINER.write() {
+			<span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>container) =&gt; <span class="kw">match </span>container.get_mut(<span class="kw-2">&amp;</span>std::thread::current().id()) {
+				<span class="prelude-val">Some</span>(container) =&gt; <span class="prelude-val">Ok</span>(container.stop()<span class="question-mark">?</span>),
+				<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(
+					bmw_err::ErrKind::IllegalState,
+					<span class="macro">format!</span>(<span class="string">"could not obtain container for given thread"</span>)
+				)),
+			},
+			<span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(
+				bmw_err::ErrKind::IllegalState,
+				<span class="macro">format!</span>(<span class="string">"could not obtain lock to stop rustlet container: {}"</span>, e)
+			)),
+		}
+	}};
+}
+
+<span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>rustlet {
 	(<span class="macro-nonterminal">$name</span>:expr, <span class="macro-nonterminal">$code</span>:expr) =&gt; {{
 		<span class="kw">match </span>bmw_rustlet::RUSTLET_CONTAINER.write() {
@@ -376,7 +517,6 @@
 							{
 								<span class="macro-nonterminal">$code
 							</span>}
-							<span class="prelude-val">Ok</span>(())
 						},
 					),
 				)<span class="question-mark">?</span>),
@@ -460,157 +600,5 @@
 	<span class="comment">// TODO: session will have CRUD for session. SessionOp::Set, SessionOp::Get,
 	// SessionOp::Delete
 	</span>() =&gt; {};
-}
-
-<span class="attr">#[cfg(test)]
-</span><span class="kw">mod </span>test {
-	<span class="kw">use crate as </span>bmw_rustlet;
-	<span class="kw">use </span>bmw_http::{HttpConfig, HttpInstance, HttpInstanceType, HttpMethod, PlainConfig};
-	<span class="kw">use </span>bmw_rustlet::<span class="kw-2">*</span>;
-	<span class="kw">use </span>bmw_test::port::pick_free_port;
-	<span class="kw">use </span>bmw_test::testdir::{setup_test_dir, tear_down_test_dir};
-	<span class="kw">use </span>std::collections::HashMap;
-	<span class="kw">use </span>std::io::Read;
-	<span class="kw">use </span>std::io::Write;
-	<span class="kw">use </span>std::net::TcpStream;
-	<span class="kw">use </span>std::thread::{current, sleep};
-	<span class="kw">use </span>std::time::Duration;
-
-	<span class="macro">debug!</span>();
-
-	<span class="attr">#[test]
-	</span><span class="kw">fn </span>test_rustlet_macros() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">info!</span>(<span class="string">"2tid={:?}"</span>, current().id())<span class="question-mark">?</span>;
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
-		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
-		<span class="kw">let </span>test_dir = <span class="string">".test_rustlet_macros.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
-		<span class="kw">let </span>rc = RustletConfig {
-			http_config: HttpConfig {
-				instances: <span class="macro">vec!</span>[HttpInstance {
-					port,
-					instance_type: HttpInstanceType::Plain(PlainConfig {
-						http_dir_map: HashMap::from([(<span class="string">"*"</span>.to_string(), test_dir.to_string())]),
-					}),
-					..Default::default()
-				}],
-				..Default::default()
-			},
-			..Default::default()
-		};
-		<span class="macro">rustlet_init!</span>(rc)<span class="question-mark">?</span>;
-		<span class="macro">rustlet!</span>(<span class="string">"test"</span>, {
-			<span class="kw">let </span><span class="kw-2">mut </span>response = <span class="macro">response!</span>()<span class="question-mark">?</span>;
-			<span class="kw">let </span>request = <span class="macro">request!</span>()<span class="question-mark">?</span>;
-			<span class="macro">info!</span>(
-				<span class="string">"in rustlet test_rustlet_simple_request test method={:?},path={}"</span>,
-				request.method(),
-				request.path()
-			)<span class="question-mark">?</span>;
-			response.write(<span class="string">b"abc1"</span>)<span class="question-mark">?</span>;
-		})<span class="question-mark">?</span>;
-		<span class="macro">rustlet!</span>(<span class="string">"test2"</span>, {
-			<span class="kw">let </span><span class="kw-2">mut </span>response = <span class="macro">response!</span>()<span class="question-mark">?</span>;
-			<span class="kw">let </span>request = <span class="macro">request!</span>()<span class="question-mark">?</span>;
-			<span class="macro">info!</span>(
-				<span class="string">"in rustlet test_rustlet_simple_request test2 method={:?},path={}"</span>,
-				request.method(),
-				request.path()
-			)<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>(request.method(), HttpMethod::GET);
-			response.write(<span class="string">b"def2"</span>)<span class="question-mark">?</span>;
-		})<span class="question-mark">?</span>;
-		<span class="macro">rustlet_mapping!</span>(<span class="string">"/abc1"</span>, <span class="string">"test"</span>)<span class="question-mark">?</span>;
-		<span class="macro">rustlet_mapping!</span>(<span class="string">"/def2"</span>, <span class="string">"test2"</span>)<span class="question-mark">?</span>;
-		<span class="macro">rustlet_start!</span>()<span class="question-mark">?</span>;
-		sleep(Duration::from_millis(<span class="number">1_000</span>));
-
-		<span class="macro">info!</span>(<span class="string">"connection to port {}"</span>, port)<span class="question-mark">?</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>client = TcpStream::connect(addr)<span class="question-mark">?</span>;
-
-		client.write(<span class="string">b"GET /abc1?a=1 HTTP/1.1\r\nHost: localhost\r\n\r\n"</span>)<span class="question-mark">?</span>;
-		sleep(Duration::from_millis(<span class="number">1_000</span>));
-		client.write(<span class="string">b"GET /def2?a=1 HTTP/1.1\r\nHost: localhost\r\n\r\n"</span>)<span class="question-mark">?</span>;
-		sleep(Duration::from_millis(<span class="number">1_000</span>));
-
-		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">100</span>];
-		<span class="kw">let </span>len = client.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(len, <span class="number">8</span>);
-		<span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len], <span class="string">b"abc1def2"</span>);
-
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
-		<span class="prelude-val">Ok</span>(())
-	}
-
-	<span class="attr">#[test]
-	</span><span class="kw">fn </span>test_rustlet_simple_request() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">info!</span>(<span class="string">"2tid={:?}"</span>, current().id())<span class="question-mark">?</span>;
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
-		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
-		<span class="kw">let </span>test_dir = <span class="string">".test_rustlet_simple_request.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
-		<span class="kw">let </span>rc = RustletConfig {
-			http_config: HttpConfig {
-				instances: <span class="macro">vec!</span>[HttpInstance {
-					port,
-					instance_type: HttpInstanceType::Plain(PlainConfig {
-						http_dir_map: HashMap::from([(<span class="string">"*"</span>.to_string(), test_dir.to_string())]),
-					}),
-					..Default::default()
-				}],
-				..Default::default()
-			},
-			..Default::default()
-		};
-		<span class="macro">rustlet_init!</span>(rc)<span class="question-mark">?</span>;
-		<span class="macro">rustlet!</span>(<span class="string">"test"</span>, {
-			<span class="kw">let </span><span class="kw-2">mut </span>response = <span class="macro">response!</span>()<span class="question-mark">?</span>;
-			<span class="kw">let </span>request = <span class="macro">request!</span>()<span class="question-mark">?</span>;
-			<span class="macro">info!</span>(
-				<span class="string">"in rustlet test_rustlet_simple_request test method={:?},path={}"</span>,
-				request.method(),
-				request.path()
-			)<span class="question-mark">?</span>;
-			response.write(<span class="string">b"abc"</span>)<span class="question-mark">?</span>;
-		})<span class="question-mark">?</span>;
-		<span class="macro">rustlet!</span>(<span class="string">"test2"</span>, {
-			<span class="kw">let </span><span class="kw-2">mut </span>response = <span class="macro">response!</span>()<span class="question-mark">?</span>;
-			<span class="kw">let </span>request = <span class="macro">request!</span>()<span class="question-mark">?</span>;
-			<span class="macro">info!</span>(
-				<span class="string">"in rustlet test_rustlet_simple_request test2 method={:?},path={}"</span>,
-				request.method(),
-				request.path()
-			)<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>(request.method(), HttpMethod::GET);
-			response.write(<span class="string">b"def"</span>)<span class="question-mark">?</span>;
-			response.close()<span class="question-mark">?</span>;
-		})<span class="question-mark">?</span>;
-		<span class="macro">rustlet_mapping!</span>(<span class="string">"/abc"</span>, <span class="string">"test"</span>)<span class="question-mark">?</span>;
-		<span class="macro">rustlet_mapping!</span>(<span class="string">"/def"</span>, <span class="string">"test2"</span>)<span class="question-mark">?</span>;
-		<span class="macro">rustlet_start!</span>()<span class="question-mark">?</span>;
-
-		<span class="macro">info!</span>(<span class="string">"connection to port {}"</span>, port)<span class="question-mark">?</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>client = TcpStream::connect(addr)<span class="question-mark">?</span>;
-
-		client.write(<span class="string">b"GET /abc?a=1 HTTP/1.1\r\nHost: localhost\r\n\r\n"</span>)<span class="question-mark">?</span>;
-		client.write(<span class="string">b"GET /def?a=1 HTTP/1.1\r\nHost: localhost\r\n\r\n"</span>)<span class="question-mark">?</span>;
-
-		<span class="kw">let </span><span class="kw-2">mut </span>len_sum = <span class="number">0</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">100</span>];
-
-		<span class="kw">loop </span>{
-			<span class="kw">let </span>len = client.read(<span class="kw-2">&amp;mut </span>buf[len_sum..])<span class="question-mark">?</span>;
-			<span class="kw">if </span>len == <span class="number">0 </span>{
-				<span class="kw">break</span>;
-			}
-			len_sum += len;
-		}
-		<span class="macro">assert_eq!</span>(len_sum, <span class="number">6</span>);
-		<span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len_sum], <span class="string">b"abcdef"</span>);
-
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
-
-		<span class="prelude-val">Ok</span>(())
-	}
 }
 </code></pre></div></section></main></body></html>
