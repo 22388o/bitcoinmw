@@ -21,10 +21,16 @@ use bmw_log::*;
 use bmw_util::*;
 use clap::{load_yaml, App, ArgMatches};
 use std::collections::HashSet;
+use std::io::{Read, Write};
+use std::net::TcpStream;
 use std::sync::mpsc::sync_channel;
-use std::time::Instant;
+use std::thread::sleep;
+use std::time::{Duration, Instant};
 
 info!();
+
+const CONTENT_LENGTH_BYTES: &[u8] = b"Content-Length: ";
+const TRANSFER_ENCODING_CHUNKED: &[u8] = b"Transfer-Encoding: chunked\r\n";
 
 // include build information
 pub mod built_info {
@@ -108,6 +114,7 @@ fn execute_thread(i: usize, config: &HttpHitConfig) -> Result<(), Error> {
 	let mut host = "".to_string();
 	let mut port = 80;
 	let mut tls = false;
+	let mut path = "/".to_string();
 	for url in &config.urls {
 		let url_info = bmw_deps::url::Url::parse(url)?;
 		host = match url_info.host() {
@@ -121,72 +128,148 @@ fn execute_thread(i: usize, config: &HttpHitConfig) -> Result<(), Error> {
 		};
 		port = url_info.port().unwrap_or(80);
 		tls = url_info.scheme().to_string() == "https";
+		path = url_info.path().to_string();
 
 		url_hash.insert((tls, host.clone(), port));
 	}
-	let mut connection = if url_hash.len() == 1 {
-		// we have a single connection to make. Reuse for all requests
-		let connection = http_connection!(Host(&host), Port(port), Tls(tls))?;
-		Some(connection)
-	} else {
-		// different connections, so do not reuse connection.
-		None
-	};
 
-	let mut requests = vec![];
-	for url in &config.urls {
-		for _ in 0..config.connections {
-			let request = match connection {
-				Some(ref _c) => {
-					let path = url_path(&url)?;
-					http_client_request!(Uri(&path))?
-				}
-				None => http_client_request!(Url(&url))?,
-			};
-			requests.push(request);
-		}
+	if url_hash.len() != 1 {
+		return Err(err!(
+			ErrKind::Http,
+			"Httphit does not support multiple host/port/schemes at this time"
+		));
 	}
+
+	let mut buf = [0u8; 100_000];
+
+	let addr = format!("{}:{}", host, port);
+	let mut stream = TcpStream::connect(addr)?;
+	let req_str = format!("GET {} HTTP/1.1\r\nHost: {}\r\n\r\n", path, host);
 
 	for _ in 0..config.count {
-		let count = lock_box!(0)?;
-		let (tx, rx) = sync_channel(1);
-		let mut count = count.clone();
-		let tx = tx.clone();
-		match connection {
-			Some(ref mut connection) => {
-				http_client_send!(requests.clone(), connection, {
-					let mut count = count.wlock()?;
-					let guard = count.guard();
-					**guard += 1;
-					if (**guard) == len {
-						tx.send(())?;
-					}
-					Ok(())
-				})?;
-			}
-			None => {
-				http_client_send!(requests.clone(), {
-					let mut count = count.wlock()?;
-					let guard = count.guard();
-					**guard += 1;
-					if (**guard) == len {
-						tx.send(())?;
-					}
-					Ok(())
-				})?;
-			}
-		}
-		rx.recv()?;
-	}
+		stream.write(req_str.as_bytes())?;
 
-	match connection {
-		Some(mut connection) => {
-			http_connection_close!(connection)?;
+		let mut len_sum = 0;
+		let mut close = false;
+
+		loop {
+			// append data to our buffer
+			let len = stream.read(&mut buf[len_sum..])?;
+			debug!("len={}", len)?;
+
+			if len <= 0 {
+				close = true;
+				break;
+			}
+
+			len_sum += len;
+
+			debug!(
+				"read data loop = '{}'",
+				std::str::from_utf8(&buf[0..len_sum]).unwrap_or("utf8err")
+			)?;
+
+			if find_page(&buf[0..len_sum])? {
+				break;
+			}
 		}
-		None => {}
+
+		debug!("page complete")?;
 	}
 
 	Ok(())
+}
+
+fn find_page(buf: &[u8]) -> Result<bool, Error> {
+	let len = buf.len();
+	let mut headers_complete = false;
+	let mut headers_completion_point = 0;
+	let mut content_len = 0usize;
+	let mut is_chunked = false;
+	for i in 4..len {
+		if &buf[i - 4..i] == b"\r\n\r\n" {
+			debug!("headers complete at {}", i)?;
+			headers_completion_point = i;
+			headers_complete = true;
+			break;
+		}
+		let clen = CONTENT_LENGTH_BYTES.len();
+		if i >= clen && &buf[i - clen..i] == CONTENT_LENGTH_BYTES {
+			debug!("found contentlen at {}", i)?;
+			content_len = read_len_to_nl(&buf[i..])?.0;
+		}
+		let clen = TRANSFER_ENCODING_CHUNKED.len();
+		if i >= clen && &buf[i - clen..i] == TRANSFER_ENCODING_CHUNKED {
+			is_chunked = true;
+			debug!("found chunks at {}", i)?;
+		}
+	}
+
+	let target_end = headers_completion_point + content_len;
+	debug!(
+		"headers_complete={},len={},is_chunked={},content_len={},headers_completion_point={},target_end={}",
+		headers_complete, len, is_chunked, content_len, headers_completion_point, target_end
+	)?;
+
+	if headers_complete && !is_chunked && target_end >= len {
+		Ok(true)
+	} else if !is_chunked {
+		Ok(false)
+	} else if !headers_complete {
+		Ok(false)
+	} else {
+		let mut itt = headers_completion_point;
+		loop {
+			if itt > buf.len() {
+				return Ok(false);
+			}
+			let s = skip_chunk(&buf[itt..])?;
+			if s == usize::MAX {
+				debug!("page not ready")?;
+				return Ok(false);
+			} else if s == 0 {
+				debug!("page ready")?;
+				return Ok(true);
+			}
+
+			itt += s;
+		}
+	}
+}
+
+fn skip_chunk(buf: &[u8]) -> Result<usize, Error> {
+	match read_len_to_nl(buf) {
+		Ok((len, offset)) => {
+			if len == 0 {
+				Ok(0)
+			} else {
+				Ok(len + offset)
+			}
+		}
+		Err(_) => Ok(usize::MAX),
+	}
+}
+
+fn read_len_to_nl(buf: &[u8]) -> Result<(usize, usize), Error> {
+	let len = buf.len();
+	let mut end = usize::MAX;
+	for i in 0..len {
+		if buf[i] == b'\r' || buf[i] == b'\n' {
+			end = i;
+			break;
+		}
+	}
+
+	if end <= len {
+		let rlen =
+			usize::from_str_radix(std::str::from_utf8(&buf[0..end]).unwrap_or("utf8err"), 16)?;
+		Ok((rlen, end + 4))
+	} else {
+		Err(err!(
+			ErrKind::Http,
+			"could not read a length from specified location. Invalid http response"
+		))
+	}
 }
 
 fn run_client(config: &HttpHitConfig) -> Result<(), Error> {
@@ -200,7 +283,6 @@ fn run_client(config: &HttpHitConfig) -> Result<(), Error> {
 	for i in 0..config.threads {
 		let config = config.clone();
 		completions.push(execute!(pool, {
-			http_client_init!(Threads(config.threads))?;
 			for _ in 0..config.iterations {
 				match execute_thread(i, &config) {
 					Ok(_) => {}
