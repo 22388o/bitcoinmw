@@ -215,7 +215,6 @@ macro_rules! rustlet {
 							{
 								$code
 							}
-							Ok(())
 						},
 					),
 				)?),

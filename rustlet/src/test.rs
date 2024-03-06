@@ -59,6 +59,7 @@ mod test {
 				request.path()
 			)?;
 			response.write(b"abc")?;
+			Ok(())
 		})?;
 		rustlet!("test2", {
 			let mut response = response!()?;
@@ -71,6 +72,7 @@ mod test {
 			assert_eq!(request.method(), HttpMethod::GET);
 			response.set_connection_close()?;
 			response.write(b"defg")?;
+			Ok(())
 		})?;
 		rustlet_mapping!("/abc", "test")?;
 		rustlet_mapping!("/def", "test2")?;
