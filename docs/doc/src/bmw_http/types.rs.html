@@ -568,6 +568,18 @@
 <a href="#567" id="567">567</a>
 <a href="#568" id="568">568</a>
 <a href="#569" id="569">569</a>
+<a href="#570" id="570">570</a>
+<a href="#571" id="571">571</a>
+<a href="#572" id="572">572</a>
+<a href="#573" id="573">573</a>
+<a href="#574" id="574">574</a>
+<a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
+<a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -925,6 +937,8 @@
 <span class="doccomment">/// Configuration options used throughout this crate via macro.
 </span><span class="attr">#[derive(Clone, Debug)]
 </span><span class="kw">pub enum </span>ConfigOption&lt;<span class="lifetime">'a</span>&gt; {
+	<span class="doccomment">/// An HttpInstance. Used in [`bmw_rustlet::rustlet_init`].
+	</span>Instance(HttpInstance),
 	<span class="doccomment">/// Number of threads. Used in [`crate::http_client_init`].
 	</span>Threads(usize),
 	<span class="doccomment">/// The maximum handles per thread. Used to configure the http client in
@@ -990,6 +1004,10 @@
 	</span>Version(HttpVersion),
 	<span class="doccomment">/// Full chain cert file to trust for an [`crate::http_client_request`].
 	</span>FullChainCertFile(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str),
+	<span class="doccomment">/// Private key file. Used in [`bmw_rustlet::rustlet_init`].
+	</span>PrivKeyFile(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str),
+	<span class="doccomment">/// Specify tls configuration files. Used in [`bmw_rustlet::rustlet_init`].
+	</span>TlsServerConfig(TlsConfigFiles),
 	<span class="doccomment">/// Content to be sent in a [`crate::http_client_request`].
 	</span>ContentData(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>[u8]),
 	<span class="doccomment">/// The contents of the specified path will be sent to the server as the content for this
@@ -997,6 +1015,12 @@
 	</span>ContentFile(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str),
 	<span class="doccomment">/// For [`crate::http_connection`]'s, whether or not to keep the connection alive.
 	</span>KeepAlive(bool),
+}
+
+<span class="attr">#[derive(Debug, Clone)]
+</span><span class="kw">pub struct </span>TlsConfigFiles {
+	<span class="kw">pub </span>cert_file: String,
+	<span class="kw">pub </span>privkey_file: String,
 }
 
 <span class="comment">// Crate local types

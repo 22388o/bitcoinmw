@@ -1358,9 +1358,9 @@
 					<span class="kw">if </span>timeout_millis &gt; <span class="number">0 </span>{
 						std::thread::spawn(<span class="kw">move </span>|| {
 							<span class="kw">let </span>tx = tx_clone.clone();
-							std::thread::sleep(Duration::from_millis(timeout_millis));
-							<span class="kw">match </span>tx.send(<span class="prelude-val">Err</span>(<span class="macro">err!</span>(
-								ErrKind::IO,
+							std::thread::sleep(std::time::Duration::from_millis(timeout_millis));
+							<span class="kw">match </span>tx.send(<span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(
+								bmw_err::ErrKind::IO,
 								<span class="macro">format!</span>(<span class="string">"timeout error: {} milliseconds expired"</span>, timeout_millis)
 							))) {
 								<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
