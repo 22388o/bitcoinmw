@@ -113,6 +113,7 @@
 <a href="#112" id="112">112</a>
 <a href="#113" id="113">113</a>
 <a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -155,7 +156,7 @@
 	<span class="kw">fn </span>method(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; HttpMethod;
 	<span class="kw">fn </span>version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>HttpVersion, Error&gt;;
 	<span class="kw">fn </span>path(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>String;
-	<span class="kw">fn </span>query(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;String, Error&gt;;
+	<span class="kw">fn </span>query(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>String;
 	<span class="kw">fn </span>cookie(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;String, Error&gt;;
 	<span class="kw">fn </span>headers(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt;;
 	<span class="kw">fn </span>header_name(<span class="kw-2">&amp;</span><span class="self">self</span>, n: usize) -&gt; <span class="prelude-ty">Result</span>&lt;String, Error&gt;;
@@ -209,6 +210,7 @@
 </span><span class="attr">#[derive(Clone)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>RustletRequestImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) path: String,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) query: String,
 }
 
 <span class="attr">#[derive(Clone)]

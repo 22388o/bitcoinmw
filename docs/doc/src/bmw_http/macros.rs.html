@@ -1338,7 +1338,7 @@
 				<span class="prelude-val">Some</span>(http_client) =&gt; {
 					<span class="kw">let </span>(tx, rx) = std::sync::mpsc::sync_channel(<span class="number">1</span>);
 					<span class="kw">let </span>tx_clone = tx.clone();
-					<span class="kw">let </span>handler = Box::pin(
+					<span class="kw">let </span>handler = <span class="kw-2">&amp;</span>Box::pin(
 						<span class="kw">move </span>|_request: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
 						      response: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;| {
 							<span class="kw">let </span>res: <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;, bmw_err::Error&gt; =
@@ -1373,7 +1373,7 @@
 						});
 					}
 
-					<span class="kw">match </span>http_client.send(<span class="macro-nonterminal">$request</span>, handler.clone()) {
+					<span class="kw">match </span>http_client.send(<span class="kw-2">&amp;</span><span class="macro-nonterminal">$request</span>, handler.clone()) {
 						<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="kw">match </span>rx.recv() {
 							<span class="prelude-val">Ok</span>(response) =&gt; <span class="kw">match </span>response {
 								<span class="prelude-val">Ok</span>(response) =&gt; <span class="prelude-val">Ok</span>(response),
@@ -1435,7 +1435,7 @@
                                                                                 <span class="string">"cannot set timeout for a request that is not synchronous"</span>)
                                                                             );
                                                                 }
-								<span class="bool-val">false </span>=&gt; <span class="kw">match </span>http_client.send(request, handler.clone()) {
+								<span class="bool-val">false </span>=&gt; <span class="kw">match </span>http_client.send(<span class="kw-2">&amp;</span>request, handler.clone()) {
 									<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
 									<span class="prelude-val">Err</span>(e) =&gt; {
 										err_vec.push(e);
@@ -1494,7 +1494,7 @@
                                                 </span>)
                                         );
                                 }
-                                <span class="bool-val">false </span>=&gt; <span class="kw">match </span><span class="macro-nonterminal">$connection</span>.send(request, handler.clone()) {
+                                <span class="bool-val">false </span>=&gt; <span class="kw">match </span><span class="macro-nonterminal">$connection</span>.send(<span class="kw-2">&amp;</span>request, handler.clone()) {
 				        <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
 				        <span class="prelude-val">Err</span>(e) =&gt; {
 					        err_vec.push(e);

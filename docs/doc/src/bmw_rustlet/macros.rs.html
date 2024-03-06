@@ -300,6 +300,10 @@
 <a href="#299" id="299">299</a>
 <a href="#300" id="300">300</a>
 <a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -406,9 +410,13 @@
                 http_dir_map.insert(<span class="string">"*"</span>.to_string(), base_dir.to_string());
                 <span class="kw">let </span>instance_type = <span class="kw">match </span>tls_config_files {
                         <span class="prelude-val">Some</span>(tls_config_files) =&gt;
-                                HttpInstanceType::Tls(TlsConfig { http_dir_map, cert_file: tls_config_files.cert_file, privkey_file: tls_config_files.privkey_file }),
+                                bmw_http::HttpInstanceType::Tls(bmw_http::TlsConfig {
+                                        http_dir_map,
+                                        cert_file: tls_config_files.cert_file,
+                                        privkey_file: tls_config_files.privkey_file
+                                }),
                         <span class="prelude-val">None </span>=&gt;
-                                HttpInstanceType::Plain(PlainConfig { http_dir_map }),
+                                bmw_http::HttpInstanceType::Plain(bmw_http::PlainConfig { http_dir_map }),
                 };
                 instance.instance_type = instance_type;
 
@@ -424,7 +432,7 @@
 	( $( <span class="macro-nonterminal">$config</span>:expr ),* ) =&gt; {{
                 <span class="kw">let </span><span class="kw-2">mut </span>error = <span class="prelude-val">None</span>;
                 <span class="kw">let </span><span class="kw-2">mut </span>config = bmw_rustlet::RustletConfig {
-                        http_config: HttpConfig {
+                        http_config: bmw_http::HttpConfig {
                                 evh_config: bmw_evh::EventHandlerConfig::default(),
                                 instances: <span class="macro">vec!</span>[],
                                 ..Default::default()

@@ -866,7 +866,7 @@
 <span class="kw">pub trait </span>HttpClient: DynClone + Any {
 	<span class="kw">fn </span>send(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
-		req: Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
+		req: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
 		handler: HttpHandler,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 
@@ -884,7 +884,7 @@
 <span class="kw">pub trait </span>HttpConnection {
 	<span class="kw">fn </span>send(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
-		req: Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
+		req: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
 		handler: HttpHandler,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 
