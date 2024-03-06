@@ -164,7 +164,7 @@ impl Default for HttpRequestConfig {
 }
 
 fn do_send(
-	request: Box<dyn HttpRequest + Send + Sync>,
+	request: &Box<dyn HttpRequest + Send + Sync>,
 	wh: &mut WriteHandle,
 	uri: String,
 	addr: String,
@@ -274,7 +274,7 @@ impl HttpClientContainer {
 impl HttpClient for HttpClientImpl {
 	fn send(
 		&mut self,
-		request: Box<dyn HttpRequest + Send + Sync>,
+		request: &Box<dyn HttpRequest + Send + Sync>,
 		handler: HttpHandler,
 	) -> Result<(), Error> {
 		match request.request_url() {
@@ -930,7 +930,7 @@ impl HttpClientImpl {
 impl HttpConnection for HttpConnectionImpl {
 	fn send(
 		&mut self,
-		request: Box<dyn HttpRequest + Send + Sync>,
+		request: &Box<dyn HttpRequest + Send + Sync>,
 		handler: HttpHandler,
 	) -> Result<(), Error> {
 		let keep_alive = request.keep_alive();
@@ -1239,7 +1239,7 @@ mod test {
 			http_client_request1.guid()
 		)?;
 
-		http_client.send(http_client_request1, handler1)?;
+		http_client.send(&http_client_request1, handler1)?;
 
 		let mut found404 = lock_box!(false)?;
 		let found404_clone = found404.clone();
@@ -1261,7 +1261,7 @@ mod test {
 			..Default::default()
 		})?) as Box<dyn HttpRequest + Send + Sync>;
 
-		http_client.send(http_client_request2, handler2)?;
+		http_client.send(&http_client_request2, handler2)?;
 
 		sleep(Duration::from_millis(1_000));
 
@@ -1407,9 +1407,7 @@ mod test {
 			"about to send request with guid = {}",
 			http_client_request1.guid()
 		)?;
-		http_connection.send(http_client_request1, handler1)?;
-
-		//sleep(Duration::from_millis(1_000));
+		http_connection.send(&http_client_request1, handler1)?;
 
 		let http_client_request2 = Box::new(HttpRequestImpl::new(&HttpRequestConfig {
 			request_uri: Some("/foo2.html".to_string()),
@@ -1476,13 +1474,8 @@ mod test {
 			},
 		);
 
-		http_connection.send(http_client_request2, handler2.clone())?;
-
-		//sleep(Duration::from_millis(1_000));
-
-		http_connection.send(http_client_request3, handler2)?;
-
-		//sleep(Duration::from_millis(1_000));
+		http_connection.send(&http_client_request2, handler2.clone())?;
+		http_connection.send(&http_client_request3, handler2)?;
 
 		let mut count = 0;
 		loop {

@@ -404,7 +404,7 @@ macro_rules! http_client_send {
 				Some(http_client) => {
 					let (tx, rx) = std::sync::mpsc::sync_channel(1);
 					let tx_clone = tx.clone();
-					let handler = Box::pin(
+					let handler = &Box::pin(
 						move |_request: &Box<dyn HttpRequest + Send + Sync>,
 						      response: &Box<dyn HttpResponse + Send + Sync>| {
 							let res: Result<Box<dyn HttpResponse + Send + Sync>, bmw_err::Error> =
@@ -439,7 +439,7 @@ macro_rules! http_client_send {
 						});
 					}
 
-					match http_client.send($request, handler.clone()) {
+					match http_client.send(&$request, handler.clone()) {
 						Ok(_) => match rx.recv() {
 							Ok(response) => match response {
 								Ok(response) => Ok(response),
@@ -501,7 +501,7 @@ macro_rules! http_client_send {
                                                                                 "cannot set timeout for a request that is not synchronous")
                                                                             );
                                                                 }
-								false => match http_client.send(request, handler.clone()) {
+								false => match http_client.send(&request, handler.clone()) {
 									Ok(_) => {}
 									Err(e) => {
 										err_vec.push(e);
@@ -560,7 +560,7 @@ macro_rules! http_client_send {
                                                 )
                                         );
                                 }
-                                false => match $connection.send(request, handler.clone()) {
+                                false => match $connection.send(&request, handler.clone()) {
 				        Ok(_) => {}
 				        Err(e) => {
 					        err_vec.push(e);

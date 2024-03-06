@@ -284,7 +284,7 @@ downcast!(dyn HttpResponse);
 pub trait HttpClient: DynClone + Any {
 	fn send(
 		&mut self,
-		req: Box<dyn HttpRequest + Send + Sync>,
+		req: &Box<dyn HttpRequest + Send + Sync>,
 		handler: HttpHandler,
 	) -> Result<(), Error>;
 
@@ -302,7 +302,7 @@ downcast!(dyn HttpClient);
 pub trait HttpConnection {
 	fn send(
 		&mut self,
-		req: Box<dyn HttpRequest + Send + Sync>,
+		req: &Box<dyn HttpRequest + Send + Sync>,
 		handler: HttpHandler,
 	) -> Result<(), Error>;
 
