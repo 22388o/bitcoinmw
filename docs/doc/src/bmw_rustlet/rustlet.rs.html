@@ -372,6 +372,25 @@
 <a href="#371" id="371">371</a>
 <a href="#372" id="372">372</a>
 <a href="#373" id="373">373</a>
+<a href="#374" id="374">374</a>
+<a href="#375" id="375">375</a>
+<a href="#376" id="376">376</a>
+<a href="#377" id="377">377</a>
+<a href="#378" id="378">378</a>
+<a href="#379" id="379">379</a>
+<a href="#380" id="380">380</a>
+<a href="#381" id="381">381</a>
+<a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
+<a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
+<a href="#390" id="390">390</a>
+<a href="#391" id="391">391</a>
+<a href="#392" id="392">392</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -608,22 +627,14 @@
 
 <span class="kw">impl </span>RustletResponse <span class="kw">for </span>RustletResponseImpl {
 	<span class="kw">fn </span>write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>bytes_len = bytes.len();
-		<span class="macro">debug!</span>(<span class="string">"write byteslen={}"</span>, bytes_len)<span class="question-mark">?</span>;
-		<span class="kw">if </span>!<span class="macro">rlock!</span>(<span class="self">self</span>.state).sent_headers {
-			<span class="self">self</span>.send_headers()<span class="question-mark">?</span>;
-		}
-		<span class="kw">let </span>msglen = <span class="macro">format!</span>(<span class="string">"{:X}\r\n"</span>, bytes_len);
-		<span class="self">self</span>.wh.write(<span class="kw-2">&amp;</span>msglen.as_bytes()[..])<span class="question-mark">?</span>;
-		<span class="self">self</span>.wh.write(bytes)<span class="question-mark">?</span>;
-		<span class="self">self</span>.wh.write(HTTP_NEW_LINE_BYTES)<span class="question-mark">?</span>;
+		<span class="self">self</span>.send_headers(bytes)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 	<span class="kw">fn </span>print(<span class="kw-2">&amp;mut </span><span class="self">self</span>, text: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.write(text.as_bytes())
 	}
 	<span class="kw">fn </span>flush(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">todo!</span>()
+		<span class="self">self</span>.do_flush(<span class="bool-val">false</span>)
 	}
 	<span class="kw">fn </span>async_context(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>AsyncContext&gt;, Error&gt; {
 		<span class="macro">todo!</span>()
@@ -673,57 +684,84 @@
 				completed: <span class="bool-val">false</span>,
 				close: <span class="bool-val">false</span>,
 				content_type: <span class="string">"text/html"</span>.to_string(),
+				buffer: <span class="macro">vec!</span>[],
 			})<span class="question-mark">?</span>,
 		})
 	}
 
-	<span class="kw">fn </span>send_headers(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">fn </span>send_headers(<span class="kw-2">&amp;mut </span><span class="self">self</span>, bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="macro">debug!</span>(<span class="string">"send headers"</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>state = <span class="self">self</span>.state.wlock()<span class="question-mark">?</span>;
+		<span class="kw">let </span>guard = state.guard();
 
-		<span class="kw">let </span>(close_text, content_type_text) = {
-			<span class="kw">let </span>state = <span class="self">self</span>.state.rlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = state.guard();
+		<span class="kw">let </span>(close_text, content_type_text, sent_headers) = {
 			<span class="kw">let </span>close_text = <span class="kw">if </span>(<span class="kw-2">**</span>guard).close {
 				<span class="string">"Connection: close\r\n"
 			</span>} <span class="kw">else </span>{
 				<span class="string">"Connecction: keep-alive\r\n"
 			</span>};
 			<span class="kw">let </span>content_type_text = <span class="macro">format!</span>(<span class="string">"Content-Type: {}\r\n"</span>, (<span class="kw-2">**</span>guard).content_type);
+			<span class="kw">let </span>sent_headers = (<span class="kw-2">**</span>guard).sent_headers;
 
-			(close_text, content_type_text)
+			(close_text, content_type_text, sent_headers)
 		};
 
-		<span class="self">self</span>.wh.write(
-			<span class="macro">format!</span>(
-				<span class="string">"HTTP/1.1 200 OK\r\n{}{}Transfer-Encoding: chunked\r\n\r\n"</span>,
-				close_text, content_type_text,
-			)
-			.as_bytes(),
-		)<span class="question-mark">?</span>;
-		<span class="macro">wlock!</span>(<span class="self">self</span>.state).sent_headers = <span class="bool-val">true</span>;
+		<span class="kw">if </span>!sent_headers {
+			(<span class="kw-2">**</span>guard).buffer.extend(
+				<span class="macro">format!</span>(
+					<span class="string">"HTTP/1.1 200 OK\r\n{}{}Transfer-Encoding: chunked\r\n\r\n"</span>,
+					close_text, content_type_text,
+				)
+				.as_bytes(),
+			);
+		}
+
+		<span class="kw">let </span>bytes_len = bytes.len();
+		<span class="kw">if </span>bytes_len &gt; <span class="number">0 </span>{
+			<span class="kw">let </span>msglen = <span class="macro">format!</span>(<span class="string">"{:X}\r\n"</span>, bytes_len);
+			(<span class="kw-2">**</span>guard).buffer.extend(<span class="kw-2">&amp;</span>msglen.as_bytes()[..]);
+			(<span class="kw-2">**</span>guard).buffer.extend(bytes);
+			(<span class="kw-2">**</span>guard).buffer.extend(HTTP_NEW_LINE_BYTES);
+		}
+
+		(<span class="kw-2">**</span>guard).sent_headers = <span class="bool-val">true</span>;
+
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="kw">fn </span>complete_impl(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>(completed, sent_headers, close) = {
-			<span class="kw">let </span>state = <span class="self">self</span>.state.rlock()<span class="question-mark">?</span>;
+		<span class="self">self</span>.send_headers(<span class="kw-2">&amp;</span>[])<span class="question-mark">?</span>;
+		<span class="kw">let </span>close = {
+			<span class="kw">let </span><span class="kw-2">mut </span>state = <span class="self">self</span>.state.wlock()<span class="question-mark">?</span>;
 			<span class="kw">let </span>guard = state.guard();
-			((<span class="kw-2">**</span>guard).completed, (<span class="kw-2">**</span>guard).sent_headers, (<span class="kw-2">**</span>guard).close)
-		};
-		<span class="macro">debug!</span>(<span class="string">"in complete"</span>)<span class="question-mark">?</span>;
-		<span class="kw">if </span>!completed {
-			<span class="macro">debug!</span>(<span class="string">"has not completed yet"</span>)<span class="question-mark">?</span>;
-			<span class="kw">if </span>!sent_headers {
-				<span class="self">self</span>.send_headers()<span class="question-mark">?</span>;
+			<span class="kw">let </span>completed = (<span class="kw-2">**</span>guard).completed;
+			<span class="kw">let </span>close = (<span class="kw-2">**</span>guard).close;
+			<span class="macro">debug!</span>(<span class="string">"in complete"</span>)<span class="question-mark">?</span>;
+			<span class="kw">if </span>!completed {
+				<span class="macro">debug!</span>(<span class="string">"has not completed yet"</span>)<span class="question-mark">?</span>;
+				(<span class="kw-2">**</span>guard).buffer.extend(HTTP_COMPLETE_BYTES);
+				(<span class="kw-2">**</span>guard).completed = <span class="bool-val">true</span>;
 			}
-			<span class="macro">debug!</span>(<span class="string">"write complete bytes"</span>)<span class="question-mark">?</span>;
-			<span class="self">self</span>.wh.write(HTTP_COMPLETE_BYTES)<span class="question-mark">?</span>;
-			<span class="macro">wlock!</span>(<span class="self">self</span>.state).completed = <span class="bool-val">true</span>;
-		}
+			close
+		};
+
+		<span class="self">self</span>.do_flush(<span class="bool-val">true</span>)<span class="question-mark">?</span>;
 
 		<span class="kw">if </span>close {
 			<span class="self">self</span>.wh.close()<span class="question-mark">?</span>;
 		}
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="kw">fn </span>do_flush(<span class="kw-2">&amp;mut </span><span class="self">self</span>, shrink: bool) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>state = <span class="self">self</span>.state.wlock()<span class="question-mark">?</span>;
+		<span class="kw">let </span>guard = state.guard();
+		<span class="self">self</span>.wh.write(<span class="kw-2">&amp;</span>(<span class="kw-2">**</span>guard).buffer)<span class="question-mark">?</span>;
+		(<span class="kw-2">**</span>guard).buffer.clear();
+		<span class="kw">if </span>shrink {
+			(<span class="kw-2">**</span>guard).buffer.shrink_to_fit();
+		}
+
 		<span class="prelude-val">Ok</span>(())
 	}
 }
