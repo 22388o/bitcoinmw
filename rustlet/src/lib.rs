@@ -27,6 +27,8 @@ pub use crate::types::{
 	WebSocketRequest,
 };
 
+// re-export a few things for convenience
+
 #[doc(hidden)]
 pub use bmw_err;
 #[doc(hidden)]
