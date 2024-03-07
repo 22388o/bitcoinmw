@@ -3479,6 +3479,7 @@
 <a href="#3478" id="3478">3478</a>
 <a href="#3479" id="3479">3479</a>
 <a href="#3480" id="3480">3480</a>
+<a href="#3481" id="3481">3481</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -3557,6 +3558,7 @@
 	<span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter) -&gt; fmt::Result {
 		<span class="kw">match </span><span class="self">self </span>{
 			HttpVersion::HTTP11 =&gt; <span class="macro">write!</span>(f, <span class="string">"HTTP/1.1"</span>),
+			HttpVersion::OTHER =&gt; <span class="macro">write!</span>(f, <span class="string">"HTTP/2.0"</span>),
 			<span class="kw">_ </span>=&gt; <span class="macro">write!</span>(f, <span class="string">"HTTP/1.0"</span>),
 		}
 	}

@@ -391,6 +391,8 @@
 <a href="#390" id="390">390</a>
 <a href="#391" id="391">391</a>
 <a href="#392" id="392">392</a>
+<a href="#393" id="393">393</a>
+<a href="#394" id="394">394</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -584,11 +586,11 @@
 }
 
 <span class="kw">impl </span>RustletRequest <span class="kw">for </span>RustletRequestImpl {
-	<span class="kw">fn </span>method(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; HttpMethod {
-		HttpMethod::GET
+	<span class="kw">fn </span>method(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>HttpMethod {
+		<span class="kw-2">&amp;</span><span class="self">self</span>.method
 	}
-	<span class="kw">fn </span>version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>HttpVersion, Error&gt; {
-		<span class="macro">todo!</span>()
+	<span class="kw">fn </span>version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>HttpVersion {
+		<span class="kw-2">&amp;</span><span class="self">self</span>.version
 	}
 	<span class="kw">fn </span>path(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>String {
 		<span class="kw-2">&amp;</span><span class="self">self</span>.path
@@ -621,6 +623,8 @@
 		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
 			path: headers.path()<span class="question-mark">?</span>,
 			query: headers.query()<span class="question-mark">?</span>,
+			method: headers.method()<span class="question-mark">?</span>.clone(),
+			version: headers.version()<span class="question-mark">?</span>.clone(),
 		})
 	}
 }
