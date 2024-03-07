@@ -111,7 +111,7 @@ fn _url_path(url: &String) -> Result<String, Error> {
 }
 
 fn execute_thread(i: usize, config: &HttpHitConfig) -> Result<(), Error> {
-	info!("Executing thread {}", i)?;
+	debug!("Executing thread {}", i)?;
 
 	let mut url_hash = HashSet::new();
 	let mut host = "".to_string();
