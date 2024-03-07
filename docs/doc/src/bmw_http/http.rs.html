@@ -3480,6 +3480,20 @@
 <a href="#3479" id="3479">3479</a>
 <a href="#3480" id="3480">3480</a>
 <a href="#3481" id="3481">3481</a>
+<a href="#3482" id="3482">3482</a>
+<a href="#3483" id="3483">3483</a>
+<a href="#3484" id="3484">3484</a>
+<a href="#3485" id="3485">3485</a>
+<a href="#3486" id="3486">3486</a>
+<a href="#3487" id="3487">3487</a>
+<a href="#3488" id="3488">3488</a>
+<a href="#3489" id="3489">3489</a>
+<a href="#3490" id="3490">3490</a>
+<a href="#3491" id="3491">3491</a>
+<a href="#3492" id="3492">3492</a>
+<a href="#3493" id="3493">3493</a>
+<a href="#3494" id="3494">3494</a>
+<a href="#3495" id="3495">3495</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -4203,6 +4217,20 @@
 
 	<span class="kw">pub fn </span>version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>HttpVersion, Error&gt; {
 		<span class="prelude-val">Ok</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.version)
+	}
+
+	<span class="kw">pub fn </span>headers(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;(String, String)&gt;, Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>v = <span class="macro">vec!</span>[];
+
+		<span class="kw">let </span>count = <span class="self">self</span>.header_count;
+
+		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..count {
+			<span class="kw">let </span>name = <span class="self">self</span>.header_name(i)<span class="question-mark">?</span>;
+			<span class="kw">let </span>value = <span class="self">self</span>.header_value(i)<span class="question-mark">?</span>;
+			v.push((name, value));
+		}
+
+		<span class="prelude-val">Ok</span>(v)
 	}
 
 	<span class="kw">pub fn </span>header_count(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
