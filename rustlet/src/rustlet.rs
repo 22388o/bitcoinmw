@@ -246,6 +246,7 @@ impl RustletResponse for RustletResponseImpl {
 		self.do_flush(false)
 	}
 	fn async_context(&mut self) -> Result<Box<dyn AsyncContext>, Error> {
+		debug!("aysync_context")?;
 		todo!()
 	}
 	fn add_header(&mut self, _name: &str, _value: &str) -> Result<(), Error> {
