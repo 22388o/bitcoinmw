@@ -201,20 +201,8 @@ impl RustletRequest for RustletRequestImpl {
 	fn query(&self) -> &String {
 		&self.query
 	}
-	fn cookie(&self, _name: &str) -> Result<String, Error> {
-		todo!()
-	}
-	fn headers(&self) -> Result<usize, Error> {
-		todo!()
-	}
-	fn header_name(&self, _n: usize) -> Result<String, Error> {
-		todo!()
-	}
-	fn header_value(&self, _n: usize) -> Result<String, Error> {
-		todo!()
-	}
-	fn header(&self, _name: &str) -> Result<String, Error> {
-		todo!()
+	fn headers(&self) -> &Vec<(String, String)> {
+		&self.headers
 	}
 	fn content(&self) -> Result<HttpContentReader, Error> {
 		todo!()
@@ -228,6 +216,7 @@ impl RustletRequestImpl {
 			query: headers.query()?,
 			method: headers.method()?.clone(),
 			version: headers.version()?.clone(),
+			headers: headers.headers()?,
 		})
 	}
 }
@@ -260,9 +249,6 @@ impl RustletResponse for RustletResponseImpl {
 			wlock!(self.state).content_type = value.to_string();
 			Ok(())
 		}
-	}
-	fn set_cookie(&mut self, _name: &str, _value: &str) -> Result<(), Error> {
-		todo!()
 	}
 	fn set_connection_close(&mut self) -> Result<(), Error> {
 		if rlock!(self.state).sent_headers {

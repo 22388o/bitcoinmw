@@ -41,11 +41,7 @@ pub trait RustletRequest: DynClone {
 	fn version(&self) -> &HttpVersion;
 	fn path(&self) -> &String;
 	fn query(&self) -> &String;
-	fn cookie(&self, name: &str) -> Result<String, Error>;
-	fn headers(&self) -> Result<usize, Error>;
-	fn header_name(&self, n: usize) -> Result<String, Error>;
-	fn header_value(&self, n: usize) -> Result<String, Error>;
-	fn header(&self, name: &str) -> Result<String, Error>;
+	fn headers(&self) -> &Vec<(String, String)>;
 	fn content(&self) -> Result<HttpContentReader, Error>;
 }
 
@@ -58,7 +54,6 @@ pub trait RustletResponse: DynClone {
 	fn async_context(&mut self) -> Result<Box<dyn AsyncContext>, Error>;
 	fn add_header(&mut self, name: &str, value: &str) -> Result<(), Error>;
 	fn set_content_type(&mut self, value: &str) -> Result<(), Error>;
-	fn set_cookie(&mut self, name: &str, value: &str) -> Result<(), Error>;
 	fn redirect(&mut self, url: &str) -> Result<(), Error>;
 	fn set_connection_close(&mut self) -> Result<(), Error>;
 	fn complete(&mut self) -> Result<(), Error>;
@@ -97,6 +92,7 @@ pub(crate) struct RustletRequestImpl {
 	pub(crate) query: String,
 	pub(crate) method: HttpMethod,
 	pub(crate) version: HttpVersion,
+	pub(crate) headers: Vec<(String, String)>,
 }
 
 #[derive(Clone)]

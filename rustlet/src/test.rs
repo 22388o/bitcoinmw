@@ -127,11 +127,29 @@ mod test {
 			Ok(())
 		})?;
 
+		rustlet!("headers", {
+			let request = request!()?;
+			let mut response = response!()?;
+
+			for (k, v) in request.headers() {
+				if k == "test" {
+					assert_eq!(v, "value1");
+					response.write(b"1")?;
+				} else if k == "test2" {
+					assert_eq!(v, "value2");
+					response.write(b"2")?;
+				}
+			}
+
+			Ok(())
+		})?;
+
 		rustlet_mapping!("/abc", "test")?;
 		rustlet_mapping!("/def", "test2")?;
 		rustlet_mapping!("/method", "method")?;
 		rustlet_mapping!("/version", "version")?;
 		rustlet_mapping!("/redirect", "redirect")?;
+		rustlet_mapping!("/headers", "headers")?;
 
 		rustlet_start!()?;
 
@@ -333,6 +351,50 @@ mod test {
 		}
 
 		assert!(found_redir);
+
+		tear_down_server(test_dir)?;
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_rustlet_headers() -> Result<(), Error> {
+		let test_dir = ".test_rustlet_headers.bmw";
+		let port = build_server(test_dir, true)?;
+
+		http_client_init!(BaseDir(test_dir))?;
+
+		let url = &format!("https://localhost:{}/headers", port);
+		let request = http_client_request!(
+			Header(("test", "value1")),
+			Url(url),
+			TimeoutMillis(30_000),
+			FullChainCertFile("./resources/cert.pem")
+		)?;
+		let response = http_client_send!(request)?;
+		info!("resp={}", response)?;
+		assert_eq!(response.code().unwrap(), 200);
+
+		let mut buf = vec![];
+		assert_eq!(response.content_reader()?.read_to_end(&mut buf)?, 1);
+		assert_eq!(buf, b"1");
+
+		let url = &format!("https://localhost:{}/headers", port);
+		let request = http_client_request!(
+			Header(("test2", "value2")),
+			Url(url),
+			TimeoutMillis(30_000),
+			FullChainCertFile("./resources/cert.pem")
+		)?;
+		let response = http_client_send!(request)?;
+		info!("resp={}", response)?;
+		assert_eq!(response.code().unwrap(), 200);
+
+		let mut buf = vec![];
+		assert_eq!(response.content_reader()?.read_to_end(&mut buf)?, 1);
+		assert_eq!(buf, b"2");
+
+		tear_down_server(test_dir)?;
 
 		Ok(())
 	}

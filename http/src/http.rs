@@ -723,6 +723,20 @@ impl HttpHeaders<'_> {
 		Ok(&self.version)
 	}
 
+	pub fn headers(&self) -> Result<Vec<(String, String)>, Error> {
+		let mut v = vec![];
+
+		let count = self.header_count;
+
+		for i in 0..count {
+			let name = self.header_name(i)?;
+			let value = self.header_value(i)?;
+			v.push((name, value));
+		}
+
+		Ok(v)
+	}
+
 	pub fn header_count(&self) -> Result<usize, Error> {
 		Ok(self.header_count)
 	}
