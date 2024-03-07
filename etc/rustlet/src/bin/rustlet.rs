@@ -99,8 +99,11 @@ fn load_rustlets(_config: &RustletContainerConfig) -> Result<(), Error> {
 		Ok(())
 	})?;
 
+	rustlet!("simple", Ok(()))?;
+
 	rustlet_mapping!("/abc", "test")?;
 	rustlet_mapping!("/echo", "echo")?;
+	rustlet_mapping!("/simple", "simple")?;
 
 	Ok(())
 }
