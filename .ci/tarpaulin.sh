@@ -51,6 +51,8 @@ if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" 
           git push https://$1@github.com/cgilliard/bitcoinmw.git
         else
 	  echo "There are changes after this checkout. Not committing!"
+	  git diff origin/main
+	  git diff origin/main | wc -l
 	fi
       fi
     else

@@ -20,13 +20,20 @@ mod rustlet;
 mod test;
 mod types;
 
+#[doc(hidden)]
 pub use crate::rustlet::{RUSTLET_CONTAINER, RUSTLET_CONTEXT};
 pub use crate::types::{
 	AsyncContext, RustletConfig, RustletContainer, RustletRequest, RustletResponse,
 	WebSocketRequest,
 };
+
+#[doc(hidden)]
 pub use bmw_err;
+#[doc(hidden)]
 pub use bmw_err::Error;
+#[doc(hidden)]
 pub use bmw_http::ConfigOption::*;
+#[doc(hidden)]
 pub use bmw_log;
+#[doc(hidden)]
 pub use bmw_log::*;

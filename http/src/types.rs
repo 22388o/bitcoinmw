@@ -355,7 +355,7 @@ pub struct HttpClientContainer {}
 /// Configuration options used throughout this crate via macro.
 #[derive(Clone, Debug)]
 pub enum ConfigOption<'a> {
-	/// An HttpInstance. Used in [`bmw_rustlet::rustlet_init`].
+	/// An HttpInstance.
 	Instance(HttpInstance),
 	/// Number of threads. Used in [`crate::http_client_init`].
 	Threads(usize),
@@ -422,9 +422,9 @@ pub enum ConfigOption<'a> {
 	Version(HttpVersion),
 	/// Full chain cert file to trust for an [`crate::http_client_request`].
 	FullChainCertFile(&'a str),
-	/// Private key file. Used in [`bmw_rustlet::rustlet_init`].
+	/// Private key file.
 	PrivKeyFile(&'a str),
-	/// Specify tls configuration files. Used in [`bmw_rustlet::rustlet_init`].
+	/// Specify tls configuration files.
 	TlsServerConfig(TlsConfigFiles),
 	/// Content to be sent in a [`crate::http_client_request`].
 	ContentData(&'a [u8]),
