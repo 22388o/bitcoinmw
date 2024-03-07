@@ -34,10 +34,14 @@ if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" 
 
     cp -pr target/doc/* docs/doc/
 
-    git pull
-    git add --all
-    git commit -m "Pipelines-Bot: Updated repo (via pushdocs script) Source Version is $2";
-    git push https://$1@github.com/cgilliard/bitcoinmw.git
+    if [`git diff origin/main | wc -l | xargs` = "0" ]; then
+      git pull
+      git add --all
+      git commit -m "Pipelines-Bot: Updated repo (via pushdocs script) Source Version is $2";
+      git push https://$1@github.com/cgilliard/bitcoinmw.git
+    else
+      echo "There are changes after this checkout. Not committing!"
+    fi
   fi
 else
   echo "This is a Pipelines-Bot checkin. Will not execute."
