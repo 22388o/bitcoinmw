@@ -235,21 +235,15 @@ impl RustletRequestImpl {
 impl RustletResponse for RustletResponseImpl {
 	fn write(&mut self, bytes: &[u8]) -> Result<(), Error> {
 		let bytes_len = bytes.len();
-		debug!("write byteslen={}", bytes_len)?;
-		if !rlock!(self.state).sent_headers {
-			self.send_headers()?;
-		}
-		let msglen = format!("{:X}\r\n", bytes_len);
-		self.wh.write(&msglen.as_bytes()[..])?;
-		self.wh.write(bytes)?;
-		self.wh.write(HTTP_NEW_LINE_BYTES)?;
+		info!("write byteslen={}", bytes_len)?;
+		self.send_headers(bytes)?;
 		Ok(())
 	}
 	fn print(&mut self, text: &str) -> Result<(), Error> {
 		self.write(text.as_bytes())
 	}
 	fn flush(&mut self) -> Result<(), Error> {
-		todo!()
+		self.do_flush(false)
 	}
 	fn async_context(&mut self) -> Result<Box<dyn AsyncContext>, Error> {
 		todo!()
@@ -299,57 +293,84 @@ impl RustletResponseImpl {
 				completed: false,
 				close: false,
 				content_type: "text/html".to_string(),
+				buffer: vec![],
 			})?,
 		})
 	}
 
-	fn send_headers(&mut self) -> Result<(), Error> {
+	fn send_headers(&mut self, bytes: &[u8]) -> Result<(), Error> {
 		debug!("send headers")?;
+		let mut state = self.state.wlock()?;
+		let guard = state.guard();
 
-		let (close_text, content_type_text) = {
-			let state = self.state.rlock()?;
-			let guard = state.guard();
+		let (close_text, content_type_text, sent_headers) = {
 			let close_text = if (**guard).close {
 				"Connection: close\r\n"
 			} else {
 				"Connecction: keep-alive\r\n"
 			};
 			let content_type_text = format!("Content-Type: {}\r\n", (**guard).content_type);
+			let sent_headers = (**guard).sent_headers;
 
-			(close_text, content_type_text)
+			(close_text, content_type_text, sent_headers)
 		};
 
-		self.wh.write(
-			format!(
-				"HTTP/1.1 200 OK\r\n{}{}Transfer-Encoding: chunked\r\n\r\n",
-				close_text, content_type_text,
-			)
-			.as_bytes(),
-		)?;
-		wlock!(self.state).sent_headers = true;
+		if !sent_headers {
+			(**guard).buffer.extend(
+				format!(
+					"HTTP/1.1 200 OK\r\n{}{}Transfer-Encoding: chunked\r\n\r\n",
+					close_text, content_type_text,
+				)
+				.as_bytes(),
+			);
+		}
+
+		let bytes_len = bytes.len();
+		if bytes_len > 0 {
+			let msglen = format!("{:X}\r\n", bytes_len);
+			(**guard).buffer.extend(&msglen.as_bytes()[..]);
+			(**guard).buffer.extend(bytes);
+			(**guard).buffer.extend(HTTP_NEW_LINE_BYTES);
+		}
+
+		(**guard).sent_headers = true;
+
 		Ok(())
 	}
 
 	fn complete_impl(&mut self) -> Result<(), Error> {
-		let (completed, sent_headers, close) = {
-			let state = self.state.rlock()?;
+		self.send_headers(&[])?;
+		let close = {
+			let mut state = self.state.wlock()?;
 			let guard = state.guard();
-			((**guard).completed, (**guard).sent_headers, (**guard).close)
-		};
-		debug!("in complete")?;
-		if !completed {
-			debug!("has not completed yet")?;
-			if !sent_headers {
-				self.send_headers()?;
+			let completed = (**guard).completed;
+			let close = (**guard).close;
+			debug!("in complete")?;
+			if !completed {
+				debug!("has not completed yet")?;
+				(**guard).buffer.extend(HTTP_COMPLETE_BYTES);
+				(**guard).completed = true;
 			}
-			debug!("write complete bytes")?;
-			self.wh.write(HTTP_COMPLETE_BYTES)?;
-			wlock!(self.state).completed = true;
-		}
+			close
+		};
+
+		self.do_flush(true)?;
 
 		if close {
 			self.wh.close()?;
 		}
+		Ok(())
+	}
+
+	fn do_flush(&mut self, shrink: bool) -> Result<(), Error> {
+		let mut state = self.state.wlock()?;
+		let guard = state.guard();
+		self.wh.write(&(**guard).buffer)?;
+		(**guard).buffer.clear();
+		if shrink {
+			(**guard).buffer.shrink_to_fit();
+		}
+
 		Ok(())
 	}
 }

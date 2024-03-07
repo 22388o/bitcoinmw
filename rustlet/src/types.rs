@@ -108,6 +108,7 @@ pub(crate) struct RustletResponseState {
 	pub(crate) completed: bool,
 	pub(crate) close: bool,
 	pub(crate) content_type: String,
+	pub(crate) buffer: Vec<u8>,
 }
 pub(crate) struct AsyncContextImpl {}
 
