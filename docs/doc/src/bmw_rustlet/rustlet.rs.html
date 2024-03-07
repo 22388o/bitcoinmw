@@ -393,6 +393,7 @@
 <a href="#392" id="392">392</a>
 <a href="#393" id="393">393</a>
 <a href="#394" id="394">394</a>
+<a href="#395" id="395">395</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -641,6 +642,7 @@
 		<span class="self">self</span>.do_flush(<span class="bool-val">false</span>)
 	}
 	<span class="kw">fn </span>async_context(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>AsyncContext&gt;, Error&gt; {
+		<span class="macro">debug!</span>(<span class="string">"aysync_context"</span>)<span class="question-mark">?</span>;
 		<span class="macro">todo!</span>()
 	}
 	<span class="kw">fn </span>add_header(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _name: <span class="kw-2">&amp;</span>str, _value: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
