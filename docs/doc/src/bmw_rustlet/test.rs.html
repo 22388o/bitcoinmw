@@ -298,6 +298,46 @@
 <a href="#297" id="297">297</a>
 <a href="#298" id="298">298</a>
 <a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
+<a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
+<a href="#328" id="328">328</a>
+<a href="#329" id="329">329</a>
+<a href="#330" id="330">330</a>
+<a href="#331" id="331">331</a>
+<a href="#332" id="332">332</a>
+<a href="#333" id="333">333</a>
+<a href="#334" id="334">334</a>
+<a href="#335" id="335">335</a>
+<a href="#336" id="336">336</a>
+<a href="#337" id="337">337</a>
+<a href="#338" id="338">338</a>
+<a href="#339" id="339">339</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -419,10 +459,19 @@
 			<span class="prelude-val">Ok</span>(())
 		})<span class="question-mark">?</span>;
 
+		<span class="macro">rustlet!</span>(<span class="string">"redirect"</span>, {
+			<span class="macro">info!</span>(<span class="string">"in redirect rustlet"</span>)<span class="question-mark">?</span>;
+			<span class="kw">let </span><span class="kw-2">mut </span>response = <span class="macro">response!</span>()<span class="question-mark">?</span>;
+			response.redirect(<span class="string">"http://www.example.com"</span>)<span class="question-mark">?</span>;
+
+			<span class="prelude-val">Ok</span>(())
+		})<span class="question-mark">?</span>;
+
 		<span class="macro">rustlet_mapping!</span>(<span class="string">"/abc"</span>, <span class="string">"test"</span>)<span class="question-mark">?</span>;
 		<span class="macro">rustlet_mapping!</span>(<span class="string">"/def"</span>, <span class="string">"test2"</span>)<span class="question-mark">?</span>;
 		<span class="macro">rustlet_mapping!</span>(<span class="string">"/method"</span>, <span class="string">"method"</span>)<span class="question-mark">?</span>;
 		<span class="macro">rustlet_mapping!</span>(<span class="string">"/version"</span>, <span class="string">"version"</span>)<span class="question-mark">?</span>;
+		<span class="macro">rustlet_mapping!</span>(<span class="string">"/redirect"</span>, <span class="string">"redirect"</span>)<span class="question-mark">?</span>;
 
 		<span class="macro">rustlet_start!</span>()<span class="question-mark">?</span>;
 
@@ -593,6 +642,37 @@
 		<span class="macro">info!</span>(<span class="string">"resp={}"</span>, response)<span class="question-mark">?</span>;
 
 		tear_down_server(test_dir)<span class="question-mark">?</span>;
+
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="attr">#[test]
+	</span><span class="kw">fn </span>test_rustlet_redirect() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span>test_dir = <span class="string">".test_rustlet_redirect.bmw"</span>;
+		<span class="kw">let </span>port = build_server(test_dir, <span class="bool-val">true</span>)<span class="question-mark">?</span>;
+
+		<span class="macro">http_client_init!</span>(BaseDir(test_dir))<span class="question-mark">?</span>;
+
+		<span class="kw">let </span>url = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"https://localhost:{}/redirect?1"</span>, port);
+		<span class="kw">let </span>request = <span class="macro">http_client_request!</span>(
+			Url(url),
+			TimeoutMillis(<span class="number">30_000</span>),
+			FullChainCertFile(<span class="string">"./resources/cert.pem"</span>)
+		)<span class="question-mark">?</span>;
+		<span class="kw">let </span>response = <span class="macro">http_client_send!</span>(request)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"resp={}"</span>, response)<span class="question-mark">?</span>;
+		<span class="macro">assert_eq!</span>(response.code().unwrap(), <span class="number">302</span>);
+
+		<span class="kw">let </span><span class="kw-2">mut </span>found_redir = <span class="bool-val">false</span>;
+		<span class="kw">for </span>header <span class="kw">in </span>response.headers()<span class="question-mark">? </span>{
+			<span class="kw">let </span>(name, value) = header;
+			<span class="kw">if </span>name == <span class="string">"Location" </span>{
+				<span class="macro">assert_eq!</span>(value, <span class="string">"http://www.example.com"</span>);
+				found_redir = <span class="bool-val">true</span>;
+			}
+		}
+
+		<span class="macro">assert!</span>(found_redir);
 
 		<span class="prelude-val">Ok</span>(())
 	}
