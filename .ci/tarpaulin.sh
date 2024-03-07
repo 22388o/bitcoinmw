@@ -14,7 +14,7 @@ if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" 
       sudo apt-get update -yqq
       sudo apt-get install -yqq --no-install-recommends libncursesw5-dev tor libssl-dev
       cargo install cargo-tarpaulin
-      cargo tarpaulin > /tmp/tarpaulin.out
+      cargo tarpaulin --all > /tmp/tarpaulin.out
       echo "cat /tmp/tarpaulin.out"
       cat /tmp/tarpaulin.out
       cd ~
