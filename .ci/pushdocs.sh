@@ -34,7 +34,8 @@ if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" 
 
     cp -pr target/doc/* docs/doc/
 
-    if [ `git diff origin/main | wc -l | xargs` = "0" ]; then
+    git fetch
+    if [ `git diff --exit-code origin/main..main | wc -l | xargs` = "0" ]; then
       git pull
       git add --all
       git commit -m "Pipelines-Bot: Updated repo (via pushdocs script) Source Version is $2";

@@ -44,7 +44,8 @@ if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" 
         git config --global user.email "pipelinesbot.noreply@example.com"
         git config --global user.name "Pipelines-Bot"
 
-	if [ `git diff origin/main | wc -l | xargs` = "0" ]; then
+        git fetch
+	if [ `git diff --exit-code origin/main..main | wc -l | xargs` = "0" ]; then
           git pull
           git add --all
           git commit -m"Pipelines-Bot: Updated repo (via tarpaulin script) Source Version is $2";
@@ -61,3 +62,4 @@ if [ `git show --summary | grep "^Author: Pipelines-Bot" | wc -l | xargs` = "0" 
   else
     echo "This is a Pipelines-Bot checkin. Will not execute."
   fi
+
