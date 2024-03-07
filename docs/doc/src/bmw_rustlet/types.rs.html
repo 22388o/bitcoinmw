@@ -114,6 +114,7 @@
 <a href="#113" id="113">113</a>
 <a href="#114" id="114">114</a>
 <a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -224,6 +225,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) completed: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) close: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) content_type: String,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) buffer: Vec&lt;u8&gt;,
 }
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>AsyncContextImpl {}
 
