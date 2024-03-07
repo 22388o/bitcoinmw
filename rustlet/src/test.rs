@@ -69,13 +69,60 @@ mod test {
 				request.method(),
 				request.path()
 			)?;
-			assert_eq!(request.method(), HttpMethod::GET);
+			assert_eq!(request.method(), &HttpMethod::GET);
 			response.set_connection_close()?;
 			response.write(b"defg")?;
 			Ok(())
 		})?;
+		rustlet!("method", {
+			let mut response = response!()?;
+			let request = request!()?;
+			info!(
+				"in rustlet method. method={:?},path={}",
+				request.method(),
+				request.path()
+			)?;
+
+			if request.query() == &"post" {
+				assert_eq!(request.method(), &HttpMethod::POST);
+			} else if request.query() == &"trace" {
+				assert_eq!(request.method(), &HttpMethod::TRACE);
+			} else {
+				assert_eq!(request.method(), &HttpMethod::GET);
+			}
+			response.set_connection_close()?;
+			response.write(b"defg")?;
+			Ok(())
+		})?;
+		rustlet!("version", {
+			let mut response = response!()?;
+			let request = request!()?;
+			info!(
+				"in rustlet version. method={:?},path={},version={}",
+				request.method(),
+				request.path(),
+				request.version(),
+			)?;
+
+			if request.query() == &"11" {
+				assert_eq!(request.version(), &HttpVersion::HTTP11);
+			} else if request.query() == &"10" {
+				assert_eq!(request.version(), &HttpVersion::HTTP10);
+			} else if request.query() == &"20" {
+				assert_eq!(request.version(), &HttpVersion::OTHER);
+			} else {
+				assert_eq!(request.version(), &HttpVersion::HTTP11);
+			}
+
+			response.set_connection_close()?;
+			response.write(b"defg")?;
+			Ok(())
+		})?;
+
 		rustlet_mapping!("/abc", "test")?;
 		rustlet_mapping!("/def", "test2")?;
+		rustlet_mapping!("/method", "method")?;
+		rustlet_mapping!("/version", "version")?;
 
 		rustlet_start!()?;
 
@@ -141,6 +188,109 @@ mod test {
 		let mut buf = vec![];
 		assert_eq!(response.content_reader()?.read_to_end(&mut buf)?, 3);
 		assert_eq!(buf, b"abc");
+
+		tear_down_server(test_dir)?;
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_rustlet_method() -> Result<(), Error> {
+		let test_dir = ".test_rustlet_method.bmw";
+		let port = build_server(test_dir, true)?;
+
+		http_client_init!(BaseDir(test_dir))?;
+
+		let url = &format!("https://localhost:{}/method?post", port);
+		let request = http_client_request!(
+			Method(HttpMethod::POST),
+			Url(url),
+			TimeoutMillis(30_000),
+			FullChainCertFile("./resources/cert.pem")
+		)?;
+		let response = http_client_send!(request)?;
+		info!("resp={}", response)?;
+
+		let url = &format!("https://localhost:{}/method", port);
+		let request = http_client_request!(
+			Method(HttpMethod::GET),
+			Url(url),
+			TimeoutMillis(30_000),
+			FullChainCertFile("./resources/cert.pem")
+		)?;
+		let response = http_client_send!(request)?;
+		info!("resp={}", response)?;
+
+		let url = &format!("https://localhost:{}/method?trace", port);
+		let request = http_client_request!(
+			Method(HttpMethod::TRACE),
+			Url(url),
+			TimeoutMillis(30_000),
+			FullChainCertFile("./resources/cert.pem")
+		)?;
+		let response = http_client_send!(request)?;
+		info!("resp={}", response)?;
+
+		tear_down_server(test_dir)?;
+		Ok(())
+	}
+
+	#[test]
+	fn test_rustlet_version() -> Result<(), Error> {
+		let test_dir = ".test_rustlet_version.bmw";
+		let port = build_server(test_dir, true)?;
+
+		http_client_init!(BaseDir(test_dir))?;
+
+		let url = &format!("https://localhost:{}/version?11", port);
+		let request = http_client_request!(
+			Version(HttpVersion::HTTP11),
+			Url(url),
+			TimeoutMillis(30_000),
+			FullChainCertFile("./resources/cert.pem")
+		)?;
+		let response = http_client_send!(request)?;
+		info!("resp={}", response)?;
+
+		let url = &format!("https://localhost:{}/version", port);
+		let request = http_client_request!(
+			Version(HttpVersion::HTTP11),
+			Url(url),
+			TimeoutMillis(30_000),
+			FullChainCertFile("./resources/cert.pem")
+		)?;
+		let response = http_client_send!(request)?;
+		info!("resp={}", response)?;
+
+		let url = &format!("https://localhost:{}/version?10", port);
+		let request = http_client_request!(
+			Version(HttpVersion::HTTP10),
+			Url(url),
+			TimeoutMillis(30_000),
+			FullChainCertFile("./resources/cert.pem")
+		)?;
+		let response = http_client_send!(request)?;
+		info!("resp={}", response)?;
+
+		let url = &format!("https://localhost:{}/version?10", port);
+		let request = http_client_request!(
+			Version(HttpVersion::UNKNOWN),
+			Url(url),
+			TimeoutMillis(30_000),
+			FullChainCertFile("./resources/cert.pem")
+		)?;
+		let response = http_client_send!(request)?;
+		info!("resp={}", response)?;
+
+		let url = &format!("https://localhost:{}/version?20", port);
+		let request = http_client_request!(
+			Version(HttpVersion::OTHER),
+			Url(url),
+			TimeoutMillis(30_000),
+			FullChainCertFile("./resources/cert.pem")
+		)?;
+		let response = http_client_send!(request)?;
+		info!("resp={}", response)?;
 
 		tear_down_server(test_dir)?;
 

@@ -191,11 +191,11 @@ impl RustletContainer {
 }
 
 impl RustletRequest for RustletRequestImpl {
-	fn method(&self) -> HttpMethod {
-		HttpMethod::GET
+	fn method(&self) -> &HttpMethod {
+		&self.method
 	}
-	fn version(&self) -> Result<&HttpVersion, Error> {
-		todo!()
+	fn version(&self) -> &HttpVersion {
+		&self.version
 	}
 	fn path(&self) -> &String {
 		&self.path
@@ -228,6 +228,8 @@ impl RustletRequestImpl {
 		Ok(Self {
 			path: headers.path()?,
 			query: headers.query()?,
+			method: headers.method()?.clone(),
+			version: headers.version()?.clone(),
 		})
 	}
 }

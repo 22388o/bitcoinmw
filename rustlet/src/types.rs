@@ -37,8 +37,8 @@ pub type Rustlet = Pin<
 /// The main trait used for processing requests in a rustlet. It has all the information needed in
 /// it. It can be accessed by the [`crate::request`] macro.
 pub trait RustletRequest: DynClone {
-	fn method(&self) -> HttpMethod;
-	fn version(&self) -> Result<&HttpVersion, Error>;
+	fn method(&self) -> &HttpMethod;
+	fn version(&self) -> &HttpVersion;
 	fn path(&self) -> &String;
 	fn query(&self) -> &String;
 	fn cookie(&self, name: &str) -> Result<String, Error>;
@@ -95,6 +95,8 @@ pub struct RustletContainer {
 pub(crate) struct RustletRequestImpl {
 	pub(crate) path: String,
 	pub(crate) query: String,
+	pub(crate) method: HttpMethod,
+	pub(crate) version: HttpVersion,
 }
 
 #[derive(Clone)]

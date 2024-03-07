@@ -76,6 +76,7 @@ impl fmt::Display for &HttpVersion {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		match self {
 			HttpVersion::HTTP11 => write!(f, "HTTP/1.1"),
+			HttpVersion::OTHER => write!(f, "HTTP/2.0"),
 			_ => write!(f, "HTTP/1.0"),
 		}
 	}
