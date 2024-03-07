@@ -138,28 +138,26 @@ impl RustletContainer {
 						Some(rustlet) => {
 							debug!("found a rustlet")?;
 							match (rustlet)(rustlet_request, rustlet_response) {
-								Ok(_) => {}
-								Err(e) => {
-									return Err(err!(
-										ErrKind::Rustlet,
-										format!("rustlet callback generated error: {}", e)
-									));
-								}
+								Ok(_) => rustlet_response.complete(),
+								Err(e) => Err(err!(
+									ErrKind::Rustlet,
+									format!("rustlet callback generated error: {}", e)
+								)),
 							}
 						}
-						None => todo!(),
+						None => Err(err!(
+							ErrKind::Rustlet,
+							format!("rustlet '{}' not found", name)
+						)),
 					},
-					None => todo!(),
+					None => Err(err!(
+						ErrKind::Rustlet,
+						format!("rustlet mapping '{}' not found", path)
+					)),
 				}
-
-				rustlet_response.complete()?;
 			}
-			None => {
-				return Err(err!(ErrKind::Rustlet, "rustlet container not initialized"));
-			}
-		};
-
-		Ok(())
+			None => Err(err!(ErrKind::Rustlet, "rustlet container not initialized")),
+		}
 	}
 
 	pub fn add_rustlet(&mut self, name: &str, rustlet: Rustlet) -> Result<(), Error> {
@@ -243,7 +241,7 @@ impl RustletResponse for RustletResponseImpl {
 		self.write(text.as_bytes())
 	}
 	fn flush(&mut self) -> Result<(), Error> {
-		self.do_flush(false)
+		self.flush_impl(false)
 	}
 	fn async_context(&mut self) -> Result<Box<dyn AsyncContext>, Error> {
 		debug!("aysync_context")?;
@@ -384,7 +382,7 @@ impl RustletResponseImpl {
 			close
 		};
 
-		self.do_flush(true)?;
+		self.flush_impl(true)?;
 
 		if close {
 			self.wh.close()?;
@@ -392,7 +390,7 @@ impl RustletResponseImpl {
 		Ok(())
 	}
 
-	fn do_flush(&mut self, shrink: bool) -> Result<(), Error> {
+	fn flush_impl(&mut self, shrink: bool) -> Result<(), Error> {
 		let mut state = self.state.wlock()?;
 		let guard = state.guard();
 		self.wh.write(&(**guard).buffer)?;
