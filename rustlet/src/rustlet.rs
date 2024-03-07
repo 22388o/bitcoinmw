@@ -234,7 +234,6 @@ impl RustletRequestImpl {
 
 impl RustletResponse for RustletResponseImpl {
 	fn write(&mut self, bytes: &[u8]) -> Result<(), Error> {
-		let bytes_len = bytes.len();
 		self.send_headers(bytes)?;
 		Ok(())
 	}
