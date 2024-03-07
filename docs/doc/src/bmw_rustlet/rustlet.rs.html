@@ -421,8 +421,6 @@
 <a href="#420" id="420">420</a>
 <a href="#421" id="421">421</a>
 <a href="#422" id="422">422</a>
-<a href="#423" id="423">423</a>
-<a href="#424" id="424">424</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -563,28 +561,26 @@
 						<span class="prelude-val">Some</span>(rustlet) =&gt; {
 							<span class="macro">debug!</span>(<span class="string">"found a rustlet"</span>)<span class="question-mark">?</span>;
 							<span class="kw">match </span>(rustlet)(rustlet_request, rustlet_response) {
-								<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
-								<span class="prelude-val">Err</span>(e) =&gt; {
-									<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
-										ErrKind::Rustlet,
-										<span class="macro">format!</span>(<span class="string">"rustlet callback generated error: {}"</span>, e)
-									));
-								}
+								<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; rustlet_response.complete(),
+								<span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(
+									ErrKind::Rustlet,
+									<span class="macro">format!</span>(<span class="string">"rustlet callback generated error: {}"</span>, e)
+								)),
 							}
 						}
-						<span class="prelude-val">None </span>=&gt; <span class="macro">todo!</span>(),
+						<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(
+							ErrKind::Rustlet,
+							<span class="macro">format!</span>(<span class="string">"rustlet '{}' not found"</span>, name)
+						)),
 					},
-					<span class="prelude-val">None </span>=&gt; <span class="macro">todo!</span>(),
+					<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(
+						ErrKind::Rustlet,
+						<span class="macro">format!</span>(<span class="string">"rustlet mapping '{}' not found"</span>, path)
+					)),
 				}
-
-				rustlet_response.complete()<span class="question-mark">?</span>;
 			}
-			<span class="prelude-val">None </span>=&gt; {
-				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Rustlet, <span class="string">"rustlet container not initialized"</span>));
-			}
-		};
-
-		<span class="prelude-val">Ok</span>(())
+			<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Rustlet, <span class="string">"rustlet container not initialized"</span>)),
+		}
 	}
 
 	<span class="kw">pub fn </span>add_rustlet(<span class="kw-2">&amp;mut </span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str, rustlet: Rustlet) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
@@ -668,7 +664,7 @@
 		<span class="self">self</span>.write(text.as_bytes())
 	}
 	<span class="kw">fn </span>flush(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="self">self</span>.do_flush(<span class="bool-val">false</span>)
+		<span class="self">self</span>.flush_impl(<span class="bool-val">false</span>)
 	}
 	<span class="kw">fn </span>async_context(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>AsyncContext&gt;, Error&gt; {
 		<span class="macro">debug!</span>(<span class="string">"aysync_context"</span>)<span class="question-mark">?</span>;
@@ -809,7 +805,7 @@
 			close
 		};
 
-		<span class="self">self</span>.do_flush(<span class="bool-val">true</span>)<span class="question-mark">?</span>;
+		<span class="self">self</span>.flush_impl(<span class="bool-val">true</span>)<span class="question-mark">?</span>;
 
 		<span class="kw">if </span>close {
 			<span class="self">self</span>.wh.close()<span class="question-mark">?</span>;
@@ -817,7 +813,7 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">fn </span>do_flush(<span class="kw-2">&amp;mut </span><span class="self">self</span>, shrink: bool) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">fn </span>flush_impl(<span class="kw-2">&amp;mut </span><span class="self">self</span>, shrink: bool) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>state = <span class="self">self</span>.state.wlock()<span class="question-mark">?</span>;
 		<span class="kw">let </span>guard = state.guard();
 		<span class="self">self</span>.wh.write(<span class="kw-2">&amp;</span>(<span class="kw-2">**</span>guard).buffer)<span class="question-mark">?</span>;
