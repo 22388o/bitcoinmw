@@ -16,16 +16,13 @@
 // limitations under the License.
 
 use bmw_err::*;
-use bmw_http::*;
 use bmw_log::*;
 use bmw_util::*;
 use clap::{load_yaml, App, ArgMatches};
 use std::collections::HashSet;
 use std::io::{Read, Write};
 use std::net::TcpStream;
-use std::sync::mpsc::sync_channel;
-use std::thread::sleep;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 info!();
 
@@ -44,6 +41,7 @@ struct HttpHitConfig {
 	connections: usize,
 	urls: Vec<String>,
 	count: usize,
+	batch_size: usize,
 }
 
 fn load_config(args: ArgMatches<'_>) -> Result<HttpHitConfig, Error> {
@@ -59,6 +57,11 @@ fn load_config(args: ArgMatches<'_>) -> Result<HttpHitConfig, Error> {
 
 	let connections: usize = match args.is_present("connections") {
 		true => args.value_of("connections").unwrap().parse()?,
+		false => 1,
+	};
+
+	let batch_size: usize = match args.is_present("batch_size") {
+		true => args.value_of("batch_size").unwrap().parse()?,
 		false => 1,
 	};
 
@@ -85,6 +88,7 @@ fn load_config(args: ArgMatches<'_>) -> Result<HttpHitConfig, Error> {
 		connections,
 		urls,
 		count,
+		batch_size,
 	})
 }
 
@@ -97,7 +101,7 @@ fn show_startup_config(config: &HttpHitConfig) -> Result<(), Error> {
 	Ok(())
 }
 
-fn url_path(url: &String) -> Result<String, Error> {
+fn _url_path(url: &String) -> Result<String, Error> {
 	let url = bmw_deps::url::Url::parse(url)?;
 	let path = match url.query() {
 		Some(query) => format!("{}?{}", url.path(), query),
@@ -109,11 +113,10 @@ fn url_path(url: &String) -> Result<String, Error> {
 fn execute_thread(i: usize, config: &HttpHitConfig) -> Result<(), Error> {
 	info!("Executing thread {}", i)?;
 
-	let len = config.connections * config.urls.len();
 	let mut url_hash = HashSet::new();
 	let mut host = "".to_string();
 	let mut port = 80;
-	let mut tls = false;
+	let mut tls;
 	let mut path = "/".to_string();
 	for url in &config.urls {
 		let url_info = bmw_deps::url::Url::parse(url)?;
@@ -144,18 +147,23 @@ fn execute_thread(i: usize, config: &HttpHitConfig) -> Result<(), Error> {
 
 	let addr = format!("{}:{}", host, port);
 	let mut stream = TcpStream::connect(addr)?;
-	let req_str = format!("GET {} HTTP/1.1\r\nHost: {}\r\n\r\n", path, host);
+	let req_str_single = format!("GET {} HTTP/1.1\r\nHost: {}\r\n\r\n", path, host);
+	let mut req_str = "".to_string();
+	for _ in 0..config.batch_size {
+		req_str = format!("{}{}", req_str, req_str_single);
+	}
 
+	let mut close = false;
 	for _ in 0..config.count {
 		stream.write(req_str.as_bytes())?;
 
+		let mut pages_found = 0;
 		let mut len_sum = 0;
-		let mut close = false;
+		let mut offset = 0;
 
 		loop {
 			// append data to our buffer
 			let len = stream.read(&mut buf[len_sum..])?;
-			debug!("len={}", len)?;
 
 			if len <= 0 {
 				close = true;
@@ -163,24 +171,35 @@ fn execute_thread(i: usize, config: &HttpHitConfig) -> Result<(), Error> {
 			}
 
 			len_sum += len;
+			debug!("checking page {} -> {}", offset, len_sum)?;
 
-			debug!(
-				"read data loop = '{}'",
-				std::str::from_utf8(&buf[0..len_sum]).unwrap_or("utf8err")
-			)?;
+			loop {
+				let noffset = find_page(&buf[offset..len_sum])?;
+				offset += noffset;
+				if noffset != 0 {
+					pages_found += 1;
+					if pages_found >= config.batch_size {
+						break;
+					}
+				} else {
+					break;
+				}
+			}
 
-			if find_page(&buf[0..len_sum])? {
+			if pages_found >= config.batch_size {
 				break;
 			}
 		}
 
-		debug!("page complete")?;
+		debug!("pages found = {}, close = {}", pages_found, close)?;
+		assert_eq!(close, false);
+		assert_eq!(pages_found, config.batch_size);
 	}
 
 	Ok(())
 }
 
-fn find_page(buf: &[u8]) -> Result<bool, Error> {
+fn find_page(buf: &[u8]) -> Result<usize, Error> {
 	let len = buf.len();
 	let mut headers_complete = false;
 	let mut headers_completion_point = 0;
@@ -212,24 +231,24 @@ fn find_page(buf: &[u8]) -> Result<bool, Error> {
 	)?;
 
 	if headers_complete && !is_chunked && target_end >= len {
-		Ok(true)
+		Ok(target_end)
 	} else if !is_chunked {
-		Ok(false)
+		Ok(0)
 	} else if !headers_complete {
-		Ok(false)
+		Ok(0)
 	} else {
 		let mut itt = headers_completion_point;
 		loop {
 			if itt > buf.len() {
-				return Ok(false);
+				return Ok(0);
 			}
 			let s = skip_chunk(&buf[itt..])?;
 			if s == usize::MAX {
 				debug!("page not ready")?;
-				return Ok(false);
+				return Ok(0);
 			} else if s == 0 {
 				debug!("page ready")?;
-				return Ok(true);
+				return Ok(itt + 5);
 			}
 
 			itt += s;
@@ -315,8 +334,12 @@ fn main() -> Result<(), Error> {
 	run_client(&config)?;
 
 	let elapsed = start.elapsed().as_millis();
-	let total =
-		config.threads * config.connections * config.urls.len() * config.iterations * config.count;
+	let total = config.threads
+		* config.connections
+		* config.urls.len()
+		* config.iterations
+		* config.count
+		* config.batch_size;
 	let qps = total as f64 * 1000 as f64 / elapsed as f64;
 	info!("elapsed={},requests={},qps={}", elapsed, total, qps)?;
 

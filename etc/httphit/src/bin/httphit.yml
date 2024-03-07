@@ -8,12 +8,12 @@ args:
         short: i
         takes_value: true
         value_name: iterations
-    - connections:
-        help: number of connections per thread
-        long: connections
-        short: c
+    - batch_size:
+        help: The number of requests to send per batch (i.e. per count).
+        long: batch_size
+        short: b
         takes_value: true
-        value_name: connections
+        value_name: batch_size
     - count:
         help: number of times to send the requests per connection
         long: count
