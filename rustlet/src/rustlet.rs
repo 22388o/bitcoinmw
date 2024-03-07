@@ -277,8 +277,16 @@ impl RustletResponse for RustletResponseImpl {
 			Ok(())
 		}
 	}
-	fn redirect(&mut self, _url: &str) -> Result<(), Error> {
-		todo!()
+	fn redirect(&mut self, url: &str) -> Result<(), Error> {
+		if rlock!(self.state).sent_headers {
+			Err(err!(
+				ErrKind::Rustlet,
+				"Cannot call set_connection_close after headers have been sent"
+			))
+		} else {
+			wlock!(self.state).redirect = Some(url.to_string());
+			Ok(())
+		}
 	}
 	fn complete(&mut self) -> Result<(), Error> {
 		self.complete_impl()
@@ -295,12 +303,15 @@ impl RustletResponseImpl {
 				close: false,
 				content_type: "text/html".to_string(),
 				buffer: vec![],
+				redirect: None,
 			})?,
 		})
 	}
 
 	fn send_headers(&mut self, bytes: &[u8]) -> Result<(), Error> {
 		debug!("send headers")?;
+
+		let bytes_len = bytes.len();
 		let mut state = self.state.wlock()?;
 		let guard = state.guard();
 
@@ -317,16 +328,34 @@ impl RustletResponseImpl {
 		};
 
 		if !sent_headers {
-			(**guard).buffer.extend(
-				format!(
-					"HTTP/1.1 200 OK\r\n{}{}Transfer-Encoding: chunked\r\n\r\n",
-					close_text, content_type_text,
-				)
-				.as_bytes(),
-			);
+			match (**guard).redirect.clone() {
+				Some(redirect) => {
+					if bytes_len > 0 {
+						return Err(err!(
+							ErrKind::Rustlet,
+							"cannot redirect a url and also write content"
+						));
+					}
+					(**guard).buffer.extend(
+						format!(
+							"HTTP/1.1 302 Found\r\n{}Location: {}\r\n\r\n",
+							close_text, redirect,
+						)
+						.as_bytes(),
+					);
+				}
+				None => {
+					(**guard).buffer.extend(
+						format!(
+							"HTTP/1.1 200 OK\r\n{}{}Transfer-Encoding: chunked\r\n\r\n",
+							close_text, content_type_text,
+						)
+						.as_bytes(),
+					);
+				}
+			}
 		}
 
-		let bytes_len = bytes.len();
 		if bytes_len > 0 {
 			let msglen = format!("{:X}\r\n", bytes_len);
 			(**guard).buffer.extend(&msglen.as_bytes()[..]);

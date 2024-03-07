@@ -119,10 +119,19 @@ mod test {
 			Ok(())
 		})?;
 
+		rustlet!("redirect", {
+			info!("in redirect rustlet")?;
+			let mut response = response!()?;
+			response.redirect("http://www.example.com")?;
+
+			Ok(())
+		})?;
+
 		rustlet_mapping!("/abc", "test")?;
 		rustlet_mapping!("/def", "test2")?;
 		rustlet_mapping!("/method", "method")?;
 		rustlet_mapping!("/version", "version")?;
+		rustlet_mapping!("/redirect", "redirect")?;
 
 		rustlet_start!()?;
 
@@ -293,6 +302,37 @@ mod test {
 		info!("resp={}", response)?;
 
 		tear_down_server(test_dir)?;
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_rustlet_redirect() -> Result<(), Error> {
+		let test_dir = ".test_rustlet_redirect.bmw";
+		let port = build_server(test_dir, true)?;
+
+		http_client_init!(BaseDir(test_dir))?;
+
+		let url = &format!("https://localhost:{}/redirect?1", port);
+		let request = http_client_request!(
+			Url(url),
+			TimeoutMillis(30_000),
+			FullChainCertFile("./resources/cert.pem")
+		)?;
+		let response = http_client_send!(request)?;
+		info!("resp={}", response)?;
+		assert_eq!(response.code().unwrap(), 302);
+
+		let mut found_redir = false;
+		for header in response.headers()? {
+			let (name, value) = header;
+			if name == "Location" {
+				assert_eq!(value, "http://www.example.com");
+				found_redir = true;
+			}
+		}
+
+		assert!(found_redir);
 
 		Ok(())
 	}

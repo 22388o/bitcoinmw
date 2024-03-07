@@ -101,9 +101,16 @@ fn load_rustlets(_config: &RustletContainerConfig) -> Result<(), Error> {
 
 	rustlet!("simple", Ok(()))?;
 
+	rustlet!("redirect", {
+		let mut response = response!()?;
+		response.redirect("http://www.example.com")?;
+		Ok(())
+	})?;
+
 	rustlet_mapping!("/abc", "test")?;
 	rustlet_mapping!("/echo", "echo")?;
 	rustlet_mapping!("/simple", "simple")?;
+	rustlet_mapping!("/redirect", "redirect")?;
 
 	Ok(())
 }
