@@ -231,8 +231,8 @@ impl RustletResponse for RustletResponseImpl {
 		self.flush_impl(false)
 	}
 	fn set_async(&mut self) -> Result<(), Error> {
-		debug!("aysync_context")?;
-		todo!()
+		wlock!(self.state).is_async = true;
+		Ok(())
 	}
 	fn add_header(&mut self, name: &str, value: &str) -> Result<(), Error> {
 		wlock!(self.state)
@@ -273,6 +273,10 @@ impl RustletResponse for RustletResponseImpl {
 			Ok(())
 		}
 	}
+	fn async_complete(&mut self) -> Result<(), Error> {
+		wlock!(self.state).is_async = false;
+		self.complete_impl()
+	}
 	fn complete(&mut self) -> Result<(), Error> {
 		self.complete_impl()
 	}
@@ -290,6 +294,7 @@ impl RustletResponseImpl {
 				buffer: vec![],
 				redirect: None,
 				additional_headers: vec![],
+				is_async: false,
 			})?,
 		})
 	}
@@ -363,6 +368,10 @@ impl RustletResponseImpl {
 	}
 
 	fn complete_impl(&mut self) -> Result<(), Error> {
+		if rlock!(self.state).is_async {
+			// we'er async we don't complete in the normal way
+			return Ok(());
+		}
 		self.send_headers(&[])?;
 		let close = {
 			let mut state = self.state.wlock()?;

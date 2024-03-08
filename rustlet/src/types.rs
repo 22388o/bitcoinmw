@@ -55,6 +55,8 @@ pub trait RustletResponse: DynClone {
 	fn set_content_type(&mut self, value: &str) -> Result<(), Error>;
 	fn redirect(&mut self, url: &str) -> Result<(), Error>;
 	fn set_connection_close(&mut self) -> Result<(), Error>;
+	fn async_complete(&mut self) -> Result<(), Error>;
+	// TODO: this should be pub(crate) only.
 	fn complete(&mut self) -> Result<(), Error>;
 }
 
@@ -105,6 +107,7 @@ pub(crate) struct RustletResponseState {
 	pub(crate) buffer: Vec<u8>,
 	pub(crate) redirect: Option<String>,
 	pub(crate) additional_headers: Vec<(String, String)>,
+	pub(crate) is_async: bool,
 }
 
 #[derive(Clone)]
