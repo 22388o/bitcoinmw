@@ -519,7 +519,6 @@ mod test {
 
 			assert_eq!(len, 10);
 			assert_eq!(&buf[0..10], b"part1part2");
-
 			wlock!(lock) += 1;
 
 			Ok(())
@@ -528,6 +527,15 @@ mod test {
 		let request = http_client_request!(Uri("/add_headers"))?;
 		info!("sending second request")?;
 		let (tx, rx) = sync_channel(1);
+
+		let tx_clone = tx.clone();
+		std::thread::spawn(move || {
+			sleep(Duration::from_millis(5_000));
+			let _ = tx_clone.send(());
+		});
+
+		let mut lock2 = lock_box!(0)?;
+		let lock2_clone = lock2.clone();
 		http_client_send!([request], connection, {
 			let response = http_client_response!()?;
 			info!("resp={}", response)?;
@@ -544,6 +552,7 @@ mod test {
 			assert!(found);
 
 			info!("second request complete")?;
+			wlock!(lock2) += 1;
 
 			tx.send(())?;
 			Ok(())
@@ -552,6 +561,7 @@ mod test {
 		rx.recv()?;
 
 		assert_eq!(rlock!(lock_clone), 1);
+		assert_eq!(rlock!(lock2_clone), 1);
 		tear_down_server(test_dir)?;
 		Ok(())
 	}
