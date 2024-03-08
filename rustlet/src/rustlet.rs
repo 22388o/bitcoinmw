@@ -237,8 +237,11 @@ impl RustletResponse for RustletResponseImpl {
 		debug!("aysync_context")?;
 		todo!()
 	}
-	fn add_header(&mut self, _name: &str, _value: &str) -> Result<(), Error> {
-		todo!()
+	fn add_header(&mut self, name: &str, value: &str) -> Result<(), Error> {
+		wlock!(self.state)
+			.additional_headers
+			.push((name.to_string(), value.to_string()));
+		Ok(())
 	}
 	fn set_content_type(&mut self, value: &str) -> Result<(), Error> {
 		if rlock!(self.state).sent_headers {
@@ -289,6 +292,7 @@ impl RustletResponseImpl {
 				content_type: "text/html".to_string(),
 				buffer: vec![],
 				redirect: None,
+				additional_headers: vec![],
 			})?,
 		})
 	}
@@ -313,6 +317,11 @@ impl RustletResponseImpl {
 		};
 
 		if !sent_headers {
+			let mut additional_header_str = "".to_string();
+			for (name, value) in &(**guard).additional_headers {
+				additional_header_str = format!("{}{}: {}\r\n", additional_header_str, name, value);
+			}
+
 			match (**guard).redirect.clone() {
 				Some(redirect) => {
 					if bytes_len > 0 {
@@ -323,8 +332,8 @@ impl RustletResponseImpl {
 					}
 					(**guard).buffer.extend(
 						format!(
-							"HTTP/1.1 302 Found\r\n{}Location: {}\r\n\r\n",
-							close_text, redirect,
+							"HTTP/1.1 302 Found{}\r\n{}Location: {}\r\n\r\n",
+							additional_header_str, close_text, redirect,
 						)
 						.as_bytes(),
 					);
@@ -332,13 +341,16 @@ impl RustletResponseImpl {
 				None => {
 					(**guard).buffer.extend(
 						format!(
-							"HTTP/1.1 200 OK\r\n{}{}Transfer-Encoding: chunked\r\n\r\n",
-							close_text, content_type_text,
+							"HTTP/1.1 200 OK\r\n{}{}{}Transfer-Encoding: chunked\r\n\r\n",
+							additional_header_str, close_text, content_type_text,
 						)
 						.as_bytes(),
 					);
 				}
 			}
+
+			(**guard).additional_headers.clear();
+			(**guard).additional_headers.shrink_to_fit();
 		}
 
 		if bytes_len > 0 {

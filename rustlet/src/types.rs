@@ -109,6 +109,7 @@ pub(crate) struct RustletResponseState {
 	pub(crate) content_type: String,
 	pub(crate) buffer: Vec<u8>,
 	pub(crate) redirect: Option<String>,
+	pub(crate) additional_headers: Vec<(String, String)>,
 }
 pub(crate) struct AsyncContextImpl {}
 

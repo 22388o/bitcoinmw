@@ -156,6 +156,13 @@ mod test {
 			Ok(())
 		})?;
 
+		rustlet!("add_headers", {
+			let mut response = response!()?;
+			response.add_header("myheader", "myvalue")?;
+			response.print("success!")?;
+			Ok(())
+		})?;
+
 		rustlet_mapping!("/abc", "test")?;
 		rustlet_mapping!("/def", "test2")?;
 		rustlet_mapping!("/method", "method")?;
@@ -163,6 +170,7 @@ mod test {
 		rustlet_mapping!("/redirect", "redirect")?;
 		rustlet_mapping!("/headers", "headers")?;
 		rustlet_mapping!("/content", "content")?;
+		rustlet_mapping!("/add_headers", "add_headers")?;
 
 		rustlet_start!()?;
 
@@ -429,6 +437,34 @@ mod test {
 		let response = http_client_send!(request)?;
 		info!("resp={}", response)?;
 		assert_eq!(response.code().unwrap(), 200);
+
+		tear_down_server(test_dir)?;
+		Ok(())
+	}
+
+	#[test]
+	fn test_rustlet_additional_headers() -> Result<(), Error> {
+		let test_dir = ".test_rustlet_additional_headers.bmw";
+		let port = build_server(test_dir, false)?;
+
+		http_client_init!(BaseDir(test_dir))?;
+
+		let url = &format!("http://127.0.0.1:{}/add_headers", port);
+		let request =
+			http_client_request!(Url(url), TimeoutMillis(30_000), ContentData(b"test123"))?;
+		let response = http_client_send!(request)?;
+		info!("resp={}", response)?;
+		assert_eq!(response.code().unwrap(), 200);
+
+		let mut found = false;
+		for (name, value) in response.headers()? {
+			if name == "myheader" {
+				assert_eq!(value, "myvalue");
+				found = true;
+			}
+		}
+
+		assert!(found);
 
 		tear_down_server(test_dir)?;
 		Ok(())
