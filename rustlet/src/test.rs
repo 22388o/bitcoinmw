@@ -144,12 +144,25 @@ mod test {
 			Ok(())
 		})?;
 
+		rustlet!("content", {
+			let request = request!()?;
+			let mut r = request.content_reader();
+
+			let mut buf = vec![];
+			let len = r.read_to_end(&mut buf)?;
+
+			assert_eq!(len, 7);
+			assert_eq!(&buf[0..7], b"test123");
+			Ok(())
+		})?;
+
 		rustlet_mapping!("/abc", "test")?;
 		rustlet_mapping!("/def", "test2")?;
 		rustlet_mapping!("/method", "method")?;
 		rustlet_mapping!("/version", "version")?;
 		rustlet_mapping!("/redirect", "redirect")?;
 		rustlet_mapping!("/headers", "headers")?;
+		rustlet_mapping!("/content", "content")?;
 
 		rustlet_start!()?;
 
@@ -396,6 +409,28 @@ mod test {
 
 		tear_down_server(test_dir)?;
 
+		Ok(())
+	}
+
+	#[test]
+	fn test_rustlet_content_reader() -> Result<(), Error> {
+		let test_dir = ".test_rustlet_content_reader.bmw";
+		let port = build_server(test_dir, false)?;
+
+		http_client_init!(BaseDir(test_dir))?;
+
+		let url = &format!("http://127.0.0.1:{}/content", port);
+		let request = http_client_request!(
+			Method(HttpMethod::POST),
+			Url(url),
+			TimeoutMillis(30_000),
+			ContentData(b"test123")
+		)?;
+		let response = http_client_send!(request)?;
+		info!("resp={}", response)?;
+		assert_eq!(response.code().unwrap(), 200);
+
+		tear_down_server(test_dir)?;
 		Ok(())
 	}
 }

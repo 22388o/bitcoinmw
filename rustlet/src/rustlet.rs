@@ -112,7 +112,7 @@ impl RustletContainer {
 		_config: &HttpConfig,
 		instance: &HttpInstance,
 		write_handle: &mut WriteHandle,
-		_http_connection_data: HttpContentReader,
+		http_connection_data: HttpContentReader,
 	) -> Result<(), Error> {
 		let container = RUSTLET_CONTAINER.read()?;
 		let tid = instance
@@ -126,7 +126,7 @@ impl RustletContainer {
 				let path = headers.path()?;
 				debug!("in callback: {}", path)?;
 
-				let rustlet_request = RustletRequestImpl::from_headers(headers)?;
+				let rustlet_request = RustletRequestImpl::new(headers, http_connection_data)?;
 				let rustlet_response = RustletResponseImpl::new(write_handle.clone())?;
 				let rustlet_request: &mut Box<dyn RustletRequest> =
 					&mut (Box::new(rustlet_request) as Box<dyn RustletRequest>);
@@ -204,19 +204,20 @@ impl RustletRequest for RustletRequestImpl {
 	fn headers(&self) -> &Vec<(String, String)> {
 		&self.headers
 	}
-	fn content(&self) -> Result<HttpContentReader, Error> {
-		todo!()
+	fn content_reader(&self) -> HttpContentReader {
+		self.reader.clone()
 	}
 }
 
 impl RustletRequestImpl {
-	fn from_headers(headers: &HttpHeaders) -> Result<Self, Error> {
+	fn new(headers: &HttpHeaders, reader: HttpContentReader) -> Result<Self, Error> {
 		Ok(Self {
 			path: headers.path()?,
 			query: headers.query()?,
 			method: headers.method()?.clone(),
 			version: headers.version()?.clone(),
 			headers: headers.headers()?,
+			reader,
 		})
 	}
 }

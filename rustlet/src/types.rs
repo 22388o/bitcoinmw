@@ -42,7 +42,7 @@ pub trait RustletRequest: DynClone {
 	fn path(&self) -> &String;
 	fn query(&self) -> &String;
 	fn headers(&self) -> &Vec<(String, String)>;
-	fn content(&self) -> Result<HttpContentReader, Error>;
+	fn content_reader(&self) -> HttpContentReader;
 }
 
 clone_trait_object!(RustletRequest);
@@ -93,6 +93,7 @@ pub(crate) struct RustletRequestImpl {
 	pub(crate) method: HttpMethod,
 	pub(crate) version: HttpVersion,
 	pub(crate) headers: Vec<(String, String)>,
+	pub(crate) reader: HttpContentReader,
 }
 
 #[derive(Clone)]

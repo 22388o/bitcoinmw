@@ -111,6 +111,7 @@ pub(crate) struct HttpContentReaderData {
 	pub(crate) file_id: Option<u128>,
 }
 
+#[derive(Clone)]
 pub struct HttpContentReader {
 	pub(crate) http_content_reader_data: Option<HttpContentReaderData>,
 	pub(crate) content_allocator: Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>,
