@@ -586,7 +586,7 @@
 		_instance: <span class="kw-2">&amp;</span>HttpInstance,
 		write_handle: <span class="kw-2">&amp;mut </span>WriteHandle,
 		<span class="kw-2">mut </span>http_connection_data: HttpContentReader,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="kw">let </span>path = headers.path()<span class="question-mark">?</span>;
 		<span class="kw">let </span>query = headers.query()<span class="question-mark">?</span>;
 
@@ -609,7 +609,7 @@
 				<span class="string">b"HTTP/1.1 200 OK\r\nServer: test\r\nContent-Length: 10\r\n\r\nabcdefghij"</span>,
 			)<span class="question-mark">?</span>;
 		}
-		<span class="prelude-val">Ok</span>(())
+		<span class="prelude-val">Ok</span>(<span class="bool-val">false</span>)
 	}
 
 	<span class="kw">fn </span>build_server(directory: <span class="kw-2">&amp;</span>str, tls: bool) -&gt; <span class="prelude-ty">Result</span>&lt;(u16, Box&lt;<span class="kw">dyn </span>HttpServer&gt;, <span class="kw-2">&amp;</span>str), Error&gt; {

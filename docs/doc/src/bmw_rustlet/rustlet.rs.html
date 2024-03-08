@@ -420,6 +420,10 @@
 <a href="#419" id="419">419</a>
 <a href="#420" id="420">420</a>
 <a href="#421" id="421">421</a>
+<a href="#422" id="422">422</a>
+<a href="#423" id="423">423</a>
+<a href="#424" id="424">424</a>
+<a href="#425" id="425">425</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -535,7 +539,7 @@
 		instance: <span class="kw-2">&amp;</span>HttpInstance,
 		write_handle: <span class="kw-2">&amp;mut </span>WriteHandle,
 		http_connection_data: HttpContentReader,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="kw">let </span>container = RUSTLET_CONTAINER.read()<span class="question-mark">?</span>;
 		<span class="kw">let </span>tid = instance
 			.attachment
@@ -560,7 +564,10 @@
 						<span class="prelude-val">Some</span>(rustlet) =&gt; {
 							<span class="macro">debug!</span>(<span class="string">"found a rustlet"</span>)<span class="question-mark">?</span>;
 							<span class="kw">match </span>(rustlet)(rustlet_request, rustlet_response) {
-								<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; rustlet_response.complete(),
+								<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {
+									rustlet_response.complete()<span class="question-mark">?</span>;
+									<span class="prelude-val">Ok</span>(<span class="bool-val">false</span>)
+								}
 								<span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 									ErrKind::Rustlet,
 									<span class="macro">format!</span>(<span class="string">"rustlet callback generated error: {}"</span>, e)
@@ -697,9 +704,10 @@
 	}
 	<span class="kw">fn </span>async_complete(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="macro">wlock!</span>(<span class="self">self</span>.state).is_async = <span class="bool-val">false</span>;
-		<span class="self">self</span>.complete_impl()
+		<span class="self">self</span>.complete_impl()<span class="question-mark">?</span>;
+		<span class="prelude-val">Ok</span>(())
 	}
-	<span class="kw">fn </span>complete(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">fn </span>complete(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="self">self</span>.complete_impl()
 	}
 }
@@ -789,10 +797,10 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">fn </span>complete_impl(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">fn </span>complete_impl(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="kw">if </span><span class="macro">rlock!</span>(<span class="self">self</span>.state).is_async {
 			<span class="comment">// we'er async we don't complete in the normal way
-			</span><span class="kw">return </span><span class="prelude-val">Ok</span>(());
+			</span><span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">true</span>);
 		}
 		<span class="self">self</span>.send_headers(<span class="kw-2">&amp;</span>[])<span class="question-mark">?</span>;
 		<span class="kw">let </span>close = {
@@ -814,7 +822,7 @@
 		<span class="kw">if </span>close {
 			<span class="self">self</span>.wh.close()<span class="question-mark">?</span>;
 		}
-		<span class="prelude-val">Ok</span>(())
+		<span class="prelude-val">Ok</span>(<span class="bool-val">false</span>)
 	}
 
 	<span class="kw">fn </span>flush_impl(<span class="kw-2">&amp;mut </span><span class="self">self</span>, shrink: bool) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {

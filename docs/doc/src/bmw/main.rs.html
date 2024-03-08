@@ -233,7 +233,7 @@
 	_instance: <span class="kw-2">&amp;</span>HttpInstance,
 	write_handle: <span class="kw-2">&amp;mut </span>WriteHandle,
 	<span class="kw-2">mut </span>http_connection_data: HttpContentReader,
-) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 	<span class="macro">info!</span>(<span class="string">"in callback!"</span>)<span class="question-mark">?</span>;
 
 	<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0</span>; <span class="number">10</span>];
@@ -262,7 +262,7 @@ callbk\n"
 			</span>.as_bytes(),
 	)<span class="question-mark">?</span>;
 
-	<span class="prelude-val">Ok</span>(())
+	<span class="prelude-val">Ok</span>(<span class="bool-val">false</span>)
 }
 
 <span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// temporary test function, will be removed

@@ -3494,6 +3494,18 @@
 <a href="#3493" id="3493">3493</a>
 <a href="#3494" id="3494">3494</a>
 <a href="#3495" id="3495">3495</a>
+<a href="#3496" id="3496">3496</a>
+<a href="#3497" id="3497">3497</a>
+<a href="#3498" id="3498">3498</a>
+<a href="#3499" id="3499">3499</a>
+<a href="#3500" id="3500">3500</a>
+<a href="#3501" id="3501">3501</a>
+<a href="#3502" id="3502">3502</a>
+<a href="#3503" id="3503">3503</a>
+<a href="#3504" id="3504">3504</a>
+<a href="#3505" id="3505">3505</a>
+<a href="#3506" id="3506">3506</a>
+<a href="#3507" id="3507">3507</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -6075,7 +6087,7 @@
 														tmp_file_dir: config.tmp_file_dir(),
 													};
 													<span class="macro">debug!</span>(<span class="string">"callback starting"</span>)<span class="question-mark">?</span>;
-													callback(
+													<span class="kw">let </span>is_async = callback(
 														<span class="kw-2">&amp;</span>headers,
 														<span class="kw-2">&amp;</span>config,
 														<span class="kw-2">&amp;</span>attachment,
@@ -6083,6 +6095,11 @@
 														http_content_reader,
 													)<span class="question-mark">?</span>;
 													<span class="macro">debug!</span>(<span class="string">"callback complete"</span>)<span class="question-mark">?</span>;
+
+													<span class="kw">if </span>is_async {
+														<span class="macro">wlock!</span>(http_connection_data.write_state)
+															.set_async(<span class="bool-val">true</span>);
+													}
 												} <span class="kw">else if </span>path.contains(<span class="string">r"."</span>) {
 													<span class="kw">let </span>pos = path
 														.chars()
@@ -6118,7 +6135,7 @@
 																tmp_file_dir: config.tmp_file_dir(),
 															};
 														<span class="macro">debug!</span>(<span class="string">"callback starting"</span>)<span class="question-mark">?</span>;
-														callback(
+														<span class="kw">let </span>is_async = callback(
 															<span class="kw-2">&amp;</span>headers,
 															<span class="kw-2">&amp;</span>config,
 															<span class="kw-2">&amp;</span>attachment,
@@ -6126,6 +6143,13 @@
 															http_content_reader,
 														)<span class="question-mark">?</span>;
 														<span class="macro">debug!</span>(<span class="string">"callback complete"</span>)<span class="question-mark">?</span>;
+
+														<span class="kw">if </span>is_async {
+															<span class="macro">wlock!</span>(
+																http_connection_data.write_state
+															)
+															.set_async(<span class="bool-val">true</span>);
+														}
 													}
 												}
 											}
@@ -6606,7 +6630,7 @@
 		_instance: <span class="kw-2">&amp;</span>HttpInstance,
 		write_handle: <span class="kw-2">&amp;mut </span>WriteHandle,
 		<span class="kw-2">mut </span>http_connection_data: HttpContentReader,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="macro">info!</span>(<span class="string">"recv callback"</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0</span>; <span class="number">10</span>];
 		<span class="kw">let </span><span class="kw-2">mut </span>data: Vec&lt;u8&gt; = <span class="macro">vec!</span>[];
@@ -6664,7 +6688,7 @@ callbk\n"
 			)<span class="question-mark">?</span>;
 		}
 
-		<span class="prelude-val">Ok</span>(())
+		<span class="prelude-val">Ok</span>(<span class="bool-val">false</span>)
 	}
 
 	<span class="attr">#[test]
@@ -6722,7 +6746,7 @@ callbk\n"
 		_instance: <span class="kw-2">&amp;</span>HttpInstance,
 		write_handle: <span class="kw-2">&amp;mut </span>WriteHandle,
 		<span class="kw-2">mut </span>http_connection_data: HttpContentReader,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="macro">info!</span>(<span class="string">"recv callback"</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0</span>; <span class="number">10</span>];
 		<span class="kw">let </span><span class="kw-2">mut </span>data: Vec&lt;u8&gt; = <span class="macro">vec!</span>[];
@@ -6754,7 +6778,7 @@ callbk\n"
 			write_handle.close()<span class="question-mark">?</span>;
 		}
 
-		<span class="prelude-val">Ok</span>(())
+		<span class="prelude-val">Ok</span>(<span class="bool-val">false</span>)
 	}
 
 	<span class="attr">#[test]

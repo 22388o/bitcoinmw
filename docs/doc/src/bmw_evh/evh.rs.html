@@ -2922,6 +2922,18 @@
 <a href="#2921" id="2921">2921</a>
 <a href="#2922" id="2922">2922</a>
 <a href="#2923" id="2923">2923</a>
+<a href="#2924" id="2924">2924</a>
+<a href="#2925" id="2925">2925</a>
+<a href="#2926" id="2926">2926</a>
+<a href="#2927" id="2927">2927</a>
+<a href="#2928" id="2928">2928</a>
+<a href="#2929" id="2929">2929</a>
+<a href="#2930" id="2930">2930</a>
+<a href="#2931" id="2931">2931</a>
+<a href="#2932" id="2932">2932</a>
+<a href="#2933" id="2933">2933</a>
+<a href="#2934" id="2934">2934</a>
+<a href="#2935" id="2935">2935</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -3018,6 +3030,7 @@
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>WRITE_STATE_FLAG_TRIGGER_ON_READ: u8 = <span class="number">0x1 </span>&lt;&lt; <span class="number">2</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>WRITE_STATE_FLAG_SUSPEND: u8 = <span class="number">0x1 </span>&lt;&lt; <span class="number">3</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>WRITE_STATE_FLAG_RESUME: u8 = <span class="number">0x1 </span>&lt;&lt; <span class="number">4</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>WRITE_STATE_FLAG_ASYNC: u8 = <span class="number">0x1 </span>&lt;&lt; <span class="number">5</span>;
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>EAGAIN: i32 = <span class="number">11</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>ETEMPUNAVAILABLE: i32 = <span class="number">35</span>;
@@ -3402,6 +3415,17 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>is_set(<span class="kw-2">&amp;</span><span class="self">self</span>, flag: u8) -&gt; bool {
 		<span class="self">self</span>.flags &amp; flag != <span class="number">0
 	</span>}
+
+	<span class="kw">pub fn </span>set_async(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: bool) {
+		<span class="kw">match </span>value {
+			<span class="bool-val">true </span>=&gt; <span class="self">self</span>.set_flag(WRITE_STATE_FLAG_ASYNC),
+			<span class="bool-val">false </span>=&gt; <span class="self">self</span>.unset_flag(WRITE_STATE_FLAG_ASYNC),
+		}
+	}
+
+	<span class="kw">pub fn </span>is_async(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+		<span class="self">self</span>.is_set(WRITE_STATE_FLAG_ASYNC)
+	}
 }
 
 <span class="kw">impl </span>WriteHandle {
