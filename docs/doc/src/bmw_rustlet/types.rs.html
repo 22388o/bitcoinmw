@@ -110,6 +110,9 @@
 <a href="#109" id="109">109</a>
 <a href="#110" id="110">110</a>
 <a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -148,7 +151,7 @@
 
 <span class="doccomment">/// The main trait used for processing requests in a rustlet. It has all the information needed in
 /// it. It can be accessed by the [`crate::request`] macro.
-</span><span class="kw">pub trait </span>RustletRequest: DynClone {
+</span><span class="kw">pub trait </span>RustletRequest: DynClone + Send + Sync {
 	<span class="kw">fn </span>method(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>HttpMethod;
 	<span class="kw">fn </span>version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>HttpVersion;
 	<span class="kw">fn </span>path(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>String;
@@ -159,7 +162,7 @@
 
 <span class="macro">clone_trait_object!</span>(RustletRequest);
 
-<span class="kw">pub trait </span>RustletResponse: DynClone {
+<span class="kw">pub trait </span>RustletResponse: DynClone + Send + Sync {
 	<span class="kw">fn </span>write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="kw">fn </span>flush(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="kw">fn </span>set_async(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
@@ -167,7 +170,9 @@
 	<span class="kw">fn </span>set_content_type(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="kw">fn </span>redirect(<span class="kw-2">&amp;mut </span><span class="self">self</span>, url: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="kw">fn </span>set_connection_close(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
-	<span class="kw">fn </span>complete(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+	<span class="kw">fn </span>async_complete(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+	<span class="comment">// TODO: this should be pub(crate) only.
+	</span><span class="kw">fn </span>complete(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 }
 
 <span class="macro">clone_trait_object!</span>(RustletResponse);
@@ -217,6 +222,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) buffer: Vec&lt;u8&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) redirect: <span class="prelude-ty">Option</span>&lt;String&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) additional_headers: Vec&lt;(String, String)&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) is_async: bool,
 }
 
 <span class="attr">#[derive(Clone)]

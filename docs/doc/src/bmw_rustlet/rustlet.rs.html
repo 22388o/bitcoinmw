@@ -411,6 +411,15 @@
 <a href="#410" id="410">410</a>
 <a href="#411" id="411">411</a>
 <a href="#412" id="412">412</a>
+<a href="#413" id="413">413</a>
+<a href="#414" id="414">414</a>
+<a href="#415" id="415">415</a>
+<a href="#416" id="416">416</a>
+<a href="#417" id="417">417</a>
+<a href="#418" id="418">418</a>
+<a href="#419" id="419">419</a>
+<a href="#420" id="420">420</a>
+<a href="#421" id="421">421</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -644,8 +653,8 @@
 		<span class="self">self</span>.flush_impl(<span class="bool-val">false</span>)
 	}
 	<span class="kw">fn </span>set_async(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">debug!</span>(<span class="string">"aysync_context"</span>)<span class="question-mark">?</span>;
-		<span class="macro">todo!</span>()
+		<span class="macro">wlock!</span>(<span class="self">self</span>.state).is_async = <span class="bool-val">true</span>;
+		<span class="prelude-val">Ok</span>(())
 	}
 	<span class="kw">fn </span>add_header(<span class="kw-2">&amp;mut </span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str, value: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="macro">wlock!</span>(<span class="self">self</span>.state)
@@ -686,6 +695,10 @@
 			<span class="prelude-val">Ok</span>(())
 		}
 	}
+	<span class="kw">fn </span>async_complete(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="macro">wlock!</span>(<span class="self">self</span>.state).is_async = <span class="bool-val">false</span>;
+		<span class="self">self</span>.complete_impl()
+	}
 	<span class="kw">fn </span>complete(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.complete_impl()
 	}
@@ -703,6 +716,7 @@
 				buffer: <span class="macro">vec!</span>[],
 				redirect: <span class="prelude-val">None</span>,
 				additional_headers: <span class="macro">vec!</span>[],
+				is_async: <span class="bool-val">false</span>,
 			})<span class="question-mark">?</span>,
 		})
 	}
@@ -776,6 +790,10 @@
 	}
 
 	<span class="kw">fn </span>complete_impl(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">if </span><span class="macro">rlock!</span>(<span class="self">self</span>.state).is_async {
+			<span class="comment">// we'er async we don't complete in the normal way
+			</span><span class="kw">return </span><span class="prelude-val">Ok</span>(());
+		}
 		<span class="self">self</span>.send_headers(<span class="kw-2">&amp;</span>[])<span class="question-mark">?</span>;
 		<span class="kw">let </span>close = {
 			<span class="kw">let </span><span class="kw-2">mut </span>state = <span class="self">self</span>.state.wlock()<span class="question-mark">?</span>;
