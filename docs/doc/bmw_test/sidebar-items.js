@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["port","testdir"]};
+window.SIDEBAR_ITEMS = {"fn":["sleep","sync_channel"],"mod":["port","testdir"],"struct":["Duration"]};

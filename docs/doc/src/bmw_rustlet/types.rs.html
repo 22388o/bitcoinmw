@@ -113,6 +113,7 @@
 <a href="#112" id="112">112</a>
 <a href="#113" id="113">113</a>
 <a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -132,7 +133,7 @@
 
 </span><span class="kw">use </span>bmw_deps::dyn_clone::{clone_trait_object, DynClone};
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
-<span class="kw">use </span>bmw_evh::WriteHandle;
+<span class="kw">use </span>bmw_evh::{WriteHandle, WriteState};
 <span class="kw">use </span>bmw_http::{
 	HttpConfig, HttpContentReader, HttpMethod, HttpServer, HttpVersion, WebSocketData,
 	WebSocketHandle, WebSocketMessage,
@@ -212,6 +213,7 @@
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>RustletResponseImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) wh: WriteHandle,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) state: Box&lt;<span class="kw">dyn </span>LockBox&lt;RustletResponseState&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) write_state: Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;,
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>RustletResponseState {

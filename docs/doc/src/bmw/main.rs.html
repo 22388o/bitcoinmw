@@ -186,6 +186,8 @@
 <a href="#185" id="185">185</a>
 <a href="#186" id="186">186</a>
 <a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -205,7 +207,7 @@
 // limitations under the License.
 
 </span><span class="kw">use </span>bmw_err::{err, ErrKind, Error};
-<span class="kw">use </span>bmw_evh::{EventHandlerConfig, WriteHandle};
+<span class="kw">use </span>bmw_evh::{EventHandlerConfig, WriteHandle, WriteState};
 <span class="kw">use </span>bmw_http::HttpInstanceType::Plain;
 <span class="kw">use </span>bmw_http::PlainConfig;
 <span class="kw">use </span>bmw_http::{
@@ -213,6 +215,7 @@
 	WebSocketHandle, WebSocketMessage, WebSocketMessageType,
 };
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
+<span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
 <span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::io::Read;
 <span class="kw">use </span>std::mem::size_of;
@@ -233,6 +236,7 @@
 	_instance: <span class="kw-2">&amp;</span>HttpInstance,
 	write_handle: <span class="kw-2">&amp;mut </span>WriteHandle,
 	<span class="kw-2">mut </span>http_connection_data: HttpContentReader,
+	_write_state: Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 	<span class="macro">info!</span>(<span class="string">"in callback!"</span>)<span class="question-mark">?</span>;
 

@@ -424,6 +424,12 @@
 <a href="#423" id="423">423</a>
 <a href="#424" id="424">424</a>
 <a href="#425" id="425">425</a>
+<a href="#426" id="426">426</a>
+<a href="#427" id="427">427</a>
+<a href="#428" id="428">428</a>
+<a href="#429" id="429">429</a>
+<a href="#430" id="430">430</a>
+<a href="#431" id="431">431</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -448,7 +454,7 @@
 <span class="kw">use crate</span>::{RustletConfig, RustletRequest, RustletResponse};
 <span class="kw">use </span>bmw_deps::lazy_static::lazy_static;
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
-<span class="kw">use </span>bmw_evh::WriteHandle;
+<span class="kw">use </span>bmw_evh::{WriteHandle, WriteState};
 <span class="kw">use </span>bmw_http::{
 	Builder, HttpConfig, HttpContentReader, HttpHeaders, HttpInstance, HttpMethod, HttpVersion,
 	WebSocketData, WebSocketHandle, WebSocketMessage,
@@ -539,6 +545,7 @@
 		instance: <span class="kw-2">&amp;</span>HttpInstance,
 		write_handle: <span class="kw-2">&amp;mut </span>WriteHandle,
 		http_connection_data: HttpContentReader,
+		write_state: Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="kw">let </span>container = RUSTLET_CONTAINER.read()<span class="question-mark">?</span>;
 		<span class="kw">let </span>tid = instance
@@ -553,7 +560,7 @@
 				<span class="macro">debug!</span>(<span class="string">"in callback: {}"</span>, path)<span class="question-mark">?</span>;
 
 				<span class="kw">let </span>rustlet_request = RustletRequestImpl::new(headers, http_connection_data)<span class="question-mark">?</span>;
-				<span class="kw">let </span>rustlet_response = RustletResponseImpl::new(write_handle.clone())<span class="question-mark">?</span>;
+				<span class="kw">let </span>rustlet_response = RustletResponseImpl::new(write_handle.clone(), write_state)<span class="question-mark">?</span>;
 				<span class="kw">let </span>rustlet_request: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>RustletRequest&gt; =
 					<span class="kw-2">&amp;mut </span>(Box::new(rustlet_request) <span class="kw">as </span>Box&lt;<span class="kw">dyn </span>RustletRequest&gt;);
 				<span class="kw">let </span>rustlet_response: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>RustletResponse&gt; =
@@ -565,8 +572,8 @@
 							<span class="macro">debug!</span>(<span class="string">"found a rustlet"</span>)<span class="question-mark">?</span>;
 							<span class="kw">match </span>(rustlet)(rustlet_request, rustlet_response) {
 								<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {
-									rustlet_response.complete()<span class="question-mark">?</span>;
-									<span class="prelude-val">Ok</span>(<span class="bool-val">false</span>)
+									<span class="kw">let </span>is_async = rustlet_response.complete()<span class="question-mark">?</span>;
+									<span class="prelude-val">Ok</span>(is_async)
 								}
 								<span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 									ErrKind::Rustlet,
@@ -661,6 +668,7 @@
 	}
 	<span class="kw">fn </span>set_async(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="macro">wlock!</span>(<span class="self">self</span>.state).is_async = <span class="bool-val">true</span>;
+		<span class="macro">wlock!</span>(<span class="self">self</span>.write_state).set_async(<span class="bool-val">true</span>);
 		<span class="prelude-val">Ok</span>(())
 	}
 	<span class="kw">fn </span>add_header(<span class="kw-2">&amp;mut </span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str, value: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
@@ -704,16 +712,16 @@
 	}
 	<span class="kw">fn </span>async_complete(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="macro">wlock!</span>(<span class="self">self</span>.state).is_async = <span class="bool-val">false</span>;
-		<span class="self">self</span>.complete_impl()<span class="question-mark">?</span>;
+		<span class="self">self</span>.complete_impl(<span class="bool-val">true</span>)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 	<span class="kw">fn </span>complete(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
-		<span class="self">self</span>.complete_impl()
+		<span class="self">self</span>.complete_impl(<span class="bool-val">false</span>)
 	}
 }
 
 <span class="kw">impl </span>RustletResponseImpl {
-	<span class="kw">fn </span>new(wh: WriteHandle) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
+	<span class="kw">fn </span>new(wh: WriteHandle, write_state: Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
 		<span class="prelude-val">Ok</span>(RustletResponseImpl {
 			wh,
 			state: <span class="macro">lock_box!</span>(RustletResponseState {
@@ -726,6 +734,7 @@
 				additional_headers: <span class="macro">vec!</span>[],
 				is_async: <span class="bool-val">false</span>,
 			})<span class="question-mark">?</span>,
+			write_state,
 		})
 	}
 
@@ -797,7 +806,7 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">fn </span>complete_impl(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
+	<span class="kw">fn </span>complete_impl(<span class="kw-2">&amp;mut </span><span class="self">self</span>, async_complete: bool) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="kw">if </span><span class="macro">rlock!</span>(<span class="self">self</span>.state).is_async {
 			<span class="comment">// we'er async we don't complete in the normal way
 			</span><span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">true</span>);
@@ -821,6 +830,9 @@
 
 		<span class="kw">if </span>close {
 			<span class="self">self</span>.wh.close()<span class="question-mark">?</span>;
+		} <span class="kw">else if </span>async_complete {
+			<span class="macro">wlock!</span>(<span class="self">self</span>.write_state).set_async(<span class="bool-val">false</span>);
+			<span class="self">self</span>.wh.trigger_on_read()<span class="question-mark">?</span>;
 		}
 		<span class="prelude-val">Ok</span>(<span class="bool-val">false</span>)
 	}
