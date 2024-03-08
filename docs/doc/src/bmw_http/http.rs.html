@@ -3532,6 +3532,12 @@
 <a href="#3531" id="3531">3531</a>
 <a href="#3532" id="3532">3532</a>
 <a href="#3533" id="3533">3533</a>
+<a href="#3534" id="3534">3534</a>
+<a href="#3535" id="3535">3535</a>
+<a href="#3536" id="3536">3536</a>
+<a href="#3537" id="3537">3537</a>
+<a href="#3538" id="3538">3538</a>
+<a href="#3539" id="3539">3539</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -5771,7 +5777,11 @@
 							}
 							<span class="prelude-val">None </span>=&gt; {
 								<span class="kw">let </span><span class="kw-2">mut </span>build_headers_from_vec = <span class="bool-val">false</span>;
+								<span class="kw">let </span><span class="kw-2">mut </span>is_async = <span class="bool-val">false</span>;
 								<span class="kw">loop </span>{
+									<span class="kw">if </span>is_async {
+										<span class="kw">break</span>;
+									}
 									<span class="kw">let </span>http_connection_data = <span class="kw">match </span>ctx.connections.get_mut(<span class="kw-2">&amp;</span>id) {
 										<span class="prelude-val">Some</span>(http_connection_data) =&gt; http_connection_data,
 										<span class="prelude-val">None </span>=&gt; {
@@ -6126,7 +6136,7 @@
 														tmp_file_dir: config.tmp_file_dir(),
 													};
 													<span class="macro">debug!</span>(<span class="string">"callback starting"</span>)<span class="question-mark">?</span>;
-													<span class="kw">let </span>is_async = callback(
+													is_async = callback(
 														<span class="kw-2">&amp;</span>headers,
 														<span class="kw-2">&amp;</span>config,
 														<span class="kw-2">&amp;</span>attachment,
@@ -6135,7 +6145,7 @@
 														http_connection_data.write_state.clone(),
 													)<span class="question-mark">?</span>;
 													<span class="macro">debug!</span>(
-														<span class="string">"callback complete is_async = {}"</span>,
+														<span class="string">"callback complete. is_async = {}"</span>,
 														is_async
 													)<span class="question-mark">?</span>;
 
@@ -6178,7 +6188,7 @@
 																tmp_file_dir: config.tmp_file_dir(),
 															};
 														<span class="macro">debug!</span>(<span class="string">"callback starting"</span>)<span class="question-mark">?</span>;
-														<span class="kw">let </span>is_async = callback(
+														is_async = callback(
 															<span class="kw-2">&amp;</span>headers,
 															<span class="kw-2">&amp;</span>config,
 															<span class="kw-2">&amp;</span>attachment,
@@ -6313,9 +6323,11 @@
 		)<span class="question-mark">?</span>;
 
 		<span class="kw">if </span>termination_sum == req_len {
+			<span class="macro">debug!</span>(<span class="string">"equal so clear slab"</span>)<span class="question-mark">?</span>;
 			conn_data.clear_through(slab_id_vec[slab_id_vec.len() - <span class="number">1</span>])<span class="question-mark">?</span>;
 			http_connection_data.http_content_reader_data.content_offset = <span class="number">0</span>;
 		} <span class="kw">else if </span>termination_sum != <span class="number">0 </span>{
+			<span class="macro">debug!</span>(<span class="string">"not equal to 0"</span>)<span class="question-mark">?</span>;
 			http_connection_data.http_content_reader_data.content_offset =
 				termination_sum % READ_SLAB_DATA_SIZE;
 			<span class="kw">if </span>termination_sum &gt;= READ_SLAB_DATA_SIZE {
