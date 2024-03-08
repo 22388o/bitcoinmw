@@ -407,6 +407,10 @@
 <a href="#406" id="406">406</a>
 <a href="#407" id="407">407</a>
 <a href="#408" id="408">408</a>
+<a href="#409" id="409">409</a>
+<a href="#410" id="410">410</a>
+<a href="#411" id="411">411</a>
+<a href="#412" id="412">412</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -425,10 +429,10 @@
 // limitations under the License.
 
 </span><span class="kw">use </span><span class="kw">crate</span>::types::{
-	AsyncContextImpl, Rustlet, RustletContainer, RustletRequestImpl, RustletResponseImpl,
-	RustletResponseState, WebSocketRequest, WebSocketRequestImpl,
+	Rustlet, RustletContainer, RustletRequestImpl, RustletResponseImpl, RustletResponseState,
+	WebSocketRequest, WebSocketRequestImpl,
 };
-<span class="kw">use crate</span>::{AsyncContext, RustletConfig, RustletRequest, RustletResponse};
+<span class="kw">use crate</span>::{RustletConfig, RustletRequest, RustletResponse};
 <span class="kw">use </span>bmw_deps::lazy_static::lazy_static;
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_evh::WriteHandle;
@@ -521,7 +525,7 @@
 		_config: <span class="kw-2">&amp;</span>HttpConfig,
 		instance: <span class="kw-2">&amp;</span>HttpInstance,
 		write_handle: <span class="kw-2">&amp;mut </span>WriteHandle,
-		_http_connection_data: HttpContentReader,
+		http_connection_data: HttpContentReader,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>container = RUSTLET_CONTAINER.read()<span class="question-mark">?</span>;
 		<span class="kw">let </span>tid = instance
@@ -535,7 +539,7 @@
 				<span class="kw">let </span>path = headers.path()<span class="question-mark">?</span>;
 				<span class="macro">debug!</span>(<span class="string">"in callback: {}"</span>, path)<span class="question-mark">?</span>;
 
-				<span class="kw">let </span>rustlet_request = RustletRequestImpl::from_headers(headers)<span class="question-mark">?</span>;
+				<span class="kw">let </span>rustlet_request = RustletRequestImpl::new(headers, http_connection_data)<span class="question-mark">?</span>;
 				<span class="kw">let </span>rustlet_response = RustletResponseImpl::new(write_handle.clone())<span class="question-mark">?</span>;
 				<span class="kw">let </span>rustlet_request: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>RustletRequest&gt; =
 					<span class="kw-2">&amp;mut </span>(Box::new(rustlet_request) <span class="kw">as </span>Box&lt;<span class="kw">dyn </span>RustletRequest&gt;);
@@ -613,19 +617,20 @@
 	<span class="kw">fn </span>headers(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Vec&lt;(String, String)&gt; {
 		<span class="kw-2">&amp;</span><span class="self">self</span>.headers
 	}
-	<span class="kw">fn </span>content(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;HttpContentReader, Error&gt; {
-		<span class="macro">todo!</span>()
+	<span class="kw">fn </span>content_reader(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; HttpContentReader {
+		<span class="self">self</span>.reader.clone()
 	}
 }
 
 <span class="kw">impl </span>RustletRequestImpl {
-	<span class="kw">fn </span>from_headers(headers: <span class="kw-2">&amp;</span>HttpHeaders) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
+	<span class="kw">fn </span>new(headers: <span class="kw-2">&amp;</span>HttpHeaders, reader: HttpContentReader) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
 		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
 			path: headers.path()<span class="question-mark">?</span>,
 			query: headers.query()<span class="question-mark">?</span>,
 			method: headers.method()<span class="question-mark">?</span>.clone(),
 			version: headers.version()<span class="question-mark">?</span>.clone(),
 			headers: headers.headers()<span class="question-mark">?</span>,
+			reader,
 		})
 	}
 }
@@ -635,18 +640,18 @@
 		<span class="self">self</span>.send_headers(bytes)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
-	<span class="kw">fn </span>print(<span class="kw-2">&amp;mut </span><span class="self">self</span>, text: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="self">self</span>.write(text.as_bytes())
-	}
 	<span class="kw">fn </span>flush(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.flush_impl(<span class="bool-val">false</span>)
 	}
-	<span class="kw">fn </span>async_context(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>AsyncContext&gt;, Error&gt; {
+	<span class="kw">fn </span>set_async(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="macro">debug!</span>(<span class="string">"aysync_context"</span>)<span class="question-mark">?</span>;
 		<span class="macro">todo!</span>()
 	}
-	<span class="kw">fn </span>add_header(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _name: <span class="kw-2">&amp;</span>str, _value: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">todo!</span>()
+	<span class="kw">fn </span>add_header(<span class="kw-2">&amp;mut </span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str, value: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="macro">wlock!</span>(<span class="self">self</span>.state)
+			.additional_headers
+			.push((name.to_string(), value.to_string()));
+		<span class="prelude-val">Ok</span>(())
 	}
 	<span class="kw">fn </span>set_content_type(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">if </span><span class="macro">rlock!</span>(<span class="self">self</span>.state).sent_headers {
@@ -697,6 +702,7 @@
 				content_type: <span class="string">"text/html"</span>.to_string(),
 				buffer: <span class="macro">vec!</span>[],
 				redirect: <span class="prelude-val">None</span>,
+				additional_headers: <span class="macro">vec!</span>[],
 			})<span class="question-mark">?</span>,
 		})
 	}
@@ -721,6 +727,11 @@
 		};
 
 		<span class="kw">if </span>!sent_headers {
+			<span class="kw">let </span><span class="kw-2">mut </span>additional_header_str = <span class="string">""</span>.to_string();
+			<span class="kw">for </span>(name, value) <span class="kw">in </span><span class="kw-2">&amp;</span>(<span class="kw-2">**</span>guard).additional_headers {
+				additional_header_str = <span class="macro">format!</span>(<span class="string">"{}{}: {}\r\n"</span>, additional_header_str, name, value);
+			}
+
 			<span class="kw">match </span>(<span class="kw-2">**</span>guard).redirect.clone() {
 				<span class="prelude-val">Some</span>(redirect) =&gt; {
 					<span class="kw">if </span>bytes_len &gt; <span class="number">0 </span>{
@@ -731,8 +742,8 @@
 					}
 					(<span class="kw-2">**</span>guard).buffer.extend(
 						<span class="macro">format!</span>(
-							<span class="string">"HTTP/1.1 302 Found\r\n{}Location: {}\r\n\r\n"</span>,
-							close_text, redirect,
+							<span class="string">"HTTP/1.1 302 Found{}\r\n{}Location: {}\r\n\r\n"</span>,
+							additional_header_str, close_text, redirect,
 						)
 						.as_bytes(),
 					);
@@ -740,13 +751,16 @@
 				<span class="prelude-val">None </span>=&gt; {
 					(<span class="kw-2">**</span>guard).buffer.extend(
 						<span class="macro">format!</span>(
-							<span class="string">"HTTP/1.1 200 OK\r\n{}{}Transfer-Encoding: chunked\r\n\r\n"</span>,
-							close_text, content_type_text,
+							<span class="string">"HTTP/1.1 200 OK\r\n{}{}{}Transfer-Encoding: chunked\r\n\r\n"</span>,
+							additional_header_str, close_text, content_type_text,
 						)
 						.as_bytes(),
 					);
 				}
 			}
+
+			(<span class="kw-2">**</span>guard).additional_headers.clear();
+			(<span class="kw-2">**</span>guard).additional_headers.shrink_to_fit();
 		}
 
 		<span class="kw">if </span>bytes_len &gt; <span class="number">0 </span>{
@@ -795,12 +809,6 @@
 		}
 
 		<span class="prelude-val">Ok</span>(())
-	}
-}
-
-<span class="kw">impl </span>AsyncContext <span class="kw">for </span>AsyncContextImpl {
-	<span class="kw">fn </span>async_complete(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">todo!</span>()
 	}
 }
 

@@ -580,6 +580,7 @@
 <a href="#579" id="579">579</a>
 <a href="#580" id="580">580</a>
 <a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -693,7 +694,8 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) file_id: <span class="prelude-ty">Option</span>&lt;u128&gt;,
 }
 
-<span class="kw">pub struct </span>HttpContentReader {
+<span class="attr">#[derive(Clone)]
+</span><span class="kw">pub struct </span>HttpContentReader {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) http_content_reader_data: <span class="prelude-ty">Option</span>&lt;HttpContentReaderData&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) content_allocator: <span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;&gt;&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) tmp_file_dir: PathBuf,
