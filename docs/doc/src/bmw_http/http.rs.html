@@ -3506,6 +3506,32 @@
 <a href="#3505" id="3505">3505</a>
 <a href="#3506" id="3506">3506</a>
 <a href="#3507" id="3507">3507</a>
+<a href="#3508" id="3508">3508</a>
+<a href="#3509" id="3509">3509</a>
+<a href="#3510" id="3510">3510</a>
+<a href="#3511" id="3511">3511</a>
+<a href="#3512" id="3512">3512</a>
+<a href="#3513" id="3513">3513</a>
+<a href="#3514" id="3514">3514</a>
+<a href="#3515" id="3515">3515</a>
+<a href="#3516" id="3516">3516</a>
+<a href="#3517" id="3517">3517</a>
+<a href="#3518" id="3518">3518</a>
+<a href="#3519" id="3519">3519</a>
+<a href="#3520" id="3520">3520</a>
+<a href="#3521" id="3521">3521</a>
+<a href="#3522" id="3522">3522</a>
+<a href="#3523" id="3523">3523</a>
+<a href="#3524" id="3524">3524</a>
+<a href="#3525" id="3525">3525</a>
+<a href="#3526" id="3526">3526</a>
+<a href="#3527" id="3527">3527</a>
+<a href="#3528" id="3528">3528</a>
+<a href="#3529" id="3529">3529</a>
+<a href="#3530" id="3530">3530</a>
+<a href="#3531" id="3531">3531</a>
+<a href="#3532" id="3532">3532</a>
+<a href="#3533" id="3533">3533</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -5643,19 +5669,15 @@
 				<span class="kw">let </span>attachment = attachment.guard();
 				<span class="kw">match </span>(<span class="kw-2">**</span>attachment).downcast_ref::&lt;HttpInstance&gt;() {
 					<span class="prelude-val">Some</span>(<span class="kw-2">ref </span>attachment) =&gt; {
-						<span class="macro">debug!</span>(<span class="string">"conn_data.tid={},att={:?}"</span>, conn_data.tid(), attachment)<span class="question-mark">?</span>;
 						<span class="kw">let </span>ctx = <span class="self">Self</span>::build_ctx(ctx, config)<span class="question-mark">?</span>;
-						ctx.now = SystemTime::now().duration_since(UNIX_EPOCH)<span class="question-mark">?</span>.as_millis();
-						<span class="self">Self</span>::update_connections_hashtable(ctx.now, ctx, conn_data)<span class="question-mark">?</span>;
-
-						<span class="macro">debug!</span>(<span class="string">"on read slab_offset = {}"</span>, conn_data.slab_offset())<span class="question-mark">?</span>;
-						<span class="kw">let </span>first_slab = conn_data.first_slab();
-						<span class="kw">let </span>last_slab = conn_data.last_slab();
-						<span class="kw">let </span>slab_offset = conn_data.slab_offset();
-						<span class="macro">debug!</span>(<span class="string">"firstslab={},last_slab={}"</span>, first_slab, last_slab)<span class="question-mark">?</span>;
-
 						<span class="kw">let </span><span class="kw-2">mut </span>content_offset = <span class="kw">match </span>ctx.connections.get(<span class="kw-2">&amp;</span>id) {
 							<span class="prelude-val">Some</span>(http_connection_data) =&gt; {
+								<span class="kw">let </span>is_async = <span class="macro">rlock!</span>(http_connection_data.write_state).is_async();
+								<span class="macro">debug!</span>(<span class="string">"is_async={},id={}"</span>, is_async, id)<span class="question-mark">?</span>;
+								<span class="kw">if </span><span class="macro">rlock!</span>(http_connection_data.write_state).is_async() {
+									<span class="comment">// we are in async state do not continue.
+									</span><span class="kw">return </span><span class="prelude-val">Ok</span>(());
+								}
 								http_connection_data.http_content_reader_data.content_offset
 							}
 							<span class="prelude-val">None </span>=&gt; {
@@ -5663,6 +5685,23 @@
 								<span class="number">0
 							</span>}
 						};
+
+						<span class="kw">let </span>first_slab = conn_data.first_slab();
+						<span class="kw">let </span>last_slab = conn_data.last_slab();
+						<span class="kw">let </span>slab_offset = conn_data.slab_offset();
+						<span class="macro">debug!</span>(<span class="string">"firstslab={},last_slab={}"</span>, first_slab, last_slab)<span class="question-mark">?</span>;
+
+						<span class="kw">if </span>first_slab &gt;= <span class="macro">try_into!</span>(config.evh_config.read_slab_count)<span class="question-mark">? </span>{
+							<span class="comment">// nothing to read return (probably
+							// trigger_on_read with no new data)
+							</span><span class="kw">return </span><span class="prelude-val">Ok</span>(());
+						}
+
+						<span class="macro">debug!</span>(<span class="string">"conn_data.tid={},att={:?}"</span>, conn_data.tid(), attachment)<span class="question-mark">?</span>;
+						ctx.now = SystemTime::now().duration_since(UNIX_EPOCH)<span class="question-mark">?</span>.as_millis();
+						<span class="self">Self</span>::update_connections_hashtable(ctx.now, ctx, conn_data)<span class="question-mark">?</span>;
+
+						<span class="macro">debug!</span>(<span class="string">"on read slab_offset = {}"</span>, slab_offset)<span class="question-mark">?</span>;
 
 						<span class="kw">let </span>(req, slab_id_vec, slab_count) =
 							conn_data.borrow_slab_allocator(<span class="kw">move </span>|sa| {
@@ -6093,8 +6132,12 @@
 														<span class="kw-2">&amp;</span>attachment,
 														<span class="kw-2">&amp;mut </span>conn_data.write_handle(),
 														http_content_reader,
+														http_connection_data.write_state.clone(),
 													)<span class="question-mark">?</span>;
-													<span class="macro">debug!</span>(<span class="string">"callback complete"</span>)<span class="question-mark">?</span>;
+													<span class="macro">debug!</span>(
+														<span class="string">"callback complete is_async = {}"</span>,
+														is_async
+													)<span class="question-mark">?</span>;
 
 													<span class="kw">if </span>is_async {
 														<span class="macro">wlock!</span>(http_connection_data.write_state)
@@ -6141,8 +6184,14 @@
 															<span class="kw-2">&amp;</span>attachment,
 															<span class="kw-2">&amp;mut </span>conn_data.write_handle(),
 															http_content_reader,
+															http_connection_data
+																.write_state
+																.clone(),
 														)<span class="question-mark">?</span>;
-														<span class="macro">debug!</span>(<span class="string">"callback complete"</span>)<span class="question-mark">?</span>;
+														<span class="macro">debug!</span>(
+															<span class="string">"callback complete is_async = {}"</span>,
+															is_async
+														)<span class="question-mark">?</span>;
 
 														<span class="kw">if </span>is_async {
 															<span class="macro">wlock!</span>(
@@ -6499,10 +6548,11 @@
 		HttpServer, PlainConfig,
 	};
 	<span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
-	<span class="kw">use </span>bmw_evh::WriteHandle;
+	<span class="kw">use </span>bmw_evh::{WriteHandle, WriteState};
 	<span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_test::port::pick_free_port;
 	<span class="kw">use </span>bmw_test::testdir::{setup_test_dir, tear_down_test_dir};
+	<span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
 	<span class="kw">use </span>std::collections::HashMap;
 	<span class="kw">use </span>std::collections::HashSet;
 	<span class="kw">use </span>std::fs::File;
@@ -6630,6 +6680,7 @@
 		_instance: <span class="kw-2">&amp;</span>HttpInstance,
 		write_handle: <span class="kw-2">&amp;mut </span>WriteHandle,
 		<span class="kw-2">mut </span>http_connection_data: HttpContentReader,
+		_write_state: Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="macro">info!</span>(<span class="string">"recv callback"</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0</span>; <span class="number">10</span>];
@@ -6746,6 +6797,7 @@ callbk\n"
 		_instance: <span class="kw-2">&amp;</span>HttpInstance,
 		write_handle: <span class="kw-2">&amp;mut </span>WriteHandle,
 		<span class="kw-2">mut </span>http_connection_data: HttpContentReader,
+		_write_state: Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="macro">info!</span>(<span class="string">"recv callback"</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0</span>; <span class="number">10</span>];
