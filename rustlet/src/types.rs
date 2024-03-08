@@ -36,7 +36,7 @@ pub type Rustlet = Pin<
 
 /// The main trait used for processing requests in a rustlet. It has all the information needed in
 /// it. It can be accessed by the [`crate::request`] macro.
-pub trait RustletRequest: DynClone {
+pub trait RustletRequest: DynClone + Send + Sync {
 	fn method(&self) -> &HttpMethod;
 	fn version(&self) -> &HttpVersion;
 	fn path(&self) -> &String;
@@ -47,7 +47,7 @@ pub trait RustletRequest: DynClone {
 
 clone_trait_object!(RustletRequest);
 
-pub trait RustletResponse: DynClone {
+pub trait RustletResponse: DynClone + Send + Sync {
 	fn write(&mut self, bytes: &[u8]) -> Result<(), Error>;
 	fn flush(&mut self) -> Result<(), Error>;
 	fn set_async(&mut self) -> Result<(), Error>;

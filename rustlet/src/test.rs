@@ -18,6 +18,7 @@
 #[cfg(test)]
 mod test {
 	use crate as bmw_rustlet;
+	use bmw_err::*;
 	use bmw_http::*;
 	use bmw_rustlet::*;
 	use bmw_test::*;
@@ -163,6 +164,26 @@ mod test {
 			Ok(())
 		})?;
 
+		rustlet!("async", {
+			let mut response = response!()?;
+			let request = request!()?;
+
+			response.write(b"part1")?;
+			response.set_async()?;
+			std::thread::spawn(move || {
+				if false {
+					Err(err!(ErrKind::Rustlet, "false"))
+				} else {
+					assert_eq!(request.method(), &HttpMethod::GET);
+					std::thread::sleep(std::time::Duration::from_millis(3_000));
+					response.write(b"part2")?;
+					response.async_complete()?;
+					Ok(())
+				}
+			});
+			Ok(())
+		})?;
+
 		rustlet_mapping!("/abc", "test")?;
 		rustlet_mapping!("/def", "test2")?;
 		rustlet_mapping!("/method", "method")?;
@@ -171,6 +192,7 @@ mod test {
 		rustlet_mapping!("/headers", "headers")?;
 		rustlet_mapping!("/content", "content")?;
 		rustlet_mapping!("/add_headers", "add_headers")?;
+		rustlet_mapping!("/async", "async")?;
 
 		rustlet_start!()?;
 
@@ -465,6 +487,31 @@ mod test {
 		}
 
 		assert!(found);
+
+		tear_down_server(test_dir)?;
+		Ok(())
+	}
+
+	#[test]
+	fn test_rustlet_async() -> Result<(), Error> {
+		let test_dir = ".test_rustlet_async.bmw";
+		let port = build_server(test_dir, false)?;
+
+		http_client_init!(BaseDir(test_dir))?;
+
+		let url = &format!("http://127.0.0.1:{}/async", port);
+		let request = http_client_request!(Url(url), TimeoutMillis(30_000))?;
+		let response = http_client_send!(request)?;
+		info!("resp={}", response)?;
+		assert_eq!(response.code().unwrap(), 200);
+
+		let mut reader = response.content_reader()?;
+
+		let mut buf = vec![];
+		let len = reader.read_to_end(&mut buf)?;
+
+		assert_eq!(len, 10);
+		assert_eq!(&buf[0..10], b"part1part2");
 
 		tear_down_server(test_dir)?;
 		Ok(())
