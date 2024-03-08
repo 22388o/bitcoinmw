@@ -113,7 +113,7 @@ impl RustletContainer {
 		instance: &HttpInstance,
 		write_handle: &mut WriteHandle,
 		http_connection_data: HttpContentReader,
-	) -> Result<(), Error> {
+	) -> Result<bool, Error> {
 		let container = RUSTLET_CONTAINER.read()?;
 		let tid = instance
 			.attachment
@@ -138,7 +138,10 @@ impl RustletContainer {
 						Some(rustlet) => {
 							debug!("found a rustlet")?;
 							match (rustlet)(rustlet_request, rustlet_response) {
-								Ok(_) => rustlet_response.complete(),
+								Ok(_) => {
+									rustlet_response.complete()?;
+									Ok(false)
+								}
 								Err(e) => Err(err!(
 									ErrKind::Rustlet,
 									format!("rustlet callback generated error: {}", e)
@@ -275,9 +278,10 @@ impl RustletResponse for RustletResponseImpl {
 	}
 	fn async_complete(&mut self) -> Result<(), Error> {
 		wlock!(self.state).is_async = false;
-		self.complete_impl()
+		self.complete_impl()?;
+		Ok(())
 	}
-	fn complete(&mut self) -> Result<(), Error> {
+	fn complete(&mut self) -> Result<bool, Error> {
 		self.complete_impl()
 	}
 }
@@ -367,10 +371,10 @@ impl RustletResponseImpl {
 		Ok(())
 	}
 
-	fn complete_impl(&mut self) -> Result<(), Error> {
+	fn complete_impl(&mut self) -> Result<bool, Error> {
 		if rlock!(self.state).is_async {
 			// we'er async we don't complete in the normal way
-			return Ok(());
+			return Ok(true);
 		}
 		self.send_headers(&[])?;
 		let close = {
@@ -392,7 +396,7 @@ impl RustletResponseImpl {
 		if close {
 			self.wh.close()?;
 		}
-		Ok(())
+		Ok(false)
 	}
 
 	fn flush_impl(&mut self, shrink: bool) -> Result<(), Error> {

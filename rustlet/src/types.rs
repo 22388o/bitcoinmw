@@ -57,7 +57,7 @@ pub trait RustletResponse: DynClone + Send + Sync {
 	fn set_connection_close(&mut self) -> Result<(), Error>;
 	fn async_complete(&mut self) -> Result<(), Error>;
 	// TODO: this should be pub(crate) only.
-	fn complete(&mut self) -> Result<(), Error>;
+	fn complete(&mut self) -> Result<bool, Error>;
 }
 
 clone_trait_object!(RustletResponse);

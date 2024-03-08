@@ -39,7 +39,7 @@ mod test {
 		_instance: &HttpInstance,
 		write_handle: &mut WriteHandle,
 		mut http_connection_data: HttpContentReader,
-	) -> Result<(), Error> {
+	) -> Result<bool, Error> {
 		let path = headers.path()?;
 		let query = headers.query()?;
 
@@ -62,7 +62,7 @@ mod test {
 				b"HTTP/1.1 200 OK\r\nServer: test\r\nContent-Length: 10\r\n\r\nabcdefghij",
 			)?;
 		}
-		Ok(())
+		Ok(false)
 	}
 
 	fn build_server(directory: &str, tls: bool) -> Result<(u16, Box<dyn HttpServer>, &str), Error> {

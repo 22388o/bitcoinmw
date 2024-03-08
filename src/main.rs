@@ -45,7 +45,7 @@ fn callback(
 	_instance: &HttpInstance,
 	write_handle: &mut WriteHandle,
 	mut http_connection_data: HttpContentReader,
-) -> Result<(), Error> {
+) -> Result<bool, Error> {
 	info!("in callback!")?;
 
 	let mut buf = [0; 10];
@@ -74,7 +74,7 @@ callbk\n"
 			.as_bytes(),
 	)?;
 
-	Ok(())
+	Ok(false)
 }
 
 #[cfg(not(tarpaulin_include))] // temporary test function, will be removed

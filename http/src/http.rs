@@ -3110,7 +3110,7 @@ mod test {
 		_instance: &HttpInstance,
 		write_handle: &mut WriteHandle,
 		mut http_connection_data: HttpContentReader,
-	) -> Result<(), Error> {
+	) -> Result<bool, Error> {
 		info!("recv callback")?;
 		let mut buf = [0; 10];
 		let mut data: Vec<u8> = vec![];
@@ -3168,7 +3168,7 @@ callbk\n"
 			)?;
 		}
 
-		Ok(())
+		Ok(false)
 	}
 
 	#[test]
@@ -3226,7 +3226,7 @@ callbk\n"
 		_instance: &HttpInstance,
 		write_handle: &mut WriteHandle,
 		mut http_connection_data: HttpContentReader,
-	) -> Result<(), Error> {
+	) -> Result<bool, Error> {
 		info!("recv callback")?;
 		let mut buf = [0; 10];
 		let mut data: Vec<u8> = vec![];
@@ -3258,7 +3258,7 @@ callbk\n"
 			write_handle.close()?;
 		}
 
-		Ok(())
+		Ok(false)
 	}
 
 	#[test]

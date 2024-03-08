@@ -96,6 +96,7 @@ pub struct HttpConnectionData {
 	pub(crate) websocket_data: Option<WebSocketData>,
 	pub(crate) headers: Vec<u8>,
 	pub(crate) http_content_reader_data: HttpContentReaderData,
+	pub(crate) is_async: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -230,7 +231,7 @@ type HttpCallback = fn(
 	&HttpInstance,
 	&mut WriteHandle,
 	HttpContentReader,
-) -> Result<(), Error>;
+) -> Result<bool, Error>;
 
 type WebsocketHandler = fn(
 	&WebSocketMessage,
