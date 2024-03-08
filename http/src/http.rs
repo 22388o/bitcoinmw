@@ -2237,7 +2237,11 @@ impl HttpServerImpl {
 							}
 							None => {
 								let mut build_headers_from_vec = false;
+								let mut is_async = false;
 								loop {
+									if is_async {
+										break;
+									}
 									let http_connection_data = match ctx.connections.get_mut(&id) {
 										Some(http_connection_data) => http_connection_data,
 										None => {
@@ -2592,7 +2596,7 @@ impl HttpServerImpl {
 														tmp_file_dir: config.tmp_file_dir(),
 													};
 													debug!("callback starting")?;
-													let is_async = callback(
+													is_async = callback(
 														&headers,
 														&config,
 														&attachment,
@@ -2601,7 +2605,7 @@ impl HttpServerImpl {
 														http_connection_data.write_state.clone(),
 													)?;
 													debug!(
-														"callback complete is_async = {}",
+														"callback complete. is_async = {}",
 														is_async
 													)?;
 
@@ -2644,7 +2648,7 @@ impl HttpServerImpl {
 																tmp_file_dir: config.tmp_file_dir(),
 															};
 														debug!("callback starting")?;
-														let is_async = callback(
+														is_async = callback(
 															&headers,
 															&config,
 															&attachment,
@@ -2779,9 +2783,11 @@ impl HttpServerImpl {
 		)?;
 
 		if termination_sum == req_len {
+			debug!("equal so clear slab")?;
 			conn_data.clear_through(slab_id_vec[slab_id_vec.len() - 1])?;
 			http_connection_data.http_content_reader_data.content_offset = 0;
 		} else if termination_sum != 0 {
+			debug!("not equal to 0")?;
 			http_connection_data.http_content_reader_data.content_offset =
 				termination_sum % READ_SLAB_DATA_SIZE;
 			if termination_sum >= READ_SLAB_DATA_SIZE {

@@ -505,11 +505,21 @@ mod test {
 		let mut lock = lock_box!(0)?;
 		let lock_clone = lock.clone();
 
-		info!("sending first request")?;
+		let request2 = http_client_request!(Uri("/add_headers"))?;
+		let (tx, rx) = sync_channel(1);
+		let tx_clone = tx.clone();
+		std::thread::spawn(move || {
+			sleep(Duration::from_millis(30_000));
+			let _ = tx_clone.send(());
+		});
+
+		let mut lock2 = lock_box!(0)?;
+		let lock2_clone = lock2.clone();
+
 		http_client_send!([request], connection, {
 			let response = http_client_response!()?;
 
-			info!("resp={}", response)?;
+			info!("resp(async)={}", response)?;
 			assert_eq!(response.code().unwrap(), 200);
 
 			let mut reader = response.content_reader()?;
@@ -524,21 +534,9 @@ mod test {
 			Ok(())
 		})?;
 
-		let request = http_client_request!(Uri("/add_headers"))?;
-		info!("sending second request")?;
-		let (tx, rx) = sync_channel(1);
-
-		let tx_clone = tx.clone();
-		std::thread::spawn(move || {
-			sleep(Duration::from_millis(5_000));
-			let _ = tx_clone.send(());
-		});
-
-		let mut lock2 = lock_box!(0)?;
-		let lock2_clone = lock2.clone();
-		http_client_send!([request], connection, {
+		http_client_send!([request2], connection, {
 			let response = http_client_response!()?;
-			info!("resp={}", response)?;
+			info!("resp(add_header)={}", response)?;
 			assert_eq!(response.code().unwrap(), 200);
 
 			let mut found = false;
