@@ -49,7 +49,6 @@ clone_trait_object!(RustletRequest);
 
 pub trait RustletResponse: DynClone {
 	fn write(&mut self, bytes: &[u8]) -> Result<(), Error>;
-	fn print(&mut self, text: &str) -> Result<(), Error>;
 	fn flush(&mut self) -> Result<(), Error>;
 	fn set_async(&mut self) -> Result<(), Error>;
 	fn add_header(&mut self, name: &str, value: &str) -> Result<(), Error>;

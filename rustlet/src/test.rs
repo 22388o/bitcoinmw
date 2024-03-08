@@ -159,7 +159,7 @@ mod test {
 		rustlet!("add_headers", {
 			let mut response = response!()?;
 			response.add_header("myheader", "myvalue")?;
-			response.print("success!")?;
+			response.write(b"success!")?;
 			Ok(())
 		})?;
 

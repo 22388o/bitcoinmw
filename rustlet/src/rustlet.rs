@@ -227,9 +227,6 @@ impl RustletResponse for RustletResponseImpl {
 		self.send_headers(bytes)?;
 		Ok(())
 	}
-	fn print(&mut self, text: &str) -> Result<(), Error> {
-		self.write(text.as_bytes())
-	}
 	fn flush(&mut self) -> Result<(), Error> {
 		self.flush_impl(false)
 	}
