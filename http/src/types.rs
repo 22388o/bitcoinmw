@@ -230,6 +230,7 @@ type HttpCallback = fn(
 	&HttpInstance,
 	&mut WriteHandle,
 	HttpContentReader,
+	Box<dyn LockBox<WriteState>>,
 ) -> Result<bool, Error>;
 
 type WebsocketHandler = fn(

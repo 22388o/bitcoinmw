@@ -2135,19 +2135,15 @@ impl HttpServerImpl {
 				let attachment = attachment.guard();
 				match (**attachment).downcast_ref::<HttpInstance>() {
 					Some(ref attachment) => {
-						debug!("conn_data.tid={},att={:?}", conn_data.tid(), attachment)?;
 						let ctx = Self::build_ctx(ctx, config)?;
-						ctx.now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
-						Self::update_connections_hashtable(ctx.now, ctx, conn_data)?;
-
-						debug!("on read slab_offset = {}", conn_data.slab_offset())?;
-						let first_slab = conn_data.first_slab();
-						let last_slab = conn_data.last_slab();
-						let slab_offset = conn_data.slab_offset();
-						debug!("firstslab={},last_slab={}", first_slab, last_slab)?;
-
 						let mut content_offset = match ctx.connections.get(&id) {
 							Some(http_connection_data) => {
+								let is_async = rlock!(http_connection_data.write_state).is_async();
+								debug!("is_async={},id={}", is_async, id)?;
+								if rlock!(http_connection_data.write_state).is_async() {
+									// we are in async state do not continue.
+									return Ok(());
+								}
 								http_connection_data.http_content_reader_data.content_offset
 							}
 							None => {
@@ -2155,6 +2151,23 @@ impl HttpServerImpl {
 								0
 							}
 						};
+
+						let first_slab = conn_data.first_slab();
+						let last_slab = conn_data.last_slab();
+						let slab_offset = conn_data.slab_offset();
+						debug!("firstslab={},last_slab={}", first_slab, last_slab)?;
+
+						if first_slab >= try_into!(config.evh_config.read_slab_count)? {
+							// nothing to read return (probably
+							// trigger_on_read with no new data)
+							return Ok(());
+						}
+
+						debug!("conn_data.tid={},att={:?}", conn_data.tid(), attachment)?;
+						ctx.now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
+						Self::update_connections_hashtable(ctx.now, ctx, conn_data)?;
+
+						debug!("on read slab_offset = {}", slab_offset)?;
 
 						let (req, slab_id_vec, slab_count) =
 							conn_data.borrow_slab_allocator(move |sa| {
@@ -2585,8 +2598,12 @@ impl HttpServerImpl {
 														&attachment,
 														&mut conn_data.write_handle(),
 														http_content_reader,
+														http_connection_data.write_state.clone(),
 													)?;
-													debug!("callback complete")?;
+													debug!(
+														"callback complete is_async = {}",
+														is_async
+													)?;
 
 													if is_async {
 														wlock!(http_connection_data.write_state)
@@ -2633,8 +2650,14 @@ impl HttpServerImpl {
 															&attachment,
 															&mut conn_data.write_handle(),
 															http_content_reader,
+															http_connection_data
+																.write_state
+																.clone(),
 														)?;
-														debug!("callback complete")?;
+														debug!(
+															"callback complete is_async = {}",
+															is_async
+														)?;
 
 														if is_async {
 															wlock!(
@@ -2991,10 +3014,11 @@ mod test {
 		HttpServer, PlainConfig,
 	};
 	use bmw_err::*;
-	use bmw_evh::WriteHandle;
+	use bmw_evh::{WriteHandle, WriteState};
 	use bmw_log::*;
 	use bmw_test::port::pick_free_port;
 	use bmw_test::testdir::{setup_test_dir, tear_down_test_dir};
+	use bmw_util::*;
 	use std::collections::HashMap;
 	use std::collections::HashSet;
 	use std::fs::File;
@@ -3122,6 +3146,7 @@ mod test {
 		_instance: &HttpInstance,
 		write_handle: &mut WriteHandle,
 		mut http_connection_data: HttpContentReader,
+		_write_state: Box<dyn LockBox<WriteState>>,
 	) -> Result<bool, Error> {
 		info!("recv callback")?;
 		let mut buf = [0; 10];
@@ -3238,6 +3263,7 @@ callbk\n"
 		_instance: &HttpInstance,
 		write_handle: &mut WriteHandle,
 		mut http_connection_data: HttpContentReader,
+		_write_state: Box<dyn LockBox<WriteState>>,
 	) -> Result<bool, Error> {
 		info!("recv callback")?;
 		let mut buf = [0; 10];

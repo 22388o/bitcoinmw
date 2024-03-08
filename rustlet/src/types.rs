@@ -17,7 +17,7 @@
 
 use bmw_deps::dyn_clone::{clone_trait_object, DynClone};
 use bmw_err::*;
-use bmw_evh::WriteHandle;
+use bmw_evh::{WriteHandle, WriteState};
 use bmw_http::{
 	HttpConfig, HttpContentReader, HttpMethod, HttpServer, HttpVersion, WebSocketData,
 	WebSocketHandle, WebSocketMessage,
@@ -97,6 +97,7 @@ pub(crate) struct RustletRequestImpl {
 pub(crate) struct RustletResponseImpl {
 	pub(crate) wh: WriteHandle,
 	pub(crate) state: Box<dyn LockBox<RustletResponseState>>,
+	pub(crate) write_state: Box<dyn LockBox<WriteState>>,
 }
 
 pub(crate) struct RustletResponseState {

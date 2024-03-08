@@ -24,3 +24,6 @@ pub mod testdir;
 
 pub use crate::port::pick_free_port;
 pub use crate::testdir::{setup_test_dir, tear_down_test_dir};
+pub use std::sync::mpsc::sync_channel;
+pub use std::thread::sleep;
+pub use std::time::Duration;

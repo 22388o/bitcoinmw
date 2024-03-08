@@ -22,7 +22,7 @@ use crate::types::{
 use crate::{RustletConfig, RustletRequest, RustletResponse};
 use bmw_deps::lazy_static::lazy_static;
 use bmw_err::*;
-use bmw_evh::WriteHandle;
+use bmw_evh::{WriteHandle, WriteState};
 use bmw_http::{
 	Builder, HttpConfig, HttpContentReader, HttpHeaders, HttpInstance, HttpMethod, HttpVersion,
 	WebSocketData, WebSocketHandle, WebSocketMessage,
@@ -113,6 +113,7 @@ impl RustletContainer {
 		instance: &HttpInstance,
 		write_handle: &mut WriteHandle,
 		http_connection_data: HttpContentReader,
+		write_state: Box<dyn LockBox<WriteState>>,
 	) -> Result<bool, Error> {
 		let container = RUSTLET_CONTAINER.read()?;
 		let tid = instance
@@ -127,7 +128,7 @@ impl RustletContainer {
 				debug!("in callback: {}", path)?;
 
 				let rustlet_request = RustletRequestImpl::new(headers, http_connection_data)?;
-				let rustlet_response = RustletResponseImpl::new(write_handle.clone())?;
+				let rustlet_response = RustletResponseImpl::new(write_handle.clone(), write_state)?;
 				let rustlet_request: &mut Box<dyn RustletRequest> =
 					&mut (Box::new(rustlet_request) as Box<dyn RustletRequest>);
 				let rustlet_response: &mut Box<dyn RustletResponse> =
@@ -139,8 +140,8 @@ impl RustletContainer {
 							debug!("found a rustlet")?;
 							match (rustlet)(rustlet_request, rustlet_response) {
 								Ok(_) => {
-									rustlet_response.complete()?;
-									Ok(false)
+									let is_async = rustlet_response.complete()?;
+									Ok(is_async)
 								}
 								Err(e) => Err(err!(
 									ErrKind::Rustlet,
@@ -235,6 +236,7 @@ impl RustletResponse for RustletResponseImpl {
 	}
 	fn set_async(&mut self) -> Result<(), Error> {
 		wlock!(self.state).is_async = true;
+		wlock!(self.write_state).set_async(true);
 		Ok(())
 	}
 	fn add_header(&mut self, name: &str, value: &str) -> Result<(), Error> {
@@ -278,16 +280,16 @@ impl RustletResponse for RustletResponseImpl {
 	}
 	fn async_complete(&mut self) -> Result<(), Error> {
 		wlock!(self.state).is_async = false;
-		self.complete_impl()?;
+		self.complete_impl(true)?;
 		Ok(())
 	}
 	fn complete(&mut self) -> Result<bool, Error> {
-		self.complete_impl()
+		self.complete_impl(false)
 	}
 }
 
 impl RustletResponseImpl {
-	fn new(wh: WriteHandle) -> Result<Self, Error> {
+	fn new(wh: WriteHandle, write_state: Box<dyn LockBox<WriteState>>) -> Result<Self, Error> {
 		Ok(RustletResponseImpl {
 			wh,
 			state: lock_box!(RustletResponseState {
@@ -300,6 +302,7 @@ impl RustletResponseImpl {
 				additional_headers: vec![],
 				is_async: false,
 			})?,
+			write_state,
 		})
 	}
 
@@ -371,7 +374,7 @@ impl RustletResponseImpl {
 		Ok(())
 	}
 
-	fn complete_impl(&mut self) -> Result<bool, Error> {
+	fn complete_impl(&mut self, async_complete: bool) -> Result<bool, Error> {
 		if rlock!(self.state).is_async {
 			// we'er async we don't complete in the normal way
 			return Ok(true);
@@ -395,6 +398,9 @@ impl RustletResponseImpl {
 
 		if close {
 			self.wh.close()?;
+		} else if async_complete {
+			wlock!(self.write_state).set_async(false);
+			self.wh.trigger_on_read()?;
 		}
 		Ok(false)
 	}

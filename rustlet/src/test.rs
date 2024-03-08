@@ -22,6 +22,7 @@ mod test {
 	use bmw_http::*;
 	use bmw_rustlet::*;
 	use bmw_test::*;
+	use bmw_util::*;
 	use std::collections::HashMap;
 	use std::io::Read;
 
@@ -498,21 +499,59 @@ mod test {
 		let port = build_server(test_dir, false)?;
 
 		http_client_init!(BaseDir(test_dir))?;
+		let mut connection = http_connection!(Host("127.0.0.1"), Port(port), Tls(false))?;
 
-		let url = &format!("http://127.0.0.1:{}/async", port);
-		let request = http_client_request!(Url(url), TimeoutMillis(30_000))?;
-		let response = http_client_send!(request)?;
-		info!("resp={}", response)?;
-		assert_eq!(response.code().unwrap(), 200);
+		let request = http_client_request!(Uri("/async"))?;
+		let mut lock = lock_box!(0)?;
+		let lock_clone = lock.clone();
 
-		let mut reader = response.content_reader()?;
+		info!("sending first request")?;
+		http_client_send!([request], connection, {
+			let response = http_client_response!()?;
 
-		let mut buf = vec![];
-		let len = reader.read_to_end(&mut buf)?;
+			info!("resp={}", response)?;
+			assert_eq!(response.code().unwrap(), 200);
 
-		assert_eq!(len, 10);
-		assert_eq!(&buf[0..10], b"part1part2");
+			let mut reader = response.content_reader()?;
 
+			let mut buf = vec![];
+			let len = reader.read_to_end(&mut buf)?;
+
+			assert_eq!(len, 10);
+			assert_eq!(&buf[0..10], b"part1part2");
+
+			wlock!(lock) += 1;
+
+			Ok(())
+		})?;
+
+		let request = http_client_request!(Uri("/add_headers"))?;
+		info!("sending second request")?;
+		let (tx, rx) = sync_channel(1);
+		http_client_send!([request], connection, {
+			let response = http_client_response!()?;
+			info!("resp={}", response)?;
+			assert_eq!(response.code().unwrap(), 200);
+
+			let mut found = false;
+			for (name, value) in response.headers()? {
+				if name == "myheader" {
+					assert_eq!(value, "myvalue");
+					found = true;
+				}
+			}
+
+			assert!(found);
+
+			info!("second request complete")?;
+
+			tx.send(())?;
+			Ok(())
+		})?;
+
+		rx.recv()?;
+
+		assert_eq!(rlock!(lock_clone), 1);
 		tear_down_server(test_dir)?;
 		Ok(())
 	}

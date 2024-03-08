@@ -17,7 +17,7 @@
 // limitations under the License.
 
 use bmw_err::{err, ErrKind, Error};
-use bmw_evh::{EventHandlerConfig, WriteHandle};
+use bmw_evh::{EventHandlerConfig, WriteHandle, WriteState};
 use bmw_http::HttpInstanceType::Plain;
 use bmw_http::PlainConfig;
 use bmw_http::{
@@ -25,6 +25,7 @@ use bmw_http::{
 	WebSocketHandle, WebSocketMessage, WebSocketMessageType,
 };
 use bmw_log::*;
+use bmw_util::*;
 use std::collections::{HashMap, HashSet};
 use std::io::Read;
 use std::mem::size_of;
@@ -45,6 +46,7 @@ fn callback(
 	_instance: &HttpInstance,
 	write_handle: &mut WriteHandle,
 	mut http_connection_data: HttpContentReader,
+	_write_state: Box<dyn LockBox<WriteState>>,
 ) -> Result<bool, Error> {
 	info!("in callback!")?;
 
