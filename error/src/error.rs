@@ -486,7 +486,7 @@ mod test {
 		let x = read_one(&mut reader)?.unwrap();
 		match x {
 			Item::PKCS8Key(key) => Ok(PrivateKey(key)),
-			_ => todo!(),
+			_ => Err(err!(ErrKind::Test, "not supported")),
 		}
 	}
 
