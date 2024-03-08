@@ -23,8 +23,7 @@ mod types;
 #[doc(hidden)]
 pub use crate::rustlet::{RUSTLET_CONTAINER, RUSTLET_CONTEXT};
 pub use crate::types::{
-	AsyncContext, RustletConfig, RustletContainer, RustletRequest, RustletResponse,
-	WebSocketRequest,
+	RustletConfig, RustletContainer, RustletRequest, RustletResponse, WebSocketRequest,
 };
 
 // re-export a few things for convenience

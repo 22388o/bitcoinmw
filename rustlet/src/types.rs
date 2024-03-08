@@ -51,7 +51,7 @@ pub trait RustletResponse: DynClone {
 	fn write(&mut self, bytes: &[u8]) -> Result<(), Error>;
 	fn print(&mut self, text: &str) -> Result<(), Error>;
 	fn flush(&mut self) -> Result<(), Error>;
-	fn async_context(&mut self) -> Result<Box<dyn AsyncContext>, Error>;
+	fn set_async(&mut self) -> Result<(), Error>;
 	fn add_header(&mut self, name: &str, value: &str) -> Result<(), Error>;
 	fn set_content_type(&mut self, value: &str) -> Result<(), Error>;
 	fn redirect(&mut self, url: &str) -> Result<(), Error>;
@@ -68,10 +68,6 @@ pub trait WebSocketRequest: DynClone {
 }
 
 clone_trait_object!(WebSocketRequest);
-
-pub trait AsyncContext {
-	fn async_complete(&mut self) -> Result<(), Error>;
-}
 
 pub struct RustletConfig {
 	pub http_config: HttpConfig,
@@ -111,7 +107,6 @@ pub(crate) struct RustletResponseState {
 	pub(crate) redirect: Option<String>,
 	pub(crate) additional_headers: Vec<(String, String)>,
 }
-pub(crate) struct AsyncContextImpl {}
 
 #[derive(Clone)]
 pub(crate) struct WebSocketRequestImpl {}

@@ -16,10 +16,10 @@
 // limitations under the License.
 
 use crate::types::{
-	AsyncContextImpl, Rustlet, RustletContainer, RustletRequestImpl, RustletResponseImpl,
-	RustletResponseState, WebSocketRequest, WebSocketRequestImpl,
+	Rustlet, RustletContainer, RustletRequestImpl, RustletResponseImpl, RustletResponseState,
+	WebSocketRequest, WebSocketRequestImpl,
 };
-use crate::{AsyncContext, RustletConfig, RustletRequest, RustletResponse};
+use crate::{RustletConfig, RustletRequest, RustletResponse};
 use bmw_deps::lazy_static::lazy_static;
 use bmw_err::*;
 use bmw_evh::WriteHandle;
@@ -233,7 +233,7 @@ impl RustletResponse for RustletResponseImpl {
 	fn flush(&mut self) -> Result<(), Error> {
 		self.flush_impl(false)
 	}
-	fn async_context(&mut self) -> Result<Box<dyn AsyncContext>, Error> {
+	fn set_async(&mut self) -> Result<(), Error> {
 		debug!("aysync_context")?;
 		todo!()
 	}
@@ -399,12 +399,6 @@ impl RustletResponseImpl {
 		}
 
 		Ok(())
-	}
-}
-
-impl AsyncContext for AsyncContextImpl {
-	fn async_complete(&mut self) -> Result<(), Error> {
-		todo!()
 	}
 }
 
