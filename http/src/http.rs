@@ -2579,7 +2579,7 @@ impl HttpServerImpl {
 														tmp_file_dir: config.tmp_file_dir(),
 													};
 													debug!("callback starting")?;
-													callback(
+													let is_async = callback(
 														&headers,
 														&config,
 														&attachment,
@@ -2587,6 +2587,11 @@ impl HttpServerImpl {
 														http_content_reader,
 													)?;
 													debug!("callback complete")?;
+
+													if is_async {
+														wlock!(http_connection_data.write_state)
+															.set_async(true);
+													}
 												} else if path.contains(r".") {
 													let pos = path
 														.chars()
@@ -2622,7 +2627,7 @@ impl HttpServerImpl {
 																tmp_file_dir: config.tmp_file_dir(),
 															};
 														debug!("callback starting")?;
-														callback(
+														let is_async = callback(
 															&headers,
 															&config,
 															&attachment,
@@ -2630,6 +2635,13 @@ impl HttpServerImpl {
 															http_content_reader,
 														)?;
 														debug!("callback complete")?;
+
+														if is_async {
+															wlock!(
+																http_connection_data.write_state
+															)
+															.set_async(true);
+														}
 													}
 												}
 											}

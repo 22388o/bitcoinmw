@@ -94,6 +94,7 @@ pub(crate) const WRITE_STATE_FLAG_CLOSE: u8 = 0x1 << 1;
 pub(crate) const WRITE_STATE_FLAG_TRIGGER_ON_READ: u8 = 0x1 << 2;
 pub(crate) const WRITE_STATE_FLAG_SUSPEND: u8 = 0x1 << 3;
 pub(crate) const WRITE_STATE_FLAG_RESUME: u8 = 0x1 << 4;
+pub(crate) const WRITE_STATE_FLAG_ASYNC: u8 = 0x1 << 5;
 
 pub(crate) const EAGAIN: i32 = 11;
 pub(crate) const ETEMPUNAVAILABLE: i32 = 35;
@@ -477,6 +478,17 @@ impl WriteState {
 
 	pub(crate) fn is_set(&self, flag: u8) -> bool {
 		self.flags & flag != 0
+	}
+
+	pub fn set_async(&mut self, value: bool) {
+		match value {
+			true => self.set_flag(WRITE_STATE_FLAG_ASYNC),
+			false => self.unset_flag(WRITE_STATE_FLAG_ASYNC),
+		}
+	}
+
+	pub fn is_async(&self) -> bool {
+		self.is_set(WRITE_STATE_FLAG_ASYNC)
 	}
 }
 
