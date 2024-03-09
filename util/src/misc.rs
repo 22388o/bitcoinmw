@@ -17,8 +17,38 @@
 
 use bmw_err::*;
 use bmw_log::*;
+use std::path::PathBuf;
+use std::str::from_utf8;
 
 info!();
+
+/// Utility to canonicalize a path relative to a base directory (used in http and rustlet)
+pub fn canonicalize_base_path(base_dir: &String, path: &String) -> Result<String, Error> {
+	if path.len() < 1 {
+		return Err(err!(ErrKind::IO, "invalid path"));
+	}
+	let base_dir = PathBuf::from(base_dir);
+	let base_dir = base_dir.canonicalize()?;
+	let mut ret = base_dir.clone();
+	let path = from_utf8(&path.as_bytes()[1..])?.to_string();
+	ret.push(path);
+	let ret = ret.canonicalize()?;
+
+	if !ret.starts_with(base_dir) {
+		Err(err!(
+			ErrKind::IO,
+			"canonicalized version is above the base_dir"
+		))
+	} else {
+		match ret.to_str() {
+			Some(s) => Ok(s.to_string()),
+			None => Err(err!(
+				ErrKind::IO,
+				"could not generate string from the path specfied"
+			)),
+		}
+	}
+}
 
 /// Utility to convert a u128 to an arbitrary length slice (up to 16 bytes).
 pub fn u128_to_slice(mut n: u128, slice: &mut [u8]) -> Result<(), Error> {

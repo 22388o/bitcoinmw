@@ -23,6 +23,8 @@ use crate::{RustletConfig, RustletRequest, RustletResponse};
 use bmw_deps::lazy_static::lazy_static;
 use bmw_err::*;
 use bmw_evh::{WriteHandle, WriteState};
+use bmw_http::HttpInstanceType::Plain;
+use bmw_http::HttpInstanceType::Tls;
 use bmw_http::{
 	Builder, HttpConfig, HttpContentReader, HttpHeaders, HttpInstance, HttpMethod, HttpVersion,
 	WebSocketData, WebSocketHandle, WebSocketMessage,
@@ -84,12 +86,15 @@ impl RustletContainer {
 			)),
 			None => {
 				let mut callback_mappings = HashSet::new();
+				let mut callback_extensions = HashSet::new();
 				for key in self.rustlet_mappings.keys() {
 					callback_mappings.insert(key.clone());
 				}
+				callback_extensions.insert("rsp".to_string());
 				for instance in &mut self.http_config.instances {
 					instance.callback = Some(Self::callback);
 					instance.callback_mappings = callback_mappings.clone();
+					instance.callback_extensions = callback_extensions.clone();
 					instance.attachment = Box::new(tid);
 				}
 				let mut http_server = Builder::build_http_server(&self.http_config)?;
@@ -109,6 +114,39 @@ impl RustletContainer {
 
 	fn callback(
 		headers: &HttpHeaders,
+		config: &HttpConfig,
+		instance: &HttpInstance,
+		write_handle: &mut WriteHandle,
+		http_connection_data: HttpContentReader,
+		write_state: Box<dyn LockBox<WriteState>>,
+	) -> Result<bool, Error> {
+		match Self::callback_impl(
+			headers,
+			config,
+			instance,
+			write_handle,
+			http_connection_data,
+			write_state,
+		) {
+			Ok(v) => Ok(v),
+			Err(e) => {
+				let content = format!("An error occurred while processing page: {}.", e);
+				let clen = content.len();
+				write_handle.write(
+					format!(
+						"HTTP/1.1 500 Internal Server Error\r\nContent-Length: {}\r\n\r\n{}",
+						clen, content
+					)
+					.as_bytes(),
+				)?;
+
+				Ok(false)
+			}
+		}
+	}
+
+	fn callback_impl(
+		headers: &HttpHeaders,
 		_config: &HttpConfig,
 		instance: &HttpInstance,
 		write_handle: &mut WriteHandle,
@@ -125,6 +163,7 @@ impl RustletContainer {
 		match (*container).get(&tid) {
 			Some(rcd) => {
 				let path = headers.path()?;
+				let host = headers.host()?;
 				debug!("in callback: {}", path)?;
 
 				let rustlet_request = RustletRequestImpl::new(headers, http_connection_data)?;
@@ -154,10 +193,42 @@ impl RustletContainer {
 							format!("rustlet '{}' not found", name)
 						)),
 					},
-					None => Err(err!(
-						ErrKind::Rustlet,
-						format!("rustlet mapping '{}' not found", path)
-					)),
+					None => {
+						let default = ".".to_string();
+						let base_dir = match &instance.instance_type {
+							Plain(config) => config
+								.http_dir_map
+								.get(host)
+								.unwrap_or(config.http_dir_map.get("*").unwrap_or(&default))
+								.clone(),
+							Tls(config) => config
+								.http_dir_map
+								.get(host)
+								.unwrap_or(config.http_dir_map.get("*").unwrap_or(&default))
+								.clone(),
+						};
+						let rsp_path = match canonicalize_base_path(&base_dir, &path) {
+							Ok(rsp_path) => rsp_path,
+							Err(e) => {
+								return Err(err!(
+									ErrKind::Rustlet,
+									format!("rsp: '{}{}' not found due to: {}", base_dir, path, e)
+								));
+							}
+						};
+
+						let content = format!("Found RSP at {}.", rsp_path);
+						let clen = content.len();
+						write_handle.write(
+							format!(
+								"HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+								clen, content
+							)
+							.as_bytes(),
+						)?;
+
+						Ok(false)
+					}
 				}
 			}
 			None => Err(err!(ErrKind::Rustlet, "rustlet container not initialized")),
@@ -196,6 +267,9 @@ impl RustletRequest for RustletRequestImpl {
 	fn method(&self) -> &HttpMethod {
 		&self.method
 	}
+	fn header_host(&self) -> &String {
+		&self.header_host
+	}
 	fn version(&self) -> &HttpVersion {
 		&self.version
 	}
@@ -222,6 +296,7 @@ impl RustletRequestImpl {
 			version: headers.version()?.clone(),
 			headers: headers.headers()?,
 			reader,
+			header_host: headers.host()?.to_string(),
 		})
 	}
 }
