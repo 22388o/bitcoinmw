@@ -2094,7 +2094,7 @@ impl HttpServerImpl {
 		match ctx.connections.get_mut(&conn_data.get_connection_id()) {
 			Some(connection_data) => {
 				connection_data.websocket_data = Some(WebSocketData {
-					uri: headers.path()?,
+					path: headers.path()?,
 					query: headers.query()?,
 					negotiated_protocol,
 				})
@@ -2224,6 +2224,7 @@ impl HttpServerImpl {
 									attachment,
 									config,
 									&websocket_data,
+									&mut ctx.thread_context,
 								) {
 									Ok(termination_sum) => termination_sum,
 									Err(e) => {

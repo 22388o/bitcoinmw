@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bmw_http::{WebSocketMessage, WebSocketMessageType};
 use bmw_rustlet::*;
 use clap::{load_yaml, App, ArgMatches};
 use std::collections::HashMap;
@@ -115,6 +116,32 @@ fn load_rustlets(_config: &RustletContainerConfig) -> Result<(), Error> {
 	Ok(())
 }
 
+fn load_websockets(_config: &RustletContainerConfig) -> Result<(), Error> {
+	websocket!("test", {
+		info!("in websocket test")?;
+		let mut request = websocket_request!()?;
+
+		info!(
+			"req={:?},data={:?},path={}",
+			request.message(),
+			request.data(),
+			request.path()
+		)?;
+		let msg = WebSocketMessage {
+			mtype: WebSocketMessageType::Text,
+			payload: b"test_from_rustlet".to_vec(),
+		};
+		request.handle().send(&msg)?;
+		Ok(())
+	})?;
+
+	websocket_mapping!("/chatx", "test", vec![])?;
+	websocket_mapping!("/chaty", "test", vec!["proto1"])?;
+	websocket_mapping!("/chatz", "test", vec!["proto2", "proto3"])?;
+
+	Ok(())
+}
+
 fn main() -> Result<(), Error> {
 	let yml = load_yaml!("rustlet.yml");
 	let args = App::from_yaml(yml)
@@ -125,6 +152,7 @@ fn main() -> Result<(), Error> {
 	show_startup_config(&config)?;
 	init_rustlet_container(&config)?;
 	load_rustlets(&config)?;
+	load_websockets(&config)?;
 	rustlet_start!()?;
 
 	park();

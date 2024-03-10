@@ -23,7 +23,7 @@ use bmw_http::{
 	WebSocketHandle, WebSocketMessage,
 };
 use bmw_util::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::pin::Pin;
 
 pub type Rustlet = Pin<
@@ -33,6 +33,9 @@ pub type Rustlet = Pin<
 			+ Sync,
 	>,
 >;
+
+pub type Websocket =
+	Pin<Box<dyn Fn(&mut Box<dyn WebSocketRequest>) -> Result<(), Error> + Send + Sync>>;
 
 /// The main trait used for processing requests in a rustlet. It has all the information needed in
 /// it. It can be accessed by the [`crate::request`] macro.
@@ -62,9 +65,12 @@ pub trait RustletResponse: DynClone + Send + Sync {
 clone_trait_object!(RustletResponse);
 
 pub trait WebSocketRequest: DynClone {
-	fn handle(&self) -> Result<WebSocketHandle, Error>;
-	fn message(&mut self) -> Result<WebSocketMessage, Error>;
-	fn data(&self) -> Result<WebSocketData, Error>;
+	fn handle(&mut self) -> &mut WebSocketHandle;
+	fn message(&self) -> &WebSocketMessage;
+	fn data(&self) -> &WebSocketData;
+	fn path(&self) -> &String;
+	fn query(&self) -> &String;
+	fn protocol(&self) -> Option<&String>;
 }
 
 clone_trait_object!(WebSocketRequest);
@@ -81,7 +87,9 @@ pub struct RustletContainerConfig {
 
 pub struct RustletContainer {
 	pub(crate) rustlets: HashMap<String, Rustlet>,
+	pub(crate) websockets: HashMap<String, Websocket>,
 	pub(crate) rustlet_mappings: HashMap<String, String>,
+	pub(crate) websocket_mappings: HashMap<String, (String, HashSet<String>)>,
 	pub(crate) config: RustletConfig,
 	pub(crate) http_server: Option<Box<dyn HttpServer + Send + Sync>>,
 }
@@ -119,7 +127,11 @@ pub(crate) struct RustletResponseState {
 }
 
 #[derive(Clone)]
-pub(crate) struct WebSocketRequestImpl {}
+pub(crate) struct WebSocketRequestImpl {
+	pub(crate) handle: WebSocketHandle,
+	pub(crate) message: WebSocketMessage,
+	pub(crate) data: WebSocketData,
+}
 
 pub(crate) struct RustletContext {
 	pub(crate) suffix_tree: Box<dyn SuffixTree + Sync + Send>,

@@ -52,6 +52,11 @@ mod test {
 			)?;
 		}
 
+		websocket!("test", {
+			info!("in test websocket")?;
+			Ok(())
+		})?;
+
 		rustlet!("test", {
 			let mut response = response!()?;
 			let request = request!()?;

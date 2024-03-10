@@ -23,7 +23,7 @@ use bmw_deps::byteorder::{BigEndian, ByteOrder};
 use bmw_deps::rand_core::{OsRng, RngCore};
 use bmw_deps::sha1::{Digest, Sha1};
 use bmw_err::*;
-use bmw_evh::{ConnData, ConnectionData, WriteHandle};
+use bmw_evh::{ConnData, ConnectionData, ThreadContext, WriteHandle};
 use bmw_log::*;
 
 info!();
@@ -109,11 +109,14 @@ fn websocket_message_to_vec(ws: &WebSocketMessage, mask: bool) -> Result<Vec<u8>
 }
 
 impl WebSocketHandle {
-	pub fn send_message(&mut self, message: &WebSocketMessage, mask: bool) -> Result<(), Error> {
+	pub fn send(&mut self, message: &WebSocketMessage) -> Result<(), Error> {
 		self.write_handle
-			.write(&websocket_message_to_vec(message, mask)?)
+			.write(&websocket_message_to_vec(message, false)?)
 	}
-
+	pub fn send_masked(&mut self, message: &WebSocketMessage) -> Result<(), Error> {
+		self.write_handle
+			.write(&websocket_message_to_vec(message, true)?)
+	}
 	pub fn close(&mut self) -> Result<(), Error> {
 		self.write_handle.close()
 	}
@@ -155,6 +158,7 @@ pub(crate) fn process_websocket_data(
 	instance: &HttpInstance,
 	config: &HttpConfig,
 	websocket_data: &WebSocketData,
+	thread_context: &mut ThreadContext,
 ) -> Result<usize, Error> {
 	debug!("proc data: {:?}", req)?;
 	let (messages, termination_point) = build_messages(req)?;
@@ -163,9 +167,14 @@ pub(crate) fn process_websocket_data(
 	};
 	for message in &messages {
 		match instance.websocket_handler {
-			Some(ws_handler) => {
-				ws_handler(message, config, instance, &mut ws_handle, websocket_data)?
-			}
+			Some(ws_handler) => ws_handler(
+				message,
+				config,
+				instance,
+				&mut ws_handle,
+				websocket_data,
+				thread_context,
+			)?,
 			None => {
 				warn!("got websocket request but no handler was specified!")?;
 			}

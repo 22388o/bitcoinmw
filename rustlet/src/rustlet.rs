@@ -17,7 +17,7 @@
 
 use crate::types::{
 	Rustlet, RustletContainer, RustletContext, RustletRequestImpl, RustletResponseImpl,
-	RustletResponseState, WebSocketRequest, WebSocketRequestImpl,
+	RustletResponseState, WebSocketRequest, WebSocketRequestImpl, Websocket,
 };
 use crate::{RustletConfig, RustletContainerConfig, RustletRequest, RustletResponse};
 use bmw_deps::lazy_static::lazy_static;
@@ -99,7 +99,9 @@ impl RustletContainer {
 			current().id(),
 			RustletContainer {
 				rustlets: HashMap::new(),
+				websockets: HashMap::new(),
 				rustlet_mappings: HashMap::new(),
+				websocket_mappings: HashMap::new(),
 				http_server: None,
 				config,
 			},
@@ -121,11 +123,19 @@ impl RustletContainer {
 				for key in self.rustlet_mappings.keys() {
 					callback_mappings.insert(key.clone());
 				}
+
+				let mut websocket_mappings = HashMap::new();
+				for (key, value) in &self.websocket_mappings {
+					websocket_mappings.insert(key.clone(), value.1.clone());
+				}
+
 				callback_extensions.insert("rsp".to_string());
 				for instance in &mut self.config.http_config.instances {
 					instance.callback = Some(Self::callback);
 					instance.callback_mappings = callback_mappings.clone();
 					instance.callback_extensions = callback_extensions.clone();
+					instance.websocket_handler = Some(Self::ws_handler);
+					instance.websocket_mappings = websocket_mappings.clone();
 					instance.attachment = Box::new(tid);
 				}
 				self.config.http_config.attachment =
@@ -180,6 +190,85 @@ impl RustletContainer {
 			None => Err(err!(
 				ErrKind::Rustlet,
 				"could not obtain attachment from HttpConfig"
+			)),
+		}
+	}
+
+	fn ws_handler(
+		message: &WebSocketMessage,
+		config: &HttpConfig,
+		instance: &HttpInstance,
+		wsh: &mut WebSocketHandle,
+		websocket_data: &WebSocketData,
+		thread_context: &mut ThreadContext,
+	) -> Result<(), Error> {
+		let ctx = Self::build_ctx(thread_context, config)?;
+		match Self::ws_handler_impl(message, config, instance, wsh, websocket_data, ctx) {
+			Ok(_) => Ok(()),
+			Err(e) => {
+				warn!(
+					"An error occurred on websocket. Msg='{:?}'. Closing! Error: {}",
+					message, e
+				)?;
+				wsh.close()?;
+				Ok(())
+			}
+		}
+	}
+
+	fn ws_handler_impl(
+		message: &WebSocketMessage,
+		_config: &HttpConfig,
+		instance: &HttpInstance,
+		wsh: &mut WebSocketHandle,
+		websocket_data: &WebSocketData,
+		_ctx: &mut RustletContext,
+	) -> Result<(), Error> {
+		let websocket_request =
+			WebSocketRequestImpl::new(wsh.clone(), message.clone(), websocket_data.clone());
+		let container = RUSTLET_CONTAINER.read()?;
+		let tid = instance
+			.attachment
+			.clone()
+			.downcast::<ThreadId>()
+			.unwrap_or(Box::new(current().id()));
+		debug!("tid={:?},current={:?}", tid, current().id())?;
+		match (*container).get(&tid) {
+			Some(rcd) => Self::execute_websocket(rcd, websocket_request),
+			None => Err(err!(ErrKind::Rustlet, "rustlet container not initialized")),
+		}
+	}
+
+	fn execute_websocket(
+		rcd: &RustletContainer,
+		websocket_request: WebSocketRequestImpl,
+	) -> Result<(), Error> {
+		debug!("execute {:?}", websocket_request.data())?;
+
+		let mut websocket_request: Box<dyn WebSocketRequest> = Box::new(websocket_request);
+		match rcd.websocket_mappings.get(&websocket_request.data().path) {
+			Some((name, _protos)) => match rcd.websockets.get(name) {
+				Some(websocket) => {
+					debug!("found a websocket")?;
+					match (websocket)(&mut websocket_request) {
+						Ok(_) => Ok(()),
+						Err(e) => Err(err!(
+							ErrKind::Rustlet,
+							format!("websocket '{}' generated error: {}", name, e)
+						)),
+					}
+				}
+				None => Err(err!(
+					ErrKind::Rustlet,
+					format!("websocket '{}' was not found.", name)
+				)),
+			},
+			None => Err(err!(
+				ErrKind::Rustlet,
+				format!(
+					"websocket at path = '{}' was not found.",
+					websocket_request.data().path
+				)
 			)),
 		}
 	}
@@ -402,6 +491,12 @@ impl RustletContainer {
 		Ok(())
 	}
 
+	pub fn add_websocket(&mut self, name: &str, websocket: Websocket) -> Result<(), Error> {
+		debug!("add websocket name: {}", name)?;
+		self.websockets.insert(name.to_string(), websocket);
+		Ok(())
+	}
+
 	pub fn add_rustlet(&mut self, name: &str, rustlet: Rustlet) -> Result<(), Error> {
 		debug!("add rustlet name: {}", name)?;
 		self.rustlets.insert(name.to_string(), rustlet);
@@ -412,6 +507,21 @@ impl RustletContainer {
 		debug!("add rustlet path: {} -> name: {}", path, name)?;
 		self.rustlet_mappings
 			.insert(path.to_string(), name.to_string());
+		Ok(())
+	}
+
+	pub fn add_websocket_mapping(
+		&mut self,
+		path: &str,
+		name: &str,
+		protos: Vec<&str>,
+	) -> Result<(), Error> {
+		let mut hashset = HashSet::new();
+		for proto in protos {
+			hashset.insert(proto.to_string());
+		}
+		self.websocket_mappings
+			.insert(path.to_string(), (name.to_string(), hashset));
 		Ok(())
 	}
 
@@ -664,13 +774,32 @@ impl RustletResponseImpl {
 }
 
 impl WebSocketRequest for WebSocketRequestImpl {
-	fn handle(&self) -> Result<WebSocketHandle, Error> {
-		todo!()
+	fn handle(&mut self) -> &mut WebSocketHandle {
+		&mut self.handle
 	}
-	fn message(&mut self) -> Result<WebSocketMessage, Error> {
-		todo!()
+	fn message(&self) -> &WebSocketMessage {
+		&self.message
 	}
-	fn data(&self) -> Result<WebSocketData, Error> {
-		todo!()
+	fn data(&self) -> &WebSocketData {
+		&self.data
+	}
+	fn path(&self) -> &String {
+		&self.data.path
+	}
+	fn query(&self) -> &String {
+		&self.data.query
+	}
+	fn protocol(&self) -> Option<&String> {
+		self.data.negotiated_protocol.as_ref()
+	}
+}
+
+impl WebSocketRequestImpl {
+	fn new(handle: WebSocketHandle, message: WebSocketMessage, data: WebSocketData) -> Self {
+		Self {
+			handle,
+			message,
+			data,
+		}
 	}
 }

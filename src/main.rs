@@ -87,18 +87,19 @@ fn ws_handler(
 	_instance: &HttpInstance,
 	wsh: &mut WebSocketHandle,
 	websocket_data: &WebSocketData,
+	_thread_context: &mut ThreadContext,
 ) -> Result<(), Error> {
 	let text = std::str::from_utf8(&message.payload[..]).unwrap_or("utf8err");
 	info!(
 		"in ws handler in main.rs. got message [proto='{:?}'] [path='{}'] [query='{}'] = '{}'",
-		websocket_data.negotiated_protocol, websocket_data.uri, websocket_data.query, text
+		websocket_data.negotiated_protocol, websocket_data.path, websocket_data.query, text
 	)?;
 
 	let wsm = WebSocketMessage {
 		mtype: WebSocketMessageType::Text,
 		payload: "abcd".as_bytes().to_vec(),
 	};
-	wsh.send_message(&wsm, false)?;
+	wsh.send(&wsm)?;
 	Ok(())
 }
 

@@ -204,6 +204,37 @@ macro_rules! rustlet_stop {
 }
 
 #[macro_export]
+macro_rules! websocket {
+	($name:expr, $code:expr) => {{
+		match bmw_rustlet::RUSTLET_CONTAINER.write() {
+			Ok(mut container) => match container.get_mut(&std::thread::current().id()) {
+				Some(container) => Ok(container.add_websocket(
+					$name,
+					Box::pin(
+						move |request: &mut Box<dyn bmw_rustlet::WebSocketRequest>| {
+							bmw_rustlet::RUSTLET_CONTEXT.with(|f| {
+								*f.borrow_mut() = (None, Some((*request).clone()));
+							});
+							{
+								$code
+							}
+						},
+					),
+				)?),
+				None => Err(bmw_err::err!(
+					bmw_err::ErrKind::IllegalState,
+					format!("could not obtain container for given thread")
+				)),
+			},
+			Err(e) => Err(bmw_err::err!(
+				bmw_err::ErrKind::IllegalState,
+				format!("could not obtain lock to add websocket to container: {}", e)
+			)),
+		}
+	}};
+}
+
+#[macro_export]
 macro_rules! rustlet {
 	($name:expr, $code:expr) => {{
 		match bmw_rustlet::RUSTLET_CONTAINER.write() {
@@ -281,26 +312,39 @@ macro_rules! response {
 	}};
 }
 
-#[macro_export]
-macro_rules! websocket {
-	() => {};
-}
-
 /// Returns [`crate::WebSocketRequest`].
 #[macro_export]
 macro_rules! websocket_request {
-	() => {};
+	() => {{
+		RUSTLET_CONTEXT.with(|f| match &(*f.borrow()).1 {
+			Some((request)) => Ok(request.clone()),
+			None => Err(bmw_err::err!(
+				bmw_err::ErrKind::Rustlet,
+				"Could not find rustlet context"
+			)),
+		})
+	}};
 }
 
 /// Three params: name, uri, [protocol list]
 #[macro_export]
 macro_rules! websocket_mapping {
-	() => {};
-}
-
-#[macro_export]
-macro_rules! session {
-	// TODO: session will have CRUD for session. SessionOp::Set, SessionOp::Get,
-	// SessionOp::Delete
-	() => {};
+	($path:expr, $name:expr, $protos:expr) => {{
+		match bmw_rustlet::RUSTLET_CONTAINER.write() {
+			Ok(mut containers) => match ((*containers).get_mut(&std::thread::current().id())) {
+				Some(container) => container.add_websocket_mapping($path, $name, $protos),
+				None => Err(bmw_err::err!(
+					bmw_err::ErrKind::IllegalState,
+					format!("could not obtain container to set a websocket_mapping for given thread")
+				)),
+			},
+			Err(e) => Err(bmw_err::err!(
+				bmw_err::ErrKind::IllegalState,
+				format!(
+					"could not obtain lock to insert websocket mapping from container: {}",
+					e
+				)
+			)),
+		}
+	}};
 }

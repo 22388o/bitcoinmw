@@ -121,7 +121,7 @@ pub struct HttpContentReader {
 
 #[derive(Debug, Clone)]
 pub struct WebSocketData {
-	pub uri: String,
+	pub path: String,
 	pub query: String,
 	pub negotiated_protocol: Option<String>,
 }
@@ -242,6 +242,7 @@ type WebsocketHandler = fn(
 	&HttpInstance,
 	&mut WebSocketHandle,
 	&WebSocketData,
+	&mut ThreadContext,
 ) -> Result<(), Error>;
 
 pub type HttpHandler = Pin<
