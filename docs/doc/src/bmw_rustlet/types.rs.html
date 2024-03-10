@@ -114,6 +114,18 @@
 <a href="#113" id="113">113</a>
 <a href="#114" id="114">114</a>
 <a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -153,6 +165,7 @@
 <span class="doccomment">/// The main trait used for processing requests in a rustlet. It has all the information needed in
 /// it. It can be accessed by the [`crate::request`] macro.
 </span><span class="kw">pub trait </span>RustletRequest: DynClone + Send + Sync {
+	<span class="kw">fn </span>header_host(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>String;
 	<span class="kw">fn </span>method(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>HttpMethod;
 	<span class="kw">fn </span>version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>HttpVersion;
 	<span class="kw">fn </span>path(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>String;
@@ -172,8 +185,6 @@
 	<span class="kw">fn </span>redirect(<span class="kw-2">&amp;mut </span><span class="self">self</span>, url: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="kw">fn </span>set_connection_close(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="kw">fn </span>async_complete(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
-	<span class="comment">// TODO: this should be pub(crate) only.
-	</span><span class="kw">fn </span>complete(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt;;
 }
 
 <span class="macro">clone_trait_object!</span>(RustletResponse);
@@ -188,12 +199,18 @@
 
 <span class="kw">pub struct </span>RustletConfig {
 	<span class="kw">pub </span>http_config: HttpConfig,
+	<span class="kw">pub </span>rustlet_config: RustletContainerConfig,
+}
+
+<span class="attr">#[derive(Clone, Debug)]
+</span><span class="kw">pub struct </span>RustletContainerConfig {
+	<span class="kw">pub </span>main_log_file: <span class="prelude-ty">Option</span>&lt;String&gt;,
 }
 
 <span class="kw">pub struct </span>RustletContainer {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) rustlets: HashMap&lt;String, Rustlet&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) rustlet_mappings: HashMap&lt;String, String&gt;,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) http_config: HttpConfig,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) config: RustletConfig,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) http_server: <span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>HttpServer + Send + Sync&gt;&gt;,
 }
 
@@ -202,6 +219,7 @@
 </span><span class="attr">#[derive(Clone)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>RustletRequestImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) path: String,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) header_host: String,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) query: String,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) method: HttpMethod,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) version: HttpVersion,
@@ -214,6 +232,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) wh: WriteHandle,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) state: Box&lt;<span class="kw">dyn </span>LockBox&lt;RustletResponseState&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) write_state: Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) depth: usize,
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>RustletResponseState {
@@ -229,4 +248,9 @@
 
 <span class="attr">#[derive(Clone)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>WebSocketRequestImpl {}
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>RustletContext {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) suffix_tree: Box&lt;<span class="kw">dyn </span>SuffixTree + Sync + Send&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) matches: [Match; <span class="number">1_000</span>],
+}
 </code></pre></div></section></main></body></html>

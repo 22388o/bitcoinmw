@@ -304,6 +304,7 @@
 <a href="#303" id="303">303</a>
 <a href="#304" id="304">304</a>
 <a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -436,7 +437,8 @@
                                 evh_config: bmw_evh::EventHandlerConfig::default(),
                                 instances: <span class="macro">vec!</span>[],
                                 ..Default::default()
-                        }
+                        },
+                        rustlet_config: bmw_rustlet::RustletContainerConfig::default(),
                 };
                 $(
                         <span class="kw">match </span><span class="macro-nonterminal">$config </span>{

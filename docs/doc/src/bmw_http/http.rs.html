@@ -3538,6 +3538,13 @@
 <a href="#3537" id="3537">3537</a>
 <a href="#3538" id="3538">3538</a>
 <a href="#3539" id="3539">3539</a>
+<a href="#3540" id="3540">3540</a>
+<a href="#3541" id="3541">3541</a>
+<a href="#3542" id="3542">3542</a>
+<a href="#3543" id="3543">3543</a>
+<a href="#3544" id="3544">3544</a>
+<a href="#3545" id="3545">3545</a>
+<a href="#3546" id="3546">3546</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -3652,6 +3659,7 @@
 			max_headers_len: <span class="number">8192</span>,
 			max_header_count: <span class="number">100</span>,
 			max_uri_len: <span class="number">4096</span>,
+			attachment: <span class="prelude-val">None</span>,
 			mime_map: <span class="macro">vec!</span>[
 				(<span class="string">"html"</span>.to_string(), <span class="string">"text/html"</span>.to_string()),
 				(<span class="string">"htm"</span>.to_string(), <span class="string">"text/html"</span>.to_string()),
@@ -4494,6 +4502,7 @@
 		slab_allocator_config.slab_size = CONTENT_SLAB_SIZE;
 		slab_allocator_config.slab_count = config.content_slab_count;
 		content_allocator.init(slab_allocator_config)<span class="question-mark">?</span>;
+		<span class="kw">let </span>thread_context = ThreadContext::new();
 		<span class="prelude-val">Ok</span>(HttpContext {
 			suffix_tree,
 			matches,
@@ -4503,6 +4512,7 @@
 			mime_rev_lookup,
 			now: <span class="number">0</span>,
 			content_allocator: <span class="macro">lock_box!</span>(content_allocator)<span class="question-mark">?</span>,
+			thread_context,
 		})
 	}
 
@@ -6143,6 +6153,7 @@
 														<span class="kw-2">&amp;mut </span>conn_data.write_handle(),
 														http_content_reader,
 														http_connection_data.write_state.clone(),
+														<span class="kw-2">&amp;mut </span>ctx.thread_context,
 													)<span class="question-mark">?</span>;
 													<span class="macro">debug!</span>(
 														<span class="string">"callback complete. is_async = {}"</span>,
@@ -6197,6 +6208,7 @@
 															http_connection_data
 																.write_state
 																.clone(),
+															<span class="kw-2">&amp;mut </span>ctx.thread_context,
 														)<span class="question-mark">?</span>;
 														<span class="macro">debug!</span>(
 															<span class="string">"callback complete is_async = {}"</span>,
@@ -6560,7 +6572,7 @@
 		HttpServer, PlainConfig,
 	};
 	<span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
-	<span class="kw">use </span>bmw_evh::{WriteHandle, WriteState};
+	<span class="kw">use </span>bmw_evh::{ThreadContext, WriteHandle, WriteState};
 	<span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_test::port::pick_free_port;
 	<span class="kw">use </span>bmw_test::testdir::{setup_test_dir, tear_down_test_dir};
@@ -6693,6 +6705,7 @@
 		write_handle: <span class="kw-2">&amp;mut </span>WriteHandle,
 		<span class="kw-2">mut </span>http_connection_data: HttpContentReader,
 		_write_state: Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;,
+		_thread_context: <span class="kw-2">&amp;mut </span>ThreadContext,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="macro">info!</span>(<span class="string">"recv callback"</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0</span>; <span class="number">10</span>];
@@ -6810,6 +6823,7 @@ callbk\n"
 		write_handle: <span class="kw-2">&amp;mut </span>WriteHandle,
 		<span class="kw-2">mut </span>http_connection_data: HttpContentReader,
 		_write_state: Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;,
+		_thread_context: <span class="kw-2">&amp;mut </span>ThreadContext,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="macro">info!</span>(<span class="string">"recv callback"</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0</span>; <span class="number">10</span>];

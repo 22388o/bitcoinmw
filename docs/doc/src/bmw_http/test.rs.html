@@ -546,6 +546,7 @@
 <a href="#545" id="545">545</a>
 <a href="#546" id="546">546</a>
 <a href="#547" id="547">547</a>
+<a href="#548" id="548">548</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -567,7 +568,7 @@
 </span><span class="kw">mod </span>test {
 	<span class="kw">use crate as </span>bmw_http;
 	<span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
-	<span class="kw">use </span>bmw_evh::{EventHandlerConfig, WriteHandle, WriteState};
+	<span class="kw">use </span>bmw_evh::{EventHandlerConfig, ThreadContext, WriteHandle, WriteState};
 	<span class="kw">use </span>bmw_http::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_test::<span class="kw-2">*</span>;
@@ -588,6 +589,7 @@
 		write_handle: <span class="kw-2">&amp;mut </span>WriteHandle,
 		<span class="kw-2">mut </span>http_connection_data: HttpContentReader,
 		_write_state: Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;,
+		_thread_context: <span class="kw-2">&amp;mut </span>ThreadContext,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="kw">let </span>path = headers.path()<span class="question-mark">?</span>;
 		<span class="kw">let </span>query = headers.query()<span class="question-mark">?</span>;
