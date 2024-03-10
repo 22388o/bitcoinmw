@@ -345,6 +345,12 @@ impl RustletContainer {
 		instance: &HttpInstance,
 		rcd: &RustletContainer,
 	) -> Result<(), Error> {
+		if response.depth > 100 {
+			return Err(err!(
+				ErrKind::Rustlet,
+				"Too much recursion. Did an RSP include itself?"
+			));
+		}
 		let mut rsp_text = String::new();
 		let mut file = File::open(rsp_path.clone())?;
 		file.read_to_string(&mut rsp_text)?;
@@ -472,9 +478,13 @@ impl RustletResponse for RustletResponseImpl {
 		self.flush_impl(false)
 	}
 	fn set_async(&mut self) -> Result<(), Error> {
-		wlock!(self.state).is_async = true;
-		wlock!(self.write_state).set_async(true);
-		Ok(())
+		if self.depth > 0 {
+			Err(err!(ErrKind::Rustlet, "cannot set async in an RSP."))
+		} else {
+			wlock!(self.state).is_async = true;
+			wlock!(self.write_state).set_async(true);
+			Ok(())
+		}
 	}
 	fn add_header(&mut self, name: &str, value: &str) -> Result<(), Error> {
 		wlock!(self.state)
