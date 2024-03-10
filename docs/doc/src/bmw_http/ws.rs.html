@@ -384,6 +384,15 @@
 <a href="#383" id="383">383</a>
 <a href="#384" id="384">384</a>
 <a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
+<a href="#390" id="390">390</a>
+<a href="#391" id="391">391</a>
+<a href="#392" id="392">392</a>
+<a href="#393" id="393">393</a>
+<a href="#394" id="394">394</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -409,7 +418,7 @@
 <span class="kw">use </span>bmw_deps::rand_core::{OsRng, RngCore};
 <span class="kw">use </span>bmw_deps::sha1::{Digest, Sha1};
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
-<span class="kw">use </span>bmw_evh::{ConnData, ConnectionData, WriteHandle};
+<span class="kw">use </span>bmw_evh::{ConnData, ConnectionData, ThreadContext, WriteHandle};
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
 
 <span class="macro">info!</span>();
@@ -495,11 +504,14 @@
 }
 
 <span class="kw">impl </span>WebSocketHandle {
-	<span class="kw">pub fn </span>send_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>, message: <span class="kw-2">&amp;</span>WebSocketMessage, mask: bool) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">pub fn </span>send(<span class="kw-2">&amp;mut </span><span class="self">self</span>, message: <span class="kw-2">&amp;</span>WebSocketMessage) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.write_handle
-			.write(<span class="kw-2">&amp;</span>websocket_message_to_vec(message, mask)<span class="question-mark">?</span>)
+			.write(<span class="kw-2">&amp;</span>websocket_message_to_vec(message, <span class="bool-val">false</span>)<span class="question-mark">?</span>)
 	}
-
+	<span class="kw">pub fn </span>send_masked(<span class="kw-2">&amp;mut </span><span class="self">self</span>, message: <span class="kw-2">&amp;</span>WebSocketMessage) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="self">self</span>.write_handle
+			.write(<span class="kw-2">&amp;</span>websocket_message_to_vec(message, <span class="bool-val">true</span>)<span class="question-mark">?</span>)
+	}
 	<span class="kw">pub fn </span>close(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.write_handle.close()
 	}
@@ -541,6 +553,7 @@ Sec-WebSocket-Accept: {}\r\n\r\n"</span>,
 	instance: <span class="kw-2">&amp;</span>HttpInstance,
 	config: <span class="kw-2">&amp;</span>HttpConfig,
 	websocket_data: <span class="kw-2">&amp;</span>WebSocketData,
+	thread_context: <span class="kw-2">&amp;mut </span>ThreadContext,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
 	<span class="macro">debug!</span>(<span class="string">"proc data: {:?}"</span>, req)<span class="question-mark">?</span>;
 	<span class="kw">let </span>(messages, termination_point) = build_messages(req)<span class="question-mark">?</span>;
@@ -549,9 +562,14 @@ Sec-WebSocket-Accept: {}\r\n\r\n"</span>,
 	};
 	<span class="kw">for </span>message <span class="kw">in </span><span class="kw-2">&amp;</span>messages {
 		<span class="kw">match </span>instance.websocket_handler {
-			<span class="prelude-val">Some</span>(ws_handler) =&gt; {
-				ws_handler(message, config, instance, <span class="kw-2">&amp;mut </span>ws_handle, websocket_data)<span class="question-mark">?
-			</span>}
+			<span class="prelude-val">Some</span>(ws_handler) =&gt; ws_handler(
+				message,
+				config,
+				instance,
+				<span class="kw-2">&amp;mut </span>ws_handle,
+				websocket_data,
+				thread_context,
+			)<span class="question-mark">?</span>,
 			<span class="prelude-val">None </span>=&gt; {
 				<span class="macro">warn!</span>(<span class="string">"got websocket request but no handler was specified!"</span>)<span class="question-mark">?</span>;
 			}

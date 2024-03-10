@@ -586,6 +586,7 @@
 <a href="#585" id="585">585</a>
 <a href="#586" id="586">586</a>
 <a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -709,7 +710,7 @@
 
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>WebSocketData {
-	<span class="kw">pub </span>uri: String,
+	<span class="kw">pub </span>path: String,
 	<span class="kw">pub </span>query: String,
 	<span class="kw">pub </span>negotiated_protocol: <span class="prelude-ty">Option</span>&lt;String&gt;,
 }
@@ -830,6 +831,7 @@
 	<span class="kw-2">&amp;</span>HttpInstance,
 	<span class="kw-2">&amp;mut </span>WebSocketHandle,
 	<span class="kw-2">&amp;</span>WebSocketData,
+	<span class="kw-2">&amp;mut </span>ThreadContext,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 
 <span class="kw">pub type </span>HttpHandler = Pin&lt;

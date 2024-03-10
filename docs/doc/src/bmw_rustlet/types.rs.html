@@ -126,6 +126,18 @@
 <a href="#125" id="125">125</a>
 <a href="#126" id="126">126</a>
 <a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -151,7 +163,7 @@
 	WebSocketHandle, WebSocketMessage,
 };
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
-<span class="kw">use </span>std::collections::HashMap;
+<span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::pin::Pin;
 
 <span class="kw">pub type </span>Rustlet = Pin&lt;
@@ -161,6 +173,9 @@
 			+ Sync,
 	&gt;,
 &gt;;
+
+<span class="kw">pub type </span>Websocket =
+	Pin&lt;Box&lt;<span class="kw">dyn </span>Fn(<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>WebSocketRequest&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; + Send + Sync&gt;&gt;;
 
 <span class="doccomment">/// The main trait used for processing requests in a rustlet. It has all the information needed in
 /// it. It can be accessed by the [`crate::request`] macro.
@@ -190,9 +205,12 @@
 <span class="macro">clone_trait_object!</span>(RustletResponse);
 
 <span class="kw">pub trait </span>WebSocketRequest: DynClone {
-	<span class="kw">fn </span>handle(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;WebSocketHandle, Error&gt;;
-	<span class="kw">fn </span>message(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;WebSocketMessage, Error&gt;;
-	<span class="kw">fn </span>data(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;WebSocketData, Error&gt;;
+	<span class="kw">fn </span>handle(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>WebSocketHandle;
+	<span class="kw">fn </span>message(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>WebSocketMessage;
+	<span class="kw">fn </span>data(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>WebSocketData;
+	<span class="kw">fn </span>path(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>String;
+	<span class="kw">fn </span>query(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>String;
+	<span class="kw">fn </span>protocol(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>String&gt;;
 }
 
 <span class="macro">clone_trait_object!</span>(WebSocketRequest);
@@ -209,7 +227,9 @@
 
 <span class="kw">pub struct </span>RustletContainer {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) rustlets: HashMap&lt;String, Rustlet&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) websockets: HashMap&lt;String, Websocket&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) rustlet_mappings: HashMap&lt;String, String&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) websocket_mappings: HashMap&lt;String, (String, HashSet&lt;String&gt;)&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) config: RustletConfig,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) http_server: <span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>HttpServer + Send + Sync&gt;&gt;,
 }
@@ -247,7 +267,11 @@
 }
 
 <span class="attr">#[derive(Clone)]
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>WebSocketRequestImpl {}
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>WebSocketRequestImpl {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) handle: WebSocketHandle,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) message: WebSocketMessage,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) data: WebSocketData,
+}
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>RustletContext {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) suffix_tree: Box&lt;<span class="kw">dyn </span>SuffixTree + Sync + Send&gt;,

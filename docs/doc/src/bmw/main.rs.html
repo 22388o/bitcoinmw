@@ -189,6 +189,7 @@
 <a href="#188" id="188">188</a>
 <a href="#189" id="189">189</a>
 <a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -278,18 +279,19 @@ callbk\n"
 	_instance: <span class="kw-2">&amp;</span>HttpInstance,
 	wsh: <span class="kw-2">&amp;mut </span>WebSocketHandle,
 	websocket_data: <span class="kw-2">&amp;</span>WebSocketData,
+	_thread_context: <span class="kw-2">&amp;mut </span>ThreadContext,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 	<span class="kw">let </span>text = std::str::from_utf8(<span class="kw-2">&amp;</span>message.payload[..]).unwrap_or(<span class="string">"utf8err"</span>);
 	<span class="macro">info!</span>(
 		<span class="string">"in ws handler in main.rs. got message [proto='{:?}'] [path='{}'] [query='{}'] = '{}'"</span>,
-		websocket_data.negotiated_protocol, websocket_data.uri, websocket_data.query, text
+		websocket_data.negotiated_protocol, websocket_data.path, websocket_data.query, text
 	)<span class="question-mark">?</span>;
 
 	<span class="kw">let </span>wsm = WebSocketMessage {
 		mtype: WebSocketMessageType::Text,
 		payload: <span class="string">"abcd"</span>.as_bytes().to_vec(),
 	};
-	wsh.send_message(<span class="kw-2">&amp;</span>wsm, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
+	wsh.send(<span class="kw-2">&amp;</span>wsm)<span class="question-mark">?</span>;
 	<span class="prelude-val">Ok</span>(())
 }
 

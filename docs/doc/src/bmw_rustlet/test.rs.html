@@ -565,6 +565,11 @@
 <a href="#564" id="564">564</a>
 <a href="#565" id="565">565</a>
 <a href="#566" id="566">566</a>
+<a href="#567" id="567">567</a>
+<a href="#568" id="568">568</a>
+<a href="#569" id="569">569</a>
+<a href="#570" id="570">570</a>
+<a href="#571" id="571">571</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -618,6 +623,11 @@
 				BaseDir(directory)
 			)<span class="question-mark">?</span>;
 		}
+
+		<span class="macro">websocket!</span>(<span class="string">"test"</span>, {
+			<span class="macro">info!</span>(<span class="string">"in test websocket"</span>)<span class="question-mark">?</span>;
+			<span class="prelude-val">Ok</span>(())
+		})<span class="question-mark">?</span>;
 
 		<span class="macro">rustlet!</span>(<span class="string">"test"</span>, {
 			<span class="kw">let </span><span class="kw-2">mut </span>response = <span class="macro">response!</span>()<span class="question-mark">?</span>;
