@@ -130,7 +130,8 @@ macro_rules! rustlet_init {
                                 evh_config: bmw_evh::EventHandlerConfig::default(),
                                 instances: vec![],
                                 ..Default::default()
-                        }
+                        },
+                        rustlet_config: bmw_rustlet::RustletContainerConfig::default(),
                 };
                 $(
                         match $config {

@@ -17,7 +17,7 @@
 // limitations under the License.
 
 use bmw_err::{err, ErrKind, Error};
-use bmw_evh::{EventHandlerConfig, WriteHandle, WriteState};
+use bmw_evh::{EventHandlerConfig, ThreadContext, WriteHandle, WriteState};
 use bmw_http::HttpInstanceType::Plain;
 use bmw_http::PlainConfig;
 use bmw_http::{
@@ -47,6 +47,7 @@ fn callback(
 	write_handle: &mut WriteHandle,
 	mut http_connection_data: HttpContentReader,
 	_write_state: Box<dyn LockBox<WriteState>>,
+	_thread_context: &mut ThreadContext,
 ) -> Result<bool, Error> {
 	info!("in callback!")?;
 

@@ -367,7 +367,7 @@ impl StreamInfo {
 }
 
 impl ThreadContext {
-	pub(crate) fn new() -> Self {
+	pub fn new() -> Self {
 		Self {
 			user_data: Box::new(0),
 		}

@@ -112,6 +112,7 @@ impl Default for HttpConfig {
 			max_headers_len: 8192,
 			max_header_count: 100,
 			max_uri_len: 4096,
+			attachment: None,
 			mime_map: vec![
 				("html".to_string(), "text/html".to_string()),
 				("htm".to_string(), "text/html".to_string()),
@@ -954,6 +955,7 @@ impl HttpServerImpl {
 		slab_allocator_config.slab_size = CONTENT_SLAB_SIZE;
 		slab_allocator_config.slab_count = config.content_slab_count;
 		content_allocator.init(slab_allocator_config)?;
+		let thread_context = ThreadContext::new();
 		Ok(HttpContext {
 			suffix_tree,
 			matches,
@@ -963,6 +965,7 @@ impl HttpServerImpl {
 			mime_rev_lookup,
 			now: 0,
 			content_allocator: lock_box!(content_allocator)?,
+			thread_context,
 		})
 	}
 
@@ -2603,6 +2606,7 @@ impl HttpServerImpl {
 														&mut conn_data.write_handle(),
 														http_content_reader,
 														http_connection_data.write_state.clone(),
+														&mut ctx.thread_context,
 													)?;
 													debug!(
 														"callback complete. is_async = {}",
@@ -2657,6 +2661,7 @@ impl HttpServerImpl {
 															http_connection_data
 																.write_state
 																.clone(),
+															&mut ctx.thread_context,
 														)?;
 														debug!(
 															"callback complete is_async = {}",
@@ -3020,7 +3025,7 @@ mod test {
 		HttpServer, PlainConfig,
 	};
 	use bmw_err::*;
-	use bmw_evh::{WriteHandle, WriteState};
+	use bmw_evh::{ThreadContext, WriteHandle, WriteState};
 	use bmw_log::*;
 	use bmw_test::port::pick_free_port;
 	use bmw_test::testdir::{setup_test_dir, tear_down_test_dir};
@@ -3153,6 +3158,7 @@ mod test {
 		write_handle: &mut WriteHandle,
 		mut http_connection_data: HttpContentReader,
 		_write_state: Box<dyn LockBox<WriteState>>,
+		_thread_context: &mut ThreadContext,
 	) -> Result<bool, Error> {
 		info!("recv callback")?;
 		let mut buf = [0; 10];
@@ -3270,6 +3276,7 @@ callbk\n"
 		write_handle: &mut WriteHandle,
 		mut http_connection_data: HttpContentReader,
 		_write_state: Box<dyn LockBox<WriteState>>,
+		_thread_context: &mut ThreadContext,
 	) -> Result<bool, Error> {
 		info!("recv callback")?;
 		let mut buf = [0; 10];

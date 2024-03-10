@@ -73,12 +73,18 @@ clone_trait_object!(WebSocketRequest);
 
 pub struct RustletConfig {
 	pub http_config: HttpConfig,
+	pub rustlet_config: RustletContainerConfig,
+}
+
+#[derive(Clone, Debug)]
+pub struct RustletContainerConfig {
+	pub main_log_file: Option<String>,
 }
 
 pub struct RustletContainer {
 	pub(crate) rustlets: HashMap<String, Rustlet>,
 	pub(crate) rustlet_mappings: HashMap<String, String>,
-	pub(crate) http_config: HttpConfig,
+	pub(crate) config: RustletConfig,
 	pub(crate) http_server: Option<Box<dyn HttpServer + Send + Sync>>,
 }
 
@@ -100,6 +106,7 @@ pub(crate) struct RustletResponseImpl {
 	pub(crate) wh: WriteHandle,
 	pub(crate) state: Box<dyn LockBox<RustletResponseState>>,
 	pub(crate) write_state: Box<dyn LockBox<WriteState>>,
+	pub(crate) depth: usize,
 }
 
 pub(crate) struct RustletResponseState {
@@ -115,3 +122,8 @@ pub(crate) struct RustletResponseState {
 
 #[derive(Clone)]
 pub(crate) struct WebSocketRequestImpl {}
+
+pub(crate) struct RustletContext {
+	pub(crate) suffix_tree: Box<dyn SuffixTree + Sync + Send>,
+	pub(crate) matches: [Match; 1_000],
+}

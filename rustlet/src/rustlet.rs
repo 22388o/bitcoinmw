@@ -16,13 +16,13 @@
 // limitations under the License.
 
 use crate::types::{
-	Rustlet, RustletContainer, RustletRequestImpl, RustletResponseImpl, RustletResponseState,
-	WebSocketRequest, WebSocketRequestImpl,
+	Rustlet, RustletContainer, RustletContext, RustletRequestImpl, RustletResponseImpl,
+	RustletResponseState, WebSocketRequest, WebSocketRequestImpl,
 };
-use crate::{RustletConfig, RustletRequest, RustletResponse};
+use crate::{RustletConfig, RustletContainerConfig, RustletRequest, RustletResponse};
 use bmw_deps::lazy_static::lazy_static;
 use bmw_err::*;
-use bmw_evh::{WriteHandle, WriteState};
+use bmw_evh::{ThreadContext, WriteHandle, WriteState};
 use bmw_http::HttpInstanceType::Plain;
 use bmw_http::HttpInstanceType::Tls;
 use bmw_http::{
@@ -33,6 +33,9 @@ use bmw_log::*;
 use bmw_util::*;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
+use std::fs::File;
+use std::io::Read;
+use std::str::from_utf8;
 use std::sync::{Arc, RwLock};
 use std::thread::{current, ThreadId};
 
@@ -57,7 +60,35 @@ impl Default for RustletConfig {
 	fn default() -> Self {
 		Self {
 			http_config: HttpConfig::default(),
+			rustlet_config: RustletContainerConfig::default(),
 		}
+	}
+}
+
+impl Default for RustletContainerConfig {
+	fn default() -> Self {
+		Self {
+			main_log_file: None,
+		}
+	}
+}
+
+impl RustletContext {
+	fn new(_config: &RustletContainerConfig) -> Result<Self, Error> {
+		let slab_allocator = slab_allocator!()?;
+		let mut list =
+			bmw_util::Builder::build_list(ListConfig::default(), &Some(&slab_allocator))?;
+		list.push(pattern!(Regex("$(@"), Id(0))?)?;
+		let suffix_tree = Box::new(suffix_tree!(
+			list,
+			TerminationLength(1_000_000_000),
+			MaxWildcardLength(1_000)
+		)?);
+		let matches = [bmw_util::Builder::build_match_default(); 1_000];
+		Ok(RustletContext {
+			suffix_tree,
+			matches,
+		})
 	}
 }
 
@@ -70,7 +101,7 @@ impl RustletContainer {
 				rustlets: HashMap::new(),
 				rustlet_mappings: HashMap::new(),
 				http_server: None,
-				http_config: config.http_config,
+				config,
 			},
 		);
 
@@ -91,13 +122,15 @@ impl RustletContainer {
 					callback_mappings.insert(key.clone());
 				}
 				callback_extensions.insert("rsp".to_string());
-				for instance in &mut self.http_config.instances {
+				for instance in &mut self.config.http_config.instances {
 					instance.callback = Some(Self::callback);
 					instance.callback_mappings = callback_mappings.clone();
 					instance.callback_extensions = callback_extensions.clone();
 					instance.attachment = Box::new(tid);
 				}
-				let mut http_server = Builder::build_http_server(&self.http_config)?;
+				self.config.http_config.attachment =
+					Some(Box::new(self.config.rustlet_config.clone()));
+				let mut http_server = Builder::build_http_server(&self.config.http_config)?;
 				http_server.start()?;
 				self.http_server = Some(http_server);
 				Ok(())
@@ -112,6 +145,45 @@ impl RustletContainer {
 		}
 	}
 
+	fn build_ctx<'a>(
+		ctx: &'a mut ThreadContext,
+		config: &HttpConfig,
+	) -> Result<&'a mut RustletContext, Error> {
+		match ctx.user_data.downcast_ref::<RustletContext>() {
+			Some(_) => {}
+			None => {
+				ctx.user_data = Box::new(Self::build_rustlet_context(config)?);
+			}
+		}
+
+		Ok(ctx.user_data.downcast_mut::<RustletContext>().unwrap())
+	}
+
+	fn build_rustlet_context(config: &HttpConfig) -> Result<RustletContext, Error> {
+		match &config.attachment {
+			Some(attachment) => match attachment.downcast_ref::<RustletContainerConfig>() {
+				Ok(rustlet_container_config) => {
+					debug!(
+						"returning rustlet context based on config: {:?}",
+						rustlet_container_config
+					)?;
+					RustletContext::new(rustlet_container_config)
+				}
+				Err(e) => Err(err!(
+					ErrKind::Rustlet,
+					format!(
+						"could not obtain RustletContainerConfig from attachment due to: {}",
+						e
+					)
+				)),
+			},
+			None => Err(err!(
+				ErrKind::Rustlet,
+				"could not obtain attachment from HttpConfig"
+			)),
+		}
+	}
+
 	fn callback(
 		headers: &HttpHeaders,
 		config: &HttpConfig,
@@ -119,7 +191,9 @@ impl RustletContainer {
 		write_handle: &mut WriteHandle,
 		http_connection_data: HttpContentReader,
 		write_state: Box<dyn LockBox<WriteState>>,
+		thread_context: &mut ThreadContext,
 	) -> Result<bool, Error> {
+		let ctx = Self::build_ctx(thread_context, config)?;
 		match Self::callback_impl(
 			headers,
 			config,
@@ -127,6 +201,7 @@ impl RustletContainer {
 			write_handle,
 			http_connection_data,
 			write_state,
+			ctx,
 		) {
 			Ok(v) => Ok(v),
 			Err(e) => {
@@ -145,6 +220,79 @@ impl RustletContainer {
 		}
 	}
 
+	fn execute_rustlet(
+		ctx: &mut RustletContext,
+		write_handle: &mut WriteHandle,
+		rustlet_request: &mut Box<dyn RustletRequest>,
+		rustlet_response: RustletResponseImpl,
+		path: &String,
+		host: &String,
+		instance: &HttpInstance,
+		rcd: &RustletContainer,
+	) -> Result<bool, Error> {
+		debug!("execute {}. depth={}", path, rustlet_response.depth)?;
+		match rcd.rustlet_mappings.get(path) {
+			Some(name) => match rcd.rustlets.get(name) {
+				Some(rustlet) => {
+					debug!("found a rustlet")?;
+					let rustlet_response: &mut Box<dyn RustletResponse> =
+						&mut (Box::new(rustlet_response) as Box<dyn RustletResponse>);
+					match (rustlet)(rustlet_request, rustlet_response) {
+						Ok(_) => {
+							let is_async = rustlet_response.complete()?;
+							Ok(is_async)
+						}
+						Err(e) => Err(err!(
+							ErrKind::Rustlet,
+							format!("rustlet callback generated error: {}", e)
+						)),
+					}
+				}
+				None => Err(err!(
+					ErrKind::Rustlet,
+					format!("rustlet '{}' not found", name)
+				)),
+			},
+			None => {
+				let default = ".".to_string();
+				let base_dir = match &instance.instance_type {
+					Plain(config) => config
+						.http_dir_map
+						.get(host)
+						.unwrap_or(config.http_dir_map.get("*").unwrap_or(&default))
+						.clone(),
+					Tls(config) => config
+						.http_dir_map
+						.get(host)
+						.unwrap_or(config.http_dir_map.get("*").unwrap_or(&default))
+						.clone(),
+				};
+				let rsp_path = match canonicalize_base_path(&base_dir, &path) {
+					Ok(rsp_path) => rsp_path,
+					Err(e) => {
+						return Err(err!(
+							ErrKind::Rustlet,
+							format!("rsp: '{}{}' not found due to: {}", base_dir, path, e)
+						));
+					}
+				};
+
+				Self::execute_rsp(
+					rsp_path,
+					write_handle,
+					ctx,
+					rustlet_request,
+					rustlet_response,
+					host,
+					instance,
+					rcd,
+				)?;
+
+				Ok(false)
+			}
+		}
+	}
+
 	fn callback_impl(
 		headers: &HttpHeaders,
 		_config: &HttpConfig,
@@ -152,6 +300,7 @@ impl RustletContainer {
 		write_handle: &mut WriteHandle,
 		http_connection_data: HttpContentReader,
 		write_state: Box<dyn LockBox<WriteState>>,
+		ctx: &mut RustletContext,
 	) -> Result<bool, Error> {
 		let container = RUSTLET_CONTAINER.read()?;
 		let tid = instance
@@ -170,69 +319,82 @@ impl RustletContainer {
 				let rustlet_response = RustletResponseImpl::new(write_handle.clone(), write_state)?;
 				let rustlet_request: &mut Box<dyn RustletRequest> =
 					&mut (Box::new(rustlet_request) as Box<dyn RustletRequest>);
-				let rustlet_response: &mut Box<dyn RustletResponse> =
-					&mut (Box::new(rustlet_response) as Box<dyn RustletResponse>);
 
-				match rcd.rustlet_mappings.get(&path) {
-					Some(name) => match rcd.rustlets.get(name) {
-						Some(rustlet) => {
-							debug!("found a rustlet")?;
-							match (rustlet)(rustlet_request, rustlet_response) {
-								Ok(_) => {
-									let is_async = rustlet_response.complete()?;
-									Ok(is_async)
-								}
-								Err(e) => Err(err!(
-									ErrKind::Rustlet,
-									format!("rustlet callback generated error: {}", e)
-								)),
-							}
-						}
-						None => Err(err!(
-							ErrKind::Rustlet,
-							format!("rustlet '{}' not found", name)
-						)),
-					},
-					None => {
-						let default = ".".to_string();
-						let base_dir = match &instance.instance_type {
-							Plain(config) => config
-								.http_dir_map
-								.get(host)
-								.unwrap_or(config.http_dir_map.get("*").unwrap_or(&default))
-								.clone(),
-							Tls(config) => config
-								.http_dir_map
-								.get(host)
-								.unwrap_or(config.http_dir_map.get("*").unwrap_or(&default))
-								.clone(),
-						};
-						let rsp_path = match canonicalize_base_path(&base_dir, &path) {
-							Ok(rsp_path) => rsp_path,
-							Err(e) => {
-								return Err(err!(
-									ErrKind::Rustlet,
-									format!("rsp: '{}{}' not found due to: {}", base_dir, path, e)
-								));
-							}
-						};
-
-						let content = format!("Found RSP at {}.", rsp_path);
-						let clen = content.len();
-						write_handle.write(
-							format!(
-								"HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
-								clen, content
-							)
-							.as_bytes(),
-						)?;
-
-						Ok(false)
-					}
-				}
+				Self::execute_rustlet(
+					ctx,
+					write_handle,
+					rustlet_request,
+					rustlet_response,
+					&path,
+					host,
+					instance,
+					rcd,
+				)
 			}
 			None => Err(err!(ErrKind::Rustlet, "rustlet container not initialized")),
 		}
+	}
+
+	fn execute_rsp(
+		rsp_path: String,
+		write_handle: &mut WriteHandle,
+		ctx: &mut RustletContext,
+		request: &mut Box<dyn RustletRequest>,
+		mut response: RustletResponseImpl,
+		host: &String,
+		instance: &HttpInstance,
+		rcd: &RustletContainer,
+	) -> Result<(), Error> {
+		let mut rsp_text = String::new();
+		let mut file = File::open(rsp_path.clone())?;
+		file.read_to_string(&mut rsp_text)?;
+		let rsp_bytes = rsp_text.as_bytes();
+		let rsp_bytes_len = rsp_bytes.len();
+
+		let count = ctx.suffix_tree.tmatch(&rsp_bytes, &mut ctx.matches)?;
+
+		let mut itt = 0;
+		for i in 0..count {
+			let start = ctx.matches[i].start() + 3;
+			let mut end = start;
+			loop {
+				if end >= rsp_bytes_len || rsp_bytes[end] == b')' {
+					break;
+				}
+
+				end += 1;
+			}
+			if end >= rsp_bytes_len {
+				return Err(err!(
+					ErrKind::Rustlet,
+					format!(
+						"RSP: {} generated error: unterminated tag in RSP",
+						&rsp_path
+					)
+				));
+			}
+			let path = from_utf8(&rsp_bytes[start..end])?.to_string();
+			response.write(&rsp_bytes[itt..start.saturating_sub(3)])?;
+			response.depth += 1;
+			Self::execute_rustlet(
+				ctx,
+				write_handle,
+				request,
+				response.clone(),
+				&path,
+				host,
+				instance,
+				rcd,
+			)?;
+			response.depth -= 1;
+			itt = end + 1;
+			debug!("name='{}'", path)?;
+		}
+		response.write(&rsp_bytes[itt..])?;
+
+		response.complete()?;
+
+		Ok(())
 	}
 
 	pub fn add_rustlet(&mut self, name: &str, rustlet: Rustlet) -> Result<(), Error> {
@@ -378,6 +540,7 @@ impl RustletResponseImpl {
 				is_async: false,
 			})?,
 			write_state,
+			depth: 0,
 		})
 	}
 
@@ -450,8 +613,9 @@ impl RustletResponseImpl {
 	}
 
 	fn complete_impl(&mut self, async_complete: bool) -> Result<bool, Error> {
-		if rlock!(self.state).is_async {
-			// we'er async we don't complete in the normal way
+		if rlock!(self.state).is_async || self.depth > 0 {
+			// we're async we don't complete in the normal way
+			// also if not the lowest depth, we don't complete
 			return Ok(true);
 		}
 		self.send_headers(&[])?;

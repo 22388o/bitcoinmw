@@ -20,7 +20,8 @@ use bmw_deps::downcast::{downcast, Any};
 use bmw_deps::dyn_clone::{clone_trait_object, DynClone};
 use bmw_err::*;
 use bmw_evh::{
-	ConnectionData, EventHandlerConfig, EventHandlerController, Handle, WriteHandle, WriteState,
+	ConnectionData, EventHandlerConfig, EventHandlerController, Handle, ThreadContext, WriteHandle,
+	WriteState,
 };
 use bmw_util::*;
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -220,6 +221,7 @@ pub struct HttpConfig {
 	pub max_headers_len: usize,
 	pub max_header_count: usize,
 	pub max_uri_len: usize,
+	pub attachment: Option<Box<dyn Attachment>>,
 }
 
 pub struct Builder {}
@@ -231,6 +233,7 @@ type HttpCallback = fn(
 	&mut WriteHandle,
 	HttpContentReader,
 	Box<dyn LockBox<WriteState>>,
+	&mut ThreadContext,
 ) -> Result<bool, Error>;
 
 type WebsocketHandler = fn(
@@ -513,6 +516,7 @@ pub(crate) struct HttpContext {
 	pub(crate) mime_rev_lookup: HashMap<String, u32>,
 	pub(crate) now: u128,
 	pub(crate) content_allocator: Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>,
+	pub(crate) thread_context: ThreadContext,
 }
 
 #[derive(PartialEq, Debug)]

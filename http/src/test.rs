@@ -19,7 +19,7 @@
 mod test {
 	use crate as bmw_http;
 	use bmw_err::*;
-	use bmw_evh::{EventHandlerConfig, WriteHandle, WriteState};
+	use bmw_evh::{EventHandlerConfig, ThreadContext, WriteHandle, WriteState};
 	use bmw_http::*;
 	use bmw_log::*;
 	use bmw_test::*;
@@ -40,6 +40,7 @@ mod test {
 		write_handle: &mut WriteHandle,
 		mut http_connection_data: HttpContentReader,
 		_write_state: Box<dyn LockBox<WriteState>>,
+		_thread_context: &mut ThreadContext,
 	) -> Result<bool, Error> {
 		let path = headers.path()?;
 		let query = headers.query()?;
