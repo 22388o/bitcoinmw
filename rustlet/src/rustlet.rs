@@ -224,22 +224,22 @@ impl RustletContainer {
 		ctx: &mut RustletContext,
 		write_handle: &mut WriteHandle,
 		rustlet_request: &mut Box<dyn RustletRequest>,
-		rustlet_response: RustletResponseImpl,
+		mut response: RustletResponseImpl,
 		path: &String,
 		host: &String,
 		instance: &HttpInstance,
 		rcd: &RustletContainer,
 	) -> Result<bool, Error> {
-		debug!("execute {}. depth={}", path, rustlet_response.depth)?;
+		debug!("execute {}. depth={}", path, response.depth)?;
 		match rcd.rustlet_mappings.get(path) {
 			Some(name) => match rcd.rustlets.get(name) {
 				Some(rustlet) => {
 					debug!("found a rustlet")?;
 					let rustlet_response: &mut Box<dyn RustletResponse> =
-						&mut (Box::new(rustlet_response) as Box<dyn RustletResponse>);
+						&mut (Box::new(response.clone()) as Box<dyn RustletResponse>);
 					match (rustlet)(rustlet_request, rustlet_response) {
 						Ok(_) => {
-							let is_async = rustlet_response.complete()?;
+							let is_async = response.complete_impl(false)?;
 							Ok(is_async)
 						}
 						Err(e) => Err(err!(
@@ -282,7 +282,7 @@ impl RustletContainer {
 					write_handle,
 					ctx,
 					rustlet_request,
-					rustlet_response,
+					response,
 					host,
 					instance,
 					rcd,
@@ -397,8 +397,7 @@ impl RustletContainer {
 			debug!("name='{}'", path)?;
 		}
 		response.write(&rsp_bytes[itt..])?;
-
-		response.complete()?;
+		response.complete_impl(false)?;
 
 		Ok(())
 	}
@@ -529,9 +528,6 @@ impl RustletResponse for RustletResponseImpl {
 		wlock!(self.state).is_async = false;
 		self.complete_impl(true)?;
 		Ok(())
-	}
-	fn complete(&mut self) -> Result<bool, Error> {
-		self.complete_impl(false)
 	}
 }
 
