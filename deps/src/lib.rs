@@ -50,6 +50,7 @@ pub use portpicker;
 pub use rand;
 pub use rand_core;
 pub use random_string;
+pub use ring;
 pub use rustls;
 pub use rustls_pemfile;
 pub use sha1;

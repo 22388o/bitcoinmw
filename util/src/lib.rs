@@ -531,6 +531,7 @@ mod hash;
 mod lock;
 mod macros;
 mod misc;
+mod rand;
 mod ser;
 mod slabs;
 mod suffix_tree;
@@ -541,6 +542,7 @@ pub use crate::misc::{
 	canonicalize_base_path, slice_to_u128, slice_to_u32, slice_to_u64, slice_to_usize,
 	u128_to_slice, u32_to_slice, u64_to_slice, usize_to_slice,
 };
+pub use crate::rand::{random_bytes, random_u128, random_u32, random_u64};
 pub use crate::ser::{deserialize, serialize};
 pub use crate::slabs::GLOBAL_SLAB_ALLOCATOR;
 pub use crate::types::ConfigOption::*;

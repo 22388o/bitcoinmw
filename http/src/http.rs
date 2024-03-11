@@ -2082,7 +2082,9 @@ impl HttpServerImpl {
 		}
 
 		debug!("matched proto = {:?}", negotiated_protocol)?;
-
+		if sec_websocket_key == "" {
+			return Err(err!(ErrKind::Http, "Sec-WebSocket-Key was not specified"));
+		}
 		send_websocket_handshake_response(
 			&mut write_handle,
 			sec_websocket_key,

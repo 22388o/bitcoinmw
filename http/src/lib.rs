@@ -30,7 +30,9 @@ pub use crate::types::{
 	HttpConfig, HttpConnection, HttpConnectionConfig, HttpConnectionData, HttpContentReader,
 	HttpHandler, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType, HttpMethod, HttpRequest,
 	HttpRequestConfig, HttpResponse, HttpServer, HttpStats, HttpVersion, PlainConfig, TlsConfig,
-	TlsConfigFiles, WebSocketData, WebSocketHandle, WebSocketMessage, WebSocketMessageType,
+	TlsConfigFiles, WebSocketClient, WebSocketClientConfig, WebSocketConnection,
+	WebSocketConnectionConfig, WebSocketData, WebSocketHandle, WebSocketHandler, WebSocketMessage,
+	WebSocketMessageType,
 };
 
 pub use crate::client::{HTTP_CLIENT_CONTAINER, HTTP_CLIENT_CONTEXT};

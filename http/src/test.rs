@@ -67,6 +67,38 @@ mod test {
 		Ok(false)
 	}
 
+	fn ws_handler(
+		message: &WebSocketMessage,
+		_config: &HttpConfig,
+		_instance: &HttpInstance,
+		wsh: &mut WebSocketHandle,
+		websocket_data: &WebSocketData,
+		_thread_context: &mut ThreadContext,
+	) -> Result<(), Error> {
+		let text = std::str::from_utf8(&message.payload[..]).unwrap_or("utf8err");
+		if text == "hello2" {
+			info!("hello2 recv")?;
+		} else {
+			assert_eq!(text, "hello");
+			info!(
+				"in test ws handler. got message [proto='{:?}'] [path='{}'] [query='{}'] = '{}'",
+				websocket_data.negotiated_protocol, websocket_data.path, websocket_data.query, text
+			)?;
+
+			let wsm = WebSocketMessage {
+				mtype: WebSocketMessageType::Text,
+				payload: "abcde".as_bytes().to_vec(),
+			};
+			wsh.send(&wsm)?;
+			let wsm = WebSocketMessage {
+				mtype: WebSocketMessageType::Text,
+				payload: "xyz".as_bytes().to_vec(),
+			};
+			wsh.send(&wsm)?;
+		}
+		Ok(())
+	}
+
 	fn build_server(directory: &str, tls: bool) -> Result<(u16, Box<dyn HttpServer>, &str), Error> {
 		setup_test_dir(directory)?;
 		let port = pick_free_port()?;
@@ -75,6 +107,13 @@ mod test {
 		let mut callback_mappings = HashSet::new();
 		callback_mappings.insert("/sleep".to_string());
 		callback_mappings.insert("/content".to_string());
+
+		let mut websocket_mappings = HashMap::new();
+		let mut test_ws_protos = HashSet::new();
+		test_ws_protos.insert("test".to_string());
+		test_ws_protos.insert("testv2".to_string());
+		websocket_mappings.insert("/chat".to_string(), HashSet::new());
+		websocket_mappings.insert("/testws".to_string(), test_ws_protos);
 
 		let config = HttpConfig {
 			evh_config: EventHandlerConfig {
@@ -97,6 +136,8 @@ mod test {
 				},
 				callback_mappings,
 				callback: Some(callback),
+				websocket_handler: Some(ws_handler),
+				websocket_mappings,
 				..Default::default()
 			}],
 			base_dir: directory.to_string(),
@@ -541,6 +582,60 @@ mod test {
 
 		assert_eq!(response.code()?, 200);
 
+		tear_down_server(http)?;
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_ws_client_basic() -> Result<(), Error> {
+		let test_dir = ".test_ws_client_basic.bmw";
+		let http = build_server(test_dir, false)?;
+		let port = http.0;
+
+		let config = WebSocketClientConfig {
+			..Default::default()
+		};
+		let mut ws = crate::Builder::build_websocket_client(&config)?;
+		let config = WebSocketConnectionConfig {
+			host: "127.0.0.1".to_string(),
+			port,
+			tls: false,
+			path: "/chat".to_string(),
+			..Default::default()
+		};
+
+		let mut abcde_lock = lock_box!(0)?;
+		let mut xyz_lock = lock_box!(0)?;
+		let abcde_lock_clone = abcde_lock.clone();
+		let xyz_lock_clone = xyz_lock.clone();
+
+		let handler = Box::pin(move |msg: &WebSocketMessage, wsh: &mut WebSocketHandle| {
+			info!("in handler: {:?}", msg)?;
+			if msg.payload == &[97, 98, 99, 100, 101] {
+				wlock!(abcde_lock) += 1;
+			} else if msg.payload == &[120, 121, 122] {
+				wlock!(xyz_lock) += 1;
+				let wsm = WebSocketMessage {
+					mtype: WebSocketMessageType::Text,
+					payload: b"hello2".to_vec(),
+				};
+				wsh.send(&wsm)?;
+			}
+			Ok(())
+		});
+		let mut ws_connection = ws.connect(&config, handler)?;
+		let wsm = WebSocketMessage {
+			mtype: WebSocketMessageType::Text,
+			payload: b"hello".to_vec(),
+		};
+		sleep(Duration::from_millis(100));
+		ws_connection.send(&wsm)?;
+
+		sleep(Duration::from_millis(3_000));
+
+		assert_eq!(rlock!(abcde_lock_clone), 1);
+		assert_eq!(rlock!(xyz_lock_clone), 1);
 		tear_down_server(http)?;
 
 		Ok(())

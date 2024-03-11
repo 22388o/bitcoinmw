@@ -447,7 +447,69 @@ pub struct TlsConfigFiles {
 	pub privkey_file: String,
 }
 
+pub type WebSocketHandler = Pin<
+	Box<
+		dyn FnMut(&WebSocketMessage, &mut WebSocketHandle) -> Result<(), Error>
+			+ Send
+			+ Sync
+			+ Unpin,
+	>,
+>;
+
+pub trait WebSocketClient {
+	fn connect(
+		&mut self,
+		config: &WebSocketConnectionConfig,
+		handler: WebSocketHandler,
+	) -> Result<Box<dyn WebSocketConnection + Send + Sync>, Error>;
+	fn stop(&mut self) -> Result<(), Error>;
+}
+
+pub trait WebSocketConnection {
+	fn send(&mut self, message: &WebSocketMessage) -> Result<(), Error>;
+	fn close(&mut self) -> Result<(), Error>;
+}
+
+#[derive(Clone)]
+pub struct WebSocketClientConfig {
+	pub debug: bool,
+	pub evh_threads: usize,
+	pub evh_max_handles_per_thread: usize,
+	pub evh_sync_channel_size: usize,
+	pub evh_write_queue_size: usize,
+	pub evh_nhandles_queue_size: usize,
+	pub evh_max_events_in: usize,
+	pub evh_housekeeping_frequency_millis: u128,
+	pub evh_read_slab_count: usize,
+	pub evh_max_events: usize,
+}
+
+#[derive(Clone)]
+pub struct WebSocketConnectionConfig {
+	pub host: String,
+	pub port: u16,
+	pub tls: bool,
+	pub full_chain_cert_file: Option<String>,
+	pub masked: bool,
+	pub protocols: Vec<String>,
+	pub path: String,
+}
+
 // Crate local types
+
+pub(crate) struct WebSocketClientImpl {
+	pub(crate) controller: EventHandlerController,
+}
+
+pub(crate) struct WebSocketConnectionImpl {
+	pub(crate) wh: WriteHandle,
+}
+
+pub(crate) struct WebSocketConnectionState {
+	pub(crate) switched: bool,
+	pub(crate) buffer: Vec<u8>,
+	pub(crate) handler: WebSocketHandler,
+}
 
 #[derive(Clone)]
 pub(crate) struct HttpClientImpl {

@@ -15,11 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::types::{HttpClientImpl, HttpConnectionImpl, HttpRequestImpl, HttpServerImpl};
+use crate::types::{
+	HttpClientImpl, HttpConnectionImpl, HttpRequestImpl, HttpServerImpl, WebSocketClientImpl,
+};
 use crate::Builder;
 use crate::{
 	HttpClient, HttpClientConfig, HttpConfig, HttpConnection, HttpConnectionConfig, HttpRequest,
-	HttpRequestConfig, HttpServer,
+	HttpRequestConfig, HttpServer, WebSocketClient, WebSocketClientConfig,
 };
 use bmw_err::*;
 
@@ -47,6 +49,12 @@ impl Builder {
 		config: &HttpRequestConfig,
 	) -> Result<Box<dyn HttpRequest + Send + Sync>, Error> {
 		Ok(Box::new(HttpRequestImpl::new(config)?))
+	}
+
+	pub fn build_websocket_client(
+		config: &WebSocketClientConfig,
+	) -> Result<Box<dyn WebSocketClient + Send + Sync>, Error> {
+		Ok(Box::new(WebSocketClientImpl::new(config)?))
 	}
 }
 
