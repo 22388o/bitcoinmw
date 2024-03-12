@@ -20,6 +20,305 @@ use bmw_log::*;
 info!();
 
 #[macro_export]
+macro_rules! websocket_client_init {
+	( $( $config:expr ),* ) => {{
+		let mut config = bmw_http::WebSocketClientConfig::default();
+                let mut threads_specified = false;
+                let mut max_handles_per_thread_specified = false;
+                let mut debug_specified = false;
+                let mut sync_channel_size_specified = false;
+                let mut write_queue_size_specified = false;
+                let mut nhandles_queue_size_specified = false;
+                let mut max_events_in_specified = false;
+                let mut max_events_specified = false;
+                let mut housekeeping_frequency_millis_specified = false;
+                let mut evh_read_slab_count_specified = false;
+                let mut error: Option<String> = None;
+
+                // to supress compiler warnings
+                if config.evh_threads == 0 { config.evh_threads = 0; }
+                if error.is_some() { error = None; }
+                if threads_specified { threads_specified = false; }
+                if max_handles_per_thread_specified { max_handles_per_thread_specified = false; }
+                if threads_specified {}
+                if max_handles_per_thread_specified {}
+
+                $(
+                        match $config {
+                                bmw_http::ConfigOption::Threads(threads) => {
+                                        config.evh_threads = threads;
+
+                                        if threads_specified {
+                                                error = Some("Threads was specified more than once!".to_string());
+                                        }
+                                        threads_specified = true;
+                                        if threads_specified {}
+
+                                },
+                                bmw_http::ConfigOption::MaxHandlesPerThread(mhpt) => {
+                                        config.evh_max_handles_per_thread = mhpt;
+
+                                        if max_handles_per_thread_specified {
+                                                error = Some("MaxHandlesPerThread was specified more than once!".to_string());
+                                        }
+
+                                        max_handles_per_thread_specified = true;
+                                        if max_handles_per_thread_specified {}
+                                },
+                                bmw_http::ConfigOption::Debug(debug) => {
+                                        config.debug = debug;
+
+                                        if debug_specified {
+                                                error = Some("DEBUG was specified more than once!".to_string());
+                                        }
+
+                                        debug_specified = true;
+                                        if debug_specified {}
+                                },
+                                bmw_http::ConfigOption::SyncChannelSize(sync_channel_size) => {
+                                        config.evh_sync_channel_size = sync_channel_size;
+
+                                        if sync_channel_size_specified {
+                                                error = Some("SyncChannelSize was specified more than once!".to_string());
+                                        }
+
+                                        sync_channel_size_specified = true;
+                                        if sync_channel_size_specified {}
+                                },
+                                bmw_http::ConfigOption::WriteQueueSize(write_queue_size) => {
+                                        config.evh_write_queue_size = write_queue_size;
+
+                                        if write_queue_size_specified {
+                                                error = Some("WriteQueueSize was specified more than once!".to_string());
+                                        }
+
+                                        write_queue_size_specified = true;
+                                        if write_queue_size_specified {}
+                                },
+                                bmw_http::ConfigOption::NhandlesQueueSize(nhandles_queue_size) => {
+                                        config.evh_nhandles_queue_size = nhandles_queue_size;
+
+                                        if nhandles_queue_size_specified {
+                                                error = Some("NhandlesQueueSize was specified more than once!".to_string());
+                                        }
+
+                                        nhandles_queue_size_specified = true;
+                                        if nhandles_queue_size_specified {}
+                                },
+                                bmw_http::ConfigOption::MaxEventsIn(max_events_in) => {
+                                        config.evh_max_events_in = max_events_in;
+
+                                        if max_events_in_specified {
+                                                error = Some("MaxEventsIn was specified more than once!".to_string());
+                                        }
+
+                                        max_events_in_specified = true;
+                                        if max_events_in_specified {}
+                                },
+                                bmw_http::ConfigOption::MaxEvents(max_events) => {
+                                        config.evh_max_events = max_events;
+
+                                        if max_events_specified {
+                                                error = Some("MaxEvents was specified more than once!".to_string());
+                                        }
+
+                                        max_events_specified = true;
+                                        if max_events_specified {}
+                                },
+                                bmw_http::ConfigOption::HouseKeepingFrequencyMillis(housekeeping_frequency_millis) => {
+                                        config.evh_housekeeping_frequency_millis = housekeeping_frequency_millis;
+
+                                        if housekeeping_frequency_millis_specified {
+                                                error = Some("HouseKeepingFrequencyMillis was specified more than once!".to_string());
+                                        }
+
+                                        housekeeping_frequency_millis_specified = true;
+                                        if housekeeping_frequency_millis_specified {}
+                                },
+                                bmw_http::ConfigOption::EvhReadSlabCount(evh_read_slab_count) => {
+                                        config.evh_read_slab_count = evh_read_slab_count;
+
+                                        if evh_read_slab_count_specified {
+                                                error = Some("EvhReadSlabCount was specified more than once!".to_string());
+                                        }
+
+                                        evh_read_slab_count_specified = true;
+                                        if evh_read_slab_count_specified {}
+                                },
+                                _ => {
+                                        error = Some(format!("'{:?}' is not allowed for websocket_client_init", $config));
+                                }
+                        }
+                )*
+                match error {
+                        Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, error)),
+                        None => {
+                                bmw_http::WebSocketClientContainer::init(&config)
+                        }
+                }
+
+
+	}};
+}
+
+#[macro_export]
+macro_rules! websocket_client_stop {
+	() => {{
+		bmw_http::WebSocketClientContainer::stop()
+	}};
+}
+
+#[macro_export]
+macro_rules! websocket_connection_config {
+	( $( $config:expr ),* ) => {{
+		let mut config = WebSocketConnectionConfig::default();
+                let mut url_specified = false;
+                let mut full_chain_cert_file_specified = false;
+                let mut masked_specified = false;
+                let mut protocols_specified = false;
+		let mut error: Option<String> = None;
+
+                $(
+                        match $config {
+                                bmw_http::ConfigOption::Url(url) => {
+                                        if url_specified {
+                                                error = Some(format!("Url was specified more than once"));
+                                        }
+
+                                        let parsed_url = bmw_deps::url::Url::parse(url)?;
+                                        match parsed_url.scheme() {
+                                                "wss" => config.tls = true,
+                                                "ws" => config.tls = false,
+                                                _ => error = Some("invalid url. scheme must be ws:// or wss://".to_string()),
+                                        }
+
+                                        match parsed_url.host() {
+                                                Some(host) => config.host = host.to_string(),
+                                                None => error = Some("invalid host specified".to_string()),
+                                        }
+
+                                        match parsed_url.port() {
+                                            Some(port) => config.port = port,
+                                            _ => {
+                                                    if config.tls { config.port = 443; } else { config.port = 80; }
+                                            },
+                                        }
+
+                                        config.path = parsed_url.path().to_string();
+                                        url_specified = true;
+
+                                        if url_specified {}
+                                },
+                                bmw_http::ConfigOption::FullChainCertFile(file) => {
+                                        config.full_chain_cert_file = Some(file.to_string());
+
+                                        if full_chain_cert_file_specified {
+                                                error = Some("FullChainCertFile was specified more than once!".to_string());
+                                        }
+
+                                        full_chain_cert_file_specified = true;
+
+                                        if full_chain_cert_file_specified {}
+                                },
+                                bmw_http::ConfigOption::Protocols(protocols) => {
+                                        config.protocols = protocols;
+
+                                        if protocols_specified {
+                                                error = Some("Protocols was specified more than once!".to_string());
+                                        }
+
+                                        protocols_specified = true;
+
+                                        if protocols_specified {}
+                                },
+                                bmw_http::ConfigOption::Masked(masked) => {
+                                        config.masked = masked;
+
+                                        if masked_specified {
+                                                error = Some("Masked was specified more than once!".to_string());
+                                        }
+
+                                        masked_specified = true;
+
+                                        if masked_specified {}
+                                },
+                                _ => {
+                                        error = Some(format!("'{:?}' is not allowed for websocket_connection_config", $config));
+                                }
+                        }
+                )*
+
+                if !url_specified {
+                        error = Some("url must be specified".to_string());
+                }
+
+		match error {
+			Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, error)),
+			None => Ok(config),
+		}
+	}};
+}
+
+#[macro_export]
+macro_rules! websocket_connection {
+	( $config:expr, $handler:expr) => {{
+		match bmw_http::WEBSOCKET_CLIENT_CONTAINER.write() {
+			Ok(mut container) => match (*container).get_mut(&std::thread::current().id()) {
+				Some(websocket_client) => {
+					let handler =
+						Box::pin(move |msg: &WebSocketMessage, wsh: &mut WebSocketHandle| {
+							bmw_http::WEBSOCKET_CLIENT_CONTEXT.with(|f| {
+								*f.borrow_mut() = Some((msg.clone(), wsh.clone()));
+							});
+							{
+								$handler
+							}
+						});
+					websocket_client.connect($config, handler)
+				}
+				None => Err(bmw_err::err!(
+					bmw_err::ErrKind::IllegalState,
+					"no websocket_client found for this thread"
+				)),
+			},
+			Err(e) => Err(bmw_err::err!(
+				bmw_err::ErrKind::IllegalState,
+				format!(
+					"could not obtain write lock from websocket client container: {}",
+					e
+				)
+			)),
+		}
+	}};
+}
+
+#[macro_export]
+macro_rules! websocket_message {
+	() => {{
+		bmw_http::WEBSOCKET_CLIENT_CONTEXT.with(|f| match &(*f.borrow()) {
+			Some((msg, _wsh)) => Ok(msg.clone()),
+			None => Err(bmw_err::err!(
+				bmw_err::ErrKind::IllegalState,
+				"Could not find websocket message given the current context"
+			)),
+		})
+	}};
+}
+
+#[macro_export]
+macro_rules! websocket_handle {
+	() => {{
+		bmw_http::WEBSOCKET_CLIENT_CONTEXT.with(|f| match &(*f.borrow()) {
+			Some((_msg, wsh)) => Ok(wsh.clone()),
+			None => Err(bmw_err::err!(
+				bmw_err::ErrKind::IllegalState,
+				"Could not find websocket handle given the current context"
+			)),
+		})
+	}};
+}
+
+#[macro_export]
 macro_rules! http_client_init {
 	( $( $config:expr ),* ) => {{
                 let mut config = bmw_http::HttpClientConfig::default();
@@ -206,8 +505,8 @@ macro_rules! http_client_request {
         () => {{
                 bmw_http::HTTP_CLIENT_CONTEXT.with(|f| match &(*f.borrow()) {
                         Some((request, _response)) => Ok(request.clone()),
-                        None => Err(err!(
-                                ErrKind::IllegalState,
+                        None => Err(bmw_err::err!(
+                                bmw_err::ErrKind::IllegalState,
                                 "Could not find HttpRequest given the current context"
                         )),
                 })
@@ -388,8 +687,8 @@ macro_rules! http_client_response {
 	() => {{
 		bmw_http::HTTP_CLIENT_CONTEXT.with(|f| match &(*f.borrow()) {
 			Some((_request, response)) => Ok(response.clone()),
-			None => Err(err!(
-				ErrKind::IllegalState,
+			None => Err(bmw_err::err!(
+				bmw_err::ErrKind::IllegalState,
 				"Could not find HttpResponse given the current context"
 			)),
 		})
@@ -527,8 +826,8 @@ macro_rules! http_client_send {
 					Ok(())
 				}
 			}
-			Err(e) => Err(err!(
-				ErrKind::IllegalState,
+			Err(e) => Err(bmw_err::err!(
+				bmw_err::ErrKind::IllegalState,
 				format!(
 					"Could not obtain write lock on HTTP_CLIENT_CONTAINER due to: {}",
 					e

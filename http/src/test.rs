@@ -76,13 +76,14 @@ mod test {
 		_thread_context: &mut ThreadContext,
 	) -> Result<(), Error> {
 		let text = std::str::from_utf8(&message.payload[..]).unwrap_or("utf8err");
+		let message_type = &message.mtype;
 		if text == "hello2" {
 			info!("hello2 recv")?;
 		} else {
 			assert_eq!(text, "hello");
 			info!(
-				"in test ws handler. got message [proto='{:?}'] [path='{}'] [query='{}'] = '{}'",
-				websocket_data.negotiated_protocol, websocket_data.path, websocket_data.query, text
+				"in test ws handler. got message [proto='{:?}'] [path='{}'] [query='{}'] = '{}', mtype={:?}",
+				websocket_data.negotiated_protocol, websocket_data.path, websocket_data.query, text, message_type
 			)?;
 
 			let wsm = WebSocketMessage {
@@ -636,6 +637,49 @@ mod test {
 
 		assert_eq!(rlock!(abcde_lock_clone), 1);
 		assert_eq!(rlock!(xyz_lock_clone), 1);
+		tear_down_server(http)?;
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_websocket_macros() -> Result<(), Error> {
+		let test_dir = ".test_websocket_macros.bmw";
+		let http = build_server(test_dir, false)?;
+		let port = http.0;
+
+		websocket_client_init!(Threads(2))?;
+
+		let url = format!("ws://127.0.0.1:{}/chat", port);
+		let config = websocket_connection_config!(Url(&url))?;
+		let mut first = lock_box!(true)?;
+		let first_clone = first.clone();
+
+		let mut ws_conn = websocket_connection!(&config, {
+			info!("got a message")?;
+			let message = websocket_message!()?;
+			info!("msg={:?}", message)?;
+			let mut handle = websocket_handle!()?;
+
+			if rlock!(first) {
+				info!("sending first message")?;
+				let to_send = try_into!(b"hello")?;
+				handle.send(&to_send)?;
+			}
+			wlock!(first) = false;
+			Ok(())
+		})?;
+
+		let msg = try_into!("hello")?;
+
+		sleep(Duration::from_millis(1_000));
+		ws_conn.send(&msg)?;
+
+		sleep(Duration::from_millis(3_000));
+
+		assert!(!rlock!(first_clone));
+		websocket_client_stop!()?;
+
 		tear_down_server(http)?;
 
 		Ok(())

@@ -358,6 +358,8 @@ pub struct HttpRequestConfig {
 
 pub struct HttpClientContainer {}
 
+pub struct WebSocketClientContainer {}
+
 /// Configuration options used throughout this crate via macro.
 #[derive(Clone, Debug)]
 pub enum ConfigOption<'a> {
@@ -439,6 +441,12 @@ pub enum ConfigOption<'a> {
 	ContentFile(&'a str),
 	/// For [`crate::http_connection`]'s, whether or not to keep the connection alive.
 	KeepAlive(bool),
+	/// For [`crate::websocket_connection_config`]'s whether or not to mask the data sent
+	/// through the websocket protocol.
+	Masked(bool),
+	/// For [`crate::websocket_connection_config`]'s the list of protocols to attempt to use
+	/// through the websocket protocol.
+	Protocols(Vec<String>),
 }
 
 #[derive(Debug, Clone)]
@@ -456,7 +464,7 @@ pub type WebSocketHandler = Pin<
 	>,
 >;
 
-pub trait WebSocketClient {
+pub trait WebSocketClient: DynClone + Any {
 	fn connect(
 		&mut self,
 		config: &WebSocketConnectionConfig,
@@ -464,6 +472,9 @@ pub trait WebSocketClient {
 	) -> Result<Box<dyn WebSocketConnection + Send + Sync>, Error>;
 	fn stop(&mut self) -> Result<(), Error>;
 }
+
+clone_trait_object!(WebSocketClient);
+downcast!(dyn WebSocketClient);
 
 pub trait WebSocketConnection {
 	fn send(&mut self, message: &WebSocketMessage) -> Result<(), Error>;
@@ -489,14 +500,15 @@ pub struct WebSocketConnectionConfig {
 	pub host: String,
 	pub port: u16,
 	pub tls: bool,
+	pub path: String,
 	pub full_chain_cert_file: Option<String>,
 	pub masked: bool,
 	pub protocols: Vec<String>,
-	pub path: String,
 }
 
 // Crate local types
 
+#[derive(Clone)]
 pub(crate) struct WebSocketClientImpl {
 	pub(crate) controller: EventHandlerController,
 }

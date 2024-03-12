@@ -17,8 +17,8 @@
 
 use crate::constants::*;
 use crate::types::{
-	FrameHeader, FrameType, WebSocketClientImpl, WebSocketConnectionImpl, WebSocketConnectionState,
-	WebSocketMessage, WebSocketMessageType,
+	FrameHeader, FrameType, WebSocketClientContainer, WebSocketClientImpl, WebSocketConnectionImpl,
+	WebSocketConnectionState, WebSocketMessage, WebSocketMessageType,
 };
 use crate::{
 	HttpConfig, HttpInstance, WebSocketClient, WebSocketClientConfig, WebSocketConnection,
@@ -26,6 +26,7 @@ use crate::{
 };
 use bmw_deps::base64;
 use bmw_deps::byteorder::{BigEndian, ByteOrder};
+use bmw_deps::lazy_static::lazy_static;
 use bmw_deps::rand_core::{OsRng, RngCore};
 use bmw_deps::sha1::{Digest, Sha1};
 use bmw_err::*;
@@ -37,10 +38,24 @@ use bmw_evh::{
 use bmw_log::*;
 use bmw_util::*;
 use std::any::Any;
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::net::TcpStream;
 use std::str::from_utf8;
+use std::sync::{Arc, RwLock};
+use std::thread::current;
+use std::thread::ThreadId;
 
 info!();
+
+thread_local! {
+	pub static WEBSOCKET_CLIENT_CONTEXT: RefCell<Option<(WebSocketMessage,WebSocketHandle)>> = RefCell::new(None);
+}
+
+lazy_static! {
+	pub static ref WEBSOCKET_CLIENT_CONTAINER: Arc<RwLock<HashMap<ThreadId, Box<dyn WebSocketClient + Send + Sync>>>> =
+		Arc::new(RwLock::new(HashMap::new()));
+}
 
 fn websocket_message_to_vec(ws: &WebSocketMessage, mask: bool) -> Result<Vec<u8>, Error> {
 	let mut ret: Vec<u8> = vec![];
@@ -120,6 +135,61 @@ fn websocket_message_to_vec(ws: &WebSocketMessage, mask: bool) -> Result<Vec<u8>
 	}
 
 	Ok(ret)
+}
+
+impl TryFrom<&str> for WebSocketMessage {
+	type Error = Error;
+	fn try_from(value: &str) -> Result<WebSocketMessage, Error> {
+		Ok(Self {
+			mtype: WebSocketMessageType::Text,
+			payload: value.as_bytes().to_vec(),
+		})
+	}
+}
+
+impl TryFrom<&[u8]> for WebSocketMessage {
+	type Error = Error;
+	fn try_from(value: &[u8]) -> Result<WebSocketMessage, Error> {
+		Ok(Self {
+			mtype: WebSocketMessageType::Binary,
+			payload: value.to_vec(),
+		})
+	}
+}
+
+impl<const N: usize> TryFrom<&[u8; N]> for WebSocketMessage {
+	type Error = Error;
+	fn try_from(value: &[u8; N]) -> Result<WebSocketMessage, Error> {
+		Ok(Self {
+			mtype: WebSocketMessageType::Binary,
+			payload: value.to_vec(),
+		})
+	}
+}
+
+impl TryFrom<WebSocketMessageType> for WebSocketMessage {
+	type Error = Error;
+	fn try_from(value: WebSocketMessageType) -> Result<WebSocketMessage, Error> {
+		match value {
+			WebSocketMessageType::Close => Ok(Self {
+				mtype: WebSocketMessageType::Close,
+				payload: vec![],
+			}),
+			WebSocketMessageType::Ping => Ok(Self {
+				mtype: WebSocketMessageType::Ping,
+				payload: vec![],
+			}),
+
+			WebSocketMessageType::Pong => Ok(Self {
+				mtype: WebSocketMessageType::Pong,
+				payload: vec![],
+			}),
+			_ => Err(err!(
+				ErrKind::Http,
+				"cannot convert this WebSocketMessageType into a WebSocketMessage"
+			)),
+		}
+	}
 }
 
 impl WebSocketHandle {
@@ -761,5 +831,25 @@ impl WebSocketConnection for WebSocketConnectionImpl {
 impl WebSocketConnectionImpl {
 	pub(crate) fn new(_config: WebSocketConnectionConfig, wh: WriteHandle) -> Result<Self, Error> {
 		Ok(Self { wh })
+	}
+}
+
+impl WebSocketClientContainer {
+	pub fn init(config: &WebSocketClientConfig) -> Result<(), Error> {
+		let mut container = WEBSOCKET_CLIENT_CONTAINER.write()?;
+		(*container).insert(
+			current().id(),
+			crate::Builder::build_websocket_client(&config)?,
+		);
+		Ok(())
+	}
+
+	pub fn stop() -> Result<(), Error> {
+		let id = current().id();
+		let mut container = WEBSOCKET_CLIENT_CONTAINER.write()?;
+		match (*container).remove(&id) {
+			Some(mut websocket_client) => websocket_client.stop(),
+			None => Err(err!(ErrKind::IllegalState, "websocket client not found")),
+		}
 	}
 }
