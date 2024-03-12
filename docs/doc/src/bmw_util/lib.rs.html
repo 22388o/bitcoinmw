@@ -558,6 +558,8 @@
 <a href="#557" id="557">557</a>
 <a href="#558" id="558">558</a>
 <a href="#559" id="559">559</a>
+<a href="#560" id="560">560</a>
+<a href="#561" id="561">561</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers // Some code and concepts from: // * Grin: https://github.com/mimblewimble/grin // * Arti: https://gitlab.torproject.org/tpo/core/arti // * BitcoinMW: https://github.com/bitcoinmw/bitcoinmw //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -1091,6 +1093,7 @@
 <span class="kw">mod </span>lock;
 <span class="kw">mod </span>macros;
 <span class="kw">mod </span>misc;
+<span class="kw">mod </span>rand;
 <span class="kw">mod </span>ser;
 <span class="kw">mod </span>slabs;
 <span class="kw">mod </span>suffix_tree;
@@ -1101,6 +1104,7 @@
 	canonicalize_base_path, slice_to_u128, slice_to_u32, slice_to_u64, slice_to_usize,
 	u128_to_slice, u32_to_slice, u64_to_slice, usize_to_slice,
 };
+<span class="kw">pub use </span><span class="kw">crate</span>::rand::{random_bytes, random_u128, random_u32, random_u64};
 <span class="kw">pub use </span><span class="kw">crate</span>::ser::{deserialize, serialize};
 <span class="kw">pub use </span><span class="kw">crate</span>::slabs::GLOBAL_SLAB_ALLOCATOR;
 <span class="kw">pub use </span><span class="kw">crate</span>::types::ConfigOption::<span class="kw-2">*</span>;

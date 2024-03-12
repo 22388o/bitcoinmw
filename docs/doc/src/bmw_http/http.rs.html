@@ -3546,6 +3546,8 @@
 <a href="#3545" id="3545">3545</a>
 <a href="#3546" id="3546">3546</a>
 <a href="#3547" id="3547">3547</a>
+<a href="#3548" id="3548">3548</a>
+<a href="#3549" id="3549">3549</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -5630,7 +5632,9 @@
 		}
 
 		<span class="macro">debug!</span>(<span class="string">"matched proto = {:?}"</span>, negotiated_protocol)<span class="question-mark">?</span>;
-
+		<span class="kw">if </span>sec_websocket_key == <span class="string">"" </span>{
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Http, <span class="string">"Sec-WebSocket-Key was not specified"</span>));
+		}
 		send_websocket_handshake_response(
 			<span class="kw-2">&amp;mut </span>write_handle,
 			sec_websocket_key,

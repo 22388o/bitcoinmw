@@ -37,6 +37,8 @@
 <a href="#36" id="36">36</a>
 <a href="#37" id="37">37</a>
 <a href="#38" id="38">38</a>
+<a href="#39" id="39">39</a>
+<a href="#40" id="40">40</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -69,7 +71,9 @@
 	HttpConfig, HttpConnection, HttpConnectionConfig, HttpConnectionData, HttpContentReader,
 	HttpHandler, HttpHeader, HttpHeaders, HttpInstance, HttpInstanceType, HttpMethod, HttpRequest,
 	HttpRequestConfig, HttpResponse, HttpServer, HttpStats, HttpVersion, PlainConfig, TlsConfig,
-	TlsConfigFiles, WebSocketData, WebSocketHandle, WebSocketMessage, WebSocketMessageType,
+	TlsConfigFiles, WebSocketClient, WebSocketClientConfig, WebSocketConnection,
+	WebSocketConnectionConfig, WebSocketData, WebSocketHandle, WebSocketHandler, WebSocketMessage,
+	WebSocketMessageType,
 };
 
 <span class="kw">pub use </span><span class="kw">crate</span>::client::{HTTP_CLIENT_CONTAINER, HTTP_CLIENT_CONTEXT};

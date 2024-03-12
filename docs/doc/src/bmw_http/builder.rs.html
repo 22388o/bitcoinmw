@@ -79,6 +79,14 @@
 <a href="#78" id="78">78</a>
 <a href="#79" id="79">79</a>
 <a href="#80" id="80">80</a>
+<a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a>
+<a href="#86" id="86">86</a>
+<a href="#87" id="87">87</a>
+<a href="#88" id="88">88</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -96,11 +104,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="kw">use </span><span class="kw">crate</span>::types::{HttpClientImpl, HttpConnectionImpl, HttpRequestImpl, HttpServerImpl};
+</span><span class="kw">use </span><span class="kw">crate</span>::types::{
+	HttpClientImpl, HttpConnectionImpl, HttpRequestImpl, HttpServerImpl, WebSocketClientImpl,
+};
 <span class="kw">use </span><span class="kw">crate</span>::Builder;
 <span class="kw">use crate</span>::{
 	HttpClient, HttpClientConfig, HttpConfig, HttpConnection, HttpConnectionConfig, HttpRequest,
-	HttpRequestConfig, HttpServer,
+	HttpRequestConfig, HttpServer, WebSocketClient, WebSocketClientConfig,
 };
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 
@@ -128,6 +138,12 @@
 		config: <span class="kw-2">&amp;</span>HttpRequestConfig,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;, Error&gt; {
 		<span class="prelude-val">Ok</span>(Box::new(HttpRequestImpl::new(config)<span class="question-mark">?</span>))
+	}
+
+	<span class="kw">pub fn </span>build_websocket_client(
+		config: <span class="kw-2">&amp;</span>WebSocketClientConfig,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>WebSocketClient + Send + Sync&gt;, Error&gt; {
+		<span class="prelude-val">Ok</span>(Box::new(WebSocketClientImpl::new(config)<span class="question-mark">?</span>))
 	}
 }
 
