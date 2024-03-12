@@ -509,6 +509,7 @@ pub(crate) struct WebSocketConnectionState {
 	pub(crate) switched: bool,
 	pub(crate) buffer: Vec<u8>,
 	pub(crate) handler: WebSocketHandler,
+	pub(crate) key: String,
 }
 
 #[derive(Clone)]

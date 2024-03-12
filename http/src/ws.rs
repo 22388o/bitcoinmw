@@ -466,15 +466,15 @@ impl WebSocketClient for WebSocketClientImpl {
 			},
 		};
 
-		let websocket_connection_state = WebSocketConnectionState::new(handler);
+		let mut bytes = [0u8; 16];
+		random_bytes(&mut bytes);
+		let key = base64::encode(bytes);
+
+		let websocket_connection_state = WebSocketConnectionState::new(handler, key.clone());
 		let mut wh = self
 			.controller
 			.add_client(client_connection, Box::new(websocket_connection_state))?;
 		let wsci = WebSocketConnectionImpl::new(config.clone(), wh.clone())?;
-
-		let mut bytes = [0u8; 16];
-		random_bytes(&mut bytes);
-		let key = base64::encode(bytes);
 
 		wh.write(
 			format!(
@@ -613,12 +613,11 @@ impl WebSocketClientImpl {
 
 	fn process_non_switched(
 		_config: &WebSocketClientConfig,
-		_wh: &mut WriteHandle,
+		wh: &mut WriteHandle,
 		_ctx: &ThreadContext,
 		state: &mut WebSocketConnectionState,
 	) -> Result<(), Error> {
 		let buffer_len = state.buffer.len();
-		let res = from_utf8(&state.buffer)?;
 		let mut end_point = 0;
 		for i in 3..buffer_len {
 			if state.buffer[i - 3] == b'\r'
@@ -630,11 +629,55 @@ impl WebSocketClientImpl {
 				end_point = i + 1;
 			}
 		}
+
 		if end_point > 0 {
-			debug!("res='{}'", &res[0..end_point])?;
-			state.buffer = state.buffer.drain(end_point..).collect();
-			state.buffer.shrink_to_fit();
-			state.switched = true;
+			let switch_str = from_utf8(&state.buffer[0..end_point])?;
+			match switch_str.find("\r\nSec-WebSocket-Accept: ") {
+				Some(start) => {
+					let start = start + 24;
+					if start >= buffer_len {
+						// invalid response
+						wh.close()?;
+					} else {
+						let mut itt = start;
+						let mut end = 0;
+						loop {
+							if itt >= buffer_len {
+								end = 0;
+								break;
+							} else if state.buffer[itt] == b'\r' || state.buffer[itt] == b'\n' {
+								break;
+							}
+							itt += 1;
+							end = itt;
+						}
+
+						if end == 0 {
+							// invalid response
+							wh.close()?;
+						} else {
+							let mut sha1 = Sha1::new();
+							let hash = format!("{}{}", state.key, WEBSOCKET_GUID);
+							sha1.update(hash.as_bytes());
+							let our_key = base64::encode(&sha1.finalize()[..]);
+							let server_key = from_utf8(&state.buffer[start..end])?;
+
+							if server_key == our_key {
+								state.buffer = state.buffer.drain(end_point..).collect();
+								state.buffer.shrink_to_fit();
+								state.switched = true;
+							} else {
+								// key doesn't match
+								wh.close()?;
+							}
+						}
+					}
+				}
+				_ => {
+					// invalid response
+					wh.close()?;
+				}
+			}
 		}
 		Ok(())
 	}
@@ -688,11 +731,12 @@ impl WebSocketClientImpl {
 }
 
 impl WebSocketConnectionState {
-	fn new(handler: WebSocketHandler) -> Self {
+	fn new(handler: WebSocketHandler, key: String) -> Self {
 		Self {
 			switched: false,
 			buffer: vec![],
 			handler,
+			key,
 		}
 	}
 }
