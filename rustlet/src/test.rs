@@ -53,6 +53,10 @@ mod test {
 		}
 
 		websocket!("test", {
+			let mut request = websocket_request!()?;
+			assert_eq!(request.message().mtype, WebSocketMessageType::Text);
+			assert_eq!(request.message().payload, "hello".as_bytes().to_vec());
+			request.handle().send(&try_into!(b"test")?)?;
 			info!("in test websocket")?;
 			Ok(())
 		})?;
@@ -199,6 +203,8 @@ mod test {
 		rustlet_mapping!("/content", "content")?;
 		rustlet_mapping!("/add_headers", "add_headers")?;
 		rustlet_mapping!("/async", "async")?;
+
+		websocket_mapping!("/chat", "test", vec![])?;
 
 		rustlet_start!()?;
 
@@ -565,6 +571,45 @@ mod test {
 
 		assert_eq!(rlock!(lock_clone), 1);
 		assert_eq!(rlock!(lock2_clone), 1);
+		tear_down_server(test_dir)?;
+		Ok(())
+	}
+
+	#[test]
+	fn test_websocket_with_client() -> Result<(), Error> {
+		let test_dir = ".test_websocket_with_client.bmw";
+		let port = build_server(test_dir, true)?;
+
+		websocket_client_init!(Threads(2))?;
+
+		let url = format!("wss://localhost:{}/chat", port);
+
+		let config =
+			websocket_connection_config!(Url(&url), FullChainCertFile("./resources/cert.pem"))?;
+
+		let mut success = lock_box!(false)?;
+		let success_clone = success.clone();
+
+		let mut ws_conn = websocket_connection!(&config, {
+			info!("got a message")?;
+			let message = websocket_message!()?;
+			assert_eq!(message.mtype, WebSocketMessageType::Binary);
+			assert_eq!(message.payload, "test".as_bytes().to_vec());
+			info!("msg={:?}", message)?;
+			wlock!(success) = true;
+
+			Ok(())
+		})?;
+
+		let msg = try_into!("hello")?;
+
+		sleep(Duration::from_millis(1_000));
+		ws_conn.send(&msg)?;
+
+		sleep(Duration::from_millis(3_000));
+		assert!(rlock!(success_clone));
+
+		websocket_client_stop!()?;
 		tear_down_server(test_dir)?;
 		Ok(())
 	}

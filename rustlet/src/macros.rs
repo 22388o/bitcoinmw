@@ -317,7 +317,7 @@ macro_rules! response {
 macro_rules! websocket_request {
 	() => {{
 		RUSTLET_CONTEXT.with(|f| match &(*f.borrow()).1 {
-			Some((request)) => Ok(request.clone()),
+			Some(request) => Ok(request.clone()),
 			None => Err(bmw_err::err!(
 				bmw_err::ErrKind::Rustlet,
 				"Could not find rustlet context"
