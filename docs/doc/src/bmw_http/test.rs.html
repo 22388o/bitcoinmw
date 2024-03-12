@@ -642,6 +642,50 @@
 <a href="#641" id="641">641</a>
 <a href="#642" id="642">642</a>
 <a href="#643" id="643">643</a>
+<a href="#644" id="644">644</a>
+<a href="#645" id="645">645</a>
+<a href="#646" id="646">646</a>
+<a href="#647" id="647">647</a>
+<a href="#648" id="648">648</a>
+<a href="#649" id="649">649</a>
+<a href="#650" id="650">650</a>
+<a href="#651" id="651">651</a>
+<a href="#652" id="652">652</a>
+<a href="#653" id="653">653</a>
+<a href="#654" id="654">654</a>
+<a href="#655" id="655">655</a>
+<a href="#656" id="656">656</a>
+<a href="#657" id="657">657</a>
+<a href="#658" id="658">658</a>
+<a href="#659" id="659">659</a>
+<a href="#660" id="660">660</a>
+<a href="#661" id="661">661</a>
+<a href="#662" id="662">662</a>
+<a href="#663" id="663">663</a>
+<a href="#664" id="664">664</a>
+<a href="#665" id="665">665</a>
+<a href="#666" id="666">666</a>
+<a href="#667" id="667">667</a>
+<a href="#668" id="668">668</a>
+<a href="#669" id="669">669</a>
+<a href="#670" id="670">670</a>
+<a href="#671" id="671">671</a>
+<a href="#672" id="672">672</a>
+<a href="#673" id="673">673</a>
+<a href="#674" id="674">674</a>
+<a href="#675" id="675">675</a>
+<a href="#676" id="676">676</a>
+<a href="#677" id="677">677</a>
+<a href="#678" id="678">678</a>
+<a href="#679" id="679">679</a>
+<a href="#680" id="680">680</a>
+<a href="#681" id="681">681</a>
+<a href="#682" id="682">682</a>
+<a href="#683" id="683">683</a>
+<a href="#684" id="684">684</a>
+<a href="#685" id="685">685</a>
+<a href="#686" id="686">686</a>
+<a href="#687" id="687">687</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -720,13 +764,14 @@
 		_thread_context: <span class="kw-2">&amp;mut </span>ThreadContext,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>text = std::str::from_utf8(<span class="kw-2">&amp;</span>message.payload[..]).unwrap_or(<span class="string">"utf8err"</span>);
+		<span class="kw">let </span>message_type = <span class="kw-2">&amp;</span>message.mtype;
 		<span class="kw">if </span>text == <span class="string">"hello2" </span>{
 			<span class="macro">info!</span>(<span class="string">"hello2 recv"</span>)<span class="question-mark">?</span>;
 		} <span class="kw">else </span>{
 			<span class="macro">assert_eq!</span>(text, <span class="string">"hello"</span>);
 			<span class="macro">info!</span>(
-				<span class="string">"in test ws handler. got message [proto='{:?}'] [path='{}'] [query='{}'] = '{}'"</span>,
-				websocket_data.negotiated_protocol, websocket_data.path, websocket_data.query, text
+				<span class="string">"in test ws handler. got message [proto='{:?}'] [path='{}'] [query='{}'] = '{}', mtype={:?}"</span>,
+				websocket_data.negotiated_protocol, websocket_data.path, websocket_data.query, text, message_type
 			)<span class="question-mark">?</span>;
 
 			<span class="kw">let </span>wsm = WebSocketMessage {
@@ -1280,6 +1325,49 @@
 
 		<span class="macro">assert_eq!</span>(<span class="macro">rlock!</span>(abcde_lock_clone), <span class="number">1</span>);
 		<span class="macro">assert_eq!</span>(<span class="macro">rlock!</span>(xyz_lock_clone), <span class="number">1</span>);
+		tear_down_server(http)<span class="question-mark">?</span>;
+
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="attr">#[test]
+	</span><span class="kw">fn </span>test_websocket_macros() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span>test_dir = <span class="string">".test_websocket_macros.bmw"</span>;
+		<span class="kw">let </span>http = build_server(test_dir, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = http.<span class="number">0</span>;
+
+		<span class="macro">websocket_client_init!</span>(Threads(<span class="number">2</span>))<span class="question-mark">?</span>;
+
+		<span class="kw">let </span>url = <span class="macro">format!</span>(<span class="string">"ws://127.0.0.1:{}/chat"</span>, port);
+		<span class="kw">let </span>config = <span class="macro">websocket_connection_config!</span>(Url(<span class="kw-2">&amp;</span>url))<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>first = <span class="macro">lock_box!</span>(<span class="bool-val">true</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span>first_clone = first.clone();
+
+		<span class="kw">let </span><span class="kw-2">mut </span>ws_conn = <span class="macro">websocket_connection!</span>(<span class="kw-2">&amp;</span>config, {
+			<span class="macro">info!</span>(<span class="string">"got a message"</span>)<span class="question-mark">?</span>;
+			<span class="kw">let </span>message = <span class="macro">websocket_message!</span>()<span class="question-mark">?</span>;
+			<span class="macro">info!</span>(<span class="string">"msg={:?}"</span>, message)<span class="question-mark">?</span>;
+			<span class="kw">let </span><span class="kw-2">mut </span>handle = <span class="macro">websocket_handle!</span>()<span class="question-mark">?</span>;
+
+			<span class="kw">if </span><span class="macro">rlock!</span>(first) {
+				<span class="macro">info!</span>(<span class="string">"sending first message"</span>)<span class="question-mark">?</span>;
+				<span class="kw">let </span>to_send = <span class="macro">try_into!</span>(<span class="string">b"hello"</span>)<span class="question-mark">?</span>;
+				handle.send(<span class="kw-2">&amp;</span>to_send)<span class="question-mark">?</span>;
+			}
+			<span class="macro">wlock!</span>(first) = <span class="bool-val">false</span>;
+			<span class="prelude-val">Ok</span>(())
+		})<span class="question-mark">?</span>;
+
+		<span class="kw">let </span>msg = <span class="macro">try_into!</span>(<span class="string">"hello"</span>)<span class="question-mark">?</span>;
+
+		sleep(Duration::from_millis(<span class="number">1_000</span>));
+		ws_conn.send(<span class="kw-2">&amp;</span>msg)<span class="question-mark">?</span>;
+
+		sleep(Duration::from_millis(<span class="number">3_000</span>));
+
+		<span class="macro">assert!</span>(!<span class="macro">rlock!</span>(first_clone));
+		<span class="macro">websocket_client_stop!</span>()<span class="question-mark">?</span>;
+
 		tear_down_server(http)<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
