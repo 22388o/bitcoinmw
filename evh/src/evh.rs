@@ -1108,7 +1108,13 @@ where
 			}
 
 			// skip over the panicked request and continue processing remaining events
-			self.process_events(ctx, wakeup, callback_context)?;
+			match self.process_events(ctx, wakeup, callback_context) {
+				Ok(_) => {}
+				Err(e) => {
+					fatal!("Event processing resulted in fatal error: {}", e)?;
+					return Err(e);
+				}
+			}
 		}
 
 		#[cfg(target_os = "macos")]
@@ -1723,9 +1729,18 @@ where
 				let d2 = self.debug_pending;
 				let d3 = self.debug_write_error;
 				let d4 = self.debug_suspended;
+
 				let connection_data = ConnectionData::new(rw, tid, rs, data, d1, d2, d3, d4);
-				connection_data.write_handle().do_write(&wbuf)?;
+				set_errno(Errno(0));
+				match connection_data.write_handle().do_write(&wbuf) {
+					Ok(_) => {}
+					Err(e) => {
+						warn!("write generated error: {}", e)?;
+						return Err(e);
+					}
+				}
 				wbuf.clear();
+				wbuf.shrink_to_fit();
 				{
 					let mut tls_conn = rw.tls_server.as_mut().unwrap().wlock()?;
 					let tls_conn = tls_conn.guard();
@@ -1790,8 +1805,16 @@ where
 				let d3 = self.debug_write_error;
 				let d4 = self.debug_suspended;
 				let connection_data = ConnectionData::new(rw, tid, rs, data, d1, d2, d3, d4);
-				connection_data.write_handle().do_write(&wbuf)?;
+				set_errno(Errno(0));
+				match connection_data.write_handle().do_write(&wbuf) {
+					Ok(_) => {}
+					Err(e) => {
+						warn!("write generated error: {}", e)?;
+						return Err(e);
+					}
+				}
 				wbuf.clear();
+				wbuf.shrink_to_fit();
 				{
 					let mut tls_conn = rw.tls_client.as_mut().unwrap().wlock()?;
 					let tls_conn = tls_conn.guard();

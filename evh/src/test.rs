@@ -2558,7 +2558,9 @@ mod test {
 
 		let mut wh = evh.add_client(client, Box::new(""))?;
 
+		info!("about to write message")?;
 		wh.write(&big_msg_clone)?;
+		info!("message written")?;
 		rx.recv()?;
 		assert_eq!(rlock!(data_accumulator_clone), big_msg_clone);
 
