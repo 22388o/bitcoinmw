@@ -43,12 +43,14 @@ mod test {
 						FullChainCertFile("./resources/cert.pem")
 					)?)
 				)?,
-				BaseDir(directory)
+				BaseDir(directory),
+				Debug(true)
 			)?;
 		} else {
 			rustlet_init!(
 				instance!(BaseDir(&base_dir), Port(port))?,
-				BaseDir(directory)
+				BaseDir(directory),
+				Debug(true)
 			)?;
 		}
 
@@ -590,6 +592,7 @@ mod test {
 		let mut success = lock_box!(false)?;
 		let success_clone = success.clone();
 
+		let (tx, rx) = sync_channel(1);
 		let mut ws_conn = websocket_connection!(&config, {
 			info!("got a message")?;
 			let message = websocket_message!()?;
@@ -598,17 +601,16 @@ mod test {
 			info!("msg={:?}", message)?;
 			wlock!(success) = true;
 
+			tx.send(())?;
+
 			Ok(())
 		})?;
 
 		let msg = try_into!("hello")?;
-
-		sleep(Duration::from_millis(1_000));
 		ws_conn.send(&msg)?;
 
-		sleep(Duration::from_millis(3_000));
+		rx.recv()?;
 		assert!(rlock!(success_clone));
-
 		websocket_client_stop!()?;
 		tear_down_server(test_dir)?;
 		Ok(())

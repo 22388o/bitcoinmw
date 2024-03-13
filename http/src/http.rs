@@ -2066,7 +2066,7 @@ impl HttpServerImpl {
 		headers: &HttpHeaders,
 		ctx: &mut HttpContext,
 		mapping: &HashSet<String>,
-	) -> Result<(), Error> {
+	) -> Result<WebSocketData, Error> {
 		let mut write_handle = conn_data.write_handle();
 		let sha1 = Sha1::new();
 		let sec_websocket_key = headers.sec_websocket_key()?.to_string();
@@ -2098,7 +2098,7 @@ impl HttpServerImpl {
 				connection_data.websocket_data = Some(WebSocketData {
 					path: headers.path()?,
 					query: headers.query()?,
-					negotiated_protocol,
+					negotiated_protocol: negotiated_protocol.clone(),
 				})
 			}
 			None => warn!(
@@ -2107,7 +2107,11 @@ impl HttpServerImpl {
 			)?,
 		}
 
-		Ok(())
+		Ok(WebSocketData {
+			path: headers.path()?,
+			query: headers.query()?,
+			negotiated_protocol,
+		})
 	}
 
 	fn websocket_data(
@@ -2497,7 +2501,6 @@ impl HttpServerImpl {
 											termination_sum += ncontent.len();
 										}
 									} else {
-										debug!("incr termination_sum else")?;
 										if headers.termination_point != 0 {
 											termination_sum = headers.termination_point;
 										}
@@ -2550,9 +2553,33 @@ impl HttpServerImpl {
 											match attachment.websocket_mappings.get(&path) {
 												Some(mapping) => {
 													// valid upgrade return switching response
-													Self::upgrade_websocket(
+													let websocket_data = Self::upgrade_websocket(
 														conn_data, &headers, ctx, mapping,
 													)?;
+
+													if headers.is_websocket_upgrade()?
+														&& headers.termination_point != slab_req_len
+													{
+														match process_websocket_data(
+															&req[headers.termination_point..],
+															conn_data,
+															attachment,
+															config,
+															&websocket_data,
+															&mut ctx.thread_context,
+														) {
+															Ok(incr) => {
+																termination_sum += incr;
+															}
+															Err(e) => {
+																// invalid data sent to the websocket connection.
+																// close it.
+																warn!("Websocket Error [closing connection]: {}", e.to_string())?;
+																conn_data.write_handle().close()?;
+															}
+														};
+													}
+
 													break;
 												}
 												None => {
@@ -2791,11 +2818,9 @@ impl HttpServerImpl {
 		)?;
 
 		if termination_sum == req_len {
-			debug!("equal so clear slab")?;
 			conn_data.clear_through(slab_id_vec[slab_id_vec.len() - 1])?;
 			http_connection_data.http_content_reader_data.content_offset = 0;
 		} else if termination_sum != 0 {
-			debug!("not equal to 0")?;
 			http_connection_data.http_content_reader_data.content_offset =
 				termination_sum % READ_SLAB_DATA_SIZE;
 			if termination_sum >= READ_SLAB_DATA_SIZE {
