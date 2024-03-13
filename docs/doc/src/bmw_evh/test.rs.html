@@ -4364,7 +4364,6 @@
 <a href="#4363" id="4363">4363</a>
 <a href="#4364" id="4364">4364</a>
 <a href="#4365" id="4365">4365</a>
-<a href="#4366" id="4366">4366</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -6831,7 +6830,7 @@
 		<span class="kw">let </span>server_received_abc_clone = server_received_abc.clone();
 
 		<span class="kw">let </span><span class="kw-2">mut </span>big_msg = <span class="macro">vec!</span>[];
-		big_msg.resize(<span class="number">10 </span>* <span class="number">1024</span>, <span class="number">7u8</span>);
+		big_msg.resize(<span class="number">10_000 </span>* <span class="number">1024</span>, <span class="number">7u8</span>);
 		big_msg[<span class="number">0</span>] = <span class="string">'t' </span><span class="kw">as </span>u8;
 		<span class="kw">let </span>big_msg_clone = big_msg.clone();
 		<span class="kw">let </span><span class="kw-2">mut </span>server_accumulator = <span class="macro">lock_box!</span>(<span class="macro">vec!</span>[])<span class="question-mark">?</span>;
@@ -6929,7 +6928,6 @@
 			is_reuse_port: <span class="bool-val">false</span>,
 		};
 		evh.add_server(sc, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
-		sleep(Duration::from_millis(<span class="number">5_000</span>));
 
 		<span class="kw">let </span>connection = TcpStream::connect(addr)<span class="question-mark">?</span>;
 		connection.set_nonblocking(<span class="bool-val">true</span>)<span class="question-mark">?</span>;

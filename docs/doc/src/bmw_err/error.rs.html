@@ -567,43 +567,6 @@
 <a href="#566" id="566">566</a>
 <a href="#567" id="567">567</a>
 <a href="#568" id="568">568</a>
-<a href="#569" id="569">569</a>
-<a href="#570" id="570">570</a>
-<a href="#571" id="571">571</a>
-<a href="#572" id="572">572</a>
-<a href="#573" id="573">573</a>
-<a href="#574" id="574">574</a>
-<a href="#575" id="575">575</a>
-<a href="#576" id="576">576</a>
-<a href="#577" id="577">577</a>
-<a href="#578" id="578">578</a>
-<a href="#579" id="579">579</a>
-<a href="#580" id="580">580</a>
-<a href="#581" id="581">581</a>
-<a href="#582" id="582">582</a>
-<a href="#583" id="583">583</a>
-<a href="#584" id="584">584</a>
-<a href="#585" id="585">585</a>
-<a href="#586" id="586">586</a>
-<a href="#587" id="587">587</a>
-<a href="#588" id="588">588</a>
-<a href="#589" id="589">589</a>
-<a href="#590" id="590">590</a>
-<a href="#591" id="591">591</a>
-<a href="#592" id="592">592</a>
-<a href="#593" id="593">593</a>
-<a href="#594" id="594">594</a>
-<a href="#595" id="595">595</a>
-<a href="#596" id="596">596</a>
-<a href="#597" id="597">597</a>
-<a href="#598" id="598">598</a>
-<a href="#599" id="599">599</a>
-<a href="#600" id="600">600</a>
-<a href="#601" id="601">601</a>
-<a href="#602" id="602">602</a>
-<a href="#603" id="603">603</a>
-<a href="#604" id="604">604</a>
-<a href="#605" id="605">605</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -624,8 +587,7 @@
 
 </span><span class="kw">use </span>bmw_deps::downcast::DowncastError;
 <span class="kw">use </span>bmw_deps::failure::{Backtrace, Context, Fail};
-<span class="kw">use </span>bmw_deps::rustls::client::InvalidDnsNameError;
-<span class="kw">use </span>bmw_deps::rustls::sign::SignError;
+<span class="kw">use </span>bmw_deps::rustls::pki_types::InvalidDnsNameError;
 <span class="kw">use </span>bmw_deps::url::ParseError;
 <span class="kw">use </span>bmw_deps::webpki::Error <span class="kw">as </span>WebpkiError;
 <span class="kw">use </span>std::alloc::LayoutError;
@@ -829,6 +791,17 @@
 	}
 }
 
+<span class="kw">impl </span>From&lt;InvalidDnsNameError&gt; <span class="kw">for </span>Error {
+	<span class="kw">fn </span>from(e: InvalidDnsNameError) -&gt; Error {
+		Error {
+			inner: Context::new(ErrorKind::Rustls(<span class="macro">format!</span>(
+				<span class="string">"Rustls Invalid DnsNameError: {}"</span>,
+				e
+			))),
+		}
+	}
+}
+
 <span class="kw">impl </span>From&lt;ParseError&gt; <span class="kw">for </span>Error {
 	<span class="kw">fn </span>from(e: ParseError) -&gt; Error {
 		Error {
@@ -968,25 +941,6 @@
 	}
 }
 
-<span class="kw">impl </span>From&lt;SignError&gt; <span class="kw">for </span>Error {
-	<span class="kw">fn </span>from(e: SignError) -&gt; Error {
-		Error {
-			inner: Context::new(ErrorKind::Rustls(<span class="macro">format!</span>(<span class="string">"Rustls Signing error: {}"</span>, e))),
-		}
-	}
-}
-
-<span class="kw">impl </span>From&lt;InvalidDnsNameError&gt; <span class="kw">for </span>Error {
-	<span class="kw">fn </span>from(e: InvalidDnsNameError) -&gt; Error {
-		Error {
-			inner: Context::new(ErrorKind::Rustls(<span class="macro">format!</span>(
-				<span class="string">"Rustls Invalid DnsNameError: {}"</span>,
-				e
-			))),
-		}
-	}
-}
-
 <span class="kw">impl </span>From&lt;FromUtf8Error&gt; <span class="kw">for </span>Error {
 	<span class="kw">fn </span>from(e: FromUtf8Error) -&gt; Error {
 		Error {
@@ -1008,16 +962,11 @@
 	<span class="attr">#![allow(invalid_from_utf8)]
 	</span><span class="kw">use crate as </span>bmw_err;
 	<span class="kw">use crate</span>::{err, error::WebpkiError, ErrKind, Error, ErrorKind};
-	<span class="kw">use </span>bmw_deps::rustls::client::InvalidDnsNameError;
-	<span class="kw">use </span>bmw_deps::rustls::sign::{any_supported_type, SignError, SigningKey};
-	<span class="kw">use </span>bmw_deps::rustls::{PrivateKey, ServerConfig, ServerName, ALL_CIPHER_SUITES};
-	<span class="kw">use </span>bmw_deps::rustls_pemfile::{read_one, Item};
+	<span class="kw">use </span>bmw_deps::rustls::pki_types::{InvalidDnsNameError, ServerName};
 	<span class="kw">use </span>bmw_deps::substring::Substring;
 	<span class="kw">use </span>std::alloc::Layout;
 	<span class="kw">use </span>std::convert::TryInto;
 	<span class="kw">use </span>std::ffi::OsString;
-	<span class="kw">use </span>std::fs::File;
-	<span class="kw">use </span>std::io::BufReader;
 	<span class="kw">use </span>std::net::{AddrParseError, IpAddr};
 	<span class="kw">use </span>std::string::FromUtf8Error;
 	<span class="kw">use </span>std::sync::mpsc::channel;
@@ -1083,17 +1032,6 @@
 		check_error(get_utf8(), ErrorKind::Utf8(<span class="macro">format!</span>(<span class="string">"Utf8 Error.."</span>)).into())<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
-	}
-
-	<span class="kw">fn </span>load_private_key(filename: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;PrivateKey, Error&gt; {
-		<span class="kw">let </span>keyfile = File::open(filename)<span class="question-mark">?</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>reader = BufReader::new(keyfile);
-
-		<span class="kw">let </span>x = read_one(<span class="kw-2">&amp;mut </span>reader)<span class="question-mark">?</span>.unwrap();
-		<span class="kw">match </span>x {
-			Item::PKCS8Key(key) =&gt; <span class="prelude-val">Ok</span>(PrivateKey(key)),
-			<span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Test, <span class="string">"not supported"</span>)),
-		}
 	}
 
 	<span class="attr">#[test]
@@ -1175,19 +1113,7 @@
 			check_error(err, ErrorKind::Errno(<span class="string">"Errno error: "</span>.to_string()).into())<span class="question-mark">?</span>;
 		}
 
-		<span class="kw">let </span>err = ServerConfig::builder()
-			.with_cipher_suites(<span class="kw-2">&amp;</span>ALL_CIPHER_SUITES.to_vec())
-			.with_safe_default_kx_groups()
-			.with_protocol_versions(<span class="kw-2">&amp;</span><span class="macro">vec!</span>[]);
-
-		check_error(err, ErrorKind::Rustls(<span class="string">"rustls error: "</span>.to_string()).into())<span class="question-mark">?</span>;
-
 		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;ServerName, InvalidDnsNameError&gt; = <span class="string">"a*$&amp;@@!aa"</span>.try_into();
-		<span class="macro">assert!</span>(err.is_err());
-		check_error(err, ErrorKind::Rustls(<span class="string">"rustls error: "</span>.to_string()).into())<span class="question-mark">?</span>;
-
-		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;Arc&lt;<span class="kw">dyn </span>SigningKey&gt;, SignError&gt; =
-			any_supported_type(<span class="kw-2">&amp;</span>load_private_key(<span class="string">"./resources/badkey.pem"</span>)<span class="question-mark">?</span>);
 		<span class="macro">assert!</span>(err.is_err());
 		check_error(err, ErrorKind::Rustls(<span class="string">"rustls error: "</span>.to_string()).into())<span class="question-mark">?</span>;
 

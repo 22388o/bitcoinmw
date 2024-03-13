@@ -442,12 +442,11 @@
 };
 <span class="kw">use </span>bmw_deps::errno::{errno, set_errno, Errno};
 <span class="kw">use </span>bmw_deps::libc::{
-	<span class="self">self</span>, accept, c_void, close, fcntl, pipe, read, sockaddr, write, F_SETFL, O_NONBLOCK,
+	<span class="self">self</span>, accept, c_void, close, fcntl, listen, pipe, read, sockaddr, socket, write, F_SETFL,
+	O_NONBLOCK,
 };
 <span class="kw">use </span>bmw_deps::nix::sys::epoll::{epoll_ctl, epoll_wait, EpollEvent, EpollFlags, EpollOp};
-<span class="kw">use </span>bmw_deps::nix::sys::socket::{
-	bind, listen, socket, AddressFamily, SockFlag, SockType, SockaddrIn, SockaddrIn6,
-};
+<span class="kw">use </span>bmw_deps::nix::sys::socket::{bind, SockaddrIn, SockaddrIn6};
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
@@ -562,7 +561,7 @@
 <span class="kw">fn </span>setup_fd(reuse_port: bool, addr: <span class="kw-2">&amp;</span>str, listen_size: usize) -&gt; <span class="prelude-ty">Result</span>&lt;RawFd, Error&gt; {
 	<span class="kw">let </span>fd = <span class="kw">match </span>SockaddrIn::from_str(addr) {
 		<span class="prelude-val">Ok</span>(sock_addr) =&gt; {
-			<span class="kw">let </span>fd = get_socket(reuse_port, AddressFamily::Inet)<span class="question-mark">?</span>;
+			<span class="kw">let </span>fd = get_socket(reuse_port, libc::AF_INET)<span class="question-mark">?</span>;
 
 			<span class="kw">unsafe </span>{
 				<span class="kw">let </span>optval: libc::c_int = <span class="number">1</span>;
@@ -580,7 +579,7 @@
 		}
 		<span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; {
 			<span class="kw">let </span>sock_addr = SockaddrIn6::from_str(addr)<span class="question-mark">?</span>;
-			<span class="kw">let </span>fd = get_socket(reuse_port, AddressFamily::Inet6)<span class="question-mark">?</span>;
+			<span class="kw">let </span>fd = get_socket(reuse_port, libc::AF_INET6)<span class="question-mark">?</span>;
 
 			<span class="kw">unsafe </span>{
 				<span class="kw">let </span>optval: libc::c_int = <span class="number">1</span>;
@@ -598,15 +597,17 @@
 		}
 	};
 
-	listen(fd, listen_size)<span class="question-mark">?</span>;
 	<span class="kw">unsafe </span>{
+		<span class="kw">if </span>listen(fd, <span class="macro">try_into!</span>(listen_size)<span class="question-mark">?</span>) != <span class="number">0 </span>{
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IO, <span class="string">"listen failed"</span>));
+		}
 		fcntl(fd, F_SETFL, O_NONBLOCK);
 	}
 	<span class="prelude-val">Ok</span>(fd)
 }
 
-<span class="kw">fn </span>get_socket(reuseport: bool, family: AddressFamily) -&gt; <span class="prelude-ty">Result</span>&lt;RawFd, Error&gt; {
-	<span class="kw">let </span>raw_fd = socket(family, SockType::Stream, SockFlag::empty(), <span class="prelude-val">None</span>)<span class="question-mark">?</span>;
+<span class="kw">fn </span>get_socket(reuseport: bool, family: c_int) -&gt; <span class="prelude-ty">Result</span>&lt;RawFd, Error&gt; {
+	<span class="kw">let </span>raw_fd = <span class="kw">unsafe </span>{ socket(family, libc::SOCK_STREAM, <span class="number">0</span>) };
 
 	<span class="kw">if </span>reuseport {
 		<span class="kw">let </span>optval: libc::c_int = <span class="number">1</span>;
@@ -780,7 +781,6 @@
 </span><span class="kw">mod </span>test {
 	<span class="kw">use </span><span class="kw">crate</span>::linux::<span class="kw-2">*</span>;
 	<span class="kw">use </span><span class="kw">crate</span>::types::{EventHandlerContext, EventIn};
-	<span class="kw">use </span>bmw_deps::nix::sys::socket::AddressFamily;
 	<span class="kw">use </span>bmw_test::port::pick_free_port;
 	<span class="kw">use </span>std::thread::sleep;
 	<span class="kw">use </span>std::time::Duration;
@@ -790,7 +790,7 @@
 		sleep(Duration::from_millis(<span class="number">5_000</span>));
 		<span class="kw">let </span><span class="kw-2">mut </span>ctx = EventHandlerContext::new(<span class="number">0</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>)<span class="question-mark">?</span>;
 		ctx.tid = <span class="number">100</span>;
-		<span class="kw">let </span>handle = get_socket(<span class="bool-val">true</span>, AddressFamily::Inet)<span class="question-mark">?</span>;
+		<span class="kw">let </span>handle = get_socket(<span class="bool-val">true</span>, libc::AF_INET)<span class="question-mark">?</span>;
 		<span class="macro">assert!</span>(accept_impl(handle).is_err());
 		ctx.filter_set.resize(<span class="number">1</span>, <span class="bool-val">false</span>);
 		<span class="macro">assert_eq!</span>(ctx.filter_set.len(), <span class="number">1</span>);

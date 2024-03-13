@@ -615,6 +615,8 @@
 <a href="#614" id="614">614</a>
 <a href="#615" id="615">615</a>
 <a href="#616" id="616">616</a>
+<a href="#617" id="617">617</a>
+<a href="#618" id="618">618</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -660,12 +662,14 @@
 						FullChainCertFile(<span class="string">"./resources/cert.pem"</span>)
 					)<span class="question-mark">?</span>)
 				)<span class="question-mark">?</span>,
-				BaseDir(directory)
+				BaseDir(directory),
+				Debug(<span class="bool-val">true</span>)
 			)<span class="question-mark">?</span>;
 		} <span class="kw">else </span>{
 			<span class="macro">rustlet_init!</span>(
 				<span class="macro">instance!</span>(BaseDir(<span class="kw-2">&amp;</span>base_dir), Port(port))<span class="question-mark">?</span>,
-				BaseDir(directory)
+				BaseDir(directory),
+				Debug(<span class="bool-val">true</span>)
 			)<span class="question-mark">?</span>;
 		}
 
@@ -1207,6 +1211,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>success = <span class="macro">lock_box!</span>(<span class="bool-val">false</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>success_clone = success.clone();
 
+		<span class="kw">let </span>(tx, rx) = sync_channel(<span class="number">1</span>);
 		<span class="kw">let </span><span class="kw-2">mut </span>ws_conn = <span class="macro">websocket_connection!</span>(<span class="kw-2">&amp;</span>config, {
 			<span class="macro">info!</span>(<span class="string">"got a message"</span>)<span class="question-mark">?</span>;
 			<span class="kw">let </span>message = <span class="macro">websocket_message!</span>()<span class="question-mark">?</span>;
@@ -1215,17 +1220,16 @@
 			<span class="macro">info!</span>(<span class="string">"msg={:?}"</span>, message)<span class="question-mark">?</span>;
 			<span class="macro">wlock!</span>(success) = <span class="bool-val">true</span>;
 
+			tx.send(())<span class="question-mark">?</span>;
+
 			<span class="prelude-val">Ok</span>(())
 		})<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>msg = <span class="macro">try_into!</span>(<span class="string">"hello"</span>)<span class="question-mark">?</span>;
-
-		sleep(Duration::from_millis(<span class="number">1_000</span>));
 		ws_conn.send(<span class="kw-2">&amp;</span>msg)<span class="question-mark">?</span>;
 
-		sleep(Duration::from_millis(<span class="number">3_000</span>));
+		rx.recv()<span class="question-mark">?</span>;
 		<span class="macro">assert!</span>(<span class="macro">rlock!</span>(success_clone));
-
 		<span class="macro">websocket_client_stop!</span>()<span class="question-mark">?</span>;
 		tear_down_server(test_dir)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())

@@ -1453,7 +1453,7 @@
 			sleep(Duration::from_millis(<span class="number">1000</span>));
 			connection.write(<span class="string">b"test"</span>)<span class="question-mark">?</span>;
 			sleep(Duration::from_millis(<span class="number">1000</span>));
-			connection.write(<span class="string">b"test"</span>)<span class="question-mark">?</span>;
+			<span class="kw">let _ </span>= connection.write(<span class="string">b"test"</span>);
 			evh.stop()<span class="question-mark">?</span>;
 		}
 

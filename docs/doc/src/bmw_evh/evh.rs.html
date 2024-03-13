@@ -2923,17 +2923,6 @@
 <a href="#2922" id="2922">2922</a>
 <a href="#2923" id="2923">2923</a>
 <a href="#2924" id="2924">2924</a>
-<a href="#2925" id="2925">2925</a>
-<a href="#2926" id="2926">2926</a>
-<a href="#2927" id="2927">2927</a>
-<a href="#2928" id="2928">2928</a>
-<a href="#2929" id="2929">2929</a>
-<a href="#2930" id="2930">2930</a>
-<a href="#2931" id="2931">2931</a>
-<a href="#2932" id="2932">2932</a>
-<a href="#2933" id="2933">2933</a>
-<a href="#2934" id="2934">2934</a>
-<a href="#2935" id="2935">2935</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2962,11 +2951,12 @@
 };
 <span class="kw">use </span>bmw_deps::errno::{errno, set_errno, Errno};
 <span class="kw">use </span>bmw_deps::rand::random;
+<span class="kw">use </span>bmw_deps::rustls::pki_types::{CertificateDer, PrivateKeyDer};
 <span class="kw">use </span>bmw_deps::rustls::{
-	Certificate, ClientConfig, ClientConnection <span class="kw">as </span>RCConn, OwnedTrustAnchor, PrivateKey,
-	RootCertStore, ServerConfig, ServerConnection <span class="kw">as </span>RSConn,
+	ClientConfig, ClientConnection <span class="kw">as </span>RCConn, RootCertStore, ServerConfig,
+	ServerConnection <span class="kw">as </span>RSConn,
 };
-<span class="kw">use </span>bmw_deps::rustls_pemfile::{certs, read_one, Item};
+<span class="kw">use </span>bmw_deps::rustls_pemfile;
 <span class="kw">use </span>bmw_deps::webpki_roots::TLS_SERVER_ROOTS;
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
@@ -3036,7 +3026,7 @@
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>ETEMPUNAVAILABLE: i32 = <span class="number">35</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>WINNONBLOCKING: i32 = <span class="number">10035</span>;
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>TLS_CHUNKS: usize = <span class="number">5_120</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>TLS_CHUNKS: usize = <span class="number">3_072</span>;
 
 <span class="macro">info!</span>();
 
@@ -4628,7 +4618,8 @@
 		<span class="kw">if </span>len &gt; <span class="number">0 </span>{
 			<span class="kw">let </span><span class="kw-2">mut </span>tls_conn = rw.tls_server.as_mut().unwrap().wlock()<span class="question-mark">?</span>;
 			<span class="kw">let </span>tls_conn = tls_conn.guard();
-			(<span class="kw-2">**</span>tls_conn).read_tls(<span class="kw-2">&amp;mut &amp;</span>ctx.buffer[<span class="number">0</span>..len.try_into().unwrap_or(<span class="number">0</span>)])<span class="question-mark">?</span>;
+			<span class="kw">let </span>end = len.try_into().unwrap_or(<span class="number">0</span>);
+			(<span class="kw-2">**</span>tls_conn).read_tls(<span class="kw-2">&amp;mut &amp;</span>ctx.buffer[<span class="number">0</span>..end])<span class="question-mark">?</span>;
 
 			<span class="kw">match </span>(<span class="kw-2">**</span>tls_conn).process_new_packets() {
 				<span class="prelude-val">Ok</span>(io_state) =&gt; {
@@ -5543,7 +5534,6 @@
 		<span class="kw">let </span>tls_config = <span class="kw">match </span>connection.tls_config {
 			<span class="prelude-val">Some</span>(tls_config) =&gt; <span class="prelude-val">Some</span>(Arc::new(
 				ServerConfig::builder()
-					.with_safe_defaults()
 					.with_no_client_auth()
 					.with_single_cert(
 						load_certs(<span class="kw-2">&amp;</span>tls_config.certificates_file)<span class="question-mark">?</span>,
@@ -5670,9 +5660,8 @@
 
 		<span class="kw">let </span>tls_client = <span class="kw">match </span>connection.tls_config {
 			<span class="prelude-val">Some</span>(tls_config) =&gt; {
-				<span class="kw">let </span>server_name: <span class="kw-2">&amp;</span>str = <span class="kw-2">&amp;</span>tls_config.sni_host;
 				<span class="kw">let </span>config = make_config(tls_config.trusted_cert_full_chain_file)<span class="question-mark">?</span>;
-				<span class="kw">let </span><span class="kw-2">mut </span>rc_conn = RCConn::new(config, server_name.try_into()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+				<span class="kw">let </span><span class="kw-2">mut </span>rc_conn = RCConn::new(config, tls_config.sni_host.try_into()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 				rc_conn.set_buffer_limit(<span class="prelude-val">None</span>);
 				<span class="kw">let </span>tls_client = <span class="prelude-val">Some</span>(<span class="macro">lock_box!</span>(rc_conn)<span class="question-mark">?</span>);
 				tls_client
@@ -5798,50 +5787,39 @@
 	trusted_cert_full_chain_file: <span class="prelude-ty">Option</span>&lt;String&gt;,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;ClientConfig&gt;, Error&gt; {
 	<span class="kw">let </span><span class="kw-2">mut </span>root_store = RootCertStore::empty();
-	root_store.add_server_trust_anchors(TLS_SERVER_ROOTS.iter().map(|ta| {
-		OwnedTrustAnchor::from_subject_spki_name_constraints(
-			ta.subject,
-			ta.spki,
-			ta.name_constraints,
-		)
-	}));
+	<span class="kw">for </span>root <span class="kw">in </span>TLS_SERVER_ROOTS.iter() {
+		root_store.roots.push(root.clone());
+	}
 
 	<span class="kw">match </span>trusted_cert_full_chain_file {
 		<span class="prelude-val">Some</span>(trusted_cert_full_chain_file) =&gt; {
 			<span class="kw">let </span>full_chain_certs = load_certs(<span class="kw-2">&amp;</span>trusted_cert_full_chain_file)<span class="question-mark">?</span>;
 			<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..full_chain_certs.len() {
-				root_store.add(<span class="kw-2">&amp;</span>full_chain_certs[i])<span class="question-mark">?</span>;
+				root_store.add(full_chain_certs[i].clone())<span class="question-mark">?</span>;
 			}
 		}
 		<span class="prelude-val">None </span>=&gt; {}
 	}
-
 	<span class="kw">let </span>config = ClientConfig::builder()
-		.with_safe_default_cipher_suites()
-		.with_safe_default_kx_groups()
-		.with_safe_default_protocol_versions()<span class="question-mark">?
-		</span>.with_root_certificates(root_store)
+		.with_root_certificates(root_store)
 		.with_no_client_auth();
-
 	<span class="prelude-val">Ok</span>(Arc::new(config))
 }
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>load_certs(filename: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;Certificate&gt;, Error&gt; {
-	<span class="kw">let </span>certfile = File::open(filename)<span class="question-mark">?</span>;
-	<span class="kw">let </span><span class="kw-2">mut </span>reader = BufReader::new(certfile);
-	<span class="kw">let </span>certs = certs(<span class="kw-2">&amp;mut </span>reader)<span class="question-mark">?</span>;
-	<span class="prelude-val">Ok</span>(certs.iter().map(|v| Certificate(v.clone())).collect())
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>load_certs(filename: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;CertificateDer&lt;<span class="lifetime">'static</span>&gt;&gt;, Error&gt; {
+	<span class="kw">let </span>certs = rustls_pemfile::certs(<span class="kw-2">&amp;mut </span>BufReader::new(<span class="kw-2">&amp;mut </span>File::open(filename)<span class="question-mark">?</span>))
+		.collect::&lt;<span class="prelude-ty">Result</span>&lt;Vec&lt;<span class="kw">_</span>&gt;, <span class="kw">_</span>&gt;&gt;()<span class="question-mark">?</span>;
+
+	<span class="prelude-val">Ok</span>(certs)
 }
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>load_private_key(filename: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;PrivateKey, Error&gt; {
-	<span class="kw">match </span>read_one(<span class="kw-2">&amp;mut </span>BufReader::new(File::open(filename)<span class="question-mark">?</span>)) {
-		<span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(Item::RSAKey(key))) =&gt; <span class="prelude-val">Ok</span>(PrivateKey(key)),
-		<span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(Item::PKCS8Key(key))) =&gt; <span class="prelude-val">Ok</span>(PrivateKey(key)),
-		<span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(Item::ECKey(key))) =&gt; <span class="prelude-val">Ok</span>(PrivateKey(key)),
-		<span class="kw">_ </span>=&gt; {
-			<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">"no key or unsupported type found in file: {}"</span>, filename);
-			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IllegalArgument, fmt))
-		}
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>load_private_key(filename: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;PrivateKeyDer&lt;<span class="lifetime">'static</span>&gt;, Error&gt; {
+	<span class="kw">match </span>rustls_pemfile::private_key(<span class="kw-2">&amp;mut </span>BufReader::new(<span class="kw-2">&amp;mut </span>File::open(filename)<span class="question-mark">?</span>))<span class="question-mark">? </span>{
+		<span class="prelude-val">Some</span>(pkder) =&gt; <span class="prelude-val">Ok</span>(pkder),
+		<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(
+			ErrKind::Rustls,
+			<span class="macro">format!</span>(<span class="string">"private key for file '{}' was not found"</span>, filename)
+		)),
 	}
 }
 

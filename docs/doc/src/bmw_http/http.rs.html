@@ -3548,6 +3548,31 @@
 <a href="#3547" id="3547">3547</a>
 <a href="#3548" id="3548">3548</a>
 <a href="#3549" id="3549">3549</a>
+<a href="#3550" id="3550">3550</a>
+<a href="#3551" id="3551">3551</a>
+<a href="#3552" id="3552">3552</a>
+<a href="#3553" id="3553">3553</a>
+<a href="#3554" id="3554">3554</a>
+<a href="#3555" id="3555">3555</a>
+<a href="#3556" id="3556">3556</a>
+<a href="#3557" id="3557">3557</a>
+<a href="#3558" id="3558">3558</a>
+<a href="#3559" id="3559">3559</a>
+<a href="#3560" id="3560">3560</a>
+<a href="#3561" id="3561">3561</a>
+<a href="#3562" id="3562">3562</a>
+<a href="#3563" id="3563">3563</a>
+<a href="#3564" id="3564">3564</a>
+<a href="#3565" id="3565">3565</a>
+<a href="#3566" id="3566">3566</a>
+<a href="#3567" id="3567">3567</a>
+<a href="#3568" id="3568">3568</a>
+<a href="#3569" id="3569">3569</a>
+<a href="#3570" id="3570">3570</a>
+<a href="#3571" id="3571">3571</a>
+<a href="#3572" id="3572">3572</a>
+<a href="#3573" id="3573">3573</a>
+<a href="#3574" id="3574">3574</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -5616,7 +5641,7 @@
 		headers: <span class="kw-2">&amp;</span>HttpHeaders,
 		ctx: <span class="kw-2">&amp;mut </span>HttpContext,
 		mapping: <span class="kw-2">&amp;</span>HashSet&lt;String&gt;,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	) -&gt; <span class="prelude-ty">Result</span>&lt;WebSocketData, Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>write_handle = conn_data.write_handle();
 		<span class="kw">let </span>sha1 = Sha1::new();
 		<span class="kw">let </span>sec_websocket_key = headers.sec_websocket_key()<span class="question-mark">?</span>.to_string();
@@ -5648,7 +5673,7 @@
 				connection_data.websocket_data = <span class="prelude-val">Some</span>(WebSocketData {
 					path: headers.path()<span class="question-mark">?</span>,
 					query: headers.query()<span class="question-mark">?</span>,
-					negotiated_protocol,
+					negotiated_protocol: negotiated_protocol.clone(),
 				})
 			}
 			<span class="prelude-val">None </span>=&gt; <span class="macro">warn!</span>(
@@ -5657,7 +5682,11 @@
 			)<span class="question-mark">?</span>,
 		}
 
-		<span class="prelude-val">Ok</span>(())
+		<span class="prelude-val">Ok</span>(WebSocketData {
+			path: headers.path()<span class="question-mark">?</span>,
+			query: headers.query()<span class="question-mark">?</span>,
+			negotiated_protocol,
+		})
 	}
 
 	<span class="kw">fn </span>websocket_data(
@@ -6047,7 +6076,6 @@
 											termination_sum += ncontent.len();
 										}
 									} <span class="kw">else </span>{
-										<span class="macro">debug!</span>(<span class="string">"incr termination_sum else"</span>)<span class="question-mark">?</span>;
 										<span class="kw">if </span>headers.termination_point != <span class="number">0 </span>{
 											termination_sum = headers.termination_point;
 										}
@@ -6100,9 +6128,33 @@
 											<span class="kw">match </span>attachment.websocket_mappings.get(<span class="kw-2">&amp;</span>path) {
 												<span class="prelude-val">Some</span>(mapping) =&gt; {
 													<span class="comment">// valid upgrade return switching response
-													</span><span class="self">Self</span>::upgrade_websocket(
+													</span><span class="kw">let </span>websocket_data = <span class="self">Self</span>::upgrade_websocket(
 														conn_data, <span class="kw-2">&amp;</span>headers, ctx, mapping,
 													)<span class="question-mark">?</span>;
+
+													<span class="kw">if </span>headers.is_websocket_upgrade()<span class="question-mark">?
+														</span>&amp;&amp; headers.termination_point != slab_req_len
+													{
+														<span class="kw">match </span>process_websocket_data(
+															<span class="kw-2">&amp;</span>req[headers.termination_point..],
+															conn_data,
+															attachment,
+															config,
+															<span class="kw-2">&amp;</span>websocket_data,
+															<span class="kw-2">&amp;mut </span>ctx.thread_context,
+														) {
+															<span class="prelude-val">Ok</span>(incr) =&gt; {
+																termination_sum += incr;
+															}
+															<span class="prelude-val">Err</span>(e) =&gt; {
+																<span class="comment">// invalid data sent to the websocket connection.
+																// close it.
+																</span><span class="macro">warn!</span>(<span class="string">"Websocket Error [closing connection]: {}"</span>, e.to_string())<span class="question-mark">?</span>;
+																conn_data.write_handle().close()<span class="question-mark">?</span>;
+															}
+														};
+													}
+
 													<span class="kw">break</span>;
 												}
 												<span class="prelude-val">None </span>=&gt; {
@@ -6341,11 +6393,9 @@
 		)<span class="question-mark">?</span>;
 
 		<span class="kw">if </span>termination_sum == req_len {
-			<span class="macro">debug!</span>(<span class="string">"equal so clear slab"</span>)<span class="question-mark">?</span>;
 			conn_data.clear_through(slab_id_vec[slab_id_vec.len() - <span class="number">1</span>])<span class="question-mark">?</span>;
 			http_connection_data.http_content_reader_data.content_offset = <span class="number">0</span>;
 		} <span class="kw">else if </span>termination_sum != <span class="number">0 </span>{
-			<span class="macro">debug!</span>(<span class="string">"not equal to 0"</span>)<span class="question-mark">?</span>;
 			http_connection_data.http_content_reader_data.content_offset =
 				termination_sum % READ_SLAB_DATA_SIZE;
 			<span class="kw">if </span>termination_sum &gt;= READ_SLAB_DATA_SIZE {
