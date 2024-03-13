@@ -2923,6 +2923,26 @@
 <a href="#2922" id="2922">2922</a>
 <a href="#2923" id="2923">2923</a>
 <a href="#2924" id="2924">2924</a>
+<a href="#2925" id="2925">2925</a>
+<a href="#2926" id="2926">2926</a>
+<a href="#2927" id="2927">2927</a>
+<a href="#2928" id="2928">2928</a>
+<a href="#2929" id="2929">2929</a>
+<a href="#2930" id="2930">2930</a>
+<a href="#2931" id="2931">2931</a>
+<a href="#2932" id="2932">2932</a>
+<a href="#2933" id="2933">2933</a>
+<a href="#2934" id="2934">2934</a>
+<a href="#2935" id="2935">2935</a>
+<a href="#2936" id="2936">2936</a>
+<a href="#2937" id="2937">2937</a>
+<a href="#2938" id="2938">2938</a>
+<a href="#2939" id="2939">2939</a>
+<a href="#2940" id="2940">2940</a>
+<a href="#2941" id="2941">2941</a>
+<a href="#2942" id="2942">2942</a>
+<a href="#2943" id="2943">2943</a>
+<a href="#2944" id="2944">2944</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -4638,17 +4658,27 @@
 			(<span class="kw-2">**</span>tls_conn).write_tls(<span class="kw-2">&amp;mut </span>wbuf)<span class="question-mark">?</span>;
 		}
 
-		<span class="kw">if </span>wbuf.len() &gt; <span class="number">0 </span>{
-			<span class="kw">let </span>rw = <span class="kw-2">&amp;mut </span>rw;
-			<span class="kw">let </span>tid = ctx.tid;
-			<span class="kw">let </span>rs = <span class="kw-2">&amp;mut </span>ctx.read_slabs;
-			<span class="kw">let </span>data = <span class="self">self</span>.data[ctx.tid].clone();
-			<span class="kw">let </span>d1 = <span class="self">self</span>.debug_write_queue;
-			<span class="kw">let </span>d2 = <span class="self">self</span>.debug_pending;
-			<span class="kw">let </span>d3 = <span class="self">self</span>.debug_write_error;
-			<span class="kw">let </span>d4 = <span class="self">self</span>.debug_suspended;
-			<span class="kw">let </span>connection_data = ConnectionData::new(rw, tid, rs, data, d1, d2, d3, d4);
-			connection_data.write_handle().do_write(<span class="kw-2">&amp;</span>wbuf)<span class="question-mark">?</span>;
+		<span class="kw">loop </span>{
+			<span class="kw">if </span>wbuf.len() &gt; <span class="number">0 </span>{
+				<span class="kw">let </span>rw = <span class="kw-2">&amp;mut </span>rw;
+				<span class="kw">let </span>tid = ctx.tid;
+				<span class="kw">let </span>rs = <span class="kw-2">&amp;mut </span>ctx.read_slabs;
+				<span class="kw">let </span>data = <span class="self">self</span>.data[ctx.tid].clone();
+				<span class="kw">let </span>d1 = <span class="self">self</span>.debug_write_queue;
+				<span class="kw">let </span>d2 = <span class="self">self</span>.debug_pending;
+				<span class="kw">let </span>d3 = <span class="self">self</span>.debug_write_error;
+				<span class="kw">let </span>d4 = <span class="self">self</span>.debug_suspended;
+				<span class="kw">let </span>connection_data = ConnectionData::new(rw, tid, rs, data, d1, d2, d3, d4);
+				connection_data.write_handle().do_write(<span class="kw-2">&amp;</span>wbuf)<span class="question-mark">?</span>;
+				wbuf.clear();
+				{
+					<span class="kw">let </span><span class="kw-2">mut </span>tls_conn = rw.tls_server.as_mut().unwrap().wlock()<span class="question-mark">?</span>;
+					<span class="kw">let </span>tls_conn = tls_conn.guard();
+					(<span class="kw-2">**</span>tls_conn).write_tls(<span class="kw-2">&amp;mut </span>wbuf)<span class="question-mark">?</span>;
+				}
+			} <span class="kw">else </span>{
+				<span class="kw">break</span>;
+			}
 		}
 
 		<span class="prelude-val">Ok</span>((len, pt_len))
@@ -4694,17 +4724,27 @@
 			(<span class="kw-2">**</span>tls_conn).write_tls(<span class="kw-2">&amp;mut </span>wbuf)<span class="question-mark">?</span>;
 		}
 
-		<span class="kw">if </span>wbuf.len() &gt; <span class="number">0 </span>{
-			<span class="kw">let </span>rw = <span class="kw-2">&amp;mut </span>rw;
-			<span class="kw">let </span>tid = ctx.tid;
-			<span class="kw">let </span>rs = <span class="kw-2">&amp;mut </span>ctx.read_slabs;
-			<span class="kw">let </span>data = <span class="self">self</span>.data[ctx.tid].clone();
-			<span class="kw">let </span>d1 = <span class="self">self</span>.debug_write_queue;
-			<span class="kw">let </span>d2 = <span class="self">self</span>.debug_pending;
-			<span class="kw">let </span>d3 = <span class="self">self</span>.debug_write_error;
-			<span class="kw">let </span>d4 = <span class="self">self</span>.debug_suspended;
-			<span class="kw">let </span>connection_data = ConnectionData::new(rw, tid, rs, data, d1, d2, d3, d4);
-			connection_data.write_handle().do_write(<span class="kw-2">&amp;</span>wbuf)<span class="question-mark">?</span>;
+		<span class="kw">loop </span>{
+			<span class="kw">if </span>wbuf.len() &gt; <span class="number">0 </span>{
+				<span class="kw">let </span>rw = <span class="kw-2">&amp;mut </span>rw;
+				<span class="kw">let </span>tid = ctx.tid;
+				<span class="kw">let </span>rs = <span class="kw-2">&amp;mut </span>ctx.read_slabs;
+				<span class="kw">let </span>data = <span class="self">self</span>.data[ctx.tid].clone();
+				<span class="kw">let </span>d1 = <span class="self">self</span>.debug_write_queue;
+				<span class="kw">let </span>d2 = <span class="self">self</span>.debug_pending;
+				<span class="kw">let </span>d3 = <span class="self">self</span>.debug_write_error;
+				<span class="kw">let </span>d4 = <span class="self">self</span>.debug_suspended;
+				<span class="kw">let </span>connection_data = ConnectionData::new(rw, tid, rs, data, d1, d2, d3, d4);
+				connection_data.write_handle().do_write(<span class="kw-2">&amp;</span>wbuf)<span class="question-mark">?</span>;
+				wbuf.clear();
+				{
+					<span class="kw">let </span><span class="kw-2">mut </span>tls_conn = rw.tls_client.as_mut().unwrap().wlock()<span class="question-mark">?</span>;
+					<span class="kw">let </span>tls_conn = tls_conn.guard();
+					(<span class="kw-2">**</span>tls_conn).write_tls(<span class="kw-2">&amp;mut </span>wbuf)<span class="question-mark">?</span>;
+				}
+			} <span class="kw">else </span>{
+				<span class="kw">break</span>;
+			}
 		}
 
 		<span class="prelude-val">Ok</span>((len, pt_len))
