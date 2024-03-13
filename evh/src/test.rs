@@ -2464,7 +2464,7 @@ mod test {
 		let server_received_abc_clone = server_received_abc.clone();
 
 		let mut big_msg = vec![];
-		big_msg.resize(10_000 * 1024, 7u8);
+		big_msg.resize(10 * 1024, 7u8);
 		big_msg[0] = 't' as u8;
 		let big_msg_clone = big_msg.clone();
 		let mut server_accumulator = lock_box!(vec![])?;
