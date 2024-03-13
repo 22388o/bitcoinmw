@@ -413,7 +413,7 @@ mod test {
 			sleep(Duration::from_millis(1000));
 			connection.write(b"test")?;
 			sleep(Duration::from_millis(1000));
-			connection.write(b"test")?;
+			let _ = connection.write(b"test");
 			evh.stop()?;
 		}
 

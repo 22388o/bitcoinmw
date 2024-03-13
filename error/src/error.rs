@@ -18,8 +18,7 @@
 
 use bmw_deps::downcast::DowncastError;
 use bmw_deps::failure::{Backtrace, Context, Fail};
-use bmw_deps::rustls::client::InvalidDnsNameError;
-use bmw_deps::rustls::sign::SignError;
+use bmw_deps::rustls::pki_types::InvalidDnsNameError;
 use bmw_deps::url::ParseError;
 use bmw_deps::webpki::Error as WebpkiError;
 use std::alloc::LayoutError;
@@ -223,6 +222,17 @@ impl From<std::io::Error> for Error {
 	}
 }
 
+impl From<InvalidDnsNameError> for Error {
+	fn from(e: InvalidDnsNameError) -> Error {
+		Error {
+			inner: Context::new(ErrorKind::Rustls(format!(
+				"Rustls Invalid DnsNameError: {}",
+				e
+			))),
+		}
+	}
+}
+
 impl From<ParseError> for Error {
 	fn from(e: ParseError) -> Error {
 		Error {
@@ -362,25 +372,6 @@ impl From<bmw_deps::rustls::Error> for Error {
 	}
 }
 
-impl From<SignError> for Error {
-	fn from(e: SignError) -> Error {
-		Error {
-			inner: Context::new(ErrorKind::Rustls(format!("Rustls Signing error: {}", e))),
-		}
-	}
-}
-
-impl From<InvalidDnsNameError> for Error {
-	fn from(e: InvalidDnsNameError) -> Error {
-		Error {
-			inner: Context::new(ErrorKind::Rustls(format!(
-				"Rustls Invalid DnsNameError: {}",
-				e
-			))),
-		}
-	}
-}
-
 impl From<FromUtf8Error> for Error {
 	fn from(e: FromUtf8Error) -> Error {
 		Error {
@@ -402,16 +393,11 @@ mod test {
 	#![allow(invalid_from_utf8)]
 	use crate as bmw_err;
 	use crate::{err, error::WebpkiError, ErrKind, Error, ErrorKind};
-	use bmw_deps::rustls::client::InvalidDnsNameError;
-	use bmw_deps::rustls::sign::{any_supported_type, SignError, SigningKey};
-	use bmw_deps::rustls::{PrivateKey, ServerConfig, ServerName, ALL_CIPHER_SUITES};
-	use bmw_deps::rustls_pemfile::{read_one, Item};
+	use bmw_deps::rustls::pki_types::{InvalidDnsNameError, ServerName};
 	use bmw_deps::substring::Substring;
 	use std::alloc::Layout;
 	use std::convert::TryInto;
 	use std::ffi::OsString;
-	use std::fs::File;
-	use std::io::BufReader;
 	use std::net::{AddrParseError, IpAddr};
 	use std::string::FromUtf8Error;
 	use std::sync::mpsc::channel;
@@ -477,17 +463,6 @@ mod test {
 		check_error(get_utf8(), ErrorKind::Utf8(format!("Utf8 Error..")).into())?;
 
 		Ok(())
-	}
-
-	fn load_private_key(filename: &str) -> Result<PrivateKey, Error> {
-		let keyfile = File::open(filename)?;
-		let mut reader = BufReader::new(keyfile);
-
-		let x = read_one(&mut reader)?.unwrap();
-		match x {
-			Item::PKCS8Key(key) => Ok(PrivateKey(key)),
-			_ => Err(err!(ErrKind::Test, "not supported")),
-		}
 	}
 
 	#[test]
@@ -569,19 +544,7 @@ mod test {
 			check_error(err, ErrorKind::Errno("Errno error: ".to_string()).into())?;
 		}
 
-		let err = ServerConfig::builder()
-			.with_cipher_suites(&ALL_CIPHER_SUITES.to_vec())
-			.with_safe_default_kx_groups()
-			.with_protocol_versions(&vec![]);
-
-		check_error(err, ErrorKind::Rustls("rustls error: ".to_string()).into())?;
-
 		let err: Result<ServerName, InvalidDnsNameError> = "a*$&@@!aa".try_into();
-		assert!(err.is_err());
-		check_error(err, ErrorKind::Rustls("rustls error: ".to_string()).into())?;
-
-		let err: Result<Arc<dyn SigningKey>, SignError> =
-			any_supported_type(&load_private_key("./resources/badkey.pem")?);
 		assert!(err.is_err());
 		check_error(err, ErrorKind::Rustls("rustls error: ".to_string()).into())?;
 

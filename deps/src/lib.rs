@@ -53,6 +53,7 @@ pub use random_string;
 pub use ring;
 pub use rustls;
 pub use rustls_pemfile;
+pub use rustls_pki_types;
 pub use sha1;
 pub use substring;
 pub use url;

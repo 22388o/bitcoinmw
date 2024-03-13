@@ -26,11 +26,12 @@ use crate::{
 };
 use bmw_deps::errno::{errno, set_errno, Errno};
 use bmw_deps::rand::random;
+use bmw_deps::rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use bmw_deps::rustls::{
-	Certificate, ClientConfig, ClientConnection as RCConn, OwnedTrustAnchor, PrivateKey,
-	RootCertStore, ServerConfig, ServerConnection as RSConn,
+	ClientConfig, ClientConnection as RCConn, RootCertStore, ServerConfig,
+	ServerConnection as RSConn,
 };
-use bmw_deps::rustls_pemfile::{certs, read_one, Item};
+use bmw_deps::rustls_pemfile;
 use bmw_deps::webpki_roots::TLS_SERVER_ROOTS;
 use bmw_err::*;
 use bmw_log::*;
@@ -100,7 +101,7 @@ pub(crate) const EAGAIN: i32 = 11;
 pub(crate) const ETEMPUNAVAILABLE: i32 = 35;
 pub(crate) const WINNONBLOCKING: i32 = 10035;
 
-pub(crate) const TLS_CHUNKS: usize = 5_120;
+pub(crate) const TLS_CHUNKS: usize = 3_072;
 
 info!();
 
@@ -1692,7 +1693,8 @@ where
 		if len > 0 {
 			let mut tls_conn = rw.tls_server.as_mut().unwrap().wlock()?;
 			let tls_conn = tls_conn.guard();
-			(**tls_conn).read_tls(&mut &ctx.buffer[0..len.try_into().unwrap_or(0)])?;
+			let end = len.try_into().unwrap_or(0);
+			(**tls_conn).read_tls(&mut &ctx.buffer[0..end])?;
 
 			match (**tls_conn).process_new_packets() {
 				Ok(io_state) => {
@@ -2607,7 +2609,6 @@ where
 		let tls_config = match connection.tls_config {
 			Some(tls_config) => Some(Arc::new(
 				ServerConfig::builder()
-					.with_safe_defaults()
 					.with_no_client_auth()
 					.with_single_cert(
 						load_certs(&tls_config.certificates_file)?,
@@ -2734,9 +2735,8 @@ impl EventHandlerController {
 
 		let tls_client = match connection.tls_config {
 			Some(tls_config) => {
-				let server_name: &str = &tls_config.sni_host;
 				let config = make_config(tls_config.trusted_cert_full_chain_file)?;
-				let mut rc_conn = RCConn::new(config, server_name.try_into()?)?;
+				let mut rc_conn = RCConn::new(config, tls_config.sni_host.try_into()?)?;
 				rc_conn.set_buffer_limit(None);
 				let tls_client = Some(lock_box!(rc_conn)?);
 				tls_client
@@ -2862,50 +2862,39 @@ pub(crate) fn make_config(
 	trusted_cert_full_chain_file: Option<String>,
 ) -> Result<Arc<ClientConfig>, Error> {
 	let mut root_store = RootCertStore::empty();
-	root_store.add_server_trust_anchors(TLS_SERVER_ROOTS.iter().map(|ta| {
-		OwnedTrustAnchor::from_subject_spki_name_constraints(
-			ta.subject,
-			ta.spki,
-			ta.name_constraints,
-		)
-	}));
+	for root in TLS_SERVER_ROOTS.iter() {
+		root_store.roots.push(root.clone());
+	}
 
 	match trusted_cert_full_chain_file {
 		Some(trusted_cert_full_chain_file) => {
 			let full_chain_certs = load_certs(&trusted_cert_full_chain_file)?;
 			for i in 0..full_chain_certs.len() {
-				root_store.add(&full_chain_certs[i])?;
+				root_store.add(full_chain_certs[i].clone())?;
 			}
 		}
 		None => {}
 	}
-
 	let config = ClientConfig::builder()
-		.with_safe_default_cipher_suites()
-		.with_safe_default_kx_groups()
-		.with_safe_default_protocol_versions()?
 		.with_root_certificates(root_store)
 		.with_no_client_auth();
-
 	Ok(Arc::new(config))
 }
 
-pub(crate) fn load_certs(filename: &str) -> Result<Vec<Certificate>, Error> {
-	let certfile = File::open(filename)?;
-	let mut reader = BufReader::new(certfile);
-	let certs = certs(&mut reader)?;
-	Ok(certs.iter().map(|v| Certificate(v.clone())).collect())
+pub(crate) fn load_certs(filename: &str) -> Result<Vec<CertificateDer<'static>>, Error> {
+	let certs = rustls_pemfile::certs(&mut BufReader::new(&mut File::open(filename)?))
+		.collect::<Result<Vec<_>, _>>()?;
+
+	Ok(certs)
 }
 
-pub(crate) fn load_private_key(filename: &str) -> Result<PrivateKey, Error> {
-	match read_one(&mut BufReader::new(File::open(filename)?)) {
-		Ok(Some(Item::RSAKey(key))) => Ok(PrivateKey(key)),
-		Ok(Some(Item::PKCS8Key(key))) => Ok(PrivateKey(key)),
-		Ok(Some(Item::ECKey(key))) => Ok(PrivateKey(key)),
-		_ => {
-			let fmt = format!("no key or unsupported type found in file: {}", filename);
-			Err(err!(ErrKind::IllegalArgument, fmt))
-		}
+pub(crate) fn load_private_key(filename: &str) -> Result<PrivateKeyDer<'static>, Error> {
+	match rustls_pemfile::private_key(&mut BufReader::new(&mut File::open(filename)?))? {
+		Some(pkder) => Ok(pkder),
+		None => Err(err!(
+			ErrKind::Rustls,
+			format!("private key for file '{}' was not found", filename)
+		)),
 	}
 }
 
