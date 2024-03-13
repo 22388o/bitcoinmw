@@ -2943,6 +2943,29 @@
 <a href="#2942" id="2942">2942</a>
 <a href="#2943" id="2943">2943</a>
 <a href="#2944" id="2944">2944</a>
+<a href="#2945" id="2945">2945</a>
+<a href="#2946" id="2946">2946</a>
+<a href="#2947" id="2947">2947</a>
+<a href="#2948" id="2948">2948</a>
+<a href="#2949" id="2949">2949</a>
+<a href="#2950" id="2950">2950</a>
+<a href="#2951" id="2951">2951</a>
+<a href="#2952" id="2952">2952</a>
+<a href="#2953" id="2953">2953</a>
+<a href="#2954" id="2954">2954</a>
+<a href="#2955" id="2955">2955</a>
+<a href="#2956" id="2956">2956</a>
+<a href="#2957" id="2957">2957</a>
+<a href="#2958" id="2958">2958</a>
+<a href="#2959" id="2959">2959</a>
+<a href="#2960" id="2960">2960</a>
+<a href="#2961" id="2961">2961</a>
+<a href="#2962" id="2962">2962</a>
+<a href="#2963" id="2963">2963</a>
+<a href="#2964" id="2964">2964</a>
+<a href="#2965" id="2965">2965</a>
+<a href="#2966" id="2966">2966</a>
+<a href="#2967" id="2967">2967</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -4053,7 +4076,13 @@
 			}
 
 			<span class="comment">// skip over the panicked request and continue processing remaining events
-			</span><span class="self">self</span>.process_events(ctx, wakeup, callback_context)<span class="question-mark">?</span>;
+			</span><span class="kw">match </span><span class="self">self</span>.process_events(ctx, wakeup, callback_context) {
+				<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
+				<span class="prelude-val">Err</span>(e) =&gt; {
+					<span class="macro">fatal!</span>(<span class="string">"Event processing resulted in fatal error: {}"</span>, e)<span class="question-mark">?</span>;
+					<span class="kw">return </span><span class="prelude-val">Err</span>(e);
+				}
+			}
 		}
 
 		<span class="attr">#[cfg(target_os = <span class="string">"macos"</span>)]
@@ -4668,9 +4697,18 @@
 				<span class="kw">let </span>d2 = <span class="self">self</span>.debug_pending;
 				<span class="kw">let </span>d3 = <span class="self">self</span>.debug_write_error;
 				<span class="kw">let </span>d4 = <span class="self">self</span>.debug_suspended;
+
 				<span class="kw">let </span>connection_data = ConnectionData::new(rw, tid, rs, data, d1, d2, d3, d4);
-				connection_data.write_handle().do_write(<span class="kw-2">&amp;</span>wbuf)<span class="question-mark">?</span>;
+				set_errno(Errno(<span class="number">0</span>));
+				<span class="kw">match </span>connection_data.write_handle().do_write(<span class="kw-2">&amp;</span>wbuf) {
+					<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
+					<span class="prelude-val">Err</span>(e) =&gt; {
+						<span class="macro">warn!</span>(<span class="string">"write generated error: {}"</span>, e)<span class="question-mark">?</span>;
+						<span class="kw">return </span><span class="prelude-val">Err</span>(e);
+					}
+				}
 				wbuf.clear();
+				wbuf.shrink_to_fit();
 				{
 					<span class="kw">let </span><span class="kw-2">mut </span>tls_conn = rw.tls_server.as_mut().unwrap().wlock()<span class="question-mark">?</span>;
 					<span class="kw">let </span>tls_conn = tls_conn.guard();
@@ -4735,8 +4773,16 @@
 				<span class="kw">let </span>d3 = <span class="self">self</span>.debug_write_error;
 				<span class="kw">let </span>d4 = <span class="self">self</span>.debug_suspended;
 				<span class="kw">let </span>connection_data = ConnectionData::new(rw, tid, rs, data, d1, d2, d3, d4);
-				connection_data.write_handle().do_write(<span class="kw-2">&amp;</span>wbuf)<span class="question-mark">?</span>;
+				set_errno(Errno(<span class="number">0</span>));
+				<span class="kw">match </span>connection_data.write_handle().do_write(<span class="kw-2">&amp;</span>wbuf) {
+					<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
+					<span class="prelude-val">Err</span>(e) =&gt; {
+						<span class="macro">warn!</span>(<span class="string">"write generated error: {}"</span>, e)<span class="question-mark">?</span>;
+						<span class="kw">return </span><span class="prelude-val">Err</span>(e);
+					}
+				}
 				wbuf.clear();
+				wbuf.shrink_to_fit();
 				{
 					<span class="kw">let </span><span class="kw-2">mut </span>tls_conn = rw.tls_client.as_mut().unwrap().wlock()<span class="question-mark">?</span>;
 					<span class="kw">let </span>tls_conn = tls_conn.guard();

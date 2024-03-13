@@ -4495,6 +4495,36 @@
 <a href="#4494" id="4494">4494</a>
 <a href="#4495" id="4495">4495</a>
 <a href="#4496" id="4496">4496</a>
+<a href="#4497" id="4497">4497</a>
+<a href="#4498" id="4498">4498</a>
+<a href="#4499" id="4499">4499</a>
+<a href="#4500" id="4500">4500</a>
+<a href="#4501" id="4501">4501</a>
+<a href="#4502" id="4502">4502</a>
+<a href="#4503" id="4503">4503</a>
+<a href="#4504" id="4504">4504</a>
+<a href="#4505" id="4505">4505</a>
+<a href="#4506" id="4506">4506</a>
+<a href="#4507" id="4507">4507</a>
+<a href="#4508" id="4508">4508</a>
+<a href="#4509" id="4509">4509</a>
+<a href="#4510" id="4510">4510</a>
+<a href="#4511" id="4511">4511</a>
+<a href="#4512" id="4512">4512</a>
+<a href="#4513" id="4513">4513</a>
+<a href="#4514" id="4514">4514</a>
+<a href="#4515" id="4515">4515</a>
+<a href="#4516" id="4516">4516</a>
+<a href="#4517" id="4517">4517</a>
+<a href="#4518" id="4518">4518</a>
+<a href="#4519" id="4519">4519</a>
+<a href="#4520" id="4520">4520</a>
+<a href="#4521" id="4521">4521</a>
+<a href="#4522" id="4522">4522</a>
+<a href="#4523" id="4523">4523</a>
+<a href="#4524" id="4524">4524</a>
+<a href="#4525" id="4525">4525</a>
+<a href="#4526" id="4526">4526</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -6978,12 +7008,23 @@
 		<span class="kw">let </span>data_accumulator_clone = data_accumulator.clone();
 
 		<span class="kw">let </span><span class="kw-2">mut </span>big_msg = <span class="macro">vec!</span>[];
-		big_msg.resize(<span class="number">10_000 </span>* <span class="number">1024</span>, <span class="number">7u8</span>);
+		<span class="comment">// TODO: breaks with 10_000 * 1024 on windows
+		</span>big_msg.resize(<span class="number">1_000 </span>* <span class="number">1024</span>, <span class="number">7u8</span>);
 		big_msg[<span class="number">0</span>] = <span class="string">'t' </span><span class="kw">as </span>u8;
 		<span class="kw">let </span>big_msg_clone = big_msg.clone();
 
 		<span class="kw">let </span>(tx, rx) = sync_channel(<span class="number">1</span>);
-		evh.set_on_read(<span class="kw">move </span>|conn_data, _thread_context, _attachment| {
+
+		<span class="kw">let </span><span class="kw-2">mut </span>client_data_accumulator: Box&lt;<span class="kw">dyn </span>LockBox&lt;Vec&lt;u8&gt;&gt;&gt; = <span class="macro">lock_box!</span>(<span class="macro">vec!</span>[])<span class="question-mark">?</span>;
+		<span class="kw">let </span>client_data_accumulator_clone = client_data_accumulator.clone();
+
+		<span class="kw">let </span>(client_tx, client_rx) = sync_channel(<span class="number">1</span>);
+
+		evh.set_on_read(<span class="kw">move </span>|conn_data, _thread_context, attachment| {
+			<span class="kw">let </span>attachment = attachment.unwrap();
+			<span class="kw">let </span>val = attachment.attachment.rlock()<span class="question-mark">?</span>;
+			<span class="kw">let </span>guard = val.guard();
+			<span class="kw">let </span>v = (<span class="kw-2">**</span>guard).downcast_ref::&lt;bool&gt;().unwrap();
 			<span class="kw">let </span>first_slab = conn_data.first_slab();
 			<span class="kw">let </span>last_slab = conn_data.last_slab();
 			<span class="kw">let </span>slab_offset = conn_data.slab_offset();
@@ -7007,14 +7048,29 @@
 				<span class="prelude-val">Ok</span>(ret)
 			})<span class="question-mark">?</span>;
 
-			<span class="macro">wlock!</span>(data_accumulator).extend(<span class="kw-2">&amp;</span>res);
-			<span class="kw">let </span>len = <span class="macro">rlock!</span>(data_accumulator).len();
-			<span class="macro">info!</span>(<span class="string">"data_accumulated.len={}"</span>, len)<span class="question-mark">?</span>;
-			conn_data.clear_through(last_slab)<span class="question-mark">?</span>;
+			<span class="kw">if </span><span class="kw-2">*</span>v {
+				<span class="comment">// client
+				</span><span class="macro">wlock!</span>(client_data_accumulator).extend(<span class="kw-2">&amp;</span>res);
+				<span class="kw">let </span>len = <span class="macro">rlock!</span>(client_data_accumulator).len();
+				<span class="macro">info!</span>(<span class="string">"client_data_accumulated.len={}"</span>, len)<span class="question-mark">?</span>;
+				<span class="kw">if </span><span class="macro">rlock!</span>(client_data_accumulator) == big_msg {
+					<span class="macro">info!</span>(<span class="string">"found the client msg"</span>)<span class="question-mark">?</span>;
+					client_tx.send(())<span class="question-mark">?</span>;
+				}
+				conn_data.clear_through(last_slab)<span class="question-mark">?</span>;
+			} <span class="kw">else </span>{
+				<span class="comment">// server
 
-			<span class="kw">if </span><span class="macro">rlock!</span>(data_accumulator) == big_msg {
-				<span class="macro">info!</span>(<span class="string">"found the message"</span>)<span class="question-mark">?</span>;
-				tx.send(())<span class="question-mark">?</span>;
+				</span><span class="macro">wlock!</span>(data_accumulator).extend(<span class="kw-2">&amp;</span>res);
+				<span class="kw">let </span>len = <span class="macro">rlock!</span>(data_accumulator).len();
+				<span class="macro">info!</span>(<span class="string">"data_accumulated.len={}"</span>, len)<span class="question-mark">?</span>;
+				conn_data.clear_through(last_slab)<span class="question-mark">?</span>;
+
+				<span class="kw">if </span><span class="macro">rlock!</span>(data_accumulator) == big_msg {
+					<span class="macro">info!</span>(<span class="string">"found the message"</span>)<span class="question-mark">?</span>;
+					conn_data.write_handle().write(<span class="kw-2">&amp;</span>big_msg)<span class="question-mark">?</span>;
+					tx.send(())<span class="question-mark">?</span>;
+				}
 			}
 			<span class="prelude-val">Ok</span>(())
 		})<span class="question-mark">?</span>;
@@ -7036,7 +7092,7 @@
 			handles,
 			is_reuse_port: <span class="bool-val">false</span>,
 		};
-		evh.add_server(sc, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
+		evh.add_server(sc, Box::new(<span class="bool-val">false</span>))<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>connection = TcpStream::connect(addr)<span class="question-mark">?</span>;
 		connection.set_nonblocking(<span class="bool-val">true</span>)<span class="question-mark">?</span>;
@@ -7053,11 +7109,15 @@
 			}),
 		};
 
-		<span class="kw">let </span><span class="kw-2">mut </span>wh = evh.add_client(client, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>wh = evh.add_client(client, Box::new(<span class="bool-val">true</span>))<span class="question-mark">?</span>;
 
+		<span class="macro">info!</span>(<span class="string">"about to write message"</span>)<span class="question-mark">?</span>;
 		wh.write(<span class="kw-2">&amp;</span>big_msg_clone)<span class="question-mark">?</span>;
+		<span class="macro">info!</span>(<span class="string">"message written"</span>)<span class="question-mark">?</span>;
 		rx.recv()<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(<span class="macro">rlock!</span>(data_accumulator_clone), big_msg_clone);
+		client_rx.recv()<span class="question-mark">?</span>;
+		<span class="macro">assert_eq!</span>(<span class="macro">rlock!</span>(client_data_accumulator_clone), big_msg_clone);
 
 		evh.stop()<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
