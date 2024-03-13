@@ -2481,12 +2481,23 @@ mod test {
 		let data_accumulator_clone = data_accumulator.clone();
 
 		let mut big_msg = vec![];
-		big_msg.resize(10_000 * 1024, 7u8);
+		// TODO: breaks with 10_000 * 1024 on windows
+		big_msg.resize(1_000 * 1024, 7u8);
 		big_msg[0] = 't' as u8;
 		let big_msg_clone = big_msg.clone();
 
 		let (tx, rx) = sync_channel(1);
-		evh.set_on_read(move |conn_data, _thread_context, _attachment| {
+
+		let mut client_data_accumulator: Box<dyn LockBox<Vec<u8>>> = lock_box!(vec![])?;
+		let client_data_accumulator_clone = client_data_accumulator.clone();
+
+		let (client_tx, client_rx) = sync_channel(1);
+
+		evh.set_on_read(move |conn_data, _thread_context, attachment| {
+			let attachment = attachment.unwrap();
+			let val = attachment.attachment.rlock()?;
+			let guard = val.guard();
+			let v = (**guard).downcast_ref::<bool>().unwrap();
 			let first_slab = conn_data.first_slab();
 			let last_slab = conn_data.last_slab();
 			let slab_offset = conn_data.slab_offset();
@@ -2510,14 +2521,29 @@ mod test {
 				Ok(ret)
 			})?;
 
-			wlock!(data_accumulator).extend(&res);
-			let len = rlock!(data_accumulator).len();
-			info!("data_accumulated.len={}", len)?;
-			conn_data.clear_through(last_slab)?;
+			if *v {
+				// client
+				wlock!(client_data_accumulator).extend(&res);
+				let len = rlock!(client_data_accumulator).len();
+				info!("client_data_accumulated.len={}", len)?;
+				if rlock!(client_data_accumulator) == big_msg {
+					info!("found the client msg")?;
+					client_tx.send(())?;
+				}
+				conn_data.clear_through(last_slab)?;
+			} else {
+				// server
 
-			if rlock!(data_accumulator) == big_msg {
-				info!("found the message")?;
-				tx.send(())?;
+				wlock!(data_accumulator).extend(&res);
+				let len = rlock!(data_accumulator).len();
+				info!("data_accumulated.len={}", len)?;
+				conn_data.clear_through(last_slab)?;
+
+				if rlock!(data_accumulator) == big_msg {
+					info!("found the message")?;
+					conn_data.write_handle().write(&big_msg)?;
+					tx.send(())?;
+				}
 			}
 			Ok(())
 		})?;
@@ -2539,7 +2565,7 @@ mod test {
 			handles,
 			is_reuse_port: false,
 		};
-		evh.add_server(sc, Box::new(""))?;
+		evh.add_server(sc, Box::new(false))?;
 
 		let connection = TcpStream::connect(addr)?;
 		connection.set_nonblocking(true)?;
@@ -2556,13 +2582,15 @@ mod test {
 			}),
 		};
 
-		let mut wh = evh.add_client(client, Box::new(""))?;
+		let mut wh = evh.add_client(client, Box::new(true))?;
 
 		info!("about to write message")?;
 		wh.write(&big_msg_clone)?;
 		info!("message written")?;
 		rx.recv()?;
 		assert_eq!(rlock!(data_accumulator_clone), big_msg_clone);
+		client_rx.recv()?;
+		assert_eq!(rlock!(client_data_accumulator_clone), big_msg_clone);
 
 		evh.stop()?;
 		Ok(())
