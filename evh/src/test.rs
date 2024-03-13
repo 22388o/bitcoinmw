@@ -28,7 +28,6 @@ mod test {
 		EventHandlerData, ServerConnection, ThreadContext, TlsClientConfig, TlsServerConfig,
 		READ_SLAB_DATA_SIZE,
 	};
-
 	use bmw_deps::rand::random;
 	use bmw_err::*;
 	use bmw_log::*;
@@ -508,7 +507,16 @@ mod test {
 		connection.write(&message)?;
 		let mut buf = vec![];
 		buf.resize(2000, 0u8);
-		let len = connection.read(&mut buf)?;
+
+		let mut len = 0;
+
+		loop {
+			let partial_len = connection.read(&mut buf[len..])?;
+			len += partial_len;
+			if len >= 1036 {
+				break;
+			}
+		}
 		assert_eq!(len, 1036);
 		for i in 0..len {
 			assert_eq!(buf[i], 'a' as u8 + (i % 26) as u8);
@@ -517,7 +525,17 @@ mod test {
 		connection.write(&message)?;
 		let mut buf = vec![];
 		buf.resize(5000, 0u8);
-		let len = connection.read(&mut buf)?;
+
+		let mut len = 0;
+
+		loop {
+			let partial_len = connection.read(&mut buf[len..])?;
+			len += partial_len;
+			if len >= 1044 {
+				break;
+			}
+		}
+
 		// there are some remaining bytes left in the last of the three slabs.
 		// only 8 bytes so we have 8 + 1036 = 1044.
 		assert_eq!(len, 1044);
@@ -616,7 +634,16 @@ mod test {
 			stream.write(&bytes[0..i])?;
 			let mut buf = vec![];
 			buf.resize(i + 2_000, 0u8);
-			let len = stream.read(&mut buf[0..i + 2_000])?;
+
+			let mut len = 0;
+
+			loop {
+				let partial_len = stream.read(&mut buf[len..])?;
+				len += partial_len;
+				if len >= i {
+					break;
+				}
+			}
 			assert_eq!(len, i);
 			assert_eq!(&buf[0..len], &bytes[0..len]);
 		}
@@ -2432,6 +2459,110 @@ mod test {
 
 		evh.stop()?;
 
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_tls_big_message() -> Result<(), Error> {
+		let port = pick_free_port()?;
+		info!("eventhandler tls_big_message Using port: {}", port)?;
+		let addr = &format!("127.0.0.1:{}", port)[..];
+		let threads = 1;
+		let config = EventHandlerConfig {
+			threads,
+			housekeeping_frequency_millis: 100_000,
+			read_slab_count: 100,
+			max_handles_per_thread: 10,
+			..Default::default()
+		};
+		let mut evh = EventHandlerImpl::new(config)?;
+
+		let mut data_accumulator: Box<dyn LockBox<Vec<u8>>> = lock_box!(vec![])?;
+		let data_accumulator_clone = data_accumulator.clone();
+
+		let mut big_msg = vec![];
+		big_msg.resize(10_000 * 1024, 7u8);
+		big_msg[0] = 't' as u8;
+		let big_msg_clone = big_msg.clone();
+
+		let (tx, rx) = sync_channel(1);
+		evh.set_on_read(move |conn_data, _thread_context, _attachment| {
+			let first_slab = conn_data.first_slab();
+			let last_slab = conn_data.last_slab();
+			let slab_offset = conn_data.slab_offset();
+			let res = conn_data.borrow_slab_allocator(move |sa| {
+				let mut ret: Vec<u8> = vec![];
+				let mut slab_id = first_slab;
+				loop {
+					if slab_id == last_slab {
+						let slab = sa.get(slab_id.try_into()?)?;
+						ret.extend(&slab.get()[0..slab_offset as usize]);
+						break;
+					} else {
+						let slab = sa.get(slab_id.try_into()?)?;
+						let slab_bytes = slab.get();
+						ret.extend(&slab_bytes[0..READ_SLAB_NEXT_OFFSET]);
+						slab_id = u32::from_be_bytes(try_into!(
+							&slab_bytes[READ_SLAB_NEXT_OFFSET..READ_SLAB_SIZE]
+						)?);
+					}
+				}
+				Ok(ret)
+			})?;
+
+			wlock!(data_accumulator).extend(&res);
+			let len = rlock!(data_accumulator).len();
+			info!("data_accumulated.len={}", len)?;
+			conn_data.clear_through(last_slab)?;
+
+			if rlock!(data_accumulator) == big_msg {
+				info!("found the message")?;
+				tx.send(())?;
+			}
+			Ok(())
+		})?;
+		evh.set_on_accept(move |_conn_data, _thread_context| Ok(()))?;
+		evh.set_on_accept_none();
+
+		evh.set_on_close(move |_conn_data, _thread_context| Ok(()))?;
+		evh.set_on_panic(move |_thread_context, _e| Ok(()))?;
+		evh.set_housekeeper(move |_thread_context| Ok(()))?;
+		evh.start()?;
+
+		let handles = create_listeners(threads, addr, 10, false)?;
+		info!("handles.size={},handles={:?}", handles.size(), handles)?;
+		let sc = ServerConnection {
+			tls_config: Some(TlsServerConfig {
+				certificates_file: "./resources/cert.pem".to_string(),
+				private_key_file: "./resources/key.pem".to_string(),
+			}),
+			handles,
+			is_reuse_port: false,
+		};
+		evh.add_server(sc, Box::new(""))?;
+
+		let connection = TcpStream::connect(addr)?;
+		connection.set_nonblocking(true)?;
+		#[cfg(unix)]
+		let connection_handle = connection.into_raw_fd();
+		#[cfg(windows)]
+		let connection_handle = connection.into_raw_socket().try_into()?;
+
+		let client = ClientConnection {
+			handle: connection_handle,
+			tls_config: Some(TlsClientConfig {
+				sni_host: "localhost".to_string(),
+				trusted_cert_full_chain_file: Some("./resources/cert.pem".to_string()),
+			}),
+		};
+
+		let mut wh = evh.add_client(client, Box::new(""))?;
+
+		wh.write(&big_msg_clone)?;
+		rx.recv()?;
+		assert_eq!(rlock!(data_accumulator_clone), big_msg_clone);
+
+		evh.stop()?;
 		Ok(())
 	}
 

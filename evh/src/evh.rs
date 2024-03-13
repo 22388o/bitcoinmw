@@ -102,6 +102,7 @@ pub(crate) const ETEMPUNAVAILABLE: i32 = 35;
 pub(crate) const WINNONBLOCKING: i32 = 10035;
 
 pub(crate) const TLS_CHUNKS: usize = 3_072;
+pub(crate) const MAX_WRITE_CHUNK_SIZE: usize = 1_000;
 
 info!();
 
@@ -590,6 +591,26 @@ impl WriteHandle {
 
 	/// Write data to the connection associated with this [`crate::WriteHandle`].
 	pub fn write(&mut self, data: &[u8]) -> Result<(), Error> {
+		let mut start = 0;
+		let mut end = MAX_WRITE_CHUNK_SIZE;
+		let len = data.len();
+
+		loop {
+			if end >= len {
+				self.chunk_write(&data[start..])?;
+				break;
+			}
+
+			self.chunk_write(&data[start..end])?;
+
+			start += MAX_WRITE_CHUNK_SIZE;
+			end += MAX_WRITE_CHUNK_SIZE;
+		}
+
+		Ok(())
+	}
+
+	fn chunk_write(&mut self, data: &[u8]) -> Result<(), Error> {
 		match &mut self.tls_client.clone() {
 			Some(ref mut tls_conn) => {
 				let mut tls_conn = tls_conn.wlock()?;
