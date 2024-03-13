@@ -21,10 +21,10 @@ use crate::types::{
 use bmw_deps::errno::{errno, set_errno, Errno};
 use bmw_deps::kqueue_sys::{kevent, EventFilter, EventFlag, FilterFlag};
 use bmw_deps::libc::{
-	self, accept, c_void, close, fcntl, pipe, read, sockaddr, socket, timespec, write, F_SETFL,
-	O_NONBLOCK,
+	self, accept, c_void, close, fcntl, listen, pipe, read, sockaddr, socket, timespec, write,
+	F_SETFL, O_NONBLOCK,
 };
-use bmw_deps::nix::sys::socket::{bind, listen, SockaddrIn, SockaddrIn6};
+use bmw_deps::nix::sys::socket::{bind, SockaddrIn, SockaddrIn6};
 use bmw_err::*;
 use bmw_log::*;
 use bmw_util::*;
@@ -111,9 +111,10 @@ pub(crate) fn create_listeners_impl(
 		}
 	};
 
-	listen(fd, listen_size)?;
-
 	unsafe {
+		if listen(fd, try_into!(listen_size)?) != 0 {
+			return Err(err!(ErrKind::IO, "listen failed"));
+		}
 		fcntl(fd, F_SETFL, O_NONBLOCK);
 	}
 

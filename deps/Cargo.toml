@@ -2,7 +2,7 @@
 name = "bmw_deps"
 version = "0.0.3-beta.1"
 authors = ["The BitcoinMW Developers"]
-description = "Dependencies of this library"
+description = "Dependencies used by BMW"
 license = "Apache-2.0"
 repository = "https://github.com/cgilliard/bitcoinmw"
 keywords = [ "crypto", "bitcoinmw"]
@@ -11,25 +11,25 @@ exclude = ["**/*.bmw", "**/*.bmw"]
 edition = "2021"
 
 [dependencies]
-futures = "0.3.23"
-failure = "0.1.0"
-failure_derive = "0.1.0"
+futures = "0.3.30"
+failure = "0.1.8"
+failure_derive = "0.1.8"
 dirs = "5.0.1"
 substring = "1.4.5"
 ring = "0.17.8"
-path-clean = "0.1.0"
-colored = "2.0.0"
-rand = "0.8.4"
+path-clean = "1.0.1"
+colored = "2.1.0"
+rand = "0.8.5"
 lazy_static = "1.4.0"
-backtrace = "0.3.63"
-chrono = "0.4"
-dyn-clone = "1.0.9"
-random-string = "1.0.0"
+backtrace = "0.3.69"
+chrono = "0.4.35"
+dyn-clone = "1.0.17"
+random-string = "1.1.0"
 libc = "0.2.153"
-errno = "0.2.8"
+errno = "0.3.8"
 portpicker = "0.1.1"
 winapi = { version = "0.3.9", features = ["winsock2"] }
-nix = { version = "0.26.4", features = ["socket", "net"] }
+nix = { version = "0.28.0", features = ["socket", "net"] }
 bitvec = "1.0.1"
 rustls = "0.20.9"
 rustls-pemfile = "1.0.3"
