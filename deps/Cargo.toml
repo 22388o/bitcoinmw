@@ -29,7 +29,7 @@ libc = "0.2.153"
 errno = "0.3.8"
 portpicker = "0.1.1"
 winapi = { version = "0.3.9", features = ["winsock2"] }
-nix = { version = "0.28.0", features = ["socket", "net"] }
+nix = { version = "0.28.0", features = ["socket", "net", "event"] }
 bitvec = "1.0.1"
 rustls = "0.20.9"
 rustls-pemfile = "1.0.3"

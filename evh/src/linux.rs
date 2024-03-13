@@ -20,12 +20,11 @@ use crate::types::{
 };
 use bmw_deps::errno::{errno, set_errno, Errno};
 use bmw_deps::libc::{
-	self, accept, c_void, close, fcntl, listen, pipe, read, sockaddr, write, F_SETFL, O_NONBLOCK,
+	self, accept, c_void, close, fcntl, listen, pipe, read, sockaddr, socket, write, F_SETFL,
+	O_NONBLOCK,
 };
 use bmw_deps::nix::sys::epoll::{epoll_ctl, epoll_wait, EpollEvent, EpollFlags, EpollOp};
-use bmw_deps::nix::sys::socket::{
-	bind, socket, AddressFamily, SockFlag, SockType, SockaddrIn, SockaddrIn6,
-};
+use bmw_deps::nix::sys::socket::{bind, SockaddrIn, SockaddrIn6};
 use bmw_err::*;
 use bmw_log::*;
 use bmw_util::*;
@@ -140,7 +139,7 @@ pub(crate) fn create_listeners_impl(
 fn setup_fd(reuse_port: bool, addr: &str, listen_size: usize) -> Result<RawFd, Error> {
 	let fd = match SockaddrIn::from_str(addr) {
 		Ok(sock_addr) => {
-			let fd = get_socket(reuse_port, AddressFamily::Inet)?;
+			let fd = get_socket(reuse_port, libc::AF_INET)?;
 
 			unsafe {
 				let optval: libc::c_int = 1;
@@ -158,7 +157,7 @@ fn setup_fd(reuse_port: bool, addr: &str, listen_size: usize) -> Result<RawFd, E
 		}
 		Err(_) => {
 			let sock_addr = SockaddrIn6::from_str(addr)?;
-			let fd = get_socket(reuse_port, AddressFamily::Inet6)?;
+			let fd = get_socket(reuse_port, libc::AF_INET6)?;
 
 			unsafe {
 				let optval: libc::c_int = 1;
@@ -185,8 +184,8 @@ fn setup_fd(reuse_port: bool, addr: &str, listen_size: usize) -> Result<RawFd, E
 	Ok(fd)
 }
 
-fn get_socket(reuseport: bool, family: AddressFamily) -> Result<RawFd, Error> {
-	let raw_fd = socket(family, SockType::Stream, SockFlag::empty(), None)?;
+fn get_socket(reuseport: bool, family: c_int) -> Result<RawFd, Error> {
+	let raw_fd = unsafe { socket(family, libc::SOCK_STREAM, 0) };
 
 	if reuseport {
 		let optval: libc::c_int = 1;
@@ -360,7 +359,6 @@ pub(crate) fn get_events_impl(
 mod test {
 	use crate::linux::*;
 	use crate::types::{EventHandlerContext, EventIn};
-	use bmw_deps::nix::sys::socket::AddressFamily;
 	use bmw_test::port::pick_free_port;
 	use std::thread::sleep;
 	use std::time::Duration;
@@ -370,7 +368,7 @@ mod test {
 		sleep(Duration::from_millis(5_000));
 		let mut ctx = EventHandlerContext::new(0, 10, 10, 10, 10)?;
 		ctx.tid = 100;
-		let handle = get_socket(true, AddressFamily::Inet)?;
+		let handle = get_socket(true, libc::AF_INET)?;
 		assert!(accept_impl(handle).is_err());
 		ctx.filter_set.resize(1, false);
 		assert_eq!(ctx.filter_set.len(), 1);
