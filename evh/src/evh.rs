@@ -102,7 +102,6 @@ pub(crate) const ETEMPUNAVAILABLE: i32 = 35;
 pub(crate) const WINNONBLOCKING: i32 = 10035;
 
 pub(crate) const TLS_CHUNKS: usize = 3_072;
-pub(crate) const MAX_WRITE_CHUNK_SIZE: usize = 1_000;
 
 info!();
 
@@ -591,26 +590,6 @@ impl WriteHandle {
 
 	/// Write data to the connection associated with this [`crate::WriteHandle`].
 	pub fn write(&mut self, data: &[u8]) -> Result<(), Error> {
-		let mut start = 0;
-		let mut end = MAX_WRITE_CHUNK_SIZE;
-		let len = data.len();
-
-		loop {
-			if end >= len {
-				self.chunk_write(&data[start..])?;
-				break;
-			}
-
-			self.chunk_write(&data[start..end])?;
-
-			start += MAX_WRITE_CHUNK_SIZE;
-			end += MAX_WRITE_CHUNK_SIZE;
-		}
-
-		Ok(())
-	}
-
-	fn chunk_write(&mut self, data: &[u8]) -> Result<(), Error> {
 		match &mut self.tls_client.clone() {
 			Some(ref mut tls_conn) => {
 				let mut tls_conn = tls_conn.wlock()?;
@@ -1734,17 +1713,27 @@ where
 			(**tls_conn).write_tls(&mut wbuf)?;
 		}
 
-		if wbuf.len() > 0 {
-			let rw = &mut rw;
-			let tid = ctx.tid;
-			let rs = &mut ctx.read_slabs;
-			let data = self.data[ctx.tid].clone();
-			let d1 = self.debug_write_queue;
-			let d2 = self.debug_pending;
-			let d3 = self.debug_write_error;
-			let d4 = self.debug_suspended;
-			let connection_data = ConnectionData::new(rw, tid, rs, data, d1, d2, d3, d4);
-			connection_data.write_handle().do_write(&wbuf)?;
+		loop {
+			if wbuf.len() > 0 {
+				let rw = &mut rw;
+				let tid = ctx.tid;
+				let rs = &mut ctx.read_slabs;
+				let data = self.data[ctx.tid].clone();
+				let d1 = self.debug_write_queue;
+				let d2 = self.debug_pending;
+				let d3 = self.debug_write_error;
+				let d4 = self.debug_suspended;
+				let connection_data = ConnectionData::new(rw, tid, rs, data, d1, d2, d3, d4);
+				connection_data.write_handle().do_write(&wbuf)?;
+				wbuf.clear();
+				{
+					let mut tls_conn = rw.tls_server.as_mut().unwrap().wlock()?;
+					let tls_conn = tls_conn.guard();
+					(**tls_conn).write_tls(&mut wbuf)?;
+				}
+			} else {
+				break;
+			}
 		}
 
 		Ok((len, pt_len))
@@ -1790,17 +1779,27 @@ where
 			(**tls_conn).write_tls(&mut wbuf)?;
 		}
 
-		if wbuf.len() > 0 {
-			let rw = &mut rw;
-			let tid = ctx.tid;
-			let rs = &mut ctx.read_slabs;
-			let data = self.data[ctx.tid].clone();
-			let d1 = self.debug_write_queue;
-			let d2 = self.debug_pending;
-			let d3 = self.debug_write_error;
-			let d4 = self.debug_suspended;
-			let connection_data = ConnectionData::new(rw, tid, rs, data, d1, d2, d3, d4);
-			connection_data.write_handle().do_write(&wbuf)?;
+		loop {
+			if wbuf.len() > 0 {
+				let rw = &mut rw;
+				let tid = ctx.tid;
+				let rs = &mut ctx.read_slabs;
+				let data = self.data[ctx.tid].clone();
+				let d1 = self.debug_write_queue;
+				let d2 = self.debug_pending;
+				let d3 = self.debug_write_error;
+				let d4 = self.debug_suspended;
+				let connection_data = ConnectionData::new(rw, tid, rs, data, d1, d2, d3, d4);
+				connection_data.write_handle().do_write(&wbuf)?;
+				wbuf.clear();
+				{
+					let mut tls_conn = rw.tls_client.as_mut().unwrap().wlock()?;
+					let tls_conn = tls_conn.guard();
+					(**tls_conn).write_tls(&mut wbuf)?;
+				}
+			} else {
+				break;
+			}
 		}
 
 		Ok((len, pt_len))
