@@ -56,7 +56,7 @@
 //! For additional examples, see the bmw_util documentation.
 
 extern crate proc_macro;
-use bmw_err::{err, ErrKind, Error};
+use bmw_err::{err, Error};
 use bmw_log::*;
 use proc_macro::TokenStream;
 use proc_macro::TokenTree;

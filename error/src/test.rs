@@ -18,11 +18,16 @@
 
 #[cfg(test)]
 mod test {
+	#[cfg(unix)]
+	use bmw_deps::nix::errno::Errno;
+
 	use crate as bmw_err;
 	use crate::{err, map_err, ErrKind, Error, ErrorKind};
 	use bmw_deps::rustls::pki_types::{InvalidDnsNameError, ServerName};
+	use bmw_deps::rustls::AlertDescription;
+	use bmw_deps::rustls::Error as RustlsError;
 	use bmw_deps::substring::Substring;
-	use bmw_deps::url::ParseError;
+	use bmw_deps::url::{ParseError, Url};
 	use bmw_deps::webpki::Error as WebpkiError;
 	use std::alloc::Layout;
 	use std::convert::TryInto;
@@ -30,9 +35,11 @@ mod test {
 	use std::fs::File;
 	use std::net::{AddrParseError, IpAddr};
 	use std::num::TryFromIntError;
+	use std::str::from_utf8;
 	use std::string::FromUtf8Error;
 	use std::sync::mpsc::channel;
 	use std::sync::{Arc, Mutex, RwLock};
+	use std::thread::spawn;
 	use std::time::{Duration, SystemTime, SystemTimeError};
 
 	// used to test each error kind that conversion went properly
@@ -43,6 +50,8 @@ mod test {
 		assert_eq!(error.kind(), err_kind);
 		Ok(())
 	}
+
+	// test the various kinds of errors
 	#[test]
 	fn test_ekinds() -> Result<(), crate::Error> {
 		let s = "s";
@@ -124,6 +133,7 @@ mod test {
 		Ok(())
 	}
 
+	// test the map_err macro
 	#[test]
 	fn test_map_err() -> Result<(), crate::Error> {
 		let res = map_err!(
@@ -134,27 +144,24 @@ mod test {
 
 		assert!(matches!(
 			res.as_ref().unwrap_err().kind(),
-			crate::ErrorKind::Log(_),
+			ErrorKind::Log(_),
 		));
 
 		let res = map_err!(File::open("/path/to/nothing"), bmw_err::ErrKind::IO);
-		assert!(matches!(
-			res.as_ref().unwrap_err().kind(),
-			crate::ErrorKind::IO(_),
-		));
+		assert!(matches!(res.as_ref().unwrap_err().kind(), ErrorKind::IO(_),));
 
 		let x: Result<i32, TryFromIntError> = u64::MAX.try_into();
 		let map = map_err!(x, ErrKind::Misc);
-		assert!(matches!(map.unwrap_err().kind(), crate::ErrorKind::Misc(_)));
+		assert!(matches!(map.unwrap_err().kind(), ErrorKind::Misc(_)));
 
 		let map = map_err!(x, ErrKind::Poison);
 		let kind = map.unwrap_err().kind();
-		let _poison = crate::ErrorKind::Poison("".to_string());
+		let _poison = ErrorKind::Poison("".to_string());
 		assert!(matches!(kind, _poison));
 
 		let map = map_err!(x, ErrKind::IllegalArgument);
 		let kind = map.unwrap_err().kind();
-		let _arg = crate::ErrorKind::IllegalArgument("".to_string());
+		let _arg = ErrorKind::IllegalArgument("".to_string());
 		assert!(matches!(kind, _arg));
 
 		let s = ": out of range integral type conversion attempted".to_string();
@@ -248,13 +255,13 @@ mod test {
 
 	#[allow(invalid_from_utf8)]
 	fn get_utf8() -> Result<String, Error> {
-		Ok(std::str::from_utf8(&[0xC0])?.to_string())
+		Ok(from_utf8(&[0xC0])?.to_string())
 	}
 
 	#[test]
 	fn test_errors() -> Result<(), Error> {
 		check_error(
-			std::fs::File::open("/no/path/here"),
+			File::open("/no/path/here"),
 			ErrorKind::IO("No such file or directory (os error 2)".to_string()).into(),
 		)?;
 
@@ -270,13 +277,14 @@ mod test {
 		Ok(())
 	}
 
+	// test some other error situations, mostly converion of other errors to this crate
 	#[test]
 	fn test_other_errors() -> Result<(), Error> {
 		let mutex = Arc::new(Mutex::new(0));
 		let mutex_clone = mutex.clone();
 		let lock = Arc::new(RwLock::new(0));
 		let lock_clone = lock.clone();
-		let _ = std::thread::spawn(move || -> Result<u32, Error> {
+		let _ = spawn(move || -> Result<u32, Error> {
 			let _mutex = mutex_clone.lock();
 			let _x = lock.write();
 			let y: Option<u32> = None;
@@ -305,7 +313,7 @@ mod test {
 
 		let (tx, rx) = channel();
 
-		std::thread::spawn(move || -> Result<(), Error> {
+		spawn(move || -> Result<(), Error> {
 			tx.send(1)?;
 			Ok(())
 		});
@@ -360,12 +368,11 @@ mod test {
 		let err: Result<String, WebpkiError> = Err(WebpkiError::BadDerTime);
 		check_error(err, ErrorKind::Misc("webpkiError: ".to_string()).into())?;
 
-		let err: Result<(), bmw_deps::rustls::Error> = Err(bmw_deps::rustls::Error::AlertReceived(
-			bmw_deps::rustls::AlertDescription::CloseNotify,
-		));
+		let err: Result<(), RustlsError> =
+			Err(RustlsError::AlertReceived(AlertDescription::CloseNotify));
 		check_error(err, ErrorKind::Rustls("rustls error: ".to_string()).into())?;
 
-		let err: Result<bmw_deps::url::Url, ParseError> = bmw_deps::url::Url::parse("http://*&^%$");
+		let err: Result<Url, ParseError> = Url::parse("http://*&^%$");
 		check_error(err, ErrorKind::Misc("url::ParseError: ".to_string()).into())?;
 
 		Ok(())
@@ -374,7 +381,7 @@ mod test {
 	#[test]
 	#[cfg(unix)]
 	fn test_nix() -> Result<(), Error> {
-		let err: Result<(), bmw_deps::nix::errno::Errno> = Err(bmw_deps::nix::errno::Errno::EIO);
+		let err: Result<(), Errno> = Err(Errno::EIO);
 		check_error(err, ErrorKind::Errno("Errno error: ".to_string()).into())?;
 		Ok(())
 	}

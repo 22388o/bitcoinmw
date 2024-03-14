@@ -193,7 +193,7 @@ macro_rules! global_slab_allocator {
             )*
 
             match error {
-                Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, error)),
+                Some(error) => Err(bmw_err::err!(ErrKind::Configuration, error)),
                 None => {
                         bmw_util::GLOBAL_SLAB_ALLOCATOR.with(|f| -> Result<(), Error> {
                         unsafe {
@@ -1948,7 +1948,7 @@ mod test {
 		lock, lock_box, thread_pool, Builder, Hashset, Hashtable, List, Lock, LockBox, PoolResult,
 		Queue, SortableList, Stack, SuffixTree, ThreadPool,
 	};
-	use bmw_err::{err, ErrKind, Error};
+	use bmw_err::{err, Error};
 	use bmw_log::*;
 	use bmw_util::ConfigOption::*;
 	use bmw_util::SuffixParam::*;

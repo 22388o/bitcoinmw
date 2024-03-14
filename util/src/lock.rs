@@ -22,7 +22,7 @@
 use crate::types::LockImpl;
 use crate::{Lock, LockBox, RwLockReadGuardWrapper, RwLockWriteGuardWrapper};
 use bmw_deps::rand::random;
-use bmw_err::{err, map_err, ErrKind, Error};
+use bmw_err::{err, map_err, Error};
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::fmt::{Debug, Formatter};

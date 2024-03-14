@@ -47,113 +47,110 @@ macro_rules! try_into {
 #[macro_export]
 macro_rules! err {
 	($kind:expr, $msg:expr, $($param:tt)*) => {{
+                use bmw_err::err;
                 let msg = &format!($msg, $($param)*)[..];
-                bmw_err::err!($kind, msg)
+                err!($kind, msg)
         }};
 	($kind:expr, $msg:expr) => {{
+            use bmw_err::{ErrKind, ErrorKind, Error};
 		match $kind {
-			bmw_err::ErrKind::Configuration => {
-				let error: Error = bmw_err::ErrorKind::Configuration($msg.to_string()).into();
+			ErrKind::Configuration => {
+				let error: Error = ErrorKind::Configuration($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::IO => {
-				let error: bmw_err::Error = bmw_err::ErrorKind::IO($msg.to_string()).into();
+			ErrKind::IO => {
+				let error: Error = ErrorKind::IO($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::Log => {
-				let error: bmw_err::Error = bmw_err::ErrorKind::Log($msg.to_string()).into();
+			ErrKind::Log => {
+				let error: Error = ErrorKind::Log($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::Utf8 => {
-				let error: bmw_err::Error = bmw_err::ErrorKind::Utf8($msg.to_string()).into();
+			ErrKind::Utf8 => {
+				let error: Error = ErrorKind::Utf8($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::ArrayIndexOutOfBounds => {
-				let error: bmw_err::Error =
-					bmw_err::ErrorKind::ArrayIndexOutOfBounds($msg.to_string()).into();
+			ErrKind::ArrayIndexOutOfBounds => {
+				let error: Error = ErrorKind::ArrayIndexOutOfBounds($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::Poison => {
-				let error: bmw_err::Error = bmw_err::ErrorKind::Poison($msg.to_string()).into();
+			ErrKind::Poison => {
+				let error: Error = ErrorKind::Poison($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::CorruptedData => {
-				let error: bmw_err::Error =
-					bmw_err::ErrorKind::CorruptedData($msg.to_string()).into();
+			ErrKind::CorruptedData => {
+				let error: Error =
+					ErrorKind::CorruptedData($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::Timeout => {
-				let error: bmw_err::Error = bmw_err::ErrorKind::Timeout($msg.to_string()).into();
+			ErrKind::Timeout => {
+				let error: Error = ErrorKind::Timeout($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::CapacityExceeded => {
-				let error: bmw_err::Error =
-					bmw_err::ErrorKind::CapacityExceeded($msg.to_string()).into();
+			ErrKind::CapacityExceeded => {
+				let error: Error =
+					ErrorKind::CapacityExceeded($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::UnexpectedEof => {
-				let error: bmw_err::Error =
-					bmw_err::ErrorKind::UnexpectedEof($msg.to_string()).into();
+			ErrKind::UnexpectedEof => {
+				let error: Error =
+					ErrorKind::UnexpectedEof($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::IllegalArgument => {
-				let error: bmw_err::Error =
-					bmw_err::ErrorKind::IllegalArgument($msg.to_string()).into();
+			ErrKind::IllegalArgument => {
+				let error: Error = ErrorKind::IllegalArgument($msg.to_string()).into();
+                                error
+			}
+			ErrKind::Misc => {
+				let error: Error = ErrorKind::Misc($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::Misc => {
-				let error: bmw_err::Error = bmw_err::ErrorKind::Misc($msg.to_string()).into();
+			ErrKind::IllegalState => {
+				let error: Error = ErrorKind::IllegalState($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::IllegalState => {
-				let error: bmw_err::Error =
-					bmw_err::ErrorKind::IllegalState($msg.to_string()).into();
+			ErrKind::Test => {
+				let error: Error = ErrorKind::Test($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::Test => {
-				let error: bmw_err::Error = bmw_err::ErrorKind::Test($msg.to_string()).into();
+			ErrKind::Overflow => {
+				let error: Error = ErrorKind::Overflow($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::Overflow => {
-				let error: bmw_err::Error = bmw_err::ErrorKind::Overflow($msg.to_string()).into();
+			ErrKind::ThreadPanic => {
+				let error: Error = ErrorKind::ThreadPanic($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::ThreadPanic => {
-				let error: bmw_err::Error =
-					bmw_err::ErrorKind::ThreadPanic($msg.to_string()).into();
+			ErrKind::Alloc => {
+				let error: Error = ErrorKind::Alloc($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::Alloc => {
-				let error: bmw_err::Error = bmw_err::ErrorKind::Alloc($msg.to_string()).into();
+			ErrKind::OperationNotSupported => {
+				let error: Error = ErrorKind::OperationNotSupported($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::OperationNotSupported => {
-				let error: bmw_err::Error =
-					bmw_err::ErrorKind::OperationNotSupported($msg.to_string()).into();
+			ErrKind::SystemTime => {
+				let error: Error = ErrorKind::SystemTime($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::SystemTime => {
-				let error: bmw_err::Error = bmw_err::ErrorKind::SystemTime($msg.to_string()).into();
+			ErrKind::Errno => {
+				let error: Error = ErrorKind::Errno($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::Errno => {
-				let error: bmw_err::Error = bmw_err::ErrorKind::Errno($msg.to_string()).into();
+			ErrKind::Rustls => {
+				let error: Error = ErrorKind::Rustls($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::Rustls => {
-				let error: bmw_err::Error = bmw_err::ErrorKind::Rustls($msg.to_string()).into();
+			ErrKind::Crypt => {
+				let error: Error = ErrorKind::Crypt($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::Crypt => {
-				let error: bmw_err::Error = bmw_err::ErrorKind::Crypt($msg.to_string()).into();
+			ErrKind::Http => {
+				let error: Error = ErrorKind::Http($msg.to_string()).into();
 				error
 			}
-			bmw_err::ErrKind::Http => {
-				let error: bmw_err::Error = bmw_err::ErrorKind::Http($msg.to_string()).into();
-				error
-			}
-			bmw_err::ErrKind::Rustlet => {
-				let error: bmw_err::Error = bmw_err::ErrorKind::Rustlet($msg.to_string()).into();
+			ErrKind::Rustlet => {
+				let error: Error = ErrorKind::Rustlet($msg.to_string()).into();
 				error
 			}
 		}
@@ -183,79 +180,51 @@ macro_rules! err {
 #[macro_export]
 macro_rules! map_err {
 	($in_err:expr, $kind:expr) => {{
+		use bmw_err::map_err;
 		map_err!($in_err, $kind, "")
 	}};
 	($in_err:expr, $kind:expr, $msg:expr) => {{
+		use bmw_err::{ErrKind, Error, ErrorKind};
 		$in_err.map_err(|e| {
-			let error: bmw_err::Error = match $kind {
-				bmw_err::ErrKind::Configuration => {
-					bmw_err::ErrorKind::Configuration(format!("{}: {}", $msg, e)).into()
+			let error: Error = match $kind {
+				ErrKind::Configuration => {
+					ErrorKind::Configuration(format!("{}: {}", $msg, e)).into()
 				}
-				bmw_err::ErrKind::IO => bmw_err::ErrorKind::IO(format!("{}: {}", $msg, e)).into(),
-				bmw_err::ErrKind::Log => bmw_err::ErrorKind::Log(format!("{}: {}", $msg, e)).into(),
-				bmw_err::ErrKind::UnexpectedEof => {
-					bmw_err::ErrorKind::UnexpectedEof(format!("{}: {}", $msg, e)).into()
+				ErrKind::IO => ErrorKind::IO(format!("{}: {}", $msg, e)).into(),
+				ErrKind::Log => ErrorKind::Log(format!("{}: {}", $msg, e)).into(),
+				ErrKind::UnexpectedEof => {
+					ErrorKind::UnexpectedEof(format!("{}: {}", $msg, e)).into()
 				}
-				bmw_err::ErrKind::Utf8 => {
-					bmw_err::ErrorKind::Utf8(format!("{}: {}", $msg, e)).into()
+				ErrKind::Utf8 => ErrorKind::Utf8(format!("{}: {}", $msg, e)).into(),
+				ErrKind::ArrayIndexOutOfBounds => {
+					ErrorKind::ArrayIndexOutOfBounds(format!("{}: {}", $msg, e)).into()
 				}
-				bmw_err::ErrKind::ArrayIndexOutOfBounds => {
-					bmw_err::ErrorKind::ArrayIndexOutOfBounds(format!("{}: {}", $msg, e)).into()
+				ErrKind::Timeout => ErrorKind::Timeout(format!("{}: {}", $msg, e)).into(),
+				ErrKind::CapacityExceeded => {
+					ErrorKind::CapacityExceeded(format!("{}: {}", $msg, e)).into()
 				}
-				bmw_err::ErrKind::Timeout => {
-					bmw_err::ErrorKind::Timeout(format!("{}: {}", $msg, e)).into()
+				ErrKind::IllegalArgument => {
+					ErrorKind::IllegalArgument(format!("{}: {}", $msg, e)).into()
 				}
-				bmw_err::ErrKind::CapacityExceeded => {
-					bmw_err::ErrorKind::CapacityExceeded(format!("{}: {}", $msg, e)).into()
+				ErrKind::Poison => ErrorKind::Poison(format!("{}: {}", $msg, e)).into(),
+				ErrKind::Misc => ErrorKind::Misc(format!("{}: {}", $msg, e)).into(),
+				ErrKind::CorruptedData => {
+					ErrorKind::CorruptedData(format!("{}: {}", $msg, e)).into()
 				}
-				bmw_err::ErrKind::IllegalArgument => {
-					bmw_err::ErrorKind::IllegalArgument(format!("{}: {}", $msg, e)).into()
+				ErrKind::IllegalState => ErrorKind::IllegalState(format!("{}: {}", $msg, e)).into(),
+				ErrKind::Test => ErrorKind::Test(format!("{}: {}", $msg, e)).into(),
+				ErrKind::Overflow => ErrorKind::Overflow(format!("{}: {}", $msg, e)).into(),
+				ErrKind::ThreadPanic => ErrorKind::ThreadPanic(format!("{}: {}", $msg, e)).into(),
+				ErrKind::Alloc => ErrorKind::Alloc(format!("{}: {}", $msg, e)).into(),
+				ErrKind::OperationNotSupported => {
+					ErrorKind::OperationNotSupported(format!("{}: {}", $msg, e)).into()
 				}
-				bmw_err::ErrKind::Poison => {
-					bmw_err::ErrorKind::Poison(format!("{}: {}", $msg, e)).into()
-				}
-				bmw_err::ErrKind::Misc => {
-					bmw_err::ErrorKind::Misc(format!("{}: {}", $msg, e)).into()
-				}
-				bmw_err::ErrKind::CorruptedData => {
-					bmw_err::ErrorKind::CorruptedData(format!("{}: {}", $msg, e)).into()
-				}
-				bmw_err::ErrKind::IllegalState => {
-					bmw_err::ErrorKind::IllegalState(format!("{}: {}", $msg, e)).into()
-				}
-				bmw_err::ErrKind::Test => {
-					bmw_err::ErrorKind::Test(format!("{}: {}", $msg, e)).into()
-				}
-				bmw_err::ErrKind::Overflow => {
-					bmw_err::ErrorKind::Overflow(format!("{}: {}", $msg, e)).into()
-				}
-				bmw_err::ErrKind::ThreadPanic => {
-					bmw_err::ErrorKind::ThreadPanic(format!("{}: {}", $msg, e)).into()
-				}
-				bmw_err::ErrKind::Alloc => {
-					bmw_err::ErrorKind::Alloc(format!("{}: {}", $msg, e)).into()
-				}
-				bmw_err::ErrKind::OperationNotSupported => {
-					bmw_err::ErrorKind::OperationNotSupported(format!("{}: {}", $msg, e)).into()
-				}
-				bmw_err::ErrKind::SystemTime => {
-					bmw_err::ErrorKind::SystemTime(format!("{}: {}", $msg, e)).into()
-				}
-				bmw_err::ErrKind::Errno => {
-					bmw_err::ErrorKind::Errno(format!("{}: {}", $msg, e)).into()
-				}
-				bmw_err::ErrKind::Rustls => {
-					bmw_err::ErrorKind::Rustls(format!("{}: {}", $msg, e)).into()
-				}
-				bmw_err::ErrKind::Crypt => {
-					bmw_err::ErrorKind::Crypt(format!("{}: {}", $msg, e)).into()
-				}
-				bmw_err::ErrKind::Http => {
-					bmw_err::ErrorKind::Http(format!("{}: {}", $msg, e)).into()
-				}
-				bmw_err::ErrKind::Rustlet => {
-					bmw_err::ErrorKind::Rustlet(format!("{}: {}", $msg, e)).into()
-				}
+				ErrKind::SystemTime => ErrorKind::SystemTime(format!("{}: {}", $msg, e)).into(),
+				ErrKind::Errno => ErrorKind::Errno(format!("{}: {}", $msg, e)).into(),
+				ErrKind::Rustls => ErrorKind::Rustls(format!("{}: {}", $msg, e)).into(),
+				ErrKind::Crypt => ErrorKind::Crypt(format!("{}: {}", $msg, e)).into(),
+				ErrKind::Http => ErrorKind::Http(format!("{}: {}", $msg, e)).into(),
+				ErrKind::Rustlet => ErrorKind::Rustlet(format!("{}: {}", $msg, e)).into(),
 			};
 			error
 		})

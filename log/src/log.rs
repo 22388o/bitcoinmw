@@ -27,7 +27,7 @@ use bmw_deps::backtrace::{Backtrace, Symbol};
 use bmw_deps::chrono::{DateTime, Local};
 use bmw_deps::colored::Colorize;
 use bmw_deps::rand::random;
-use bmw_err::{err, ErrKind, Error};
+use bmw_err::{err, Error};
 use std::cell::RefCell;
 use std::fs::{canonicalize, remove_file, rename, File, OpenOptions};
 use std::io::Write;

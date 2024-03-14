@@ -21,7 +21,7 @@ use crate::{
 	ThreadPoolStopper,
 };
 use bmw_deps::futures::executor::block_on;
-use bmw_err::{err, ErrKind, Error};
+use bmw_err::{err, Error};
 use bmw_log::*;
 use std::any::Any;
 use std::future::Future;
@@ -338,7 +338,7 @@ mod test {
 	use crate::execute;
 	use crate::types::ThreadPoolImpl;
 	use crate::{lock, lock_box, Builder, Lock, PoolResult, ThreadPool, ThreadPoolConfig};
-	use bmw_err::{err, ErrKind, Error};
+	use bmw_err::{err, Error};
 	use bmw_log::*;
 	use std::thread::sleep;
 	use std::time::Duration;

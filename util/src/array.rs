@@ -18,7 +18,7 @@
 use crate::types::ArrayListIterator;
 use crate::types::Direction;
 use crate::{Array, ArrayIterator, ArrayList, List, Queue, Serializable, SortableList, Stack};
-use bmw_err::{err, ErrKind, Error};
+use bmw_err::{err, Error};
 use bmw_log::*;
 use std::fmt;
 use std::fmt::{Debug, Formatter};

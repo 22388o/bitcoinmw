@@ -24,7 +24,7 @@
 //! for reading and writing serializable data structures. The Serializable macro is implemented for
 //! several data structures in this crate as well.
 
-use bmw_err::{err, ErrKind, Error};
+use bmw_err::{err, Error};
 
 macro_rules! impl_int {
 	($int:ty, $w_fn:ident, $r_fn:ident) => {

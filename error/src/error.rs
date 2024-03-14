@@ -34,8 +34,7 @@ use std::num::{ParseIntError, TryFromIntError};
 use std::str::Utf8Error;
 use std::string::FromUtf8Error;
 use std::sync::mpsc::{RecvError, SendError};
-use std::sync::MutexGuard;
-use std::sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{MutexGuard, PoisonError, RwLockReadGuard, RwLockWriteGuard};
 use std::time::SystemTimeError;
 
 // commpare errors by "kind" only

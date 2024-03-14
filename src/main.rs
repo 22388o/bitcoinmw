@@ -16,7 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use bmw_err::{err, ErrKind, Error};
+use bmw_err::{err, Error};
 use bmw_evh::{EventHandlerConfig, ThreadContext, WriteHandle, WriteState};
 use bmw_http::HttpInstanceType::Plain;
 use bmw_http::PlainConfig;

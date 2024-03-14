@@ -17,7 +17,7 @@
 
 use crate::types::{Dictionary, Node, SuffixTreeImpl};
 use crate::{Builder, List, Match, Pattern, Reader, Serializable, Stack, SuffixTree, Writer};
-use bmw_err::{err, ErrKind, Error};
+use bmw_err::{err, Error};
 use bmw_log::*;
 
 info!();

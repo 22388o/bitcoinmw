@@ -23,7 +23,7 @@ use crate::{
 	Hashtable, HashtableConfig, List, ListConfig, Reader, Serializable, SlabAllocator,
 	SlabAllocatorConfig, SlabReader, SlabWriter, SortableList, Writer, GLOBAL_SLAB_ALLOCATOR,
 };
-use bmw_err::{err, ErrKind, Error};
+use bmw_err::{err, Error};
 use bmw_log::*;
 use std::cell::{Ref, RefCell};
 use std::fmt::Debug;

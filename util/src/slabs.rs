@@ -18,7 +18,7 @@
 use crate::misc::{set_max, slice_to_usize, usize_to_slice};
 use crate::types::SlabAllocatorImpl;
 use crate::{Array, Builder, Slab, SlabAllocator, SlabAllocatorConfig, SlabMut};
-use bmw_err::{err, ErrKind, Error};
+use bmw_err::{err, Error};
 use bmw_log::*;
 use std::cell::UnsafeCell;
 
