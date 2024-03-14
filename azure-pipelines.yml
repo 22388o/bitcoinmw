@@ -74,5 +74,6 @@ jobs:
   steps:
     - script: |
         choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
+        choco install nasm
       displayName: Windows Install Dependencies
     - template: '.ci/all.yml'
