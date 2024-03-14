@@ -81,5 +81,7 @@ use bmw_deps::failure;
 
 mod error;
 mod macros;
+mod test;
+mod types;
 
-pub use crate::error::{ErrKind, Error, ErrorKind};
+pub use crate::types::{ErrKind, Error, ErrorKind};
