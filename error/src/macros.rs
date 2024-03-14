@@ -20,8 +20,9 @@
 #[macro_export]
 macro_rules! try_into {
 	($v:expr) => {{
+		use bmw_err::{map_err, ErrKind};
 		use std::convert::TryInto;
-		bmw_err::map_err!($v.try_into(), bmw_err::ErrKind::Misc, "TryInto Error")
+		map_err!($v.try_into(), ErrKind::Misc, "TryInto Error")
 	}};
 }
 

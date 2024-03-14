@@ -18,7 +18,7 @@
 
 use bmw_deps::failure::{Context, Fail};
 
-/// Base Error struct which is used throughout bmw.
+/// Base Error struct which is used throughout BMW.
 #[derive(Debug, Fail)]
 pub struct Error {
 	pub(crate) inner: Context<ErrorKind>,
@@ -101,14 +101,14 @@ pub enum ErrorKind {
 	Rustlet(String),
 }
 
-/// The names of ErrorKinds in this crate. This enum is used to map to error
+/// The kinds of errors in this crate. This enum is used to map to error
 /// names using the [`crate::err`] and [`crate::map_err`] macros.
 pub enum ErrKind {
 	/// IO Error
 	IO,
 	/// Log Error
 	Log,
-	/// A conversion to the utf8 format resulted in an error
+	/// A conversion to the UTF-8 format resulted in an error
 	Utf8,
 	/// An array index was out of bounds
 	ArrayIndexOutOfBounds,

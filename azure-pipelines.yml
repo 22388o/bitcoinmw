@@ -72,4 +72,7 @@ jobs:
         CI_JOB: all
         PLATFORM: win-x64
   steps:
+    - script: |
+        choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
+      displayName: Windows Install Dependencies
     - template: '.ci/all.yml'
