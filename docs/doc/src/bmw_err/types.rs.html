@@ -175,7 +175,7 @@
 
 </span><span class="kw">use </span>bmw_deps::failure::{Context, Fail};
 
-<span class="doccomment">/// Base Error struct which is used throughout bmw.
+<span class="doccomment">/// Base Error struct which is used throughout BMW.
 </span><span class="attr">#[derive(Debug, Fail)]
 </span><span class="kw">pub struct </span>Error {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) inner: Context&lt;ErrorKind&gt;,
@@ -258,14 +258,14 @@
 	</span>Rustlet(String),
 }
 
-<span class="doccomment">/// The names of ErrorKinds in this crate. This enum is used to map to error
+<span class="doccomment">/// The kinds of errors in this crate. This enum is used to map to error
 /// names using the [`crate::err`] and [`crate::map_err`] macros.
 </span><span class="kw">pub enum </span>ErrKind {
 	<span class="doccomment">/// IO Error
 	</span>IO,
 	<span class="doccomment">/// Log Error
 	</span>Log,
-	<span class="doccomment">/// A conversion to the utf8 format resulted in an error
+	<span class="doccomment">/// A conversion to the UTF-8 format resulted in an error
 	</span>Utf8,
 	<span class="doccomment">/// An array index was out of bounds
 	</span>ArrayIndexOutOfBounds,
