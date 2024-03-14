@@ -405,21 +405,6 @@
 <a href="#404" id="404">404</a>
 <a href="#405" id="405">405</a>
 <a href="#406" id="406">406</a>
-<a href="#407" id="407">407</a>
-<a href="#408" id="408">408</a>
-<a href="#409" id="409">409</a>
-<a href="#410" id="410">410</a>
-<a href="#411" id="411">411</a>
-<a href="#412" id="412">412</a>
-<a href="#413" id="413">413</a>
-<a href="#414" id="414">414</a>
-<a href="#415" id="415">415</a>
-<a href="#416" id="416">416</a>
-<a href="#417" id="417">417</a>
-<a href="#418" id="418">418</a>
-<a href="#419" id="419">419</a>
-<a href="#420" id="420">420</a>
-<a href="#421" id="421">421</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -445,18 +430,20 @@
 	<span class="self">self</span>, accept, c_void, close, fcntl, listen, pipe, read, sockaddr, socket, write, F_SETFL,
 	O_NONBLOCK,
 };
-<span class="kw">use </span>bmw_deps::nix::sys::epoll::{epoll_ctl, epoll_wait, EpollEvent, EpollFlags, EpollOp};
+<span class="kw">use </span>bmw_deps::nix::poll::PollTimeout;
+<span class="kw">use </span>bmw_deps::nix::sys::epoll::{Epoll, EpollEvent, EpollFlags};
 <span class="kw">use </span>bmw_deps::nix::sys::socket::{bind, SockaddrIn, SockaddrIn6};
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
 <span class="kw">use </span>std::mem::{<span class="self">self</span>, size_of, zeroed};
 <span class="kw">use </span>std::net::TcpStream;
+<span class="kw">use </span>std::os::fd::BorrowedFd;
 <span class="kw">use </span>std::os::raw::c_int;
 <span class="kw">use </span>std::os::unix::prelude::RawFd;
 <span class="kw">use </span>std::str::FromStr;
 <span class="kw">use </span>std::sync::Arc;
-<span class="kw">use </span>std::time::{SystemTime, UNIX_EPOCH};
+<span class="kw">use </span>std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 <span class="macro">info!</span>();
 
@@ -659,27 +646,17 @@
 			interest |= EpollFlags::EPOLLRDHUP;
 
 			<span class="kw">let </span>handle_as_usize: usize = fd.try_into()<span class="question-mark">?</span>;
-			<span class="comment">// unwrap is ok because we resize above
-			</span><span class="kw">let </span>op = <span class="kw">if </span><span class="kw-2">*</span>ctx.filter_set.get(handle_as_usize).unwrap() {
-				<span class="macro">debug!</span>(<span class="string">"found {}. using mod"</span>, handle_as_usize)<span class="question-mark">?</span>;
-				EpollOp::EpollCtlMod
+			<span class="kw">let </span><span class="kw-2">mut </span>event = EpollEvent::new(interest, evt.handle.try_into()<span class="question-mark">?</span>);
+			<span class="macro">debug!</span>(<span class="string">"fd={},ctx.tid={}"</span>, fd, ctx.tid)<span class="question-mark">?</span>;
+
+			<span class="kw">let </span>res = <span class="kw">if </span><span class="kw-2">*</span>ctx.filter_set.get(handle_as_usize).unwrap() {
+				(<span class="kw-2">*</span>ctx.selector).modify(<span class="kw">unsafe </span>{ BorrowedFd::borrow_raw(evt.handle) }, <span class="kw-2">&amp;mut </span>event)
 			} <span class="kw">else </span>{
-				<span class="macro">debug!</span>(<span class="string">"not found {}. using add"</span>, handle_as_usize)<span class="question-mark">?</span>;
-				EpollOp::EpollCtlAdd
+				(<span class="kw-2">*</span>ctx.selector).add(<span class="kw">unsafe </span>{ BorrowedFd::borrow_raw(evt.handle) }, event)
 			};
 			ctx.filter_set.replace(handle_as_usize, <span class="bool-val">true</span>);
-			<span class="kw">let </span><span class="kw-2">mut </span>event = EpollEvent::new(interest, evt.handle.try_into()<span class="question-mark">?</span>);
-			<span class="macro">debug!</span>(
-				<span class="string">"epoll_ctl selector={},op={:?},handle={}"</span>,
-				ctx.selector, op, evt.handle
-			)<span class="question-mark">?</span>;
-			<span class="macro">debug!</span>(<span class="string">"fd={},op={:?},ctx.tid={}"</span>, fd, op, ctx.tid)<span class="question-mark">?</span>;
-			<span class="kw">let </span>res = epoll_ctl(ctx.selector, op, evt.handle, <span class="kw-2">&amp;mut </span>event);
 			<span class="kw">if </span>res.is_err() || debug_err {
-				<span class="macro">warn!</span>(
-					<span class="string">"Error epoll_ctl1: {:?}, fd={}, op={:?},tid={}"</span>,
-					res, fd, op, ctx.tid
-				)<span class="question-mark">?
+				<span class="macro">warn!</span>(<span class="string">"Error epoll_ctl1: {:?}, fd={}, tid={}"</span>, res, fd, ctx.tid)<span class="question-mark">?
 			</span>}
 		} <span class="kw">else if </span>evt.etype == EventTypeIn::Write {
 			<span class="kw">let </span>fd = evt.handle;
@@ -693,22 +670,18 @@
 			interest |= EpollFlags::EPOLLET;
 
 			<span class="kw">let </span>handle_as_usize: usize = fd.try_into()<span class="question-mark">?</span>;
-			<span class="comment">// unwrap is ok because we resize above
-			</span><span class="kw">let </span>op = <span class="kw">if </span><span class="kw-2">*</span>ctx.filter_set.get(handle_as_usize).unwrap() {
-				EpollOp::EpollCtlMod
-			} <span class="kw">else </span>{
-				EpollOp::EpollCtlAdd
-			};
-			ctx.filter_set.replace(handle_as_usize, <span class="bool-val">true</span>);
 
 			<span class="kw">let </span><span class="kw-2">mut </span>event = EpollEvent::new(interest, evt.handle.try_into()<span class="question-mark">?</span>);
-			<span class="macro">debug!</span>(<span class="string">"fd={},op={:?},ctx.tid={}"</span>, fd, op, ctx.tid)<span class="question-mark">?</span>;
-			<span class="kw">let </span>res = epoll_ctl(ctx.selector, op, evt.handle, <span class="kw-2">&amp;mut </span>event);
+			<span class="macro">debug!</span>(<span class="string">"fd={},ctx.tid={}"</span>, fd, ctx.tid)<span class="question-mark">?</span>;
+
+			<span class="kw">let </span>res = <span class="kw">if </span><span class="kw-2">*</span>ctx.filter_set.get(handle_as_usize).unwrap() {
+				(<span class="kw-2">*</span>ctx.selector).modify(<span class="kw">unsafe </span>{ BorrowedFd::borrow_raw(evt.handle) }, <span class="kw-2">&amp;mut </span>event)
+			} <span class="kw">else </span>{
+				(<span class="kw-2">*</span>ctx.selector).add(<span class="kw">unsafe </span>{ BorrowedFd::borrow_raw(evt.handle) }, event)
+			};
+			ctx.filter_set.replace(handle_as_usize, <span class="bool-val">true</span>);
 			<span class="kw">if </span>res.is_err() || debug_err {
-				<span class="macro">warn!</span>(
-					<span class="string">"Error epoll_ctl2: {:?}, fd={}, op={:?},tid={}"</span>,
-					res, fd, op, ctx.tid
-				)<span class="question-mark">?
+				<span class="macro">warn!</span>(<span class="string">"Error epoll_ctl2: {:?}, fd={}, tid={}"</span>, res, fd, ctx.tid)<span class="question-mark">?
 			</span>}
 		} <span class="kw">else if </span>evt.etype == EventTypeIn::Suspend {
 			<span class="kw">let </span>fd = evt.handle;
@@ -719,16 +692,10 @@
 
 			<span class="kw">let </span>handle_as_usize: usize = fd.try_into()<span class="question-mark">?</span>;
 			ctx.filter_set.replace(handle_as_usize, <span class="bool-val">false</span>);
-			<span class="kw">let </span>op = EpollOp::EpollCtlDel;
 
-			<span class="kw">let </span><span class="kw-2">mut </span>event = EpollEvent::new(interest, evt.handle.try_into()<span class="question-mark">?</span>);
-			<span class="macro">debug!</span>(<span class="string">"fd={},op={:?},ctx.tid={}"</span>, fd, op, ctx.tid)<span class="question-mark">?</span>;
-			<span class="kw">let </span>res = epoll_ctl(ctx.selector, op, evt.handle, <span class="kw-2">&amp;mut </span>event);
+			<span class="kw">let </span>res = (<span class="kw-2">*</span>ctx.selector).delete(<span class="kw">unsafe </span>{ BorrowedFd::borrow_raw(evt.handle) });
 			<span class="kw">if </span>res.is_err() || debug_err {
-				<span class="macro">warn!</span>(
-					<span class="string">"Error epoll_ctl3: {:?}, fd={}, op={:?},tid={}"</span>,
-					res, fd, op, ctx.tid
-				)<span class="question-mark">?
+				<span class="macro">warn!</span>(<span class="string">"Error epoll_ctl3: {:?}, fd={}, tid={}"</span>, res, fd, ctx.tid)<span class="question-mark">?
 			</span>}
 		}
 	}
@@ -737,15 +704,18 @@
 
 	<span class="kw">let </span>now = SystemTime::now().duration_since(UNIX_EPOCH)<span class="question-mark">?</span>.as_millis();
 	<span class="kw">let </span>diff = now - ctx.now;
-	<span class="kw">let </span>sleep = <span class="kw">if </span>wakeup_requested {
+	<span class="kw">let </span>sleep: Duration = Duration::from_millis(<span class="kw">if </span>wakeup_requested {
 		<span class="number">0
 	</span>} <span class="kw">else </span>{
-		config.housekeeping_frequency_millis.saturating_sub(diff)
-	}
-	.try_into()<span class="question-mark">?</span>;
+		<span class="macro">try_into!</span>(config.housekeeping_frequency_millis.saturating_sub(diff))<span class="question-mark">?
+	</span>});
 
 	<span class="macro">debug!</span>(<span class="string">"epoll_wait tid = {}"</span>, ctx.tid)<span class="question-mark">?</span>;
-	<span class="kw">let </span>results = epoll_wait(ctx.selector, <span class="kw-2">&amp;mut </span>ctx.epoll_events, sleep);
+	<span class="kw">let </span>results = Epoll::wait(
+		<span class="kw-2">&amp;*</span>(ctx.selector),
+		<span class="kw-2">&amp;mut </span>ctx.epoll_events,
+		PollTimeout::try_from(sleep).unwrap_or(<span class="number">0u8</span>.into()),
+	);
 
 	ctx.now = SystemTime::now().duration_since(UNIX_EPOCH)<span class="question-mark">?</span>.as_millis();
 

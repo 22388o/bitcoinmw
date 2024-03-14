@@ -464,6 +464,11 @@
 <a href="#463" id="463">463</a>
 <a href="#464" id="464">464</a>
 <a href="#465" id="465">465</a>
+<a href="#466" id="466">466</a>
+<a href="#467" id="467">467</a>
+<a href="#468" id="468">468</a>
+<a href="#469" id="469">469</a>
+<a href="#470" id="470">470</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -499,7 +504,7 @@
 <span class="attr">#[cfg(target_os = <span class="string">"linux"</span>)]
 </span><span class="kw">use </span>bmw_deps::bitvec::vec::BitVec;
 <span class="attr">#[cfg(target_os = <span class="string">"linux"</span>)]
-</span><span class="kw">use </span>bmw_deps::nix::sys::epoll::EpollEvent;
+</span><span class="kw">use </span>bmw_deps::nix::sys::epoll::{Epoll, EpollEvent};
 
 <span class="attr">#[cfg(target_os = <span class="string">"windows"</span>)]
 </span><span class="kw">use </span>bmw_deps::bitvec::vec::BitVec;
@@ -760,7 +765,12 @@
 	</span><span class="kw">pub</span>(<span class="kw">crate</span>) filter_set: BitVec,
 	<span class="attr">#[cfg(target_os = <span class="string">"linux"</span>)]
 	</span><span class="kw">pub</span>(<span class="kw">crate</span>) epoll_events: Vec&lt;EpollEvent&gt;,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) selector: Handle,
+	<span class="attr">#[cfg(target_os = <span class="string">"linux"</span>)]
+	</span><span class="kw">pub</span>(<span class="kw">crate</span>) selector: Arc&lt;Epoll&gt;,
+	<span class="attr">#[cfg(target_os = <span class="string">"macos"</span>)]
+	</span><span class="kw">pub</span>(<span class="kw">crate</span>) selector: Handle,
+	<span class="attr">#[cfg(target_os = <span class="string">"windows"</span>)]
+	</span><span class="kw">pub</span>(<span class="kw">crate</span>) selector: Handle,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) now: u128,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) last_housekeeper: u128,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) connection_hashtable: Box&lt;<span class="kw">dyn </span>Hashtable&lt;u128, ConnectionInfo&gt; + Send + Sync&gt;,
