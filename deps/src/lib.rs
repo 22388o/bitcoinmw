@@ -19,11 +19,26 @@
 //! This is the dependency crate. All bmw dependencies are included in this crate as re-exports and
 //! used by the other crates within the repo.
 
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 pub use wepoll_sys;
+#[cfg(target_os = "windows")]
+pub use windows_sys;
 
 #[cfg(target_os = "macos")]
+pub use errno;
+#[cfg(target_os = "macos")]
 pub use kqueue_sys;
+#[cfg(target_os = "macos")]
+pub use libc;
+#[cfg(target_os = "macos")]
+pub use nix;
+
+#[cfg(target_os = "linux")]
+pub use errno;
+#[cfg(target_os = "linux")]
+pub use libc;
+#[cfg(target_os = "linux")]
+pub use nix;
 
 pub use backtrace;
 pub use base64;
@@ -34,16 +49,13 @@ pub use colored;
 pub use dirs;
 pub use downcast;
 pub use dyn_clone;
-pub use errno;
 pub use failure;
 pub use failure_derive;
 pub use flate2;
 pub use futures;
 pub use itertools;
 pub use lazy_static;
-pub use libc;
 pub use math;
-pub use nix;
 pub use num_format;
 pub use path_clean;
 pub use portpicker;
@@ -59,4 +71,3 @@ pub use substring;
 pub use url;
 pub use webpki;
 pub use webpki_roots;
-pub use windows_sys;
