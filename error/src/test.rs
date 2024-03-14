@@ -363,12 +363,17 @@ mod test {
 		));
 		check_error(err, ErrorKind::Rustls("rustls error: ".to_string()).into())?;
 
-		let err: Result<(), bmw_deps::nix::errno::Errno> = Err(bmw_deps::nix::errno::Errno::EIO);
-		check_error(err, ErrorKind::Errno("Errno error: ".to_string()).into())?;
-
 		let err: Result<bmw_deps::url::Url, ParseError> = bmw_deps::url::Url::parse("http://*&^%$");
 		check_error(err, ErrorKind::Misc("url::ParseError: ".to_string()).into())?;
 
+		Ok(())
+	}
+
+	#[test]
+	#[cfg(unix)]
+	fn test_nix() -> Result<(), Error> {
+		let err: Result<(), bmw_deps::nix::errno::Errno> = Err(bmw_deps::nix::errno::Errno::EID);
+		check_error(err, ErrorKind::Errno("Errno error: ".to_string()).into())?;
 		Ok(())
 	}
 
