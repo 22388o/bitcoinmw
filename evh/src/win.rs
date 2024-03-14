@@ -19,8 +19,9 @@ use crate::types::{Event, EventHandlerContext, EventType, EventTypeIn, Handle};
 use crate::EventHandlerConfig;
 use bmw_deps::bitvec::vec::*;
 use bmw_deps::errno::{errno, set_errno, Errno};
-use bmw_deps::winapi::shared::ws2def::SOCKADDR;
-use bmw_deps::winapi::um::winsock2::{accept, closesocket, ioctlsocket, recv, send, setsockopt};
+use bmw_deps::windows_sys::Win32::Networking::WinSock::{
+	accept, closesocket, ioctlsocket, recv, send, setsockopt, SOCKADDR,
+};
 use bmw_err::*;
 use bmw_log::*;
 use bmw_util::*;
@@ -81,7 +82,7 @@ pub(crate) fn set_windows_socket_options(handle: Handle) -> Result<(), Error> {
 			handle,
 			SOL_SOCKET,
 			SO_SNDBUF,
-			&WINSOCK_BUF_SIZE as *const _ as *const i8,
+			&WINSOCK_BUF_SIZE as *const _ as *const u8,
 			std::mem::size_of_val(&WINSOCK_BUF_SIZE) as c_int,
 		)
 	};
@@ -98,7 +99,7 @@ pub(crate) fn set_windows_socket_options(handle: Handle) -> Result<(), Error> {
 
 pub(crate) fn read_bytes_impl(handle: Handle, buf: &mut [u8]) -> isize {
 	set_errno(Errno(0));
-	let cbuf: *mut i8 = buf as *mut _ as *mut i8;
+	let cbuf: *mut u8 = buf as *mut _ as *mut u8;
 	match buf.len().try_into() {
 		Ok(len) => {
 			let mut len = unsafe { recv(handle, cbuf, len, 0) };
@@ -119,7 +120,7 @@ pub(crate) fn read_bytes_impl(handle: Handle, buf: &mut [u8]) -> isize {
 
 pub(crate) fn write_bytes_impl(handle: Handle, buf: &[u8]) -> isize {
 	set_errno(Errno(0));
-	let cbuf: *mut i8 = buf as *const _ as *mut i8;
+	let cbuf: *mut u8 = buf as *const _ as *mut u8;
 	match buf.len().try_into() {
 		Ok(len) => unsafe { send(handle, cbuf, len, 0).try_into().unwrap_or(-1) },
 		Err(_) => -1,

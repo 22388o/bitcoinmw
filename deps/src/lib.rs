@@ -59,4 +59,4 @@ pub use substring;
 pub use url;
 pub use webpki;
 pub use webpki_roots;
-pub use winapi;
+pub use windows_sys;
