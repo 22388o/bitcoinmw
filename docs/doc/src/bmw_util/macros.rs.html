@@ -2645,7 +2645,7 @@
             )*
 
             <span class="kw">match </span>error {
-                <span class="prelude-val">Some</span>(error) =&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(bmw_err::ErrKind::Configuration, error)),
+                <span class="prelude-val">Some</span>(error) =&gt; <span class="prelude-val">Err</span>(<span class="macro">bmw_err::err!</span>(ErrKind::Configuration, error)),
                 <span class="prelude-val">None </span>=&gt; {
                         bmw_util::GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
                         <span class="kw">unsafe </span>{
@@ -4400,7 +4400,7 @@
 		lock, lock_box, thread_pool, Builder, Hashset, Hashtable, List, Lock, LockBox, PoolResult,
 		Queue, SortableList, Stack, SuffixTree, ThreadPool,
 	};
-	<span class="kw">use </span>bmw_err::{err, ErrKind, Error};
+	<span class="kw">use </span>bmw_err::{err, Error};
 	<span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_util::ConfigOption::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_util::SuffixParam::<span class="kw-2">*</span>;

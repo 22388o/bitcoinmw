@@ -386,6 +386,15 @@
 <a href="#385" id="385">385</a>
 <a href="#386" id="386">386</a>
 <a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
+<a href="#390" id="390">390</a>
+<a href="#391" id="391">391</a>
+<a href="#392" id="392">392</a>
+<a href="#393" id="393">393</a>
+<a href="#394" id="394">394</a>
+<a href="#395" id="395">395</a>
+<a href="#396" id="396">396</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -406,11 +415,16 @@
 
 </span><span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
+	<span class="attr">#[cfg(unix)]
+	</span><span class="kw">use </span>bmw_deps::nix::errno::Errno;
+
 	<span class="kw">use crate as </span>bmw_err;
 	<span class="kw">use crate</span>::{err, map_err, ErrKind, Error, ErrorKind};
 	<span class="kw">use </span>bmw_deps::rustls::pki_types::{InvalidDnsNameError, ServerName};
+	<span class="kw">use </span>bmw_deps::rustls::AlertDescription;
+	<span class="kw">use </span>bmw_deps::rustls::Error <span class="kw">as </span>RustlsError;
 	<span class="kw">use </span>bmw_deps::substring::Substring;
-	<span class="kw">use </span>bmw_deps::url::ParseError;
+	<span class="kw">use </span>bmw_deps::url::{ParseError, Url};
 	<span class="kw">use </span>bmw_deps::webpki::Error <span class="kw">as </span>WebpkiError;
 	<span class="kw">use </span>std::alloc::Layout;
 	<span class="kw">use </span>std::convert::TryInto;
@@ -418,19 +432,24 @@
 	<span class="kw">use </span>std::fs::File;
 	<span class="kw">use </span>std::net::{AddrParseError, IpAddr};
 	<span class="kw">use </span>std::num::TryFromIntError;
+	<span class="kw">use </span>std::str::from_utf8;
 	<span class="kw">use </span>std::string::FromUtf8Error;
 	<span class="kw">use </span>std::sync::mpsc::channel;
 	<span class="kw">use </span>std::sync::{Arc, Mutex, RwLock};
+	<span class="kw">use </span>std::thread::spawn;
 	<span class="kw">use </span>std::time::{Duration, SystemTime, SystemTimeError};
 
-	<span class="kw">fn </span>test_kind(k: ErrKind, s: <span class="kw-2">&amp;</span>str, error: Error) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="comment">// used to test each error kind that conversion went properly
+	</span><span class="kw">fn </span>test_kind(k: ErrKind, s: <span class="kw-2">&amp;</span>str, error: Error) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>err: bmw_err::Error = <span class="macro">err!</span>(k, s);
 		<span class="kw">let </span>err_kind = err.kind();
 		<span class="macro">println!</span>(<span class="string">"error.kind={:?},err_kind={:?}"</span>, error.kind(), err_kind);
 		<span class="macro">assert_eq!</span>(error.kind(), err_kind);
 		<span class="prelude-val">Ok</span>(())
 	}
-	<span class="attr">#[test]
+
+	<span class="comment">// test the various kinds of errors
+	</span><span class="attr">#[test]
 	</span><span class="kw">fn </span>test_ekinds() -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="kw">crate</span>::Error&gt; {
 		<span class="kw">let </span>s = <span class="string">"s"</span>;
 		<span class="kw">let </span>ss = <span class="string">"s"</span>.to_string();
@@ -503,14 +522,16 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">fn </span>test_map(err_kind: ErrKind, _error_kind: ErrorKind) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="comment">// used to test that each err map works
+	</span><span class="kw">fn </span>test_map(err_kind: ErrKind, _error_kind: ErrorKind) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>map: <span class="prelude-ty">Result</span>&lt;usize, Error&gt; = <span class="macro">map_err!</span>((-<span class="number">1</span>).try_into(), err_kind);
 		<span class="kw">let </span>kind = map.unwrap_err().kind();
 		<span class="macro">assert_eq!</span>(kind, _error_kind);
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="attr">#[test]
+	<span class="comment">// test the map_err macro
+	</span><span class="attr">#[test]
 	</span><span class="kw">fn </span>test_map_err() -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="kw">crate</span>::Error&gt; {
 		<span class="kw">let </span>res = <span class="macro">map_err!</span>(
 			File::open(<span class="string">"/path/to/nothing"</span>),
@@ -520,27 +541,24 @@
 
 		<span class="macro">assert!</span>(<span class="macro">matches!</span>(
 			res.as_ref().unwrap_err().kind(),
-			<span class="kw">crate</span>::ErrorKind::Log(<span class="kw">_</span>),
+			ErrorKind::Log(<span class="kw">_</span>),
 		));
 
 		<span class="kw">let </span>res = <span class="macro">map_err!</span>(File::open(<span class="string">"/path/to/nothing"</span>), bmw_err::ErrKind::IO);
-		<span class="macro">assert!</span>(<span class="macro">matches!</span>(
-			res.as_ref().unwrap_err().kind(),
-			<span class="kw">crate</span>::ErrorKind::IO(<span class="kw">_</span>),
-		));
+		<span class="macro">assert!</span>(<span class="macro">matches!</span>(res.as_ref().unwrap_err().kind(), ErrorKind::IO(<span class="kw">_</span>),));
 
 		<span class="kw">let </span>x: <span class="prelude-ty">Result</span>&lt;i32, TryFromIntError&gt; = u64::MAX.try_into();
 		<span class="kw">let </span>map = <span class="macro">map_err!</span>(x, ErrKind::Misc);
-		<span class="macro">assert!</span>(<span class="macro">matches!</span>(map.unwrap_err().kind(), <span class="kw">crate</span>::ErrorKind::Misc(<span class="kw">_</span>)));
+		<span class="macro">assert!</span>(<span class="macro">matches!</span>(map.unwrap_err().kind(), ErrorKind::Misc(<span class="kw">_</span>)));
 
 		<span class="kw">let </span>map = <span class="macro">map_err!</span>(x, ErrKind::Poison);
 		<span class="kw">let </span>kind = map.unwrap_err().kind();
-		<span class="kw">let </span>_poison = <span class="kw">crate</span>::ErrorKind::Poison(<span class="string">""</span>.to_string());
+		<span class="kw">let </span>_poison = ErrorKind::Poison(<span class="string">""</span>.to_string());
 		<span class="macro">assert!</span>(<span class="macro">matches!</span>(kind, _poison));
 
 		<span class="kw">let </span>map = <span class="macro">map_err!</span>(x, ErrKind::IllegalArgument);
 		<span class="kw">let </span>kind = map.unwrap_err().kind();
-		<span class="kw">let </span>_arg = <span class="kw">crate</span>::ErrorKind::IllegalArgument(<span class="string">""</span>.to_string());
+		<span class="kw">let </span>_arg = ErrorKind::IllegalArgument(<span class="string">""</span>.to_string());
 		<span class="macro">assert!</span>(<span class="macro">matches!</span>(kind, _arg));
 
 		<span class="kw">let </span>s = <span class="string">": out of range integral type conversion attempted"</span>.to_string();
@@ -634,13 +652,13 @@
 
 	<span class="attr">#[allow(invalid_from_utf8)]
 	</span><span class="kw">fn </span>get_utf8() -&gt; <span class="prelude-ty">Result</span>&lt;String, Error&gt; {
-		<span class="prelude-val">Ok</span>(std::str::from_utf8(<span class="kw-2">&amp;</span>[<span class="number">0xC0</span>])<span class="question-mark">?</span>.to_string())
+		<span class="prelude-val">Ok</span>(from_utf8(<span class="kw-2">&amp;</span>[<span class="number">0xC0</span>])<span class="question-mark">?</span>.to_string())
 	}
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_errors() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		check_error(
-			std::fs::File::open(<span class="string">"/no/path/here"</span>),
+			File::open(<span class="string">"/no/path/here"</span>),
 			ErrorKind::IO(<span class="string">"No such file or directory (os error 2)"</span>.to_string()).into(),
 		)<span class="question-mark">?</span>;
 
@@ -656,13 +674,14 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="attr">#[test]
+	<span class="comment">// test some other error situations, mostly converion of other errors to this crate
+	</span><span class="attr">#[test]
 	</span><span class="kw">fn </span>test_other_errors() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>mutex = Arc::new(Mutex::new(<span class="number">0</span>));
 		<span class="kw">let </span>mutex_clone = mutex.clone();
 		<span class="kw">let </span>lock = Arc::new(RwLock::new(<span class="number">0</span>));
 		<span class="kw">let </span>lock_clone = lock.clone();
-		<span class="kw">let _ </span>= std::thread::spawn(<span class="kw">move </span>|| -&gt; <span class="prelude-ty">Result</span>&lt;u32, Error&gt; {
+		<span class="kw">let _ </span>= spawn(<span class="kw">move </span>|| -&gt; <span class="prelude-ty">Result</span>&lt;u32, Error&gt; {
 			<span class="kw">let </span>_mutex = mutex_clone.lock();
 			<span class="kw">let </span>_x = lock.write();
 			<span class="kw">let </span>y: <span class="prelude-ty">Option</span>&lt;u32&gt; = <span class="prelude-val">None</span>;
@@ -691,7 +710,7 @@
 
 		<span class="kw">let </span>(tx, rx) = channel();
 
-		std::thread::spawn(<span class="kw">move </span>|| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		spawn(<span class="kw">move </span>|| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 			tx.send(<span class="number">1</span>)<span class="question-mark">?</span>;
 			<span class="prelude-val">Ok</span>(())
 		});
@@ -746,12 +765,11 @@
 		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;String, WebpkiError&gt; = <span class="prelude-val">Err</span>(WebpkiError::BadDerTime);
 		check_error(err, ErrorKind::Misc(<span class="string">"webpkiError: "</span>.to_string()).into())<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;(), bmw_deps::rustls::Error&gt; = <span class="prelude-val">Err</span>(bmw_deps::rustls::Error::AlertReceived(
-			bmw_deps::rustls::AlertDescription::CloseNotify,
-		));
+		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;(), RustlsError&gt; =
+			<span class="prelude-val">Err</span>(RustlsError::AlertReceived(AlertDescription::CloseNotify));
 		check_error(err, ErrorKind::Rustls(<span class="string">"rustls error: "</span>.to_string()).into())<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;bmw_deps::url::Url, ParseError&gt; = bmw_deps::url::Url::parse(<span class="string">"http://*&amp;^%$"</span>);
+		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;Url, ParseError&gt; = Url::parse(<span class="string">"http://*&amp;^%$"</span>);
 		check_error(err, ErrorKind::Misc(<span class="string">"url::ParseError: "</span>.to_string()).into())<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
@@ -760,7 +778,7 @@
 	<span class="attr">#[test]
 	#[cfg(unix)]
 	</span><span class="kw">fn </span>test_nix() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;(), bmw_deps::nix::errno::Errno&gt; = <span class="prelude-val">Err</span>(bmw_deps::nix::errno::Errno::EID);
+		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;(), Errno&gt; = <span class="prelude-val">Err</span>(Errno::EIO);
 		check_error(err, ErrorKind::Errno(<span class="string">"Errno error: "</span>.to_string()).into())<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
