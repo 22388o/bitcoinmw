@@ -38,6 +38,7 @@ use std::sync::MutexGuard;
 use std::sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard};
 use std::time::SystemTimeError;
 
+// commpare errors by "kind" only
 impl PartialEq for Error {
 	fn eq(&self, r: &Error) -> bool {
 		r.kind() == self.kind()
@@ -72,6 +73,8 @@ impl Error {
 		self.inner.to_string()
 	}
 }
+
+// Conversions from other errors to our base error struct are below
 
 impl From<ErrorKind> for Error {
 	fn from(kind: ErrorKind) -> Error {

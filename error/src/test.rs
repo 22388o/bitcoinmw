@@ -35,6 +35,7 @@ mod test {
 	use std::sync::{Arc, Mutex, RwLock};
 	use std::time::{Duration, SystemTime, SystemTimeError};
 
+	// used to test each error kind that conversion went properly
 	fn test_kind(k: ErrKind, s: &str, error: Error) -> Result<(), Error> {
 		let err: bmw_err::Error = err!(k, s);
 		let err_kind = err.kind();
@@ -115,6 +116,7 @@ mod test {
 		Ok(())
 	}
 
+	// used to test that each err map works
 	fn test_map(err_kind: ErrKind, _error_kind: ErrorKind) -> Result<(), Error> {
 		let map: Result<usize, Error> = map_err!((-1).try_into(), err_kind);
 		let kind = map.unwrap_err().kind();
@@ -372,7 +374,7 @@ mod test {
 	#[test]
 	#[cfg(unix)]
 	fn test_nix() -> Result<(), Error> {
-		let err: Result<(), bmw_deps::nix::errno::Errno> = Err(bmw_deps::nix::errno::Errno::EID);
+		let err: Result<(), bmw_deps::nix::errno::Errno> = Err(bmw_deps::nix::errno::Errno::EIO);
 		check_error(err, ErrorKind::Errno("Errno error: ".to_string()).into())?;
 		Ok(())
 	}
