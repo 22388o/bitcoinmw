@@ -16,9 +16,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#[cfg(unix)]
+use bmw_deps::nix::errno::Errno as NixErrno;
+
 use crate::types::{Error, ErrorKind};
 use bmw_deps::failure::{Backtrace, Context, Fail};
-use bmw_deps::nix::errno::Errno as NixErrno;
 use bmw_deps::rustls::pki_types::InvalidDnsNameError;
 use bmw_deps::rustls::Error as RustlsError;
 use bmw_deps::url::ParseError;
