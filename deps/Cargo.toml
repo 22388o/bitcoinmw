@@ -37,9 +37,9 @@ rustls-pemfile = "2.1.1"
 webpki-roots = "0.26.1"
 webpki = "0.22.4"
 libmath = "0.2.1"
-sha-1 = "0.10.0"
-base64 = "0.13.0"
-byteorder = "1.4.2"
+sha-1 = "0.10.1"
+base64 = "0.22.0"
+byteorder = "1.5.0"
 rand_core = "0.6.4"
 flate2 = "1.0.28"
 num-format = "0.4.4"
@@ -48,7 +48,7 @@ downcast = "0.11.0"
 url = "2.5.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-kqueue-sys = "1.0.2"
+kqueue-sys = "1.0.4"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 wepoll-sys = "3.0.1"

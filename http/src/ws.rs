@@ -24,7 +24,7 @@ use crate::{
 	HttpConfig, HttpInstance, WebSocketClient, WebSocketClientConfig, WebSocketConnection,
 	WebSocketConnectionConfig, WebSocketData, WebSocketHandle, WebSocketHandler,
 };
-use bmw_deps::base64;
+use bmw_deps::base64::prelude::*;
 use bmw_deps::byteorder::{BigEndian, ByteOrder};
 use bmw_deps::lazy_static::lazy_static;
 use bmw_deps::rand_core::{OsRng, RngCore};
@@ -232,7 +232,7 @@ Sec-WebSocket-Accept: {}\r\n\r\n",
 					"".to_string()
 				},
 		},
-		base64::encode(&sha1.finalize()[..]),
+		BASE64_STANDARD.encode(&sha1.finalize()[..]),
 	);
 	let response = msg.as_bytes();
 	wh.write(response)?;
@@ -538,7 +538,7 @@ impl WebSocketClient for WebSocketClientImpl {
 
 		let mut bytes = [0u8; 16];
 		random_bytes(&mut bytes);
-		let key = base64::encode(bytes);
+		let key = BASE64_STANDARD.encode(bytes);
 
 		let websocket_connection_state = WebSocketConnectionState::new(handler, key.clone());
 		let mut wh = self
@@ -729,7 +729,7 @@ impl WebSocketClientImpl {
 							let mut sha1 = Sha1::new();
 							let hash = format!("{}{}", state.key, WEBSOCKET_GUID);
 							sha1.update(hash.as_bytes());
-							let our_key = base64::encode(&sha1.finalize()[..]);
+							let our_key = BASE64_STANDARD.encode(&sha1.finalize()[..]);
 							let server_key = from_utf8(&state.buffer[start..end])?;
 
 							if server_key == our_key {
