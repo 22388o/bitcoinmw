@@ -35,5 +35,5 @@ bmw_int     = { path = "./integration" }
 jemallocator = "0.5.4"
 
 [build-dependencies]
-built = { version = "0.5.1", features = ["git2"]}
+built = { version = "0.7.1", features = ["git2"]}
 

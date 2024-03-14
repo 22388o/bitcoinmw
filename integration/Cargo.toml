@@ -23,6 +23,3 @@ bmw_evh    = { path = "../evh"    }
 [dev-dependencies]
 
 bmw_test   = { path = "../test"   }
-
-[build-dependencies]
-built = { version = "0.5.1", features = ["git2"]}
