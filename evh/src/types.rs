@@ -33,7 +33,7 @@ use std::os::unix::prelude::RawFd;
 #[cfg(target_os = "linux")]
 use bmw_deps::bitvec::vec::BitVec;
 #[cfg(target_os = "linux")]
-use bmw_deps::nix::sys::epoll::EpollEvent;
+use bmw_deps::nix::sys::epoll::{Epoll, EpollEvent};
 
 #[cfg(target_os = "windows")]
 use bmw_deps::bitvec::vec::BitVec;
@@ -294,6 +294,11 @@ pub(crate) struct EventHandlerContext {
 	pub(crate) filter_set: BitVec,
 	#[cfg(target_os = "linux")]
 	pub(crate) epoll_events: Vec<EpollEvent>,
+	#[cfg(target_os = "linux")]
+	pub(crate) selector: Arc<Epoll>,
+	#[cfg(target_os = "macos")]
+	pub(crate) selector: Handle,
+	#[cfg(target_os = "windows")]
 	pub(crate) selector: Handle,
 	pub(crate) now: u128,
 	pub(crate) last_housekeeper: u128,

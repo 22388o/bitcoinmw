@@ -67,7 +67,7 @@ use bmw_deps::kqueue_sys::{kevent, kqueue, EventFilter, EventFlag, FilterFlag};
 #[cfg(target_os = "linux")]
 use bmw_deps::bitvec::vec::BitVec;
 #[cfg(target_os = "linux")]
-use bmw_deps::nix::sys::epoll::{epoll_create1, EpollCreateFlags, EpollEvent, EpollFlags};
+use bmw_deps::nix::sys::epoll::{Epoll, EpollCreateFlags, EpollEvent, EpollFlags};
 
 #[cfg(unix)]
 use bmw_deps::libc::{fcntl, F_SETFL, O_NONBLOCK};
@@ -456,7 +456,7 @@ impl EventHandlerContext {
 			#[cfg(target_os = "macos")]
 			selector: unsafe { kqueue() },
 			#[cfg(target_os = "linux")]
-			selector: epoll_create1(EpollCreateFlags::empty())?,
+			selector: Epoll::new(EpollCreateFlags::empty())?.into(),
 			#[cfg(target_os = "linux")]
 			epoll_events,
 			#[cfg(windows)]

@@ -404,11 +404,6 @@ mod test {
 	use std::sync::{Arc, Mutex, RwLock};
 	use std::time::{Duration, SystemTime, SystemTimeError};
 
-	#[cfg(target_os = "linux")]
-	use bmw_deps::nix::errno::Errno;
-	#[cfg(target_os = "linux")]
-	use bmw_deps::nix::sys::epoll::{epoll_ctl, EpollEvent, EpollFlags, EpollOp};
-
 	fn get_os_string() -> Result<(), Error> {
 		Err(OsString::new().into())
 	}
@@ -535,14 +530,6 @@ mod test {
 			err,
 			ErrorKind::SystemTime("System time error".into()).into(),
 		)?;
-
-		#[cfg(target_os = "linux")]
-		{
-			let mut event = EpollEvent::new(EpollFlags::empty(), u64::MAX);
-			let err: Result<(), Errno> =
-				epoll_ctl(i32::MAX, EpollOp::EpollCtlAdd, i32::MAX, &mut event);
-			check_error(err, ErrorKind::Errno("Errno error: ".to_string()).into())?;
-		}
 
 		let err: Result<ServerName, InvalidDnsNameError> = "a*$&@@!aa".try_into();
 		assert!(err.is_err());

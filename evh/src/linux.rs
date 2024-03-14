@@ -23,18 +23,20 @@ use bmw_deps::libc::{
 	self, accept, c_void, close, fcntl, listen, pipe, read, sockaddr, socket, write, F_SETFL,
 	O_NONBLOCK,
 };
-use bmw_deps::nix::sys::epoll::{epoll_ctl, epoll_wait, EpollEvent, EpollFlags, EpollOp};
+use bmw_deps::nix::poll::PollTimeout;
+use bmw_deps::nix::sys::epoll::{Epoll, EpollEvent, EpollFlags};
 use bmw_deps::nix::sys::socket::{bind, SockaddrIn, SockaddrIn6};
 use bmw_err::*;
 use bmw_log::*;
 use bmw_util::*;
 use std::mem::{self, size_of, zeroed};
 use std::net::TcpStream;
+use std::os::fd::BorrowedFd;
 use std::os::raw::c_int;
 use std::os::unix::prelude::RawFd;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 info!();
 
@@ -237,27 +239,17 @@ pub(crate) fn get_events_impl(
 			interest |= EpollFlags::EPOLLRDHUP;
 
 			let handle_as_usize: usize = fd.try_into()?;
-			// unwrap is ok because we resize above
-			let op = if *ctx.filter_set.get(handle_as_usize).unwrap() {
-				debug!("found {}. using mod", handle_as_usize)?;
-				EpollOp::EpollCtlMod
+			let mut event = EpollEvent::new(interest, evt.handle.try_into()?);
+			debug!("fd={},ctx.tid={}", fd, ctx.tid)?;
+
+			let res = if *ctx.filter_set.get(handle_as_usize).unwrap() {
+				(*ctx.selector).modify(unsafe { BorrowedFd::borrow_raw(evt.handle) }, &mut event)
 			} else {
-				debug!("not found {}. using add", handle_as_usize)?;
-				EpollOp::EpollCtlAdd
+				(*ctx.selector).add(unsafe { BorrowedFd::borrow_raw(evt.handle) }, event)
 			};
 			ctx.filter_set.replace(handle_as_usize, true);
-			let mut event = EpollEvent::new(interest, evt.handle.try_into()?);
-			debug!(
-				"epoll_ctl selector={},op={:?},handle={}",
-				ctx.selector, op, evt.handle
-			)?;
-			debug!("fd={},op={:?},ctx.tid={}", fd, op, ctx.tid)?;
-			let res = epoll_ctl(ctx.selector, op, evt.handle, &mut event);
 			if res.is_err() || debug_err {
-				warn!(
-					"Error epoll_ctl1: {:?}, fd={}, op={:?},tid={}",
-					res, fd, op, ctx.tid
-				)?
+				warn!("Error epoll_ctl1: {:?}, fd={}, tid={}", res, fd, ctx.tid)?
 			}
 		} else if evt.etype == EventTypeIn::Write {
 			let fd = evt.handle;
@@ -271,22 +263,18 @@ pub(crate) fn get_events_impl(
 			interest |= EpollFlags::EPOLLET;
 
 			let handle_as_usize: usize = fd.try_into()?;
-			// unwrap is ok because we resize above
-			let op = if *ctx.filter_set.get(handle_as_usize).unwrap() {
-				EpollOp::EpollCtlMod
-			} else {
-				EpollOp::EpollCtlAdd
-			};
-			ctx.filter_set.replace(handle_as_usize, true);
 
 			let mut event = EpollEvent::new(interest, evt.handle.try_into()?);
-			debug!("fd={},op={:?},ctx.tid={}", fd, op, ctx.tid)?;
-			let res = epoll_ctl(ctx.selector, op, evt.handle, &mut event);
+			debug!("fd={},ctx.tid={}", fd, ctx.tid)?;
+
+			let res = if *ctx.filter_set.get(handle_as_usize).unwrap() {
+				(*ctx.selector).modify(unsafe { BorrowedFd::borrow_raw(evt.handle) }, &mut event)
+			} else {
+				(*ctx.selector).add(unsafe { BorrowedFd::borrow_raw(evt.handle) }, event)
+			};
+			ctx.filter_set.replace(handle_as_usize, true);
 			if res.is_err() || debug_err {
-				warn!(
-					"Error epoll_ctl2: {:?}, fd={}, op={:?},tid={}",
-					res, fd, op, ctx.tid
-				)?
+				warn!("Error epoll_ctl2: {:?}, fd={}, tid={}", res, fd, ctx.tid)?
 			}
 		} else if evt.etype == EventTypeIn::Suspend {
 			let fd = evt.handle;
@@ -297,16 +285,10 @@ pub(crate) fn get_events_impl(
 
 			let handle_as_usize: usize = fd.try_into()?;
 			ctx.filter_set.replace(handle_as_usize, false);
-			let op = EpollOp::EpollCtlDel;
 
-			let mut event = EpollEvent::new(interest, evt.handle.try_into()?);
-			debug!("fd={},op={:?},ctx.tid={}", fd, op, ctx.tid)?;
-			let res = epoll_ctl(ctx.selector, op, evt.handle, &mut event);
+			let res = (*ctx.selector).delete(unsafe { BorrowedFd::borrow_raw(evt.handle) });
 			if res.is_err() || debug_err {
-				warn!(
-					"Error epoll_ctl3: {:?}, fd={}, op={:?},tid={}",
-					res, fd, op, ctx.tid
-				)?
+				warn!("Error epoll_ctl3: {:?}, fd={}, tid={}", res, fd, ctx.tid)?
 			}
 		}
 	}
@@ -315,15 +297,18 @@ pub(crate) fn get_events_impl(
 
 	let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
 	let diff = now - ctx.now;
-	let sleep = if wakeup_requested {
+	let sleep: Duration = Duration::from_millis(if wakeup_requested {
 		0
 	} else {
-		config.housekeeping_frequency_millis.saturating_sub(diff)
-	}
-	.try_into()?;
+		try_into!(config.housekeeping_frequency_millis.saturating_sub(diff))?
+	});
 
 	debug!("epoll_wait tid = {}", ctx.tid)?;
-	let results = epoll_wait(ctx.selector, &mut ctx.epoll_events, sleep);
+	let results = Epoll::wait(
+		&*(ctx.selector),
+		&mut ctx.epoll_events,
+		PollTimeout::try_from(sleep).unwrap_or(0u8.into()),
+	);
 
 	ctx.now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
 
