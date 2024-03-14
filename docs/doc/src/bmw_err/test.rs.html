@@ -381,6 +381,11 @@
 <a href="#380" id="380">380</a>
 <a href="#381" id="381">381</a>
 <a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
+<a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -746,12 +751,17 @@
 		));
 		check_error(err, ErrorKind::Rustls(<span class="string">"rustls error: "</span>.to_string()).into())<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;(), bmw_deps::nix::errno::Errno&gt; = <span class="prelude-val">Err</span>(bmw_deps::nix::errno::Errno::EIO);
-		check_error(err, ErrorKind::Errno(<span class="string">"Errno error: "</span>.to_string()).into())<span class="question-mark">?</span>;
-
 		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;bmw_deps::url::Url, ParseError&gt; = bmw_deps::url::Url::parse(<span class="string">"http://*&amp;^%$"</span>);
 		check_error(err, ErrorKind::Misc(<span class="string">"url::ParseError: "</span>.to_string()).into())<span class="question-mark">?</span>;
 
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="attr">#[test]
+	#[cfg(unix)]
+	</span><span class="kw">fn </span>test_nix() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;(), bmw_deps::nix::errno::Errno&gt; = <span class="prelude-val">Err</span>(bmw_deps::nix::errno::Errno::EID);
+		check_error(err, ErrorKind::Errno(<span class="string">"Errno error: "</span>.to_string()).into())<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 

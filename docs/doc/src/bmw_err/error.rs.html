@@ -244,6 +244,8 @@
 <a href="#243" id="243">243</a>
 <a href="#244" id="244">244</a>
 <a href="#245" id="245">245</a>
+<a href="#246" id="246">246</a>
+<a href="#247" id="247">247</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -262,9 +264,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="kw">use </span><span class="kw">crate</span>::types::{Error, ErrorKind};
+</span><span class="attr">#[cfg(unix)]
+</span><span class="kw">use </span>bmw_deps::nix::errno::Errno <span class="kw">as </span>NixErrno;
+
+<span class="kw">use </span><span class="kw">crate</span>::types::{Error, ErrorKind};
 <span class="kw">use </span>bmw_deps::failure::{Backtrace, Context, Fail};
-<span class="kw">use </span>bmw_deps::nix::errno::Errno <span class="kw">as </span>NixErrno;
 <span class="kw">use </span>bmw_deps::rustls::pki_types::InvalidDnsNameError;
 <span class="kw">use </span>bmw_deps::rustls::Error <span class="kw">as </span>RustlsError;
 <span class="kw">use </span>bmw_deps::url::ParseError;
