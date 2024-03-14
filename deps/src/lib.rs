@@ -25,16 +25,12 @@ pub use wepoll_sys;
 pub use windows_sys;
 
 #[cfg(target_os = "macos")]
-pub use errno;
-#[cfg(target_os = "macos")]
 pub use kqueue_sys;
 #[cfg(target_os = "macos")]
 pub use libc;
 #[cfg(target_os = "macos")]
 pub use nix;
 
-#[cfg(target_os = "linux")]
-pub use errno;
 #[cfg(target_os = "linux")]
 pub use libc;
 #[cfg(target_os = "linux")]
@@ -49,6 +45,7 @@ pub use colored;
 pub use dirs;
 pub use downcast;
 pub use dyn_clone;
+pub use errno;
 pub use failure;
 pub use failure_derive;
 pub use flate2;
