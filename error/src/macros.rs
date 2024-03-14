@@ -342,6 +342,7 @@ mod test {
 			s,
 			ErrorKind::Configuration(ss.clone()).into(),
 		)?;
+		test_kind(ErrKind::Rustlet, s, ErrorKind::Rustlet(ss.clone()).into())?;
 
 		Ok(())
 	}
@@ -437,6 +438,7 @@ mod test {
 		test_map(ErrKind::Errno, ErrorKind::Errno(s.clone()).into())?;
 		test_map(ErrKind::Rustls, ErrorKind::Rustls(s.clone()).into())?;
 		test_map(ErrKind::Crypt, ErrorKind::Crypt(s.clone()).into())?;
+		test_map(ErrKind::Rustlet, ErrorKind::Rustlet(s.clone()).into())?;
 
 		Ok(())
 	}

@@ -16,7 +16,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use bmw_deps::downcast::DowncastError;
 use bmw_deps::failure::{Backtrace, Context, Fail};
 use bmw_deps::rustls::pki_types::InvalidDnsNameError;
 use bmw_deps::url::ParseError;
@@ -241,14 +240,6 @@ impl From<ParseError> for Error {
 	}
 }
 
-impl<T> From<DowncastError<Box<T>>> for Error {
-	fn from(e: DowncastError<Box<T>>) -> Error {
-		Error {
-			inner: Context::new(ErrorKind::Misc(format!("downcast error: {}", e))),
-		}
-	}
-}
-
 impl From<OsString> for Error {
 	fn from(e: OsString) -> Error {
 		Error {
@@ -345,8 +336,7 @@ impl From<SystemTimeError> for Error {
 	}
 }
 
-// infallible cannot happen
-#[cfg(not(tarpaulin_include))]
+#[cfg(not(tarpaulin_include))] // can't happen
 impl From<Infallible> for Error {
 	fn from(e: Infallible) -> Error {
 		Error {
@@ -395,6 +385,7 @@ mod test {
 	use crate::{err, error::WebpkiError, ErrKind, Error, ErrorKind};
 	use bmw_deps::rustls::pki_types::{InvalidDnsNameError, ServerName};
 	use bmw_deps::substring::Substring;
+	use bmw_deps::url::ParseError;
 	use std::alloc::Layout;
 	use std::convert::TryInto;
 	use std::ffi::OsString;
@@ -549,6 +540,17 @@ mod test {
 
 		let err: Result<String, WebpkiError> = Err(WebpkiError::BadDerTime);
 		check_error(err, ErrorKind::Misc("webpkiError: ".to_string()).into())?;
+
+		let err: Result<(), bmw_deps::rustls::Error> = Err(bmw_deps::rustls::Error::AlertReceived(
+			bmw_deps::rustls::AlertDescription::CloseNotify,
+		));
+		check_error(err, ErrorKind::Rustls("rustls error: ".to_string()).into())?;
+
+		let err: Result<(), bmw_deps::nix::errno::Errno> = Err(bmw_deps::nix::errno::Errno::EIO);
+		check_error(err, ErrorKind::Errno("Errno error: ".to_string()).into())?;
+
+		let err: Result<bmw_deps::url::Url, ParseError> = bmw_deps::url::Url::parse("http://*&^%$");
+		check_error(err, ErrorKind::Misc("url::ParseError: ".to_string()).into())?;
 
 		Ok(())
 	}
