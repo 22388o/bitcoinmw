@@ -344,7 +344,7 @@ pub(crate) fn get_events_impl(
 mod test {
 	use crate::linux::*;
 	use crate::types::{EventHandlerContext, EventIn};
-	use bmw_test::free_port;
+	use bmw_test::*;
 	use std::thread::sleep;
 	use std::time::Duration;
 

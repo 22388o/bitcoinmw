@@ -16,6 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::types::TestInfoImpl;
 use crate::TestInfo;
 use bmw_deps::backtrace;
 use bmw_deps::portpicker::is_free;
@@ -46,18 +47,20 @@ fn pick_free_port() -> Result<u16, Error> {
 	}
 }
 
-impl TestInfo {
+impl TestInfo for TestInfoImpl {
 	/// Return a directory that can be used by the test. It is automatically deleted when the
 	/// [`crate::TestInfo`] goes out of scope.
-	pub fn directory(&self) -> &String {
+	fn directory(&self) -> &String {
 		&self.directory
 	}
 
 	/// Return a port that can be used by the test.
-	pub fn port(&self) -> u16 {
+	fn port(&self) -> u16 {
 		self.port
 	}
+}
 
+impl TestInfoImpl {
 	/// Create a [`crate::TestInfo`] which can be used by tests to assign a unique directory
 	/// which is deleted when the returned value goes out of scope. A port is also assigned.
 	pub fn new(preserve: bool) -> Result<Self, Error> {
@@ -68,10 +71,11 @@ impl TestInfo {
 				// tests, so even if it is, it's ok.
 				directory = symbol.name().unwrap().to_string();
 			});
-
+			println!("dir={}", directory);
 			// wait until we get to the actual test directory name.
 			if !directory.starts_with("backtrace")
-				&& !directory.contains("bmw_test::types::TestInfo")
+				&& !directory.contains("bmw_test::types::TestInfoImpl")
+				&& !directory.contains("bmw_test::builder::")
 			{
 				false
 			} else {
@@ -97,7 +101,7 @@ impl TestInfo {
 	}
 }
 
-impl Drop for TestInfo {
+impl Drop for TestInfoImpl {
 	fn drop(&mut self) {
 		// if we're not preserving the directory, delete it on drop.
 		if !self.preserve {

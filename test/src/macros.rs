@@ -22,15 +22,10 @@
 macro_rules! free_port {
 	() => {{
 		use bmw_err::err;
-		use bmw_test::TestInfo;
-		let ti = TestInfo::new(false)?;
-		match TestInfo::new(false) {
+		use bmw_test::Builder;
+		match Builder::build_test_info(false) {
 			Ok(ti) => Ok(ti.port()),
-			Err(e) => Err(err!(
-				ErrKind::Test,
-				"could not allocate a port due to: {}",
-				e
-			)),
+			Err(e) => Err(err!(ErrKind::Test, "could not assign a port due to: {}", e)),
 		}
 	}};
 }
@@ -45,7 +40,7 @@ macro_rules! test_info {
 		test_info!(false)
 	}};
 	($preserve:expr) => {{
-		use bmw_test::TestInfo;
-		TestInfo::new($preserve)
+		use bmw_test::Builder;
+		Builder::build_test_info($preserve)
 	}};
 }

@@ -31,7 +31,7 @@ mod test {
 	use bmw_deps::rand::random;
 	use bmw_err::*;
 	use bmw_log::*;
-	use bmw_test::free_port;
+	use bmw_test::*;
 	use bmw_util::*;
 	use std::io::Read;
 	use std::io::Write;

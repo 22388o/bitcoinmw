@@ -3055,7 +3055,7 @@ mod test {
 	use bmw_err::*;
 	use bmw_evh::{ThreadContext, WriteHandle, WriteState};
 	use bmw_log::*;
-	use bmw_test::test_info;
+	use bmw_test::*;
 	use bmw_util::*;
 	use std::collections::HashMap;
 	use std::collections::HashSet;

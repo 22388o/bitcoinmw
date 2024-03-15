@@ -19,7 +19,7 @@
 #[cfg(test)]
 mod test {
 	use crate as bmw_test;
-	use crate::test_info;
+	use crate::{test_info, TestInfo};
 	use bmw_err::Error;
 
 	#[test]

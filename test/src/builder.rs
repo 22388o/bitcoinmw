@@ -16,15 +16,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub trait TestInfo {
-	fn port(&self) -> u16;
-	fn directory(&self) -> &String;
-}
+use crate::types::TestInfoImpl;
+use crate::{Builder, TestInfo};
+use bmw_err::Error;
 
-pub struct Builder {}
-
-pub(crate) struct TestInfoImpl {
-	pub(crate) port: u16,
-	pub(crate) directory: String,
-	pub(crate) preserve: bool,
+impl Builder {
+	/// Build a [`crate::TestInfo`] impl. This should generally be done by calling the
+	/// [`crate::test_info`] macro.
+	pub fn build_test_info(preserve: bool) -> Result<impl TestInfo, Error> {
+		TestInfoImpl::new(preserve)
+	}
 }

@@ -19,6 +19,7 @@
 //! This crate provides macros that are used in the tests in other crates
 //! within the BMW repo.
 
+mod builder;
 mod impls;
 mod macros;
 mod test;
@@ -32,4 +33,4 @@ pub use std::thread::sleep;
 #[doc(hidden)]
 pub use std::time::Duration;
 
-pub use crate::types::TestInfo;
+pub use crate::types::{Builder, TestInfo};
