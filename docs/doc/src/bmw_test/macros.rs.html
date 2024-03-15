@@ -45,6 +45,7 @@
 <a href="#44" id="44">44</a>
 <a href="#45" id="45">45</a>
 <a href="#46" id="46">46</a>
+<a href="#47" id="47">47</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -64,7 +65,8 @@
 // limitations under the License.
 
 </span><span class="doccomment">/// Returns a free port that is not used at the time of the call. It is also guaranteed to not be
-/// allocated to another test which calls this macro, so there are no timing concerns.
+/// allocated to another test which calls this macro or the [`crate::test_info`] macro, so there
+/// are no timing concerns.
 </span><span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>free_port {
 	() =&gt; {{

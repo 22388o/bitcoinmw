@@ -29,6 +29,13 @@
 <a href="#28" id="28">28</a>
 <a href="#29" id="29">29</a>
 <a href="#30" id="30">30</a>
+<a href="#31" id="31">31</a>
+<a href="#32" id="32">32</a>
+<a href="#33" id="33">33</a>
+<a href="#34" id="34">34</a>
+<a href="#35" id="35">35</a>
+<a href="#36" id="36">36</a>
+<a href="#37" id="37">37</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -47,12 +54,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+</span><span class="doccomment">/// This trait defines the data which a test can use. A test can obtain one of these by calling the
+/// [`crate::test_info`] macro.
 </span><span class="kw">pub trait </span>TestInfo {
-	<span class="kw">fn </span>port(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u16;
-	<span class="kw">fn </span>directory(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>String;
+	<span class="doccomment">/// Return a port that can be used by the test.
+	</span><span class="kw">fn </span>port(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u16;
+	<span class="doccomment">/// Return a directory that can be used by the test. It is automatically deleted when the
+	/// [`crate::TestInfo`] goes out of scope.
+	</span><span class="kw">fn </span>directory(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>String;
 }
 
-<span class="kw">pub struct </span>Builder {}
+<span class="doccomment">/// A builder that is used to construct TestInfo implementations. This is typically called through
+/// the [`crate::test_info`] macro.
+</span><span class="kw">pub struct </span>Builder {}
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>TestInfoImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) port: u16,

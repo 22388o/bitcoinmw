@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ConfigOption"]};
+window.SIDEBAR_ITEMS = {"enum":["ConfigOption"],"macro":["config"],"struct":["Config"]};

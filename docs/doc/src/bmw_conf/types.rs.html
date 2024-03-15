@@ -34,6 +34,12 @@
 <a href="#33" id="33">33</a>
 <a href="#34" id="34">34</a>
 <a href="#35" id="35">35</a>
+<a href="#36" id="36">36</a>
+<a href="#37" id="37">37</a>
+<a href="#38" id="38">38</a>
+<a href="#39" id="39">39</a>
+<a href="#40" id="40">40</a>
+<a href="#41" id="41">41</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -52,21 +58,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="doccomment">/// Configuration options used throughout BMW via macro.
 </span><span class="attr">#[derive(Clone, Debug)]
-</span><span class="kw">pub enum </span>ConfigOption&lt;<span class="lifetime">'a</span>&gt; {
-	Threads(usize),
-	MaxHandlesPerThread(usize),
-	Debug(bool),
-	MaxHeadersLen(usize),
-	SyncChannelSize(usize),
-	WriteQueueSize(usize),
-	NhandlesQueueSize(usize),
-	MaxEventsIn(usize),
-	MaxEvents(usize),
-	HouseKeepingFrequencyMillis(u128),
-	SlabCount(usize),
-	Url(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str),
-	Uri(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str),
+</span><span class="kw">pub struct </span>Config {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) configs: Vec&lt;ConfigOption&gt;,
+}
+
+<span class="doccomment">/// Configuration options used throughout BMW via macro.
+</span><span class="attr">#[derive(Clone, Debug)]
+</span><span class="kw">pub enum </span>ConfigOption {
+	MaxSizeBytes(u64),
+	MaxAgeMillis(u128),
+	DisplayColors(bool),
+	DisplayStdout(bool),
+	DisplayTimestamp(bool),
+	DisplayLogLevel(bool),
+	DisplayLineNum(bool),
+	DisplayMillis(bool),
+	LogFilePath(String),
+	AutoRotate(bool),
+	DisplayBackTrace(bool),
+	LineNumDataMaxLen(usize),
+	DeleteRotation(bool),
+	FileHeader(String),
 }
 </code></pre></div></section></main></body></html>

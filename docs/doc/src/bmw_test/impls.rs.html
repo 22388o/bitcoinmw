@@ -106,10 +106,6 @@
 <a href="#105" id="105">105</a>
 <a href="#106" id="106">106</a>
 <a href="#107" id="107">107</a>
-<a href="#108" id="108">108</a>
-<a href="#109" id="109">109</a>
-<a href="#110" id="110">110</a>
-<a href="#111" id="111">111</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -160,22 +156,17 @@
 }
 
 <span class="kw">impl </span>TestInfo <span class="kw">for </span>TestInfoImpl {
-	<span class="doccomment">/// Return a directory that can be used by the test. It is automatically deleted when the
-	/// [`crate::TestInfo`] goes out of scope.
-	</span><span class="kw">fn </span>directory(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>String {
+	<span class="kw">fn </span>directory(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>String {
 		<span class="kw-2">&amp;</span><span class="self">self</span>.directory
 	}
 
-	<span class="doccomment">/// Return a port that can be used by the test.
-	</span><span class="kw">fn </span>port(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u16 {
+	<span class="kw">fn </span>port(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u16 {
 		<span class="self">self</span>.port
 	}
 }
 
 <span class="kw">impl </span>TestInfoImpl {
-	<span class="doccomment">/// Create a [`crate::TestInfo`] which can be used by tests to assign a unique directory
-	/// which is deleted when the returned value goes out of scope. A port is also assigned.
-	</span><span class="kw">pub fn </span>new(preserve: bool) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(preserve: bool) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>directory = Default::default();
 		backtrace::trace(|frame| {
 			backtrace::resolve_frame(frame, |symbol| {
@@ -188,6 +179,7 @@
 			</span><span class="kw">if </span>!directory.starts_with(<span class="string">"backtrace"</span>)
 				&amp;&amp; !directory.contains(<span class="string">"bmw_test::types::TestInfoImpl"</span>)
 				&amp;&amp; !directory.contains(<span class="string">"bmw_test::builder::"</span>)
+				&amp;&amp; !directory.contains(<span class="string">"bmw_test::types::Builder"</span>)
 			{
 				<span class="bool-val">false
 			</span>} <span class="kw">else </span>{
