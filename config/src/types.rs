@@ -19,19 +19,16 @@
 use bmw_err::Error;
 use std::collections::HashMap;
 
-pub trait Config: Send + Sync {
+/// The config trait allows for easy construction of configurations. Configurations can be
+/// retreived with the [`crate::Config::get`] function and configurations can be checked with the
+/// [`crate::Config::check_config`] function.
+pub trait Config {
 	fn get(&self, name: &ConfigOptionName) -> Option<ConfigOption>;
 	fn check_config(
 		&self,
 		allowed: Vec<ConfigOptionName>,
 		required: Vec<ConfigOptionName>,
 	) -> Result<(), Error>;
-}
-
-#[derive(Clone, Debug)]
-pub struct ConfigImpl {
-	pub(crate) configs: Vec<ConfigOption>,
-	pub(crate) hash: HashMap<ConfigOptionName, ConfigOption>,
 }
 
 /// Names of configuration options used throughout BMW via macro. This correspondes to the values
@@ -73,4 +70,14 @@ pub enum ConfigOption {
 	FileHeader(String),
 }
 
+/// A builder struct which can be used to build configs. This is typically done using the
+/// [`crate::config!`] macro which calls this builder.
 pub struct Builder {}
+
+// Crate local structures
+
+#[derive(Clone, Debug)]
+pub(crate) struct ConfigImpl {
+	pub(crate) configs: Vec<ConfigOption>,
+	pub(crate) hash: HashMap<ConfigOptionName, ConfigOption>,
+}

@@ -20,6 +20,7 @@ use crate::types::ConfigImpl;
 use crate::{Builder, Config, ConfigOption};
 
 impl Builder {
+	/// Build a config based on the specified [`std::vec::Vec`] of [`crate::ConfigOption`]'s.
 	pub fn build_config(configs: Vec<ConfigOption>) -> Box<dyn Config> {
 		Box::new(ConfigImpl::new(configs))
 	}

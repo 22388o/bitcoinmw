@@ -16,10 +16,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/// The config macro allows for a configuration to be specified and checked conveniently. This
+/// macro is used throughout BMW.
+///
+/// # Examples
+///
+///```
+/// use bmw_conf::*;
+/// use bmw_err::*;
+///
+///
+/// // create a config using the macro and check it
+/// fn main() -> Result<(), Error> {
+///     // create a simple config
+///     let config = config!(FileHeader("test".to_string()), DeleteRotation(false));
+///
+///     // check it
+///     let res = config.check_config(
+///         vec![
+///             ConfigOptionName::FileHeader,
+///             ConfigOptionName::DeleteRotation
+///         ],
+///         vec![]
+///     );
+///
+///     // this configuration is ok because both FileHeader and DeleteRotation are allowed
+///     assert!(res.is_ok());
+///     Ok(())
+/// }
+///```
+///
 #[macro_export]
 macro_rules! config {
 	( $( $config:expr ),* ) => {{
-                use bmw_conf::{Builder, ConfigOption};
+                use bmw_conf::{Builder, ConfigOption, ConfigOption::*};
                 let mut config_values: Vec<ConfigOption> = vec![];
                 $(
                         config_values.push($config);

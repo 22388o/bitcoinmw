@@ -30,6 +30,8 @@ mod test {
 			Some(ConfigOption::MaxSizeBytes(1_000))
 		);
 
+		assert_eq!(config.get(&CN::MaxAgeMillis), None);
+
 		// ok because MaxSizeBytes is allowed
 		assert!(config.check_config(vec![CN::MaxSizeBytes], vec![]).is_ok());
 
@@ -67,6 +69,13 @@ mod test {
 	#[test]
 	fn test_config_macros() -> Result<(), Error> {
 		let config = config!(FileHeader("test".to_string()), DeleteRotation(false));
+
+		assert_eq!(
+			config.get(&CN::FileHeader),
+			Some(FileHeader("test".to_string()))
+		);
+
+		// ok because the two values set are allowed
 		assert!(config
 			.check_config(
 				vec![CN::FileHeader, CN::DeleteRotation, CN::AutoRotate],
@@ -74,6 +83,7 @@ mod test {
 			)
 			.is_ok());
 
+		// err because AutoRotate was required and not specified
 		assert!(config
 			.check_config(
 				vec![CN::FileHeader, CN::DeleteRotation, CN::AutoRotate],
@@ -81,6 +91,7 @@ mod test {
 			)
 			.is_err());
 
+		// ok because only FileHeader was required now and it was specified
 		assert!(config
 			.check_config(
 				vec![CN::FileHeader, CN::DeleteRotation, CN::AutoRotate],
@@ -88,6 +99,7 @@ mod test {
 			)
 			.is_ok());
 
+		// err because DeleteRotation was not allowed
 		assert!(config
 			.check_config(vec![CN::FileHeader, CN::AutoRotate], vec![CN::FileHeader])
 			.is_err());
@@ -97,6 +109,7 @@ mod test {
 
 	#[test]
 	fn test_config_all_options() -> Result<(), Error> {
+		// create a config with everything
 		let config = config!(
 			MaxSizeBytes(100),
 			MaxAgeMillis(200),
@@ -114,6 +127,7 @@ mod test {
 			AutoRotate(true)
 		);
 
+		// since everything is allowed, it's ok
 		assert!(config
 			.check_config(
 				vec![
