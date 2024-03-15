@@ -1899,16 +1899,6 @@
 <a href="#1898" id="1898">1898</a>
 <a href="#1899" id="1899">1899</a>
 <a href="#1900" id="1900">1900</a>
-<a href="#1901" id="1901">1901</a>
-<a href="#1902" id="1902">1902</a>
-<a href="#1903" id="1903">1903</a>
-<a href="#1904" id="1904">1904</a>
-<a href="#1905" id="1905">1905</a>
-<a href="#1906" id="1906">1906</a>
-<a href="#1907" id="1907">1907</a>
-<a href="#1908" id="1908">1908</a>
-<a href="#1909" id="1909">1909</a>
-<a href="#1910" id="1910">1910</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2740,7 +2730,7 @@ not terminate in a root or a prefix"</span>;
 	};
 	<span class="kw">use crate</span>::{LogBuilder, LogConfig, LogConfigOption, LogConfigOptionName, LogLevel};
 	<span class="kw">use </span>bmw_err::Error;
-	<span class="kw">use </span>bmw_test::testdir::{setup_test_dir, tear_down_test_dir};
+	<span class="kw">use </span>bmw_test::<span class="kw-2">*</span>;
 	<span class="kw">use </span>std::fs::{read_dir, read_to_string};
 	<span class="kw">use </span>std::path::PathBuf;
 	<span class="kw">use </span>std::thread::sleep;
@@ -3098,8 +3088,8 @@ not terminate in a root or a prefix"</span>;
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_init() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_init.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_dir = test_info.directory();
 
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(<span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir)))),
@@ -3112,14 +3102,13 @@ not terminate in a root or a prefix"</span>;
 
 		<span class="macro">assert!</span>(PathBuf::from(<span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir)).exists());
 
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_configuration_options() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_config.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_dir = test_info.directory();
 
 		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir);
 
@@ -3303,14 +3292,13 @@ not terminate in a root or a prefix"</span>;
 		<span class="kw">let </span>contents = read_to_string(log_file.clone())<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(contents.rfind(<span class="string">"abc"</span>), <span class="prelude-val">Some</span>(<span class="number">120</span>));
 
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_log_rotation() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_log_rotation.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_dir = test_info.directory();
 
 		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
@@ -3349,15 +3337,13 @@ not terminate in a root or a prefix"</span>;
 		}
 		<span class="macro">assert_eq!</span>(count, <span class="number">2</span>);
 
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
-
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_manual_rotation() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_log_manual_rotation.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_dir = test_info.directory();
 
 		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
@@ -3411,15 +3397,13 @@ not terminate in a root or a prefix"</span>;
 		<span class="macro">assert_eq!</span>(count, <span class="number">2</span>);
 		<span class="macro">assert_eq!</span>(log.need_rotate(<span class="prelude-val">None</span>)<span class="question-mark">?</span>, <span class="bool-val">false</span>);
 
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
-
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_time_based_rotation() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_log_time_rotation.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_dir = test_info.directory();
 
 		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
@@ -3461,14 +3445,13 @@ not terminate in a root or a prefix"</span>;
 		log.rotate()<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(log.need_rotate(<span class="prelude-val">None</span>)<span class="question-mark">?</span>, <span class="bool-val">false</span>);
 
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_other_situations() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_log_other.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_dir = test_info.directory();
 
 		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
@@ -3577,15 +3560,14 @@ not terminate in a root or a prefix"</span>;
 		})
 		.is_err());
 
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
-
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_delete_rotation() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_log_delete_rotation.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_dir = test_info.directory();
+
 		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
@@ -3680,14 +3662,13 @@ not terminate in a root or a prefix"</span>;
 		<span class="macro">assert!</span>(log.need_rotate(<span class="prelude-val">None</span>).is_err());
 		<span class="macro">assert!</span>(log.init().is_err());
 
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_other_config_options() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_other_config_options.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_dir = test_info.directory();
 
 		<span class="kw">const </span>STR: <span class="kw-2">&amp;</span>str = <span class="string">"01234567890123456789012345678901234567890123456789"</span>;
 
@@ -3725,14 +3706,14 @@ not terminate in a root or a prefix"</span>;
 		<span class="comment">// we now need a rotation
 		</span><span class="macro">assert!</span>(log.need_rotate(<span class="prelude-val">None</span>)<span class="question-mark">?</span>);
 
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_log_file_and_bt() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_log_file_and_bt.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_dir = test_info.directory();
+
 		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
@@ -3763,14 +3744,14 @@ not terminate in a root or a prefix"</span>;
 		<span class="comment">// we don't know exactly how big the stack trace will be so just assert it's larger
 		</span><span class="macro">assert!</span>(contents.len() &gt; <span class="number">71</span>);
 
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_invalid_flags() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_log_file_invalid_metadata.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_dir = test_info.directory();
+
 		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir);
 		<span class="kw">let </span>config = LogConfig {
 			file_path: FilePath(<span class="prelude-val">Some</span>(PathBuf::from(log_file.clone()))),
@@ -3791,7 +3772,6 @@ not terminate in a root or a prefix"</span>;
 		log.config.debug_lineno_none = <span class="bool-val">true</span>;
 		<span class="macro">assert!</span>(log.log(LogLevel::Info, <span class="string">""</span>, <span class="prelude-val">None</span>).is_ok());
 
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 

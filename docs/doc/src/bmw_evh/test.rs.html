@@ -4558,7 +4558,7 @@
 	<span class="kw">use </span>bmw_deps::rand::random;
 	<span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
-	<span class="kw">use </span>bmw_test::port::pick_free_port;
+	<span class="kw">use </span>bmw_test::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
 	<span class="kw">use </span>std::io::Read;
 	<span class="kw">use </span>std::io::Write;
@@ -4655,7 +4655,7 @@
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_tls_basic_read_error() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		{
-			<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+			<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 			<span class="macro">info!</span>(<span class="string">"eventhandler tls_basic read error Using port: {}"</span>, port)<span class="question-mark">?</span>;
 			<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 			<span class="kw">let </span>threads = <span class="number">2</span>;
@@ -4699,7 +4699,7 @@
 			<span class="comment">// connection will close because of the error
 			</span><span class="macro">assert_eq!</span>(connection.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>, <span class="number">0</span>);
 
-			<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+			<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 			<span class="kw">let </span>addr2 = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 			<span class="kw">let </span>config = EventHandlerConfig {
 				threads,
@@ -4774,7 +4774,7 @@
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_tls_basic_server_error() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		{
-			<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+			<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 			<span class="macro">info!</span>(<span class="string">"eventhandler tls_basic server error Using port: {}"</span>, port)<span class="question-mark">?</span>;
 			<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 			<span class="kw">let </span>threads = <span class="number">2</span>;
@@ -4825,7 +4825,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_close1() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"close1 Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">2</span>;
@@ -4954,7 +4954,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_partial_clear() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"partial clear Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">2</span>;
@@ -5086,7 +5086,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_different_lengths1() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"different len1 Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">2</span>;
@@ -5182,7 +5182,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_different_lengths_client() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"different lengths client Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">2</span>;
@@ -5344,7 +5344,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_out_of_slabs() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"out of slabs Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -5434,7 +5434,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_user_data() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"user data Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">2</span>;
@@ -5507,7 +5507,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_trigger_on_read_error() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"trigger on_read error Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">2</span>;
@@ -5575,7 +5575,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_trigger_on_read() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"trigger on_read Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">2</span>;
@@ -5643,7 +5643,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_oob_panic() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"oob_panic Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -5725,7 +5725,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_thread_panic1() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"thread_panic1 Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -5828,7 +5828,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_no_panic_handler() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"no panic_handler Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -5920,7 +5920,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_thread_panic_multi() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"thread_panic_multi Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -6073,7 +6073,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_too_many_connections() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"too many connections on_read Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -6173,7 +6173,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_write_error() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"write_error Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -6243,7 +6243,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_debug_suspend() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"debug_suspend Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -6315,7 +6315,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_debug_pending() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"pending Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -6379,7 +6379,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_write_queue() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"test_evh_write_queue Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -6487,7 +6487,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_housekeeper() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"housekeeper Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -6561,7 +6561,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_suspend_resume() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"suspend/resume Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -6815,7 +6815,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_tls_multi_chunk_reuse_port_acc_err() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(
 			<span class="string">"eventhandler tls_multi_chunk no reuse port acc err Using port: {}"</span>,
 			port
@@ -6991,7 +6991,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_tls_big_message() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"eventhandler tls_big_message Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -7125,7 +7125,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_tls_multi_chunk_no_reuse_port() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(
 			<span class="string">"eventhandler tls_multi_chunk no reuse port Using port: {}"</span>,
 			port
@@ -7302,7 +7302,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_tls_multi_chunk() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"eventhandler tls_multi_chunk Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -7521,7 +7521,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_panic_fatal() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"panic_fatal Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -7600,7 +7600,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_panic_backlog() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"panic_backlog Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -7701,7 +7701,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_other_situations() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"other_situations Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -7772,7 +7772,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_other_panics_wo_err() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"test_evh_other_panics_wo_err Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -7864,7 +7864,7 @@
 		<span class="comment">// listener should be closed so this will fail
 		</span><span class="macro">assert!</span>(TcpStream::connect(addr).is_err());
 
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"other_situations2 Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>handles = create_listeners(threads, addr, <span class="number">10</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
@@ -7907,7 +7907,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_other_panics_w_err() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"test_evh_other_panics_w_err Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -7999,7 +7999,7 @@
 		<span class="comment">// listener should be closed so this will fail
 		</span><span class="macro">assert!</span>(TcpStream::connect(addr).is_err());
 
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"other_situations2 Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>handles = create_listeners(threads, addr, <span class="number">10</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
@@ -8164,7 +8164,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_on_read_none() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"eventhandler on_read_none Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -8213,7 +8213,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_trigger_on_read_none() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"eventhandler trigger_on_read_none Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -8299,13 +8299,13 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_ins_hashtable_err() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(
 			<span class="string">"eventhandler test_evh_ins_hashtable_err Using port: {}"</span>,
 			port
 		)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
-		<span class="kw">let </span>port2 = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port2 = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr2 = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port2)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
 		<span class="kw">let </span>config = EventHandlerConfig {
@@ -8376,7 +8376,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_debug_read_error() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"debug debug_read_error Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">2</span>;
@@ -8428,7 +8428,7 @@
 		evh.add_server(sc, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
 		sleep(Duration::from_millis(<span class="number">5_000</span>));
 
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"basic Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr2 = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>handles = create_listeners(threads + <span class="number">1</span>, addr2, <span class="number">10</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
@@ -8440,7 +8440,7 @@
 		};
 		<span class="macro">assert!</span>(evh.add_server(sc, Box::new(<span class="string">""</span>)).is_err());
 
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"basic Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr2 = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span><span class="kw-2">mut </span>handles = create_listeners(threads, addr2, <span class="number">10</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
@@ -8560,7 +8560,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_trigger_on_read2() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"eventhandler trigger_on_read2 none Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>threads = <span class="number">1</span>;
@@ -8645,7 +8645,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_process_accept_no_attachment() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(
 			<span class="string">"eventhandler test_evh_process_accept_no_attachment Using port: {}"</span>,
 			port
@@ -8744,7 +8744,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_debug_rw_accept_id_none() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(
 			<span class="string">"eventhandler test_evh_debug_rw_accept_id_none Using port: {}"</span>,
 			port
@@ -8790,7 +8790,7 @@
 		evh.add_server(sc, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
 		sleep(Duration::from_millis(<span class="number">5_000</span>));
 
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"basic Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr2 = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>handles = create_listeners(threads + <span class="number">1</span>, addr2, <span class="number">10</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
@@ -8802,7 +8802,7 @@
 		};
 		<span class="macro">assert!</span>(evh.add_server(sc, Box::new(<span class="string">""</span>)).is_err());
 
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"basic Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr2 = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span><span class="kw-2">mut </span>handles = create_listeners(threads, addr2, <span class="number">10</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
@@ -8858,7 +8858,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_debug_attachment_none() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(
 			<span class="string">"eventhandler test_evh_debug_attachment_none none Using port: {}"</span>,
 			port
@@ -8904,7 +8904,7 @@
 		evh.add_server(sc, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
 		sleep(Duration::from_millis(<span class="number">5_000</span>));
 
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"basic Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr2 = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span>handles = create_listeners(threads + <span class="number">1</span>, addr2, <span class="number">10</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
@@ -8916,7 +8916,7 @@
 		};
 		<span class="macro">assert!</span>(evh.add_server(sc, Box::new(<span class="string">""</span>)).is_err());
 
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"basic Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr2 = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
 		<span class="kw">let </span><span class="kw-2">mut </span>handles = create_listeners(threads, addr2, <span class="number">10</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
@@ -8997,7 +8997,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_debug_close_handle() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(
 			<span class="string">"eventhandler test_evh_debug_attachment_none none Using port: {}"</span>,
 			port

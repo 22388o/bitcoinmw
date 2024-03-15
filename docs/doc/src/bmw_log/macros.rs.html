@@ -1155,7 +1155,6 @@
 <a href="#1154" id="1154">1154</a>
 <a href="#1155" id="1155">1155</a>
 <a href="#1156" id="1156">1156</a>
-<a href="#1157" id="1157">1157</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2177,7 +2176,7 @@
 	<span class="kw">use crate</span>::{LogConfigOption, LogConfigOptionName};
 	<span class="kw">use </span>bmw_err::Error;
 	<span class="kw">use </span>bmw_log::LogConfig;
-	<span class="kw">use </span>bmw_test::testdir::{setup_test_dir, tear_down_test_dir};
+	<span class="kw">use </span>bmw_test::<span class="kw-2">*</span>;
 	<span class="kw">use </span>std::fmt::{Debug, Formatter};
 	<span class="kw">use </span>std::fs::read_to_string;
 	<span class="kw">use </span>std::path::PathBuf;
@@ -2212,8 +2211,8 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_log_macros_werror() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_macros.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_dir = test_info.directory();
 
 		<span class="kw">let </span>log_file = <span class="macro">format!</span>(<span class="string">"{}/test.log"</span>, test_dir);
 		<span class="macro">log_init!</span>(LogConfig {
@@ -2273,7 +2272,6 @@
 
 		test_log_macros_expect();
 
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 

@@ -686,6 +686,19 @@
 <a href="#685" id="685">685</a>
 <a href="#686" id="686">686</a>
 <a href="#687" id="687">687</a>
+<a href="#688" id="688">688</a>
+<a href="#689" id="689">689</a>
+<a href="#690" id="690">690</a>
+<a href="#691" id="691">691</a>
+<a href="#692" id="692">692</a>
+<a href="#693" id="693">693</a>
+<a href="#694" id="694">694</a>
+<a href="#695" id="695">695</a>
+<a href="#696" id="696">696</a>
+<a href="#697" id="697">697</a>
+<a href="#698" id="698">698</a>
+<a href="#699" id="699">699</a>
+<a href="#700" id="700">700</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -788,9 +801,11 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">fn </span>build_server(directory: <span class="kw-2">&amp;</span>str, tls: bool) -&gt; <span class="prelude-ty">Result</span>&lt;(u16, Box&lt;<span class="kw">dyn </span>HttpServer&gt;, <span class="kw-2">&amp;</span>str), Error&gt; {
-		setup_test_dir(directory)<span class="question-mark">?</span>;
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+	<span class="kw">fn </span>build_server(
+		directory: <span class="kw-2">&amp;</span>str,
+		tls: bool,
+		port: u16,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;(u16, Box&lt;<span class="kw">dyn </span>HttpServer&gt;, <span class="kw-2">&amp;</span>str), Error&gt; {
 		<span class="kw">let </span>addr = <span class="string">"127.0.0.1"</span>.to_string();
 
 		<span class="kw">let </span><span class="kw-2">mut </span>callback_mappings = HashSet::new();
@@ -842,14 +857,15 @@
 
 	<span class="kw">fn </span>tear_down_server(<span class="kw-2">mut </span>sc: (u16, Box&lt;<span class="kw">dyn </span>HttpServer&gt;, <span class="kw-2">&amp;</span>str)) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		sc.<span class="number">1</span>.stop()<span class="question-mark">?</span>;
-		tear_down_test_dir(sc.<span class="number">2</span>)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_http_client_tls() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_http_client_tls.bmw"</span>;
-		<span class="kw">let </span>http = build_server(test_dir, <span class="bool-val">true</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_dir = test_info.directory();
+		<span class="kw">let </span>port = test_info.port();
+		<span class="kw">let </span>http = build_server(test_dir, <span class="bool-val">true</span>, port)<span class="question-mark">?</span>;
 
 		<span class="macro">http_client_init!</span>(BaseDir(test_dir))<span class="question-mark">?</span>;
 		<span class="kw">let </span>url = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"https://localhost:{}/sleep?time=0"</span>, http.<span class="number">0</span>);
@@ -898,10 +914,9 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_http_client_errors() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_http_client_errors.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
-
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_dir = test_info.directory();
+		<span class="kw">let </span>port = test_info.port();
 		<span class="kw">let </span>url = <span class="macro">format!</span>(<span class="string">"http://127.0.0.1:{}/"</span>, port);
 
 		<span class="comment">// error because Threads speecified twice
@@ -916,10 +931,9 @@
 
 		<span class="comment">// Error because no server is listening on this port
 		</span><span class="macro">assert!</span>(<span class="macro">http_client_send!</span>(request).is_err());
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 
 		<span class="comment">// start a server
-		</span><span class="kw">let </span>http = build_server(test_dir, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>http = build_server(test_dir, <span class="bool-val">false</span>, port)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>data_text = <span class="string">"Hello test World!"</span>;
 		{
@@ -1061,17 +1075,18 @@
 		}
 
 		<span class="macro">assert_eq!</span>(<span class="macro">rlock!</span>(count), <span class="number">2</span>);
-
 		tear_down_server(http)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">"tear down complete"</span>)<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_http_client_server() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_http_client_server.bmw"</span>;
-		<span class="kw">let </span>http = build_server(test_dir, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = test_info.port();
+		<span class="kw">let </span>test_dir = test_info.directory();
+		<span class="kw">let </span>http = build_server(test_dir, <span class="bool-val">false</span>, port)<span class="question-mark">?</span>;
+
 		<span class="kw">let </span>addr = <span class="macro">format!</span>(<span class="string">"http://127.0.0.1:{}"</span>, http.<span class="number">0</span>);
 
 		<span class="kw">let </span>data_text = <span class="string">"Hello test World!"</span>;
@@ -1155,8 +1170,10 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_http_client_send_content() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_http_client_send_content.bmw"</span>;
-		<span class="kw">let </span>http = build_server(test_dir, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_dir = test_info.directory();
+
+		<span class="kw">let </span>http = build_server(test_dir, <span class="bool-val">false</span>, test_info.port())<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="macro">format!</span>(<span class="string">"http://127.0.0.1:{}"</span>, http.<span class="number">0</span>);
 
 		<span class="macro">http_client_init!</span>(BaseDir(test_dir))<span class="question-mark">?</span>;
@@ -1192,15 +1209,16 @@
 		<span class="macro">assert_eq!</span>(len, <span class="number">10</span>);
 		<span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len], <span class="string">b"abcdefghij"</span>);
 
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
-
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_http_connection_keep_alive() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_http_connection_keep_alive.bmw"</span>;
-		<span class="kw">let </span>http = build_server(test_dir, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = test_info.port();
+		<span class="kw">let </span>test_dir = test_info.directory();
+
+		<span class="kw">let </span>http = build_server(test_dir, <span class="bool-val">false</span>, port)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>data_text = <span class="string">"Hello test World!"</span>;
 		{
@@ -1255,8 +1273,11 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>simple1() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".simple1.bmw"</span>;
-		<span class="kw">let </span>http = build_server(test_dir, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = test_info.port();
+		<span class="kw">let </span>test_dir = test_info.directory();
+
+		<span class="kw">let </span>http = build_server(test_dir, <span class="bool-val">false</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="macro">format!</span>(<span class="string">"http://127.0.0.1:{}"</span>, http.<span class="number">0</span>);
 
 		<span class="macro">http_client_init!</span>(BaseDir(test_dir))<span class="question-mark">?</span>;
@@ -1278,9 +1299,11 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_ws_client_basic() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_ws_client_basic.bmw"</span>;
-		<span class="kw">let </span>http = build_server(test_dir, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
-		<span class="kw">let </span>port = http.<span class="number">0</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = test_info.port();
+		<span class="kw">let </span>test_dir = test_info.directory();
+
+		<span class="kw">let </span>http = build_server(test_dir, <span class="bool-val">false</span>, port)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>config = WebSocketClientConfig {
 			..Default::default()
@@ -1332,8 +1355,11 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_websocket_macros() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_websocket_macros.bmw"</span>;
-		<span class="kw">let </span>http = build_server(test_dir, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = test_info.port();
+		<span class="kw">let </span>test_dir = test_info.directory();
+
+		<span class="kw">let </span>http = build_server(test_dir, <span class="bool-val">false</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>port = http.<span class="number">0</span>;
 
 		<span class="macro">websocket_client_init!</span>(Threads(<span class="number">2</span>))<span class="question-mark">?</span>;

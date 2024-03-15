@@ -751,7 +751,7 @@
 </span><span class="kw">mod </span>test {
 	<span class="kw">use </span><span class="kw">crate</span>::linux::<span class="kw-2">*</span>;
 	<span class="kw">use </span><span class="kw">crate</span>::types::{EventHandlerContext, EventIn};
-	<span class="kw">use </span>bmw_test::port::pick_free_port;
+	<span class="kw">use </span>bmw_test::<span class="kw-2">*</span>;
 	<span class="kw">use </span>std::thread::sleep;
 	<span class="kw">use </span>std::time::Duration;
 
@@ -767,7 +767,7 @@
 		close_impl(<span class="kw-2">&amp;mut </span>ctx, handle, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(ctx.filter_set.len(), <span class="number">100 </span>+ handle <span class="kw">as </span>usize);
 		ctx.filter_set.resize(<span class="number">10_100</span>, <span class="bool-val">false</span>);
-		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, pick_free_port()<span class="question-mark">?</span>)[..];
+		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, <span class="macro">free_port!</span>()<span class="question-mark">?</span>)[..];
 		<span class="kw">let </span>ret = create_listeners_impl(<span class="number">1</span>, addr, <span class="number">10</span>, <span class="bool-val">true</span>)<span class="question-mark">?</span>;
 		ctx.filter_set.resize(<span class="number">1</span>, <span class="bool-val">false</span>);
 		ctx.events_in.push(EventIn {
@@ -799,12 +799,12 @@
 
 		<span class="macro">assert_eq!</span>(ctx.filter_set.len(), <span class="number">100 </span>+ ret[<span class="number">0</span>] <span class="kw">as </span>usize);
 
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"basic Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>fmt = <span class="macro">format!</span>(<span class="string">"[::1]:{}"</span>, port);
 		<span class="macro">assert!</span>(setup_fd(<span class="bool-val">false</span>, <span class="kw-2">&amp;</span>fmt, <span class="number">10</span>).is_ok());
 
-		<span class="kw">let </span>port2 = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port2 = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port2);
 		<span class="macro">assert!</span>(create_listeners_impl(<span class="number">2</span>, <span class="kw-2">&amp;</span>addr, <span class="number">10</span>, <span class="bool-val">true</span>).is_ok());
 

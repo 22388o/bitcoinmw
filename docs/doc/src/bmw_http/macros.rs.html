@@ -2234,15 +2234,16 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_http_macros_basic() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_http_macros_basic.bmw"</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = test_info.port();
+		<span class="kw">let </span>test_dir = test_info.directory();
+
 		<span class="kw">let </span>data_text = <span class="string">"Hello Macro World!"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>file = File::create(<span class="macro">format!</span>(<span class="string">"{}/foo.html"</span>, test_dir))<span class="question-mark">?</span>;
 			file.write_all(data_text.as_bytes())<span class="question-mark">?</span>;
 		}
 
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"port={}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="string">"127.0.0.1"</span>.to_string();
 
@@ -2430,18 +2431,18 @@
 
 		<span class="macro">http_connection_close!</span>(connection)<span class="question-mark">?</span>;
 		<span class="macro">http_client_stop!</span>()<span class="question-mark">?</span>;
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_http_client_macros_init() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_http_client_macros_init.bmw"</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_dir = test_info.directory();
+
 		<span class="kw">const </span>EVH_THREADS: usize = <span class="number">3</span>;
 		<span class="kw">const </span>MAX_HANDLES_PER_THREAD: usize = <span class="number">5</span>;
 
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
 		<span class="macro">http_client_init!</span>(
 			BaseDir(test_dir),
 			Threads(EVH_THREADS),
@@ -2452,13 +2453,12 @@
 			<span class="kw">let </span>container = HTTP_CLIENT_CONTAINER.read()<span class="question-mark">?</span>;
 			<span class="kw">let </span>http_client = (<span class="kw-2">*</span>container).get(<span class="kw-2">&amp;</span>current().id()).unwrap();
 			<span class="kw">let </span>config = http_client.config();
-			<span class="macro">assert_eq!</span>(config.base_dir, test_dir);
+			<span class="macro">assert_eq!</span>(config.base_dir, <span class="kw-2">*</span>test_dir);
 			<span class="macro">assert_eq!</span>(config.evh_threads, EVH_THREADS);
 			<span class="macro">assert_eq!</span>(config.evh_max_handles_per_thread, MAX_HANDLES_PER_THREAD);
 		}
 
 		<span class="macro">http_client_stop!</span>()<span class="question-mark">?</span>;
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}

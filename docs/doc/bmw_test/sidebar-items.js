@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["sleep","sync_channel"],"mod":["port","testdir"],"struct":["Duration"]};
+window.SIDEBAR_ITEMS = {"macro":["free_port","test_info"],"struct":["Builder"],"trait":["TestInfo"]};

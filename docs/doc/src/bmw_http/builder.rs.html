@@ -85,8 +85,6 @@
 <a href="#84" id="84">84</a>
 <a href="#85" id="85">85</a>
 <a href="#86" id="86">86</a>
-<a href="#87" id="87">87</a>
-<a href="#88" id="88">88</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -155,9 +153,9 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_http_builder() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
-		<span class="kw">let </span>test_dir = <span class="string">".test_http_builder.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = test_info.port();
+		<span class="kw">let </span>test_dir = test_info.directory();
 
 		<span class="kw">let </span>config = HttpConfig {
 			instances: <span class="macro">vec!</span>[HttpInstance {
@@ -169,8 +167,6 @@
 		};
 		<span class="kw">let </span><span class="kw-2">mut </span>server = Builder::build_http_server(<span class="kw-2">&amp;</span>config)<span class="question-mark">?</span>;
 		server.start()<span class="question-mark">?</span>;
-
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}

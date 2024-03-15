@@ -188,7 +188,7 @@ of a histogram on a run of the evh_perf tool on the same system as above.</p>
  </span><span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
  <span class="kw">use </span>bmw_evh::<span class="kw-2">*</span>;
  <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
- <span class="kw">use </span>bmw_test::port::pick_free_port;
+ <span class="kw">use </span>bmw_test::<span class="kw-2">*</span>;
  <span class="kw">use </span>std::net::TcpStream;
  <span class="kw">use </span>std::io::{Read,Write};
 
@@ -276,7 +276,7 @@ of a histogram on a run of the evh_perf tool on the same system as above.</p>
 
      <span class="comment">// pick a free port for our server to bind to
      </span><span class="kw">let </span>(addr, handles) = <span class="kw">loop </span>{
-         <span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+         <span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
          <span class="macro">info!</span>(<span class="string">"using port = {}"</span>, port);
          <span class="comment">// bind to the loopback interface.
          </span><span class="kw">let </span>addr = <span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port).clone();

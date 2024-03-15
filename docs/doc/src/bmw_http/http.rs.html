@@ -3568,11 +3568,6 @@
 <a href="#3567" id="3567">3567</a>
 <a href="#3568" id="3568">3568</a>
 <a href="#3569" id="3569">3569</a>
-<a href="#3570" id="3570">3570</a>
-<a href="#3571" id="3571">3571</a>
-<a href="#3572" id="3572">3572</a>
-<a href="#3573" id="3573">3573</a>
-<a href="#3574" id="3574">3574</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -6630,8 +6625,7 @@
 	<span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_evh::{ThreadContext, WriteHandle, WriteState};
 	<span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
-	<span class="kw">use </span>bmw_test::port::pick_free_port;
-	<span class="kw">use </span>bmw_test::testdir::{setup_test_dir, tear_down_test_dir};
+	<span class="kw">use </span>bmw_test::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
 	<span class="kw">use </span>std::collections::HashMap;
 	<span class="kw">use </span>std::collections::HashSet;
@@ -6675,9 +6669,9 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_http_slow_requests() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
-		<span class="kw">let </span>test_dir = <span class="string">".test_http_slow_requests.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = test_info.port();
+		<span class="kw">let </span>test_dir = test_info.directory();
 		<span class="kw">let </span><span class="kw-2">mut </span>file = File::create(<span class="macro">format!</span>(<span class="string">"{}/abc.html"</span>, test_dir))<span class="question-mark">?</span>;
 		file.write_all(<span class="string">b"Hello, world!"</span>)<span class="question-mark">?</span>;
 
@@ -6711,18 +6705,17 @@
 		client.write(<span class="string">b"GET /def1.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n"</span>)<span class="question-mark">?</span>;
 		wait_assert(<span class="number">285</span>, <span class="kw-2">&amp;</span>client)<span class="question-mark">?</span>;
 
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
-
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_http_server_basic() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_http_server_basic.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = test_info.port();
+		<span class="kw">let </span>test_dir = test_info.directory();
+
 		<span class="kw">let </span><span class="kw-2">mut </span>file = File::create(<span class="macro">format!</span>(<span class="string">"{}/foo.html"</span>, test_dir))<span class="question-mark">?</span>;
 		file.write_all(<span class="string">b"Hello, world!"</span>)<span class="question-mark">?</span>;
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"port={}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>config = HttpConfig {
 			instances: <span class="macro">vec!</span>[HttpInstance {
@@ -6748,8 +6741,6 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>client = TcpStream::connect(addr)<span class="question-mark">?</span>;
 		client.write(<span class="string">b"GET /foo.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n"</span>)<span class="question-mark">?</span>;
 		wait_assert(<span class="number">284</span>, <span class="kw-2">&amp;</span>client)<span class="question-mark">?</span>;
-
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -6825,9 +6816,10 @@ callbk\n"
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_http_server_post() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_http_server_post.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = test_info.port();
+		<span class="kw">let </span>test_dir = test_info.directory();
+
 		<span class="macro">info!</span>(<span class="string">"port={}"</span>, port)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>callback_mappings = HashSet::new();
@@ -6866,8 +6858,6 @@ callbk\n"
 		client
 			.write(<span class="string">b"POST /callbacktest HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\nContent-Length: 13\r\n\r\nabcdefghijklm"</span>)<span class="question-mark">?</span>;
 		wait_assert(<span class="number">83</span>, <span class="kw-2">&amp;</span>client)<span class="question-mark">?</span>;
-
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -6917,9 +6907,10 @@ callbk\n"
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_http_server_quick() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_http_server_quick.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = test_info.port();
+		<span class="kw">let </span>test_dir = test_info.directory();
+
 		<span class="macro">info!</span>(<span class="string">"port={}"</span>, port)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>callback_mappings = HashSet::new();
@@ -6985,16 +6976,16 @@ callbk\n"
 		http.stop()<span class="question-mark">?</span>;
 
 		sleep(Duration::from_millis(<span class="number">1_000</span>));
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_http_server_multislab_posts() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_http_server_post_multislab.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = test_info.port();
+		<span class="kw">let </span>test_dir = test_info.directory();
+
 		<span class="macro">info!</span>(<span class="string">"port={}"</span>, port)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>callback_mappings = HashSet::new();
@@ -7034,16 +7025,16 @@ callbk\n"
 			client.write(<span class="string">b"abcdefghijklmnopqrstuvwxyz"</span>)<span class="question-mark">?</span>;
 		}
 		wait_assert(<span class="number">84</span>, <span class="kw-2">&amp;</span>client)<span class="question-mark">?</span>;
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_http_server_out_of_post_slabs() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_http_server_out_of_post_slabs.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = test_info.port();
+		<span class="kw">let </span>test_dir = test_info.directory();
+
 		<span class="macro">info!</span>(<span class="string">"port={}"</span>, port)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>callback_mappings = HashSet::new();
@@ -7083,16 +7074,16 @@ callbk\n"
 			client.write(<span class="string">b"abcdefghijklmnopqrstuvwxyz"</span>)<span class="question-mark">?</span>;
 		}
 		wait_assert(<span class="number">84</span>, <span class="kw-2">&amp;</span>client)<span class="question-mark">?</span>;
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_http_server_header_errors() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_dir = <span class="string">".test_http_handle_errors.bmw"</span>;
-		setup_test_dir(test_dir)<span class="question-mark">?</span>;
-		<span class="kw">let </span>port = pick_free_port()<span class="question-mark">?</span>;
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+		<span class="kw">let </span>port = test_info.port();
+		<span class="kw">let </span>test_dir = test_info.directory();
+
 		<span class="macro">info!</span>(<span class="string">"port={}"</span>, port)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>callback_mappings = HashSet::new();
@@ -7143,7 +7134,6 @@ Content-Length: 26\r\n\r\n"</span>,
 		<span class="macro">info!</span>(<span class="string">"write bytes"</span>)<span class="question-mark">?</span>;
 		client.write(<span class="string">b"abcdefghijklmnopqrstuvwxyz"</span>)<span class="question-mark">?</span>;
 		wait_assert(<span class="number">313</span>, <span class="kw-2">&amp;</span>client)<span class="question-mark">?</span>;
-		tear_down_test_dir(test_dir)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 }
