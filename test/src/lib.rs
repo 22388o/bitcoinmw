@@ -32,5 +32,4 @@ pub use std::thread::sleep;
 #[doc(hidden)]
 pub use std::time::Duration;
 
-pub use crate::impls::pick_free_port;
 pub use crate::types::TestInfo;

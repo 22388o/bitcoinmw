@@ -21,8 +21,17 @@
 #[macro_export]
 macro_rules! free_port {
 	() => {{
-		use bmw_test::pick_free_port;
-		pick_free_port()
+		use bmw_err::err;
+		use bmw_test::TestInfo;
+		let ti = TestInfo::new(false)?;
+		match TestInfo::new(false) {
+			Ok(ti) => Ok(ti.port()),
+			Err(e) => Err(err!(
+				ErrKind::Test,
+				"could not allocate a port due to: {}",
+				e
+			)),
+		}
 	}};
 }
 

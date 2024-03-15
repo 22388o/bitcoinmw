@@ -28,7 +28,7 @@ use std::sync::atomic::{AtomicU16, Ordering};
 static GLOBAL_NEXT_PORT: AtomicU16 = AtomicU16::new(9000);
 
 // pick a free port that does not collide with recently assigned ports
-pub fn pick_free_port() -> Result<u16, Error> {
+fn pick_free_port() -> Result<u16, Error> {
 	loop {
 		let port = GLOBAL_NEXT_PORT.fetch_add(1, Ordering::SeqCst);
 		let port = if port == 9000 {
