@@ -71,6 +71,7 @@ impl TestInfoImpl {
 			if !directory.starts_with("backtrace")
 				&& !directory.contains("bmw_test::types::TestInfoImpl")
 				&& !directory.contains("bmw_test::builder::")
+				&& !directory.contains("bmw_test::types::Builder")
 			{
 				false
 			} else {
