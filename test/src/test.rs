@@ -25,16 +25,16 @@ mod test {
 	#[test]
 	fn test_test_info_macro() -> Result<(), Error> {
 		let test_info = test_info!()?;
-		println!("port={}", test_info.port());
-		println!("directory={}", test_info.directory());
+		assert!(test_info.port() >= 9000);
+		assert!(test_info.directory().ends_with("bmw"));
 		Ok(())
 	}
 
 	#[test]
 	fn test_other_test() -> Result<(), Error> {
 		let test_info = test_info!()?;
-		println!("port={}", test_info.port());
-		println!("directory={}", test_info.directory());
+		assert!(test_info.port() >= 9000);
+		assert!(test_info.directory().ends_with("bmw"));
 		Ok(())
 	}
 }
