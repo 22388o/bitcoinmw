@@ -73,7 +73,7 @@ impl Error {
 	}
 }
 
-// Conversions from other errors to our base error struct are below
+// Conversions from other errors to our base error struct are below.
 
 impl From<ErrorKind> for Error {
 	fn from(kind: ErrorKind) -> Error {

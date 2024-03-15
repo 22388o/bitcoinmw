@@ -21,4 +21,4 @@ mod macros;
 mod test;
 mod types;
 
-pub use crate::types::ConfigOption;
+pub use crate::types::{Config, ConfigOption};

@@ -16,20 +16,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#[derive(Clone, Debug)]
+pub struct Config {
+	pub(crate) configs: Vec<ConfigOption>,
+}
+
 /// Configuration options used throughout BMW via macro.
 #[derive(Clone, Debug)]
-pub enum ConfigOption<'a> {
-	Threads(usize),
-	MaxHandlesPerThread(usize),
-	Debug(bool),
-	MaxHeadersLen(usize),
-	SyncChannelSize(usize),
-	WriteQueueSize(usize),
-	NhandlesQueueSize(usize),
-	MaxEventsIn(usize),
-	MaxEvents(usize),
-	HouseKeepingFrequencyMillis(u128),
-	SlabCount(usize),
-	Url(&'a str),
-	Uri(&'a str),
+pub enum ConfigOption {
+	MaxSizeBytes(u64),
+	MaxAgeMillis(u128),
+	DisplayColors(bool),
+	DisplayStdout(bool),
+	DisplayTimestamp(bool),
+	DisplayLogLevel(bool),
+	DisplayLineNum(bool),
+	DisplayMillis(bool),
+	LogFilePath(String),
+	AutoRotate(bool),
+	DisplayBackTrace(bool),
+	LineNumDataMaxLen(usize),
+	DeleteRotation(bool),
+	FileHeader(String),
 }

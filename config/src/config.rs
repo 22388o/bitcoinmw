@@ -15,3 +15,29 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+use crate::Config;
+use crate::ConfigOption::*;
+use bmw_err::*;
+
+impl Config {
+	pub fn check_no_duplicates(&self) -> Result<(), Error> {
+		let mut display_line_num_specified = false;
+		for v in &self.configs {
+			match v {
+				DisplayLineNum(_) => {
+					if display_line_num_specified {
+						return Err(err!(
+							ErrKind::Configuration,
+							"DisplayLineNum was specified more than once"
+						));
+					}
+					display_line_num_specified = true;
+				}
+				DisplayColors(_) => {}
+				_ => {}
+			}
+		}
+		Ok(())
+	}
+}

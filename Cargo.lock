@@ -187,6 +187,7 @@ name = "bmw_conf"
 version = "0.0.3-beta.1"
 dependencies = [
  "bmw_deps",
+ "bmw_err",
  "bmw_test",
 ]
 
