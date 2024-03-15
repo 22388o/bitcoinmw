@@ -1001,15 +1001,16 @@ mod test {
 
 	#[test]
 	fn test_http_macros_basic() -> Result<(), Error> {
-		let test_dir = ".test_http_macros_basic.bmw";
+		let test_info = test_info!()?;
+		let port = test_info.port();
+		let test_dir = test_info.directory();
+
 		let data_text = "Hello Macro World!";
-		setup_test_dir(test_dir)?;
 		{
 			let mut file = File::create(format!("{}/foo.html", test_dir))?;
 			file.write_all(data_text.as_bytes())?;
 		}
 
-		let port = pick_free_port()?;
 		info!("port={}", port)?;
 		let addr = "127.0.0.1".to_string();
 
@@ -1197,18 +1198,18 @@ mod test {
 
 		http_connection_close!(connection)?;
 		http_client_stop!()?;
-		tear_down_test_dir(test_dir)?;
 
 		Ok(())
 	}
 
 	#[test]
 	fn test_http_client_macros_init() -> Result<(), Error> {
-		let test_dir = ".test_http_client_macros_init.bmw";
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
+
 		const EVH_THREADS: usize = 3;
 		const MAX_HANDLES_PER_THREAD: usize = 5;
 
-		setup_test_dir(test_dir)?;
 		http_client_init!(
 			BaseDir(test_dir),
 			Threads(EVH_THREADS),
@@ -1219,13 +1220,12 @@ mod test {
 			let container = HTTP_CLIENT_CONTAINER.read()?;
 			let http_client = (*container).get(&current().id()).unwrap();
 			let config = http_client.config();
-			assert_eq!(config.base_dir, test_dir);
+			assert_eq!(config.base_dir, *test_dir);
 			assert_eq!(config.evh_threads, EVH_THREADS);
 			assert_eq!(config.evh_max_handles_per_thread, MAX_HANDLES_PER_THREAD);
 		}
 
 		http_client_stop!()?;
-		tear_down_test_dir(test_dir)?;
 
 		Ok(())
 	}

@@ -2,7 +2,7 @@
 name = "bmw_log"
 version = "0.0.3-beta.1"
 authors = ["The BitcoinMW Developers"]
-description = "Logging library"
+description = "Logging Library"
 license = "Apache-2.0"
 repository = "https://github.com/cgilliard/bitcoinmw"
 keywords = [ "crypto", "bitcoinmw"]

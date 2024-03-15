@@ -16,21 +16,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! This crate provides macros that are used in the tests in other crates
-//! within the BMW repo.
+#[cfg(test)]
+mod test {
+	use crate as bmw_test;
+	use crate::test_info;
+	use bmw_err::Error;
 
-mod impls;
-mod macros;
-mod test;
-mod types;
+	#[test]
+	fn test_test_info_macro() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		println!("port={}", test_info.port());
+		println!("directory={}", test_info.directory());
+		Ok(())
+	}
 
-// re-export a few useful things for tests
-#[doc(hidden)]
-pub use std::sync::mpsc::sync_channel;
-#[doc(hidden)]
-pub use std::thread::sleep;
-#[doc(hidden)]
-pub use std::time::Duration;
-
-pub use crate::impls::pick_free_port;
-pub use crate::types::TestInfo;
+	#[test]
+	fn test_other_test() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		println!("port={}", test_info.port());
+		println!("directory={}", test_info.directory());
+		Ok(())
+	}
+}

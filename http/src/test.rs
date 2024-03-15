@@ -100,9 +100,11 @@ mod test {
 		Ok(())
 	}
 
-	fn build_server(directory: &str, tls: bool) -> Result<(u16, Box<dyn HttpServer>, &str), Error> {
-		setup_test_dir(directory)?;
-		let port = pick_free_port()?;
+	fn build_server(
+		directory: &str,
+		tls: bool,
+		port: u16,
+	) -> Result<(u16, Box<dyn HttpServer>, &str), Error> {
 		let addr = "127.0.0.1".to_string();
 
 		let mut callback_mappings = HashSet::new();
@@ -154,14 +156,15 @@ mod test {
 
 	fn tear_down_server(mut sc: (u16, Box<dyn HttpServer>, &str)) -> Result<(), Error> {
 		sc.1.stop()?;
-		tear_down_test_dir(sc.2)?;
 		Ok(())
 	}
 
 	#[test]
 	fn test_http_client_tls() -> Result<(), Error> {
-		let test_dir = ".test_http_client_tls.bmw";
-		let http = build_server(test_dir, true)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
+		let port = test_info.port();
+		let http = build_server(test_dir, true, port)?;
 
 		http_client_init!(BaseDir(test_dir))?;
 		let url = &format!("https://localhost:{}/sleep?time=0", http.0);
@@ -210,10 +213,9 @@ mod test {
 
 	#[test]
 	fn test_http_client_errors() -> Result<(), Error> {
-		let test_dir = ".test_http_client_errors.bmw";
-		setup_test_dir(test_dir)?;
-
-		let port = pick_free_port()?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
+		let port = test_info.port();
 		let url = format!("http://127.0.0.1:{}/", port);
 
 		// error because Threads speecified twice
@@ -228,10 +230,9 @@ mod test {
 
 		// Error because no server is listening on this port
 		assert!(http_client_send!(request).is_err());
-		tear_down_test_dir(test_dir)?;
 
 		// start a server
-		let http = build_server(test_dir, false)?;
+		let http = build_server(test_dir, false, port)?;
 
 		let data_text = "Hello test World!";
 		{
@@ -373,17 +374,18 @@ mod test {
 		}
 
 		assert_eq!(rlock!(count), 2);
-
 		tear_down_server(http)?;
-		info!("tear down complete")?;
 
 		Ok(())
 	}
 
 	#[test]
 	fn test_http_client_server() -> Result<(), Error> {
-		let test_dir = ".test_http_client_server.bmw";
-		let http = build_server(test_dir, false)?;
+		let test_info = test_info!()?;
+		let port = test_info.port();
+		let test_dir = test_info.directory();
+		let http = build_server(test_dir, false, port)?;
+
 		let addr = format!("http://127.0.0.1:{}", http.0);
 
 		let data_text = "Hello test World!";
@@ -467,8 +469,10 @@ mod test {
 
 	#[test]
 	fn test_http_client_send_content() -> Result<(), Error> {
-		let test_dir = ".test_http_client_send_content.bmw";
-		let http = build_server(test_dir, false)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
+
+		let http = build_server(test_dir, false, test_info.port())?;
 		let addr = format!("http://127.0.0.1:{}", http.0);
 
 		http_client_init!(BaseDir(test_dir))?;
@@ -504,15 +508,16 @@ mod test {
 		assert_eq!(len, 10);
 		assert_eq!(&buf[0..len], b"abcdefghij");
 
-		tear_down_test_dir(test_dir)?;
-
 		Ok(())
 	}
 
 	#[test]
 	fn test_http_connection_keep_alive() -> Result<(), Error> {
-		let test_dir = ".test_http_connection_keep_alive.bmw";
-		let http = build_server(test_dir, false)?;
+		let test_info = test_info!()?;
+		let port = test_info.port();
+		let test_dir = test_info.directory();
+
+		let http = build_server(test_dir, false, port)?;
 
 		let data_text = "Hello test World!";
 		{
@@ -567,8 +572,11 @@ mod test {
 
 	#[test]
 	fn simple1() -> Result<(), Error> {
-		let test_dir = ".simple1.bmw";
-		let http = build_server(test_dir, false)?;
+		let test_info = test_info!()?;
+		let port = test_info.port();
+		let test_dir = test_info.directory();
+
+		let http = build_server(test_dir, false, port)?;
 		let addr = format!("http://127.0.0.1:{}", http.0);
 
 		http_client_init!(BaseDir(test_dir))?;
@@ -590,9 +598,11 @@ mod test {
 
 	#[test]
 	fn test_ws_client_basic() -> Result<(), Error> {
-		let test_dir = ".test_ws_client_basic.bmw";
-		let http = build_server(test_dir, false)?;
-		let port = http.0;
+		let test_info = test_info!()?;
+		let port = test_info.port();
+		let test_dir = test_info.directory();
+
+		let http = build_server(test_dir, false, port)?;
 
 		let config = WebSocketClientConfig {
 			..Default::default()
@@ -644,8 +654,11 @@ mod test {
 
 	#[test]
 	fn test_websocket_macros() -> Result<(), Error> {
-		let test_dir = ".test_websocket_macros.bmw";
-		let http = build_server(test_dir, false)?;
+		let test_info = test_info!()?;
+		let port = test_info.port();
+		let test_dir = test_info.directory();
+
+		let http = build_server(test_dir, false, port)?;
 		let port = http.0;
 
 		websocket_client_init!(Threads(2))?;

@@ -16,21 +16,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! This crate provides macros that are used in the tests in other crates
-//! within the BMW repo.
-
-mod impls;
-mod macros;
-mod test;
-mod types;
-
-// re-export a few useful things for tests
-#[doc(hidden)]
-pub use std::sync::mpsc::sync_channel;
-#[doc(hidden)]
-pub use std::thread::sleep;
-#[doc(hidden)]
-pub use std::time::Duration;
-
-pub use crate::impls::pick_free_port;
-pub use crate::types::TestInfo;
+/// A struct that can be used by a test to get a temporary directory and a port. The temporary
+/// directory is deleted when this variable goes out of scope and the port is guaranteed to not be
+/// used at the time it was allocated and it will not be allocated to any other tests.
+pub struct TestInfo {
+	pub(crate) port: u16,
+	pub(crate) directory: String,
+	pub(crate) preserve: bool,
+}

@@ -230,7 +230,7 @@
 //! use bmw_err::*;
 //! use bmw_evh::*;
 //! use bmw_log::*;
-//! use bmw_test::port::pick_free_port;
+//! use bmw_test::free_port;
 //! use std::net::TcpStream;
 //! use std::io::{Read,Write};
 //!
@@ -318,7 +318,7 @@
 //!
 //!     // pick a free port for our server to bind to
 //!     let (addr, handles) = loop {
-//!         let port = pick_free_port()?;
+//!         let port = free_port!()?;
 //!         info!("using port = {}", port);
 //!         // bind to the loopback interface.
 //!         let addr = format!("127.0.0.1:{}", port).clone();

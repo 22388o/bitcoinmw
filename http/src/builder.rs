@@ -66,9 +66,9 @@ mod test {
 
 	#[test]
 	fn test_http_builder() -> Result<(), Error> {
-		let port = pick_free_port()?;
-		let test_dir = ".test_http_builder.bmw";
-		setup_test_dir(test_dir)?;
+		let test_info = test_info!()?;
+		let port = test_info.port();
+		let test_dir = test_info.directory();
 
 		let config = HttpConfig {
 			instances: vec![HttpInstance {
@@ -80,8 +80,6 @@ mod test {
 		};
 		let mut server = Builder::build_http_server(&config)?;
 		server.start()?;
-
-		tear_down_test_dir(test_dir)?;
 
 		Ok(())
 	}

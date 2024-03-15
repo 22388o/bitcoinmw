@@ -829,7 +829,7 @@ mod test {
 	};
 	use crate::{LogBuilder, LogConfig, LogConfigOption, LogConfigOptionName, LogLevel};
 	use bmw_err::Error;
-	use bmw_test::testdir::{setup_test_dir, tear_down_test_dir};
+	use bmw_test::*;
 	use std::fs::{read_dir, read_to_string};
 	use std::path::PathBuf;
 	use std::thread::sleep;
@@ -1187,8 +1187,8 @@ mod test {
 
 	#[test]
 	fn test_init() -> Result<(), Error> {
-		let test_dir = ".test_init.bmw";
-		setup_test_dir(test_dir)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
 
 		let config = LogConfig {
 			file_path: FilePath(Some(PathBuf::from(format!("{}/test.log", test_dir)))),
@@ -1201,14 +1201,13 @@ mod test {
 
 		assert!(PathBuf::from(format!("{}/test.log", test_dir)).exists());
 
-		tear_down_test_dir(test_dir)?;
 		Ok(())
 	}
 
 	#[test]
 	fn test_configuration_options() -> Result<(), Error> {
-		let test_dir = ".test_config.bmw";
-		setup_test_dir(test_dir)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
 
 		let log_file = format!("{}/test.log", test_dir);
 
@@ -1392,14 +1391,13 @@ mod test {
 		let contents = read_to_string(log_file.clone())?;
 		assert_eq!(contents.rfind("abc"), Some(120));
 
-		tear_down_test_dir(test_dir)?;
 		Ok(())
 	}
 
 	#[test]
 	fn test_log_rotation() -> Result<(), Error> {
-		let test_dir = ".test_log_rotation.bmw";
-		setup_test_dir(test_dir)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
 
 		let log_file = format!("{}/test.log", test_dir);
 		let config = LogConfig {
@@ -1438,15 +1436,13 @@ mod test {
 		}
 		assert_eq!(count, 2);
 
-		tear_down_test_dir(test_dir)?;
-
 		Ok(())
 	}
 
 	#[test]
 	fn test_manual_rotation() -> Result<(), Error> {
-		let test_dir = ".test_log_manual_rotation.bmw";
-		setup_test_dir(test_dir)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
 
 		let log_file = format!("{}/test.log", test_dir);
 		let config = LogConfig {
@@ -1500,15 +1496,13 @@ mod test {
 		assert_eq!(count, 2);
 		assert_eq!(log.need_rotate(None)?, false);
 
-		tear_down_test_dir(test_dir)?;
-
 		Ok(())
 	}
 
 	#[test]
 	fn test_time_based_rotation() -> Result<(), Error> {
-		let test_dir = ".test_log_time_rotation.bmw";
-		setup_test_dir(test_dir)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
 
 		let log_file = format!("{}/test.log", test_dir);
 		let config = LogConfig {
@@ -1550,14 +1544,13 @@ mod test {
 		log.rotate()?;
 		assert_eq!(log.need_rotate(None)?, false);
 
-		tear_down_test_dir(test_dir)?;
 		Ok(())
 	}
 
 	#[test]
 	fn test_other_situations() -> Result<(), Error> {
-		let test_dir = ".test_log_other.bmw";
-		setup_test_dir(test_dir)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
 
 		let log_file = format!("{}/test.log", test_dir);
 		let config = LogConfig {
@@ -1666,15 +1659,14 @@ mod test {
 		})
 		.is_err());
 
-		tear_down_test_dir(test_dir)?;
-
 		Ok(())
 	}
 
 	#[test]
 	fn test_delete_rotation() -> Result<(), Error> {
-		let test_dir = ".test_log_delete_rotation.bmw";
-		setup_test_dir(test_dir)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
+
 		let log_file = format!("{}/test.log", test_dir);
 		let config = LogConfig {
 			file_path: FilePath(Some(PathBuf::from(log_file.clone()))),
@@ -1769,14 +1761,13 @@ mod test {
 		assert!(log.need_rotate(None).is_err());
 		assert!(log.init().is_err());
 
-		tear_down_test_dir(test_dir)?;
 		Ok(())
 	}
 
 	#[test]
 	fn test_other_config_options() -> Result<(), Error> {
-		let test_dir = ".test_other_config_options.bmw";
-		setup_test_dir(test_dir)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
 
 		const STR: &str = "01234567890123456789012345678901234567890123456789";
 
@@ -1814,14 +1805,14 @@ mod test {
 		// we now need a rotation
 		assert!(log.need_rotate(None)?);
 
-		tear_down_test_dir(test_dir)?;
 		Ok(())
 	}
 
 	#[test]
 	fn test_log_file_and_bt() -> Result<(), Error> {
-		let test_dir = ".test_log_file_and_bt.bmw";
-		setup_test_dir(test_dir)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
+
 		let log_file = format!("{}/test.log", test_dir);
 		let config = LogConfig {
 			file_path: FilePath(Some(PathBuf::from(log_file.clone()))),
@@ -1852,14 +1843,14 @@ mod test {
 		// we don't know exactly how big the stack trace will be so just assert it's larger
 		assert!(contents.len() > 71);
 
-		tear_down_test_dir(test_dir)?;
 		Ok(())
 	}
 
 	#[test]
 	fn test_invalid_flags() -> Result<(), Error> {
-		let test_dir = ".test_log_file_invalid_metadata.bmw";
-		setup_test_dir(test_dir)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
+
 		let log_file = format!("{}/test.log", test_dir);
 		let config = LogConfig {
 			file_path: FilePath(Some(PathBuf::from(log_file.clone()))),
@@ -1880,7 +1871,6 @@ mod test {
 		log.config.debug_lineno_none = true;
 		assert!(log.log(LogLevel::Info, "", None).is_ok());
 
-		tear_down_test_dir(test_dir)?;
 		Ok(())
 	}
 

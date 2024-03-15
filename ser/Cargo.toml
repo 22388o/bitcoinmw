@@ -2,7 +2,7 @@
 name = "bmw_ser"
 version = "0.0.3-beta.1"
 authors = ["The BitcoinMW Developers"]
-description = "Serializable library"
+description = "Serializable Library"
 license = "Apache-2.0"
 repository = "https://github.com/cgilliard/bitcoinmw"
 keywords = [ "crypto", "bitcoinmw"]

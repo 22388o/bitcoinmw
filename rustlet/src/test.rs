@@ -28,10 +28,7 @@ mod test {
 
 	debug!();
 
-	fn build_server(directory: &str, tls: bool) -> Result<u16, Error> {
-		setup_test_dir(directory)?;
-		let port = pick_free_port()?;
-
+	fn build_server(directory: &str, tls: bool, port: u16) -> Result<u16, Error> {
 		let base_dir = format!("{}/www", directory);
 		if tls {
 			rustlet_init!(
@@ -213,16 +210,13 @@ mod test {
 		Ok(port)
 	}
 
-	fn tear_down_server(directory: &str) -> Result<(), Error> {
-		rustlet_stop!()?;
-		tear_down_test_dir(directory)?;
-		Ok(())
-	}
-
 	#[test]
 	fn test_rustlet_simple() -> Result<(), Error> {
-		let test_dir = ".test_rustlet_simple.bmw";
-		let port = build_server(test_dir, false)?;
+		let test_info = test_info!()?;
+		let port = test_info.port();
+		let test_dir = test_info.directory();
+
+		let port = build_server(test_dir, false, port)?;
 
 		http_client_init!(BaseDir(test_dir))?;
 		let url = &format!("http://127.0.0.1:{}/abc", port);
@@ -249,15 +243,18 @@ mod test {
 			i += 1;
 		}
 
-		tear_down_server(test_dir)?;
+		rustlet_stop!()?;
 
 		Ok(())
 	}
 
 	#[test]
 	fn test_rustlet_tls() -> Result<(), Error> {
-		let test_dir = ".test_rustlet_tls.bmw";
-		let port = build_server(test_dir, true)?;
+		let test_info = test_info!()?;
+		let port = test_info.port();
+		let test_dir = test_info.directory();
+
+		let port = build_server(test_dir, true, port)?;
 
 		http_client_init!(BaseDir(test_dir))?;
 		let url = &format!("https://localhost:{}/abc", port);
@@ -273,15 +270,17 @@ mod test {
 		assert_eq!(response.content_reader()?.read_to_end(&mut buf)?, 3);
 		assert_eq!(buf, b"abc");
 
-		tear_down_server(test_dir)?;
+		rustlet_stop!()?;
 
 		Ok(())
 	}
 
 	#[test]
 	fn test_rustlet_method() -> Result<(), Error> {
-		let test_dir = ".test_rustlet_method.bmw";
-		let port = build_server(test_dir, true)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
+		let port = test_info.port();
+		let port = build_server(test_dir, true, port)?;
 
 		http_client_init!(BaseDir(test_dir))?;
 
@@ -315,14 +314,17 @@ mod test {
 		let response = http_client_send!(request)?;
 		info!("resp={}", response)?;
 
-		tear_down_server(test_dir)?;
+		rustlet_stop!()?;
+
 		Ok(())
 	}
 
 	#[test]
 	fn test_rustlet_version() -> Result<(), Error> {
-		let test_dir = ".test_rustlet_version.bmw";
-		let port = build_server(test_dir, true)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
+		let port = test_info.port();
+		let port = build_server(test_dir, true, port)?;
 
 		http_client_init!(BaseDir(test_dir))?;
 
@@ -376,15 +378,17 @@ mod test {
 		let response = http_client_send!(request)?;
 		info!("resp={}", response)?;
 
-		tear_down_server(test_dir)?;
+		rustlet_stop!()?;
 
 		Ok(())
 	}
 
 	#[test]
 	fn test_rustlet_redirect() -> Result<(), Error> {
-		let test_dir = ".test_rustlet_redirect.bmw";
-		let port = build_server(test_dir, true)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
+		let port = test_info.port();
+		let port = build_server(test_dir, true, port)?;
 
 		http_client_init!(BaseDir(test_dir))?;
 
@@ -409,15 +413,17 @@ mod test {
 
 		assert!(found_redir);
 
-		tear_down_server(test_dir)?;
+		rustlet_stop!()?;
 
 		Ok(())
 	}
 
 	#[test]
 	fn test_rustlet_headers() -> Result<(), Error> {
-		let test_dir = ".test_rustlet_headers.bmw";
-		let port = build_server(test_dir, true)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
+		let port = test_info.port();
+		let port = build_server(test_dir, true, port)?;
 
 		http_client_init!(BaseDir(test_dir))?;
 
@@ -451,15 +457,17 @@ mod test {
 		assert_eq!(response.content_reader()?.read_to_end(&mut buf)?, 1);
 		assert_eq!(buf, b"2");
 
-		tear_down_server(test_dir)?;
+		rustlet_stop!()?;
 
 		Ok(())
 	}
 
 	#[test]
 	fn test_rustlet_content_reader() -> Result<(), Error> {
-		let test_dir = ".test_rustlet_content_reader.bmw";
-		let port = build_server(test_dir, false)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
+		let port = test_info.port();
+		let port = build_server(test_dir, false, port)?;
 
 		http_client_init!(BaseDir(test_dir))?;
 
@@ -474,14 +482,17 @@ mod test {
 		info!("resp={}", response)?;
 		assert_eq!(response.code().unwrap(), 200);
 
-		tear_down_server(test_dir)?;
+		rustlet_stop!()?;
+
 		Ok(())
 	}
 
 	#[test]
 	fn test_rustlet_additional_headers() -> Result<(), Error> {
-		let test_dir = ".test_rustlet_additional_headers.bmw";
-		let port = build_server(test_dir, false)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
+		let port = test_info.port();
+		let port = build_server(test_dir, false, port)?;
 
 		http_client_init!(BaseDir(test_dir))?;
 
@@ -502,14 +513,17 @@ mod test {
 
 		assert!(found);
 
-		tear_down_server(test_dir)?;
+		rustlet_stop!()?;
+
 		Ok(())
 	}
 
 	#[test]
 	fn test_rustlet_async() -> Result<(), Error> {
-		let test_dir = ".test_rustlet_async.bmw";
-		let port = build_server(test_dir, false)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
+		let port = test_info.port();
+		let port = build_server(test_dir, false, port)?;
 
 		http_client_init!(BaseDir(test_dir))?;
 		let mut connection = http_connection!(Host("127.0.0.1"), Port(port), Tls(false))?;
@@ -573,14 +587,17 @@ mod test {
 
 		assert_eq!(rlock!(lock_clone), 1);
 		assert_eq!(rlock!(lock2_clone), 1);
-		tear_down_server(test_dir)?;
+		rustlet_stop!()?;
+
 		Ok(())
 	}
 
 	#[test]
 	fn test_websocket_with_client() -> Result<(), Error> {
-		let test_dir = ".test_websocket_with_client.bmw";
-		let port = build_server(test_dir, true)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
+		let port = test_info.port();
+		let port = build_server(test_dir, true, port)?;
 
 		websocket_client_init!(Threads(2))?;
 
@@ -612,7 +629,8 @@ mod test {
 		rx.recv()?;
 		assert!(rlock!(success_clone));
 		websocket_client_stop!()?;
-		tear_down_server(test_dir)?;
+		rustlet_stop!()?;
+
 		Ok(())
 	}
 }

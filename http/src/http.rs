@@ -3055,8 +3055,7 @@ mod test {
 	use bmw_err::*;
 	use bmw_evh::{ThreadContext, WriteHandle, WriteState};
 	use bmw_log::*;
-	use bmw_test::port::pick_free_port;
-	use bmw_test::testdir::{setup_test_dir, tear_down_test_dir};
+	use bmw_test::test_info;
 	use bmw_util::*;
 	use std::collections::HashMap;
 	use std::collections::HashSet;
@@ -3100,9 +3099,9 @@ mod test {
 
 	#[test]
 	fn test_http_slow_requests() -> Result<(), Error> {
-		let port = pick_free_port()?;
-		let test_dir = ".test_http_slow_requests.bmw";
-		setup_test_dir(test_dir)?;
+		let test_info = test_info!()?;
+		let port = test_info.port();
+		let test_dir = test_info.directory();
 		let mut file = File::create(format!("{}/abc.html", test_dir))?;
 		file.write_all(b"Hello, world!")?;
 
@@ -3136,18 +3135,17 @@ mod test {
 		client.write(b"GET /def1.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n")?;
 		wait_assert(285, &client)?;
 
-		tear_down_test_dir(test_dir)?;
-
 		Ok(())
 	}
 
 	#[test]
 	fn test_http_server_basic() -> Result<(), Error> {
-		let test_dir = ".test_http_server_basic.bmw";
-		setup_test_dir(test_dir)?;
+		let test_info = test_info!()?;
+		let port = test_info.port();
+		let test_dir = test_info.directory();
+
 		let mut file = File::create(format!("{}/foo.html", test_dir))?;
 		file.write_all(b"Hello, world!")?;
-		let port = pick_free_port()?;
 		info!("port={}", port)?;
 		let config = HttpConfig {
 			instances: vec![HttpInstance {
@@ -3173,8 +3171,6 @@ mod test {
 		let mut client = TcpStream::connect(addr)?;
 		client.write(b"GET /foo.html HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\n\r\n")?;
 		wait_assert(284, &client)?;
-
-		tear_down_test_dir(test_dir)?;
 
 		Ok(())
 	}
@@ -3250,9 +3246,10 @@ callbk\n"
 
 	#[test]
 	fn test_http_server_post() -> Result<(), Error> {
-		let test_dir = ".test_http_server_post.bmw";
-		setup_test_dir(test_dir)?;
-		let port = pick_free_port()?;
+		let test_info = test_info!()?;
+		let port = test_info.port();
+		let test_dir = test_info.directory();
+
 		info!("port={}", port)?;
 
 		let mut callback_mappings = HashSet::new();
@@ -3291,8 +3288,6 @@ callbk\n"
 		client
 			.write(b"POST /callbacktest HTTP/1.1\r\nHost: localhost\r\nUser-agent: test\r\nContent-Length: 13\r\n\r\nabcdefghijklm")?;
 		wait_assert(83, &client)?;
-
-		tear_down_test_dir(test_dir)?;
 
 		Ok(())
 	}
@@ -3342,9 +3337,10 @@ callbk\n"
 
 	#[test]
 	fn test_http_server_quick() -> Result<(), Error> {
-		let test_dir = ".test_http_server_quick.bmw";
-		setup_test_dir(test_dir)?;
-		let port = pick_free_port()?;
+		let test_info = test_info!()?;
+		let port = test_info.port();
+		let test_dir = test_info.directory();
+
 		info!("port={}", port)?;
 
 		let mut callback_mappings = HashSet::new();
@@ -3410,16 +3406,16 @@ callbk\n"
 		http.stop()?;
 
 		sleep(Duration::from_millis(1_000));
-		tear_down_test_dir(test_dir)?;
 
 		Ok(())
 	}
 
 	#[test]
 	fn test_http_server_multislab_posts() -> Result<(), Error> {
-		let test_dir = ".test_http_server_post_multislab.bmw";
-		setup_test_dir(test_dir)?;
-		let port = pick_free_port()?;
+		let test_info = test_info!()?;
+		let port = test_info.port();
+		let test_dir = test_info.directory();
+
 		info!("port={}", port)?;
 
 		let mut callback_mappings = HashSet::new();
@@ -3459,16 +3455,16 @@ callbk\n"
 			client.write(b"abcdefghijklmnopqrstuvwxyz")?;
 		}
 		wait_assert(84, &client)?;
-		tear_down_test_dir(test_dir)?;
 
 		Ok(())
 	}
 
 	#[test]
 	fn test_http_server_out_of_post_slabs() -> Result<(), Error> {
-		let test_dir = ".test_http_server_out_of_post_slabs.bmw";
-		setup_test_dir(test_dir)?;
-		let port = pick_free_port()?;
+		let test_info = test_info!()?;
+		let port = test_info.port();
+		let test_dir = test_info.directory();
+
 		info!("port={}", port)?;
 
 		let mut callback_mappings = HashSet::new();
@@ -3508,16 +3504,16 @@ callbk\n"
 			client.write(b"abcdefghijklmnopqrstuvwxyz")?;
 		}
 		wait_assert(84, &client)?;
-		tear_down_test_dir(test_dir)?;
 
 		Ok(())
 	}
 
 	#[test]
 	fn test_http_server_header_errors() -> Result<(), Error> {
-		let test_dir = ".test_http_handle_errors.bmw";
-		setup_test_dir(test_dir)?;
-		let port = pick_free_port()?;
+		let test_info = test_info!()?;
+		let port = test_info.port();
+		let test_dir = test_info.directory();
+
 		info!("port={}", port)?;
 
 		let mut callback_mappings = HashSet::new();
@@ -3568,7 +3564,6 @@ Content-Length: 26\r\n\r\n",
 		info!("write bytes")?;
 		client.write(b"abcdefghijklmnopqrstuvwxyz")?;
 		wait_assert(313, &client)?;
-		tear_down_test_dir(test_dir)?;
 		Ok(())
 	}
 }

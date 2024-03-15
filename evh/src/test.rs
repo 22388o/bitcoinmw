@@ -31,7 +31,7 @@ mod test {
 	use bmw_deps::rand::random;
 	use bmw_err::*;
 	use bmw_log::*;
-	use bmw_test::port::pick_free_port;
+	use bmw_test::free_port;
 	use bmw_util::*;
 	use std::io::Read;
 	use std::io::Write;
@@ -128,7 +128,7 @@ mod test {
 	#[test]
 	fn test_evh_tls_basic_read_error() -> Result<(), Error> {
 		{
-			let port = pick_free_port()?;
+			let port = free_port!()?;
 			info!("eventhandler tls_basic read error Using port: {}", port)?;
 			let addr = &format!("127.0.0.1:{}", port)[..];
 			let threads = 2;
@@ -172,7 +172,7 @@ mod test {
 			// connection will close because of the error
 			assert_eq!(connection.read(&mut buf)?, 0);
 
-			let port = pick_free_port()?;
+			let port = free_port!()?;
 			let addr2 = &format!("127.0.0.1:{}", port)[..];
 			let config = EventHandlerConfig {
 				threads,
@@ -247,7 +247,7 @@ mod test {
 	#[test]
 	fn test_evh_tls_basic_server_error() -> Result<(), Error> {
 		{
-			let port = pick_free_port()?;
+			let port = free_port!()?;
 			info!("eventhandler tls_basic server error Using port: {}", port)?;
 			let addr = &format!("127.0.0.1:{}", port)[..];
 			let threads = 2;
@@ -298,7 +298,7 @@ mod test {
 
 	#[test]
 	fn test_evh_close1() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("close1 Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 2;
@@ -427,7 +427,7 @@ mod test {
 
 	#[test]
 	fn test_evh_partial_clear() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("partial clear Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 2;
@@ -559,7 +559,7 @@ mod test {
 
 	#[test]
 	fn test_evh_different_lengths1() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("different len1 Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 2;
@@ -655,7 +655,7 @@ mod test {
 
 	#[test]
 	fn test_evh_different_lengths_client() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("different lengths client Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 2;
@@ -817,7 +817,7 @@ mod test {
 
 	#[test]
 	fn test_evh_out_of_slabs() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("out of slabs Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -907,7 +907,7 @@ mod test {
 
 	#[test]
 	fn test_evh_user_data() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("user data Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 2;
@@ -980,7 +980,7 @@ mod test {
 
 	#[test]
 	fn test_evh_trigger_on_read_error() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("trigger on_read error Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 2;
@@ -1048,7 +1048,7 @@ mod test {
 
 	#[test]
 	fn test_evh_trigger_on_read() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("trigger on_read Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 2;
@@ -1116,7 +1116,7 @@ mod test {
 
 	#[test]
 	fn test_evh_oob_panic() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("oob_panic Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -1198,7 +1198,7 @@ mod test {
 
 	#[test]
 	fn test_evh_thread_panic1() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("thread_panic1 Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -1301,7 +1301,7 @@ mod test {
 
 	#[test]
 	fn test_evh_no_panic_handler() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("no panic_handler Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -1393,7 +1393,7 @@ mod test {
 
 	#[test]
 	fn test_evh_thread_panic_multi() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("thread_panic_multi Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -1546,7 +1546,7 @@ mod test {
 
 	#[test]
 	fn test_evh_too_many_connections() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("too many connections on_read Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -1646,7 +1646,7 @@ mod test {
 
 	#[test]
 	fn test_evh_write_error() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("write_error Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -1716,7 +1716,7 @@ mod test {
 
 	#[test]
 	fn test_evh_debug_suspend() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("debug_suspend Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -1788,7 +1788,7 @@ mod test {
 
 	#[test]
 	fn test_evh_debug_pending() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("pending Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -1852,7 +1852,7 @@ mod test {
 
 	#[test]
 	fn test_evh_write_queue() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("test_evh_write_queue Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -1960,7 +1960,7 @@ mod test {
 
 	#[test]
 	fn test_evh_housekeeper() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("housekeeper Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -2034,7 +2034,7 @@ mod test {
 
 	#[test]
 	fn test_evh_suspend_resume() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("suspend/resume Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -2288,7 +2288,7 @@ mod test {
 
 	#[test]
 	fn test_evh_tls_multi_chunk_reuse_port_acc_err() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!(
 			"eventhandler tls_multi_chunk no reuse port acc err Using port: {}",
 			port
@@ -2464,7 +2464,7 @@ mod test {
 
 	#[test]
 	fn test_evh_tls_big_message() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("eventhandler tls_big_message Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -2598,7 +2598,7 @@ mod test {
 
 	#[test]
 	fn test_evh_tls_multi_chunk_no_reuse_port() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!(
 			"eventhandler tls_multi_chunk no reuse port Using port: {}",
 			port
@@ -2775,7 +2775,7 @@ mod test {
 
 	#[test]
 	fn test_evh_tls_multi_chunk() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("eventhandler tls_multi_chunk Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -2994,7 +2994,7 @@ mod test {
 
 	#[test]
 	fn test_evh_panic_fatal() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("panic_fatal Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -3073,7 +3073,7 @@ mod test {
 
 	#[test]
 	fn test_evh_panic_backlog() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("panic_backlog Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -3174,7 +3174,7 @@ mod test {
 
 	#[test]
 	fn test_evh_other_situations() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("other_situations Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -3245,7 +3245,7 @@ mod test {
 
 	#[test]
 	fn test_evh_other_panics_wo_err() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("test_evh_other_panics_wo_err Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -3337,7 +3337,7 @@ mod test {
 		// listener should be closed so this will fail
 		assert!(TcpStream::connect(addr).is_err());
 
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("other_situations2 Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let handles = create_listeners(threads, addr, 10, false)?;
@@ -3380,7 +3380,7 @@ mod test {
 
 	#[test]
 	fn test_evh_other_panics_w_err() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("test_evh_other_panics_w_err Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -3472,7 +3472,7 @@ mod test {
 		// listener should be closed so this will fail
 		assert!(TcpStream::connect(addr).is_err());
 
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("other_situations2 Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let handles = create_listeners(threads, addr, 10, false)?;
@@ -3637,7 +3637,7 @@ mod test {
 
 	#[test]
 	fn test_evh_on_read_none() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("eventhandler on_read_none Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -3686,7 +3686,7 @@ mod test {
 
 	#[test]
 	fn test_evh_trigger_on_read_none() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("eventhandler trigger_on_read_none Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -3772,13 +3772,13 @@ mod test {
 
 	#[test]
 	fn test_evh_ins_hashtable_err() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!(
 			"eventhandler test_evh_ins_hashtable_err Using port: {}",
 			port
 		)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
-		let port2 = pick_free_port()?;
+		let port2 = free_port!()?;
 		let addr2 = &format!("127.0.0.1:{}", port2)[..];
 		let threads = 1;
 		let config = EventHandlerConfig {
@@ -3849,7 +3849,7 @@ mod test {
 
 	#[test]
 	fn test_evh_debug_read_error() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("debug debug_read_error Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 2;
@@ -3901,7 +3901,7 @@ mod test {
 		evh.add_server(sc, Box::new(""))?;
 		sleep(Duration::from_millis(5_000));
 
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("basic Using port: {}", port)?;
 		let addr2 = &format!("127.0.0.1:{}", port)[..];
 		let handles = create_listeners(threads + 1, addr2, 10, false)?;
@@ -3913,7 +3913,7 @@ mod test {
 		};
 		assert!(evh.add_server(sc, Box::new("")).is_err());
 
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("basic Using port: {}", port)?;
 		let addr2 = &format!("127.0.0.1:{}", port)[..];
 		let mut handles = create_listeners(threads, addr2, 10, false)?;
@@ -4033,7 +4033,7 @@ mod test {
 
 	#[test]
 	fn test_evh_trigger_on_read2() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("eventhandler trigger_on_read2 none Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
 		let threads = 1;
@@ -4118,7 +4118,7 @@ mod test {
 
 	#[test]
 	fn test_evh_process_accept_no_attachment() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!(
 			"eventhandler test_evh_process_accept_no_attachment Using port: {}",
 			port
@@ -4217,7 +4217,7 @@ mod test {
 
 	#[test]
 	fn test_evh_debug_rw_accept_id_none() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!(
 			"eventhandler test_evh_debug_rw_accept_id_none Using port: {}",
 			port
@@ -4263,7 +4263,7 @@ mod test {
 		evh.add_server(sc, Box::new(""))?;
 		sleep(Duration::from_millis(5_000));
 
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("basic Using port: {}", port)?;
 		let addr2 = &format!("127.0.0.1:{}", port)[..];
 		let handles = create_listeners(threads + 1, addr2, 10, false)?;
@@ -4275,7 +4275,7 @@ mod test {
 		};
 		assert!(evh.add_server(sc, Box::new("")).is_err());
 
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("basic Using port: {}", port)?;
 		let addr2 = &format!("127.0.0.1:{}", port)[..];
 		let mut handles = create_listeners(threads, addr2, 10, false)?;
@@ -4331,7 +4331,7 @@ mod test {
 
 	#[test]
 	fn test_evh_debug_attachment_none() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!(
 			"eventhandler test_evh_debug_attachment_none none Using port: {}",
 			port
@@ -4377,7 +4377,7 @@ mod test {
 		evh.add_server(sc, Box::new(""))?;
 		sleep(Duration::from_millis(5_000));
 
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("basic Using port: {}", port)?;
 		let addr2 = &format!("127.0.0.1:{}", port)[..];
 		let handles = create_listeners(threads + 1, addr2, 10, false)?;
@@ -4389,7 +4389,7 @@ mod test {
 		};
 		assert!(evh.add_server(sc, Box::new("")).is_err());
 
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!("basic Using port: {}", port)?;
 		let addr2 = &format!("127.0.0.1:{}", port)[..];
 		let mut handles = create_listeners(threads, addr2, 10, false)?;
@@ -4470,7 +4470,7 @@ mod test {
 
 	#[test]
 	fn test_debug_close_handle() -> Result<(), Error> {
-		let port = pick_free_port()?;
+		let port = free_port!()?;
 		info!(
 			"eventhandler test_evh_debug_attachment_none none Using port: {}",
 			port

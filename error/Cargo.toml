@@ -2,7 +2,7 @@
 name = "bmw_err"
 version = "0.0.3-beta.1"
 authors = ["The BitcoinMW Developers"]
-description = "Error library"
+description = "Error Library"
 license = "Apache-2.0"
 repository = "https://github.com/cgilliard/bitcoinmw"
 keywords = [ "crypto", "bitcoinmw"]

@@ -16,21 +16,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! This crate provides macros that are used in the tests in other crates
-//! within the BMW repo.
-
-mod impls;
-mod macros;
-mod test;
-mod types;
-
-// re-export a few useful things for tests
-#[doc(hidden)]
-pub use std::sync::mpsc::sync_channel;
-#[doc(hidden)]
-pub use std::thread::sleep;
-#[doc(hidden)]
-pub use std::time::Duration;
-
-pub use crate::impls::pick_free_port;
-pub use crate::types::TestInfo;
+/// Configuration options used throughout BMW via macro.
+#[derive(Clone, Debug)]
+pub enum ConfigOption<'a> {
+	Threads(usize),
+	MaxHandlesPerThread(usize),
+	Debug(bool),
+	MaxHeadersLen(usize),
+	SyncChannelSize(usize),
+	WriteQueueSize(usize),
+	NhandlesQueueSize(usize),
+	MaxEventsIn(usize),
+	MaxEvents(usize),
+	HouseKeepingFrequencyMillis(u128),
+	SlabCount(usize),
+	Url(&'a str),
+	Uri(&'a str),
+}

@@ -15,16 +15,3 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-use bmw_err::Error;
-
-pub fn setup_test_dir(test_dir: &str) -> Result<(), Error> {
-	let _ = std::fs::remove_dir_all(test_dir);
-	std::fs::create_dir_all(test_dir)?;
-	Ok(())
-}
-
-pub fn tear_down_test_dir(test_dir: &str) -> Result<(), Error> {
-	let _ = std::fs::remove_dir_all(test_dir);
-	Ok(())
-}

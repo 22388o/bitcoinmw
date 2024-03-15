@@ -1143,12 +1143,13 @@ mod test {
 
 	#[test]
 	fn test_http_client_basic() -> Result<(), Error> {
-		let test_dir = ".test_http_client_basic.bmw";
 		let data_text = "Hello World123!";
-		setup_test_dir(test_dir)?;
+		let test_info = test_info!()?;
+		let port = test_info.port();
+		let test_dir = test_info.directory();
+
 		let mut file = File::create(format!("{}/foo.html", test_dir))?;
 		file.write_all(data_text.as_bytes())?;
-		let port = pick_free_port()?;
 		info!("port={}", port)?;
 		let addr = "127.0.0.1".to_string();
 
@@ -1298,23 +1299,22 @@ mod test {
 			assert_eq!((**guard), true);
 		}
 
-		tear_down_test_dir(test_dir)?;
-
 		Ok(())
 	}
 
 	#[test]
 	fn test_http_connection_basic() -> Result<(), Error> {
-		let test_dir = ".test_http_connection_basic.bmw";
+		let test_info = test_info!()?;
+		let port = test_info.port();
+		let test_dir = test_info.directory();
+
 		let data_text = "Hello World1234!";
 		let data_text2 = "another file";
-		setup_test_dir(test_dir)?;
 		let mut file = File::create(format!("{}/foo.html", test_dir))?;
 		file.write_all(data_text.as_bytes())?;
 		let mut file = File::create(format!("{}/foo2.html", test_dir))?;
 		file.write_all(data_text2.as_bytes())?;
 
-		let port = pick_free_port()?;
 		info!("port={}", port)?;
 		let addr = "127.0.0.1".to_string();
 
@@ -1532,8 +1532,6 @@ mod test {
 			let guard = found_another_file.guard();
 			assert_eq!((**guard), true);
 		}
-
-		tear_down_test_dir(test_dir)?;
 
 		Ok(())
 	}

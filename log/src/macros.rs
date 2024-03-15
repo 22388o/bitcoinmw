@@ -1019,7 +1019,7 @@ mod test {
 	use crate::{LogConfigOption, LogConfigOptionName};
 	use bmw_err::Error;
 	use bmw_log::LogConfig;
-	use bmw_test::testdir::{setup_test_dir, tear_down_test_dir};
+	use bmw_test::*;
 	use std::fmt::{Debug, Formatter};
 	use std::fs::read_to_string;
 	use std::path::PathBuf;
@@ -1054,8 +1054,8 @@ mod test {
 
 	#[test]
 	fn test_log_macros_werror() -> Result<(), Error> {
-		let test_dir = ".test_macros.bmw";
-		setup_test_dir(test_dir)?;
+		let test_info = test_info!()?;
+		let test_dir = test_info.directory();
 
 		let log_file = format!("{}/test.log", test_dir);
 		log_init!(LogConfig {
@@ -1115,7 +1115,6 @@ mod test {
 
 		test_log_macros_expect();
 
-		tear_down_test_dir(test_dir)?;
 		Ok(())
 	}
 

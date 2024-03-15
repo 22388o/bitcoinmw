@@ -2,7 +2,7 @@
 name = "bmw_int"
 version = "0.0.3-beta.1"
 authors = ["The BitcoinMW Developers"]
-description = "Integration test library"
+description = "Integration test Library"
 license = "Apache-2.0"
 repository = "https://github.com/cgilliard/bitcoinmw"
 keywords = [ "crypto", "bitcoinmw" ]

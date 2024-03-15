@@ -16,21 +16,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! This crate provides macros that are used in the tests in other crates
-//! within the BMW repo.
+/// Returns a free port that is not used at the time of the call. It is also guaranteed to not be
+/// allocated to another test which calls this macro, so there are no timing concerns.
+#[macro_export]
+macro_rules! free_port {
+	() => {{
+		use bmw_test::pick_free_port;
+		pick_free_port()
+	}};
+}
 
-mod impls;
-mod macros;
-mod test;
-mod types;
-
-// re-export a few useful things for tests
-#[doc(hidden)]
-pub use std::sync::mpsc::sync_channel;
-#[doc(hidden)]
-pub use std::thread::sleep;
-#[doc(hidden)]
-pub use std::time::Duration;
-
-pub use crate::impls::pick_free_port;
-pub use crate::types::TestInfo;
+/// Macro to setup a test directory based on the function name. A free port
+/// is also returned. The directory is removed when the returned value goes
+/// out of scope unless the `preserve` value is specifed and set to true.
+/// Specifically a [`crate::TestInfo`] is returned by this macro.
+#[macro_export]
+macro_rules! test_info {
+	() => {{
+		test_info!(false)
+	}};
+	($preserve:expr) => {{
+		use bmw_test::TestInfo;
+		TestInfo::new($preserve)
+	}};
+}
