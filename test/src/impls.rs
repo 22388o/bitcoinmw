@@ -48,22 +48,17 @@ fn pick_free_port() -> Result<u16, Error> {
 }
 
 impl TestInfo for TestInfoImpl {
-	/// Return a directory that can be used by the test. It is automatically deleted when the
-	/// [`crate::TestInfo`] goes out of scope.
 	fn directory(&self) -> &String {
 		&self.directory
 	}
 
-	/// Return a port that can be used by the test.
 	fn port(&self) -> u16 {
 		self.port
 	}
 }
 
 impl TestInfoImpl {
-	/// Create a [`crate::TestInfo`] which can be used by tests to assign a unique directory
-	/// which is deleted when the returned value goes out of scope. A port is also assigned.
-	pub fn new(preserve: bool) -> Result<Self, Error> {
+	pub(crate) fn new(preserve: bool) -> Result<Self, Error> {
 		let mut directory = Default::default();
 		backtrace::trace(|frame| {
 			backtrace::resolve_frame(frame, |symbol| {

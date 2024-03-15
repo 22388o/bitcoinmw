@@ -16,11 +16,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/// This trait defines the data which a test can use. A test can obtain one of these by calling the
+/// [`crate::test_info`] macro.
 pub trait TestInfo {
+	/// Return a port that can be used by the test.
 	fn port(&self) -> u16;
+	/// Return a directory that can be used by the test. It is automatically deleted when the
+	/// [`crate::TestInfo`] goes out of scope.
 	fn directory(&self) -> &String;
 }
 
+/// A builder that is used to construct TestInfo implementations. This is typically called through
+/// the [`crate::test_info`] macro.
 pub struct Builder {}
 
 pub(crate) struct TestInfoImpl {

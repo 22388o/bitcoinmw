@@ -17,7 +17,8 @@
 // limitations under the License.
 
 /// Returns a free port that is not used at the time of the call. It is also guaranteed to not be
-/// allocated to another test which calls this macro, so there are no timing concerns.
+/// allocated to another test which calls this macro or the [`crate::test_info`] macro, so there
+/// are no timing concerns.
 #[macro_export]
 macro_rules! free_port {
 	() => {{
