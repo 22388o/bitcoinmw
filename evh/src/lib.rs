@@ -230,7 +230,7 @@
 //! use bmw_err::*;
 //! use bmw_evh::*;
 //! use bmw_log::*;
-//! use bmw_test::free_port;
+//! use bmw_test::*;
 //! use std::net::TcpStream;
 //! use std::io::{Read,Write};
 //!
