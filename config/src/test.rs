@@ -17,4 +17,124 @@
 // limitations under the License.
 
 #[cfg(test)]
-mod test {}
+mod test {
+	use crate as bmw_conf;
+	use crate::{config, Builder, ConfigOption, ConfigOption::*, ConfigOptionName as CN};
+	use bmw_err::*;
+
+	#[test]
+	fn test_config_basic() -> Result<(), Error> {
+		let config = Builder::build_config(vec![ConfigOption::MaxSizeBytes(1_000)]);
+		assert_eq!(
+			config.get(&CN::MaxSizeBytes),
+			Some(ConfigOption::MaxSizeBytes(1_000))
+		);
+
+		// ok because MaxSizeBytes is allowed
+		assert!(config.check_config(vec![CN::MaxSizeBytes], vec![]).is_ok());
+
+		// err because MaxSizeBytes is not allowed
+		assert!(config.check_config(vec![CN::MaxAgeMillis], vec![]).is_err());
+
+		// ok because MaxSizeBytes is allowed
+		assert!(config
+			.check_config(vec![CN::AutoRotate, CN::MaxSizeBytes], vec![])
+			.is_ok());
+
+		let config = Builder::build_config(vec![
+			ConfigOption::MaxSizeBytes(1_000),
+			ConfigOption::MaxSizeBytes(100),
+		]);
+
+		// err because it's a duplicate
+		assert!(config.check_config(vec![CN::MaxSizeBytes], vec![]).is_err());
+
+		let config = Builder::build_config(vec![ConfigOption::MaxSizeBytes(100)]);
+
+		// ok because it's both allowed and required and specified
+		assert!(config
+			.check_config(vec![CN::MaxSizeBytes], vec![CN::MaxSizeBytes])
+			.is_ok());
+
+		// err because MaxAgeMillis is not specified and it's required
+		assert!(config
+			.check_config(vec![CN::MaxSizeBytes], vec![CN::MaxAgeMillis])
+			.is_err());
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_config_macros() -> Result<(), Error> {
+		let config = config!(FileHeader("test".to_string()), DeleteRotation(false));
+		assert!(config
+			.check_config(
+				vec![CN::FileHeader, CN::DeleteRotation, CN::AutoRotate],
+				vec![]
+			)
+			.is_ok());
+
+		assert!(config
+			.check_config(
+				vec![CN::FileHeader, CN::DeleteRotation, CN::AutoRotate],
+				vec![CN::AutoRotate]
+			)
+			.is_err());
+
+		assert!(config
+			.check_config(
+				vec![CN::FileHeader, CN::DeleteRotation, CN::AutoRotate],
+				vec![CN::FileHeader]
+			)
+			.is_ok());
+
+		assert!(config
+			.check_config(vec![CN::FileHeader, CN::AutoRotate], vec![CN::FileHeader])
+			.is_err());
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_config_all_options() -> Result<(), Error> {
+		let config = config!(
+			MaxSizeBytes(100),
+			MaxAgeMillis(200),
+			DisplayColors(true),
+			DisplayStdout(true),
+			DisplayTimestamp(true),
+			DisplayLogLevel(false),
+			DisplayLineNum(false),
+			DisplayMillis(false),
+			LogFilePath("".to_string()),
+			DisplayBackTrace(false),
+			LineNumDataMaxLen(300),
+			FileHeader("test".to_string()),
+			DeleteRotation(false),
+			AutoRotate(true)
+		);
+
+		assert!(config
+			.check_config(
+				vec![
+					CN::MaxSizeBytes,
+					CN::MaxAgeMillis,
+					CN::DisplayColors,
+					CN::DisplayStdout,
+					CN::DisplayTimestamp,
+					CN::DisplayLogLevel,
+					CN::DisplayLineNum,
+					CN::DisplayMillis,
+					CN::DisplayBackTrace,
+					CN::LogFilePath,
+					CN::LineNumDataMaxLen,
+					CN::DeleteRotation,
+					CN::FileHeader,
+					CN::AutoRotate
+				],
+				vec![]
+			)
+			.is_ok());
+		Ok(())
+	}
+}

@@ -16,15 +16,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[macro_export]
-macro_rules! config {
-	( $( $config:expr ),* ) => {{
-                use bmw_conf::{Builder, ConfigOption};
-                let mut config_values: Vec<ConfigOption> = vec![];
-                $(
-                        config_values.push($config);
-                )*
+use crate::types::ConfigImpl;
+use crate::{Builder, Config, ConfigOption};
 
-                Builder::build_config(config_values)
-        }};
+impl Builder {
+	pub fn build_config(configs: Vec<ConfigOption>) -> Box<dyn Config> {
+		Box::new(ConfigImpl::new(configs))
+	}
 }

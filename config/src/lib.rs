@@ -16,9 +16,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+mod builder;
 mod config;
 mod macros;
 mod test;
 mod types;
 
-pub use crate::types::{Config, ConfigOption};
+pub use crate::types::{Builder, Config, ConfigOption, ConfigOptionName};

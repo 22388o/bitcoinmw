@@ -16,13 +16,46 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bmw_err::Error;
+use std::collections::HashMap;
+
+pub trait Config: Send + Sync {
+	fn get(&self, name: &ConfigOptionName) -> Option<ConfigOption>;
+	fn check_config(
+		&self,
+		allowed: Vec<ConfigOptionName>,
+		required: Vec<ConfigOptionName>,
+	) -> Result<(), Error>;
+}
+
 #[derive(Clone, Debug)]
-pub struct Config {
+pub struct ConfigImpl {
 	pub(crate) configs: Vec<ConfigOption>,
+	pub(crate) hash: HashMap<ConfigOptionName, ConfigOption>,
+}
+
+/// Names of configuration options used throughout BMW via macro. This correspondes to the values
+/// in [`crate::ConfigOption`].
+#[derive(Hash, Eq, PartialEq, Clone, Debug)]
+pub enum ConfigOptionName {
+	MaxSizeBytes,
+	MaxAgeMillis,
+	DisplayColors,
+	DisplayStdout,
+	DisplayTimestamp,
+	DisplayLogLevel,
+	DisplayLineNum,
+	DisplayMillis,
+	LogFilePath,
+	AutoRotate,
+	DisplayBackTrace,
+	LineNumDataMaxLen,
+	DeleteRotation,
+	FileHeader,
 }
 
 /// Configuration options used throughout BMW via macro.
-#[derive(Clone, Debug)]
+#[derive(Hash, Eq, PartialEq, Clone, Debug)]
 pub enum ConfigOption {
 	MaxSizeBytes(u64),
 	MaxAgeMillis(u128),
@@ -39,3 +72,5 @@ pub enum ConfigOption {
 	DeleteRotation(bool),
 	FileHeader(String),
 }
+
+pub struct Builder {}
