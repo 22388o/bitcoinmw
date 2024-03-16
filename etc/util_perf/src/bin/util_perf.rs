@@ -17,9 +17,11 @@
 // limitations under the License.
 
 use bmw_err::*;
-use bmw_log::LogConfigOption::*;
 use bmw_log::*;
-use bmw_util::*;
+use bmw_util::{
+	array, array_list, global_slab_allocator, hashtable, slab_allocator, Hashtable, List,
+	MaxEntries, SlabAllocator, SlabCount, SlabSize, Slabs,
+};
 use clap::{load_yaml, App};
 use num_format::{Locale, ToFormattedString};
 use std::alloc::{GlobalAlloc, Layout, System};
@@ -310,11 +312,7 @@ fn do_vec() -> Result<(), Error> {
 
 fn main() -> Result<(), Error> {
 	global_slab_allocator!()?;
-	log_init!(LogConfig {
-		level: Level(false),
-		line_num: LineNum(false),
-		..Default::default()
-	})?;
+	log_init!(DisplayLogLevel(false), DisplayLineNum(false),)?;
 
 	let yml = load_yaml!("util_perf.yml");
 	let args = App::from_yaml(yml)

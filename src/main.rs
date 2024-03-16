@@ -120,7 +120,7 @@ fn real_main(debug_startup_32: bool) -> Result<(), Error> {
 		DisplayMillis(true),
 		DisplayLineNum(false),
 		DisplayLogLevel(false)
-	);
+	)?;
 
 	let mut websocket_mappings = HashMap::new();
 	let mut test_ws_protos = HashSet::new();

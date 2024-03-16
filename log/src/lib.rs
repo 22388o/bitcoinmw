@@ -25,3 +25,5 @@ mod types;
 pub use crate::types::{
 	GlobalLogContainer, Log, LogBuilder, LogLevel, LoggingType, BMW_GLOBAL_LOG,
 };
+
+pub use bmw_conf;

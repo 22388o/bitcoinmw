@@ -81,6 +81,28 @@ impl GlobalLogContainer {
 		Ok(())
 	}
 
+	pub fn set_log_option(option: ConfigOption) -> Result<(), Error> {
+		let mut log = BMW_GLOBAL_LOG.write()?;
+		match (*log).as_mut() {
+			Some(logger) => logger.set_config_option(option),
+			None => Err(err!(
+				ErrKind::Configuration,
+				"configuration option not part of logger"
+			)),
+		}
+	}
+
+	pub fn get_log_option(option: ConfigOptionName) -> Result<ConfigOption, Error> {
+		let log = BMW_GLOBAL_LOG.read()?;
+		match (*log).as_ref() {
+			Some(logger) => logger.get_config_option(option),
+			None => Err(err!(
+				ErrKind::Configuration,
+				"configuration option not found"
+			)),
+		}
+	}
+
 	fn check_init() -> Result<(), Error> {
 		let need_init;
 		{
