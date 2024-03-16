@@ -806,11 +806,6 @@
 <a href="#805" id="805">805</a>
 <a href="#806" id="806">806</a>
 <a href="#807" id="807">807</a>
-<a href="#808" id="808">808</a>
-<a href="#809" id="809">809</a>
-<a href="#810" id="810">810</a>
-<a href="#811" id="811">811</a>
-<a href="#812" id="812">812</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -869,26 +864,22 @@
 			<span class="self">Self</span>::check_init()<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>log = BMW_GLOBAL_LOG.write()<span class="question-mark">?</span>;
 			<span class="kw">match </span>(<span class="kw-2">*</span>log).as_mut() {
-				<span class="prelude-val">Some</span>(log) =&gt; {
-					<span class="kw">match </span>logging_type {
-						LoggingType::Standard =&gt; log.log(level, line)<span class="question-mark">?</span>,
-						LoggingType::Plain =&gt; log.log_plain(level, line)<span class="question-mark">?</span>,
-						LoggingType::All =&gt; log.log_all(level, line)<span class="question-mark">?</span>,
-					}
-					<span class="prelude-val">Ok</span>(())
-				}
+				<span class="prelude-val">Some</span>(log) =&gt; <span class="kw">match </span>logging_type {
+					LoggingType::Standard =&gt; log.log(level, line)<span class="question-mark">?</span>,
+					LoggingType::Plain =&gt; log.log_plain(level, line)<span class="question-mark">?</span>,
+					LoggingType::All =&gt; log.log_all(level, line)<span class="question-mark">?</span>,
+				},
 				<span class="comment">// not expected
-				</span><span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Log, <span class="string">"unexpected error: log not initialized"</span>)),
+				</span><span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Log, <span class="string">"unexpected error: log not initialized"</span>)),
 			}
-		} <span class="kw">else </span>{
-			<span class="prelude-val">Ok</span>(())
 		}
+		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="kw">pub fn </span>init(values: Vec&lt;ConfigOption&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>log = BMW_GLOBAL_LOG.write()<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>logger = LogBuilder::build_log(values)<span class="question-mark">?</span>;
-		logger.set_log_level(LogLevel::Trace)<span class="question-mark">?</span>;
+		logger.set_log_level(LogLevel::Trace);
 		logger.init()<span class="question-mark">?</span>;
 		(<span class="kw-2">*</span>log) = <span class="prelude-val">Some</span>(logger);
 		<span class="prelude-val">Ok</span>(())
@@ -898,10 +889,11 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>log = BMW_GLOBAL_LOG.write()<span class="question-mark">?</span>;
 		<span class="kw">match </span>(<span class="kw-2">*</span>log).as_mut() {
 			<span class="prelude-val">Some</span>(logger) =&gt; logger.set_config_option(option),
-			<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(
-				ErrKind::Configuration,
-				<span class="string">"configuration option not part of logger"
-			</span>)),
+			<span class="prelude-val">None </span>=&gt; {
+				<span class="kw">let </span>text = <span class="string">"global logger has not been initalized"</span>;
+				<span class="kw">let </span>err = <span class="macro">err!</span>(ErrKind::Configuration, text);
+				<span class="prelude-val">Err</span>(err)
+			}
 		}
 	}
 
@@ -909,10 +901,11 @@
 		<span class="kw">let </span>log = BMW_GLOBAL_LOG.read()<span class="question-mark">?</span>;
 		<span class="kw">match </span>(<span class="kw-2">*</span>log).as_ref() {
 			<span class="prelude-val">Some</span>(logger) =&gt; logger.get_config_option(option),
-			<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(
-				ErrKind::Configuration,
-				<span class="string">"configuration option not found"
-			</span>)),
+			<span class="prelude-val">None </span>=&gt; {
+				<span class="kw">let </span>text = <span class="string">"global logger has not been initialized"</span>;
+				<span class="kw">let </span>err = <span class="macro">err!</span>(ErrKind::Configuration, text);
+				<span class="prelude-val">Err</span>(err)
+			}
 		}
 	}
 
@@ -948,10 +941,8 @@
 	}
 	<span class="kw">fn </span>rotate(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">if </span>!<span class="self">self</span>.is_init {
-			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
-				ErrKind::Log,
-				<span class="string">"log file cannot be rotated because init() was never called"
-			</span>));
+			<span class="kw">let </span>text = <span class="string">"log file cannot be rotated because init() was never called"</span>;
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Log, text));
 		}
 
 		{
@@ -1045,9 +1036,8 @@
 			<span class="prelude-val">Ok</span>(<span class="bool-val">false</span>)
 		}
 	}
-	<span class="kw">fn </span>set_log_level(<span class="kw-2">&amp;mut </span><span class="self">self</span>, log_level: LogLevel) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">fn </span>set_log_level(<span class="kw-2">&amp;mut </span><span class="self">self</span>, log_level: LogLevel) {
 		<span class="self">self</span>.log_level = log_level;
-		<span class="prelude-val">Ok</span>(())
 	}
 	<span class="kw">fn </span>init(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">if </span><span class="self">self</span>.is_init {

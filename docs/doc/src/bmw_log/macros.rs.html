@@ -314,6 +314,18 @@
 <a href="#313" id="313">313</a>
 <a href="#314" id="314">314</a>
 <a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
+<a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -617,6 +629,7 @@
 <span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>set_log_option {
 	(<span class="macro-nonterminal">$option</span>:expr) =&gt; {{
+		<span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
 		<span class="kw">use </span>bmw_log::GlobalLogContainer;
 		GlobalLogContainer::set_log_option(<span class="macro-nonterminal">$option</span>)
 	}};
@@ -625,8 +638,19 @@
 <span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>get_log_option {
 	(<span class="macro-nonterminal">$option</span>:expr) =&gt; {{
+		<span class="kw">use </span>bmw_conf::ConfigOptionName::<span class="kw-2">*</span>;
 		<span class="kw">use </span>bmw_log::GlobalLogContainer;
 		GlobalLogContainer::get_log_option(<span class="macro-nonterminal">$option</span>)
 	}};
+}
+
+<span class="attr">#[macro_export]
+</span><span class="macro">macro_rules! </span>logger {
+        ($(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; {{
+                <span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
+                <span class="kw">use </span>bmw_conf::ConfigOption;
+                <span class="kw">let </span>v: Vec&lt;ConfigOption&gt; = <span class="macro">vec!</span>[$(<span class="macro-nonterminal">$config</span>)<span class="kw-2">*</span>];
+                LogBuilder::build_log(v)
+        }};
 }
 </code></pre></div></section></main></body></html>

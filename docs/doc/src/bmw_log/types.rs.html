@@ -101,6 +101,7 @@
 <a href="#100" id="100">100</a>
 <a href="#101" id="101">101</a>
 <a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -162,7 +163,7 @@
 	<span class="kw">fn </span>log_plain(<span class="kw-2">&amp;mut </span><span class="self">self</span>, level: LogLevel, line: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="kw">fn </span>rotate(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="kw">fn </span>need_rotate(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt;;
-	<span class="kw">fn </span>set_log_level(<span class="kw-2">&amp;mut </span><span class="self">self</span>, level: LogLevel) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+	<span class="kw">fn </span>set_log_level(<span class="kw-2">&amp;mut </span><span class="self">self</span>, level: LogLevel);
 	<span class="kw">fn </span>init(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="kw">fn </span>close(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="kw">fn </span>set_config_option(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: ConfigOption) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
@@ -171,7 +172,8 @@
 
 <span class="kw">pub struct </span>LogBuilder {}
 
-<span class="kw">pub struct </span>GlobalLogContainer {}
+<span class="attr">#[doc(hidden)]
+</span><span class="kw">pub struct </span>GlobalLogContainer {}
 
 <span class="comment">// Crate local types
 
@@ -186,7 +188,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) line_num: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) show_millis: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) auto_rotate: bool,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) file_path: <span class="prelude-ty">Option</span>&lt;Box&lt;PathBuf&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) file_path: <span class="prelude-ty">Option</span>&lt;PathBuf&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) show_backtrace: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) line_num_data_max_len: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) delete_rotation: bool,
