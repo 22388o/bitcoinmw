@@ -101,6 +101,30 @@ impl GlobalLogContainer {
 		}
 	}
 
+	pub fn rotate() -> Result<(), Error> {
+		let mut log = BMW_GLOBAL_LOG.write()?;
+		match (*log).as_mut() {
+			Some(logger) => logger.rotate(),
+			None => {
+				let text = "global logger has not been initalized";
+				let err = err!(ErrKind::Configuration, text);
+				Err(err)
+			}
+		}
+	}
+
+	pub fn need_rotate() -> Result<bool, Error> {
+		let log = BMW_GLOBAL_LOG.read()?;
+		match (*log).as_ref() {
+			Some(logger) => logger.need_rotate(),
+			None => {
+				let text = "global logger has not been initialized";
+				let err = err!(ErrKind::Configuration, text);
+				Err(err)
+			}
+		}
+	}
+
 	fn check_init() -> Result<(), Error> {
 		let need_init;
 		{

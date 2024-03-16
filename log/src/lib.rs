@@ -146,10 +146,10 @@ mod macros;
 mod test;
 mod types;
 
-pub use crate::types::{GlobalLogContainer, Log, LogBuilder, LogLevel, LoggingType};
+pub use crate::types::{Log, LogBuilder, LogLevel, LoggingType};
 
 #[doc(hidden)]
-pub use crate::types::BMW_GLOBAL_LOG;
+pub use crate::types::{GlobalLogContainer, BMW_GLOBAL_LOG};
 
 #[doc(hidden)]
 pub use bmw_conf;

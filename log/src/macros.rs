@@ -35,6 +35,33 @@ macro_rules! u64 {
 	}};
 }
 
+/// Set [`crate::LogLevel`] to [`crate::LogLevel::Trace`] or log at the [`crate::LogLevel::Trace`] log level.
+/// If no parameters are specified the log level will be set. If a single parameter is specified,
+/// that string will be logged. If two or more parameters are specified, the first parameter is a format
+/// string, the additional parameters will be formatted based on the format string. Logging
+/// is done by the global logger which can be configured using the [`crate::log_init`]
+/// macro. If [`crate::log_init`] is not called, the default values are used.
+///
+/// # Examples
+///
+///```
+/// use bmw_err::Error;
+/// use bmw_log::*;
+///
+/// trace!();
+///
+/// fn main() -> Result<(), Error> {
+///     trace!("v1={},v2={}", 123, "def")?;
+///
+///     Ok(())
+/// }
+///
+///```
+///
+/// Note: log level must be set before using the logger or a compilation error will occur. Log
+/// level can be changed at any time and the inner most scope is used. The suggested method of use
+/// is to set the level at the top of each file and adjust as development is completed. You may
+/// start with debug or trace and eventually end up at info or warn.
 #[macro_export]
 macro_rules! trace {
 	() => {
@@ -49,6 +76,9 @@ macro_rules! trace {
 	};
 }
 
+/// Same as [`trace`] except that the [`crate::Log::log_plain`] function of the underlying logger
+/// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
+/// details on each.
 #[macro_export]
 macro_rules! trace_plain {
         () => {
@@ -63,6 +93,9 @@ macro_rules! trace_plain {
         };
 }
 
+/// Same as [`trace`] except that the [`crate::Log::log_all`] function of the underlying logger
+/// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
+/// details on each.
 #[macro_export]
 macro_rules! trace_all {
         () => {
@@ -77,6 +110,33 @@ macro_rules! trace_all {
         };
 }
 
+/// Set [`crate::LogLevel`] to [`crate::LogLevel::Debug`] or log at the [`crate::LogLevel::Debug`] log level.
+/// If no parameters are specified the log level will be set. If a single parameter is specified,
+/// that string will be logged. If two or more parameters are specified, the first parameter is a format
+/// string, the additional parameters will be formatted based on the format string. Logging
+/// is done by the global logger which can be configured using the [`crate::log_init`]
+/// macro. If [`crate::log_init`] is not called, the default values are used.
+///
+/// # Examples
+///
+///```
+/// use bmw_err::Error;
+/// use bmw_log::*;
+///
+/// debug!();
+///
+/// fn main() -> Result<(), Error> {
+///     debug!("v1={},v2={}", 123, "def")?;
+///
+///     Ok(())
+/// }
+///
+///```
+///
+/// Note: log level must be set before using the logger or a compilation error will occur. Log
+/// level can be changed at any time and the inner most scope is used. The suggested method of use
+/// is to set the level at the top of each file and adjust as development is completed. You may
+/// start with debug or trace and eventually end up at info or warn.
 #[macro_export]
 macro_rules! debug {
         () => {
@@ -91,6 +151,9 @@ macro_rules! debug {
         };
 }
 
+/// Same as [`debug`] except that the [`crate::Log::log_plain`] function of the underlying logger
+/// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
+/// details on each.
 #[macro_export]
 macro_rules! debug_plain {
         () => {
@@ -105,6 +168,9 @@ macro_rules! debug_plain {
         };
 }
 
+/// Same as [`debug`] except that the [`crate::Log::log_all`] function of the underlying logger
+/// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
+/// details on each.
 #[macro_export]
 macro_rules! debug_all {
         () => {
@@ -119,6 +185,33 @@ macro_rules! debug_all {
         };
 }
 
+/// Set [`crate::LogLevel`] to [`crate::LogLevel::Info`] or log at the [`crate::LogLevel::Info`] log level.
+/// If no parameters are specified the log level will be set. If a single parameter is specified,
+/// that string will be logged. If two or more parameters are specified, the first parameter is a format
+/// string, the additional parameters will be formatted based on the format string. Logging
+/// is done by the global logger which can be configured using the [`crate::log_init`]
+/// macro. If [`crate::log_init`] is not called, the default values are used.
+///
+/// # Examples
+///
+///```
+/// use bmw_err::Error;
+/// use bmw_log::*;
+///
+/// info!();
+///
+/// fn main() -> Result<(), Error> {
+///     info!("v1={},v2={}", 123, "def")?;
+///
+///     Ok(())
+/// }
+///
+///```
+///
+/// Note: log level must be set before using the logger or a compilation error will occur. Log
+/// level can be changed at any time and the inner most scope is used. The suggested method of use
+/// is to set the level at the top of each file and adjust as development is completed. You may
+/// start with debug or trace and eventually end up at info or warn.
 #[macro_export]
 macro_rules! info {
         () => {
@@ -133,6 +226,9 @@ macro_rules! info {
         };
 }
 
+/// Same as [`info`] except that the [`crate::Log::log_plain`] function of the underlying logger
+/// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
+/// details on each.
 #[macro_export]
 macro_rules! info_plain {
         () => {
@@ -147,6 +243,9 @@ macro_rules! info_plain {
         };
 }
 
+/// Same as [`info`] except that the [`crate::Log::log_all`] function of the underlying logger
+/// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
+/// details on each.
 #[macro_export]
 macro_rules! info_all {
         () => {
@@ -161,6 +260,33 @@ macro_rules! info_all {
         };
 }
 
+/// Set [`crate::LogLevel`] to [`crate::LogLevel::Warn`] or log at the [`crate::LogLevel::Warn`] log level.
+/// If no parameters are specified the log level will be set. If a single parameter is specified,
+/// that string will be logged. If two or more parameters are specified, the first parameter is a format
+/// string, the additional parameters will be formatted based on the format string. Logging
+/// is done by the global logger which can be configured using the [`crate::log_init`]
+/// macro. If [`crate::log_init`] is not called, the default values are used.
+///
+/// # Examples
+///
+///```
+/// use bmw_err::Error;
+/// use bmw_log::*;
+///
+/// warn!();
+///
+/// fn main() -> Result<(), Error> {
+///     warn!("v1={},v2={}", 123, "def")?;
+///
+///     Ok(())
+/// }
+///
+///```
+///
+/// Note: log level must be set before using the logger or a compilation error will occur. Log
+/// level can be changed at any time and the inner most scope is used. The suggested method of use
+/// is to set the level at the top of each file and adjust as development is completed. You may
+/// start with debug or trace and eventually end up at info or warn.
 #[macro_export]
 macro_rules! warn {
         () => {
@@ -175,6 +301,9 @@ macro_rules! warn {
         };
 }
 
+/// Same as [`warn`] except that the [`crate::Log::log_plain`] function of the underlying logger
+/// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
+/// details on each.
 #[macro_export]
 macro_rules! warn_plain {
         () => {
@@ -189,6 +318,9 @@ macro_rules! warn_plain {
         };
 }
 
+/// Same as [`warn`] except that the [`crate::Log::log_all`] function of the underlying logger
+/// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
+/// details on each.
 #[macro_export]
 macro_rules! warn_all {
         () => {
@@ -203,6 +335,33 @@ macro_rules! warn_all {
         };
 }
 
+/// Set [`crate::LogLevel`] to [`crate::LogLevel::Error`] or log at the [`crate::LogLevel::Error`] log level.
+/// If no parameters are specified the log level will be set. If a single parameter is specified,
+/// that string will be logged. If two or more parameters are specified, the first parameter is a format
+/// string, the additional parameters will be formatted based on the format string. Logging
+/// is done by the global logger which can be configured using the [`crate::log_init`]
+/// macro. If [`crate::log_init`] is not called, the default values are used.
+///
+/// # Examples
+///
+///```
+/// use bmw_err::Error;
+/// use bmw_log::*;
+///
+/// error!();
+///
+/// fn main() -> Result<(), Error> {
+///     error!("v1={},v2={}", 123, "def")?;
+///
+///     Ok(())
+/// }
+///
+///```
+///
+/// Note: log level must be set before using the logger or a compilation error will occur. Log
+/// level can be changed at any time and the inner most scope is used. The suggested method of use
+/// is to set the level at the top of each file and adjust as development is completed. You may
+/// start with debug or trace and eventually end up at info or warn.
 #[macro_export]
 macro_rules! error {
         () => {
@@ -217,6 +376,9 @@ macro_rules! error {
         };
 }
 
+/// Same as [`error`] except that the [`crate::Log::log_plain`] function of the underlying logger
+/// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
+/// details on each.
 #[macro_export]
 macro_rules! error_plain {
         () => {
@@ -231,6 +393,9 @@ macro_rules! error_plain {
         };
 }
 
+/// Same as [`error`] except that the [`crate::Log::log_all`] function of the underlying logger
+/// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
+/// details on each.
 #[macro_export]
 macro_rules! error_all {
         () => {
@@ -245,6 +410,33 @@ macro_rules! error_all {
         };
 }
 
+/// Set [`crate::LogLevel`] to [`crate::LogLevel::Fatal`] or log at the [`crate::LogLevel::Fatal`] log level.
+/// If no parameters are specified the log level will be set. If a single parameter is specified,
+/// that string will be logged. If two or more parameters are specified, the first parameter is a format
+/// string, the additional parameters will be formatted based on the format string. Logging
+/// is done by the global logger which can be configured using the [`crate::log_init`]
+/// macro. If [`crate::log_init`] is not called, the default values are used.
+///
+/// # Examples
+///
+///```
+/// use bmw_err::Error;
+/// use bmw_log::*;
+///
+/// fatal!();
+///
+/// fn main() -> Result<(), Error> {
+///     fatal!("v1={},v2={}", 123, "def")?;
+///
+///     Ok(())
+/// }
+///
+///```
+///
+/// Note: log level must be set before using the logger or a compilation error will occur. Log
+/// level can be changed at any time and the inner most scope is used. The suggested method of use
+/// is to set the level at the top of each file and adjust as development is completed. You may
+/// start with debug or trace and eventually end up at info or warn.
 #[macro_export]
 macro_rules! fatal {
         () => {
@@ -259,6 +451,9 @@ macro_rules! fatal {
         };
 }
 
+/// Same as [`fatal`] except that the [`crate::Log::log_plain`] function of the underlying logger
+/// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
+/// details on each.
 #[macro_export]
 macro_rules! fatal_plain {
         () => {
@@ -273,6 +468,9 @@ macro_rules! fatal_plain {
         };
 }
 
+/// Same as [`fatal`] except that the [`crate::Log::log_all`] function of the underlying logger
+/// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
+/// details on each.
 #[macro_export]
 macro_rules! fatal_all {
         () => {
@@ -287,6 +485,61 @@ macro_rules! fatal_all {
         };
 }
 
+/// Initialize the global log. This macro takes a list of [`bmw_conf::ConfigOption`], If none are
+/// specified, the default values are used. Note that if this macro
+/// is not called before logging occurs, the default configuration is used. After
+/// either this macro is called or the default is set via another logging macro,
+/// calling this macro again will result in an error. It usually makes sense to
+/// initialize this macro very early in the startup of an application so that no
+/// unanticipated logging occurs before this macro is called by mistake.
+///
+/// # Examples
+///
+///```
+/// use bmw_err::Error;
+/// use bmw_log::*;
+/// use bmw_test::*;
+/// use bmw_conf::ConfigOption::*;
+/// use std::path::PathBuf;
+///
+/// debug!();
+///
+/// fn main() -> Result<(), Error> {
+///     // get test_info to assign a test directory for the log
+///     let test_info = test_info!()?;
+///     let mut buf = PathBuf::new();
+///     buf.push(test_info.directory());
+///     buf.push("./main.log");
+///
+///     // init the global logger
+///     log_init!(
+///         DisplayBackTrace(false),
+///         DisplayMillis(false),
+///         LogFilePath(Some(buf))
+///     )?;
+///
+///     info!("Startup complete!")?;
+///
+///     Ok(())
+/// }
+///```
+///
+/// Or without calling [`crate::log_init`]...
+///```
+/// use bmw_err::Error;
+/// use bmw_log::*;
+///
+/// debug!();
+///
+/// fn main() -> Result<(), Error> {
+///     // the default configuration is used
+///     info!("Startup complete!")?;
+///
+///     Ok(())
+/// }
+///```
+///
+/// Note that in the last example, the default values as described in [`crate::logger`] will be used.
 #[macro_export]
 macro_rules! log_init {
 	($($config:tt)*) => {{
@@ -298,6 +551,10 @@ macro_rules! log_init {
 	}};
 }
 
+/// Configure the global log with the specified [`bmw_conf::ConfigOption`]. This macro takes
+/// a single argument. The macro returns () on success or [`bmw_err::Error`] on failure.
+/// See [`crate::Log::set_config_option`] which is the underlying function call for
+/// full details.
 #[macro_export]
 macro_rules! set_log_option {
 	($option:expr) => {{
@@ -307,6 +564,33 @@ macro_rules! set_log_option {
 	}};
 }
 
+/// Get the current value of the specified log option for the global log. The single parameter
+/// must be of the type [`bmw_conf::ConfigOptionName`]. The macro returns a [`bmw_conf::ConfigOption`]
+/// on success and [`bmw_err::Error`] on error. See [`crate::Log::get_config_option`] which
+/// is the underlying function call for full details.
+///
+/// # Examples
+///
+///```
+/// use bmw_err::Error;
+/// use bmw_log::*;
+/// use bmw_conf::*;
+///
+/// debug!();
+///
+/// fn test() -> Result<(), Error> {
+///
+///     // first init the logger
+///     log_init!(DisplayColors(true))?;
+///     // get the configured value for FilePath
+///     let v = get_log_option!(ConfigOptionName::LogFilePath)?;
+///     // It should be the default value which is None
+///     assert_eq!(v, ConfigOption::LogFilePath(None));
+///     info!("file_path={:?}", v)?;
+///
+///     Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! get_log_option {
 	($option:expr) => {{
@@ -316,6 +600,75 @@ macro_rules! get_log_option {
 	}};
 }
 
+/// Rotate the global log. See [`crate::Log::rotate`] for full details on
+/// the underlying rotate function and log rotation in general.
+#[macro_export]
+macro_rules! log_rotate {
+	() => {{
+		use bmw_log::GlobalLogContainer;
+		GlobalLogContainer::rotate()
+	}};
+}
+
+/// See if the global log needs to be rotated. See [`crate::Log::need_rotate`] for full details
+/// on the underlying need_rotate function.
+#[macro_export]
+macro_rules! need_rotate {
+	() => {{
+		use bmw_log::GlobalLogContainer;
+		GlobalLogContainer::need_rotate()
+	}};
+}
+
+/// This macro builds a [`crate::Log`] implementation and returns it. Specifically, it return a
+/// Box<dyn Log + Send + Sync>. This example below shows all of the allowed configurations that may
+/// be specified. All of these are optional.
+///
+/// # Examples
+///
+///```
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_test::*;
+/// use std::path::PathBuf;
+///
+/// fn logger() -> Result<(), Error> {
+///     let test_info = test_info!()?;
+///     let mut buf = PathBuf::new();
+///     buf.push(test_info.directory());
+///     buf.push("test.log");
+///
+///     // these are all the legal configurations to use.
+///     // most of these are the defaults. The only exceptions are:
+///     // MaxSizeBytes - u64::MAX (i.e. no rotation)
+///     // MaxAgeMillis - u128::MAX (i.e. no rotation)
+///     // LogFilePath - None (by default only stdout logging occurs)
+///     // FileHeader - "" (no header)
+///     let mut logger = logger!(
+///         MaxSizeBytes(1_024 * 1_024), // set rotation at 1mb
+///         MaxAgeMillis(60 * 60 * 1_000), // set rotation at 1hr
+///         DisplayColors(true), // whether or not to display colors on stdout
+///         DisplayStdout(true), // whether or not to display on stdout
+///         DisplayTimestamp(true), // whether or not to display the timestamp
+///         DisplayLogLevel(true), // whether or not to display the log level
+///         DisplayLineNum(true), // whether or not to display the code line number
+///         DisplayMillis(true), // whether or not to display millisecond precision
+///         LogFilePath(Some(buf)), // path to the log file or None if no file logging
+///         AutoRotate(true), // whether or not to automatically rotate the log file
+///         DisplayBackTrace(false), // whether or not to display a backtrace on error/fatal
+///         LineNumDataMaxLen(30), // maximum length of line num data
+///         DeleteRotation(false), // whether or not to delete the rotated log file (test only)
+///         FileHeader("my_header".to_string()), // header to place at the top of each file
+///     )?;
+///
+///     logger.set_log_level(LogLevel::Debug);
+///
+///     logger.log(LogLevel::Debug, "This is a test!")?;
+///     logger.log(LogLevel::Trace, "This will not show up!")?;
+///
+///     Ok(())
+/// }
+/// ```
 #[macro_export]
 macro_rules! logger {
         ($($config:tt)*) => {{

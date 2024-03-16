@@ -23,7 +23,6 @@ use bmw_deps::rand::random;
 use bmw_err::*;
 use bmw_evh::*;
 use bmw_log::bmw_conf::ConfigOption;
-use bmw_log::bmw_conf::ConfigOption::*;
 use bmw_log::*;
 use bmw_util::{
 	block_on, execute, global_slab_allocator, lock_box, slice_to_u128, slice_to_usize, thread_pool,
