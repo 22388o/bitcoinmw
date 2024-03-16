@@ -332,6 +332,24 @@ impl LogImpl {
 		})
 	}
 
+	fn rotate_if_needed(&mut self) -> Result<(), Error> {
+		if !self.config.auto_rotate {
+			return Ok(()); // auto rotate not enabled
+		}
+
+		let now = Instant::now();
+
+		let max_age_millis = self.config.max_age_millis;
+		let max_size_bytes = self.config.max_size_bytes;
+		if now.duration_since(self.last_rotation).as_millis() > max_age_millis
+			|| self.cur_size > max_size_bytes
+		{
+			self.rotate()?;
+		}
+
+		Ok(())
+	}
+
 	fn log_impl(
 		&mut self,
 		level: LogLevel,
@@ -339,6 +357,7 @@ impl LogImpl {
 		logging_type: LoggingType,
 	) -> Result<(), Error> {
 		if level as usize >= self.log_level as usize {
+			self.rotate_if_needed()?;
 			let show_stdout = self.config.stdout || logging_type == LoggingType::All;
 			let show_timestamp = self.config.timestamp && logging_type != LoggingType::Plain;
 			let show_colors = self.config.colors;
