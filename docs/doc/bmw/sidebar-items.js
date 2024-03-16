@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["LOG_LEVEL"],"fn":["callback","main","real_main","ws_handler"],"mod":["built_info"]};
+window.SIDEBAR_ITEMS = {"constant":["BMW_GLOBAL_LOG_LEVEL"],"fn":["callback","main","real_main","ws_handler"],"mod":["built_info"]};

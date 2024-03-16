@@ -82,6 +82,9 @@
 <a href="#81" id="81">81</a>
 <a href="#82" id="82">82</a>
 <a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a>
+<a href="#86" id="86">86</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -102,6 +105,7 @@
 
 </span><span class="kw">use </span>bmw_err::Error;
 <span class="kw">use </span>std::collections::HashMap;
+<span class="kw">use </span>std::path::PathBuf;
 
 <span class="doccomment">/// The config trait allows for easy construction of configurations. Configurations can be
 /// retreived with the [`crate::Config::get`] function and configurations can be checked with the
@@ -133,6 +137,7 @@
 	LineNumDataMaxLen,
 	DeleteRotation,
 	FileHeader,
+	Debug,
 }
 
 <span class="doccomment">/// Configuration options used throughout BMW via macro.
@@ -146,17 +151,18 @@
 	DisplayLogLevel(bool),
 	DisplayLineNum(bool),
 	DisplayMillis(bool),
-	LogFilePath(String),
+	LogFilePath(<span class="prelude-ty">Option</span>&lt;Box&lt;PathBuf&gt;&gt;),
 	AutoRotate(bool),
 	DisplayBackTrace(bool),
 	LineNumDataMaxLen(usize),
 	DeleteRotation(bool),
 	FileHeader(String),
+	Debug(bool),
 }
 
 <span class="doccomment">/// A builder struct which can be used to build configs. This is typically done using the
 /// [`crate::config!`] macro which calls this builder.
-</span><span class="kw">pub struct </span>Builder {}
+</span><span class="kw">pub struct </span>ConfigBuilder {}
 
 <span class="comment">// Crate local structures
 

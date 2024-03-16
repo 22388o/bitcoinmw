@@ -140,6 +140,8 @@
 <a href="#139" id="139">139</a>
 <a href="#140" id="140">140</a>
 <a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -205,6 +207,7 @@
 				LineNumDataMaxLen(<span class="kw">_</span>) =&gt; hash.insert(CN::LineNumDataMaxLen, config.clone()),
 				DeleteRotation(<span class="kw">_</span>) =&gt; hash.insert(CN::DeleteRotation, config.clone()),
 				FileHeader(<span class="kw">_</span>) =&gt; hash.insert(CN::FileHeader, config.clone()),
+				Debug(<span class="kw">_</span>) =&gt; hash.insert(CN::Debug, config.clone()),
 			};
 		}
 		<span class="self">Self </span>{ configs, hash }
@@ -235,6 +238,7 @@
 				LineNumDataMaxLen(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::LineNumDataMaxLen),
 				DeleteRotation(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::DeleteRotation),
 				FileHeader(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::FileHeader),
+				Debug(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::Debug),
 			}
 		}
 

@@ -110,13 +110,13 @@
 </span><span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>config {
 	( $( <span class="macro-nonterminal">$config</span>:expr ),* ) =&gt; {{
-                <span class="kw">use </span>bmw_conf::{Builder, ConfigOption, ConfigOption::<span class="kw-2">*</span>};
+                <span class="kw">use </span>bmw_conf::{ConfigBuilder, ConfigOption, ConfigOption::<span class="kw-2">*</span>};
                 <span class="kw">let </span><span class="kw-2">mut </span>config_values: Vec&lt;ConfigOption&gt; = <span class="macro">vec!</span>[];
                 $(
                         config_values.push(<span class="macro-nonterminal">$config</span>);
                 )*
 
-                Builder::build_config(config_values)
+                ConfigBuilder::build_config(config_values)
         }};
 }
 </code></pre></div></section></main></body></html>

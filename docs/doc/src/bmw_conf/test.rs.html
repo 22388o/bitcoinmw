@@ -174,12 +174,12 @@
 </span><span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
 	<span class="kw">use crate as </span>bmw_conf;
-	<span class="kw">use crate</span>::{config, Builder, ConfigOption, ConfigOption::<span class="kw-2">*</span>, ConfigOptionName <span class="kw">as </span>CN};
+	<span class="kw">use crate</span>::{config, ConfigBuilder, ConfigOption, ConfigOption::<span class="kw-2">*</span>, ConfigOptionName <span class="kw">as </span>CN};
 	<span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_config_basic() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>config = Builder::build_config(<span class="macro">vec!</span>[ConfigOption::MaxSizeBytes(<span class="number">1_000</span>)]);
+		<span class="kw">let </span>config = ConfigBuilder::build_config(<span class="macro">vec!</span>[ConfigOption::MaxSizeBytes(<span class="number">1_000</span>)]);
 		<span class="macro">assert_eq!</span>(
 			config.get(<span class="kw-2">&amp;</span>CN::MaxSizeBytes),
 			<span class="prelude-val">Some</span>(ConfigOption::MaxSizeBytes(<span class="number">1_000</span>))
@@ -198,7 +198,7 @@
 			.check_config(<span class="macro">vec!</span>[CN::AutoRotate, CN::MaxSizeBytes], <span class="macro">vec!</span>[])
 			.is_ok());
 
-		<span class="kw">let </span>config = Builder::build_config(<span class="macro">vec!</span>[
+		<span class="kw">let </span>config = ConfigBuilder::build_config(<span class="macro">vec!</span>[
 			ConfigOption::MaxSizeBytes(<span class="number">1_000</span>),
 			ConfigOption::MaxSizeBytes(<span class="number">100</span>),
 		]);
@@ -206,7 +206,7 @@
 		<span class="comment">// err because it's a duplicate
 		</span><span class="macro">assert!</span>(config.check_config(<span class="macro">vec!</span>[CN::MaxSizeBytes], <span class="macro">vec!</span>[]).is_err());
 
-		<span class="kw">let </span>config = Builder::build_config(<span class="macro">vec!</span>[ConfigOption::MaxSizeBytes(<span class="number">100</span>)]);
+		<span class="kw">let </span>config = ConfigBuilder::build_config(<span class="macro">vec!</span>[ConfigOption::MaxSizeBytes(<span class="number">100</span>)]);
 
 		<span class="comment">// ok because it's both allowed and required and specified
 		</span><span class="macro">assert!</span>(config
@@ -274,7 +274,7 @@
 			DisplayLogLevel(<span class="bool-val">false</span>),
 			DisplayLineNum(<span class="bool-val">false</span>),
 			DisplayMillis(<span class="bool-val">false</span>),
-			LogFilePath(<span class="string">""</span>.to_string()),
+			LogFilePath(<span class="prelude-val">None</span>),
 			DisplayBackTrace(<span class="bool-val">false</span>),
 			LineNumDataMaxLen(<span class="number">300</span>),
 			FileHeader(<span class="string">"test"</span>.to_string()),

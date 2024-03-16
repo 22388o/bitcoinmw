@@ -45,9 +45,9 @@
 // limitations under the License.
 
 </span><span class="kw">use </span><span class="kw">crate</span>::types::ConfigImpl;
-<span class="kw">use crate</span>::{Builder, Config, ConfigOption};
+<span class="kw">use crate</span>::{Config, ConfigBuilder, ConfigOption};
 
-<span class="kw">impl </span>Builder {
+<span class="kw">impl </span>ConfigBuilder {
 	<span class="doccomment">/// Build a config based on the specified [`std::vec::Vec`] of [`crate::ConfigOption`]'s.
 	</span><span class="kw">pub fn </span>build_config(configs: Vec&lt;ConfigOption&gt;) -&gt; Box&lt;<span class="kw">dyn </span>Config&gt; {
 		Box::new(ConfigImpl::new(configs))

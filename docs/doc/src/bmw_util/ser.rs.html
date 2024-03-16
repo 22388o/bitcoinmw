@@ -1413,7 +1413,6 @@
 <a href="#1412" id="1412">1412</a>
 <a href="#1413" id="1413">1413</a>
 <a href="#1414" id="1414">1414</a>
-<a href="#1415" id="1415">1415</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2064,7 +2063,6 @@
 			};
 
 			<span class="self">self</span>.read_bytes(<span class="self">self</span>.slab_id, <span class="self">self</span>.offset, rlen, b, count.is_some())<span class="question-mark">?</span>;
-			<span class="macro">debug!</span>(<span class="string">"buf[first]={}"</span>, buf[buf_offset])<span class="question-mark">?</span>;
 			buf_offset += rlen;
 			<span class="macro">debug!</span>(<span class="string">"buf_offset={}"</span>, buf_offset)<span class="question-mark">?</span>;
 			<span class="self">self</span>.offset += rlen;

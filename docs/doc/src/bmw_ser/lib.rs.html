@@ -555,7 +555,7 @@
 <span class="macro">impl_arr!</span>(<span class="number">31</span>);
 <span class="macro">impl_arr!</span>(<span class="number">32</span>);
 
-<span class="doccomment">/// Writer trait used to serializing data.
+<span class="doccomment">/// Writer trait used to serialize data.
 </span><span class="kw">pub trait </span>Writer {
 	<span class="kw">fn </span>write_u8(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: u8) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.write_fixed_bytes(<span class="kw-2">&amp;</span>[n])

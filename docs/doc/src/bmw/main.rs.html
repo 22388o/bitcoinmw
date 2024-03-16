@@ -189,7 +189,6 @@
 <a href="#188" id="188">188</a>
 <a href="#189" id="189">189</a>
 <a href="#190" id="190">190</a>
-<a href="#191" id="191">191</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -307,13 +306,12 @@ callbk\n"
 		<span class="bool-val">false </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IllegalState, <span class="string">"Only 64 bit arch supported"</span>)),
 	}
 
-	<span class="macro">log_init!</span>(LogConfig {
-		show_bt: ShowBt(<span class="bool-val">true</span>),
-		show_millis: ShowMillis(<span class="bool-val">true</span>),
-		line_num: LineNum(<span class="bool-val">false</span>),
-		level: Level(<span class="bool-val">false</span>),
-		..Default::default()
-	})<span class="question-mark">?</span>;
+	<span class="macro">log_init!</span>(
+		DisplayBackTrace(<span class="bool-val">true</span>),
+		DisplayMillis(<span class="bool-val">true</span>),
+		DisplayLineNum(<span class="bool-val">false</span>),
+		DisplayLogLevel(<span class="bool-val">false</span>)
+	)<span class="question-mark">?</span>;
 
 	<span class="kw">let </span><span class="kw-2">mut </span>websocket_mappings = HashMap::new();
 	<span class="kw">let </span><span class="kw-2">mut </span>test_ws_protos = HashSet::new();
