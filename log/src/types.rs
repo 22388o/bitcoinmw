@@ -59,7 +59,7 @@ pub trait Log {
 	fn log_plain(&mut self, level: LogLevel, line: &str) -> Result<(), Error>;
 	fn rotate(&mut self) -> Result<(), Error>;
 	fn need_rotate(&self) -> Result<bool, Error>;
-	fn set_log_level(&mut self, level: LogLevel) -> Result<(), Error>;
+	fn set_log_level(&mut self, level: LogLevel);
 	fn init(&mut self) -> Result<(), Error>;
 	fn close(&mut self) -> Result<(), Error>;
 	fn set_config_option(&mut self, value: ConfigOption) -> Result<(), Error>;
@@ -68,6 +68,7 @@ pub trait Log {
 
 pub struct LogBuilder {}
 
+#[doc(hidden)]
 pub struct GlobalLogContainer {}
 
 // Crate local types
@@ -83,7 +84,7 @@ pub(crate) struct LogConfig {
 	pub(crate) line_num: bool,
 	pub(crate) show_millis: bool,
 	pub(crate) auto_rotate: bool,
-	pub(crate) file_path: Option<Box<PathBuf>>,
+	pub(crate) file_path: Option<PathBuf>,
 	pub(crate) show_backtrace: bool,
 	pub(crate) line_num_data_max_len: usize,
 	pub(crate) delete_rotation: bool,

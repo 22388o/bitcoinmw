@@ -16,5 +16,7 @@
 // limitations under the License.
 //
 
+// These are local constants used in the logging crate
+
 pub(crate) const NEWLINE: &[u8] = &['\n' as u8];
 pub(crate) const DEFAULT_LINE_NUM_DATA_MAX_LEN: usize = 30;

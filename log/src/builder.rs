@@ -22,6 +22,8 @@ use bmw_conf::*;
 use bmw_err::*;
 
 impl LogBuilder {
+	/// Build a logger based based on the specified configuration. This should generally be
+	/// done by calling the [`crate::logger`] macro.
 	pub fn build_log(configs: Vec<ConfigOption>) -> Result<Box<dyn Log + Send + Sync>, Error> {
 		Ok(Box::new(LogImpl::new(configs)?))
 	}

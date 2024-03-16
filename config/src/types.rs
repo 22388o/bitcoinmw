@@ -64,7 +64,7 @@ pub enum ConfigOption {
 	DisplayLogLevel(bool),
 	DisplayLineNum(bool),
 	DisplayMillis(bool),
-	LogFilePath(Option<Box<PathBuf>>),
+	LogFilePath(Option<PathBuf>),
 	AutoRotate(bool),
 	DisplayBackTrace(bool),
 	LineNumDataMaxLen(usize),

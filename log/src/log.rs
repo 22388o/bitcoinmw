@@ -56,26 +56,22 @@ impl GlobalLogContainer {
 			Self::check_init()?;
 			let mut log = BMW_GLOBAL_LOG.write()?;
 			match (*log).as_mut() {
-				Some(log) => {
-					match logging_type {
-						LoggingType::Standard => log.log(level, line)?,
-						LoggingType::Plain => log.log_plain(level, line)?,
-						LoggingType::All => log.log_all(level, line)?,
-					}
-					Ok(())
-				}
+				Some(log) => match logging_type {
+					LoggingType::Standard => log.log(level, line)?,
+					LoggingType::Plain => log.log_plain(level, line)?,
+					LoggingType::All => log.log_all(level, line)?,
+				},
 				// not expected
-				None => Err(err!(ErrKind::Log, "unexpected error: log not initialized")),
+				None => return Err(err!(ErrKind::Log, "unexpected error: log not initialized")),
 			}
-		} else {
-			Ok(())
 		}
+		Ok(())
 	}
 
 	pub fn init(values: Vec<ConfigOption>) -> Result<(), Error> {
 		let mut log = BMW_GLOBAL_LOG.write()?;
 		let mut logger = LogBuilder::build_log(values)?;
-		logger.set_log_level(LogLevel::Trace)?;
+		logger.set_log_level(LogLevel::Trace);
 		logger.init()?;
 		(*log) = Some(logger);
 		Ok(())
@@ -85,10 +81,11 @@ impl GlobalLogContainer {
 		let mut log = BMW_GLOBAL_LOG.write()?;
 		match (*log).as_mut() {
 			Some(logger) => logger.set_config_option(option),
-			None => Err(err!(
-				ErrKind::Configuration,
-				"configuration option not part of logger"
-			)),
+			None => {
+				let text = "global logger has not been initalized";
+				let err = err!(ErrKind::Configuration, text);
+				Err(err)
+			}
 		}
 	}
 
@@ -96,10 +93,11 @@ impl GlobalLogContainer {
 		let log = BMW_GLOBAL_LOG.read()?;
 		match (*log).as_ref() {
 			Some(logger) => logger.get_config_option(option),
-			None => Err(err!(
-				ErrKind::Configuration,
-				"configuration option not found"
-			)),
+			None => {
+				let text = "global logger has not been initialized";
+				let err = err!(ErrKind::Configuration, text);
+				Err(err)
+			}
 		}
 	}
 
@@ -135,10 +133,8 @@ impl Log for LogImpl {
 	}
 	fn rotate(&mut self) -> Result<(), Error> {
 		if !self.is_init {
-			return Err(err!(
-				ErrKind::Log,
-				"log file cannot be rotated because init() was never called"
-			));
+			let text = "log file cannot be rotated because init() was never called";
+			return Err(err!(ErrKind::Log, text));
 		}
 
 		{
@@ -232,9 +228,8 @@ impl Log for LogImpl {
 			Ok(false)
 		}
 	}
-	fn set_log_level(&mut self, log_level: LogLevel) -> Result<(), Error> {
+	fn set_log_level(&mut self, log_level: LogLevel) {
 		self.log_level = log_level;
-		Ok(())
 	}
 	fn init(&mut self) -> Result<(), Error> {
 		if self.is_init {

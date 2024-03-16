@@ -301,6 +301,7 @@ macro_rules! log_init {
 #[macro_export]
 macro_rules! set_log_option {
 	($option:expr) => {{
+		use bmw_conf::ConfigOption::*;
 		use bmw_log::GlobalLogContainer;
 		GlobalLogContainer::set_log_option($option)
 	}};
@@ -309,7 +310,18 @@ macro_rules! set_log_option {
 #[macro_export]
 macro_rules! get_log_option {
 	($option:expr) => {{
+		use bmw_conf::ConfigOptionName::*;
 		use bmw_log::GlobalLogContainer;
 		GlobalLogContainer::get_log_option($option)
 	}};
+}
+
+#[macro_export]
+macro_rules! logger {
+        ($($config:tt)*) => {{
+                use bmw_conf::ConfigOption::*;
+                use bmw_conf::ConfigOption;
+                let v: Vec<ConfigOption> = vec![$($config)*];
+                LogBuilder::build_log(v)
+        }};
 }
