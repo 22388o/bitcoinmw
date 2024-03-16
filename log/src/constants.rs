@@ -14,14 +14,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
 
-mod builder;
-mod constants;
-mod log;
-mod macros;
-mod test;
-mod types;
-
-pub use crate::types::{
-	GlobalLogContainer, Log, LogBuilder, LogLevel, LoggingType, BMW_GLOBAL_LOG,
-};
+pub(crate) const NEWLINE: &[u8] = &['\n' as u8];
+pub(crate) const DEFAULT_LINE_NUM_DATA_MAX_LEN: usize = 30;

@@ -648,7 +648,6 @@ impl<'a> SlabReader {
 			};
 
 			self.read_bytes(self.slab_id, self.offset, rlen, b, count.is_some())?;
-			debug!("buf[first]={}", buf[buf_offset])?;
 			buf_offset += rlen;
 			debug!("buf_offset={}", buf_offset)?;
 			self.offset += rlen;

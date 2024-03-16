@@ -17,9 +17,9 @@
 // limitations under the License.
 
 use crate::types::ConfigImpl;
-use crate::{Builder, Config, ConfigOption};
+use crate::{Config, ConfigBuilder, ConfigOption};
 
-impl Builder {
+impl ConfigBuilder {
 	/// Build a config based on the specified [`std::vec::Vec`] of [`crate::ConfigOption`]'s.
 	pub fn build_config(configs: Vec<ConfigOption>) -> Box<dyn Config> {
 		Box::new(ConfigImpl::new(configs))

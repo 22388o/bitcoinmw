@@ -12,9 +12,9 @@ edition = "2021"
 
 [dependencies]
 
-bmw_deps = { path = "../deps"  }
-bmw_err  = { path = "../error" }
-
+bmw_deps = { path = "../deps"   }
+bmw_err  = { path = "../error"  }
+bmw_conf = { path = "../config" }
 
 [dev-dependencies]
-bmw_test = { path = "../test" }
+bmw_test = { path = "../test"   }

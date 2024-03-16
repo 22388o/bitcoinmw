@@ -73,4 +73,4 @@ mod macros;
 mod test;
 mod types;
 
-pub use crate::types::{Builder, Config, ConfigOption, ConfigOptionName};
+pub use crate::types::{Config, ConfigBuilder, ConfigOption, ConfigOptionName};

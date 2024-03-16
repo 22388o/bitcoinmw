@@ -226,7 +226,7 @@ impl_arr!(30);
 impl_arr!(31);
 impl_arr!(32);
 
-/// Writer trait used to serializing data.
+/// Writer trait used to serialize data.
 pub trait Writer {
 	fn write_u8(&mut self, n: u8) -> Result<(), Error> {
 		self.write_fixed_bytes(&[n])

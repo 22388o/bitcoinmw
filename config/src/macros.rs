@@ -49,12 +49,12 @@
 #[macro_export]
 macro_rules! config {
 	( $( $config:expr ),* ) => {{
-                use bmw_conf::{Builder, ConfigOption, ConfigOption::*};
+                use bmw_conf::{ConfigBuilder, ConfigOption, ConfigOption::*};
                 let mut config_values: Vec<ConfigOption> = vec![];
                 $(
                         config_values.push($config);
                 )*
 
-                Builder::build_config(config_values)
+                ConfigBuilder::build_config(config_values)
         }};
 }

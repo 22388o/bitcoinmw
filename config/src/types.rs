@@ -18,6 +18,7 @@
 
 use bmw_err::Error;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 /// The config trait allows for easy construction of configurations. Configurations can be
 /// retreived with the [`crate::Config::get`] function and configurations can be checked with the
@@ -49,6 +50,7 @@ pub enum ConfigOptionName {
 	LineNumDataMaxLen,
 	DeleteRotation,
 	FileHeader,
+	Debug,
 }
 
 /// Configuration options used throughout BMW via macro.
@@ -62,17 +64,18 @@ pub enum ConfigOption {
 	DisplayLogLevel(bool),
 	DisplayLineNum(bool),
 	DisplayMillis(bool),
-	LogFilePath(String),
+	LogFilePath(Option<Box<PathBuf>>),
 	AutoRotate(bool),
 	DisplayBackTrace(bool),
 	LineNumDataMaxLen(usize),
 	DeleteRotation(bool),
 	FileHeader(String),
+	Debug(bool),
 }
 
 /// A builder struct which can be used to build configs. This is typically done using the
 /// [`crate::config!`] macro which calls this builder.
-pub struct Builder {}
+pub struct ConfigBuilder {}
 
 // Crate local structures
 

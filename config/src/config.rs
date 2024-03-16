@@ -63,6 +63,7 @@ impl ConfigImpl {
 				LineNumDataMaxLen(_) => hash.insert(CN::LineNumDataMaxLen, config.clone()),
 				DeleteRotation(_) => hash.insert(CN::DeleteRotation, config.clone()),
 				FileHeader(_) => hash.insert(CN::FileHeader, config.clone()),
+				Debug(_) => hash.insert(CN::Debug, config.clone()),
 			};
 		}
 		Self { configs, hash }
@@ -93,6 +94,7 @@ impl ConfigImpl {
 				LineNumDataMaxLen(_) => cc!(self, t, &mut s, CN::LineNumDataMaxLen),
 				DeleteRotation(_) => cc!(self, t, &mut s, CN::DeleteRotation),
 				FileHeader(_) => cc!(self, t, &mut s, CN::FileHeader),
+				Debug(_) => cc!(self, t, &mut s, CN::Debug),
 			}
 		}
 

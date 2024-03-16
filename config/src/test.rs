@@ -19,12 +19,12 @@
 #[cfg(test)]
 mod test {
 	use crate as bmw_conf;
-	use crate::{config, Builder, ConfigOption, ConfigOption::*, ConfigOptionName as CN};
+	use crate::{config, ConfigBuilder, ConfigOption, ConfigOption::*, ConfigOptionName as CN};
 	use bmw_err::*;
 
 	#[test]
 	fn test_config_basic() -> Result<(), Error> {
-		let config = Builder::build_config(vec![ConfigOption::MaxSizeBytes(1_000)]);
+		let config = ConfigBuilder::build_config(vec![ConfigOption::MaxSizeBytes(1_000)]);
 		assert_eq!(
 			config.get(&CN::MaxSizeBytes),
 			Some(ConfigOption::MaxSizeBytes(1_000))
@@ -43,7 +43,7 @@ mod test {
 			.check_config(vec![CN::AutoRotate, CN::MaxSizeBytes], vec![])
 			.is_ok());
 
-		let config = Builder::build_config(vec![
+		let config = ConfigBuilder::build_config(vec![
 			ConfigOption::MaxSizeBytes(1_000),
 			ConfigOption::MaxSizeBytes(100),
 		]);
@@ -51,7 +51,7 @@ mod test {
 		// err because it's a duplicate
 		assert!(config.check_config(vec![CN::MaxSizeBytes], vec![]).is_err());
 
-		let config = Builder::build_config(vec![ConfigOption::MaxSizeBytes(100)]);
+		let config = ConfigBuilder::build_config(vec![ConfigOption::MaxSizeBytes(100)]);
 
 		// ok because it's both allowed and required and specified
 		assert!(config
@@ -119,7 +119,7 @@ mod test {
 			DisplayLogLevel(false),
 			DisplayLineNum(false),
 			DisplayMillis(false),
-			LogFilePath("".to_string()),
+			LogFilePath(None),
 			DisplayBackTrace(false),
 			LineNumDataMaxLen(300),
 			FileHeader("test".to_string()),
