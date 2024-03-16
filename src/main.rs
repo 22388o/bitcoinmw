@@ -116,10 +116,10 @@ fn real_main(debug_startup_32: bool) -> Result<(), Error> {
 	}
 
 	log_init!(
-		bmw_conf::ConfigOption::DisplayBackTrace(true),
-		bmw_conf::ConfigOption::DisplayMillis(true),
-		bmw_conf::ConfigOption::DisplayLineNum(false),
-		bmw_conf::ConfigOption::DisplayLogLevel(false)
+		DisplayBackTrace(true),
+		DisplayMillis(true),
+		DisplayLineNum(false),
+		DisplayLogLevel(false)
 	);
 
 	let mut websocket_mappings = HashMap::new();
