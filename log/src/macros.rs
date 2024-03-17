@@ -540,6 +540,8 @@ macro_rules! fatal_all {
 ///```
 ///
 /// Note that in the last example, the default values as described in [`crate::logger`] will be used.
+/// Also, see that macro for an exhaustive list of configuration options that are valid for this
+/// macro as well.
 #[macro_export]
 macro_rules! log_init {
 	($($config:tt)*) => {{
@@ -669,6 +671,13 @@ macro_rules! need_rotate {
 ///     Ok(())
 /// }
 /// ```
+///
+/// # Invalid values
+///
+/// * The value for MaxAgeMillis must be at least 1_000 (1 second).
+/// * The value for MaxSizeBytes must be at least 50 bytes.
+/// * The value for LineNumDataMaxLen must be at least 10 bytes.
+/// * The parent directory of LogFilePath must exist.
 #[macro_export]
 macro_rules! logger {
         ($($config:tt)*) => {{
