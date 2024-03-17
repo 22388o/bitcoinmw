@@ -684,6 +684,9 @@ mod test {
 		logger1.log(LogLevel::Info, "test")?;
 		logger2.log(LogLevel::Info, "test")?;
 
+		logger1.close()?;
+		logger2.close()?;
+
 		let dir = read_dir(test_info.directory())?;
 		let mut file1_size = None;
 		let mut file2_size = None;
