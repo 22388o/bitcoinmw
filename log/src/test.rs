@@ -1051,6 +1051,8 @@ mod test {
 		logger.close()?;
 
 		let len = buf.metadata()?.len();
+		// only assert on unix (windows adds \rs, etc on some systems
+		#[cfg(unix)]
 		assert_eq!(len, 363);
 
 		let mut buf = PathBuf::new();
@@ -1080,6 +1082,8 @@ mod test {
 		logger.close()?;
 
 		let len = buf.metadata()?.len();
+		// only assert on unix (windows adds \rs, etc on some systems
+		#[cfg(unix)]
 		assert_eq!(len, 363);
 
 		// try without header
@@ -1109,6 +1113,8 @@ mod test {
 		logger.close()?;
 
 		let len = buf.metadata()?.len();
+		// only assert on unix (windows adds \rs, etc on some systems
+		#[cfg(unix)]
 		assert_eq!(len, 350);
 
 		// try again with one less byte MaxSizeByte
@@ -1138,6 +1144,8 @@ mod test {
 		logger.close()?;
 
 		let len = buf.metadata()?.len();
+		// only assert on unix (windows adds \rs, etc on some systems
+		#[cfg(unix)]
 		assert_eq!(len, 350);
 		Ok(())
 	}
