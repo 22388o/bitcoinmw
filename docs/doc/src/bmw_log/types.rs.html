@@ -205,6 +205,10 @@
 <a href="#204" id="204">204</a>
 <a href="#205" id="205">205</a>
 <a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -370,6 +374,9 @@
 
 	<span class="attr">#[cfg(test)]
 	</span><span class="kw">fn </span>debug_invalid_metadata(<span class="kw-2">&amp;mut </span><span class="self">self</span>);
+
+	<span class="attr">#[cfg(test)]
+	</span><span class="kw">fn </span>debug_lineno_is_none(<span class="kw-2">&amp;mut </span><span class="self">self</span>);
 }
 
 <span class="macro">clone_trait_object!</span>(Log);
@@ -400,6 +407,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) file_header: String,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_process_resolve_frame_error: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_invalid_metadata: bool,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_lineno_is_none: bool,
 }
 
 <span class="attr">#[derive(Clone)]
