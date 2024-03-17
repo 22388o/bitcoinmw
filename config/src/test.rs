@@ -151,4 +151,11 @@ mod test {
 			.is_ok());
 		Ok(())
 	}
+
+	#[test]
+	fn test_config_with_debug() -> Result<(), Error> {
+		let config = config!(Debug(true));
+		assert!(config.check_config(vec![CN::Debug], vec![]).is_ok());
+		Ok(())
+	}
 }
