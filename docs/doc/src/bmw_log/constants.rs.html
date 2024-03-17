@@ -21,6 +21,8 @@
 <a href="#20" id="20">20</a>
 <a href="#21" id="21">21</a>
 <a href="#22" id="22">22</a>
+<a href="#23" id="23">23</a>
+<a href="#24" id="24">24</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -41,6 +43,8 @@
 
 // These are local constants used in the logging crate
 
+// newline as byte array
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>NEWLINE: <span class="kw-2">&amp;</span>[u8] = <span class="kw-2">&amp;</span>[<span class="string">'\n' </span><span class="kw">as </span>u8];
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>DEFAULT_LINE_NUM_DATA_MAX_LEN: usize = <span class="number">30</span>;
+<span class="comment">// the default max length for the file location of a logged line
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>DEFAULT_LINE_NUM_DATA_MAX_LEN: usize = <span class="number">30</span>;
 </code></pre></div></section></main></body></html>

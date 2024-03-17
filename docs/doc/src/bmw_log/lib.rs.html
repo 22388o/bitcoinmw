@@ -302,10 +302,10 @@
 <span class="kw">mod </span>test;
 <span class="kw">mod </span>types;
 
-<span class="kw">pub use </span><span class="kw">crate</span>::types::{GlobalLogContainer, Log, LogBuilder, LogLevel, LoggingType};
+<span class="kw">pub use </span><span class="kw">crate</span>::types::{Log, LogBuilder, LogLevel, LoggingType};
 
 <span class="attr">#[doc(hidden)]
-</span><span class="kw">pub use </span><span class="kw">crate</span>::types::BMW_GLOBAL_LOG;
+</span><span class="kw">pub use </span><span class="kw">crate</span>::types::{GlobalLogContainer, BMW_GLOBAL_LOG};
 
 <span class="attr">#[doc(hidden)]
 </span><span class="kw">pub use </span>bmw_conf;
