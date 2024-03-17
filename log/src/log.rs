@@ -422,6 +422,12 @@ impl LogImpl {
 		line: &str,
 		logging_type: LoggingType,
 	) -> Result<(), Error> {
+		if !self.is_init {
+			let ekind = ErrKind::Log;
+			let text = "log file has not been initalized. Call init() first.";
+			return Err(err!(ekind, text));
+		}
+
 		if level as usize >= self.log_level as usize {
 			self.rotate_if_needed()?;
 			let show_stdout = self.config.stdout || logging_type == LoggingType::All;

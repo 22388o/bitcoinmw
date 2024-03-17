@@ -24,11 +24,12 @@ mod test {
 	use bmw_err::*;
 	use bmw_log::*;
 	use bmw_test::*;
-	use std::fs::{read_dir, File, OpenOptions};
+	use std::fs::{read_dir, read_to_string, File, OpenOptions};
 	use std::io::{Read, Write};
 	use std::path::PathBuf;
 	use std::sync::{Arc, RwLock};
 
+	// lock used to prevent two tests from calling log_init at the same time
 	lazy_static! {
 		pub static ref LOCK: Arc<RwLock<usize>> = Arc::new(RwLock::new(0));
 	}
@@ -37,52 +38,70 @@ mod test {
 
 	#[test]
 	fn test_log_basic() -> Result<(), Error> {
-		let test_info = test_info!()?;
+		let test_info = test_info!()?; // obtain test info struct
 		let directory = test_info.directory();
 		let mut buf = PathBuf::new();
 		buf.push(directory);
 		buf.push("test.log");
+		// create a logger with auto rotate on
 		let mut log = logger!(AutoRotate(true), LogFilePath(Some(buf)))?;
+
+		// debug log level
 		log.set_log_level(LogLevel::Debug);
-		log.init()?;
-		log.log(LogLevel::Debug, "test10")?;
+		log.init()?; // in logger
+		log.log(LogLevel::Debug, "test10")?; // log a message
+									 // check that display colors is true (default)
 		assert_eq!(
 			log.get_config_option(ConfigOptionName::DisplayColors)?,
 			ConfigOption::DisplayColors(true)
 		);
+
+		// set display colors to false
 		log.set_config_option(ConfigOption::DisplayColors(false))?;
+		// confirm it was set
 		assert_eq!(
 			log.get_config_option(ConfigOptionName::DisplayColors)?,
 			ConfigOption::DisplayColors(false)
 		);
 
+		// set back to true
 		log.set_config_option(ConfigOption::DisplayColors(true))?;
+
+		// confirm it's now true
 		assert_eq!(
 			log.get_config_option(ConfigOptionName::DisplayColors)?,
 			ConfigOption::DisplayColors(true)
 		);
 
+		// do some more logging
 		log.log(LogLevel::Debug, "test11")?;
 		log.log(LogLevel::Debug, "test12")?;
 		log.log(LogLevel::Debug, "test13")?;
+		// log a plain fatal message
 		log.log_plain(LogLevel::Fatal, "plaintextfatal")?;
+		// log trace (will not show up)
 		log.log(LogLevel::Trace, "thisdoesnotshowup")?;
 
+		// open the log file to confirm these logged items
 		let mut f = File::open(format!("{}/test.log", directory))?;
 		let mut s = String::new();
 		f.read_to_string(&mut s)?;
 
+		// find the lines
 		let test10_loc = s.find("test10").unwrap();
 		let test11_loc = s.find("test11").unwrap();
 		let test12_loc = s.find("test12").unwrap();
 		let test13_loc = s.find("test13").unwrap();
 		let plain_text_fatal_loc = s.find("\nplaintextfatal").unwrap();
 
+		// assert they were found and in the correct order
 		assert!(test10_loc > 0);
 		assert!(test10_loc < test11_loc);
 		assert!(test11_loc < test12_loc);
 		assert!(test12_loc < test13_loc);
 		assert!(plain_text_fatal_loc > test13_loc);
+
+		// this wasn't found because it was logged at 'trace' level
 		assert!(s.find("thisdoesnotshowup").is_none());
 
 		Ok(())
@@ -90,18 +109,26 @@ mod test {
 
 	#[test]
 	fn test_log_macros() -> Result<(), Error> {
+		// lock so we don't interfere with the other test's global logging
 		let _lock = LOCK.write()?;
+		// do these before init. they're not allowed and generate errors
 		assert!(set_log_option!(AutoRotate(false)).is_err());
 		assert!(get_log_option!(AutoRotate).is_err());
 		assert!(log_rotate!().is_err());
 		assert!(need_rotate!().is_err());
 
+		// get a test_info struct
 		let test_info = test_info!()?;
+
+		// create a pathbuf for a log file
 		let mut buf = PathBuf::new();
 		buf.push(test_info.directory());
 		buf.push("log.log");
+
+		// init log
 		log_init!(LogFilePath(Some(buf)))?;
 
+		// do logging at all levels and all styles
 		trace!("mactest1")?;
 		trace_plain!("plain1")?;
 		trace_all!("all1")?;
@@ -126,20 +153,25 @@ mod test {
 		fatal_plain!("plain1")?;
 		fatal_all!("all1")?;
 
+		// try to set a config option that's not allowed
 		assert!(set_log_option!(Debug(false)).is_err());
 		assert!(get_log_option!(Debug).is_err());
 
+		// try one that is allowed now
 		assert!(set_log_option!(AutoRotate(false)).is_ok());
 		assert!(get_log_option!(AutoRotate).is_ok());
 
+		// ensure rotate is allowed and not an error now
 		assert!(need_rotate!().is_ok());
 		assert!(log_rotate!().is_ok());
 
+		// now log without colors
 		set_log_option!(DisplayColors(false))?;
 		info!("nocolormactest1")?;
 		info_plain!("nocolorplain1")?;
 		info_all!("nocolorall1")?;
 
+		// log a backtrace
 		set_log_option!(DisplayBackTrace(true))?;
 		error!("errbt")?;
 		error_plain!("errorbt")?;
@@ -154,60 +186,74 @@ mod test {
 
 	#[test]
 	fn test_log_rotate() -> Result<(), Error> {
+		// get test_info for this test
 		let test_info = test_info!()?;
 		let directory = test_info.directory();
+
+		// create rotate.log in our assigned directory
 		let mut buf = PathBuf::new();
 		buf.push(directory);
 		buf.push("rotate.log");
 		let mut log = logger!(
-			MaxSizeBytes(100),
-			MaxAgeMillis(3_000),
+			MaxSizeBytes(100),   // specific low byte count
+			MaxAgeMillis(3_000), // specific low max age
 			LogFilePath(Some(buf))
 		)?;
 
 		log.init()?;
 		log.set_log_level(LogLevel::Debug);
-		assert!(!log.need_rotate()?);
+		assert!(!log.need_rotate()?); // no logging yet so no rotation needed
+
+		// log 100 bytes of data + 10 newlines so a rotation is needed (autorotate is
+		// false)
 		for _ in 0..10 {
 			log.log_plain(LogLevel::Info, "0123456789")?;
 		}
 
+		// we need a rotate
 		assert!(log.need_rotate()?);
-		log.rotate()?;
-		assert!(!log.need_rotate()?);
+		log.rotate()?; // do the rotation
+		assert!(!log.need_rotate()?); // now rotation is not needed
 
+		// do some more logging that doesn't cross the 100 byte or 3000 ms threshold
 		log.log_plain(LogLevel::Info, "test")?;
-		assert!(!log.need_rotate()?);
-		sleep(Duration::from_millis(6_000));
-		assert!(log.need_rotate()?);
-		log.rotate()?;
+		assert!(!log.need_rotate()?); // not needed yet
+		sleep(Duration::from_millis(6_000)); // wait 6 seconds
+		assert!(log.need_rotate()?); // now it's needed based on log age
+		log.rotate()?; // do the rotation
 
+		// do some assertions on files
 		let dir = read_dir(directory)?;
 		let mut count = 0;
 		let mut rotated_files = 0;
 		let mut unrotated_files = 0;
 		for path in dir {
 			let file_name = path?.file_name().into_string()?;
+			// this is a rotated file
 			if file_name.find("rotate.r") == Some(0) {
 				rotated_files += 1;
 			}
+
+			// this is the non rotated file
 			if file_name.find("rotate.log") == Some(0) {
 				unrotated_files += 1;
 			}
 			count += 1;
 		}
 
-		assert_eq!(count, 3);
-		assert_eq!(rotated_files, 2);
-		assert_eq!(unrotated_files, 1);
+		assert_eq!(count, 3); // three files
+		assert_eq!(rotated_files, 2); // two rotated files
+		assert_eq!(unrotated_files, 1); // one unrotated file
 
 		Ok(())
 	}
 
 	#[test]
 	fn test_log_auto_rotate() -> Result<(), Error> {
-		let test_info = test_info!()?;
+		let test_info = test_info!()?; // get test info structure
 		let directory = test_info.directory();
+
+		// create log file in the directory assigned
 		let mut buf = PathBuf::new();
 		buf.push(directory);
 		buf.push("rotate.log");
@@ -220,14 +266,18 @@ mod test {
 
 		log.init()?;
 		log.set_log_level(LogLevel::Debug);
+
+		// log enough to trigger a rotation
 		for _ in 0..10 {
 			log.log_plain(LogLevel::Info, "0123456789")?;
 		}
 
 		log.log_plain(LogLevel::Info, "test")?;
 		sleep(Duration::from_millis(6_000));
+		// second rotation should be triggered via autorotate
 		log.log_plain(LogLevel::Info, "test")?;
 
+		// assert that the rotations occurred
 		let dir = read_dir(directory)?;
 		let mut count = 0;
 		let mut rotated_files = 0;
@@ -244,14 +294,15 @@ mod test {
 		}
 
 		assert_eq!(count, 3);
-		assert_eq!(rotated_files, 2);
-		assert_eq!(unrotated_files, 1);
+		assert_eq!(rotated_files, 2); // 2 rotated files
+		assert_eq!(unrotated_files, 1); // 1 non-rotated file
 
 		Ok(())
 	}
 
 	#[test]
 	fn test_log_errors() -> Result<(), Error> {
+		// configure a standard logger
 		let test_info = test_info!()?;
 		let directory = test_info.directory();
 		let mut buf = PathBuf::new();
@@ -264,34 +315,46 @@ mod test {
 			AutoRotate(true)
 		)?;
 
+		// rotate cannot happen until init is called
 		assert!(log.rotate().is_err());
 
 		log.init()?;
+
+		// second log.init is an error
 		assert!(log.init().is_err());
+		// closing is ok
 		assert!(log.close().is_ok());
 		Ok(())
 	}
 
 	#[test]
 	fn test_log_stdoutonly() -> Result<(), Error> {
+		// init a stdout logger only
 		let mut log = logger!(
 			MaxSizeBytes(100),
 			MaxAgeMillis(3_000),
 			LogFilePath(None),
 			AutoRotate(true),
 		)?;
+
+		// need rotate cannot be called before init
 		assert!(log.need_rotate().is_err());
 		log.init()?;
+		// rotate is an error because we're stdout only
 		assert!(log.rotate().is_err());
 		Ok(())
 	}
 
 	#[test]
 	fn test_log_logger_macro() -> Result<(), Error> {
+		// test the macros
 		let mut log = logger!(MaxSizeBytes(103), MaxAgeMillis(3_000), LogFilePath(None))?;
 		log.init()?;
+		// double init is an error
 		assert!(log.init().is_err());
 
+		// get the config option and assert it's equal to what we configured in the logger
+		// macro
 		assert_eq!(
 			log.get_config_option(ConfigOptionName::MaxSizeBytes)?,
 			ConfigOption::MaxSizeBytes(103)
@@ -300,26 +363,13 @@ mod test {
 	}
 
 	#[test]
-	fn test_auto_init() -> Result<(), Error> {
-		let _lock = LOCK.write()?;
-		info!("test")?;
-
-		assert!(need_rotate!()? == false);
-
-		// set the GLOBAL logger back to none for the other tests
-		let mut lock = BMW_GLOBAL_LOG.write()?;
-		*lock = None;
-
-		Ok(())
-	}
-
-	#[test]
 	fn test_log_no_dot_name() -> Result<(), Error> {
+		// setup standard logger with quick/small rotations
 		let test_info = test_info!()?;
 		let directory = test_info.directory();
 		let mut buf = PathBuf::new();
 		buf.push(directory);
-		buf.push("rotatelog");
+		buf.push("rotatelog"); // no dot in log name
 		let mut log = logger!(
 			MaxSizeBytes(100),
 			MaxAgeMillis(3_000),
@@ -327,12 +377,14 @@ mod test {
 			AutoRotate(true)
 		)?;
 
+		// init and log 110 bytes
 		log.init()?;
 		log.set_log_level(LogLevel::Debug);
 		for _ in 0..10 {
 			log.log_plain(LogLevel::Info, "0123456789")?;
 		}
 
+		// do some additional logging
 		log.log_plain(LogLevel::Info, "test")?;
 		sleep(Duration::from_millis(6_000));
 		log.log_plain(LogLevel::Info, "test")?;
@@ -352,15 +404,17 @@ mod test {
 			count += 1;
 		}
 
+		// assert that things are the same even though our log file has no dot in it's name
 		assert_eq!(count, 3);
-		assert_eq!(rotated_files, 2);
-		assert_eq!(unrotated_files, 1);
+		assert_eq!(rotated_files, 2); // two rotated files
+		assert_eq!(unrotated_files, 1); // one standard log file
 
 		Ok(())
 	}
 
 	#[test]
 	fn test_log_delete_rotation() -> Result<(), Error> {
+		// configure a log file with 'DeleteRotation' configured
 		let test_info = test_info!()?;
 		let directory = test_info.directory();
 		let mut buf = PathBuf::new();
@@ -374,6 +428,7 @@ mod test {
 			DeleteRotation(true)
 		)?;
 
+		// do some logging
 		log.init()?;
 		log.set_log_level(LogLevel::Debug);
 		for _ in 0..10 {
@@ -400,21 +455,25 @@ mod test {
 		}
 
 		assert_eq!(count, 1);
-		assert_eq!(rotated_files, 0);
-		assert_eq!(unrotated_files, 1);
+		assert_eq!(rotated_files, 0); // no rotated files because they were deleted
+		assert_eq!(unrotated_files, 1); // our initial file is still there
 
 		Ok(())
 	}
 
 	#[test]
 	fn test_log_prexisting_file() -> Result<(), Error> {
+		// create a regular logger based on test_info
 		let test_info = test_info!()?;
 		let directory = test_info.directory();
 		let mut buf = PathBuf::new();
 		buf.push(directory);
 		buf.push("rotatelog");
 
+		// create the file before creating the logger
 		File::create(buf.clone())?;
+
+		// create logger
 		let mut log = logger!(
 			MaxSizeBytes(100),
 			MaxAgeMillis(3_000),
@@ -422,18 +481,22 @@ mod test {
 			AutoRotate(true)
 		)?;
 
+		// closing is an error because we didn't call init yet
 		assert!(log.close().is_err());
 
+		// init and log 10 lines
 		log.init()?;
 		log.set_log_level(LogLevel::Debug);
 		for _ in 0..10 {
 			log.log_plain(LogLevel::Info, "0123456789")?;
 		}
 
+		// do some more logging
 		log.log_plain(LogLevel::Info, "test")?;
 		sleep(Duration::from_millis(6_000));
 		log.log_plain(LogLevel::Info, "test")?;
 
+		// confirm everything is ok even through the file existed
 		let dir = read_dir(directory)?;
 		let mut count = 0;
 		let mut rotated_files = 0;
@@ -458,6 +521,7 @@ mod test {
 
 	#[test]
 	fn test_log_prexisting_file_w_data() -> Result<(), Error> {
+		// log with a prexisting file with content in it
 		let test_info = test_info!()?;
 		let directory = test_info.directory();
 		let mut buf = PathBuf::new();
@@ -466,7 +530,9 @@ mod test {
 
 		File::create(buf.clone())?;
 		let mut file = OpenOptions::new().write(true).open(buf.clone())?;
-		file.write(b"test")?;
+		file.write(b"test")?; // write test to the file
+
+		// init the logger
 		let mut log = logger!(
 			MaxSizeBytes(100),
 			MaxAgeMillis(3_000),
@@ -474,18 +540,22 @@ mod test {
 			AutoRotate(true)
 		)?;
 
+		// can't close until after init
 		assert!(log.close().is_err());
 
+		// init and write 10 lines
 		log.init()?;
 		log.set_log_level(LogLevel::Debug);
 		for _ in 0..10 {
 			log.log_plain(LogLevel::Info, "0123456789")?;
 		}
 
+		// do some more logging and sleep
 		log.log_plain(LogLevel::Info, "test")?;
 		sleep(Duration::from_millis(6_000));
 		log.log_plain(LogLevel::Info, "test")?;
 
+		// confirm all is as expected even with prexisting files
 		let dir = read_dir(directory)?;
 		let mut count = 0;
 		let mut rotated_files = 0;
@@ -510,6 +580,8 @@ mod test {
 
 	#[test]
 	fn test_log_set_get_options() -> Result<(), Error> {
+		// create a log and go through each configuration setting and confirm it changes
+		// via get_config_option
 		let test_info = test_info!()?;
 		let directory = test_info.directory();
 		let mut buf = PathBuf::new();
@@ -877,6 +949,168 @@ mod test {
 		buf.push("e.log");
 		assert!(logger!(LogFilePath(Some(buf))).is_err());
 
+		Ok(())
+	}
+
+	#[test]
+	fn test_file_header() -> Result<(), Error> {
+		// create a logger with a log file in our test directory 100 byte limit and a header
+		// configured with autorotate
+		let test_info = test_info!()?;
+		let mut buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push("mylogger.log");
+		let mut logger = logger!(
+			MaxSizeBytes(100),
+			LogFilePath(Some(buf)),
+			AutoRotate(true),
+			FileHeader("myheader_abc".to_string())
+		)?;
+
+		// this is an error because we haven't called init yet
+		assert!(logger.log(LogLevel::Info, "test").is_err());
+		logger.init()?;
+		logger.set_log_level(LogLevel::Debug);
+		// do some logging
+		for _ in 0..100 {
+			logger.log(LogLevel::Info, "0123456789")?;
+		}
+
+		// there should be 50 files all should start with the FileHeader value
+		let dir = read_dir(test_info.directory())?;
+		let mut count = 0;
+		for path in dir {
+			let path = path?;
+			let file_name = path.file_name().into_string()?;
+			let mut path_buf = PathBuf::new();
+			path_buf.push(test_info.directory());
+			path_buf.push(file_name);
+			let d = read_to_string(path_buf)?;
+			assert!(d.find("myheader_abc").unwrap() == 0);
+			assert!(d[1..].find("myeader_abc").is_none());
+			count += 1;
+		}
+		assert_eq!(count, 50); // assert 50 files
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_confirm_boundries() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push("mylogger.log");
+		let mut logger = logger!(
+			MaxSizeBytes(363),
+			LogFilePath(Some(buf.clone())),
+			AutoRotate(false),
+			FileHeader("myheader_abc".to_string())
+		)?;
+
+		logger.init()?;
+		logger.set_log_level(LogLevel::Debug);
+
+		logger.log(LogLevel::Info, "0123456789")?;
+		logger.log_plain(LogLevel::Info, "0123456789")?;
+		logger.log_all(LogLevel::Info, "0123456789")?;
+
+		logger.log(LogLevel::Debug, "0123456789")?;
+		logger.log_plain(LogLevel::Debug, "0123456789")?;
+		logger.log_all(LogLevel::Debug, "0123456789")?;
+
+		assert!(!logger.need_rotate()?); // file exactly 363, no rotate needed
+		logger.close()?;
+
+		let len = buf.metadata()?.len();
+		assert_eq!(len, 363);
+
+		let mut buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push("mylogger2.log");
+
+		// try again one byte smaller MaxSizeBytes.
+		let mut logger = logger!(
+			MaxSizeBytes(362),
+			LogFilePath(Some(buf.clone())),
+			AutoRotate(false),
+			FileHeader("myheader_abc".to_string())
+		)?;
+
+		logger.init()?;
+		logger.set_log_level(LogLevel::Debug);
+
+		logger.log(LogLevel::Info, "0123456789")?;
+		logger.log_plain(LogLevel::Info, "0123456789")?;
+		logger.log_all(LogLevel::Info, "0123456789")?;
+
+		logger.log(LogLevel::Debug, "0123456789")?;
+		logger.log_plain(LogLevel::Debug, "0123456789")?;
+		logger.log_all(LogLevel::Debug, "0123456789")?;
+
+		assert!(logger.need_rotate()?); // this time we need a rotate
+		logger.close()?;
+
+		let len = buf.metadata()?.len();
+		assert_eq!(len, 363);
+
+		// try without header
+		let mut buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push("mylogger3.log");
+
+		// try without a header this time (12 bytes + 1 newline less)
+		let mut logger = logger!(
+			MaxSizeBytes(350),
+			LogFilePath(Some(buf.clone())),
+			AutoRotate(false),
+		)?;
+
+		logger.init()?;
+		logger.set_log_level(LogLevel::Debug);
+
+		logger.log(LogLevel::Info, "0123456789")?;
+		logger.log_plain(LogLevel::Info, "0123456789")?;
+		logger.log_all(LogLevel::Info, "0123456789")?;
+
+		logger.log(LogLevel::Debug, "0123456789")?;
+		logger.log_plain(LogLevel::Debug, "0123456789")?;
+		logger.log_all(LogLevel::Debug, "0123456789")?;
+
+		assert!(!logger.need_rotate()?); // this time we need a rotate
+		logger.close()?;
+
+		let len = buf.metadata()?.len();
+		assert_eq!(len, 350);
+
+		// try again with one less byte MaxSizeByte
+		let mut buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push("mylogger4.log");
+
+		// try again one byte smaller MaxSizeBytes.
+		let mut logger = logger!(
+			MaxSizeBytes(349),
+			LogFilePath(Some(buf.clone())),
+			AutoRotate(false),
+		)?;
+
+		logger.init()?;
+		logger.set_log_level(LogLevel::Debug);
+
+		logger.log(LogLevel::Info, "0123456789")?;
+		logger.log_plain(LogLevel::Info, "0123456789")?;
+		logger.log_all(LogLevel::Info, "0123456789")?;
+
+		logger.log(LogLevel::Debug, "0123456789")?;
+		logger.log_plain(LogLevel::Debug, "0123456789")?;
+		logger.log_all(LogLevel::Debug, "0123456789")?;
+
+		assert!(logger.need_rotate()?); // this time we need a rotate
+		logger.close()?;
+
+		let len = buf.metadata()?.len();
+		assert_eq!(len, 350);
 		Ok(())
 	}
 }
