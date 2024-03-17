@@ -321,6 +321,7 @@
 <a href="#320" id="320">320</a>
 <a href="#321" id="321">321</a>
 <a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -451,7 +452,8 @@
 	<span class="kw">fn </span>write&lt;W: Writer&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, writer: <span class="kw-2">&amp;mut </span>W) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		writer.write_u8(<span class="kw">if </span><span class="self">self</span>.is_some() { <span class="number">1 </span>} <span class="kw">else </span>{ <span class="number">0 </span>})<span class="question-mark">?</span>;
 		<span class="kw">if </span><span class="self">self</span>.is_some() {
-			<span class="self">self</span>.as_ref().unwrap().write(writer)<span class="question-mark">?</span>;
+			<span class="comment">// unwrap is ok because we called is_some as a condition
+			</span><span class="self">self</span>.as_ref().unwrap().write(writer)<span class="question-mark">?</span>;
 		}
 		<span class="prelude-val">Ok</span>(())
 	}
