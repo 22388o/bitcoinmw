@@ -17,10 +17,7 @@
 
 use crate::constants::*;
 use crate::types::{LogConfig, LogImpl};
-use crate::{
-	none_or_err, some_or_err, u64, GlobalLogContainer, Log, LogBuilder, LogLevel, LoggingType,
-	BMW_GLOBAL_LOG,
-};
+use crate::{u64, GlobalLogContainer, Log, LogBuilder, LogLevel, LoggingType, BMW_GLOBAL_LOG};
 use bmw_conf::*;
 use bmw_deps::backtrace;
 use bmw_deps::backtrace::{Backtrace, Symbol};
@@ -34,6 +31,28 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 use std::time::Instant;
+
+// convenience macro
+macro_rules! some_or_err {
+	($m:expr, $errkind:expr, $text:expr) => {{
+		use bmw_err::*;
+		match $m {
+			Some(m) => Ok(m),
+			None => Err(err!($errkind, $text)),
+		}
+	}};
+}
+
+// convenience macro
+macro_rules! none_or_err {
+	($m:expr, $errkind:expr, $text:expr) => {{
+		use bmw_err::*;
+		match $m {
+			Some(_) => Err(err!($errkind, $text)),
+			None => Ok(()),
+		}
+	}};
+}
 
 impl Display for LogLevel {
 	fn fmt(&self, w: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {

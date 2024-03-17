@@ -678,25 +678,3 @@ macro_rules! logger {
                 LogBuilder::build_log(v)
         }};
 }
-
-#[macro_export]
-macro_rules! some_or_err {
-	($m:expr, $errkind:expr, $text:expr) => {{
-		use bmw_err::*;
-		match $m {
-			Some(m) => Ok(m),
-			None => Err(err!($errkind, $text)),
-		}
-	}};
-}
-
-#[macro_export]
-macro_rules! none_or_err {
-	($m:expr, $errkind:expr, $text:expr) => {{
-		use bmw_err::*;
-		match $m {
-			Some(_) => Err(err!($errkind, $text)),
-			None => Ok(()),
-		}
-	}};
-}

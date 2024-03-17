@@ -759,7 +759,7 @@ mod test {
 			info!("test")?;
 		}
 		assert_eq!(
-			get_log_option!(ConfigOptionName::LineNumDataMaxLen)?,
+			get_log_option!(LineNumDataMaxLen)?,
 			ConfigOption::LineNumDataMaxLen(30)
 		);
 
