@@ -321,12 +321,6 @@
 <a href="#320" id="320">320</a>
 <a href="#321" id="321">321</a>
 <a href="#322" id="322">322</a>
-<a href="#323" id="323">323</a>
-<a href="#324" id="324">324</a>
-<a href="#325" id="325">325</a>
-<a href="#326" id="326">326</a>
-<a href="#327" id="327">327</a>
-<a href="#328" id="328">328</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -454,16 +448,10 @@
 }
 
 <span class="kw">impl</span>&lt;S: Serializable&gt; Serializable <span class="kw">for </span><span class="prelude-ty">Option</span>&lt;S&gt; {
-	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
-	</span><span class="kw">fn </span>write&lt;W: Writer&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, writer: <span class="kw-2">&amp;mut </span>W) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">match </span><span class="self">self </span>{
-			<span class="prelude-val">Some</span>(s) =&gt; {
-				writer.write_u8(<span class="number">1</span>)<span class="question-mark">?</span>;
-				s.write(writer)<span class="question-mark">?</span>;
-			}
-			<span class="prelude-val">None </span>=&gt; {
-				writer.write_u8(<span class="number">0</span>)<span class="question-mark">?</span>;
-			}
+	<span class="kw">fn </span>write&lt;W: Writer&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, writer: <span class="kw-2">&amp;mut </span>W) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		writer.write_u8(<span class="kw">if </span><span class="self">self</span>.is_some() { <span class="number">1 </span>} <span class="kw">else </span>{ <span class="number">0 </span>})<span class="question-mark">?</span>;
+		<span class="kw">if </span><span class="self">self</span>.is_some() {
+			<span class="self">self</span>.as_ref().unwrap().write(writer)<span class="question-mark">?</span>;
 		}
 		<span class="prelude-val">Ok</span>(())
 	}

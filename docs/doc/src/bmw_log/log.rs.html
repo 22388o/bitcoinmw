@@ -872,12 +872,6 @@
 <a href="#871" id="871">871</a>
 <a href="#872" id="872">872</a>
 <a href="#873" id="873">873</a>
-<a href="#874" id="874">874</a>
-<a href="#875" id="875">875</a>
-<a href="#876" id="876">876</a>
-<a href="#877" id="877">877</a>
-<a href="#878" id="878">878</a>
-<a href="#879" id="879">879</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1693,6 +1687,7 @@
 
 	<span class="comment">// create the log config based on the specified data
 	</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(configs: Vec&lt;ConfigOption&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
+		<span class="kw">use </span>bmw_conf::ConfigOptionName <span class="kw">as </span>CN;
 		<span class="kw">let </span>config = ConfigBuilder::build_config(configs);
 		config.check_config(
 			<span class="macro">vec!</span>[
@@ -1713,29 +1708,22 @@
 			],
 			<span class="macro">vec!</span>[],
 		)<span class="question-mark">?</span>;
-		<span class="kw">let </span>auto_rotate = <span class="self">Self</span>::get_config_bool(ConfigOptionName::AutoRotate, <span class="kw-2">&amp;</span>config, <span class="bool-val">false</span>);
-		<span class="kw">let </span>colors = <span class="self">Self</span>::get_config_bool(ConfigOptionName::DisplayColors, <span class="kw-2">&amp;</span>config, <span class="bool-val">true</span>);
-		<span class="kw">let </span>delete_rotation =
-			<span class="self">Self</span>::get_config_bool(ConfigOptionName::DeleteRotation, <span class="kw-2">&amp;</span>config, <span class="bool-val">false</span>);
-		<span class="kw">let </span>file_header =
-			<span class="self">Self</span>::get_config_string(ConfigOptionName::FileHeader, <span class="kw-2">&amp;</span>config, <span class="string">""</span>.to_string());
-		<span class="kw">let </span>file_path = <span class="self">Self</span>::get_config_path_buf(ConfigOptionName::LogFilePath, <span class="kw-2">&amp;</span>config, <span class="prelude-val">None</span>);
-		<span class="kw">let </span>level = <span class="self">Self</span>::get_config_bool(ConfigOptionName::DisplayLogLevel, <span class="kw-2">&amp;</span>config, <span class="bool-val">true</span>);
-		<span class="kw">let </span>line_num = <span class="self">Self</span>::get_config_bool(ConfigOptionName::DisplayLineNum, <span class="kw-2">&amp;</span>config, <span class="bool-val">true</span>);
-		<span class="kw">let </span>show_backtrace =
-			<span class="self">Self</span>::get_config_bool(ConfigOptionName::DisplayBackTrace, <span class="kw-2">&amp;</span>config, <span class="bool-val">false</span>);
-		<span class="kw">let </span>show_millis = <span class="self">Self</span>::get_config_bool(ConfigOptionName::DisplayMillis, <span class="kw-2">&amp;</span>config, <span class="bool-val">true</span>);
-		<span class="kw">let </span>stdout = <span class="self">Self</span>::get_config_bool(ConfigOptionName::DisplayStdout, <span class="kw-2">&amp;</span>config, <span class="bool-val">true</span>);
-		<span class="kw">let </span>timestamp = <span class="self">Self</span>::get_config_bool(ConfigOptionName::DisplayTimestamp, <span class="kw-2">&amp;</span>config, <span class="bool-val">true</span>);
-		<span class="kw">let </span>max_age_millis =
-			<span class="self">Self</span>::get_config_u64(ConfigOptionName::MaxAgeMillis, <span class="kw-2">&amp;</span>config, u64::MAX);
-		<span class="kw">let </span>max_size_bytes =
-			<span class="self">Self</span>::get_config_u64(ConfigOptionName::MaxSizeBytes, <span class="kw-2">&amp;</span>config, u64::MAX);
-		<span class="kw">let </span>line_num_data_max_len = <span class="self">Self</span>::get_config_u64(
-			ConfigOptionName::LineNumDataMaxLen,
-			<span class="kw-2">&amp;</span>config,
-			DEFAULT_LINE_NUM_DATA_MAX_LEN,
-		);
+
+		<span class="kw">let </span>auto_rotate = <span class="self">Self</span>::get_config_bool(CN::AutoRotate, <span class="kw-2">&amp;</span>config, <span class="bool-val">false</span>);
+		<span class="kw">let </span>colors = <span class="self">Self</span>::get_config_bool(CN::DisplayColors, <span class="kw-2">&amp;</span>config, <span class="bool-val">true</span>);
+		<span class="kw">let </span>delete_rotation = <span class="self">Self</span>::get_config_bool(CN::DeleteRotation, <span class="kw-2">&amp;</span>config, <span class="bool-val">false</span>);
+		<span class="kw">let </span>file_header = <span class="self">Self</span>::get_config_string(CN::FileHeader, <span class="kw-2">&amp;</span>config, <span class="string">""</span>.to_string());
+		<span class="kw">let </span>file_path = <span class="self">Self</span>::get_config_path_buf(CN::LogFilePath, <span class="kw-2">&amp;</span>config, <span class="prelude-val">None</span>);
+		<span class="kw">let </span>level = <span class="self">Self</span>::get_config_bool(CN::DisplayLogLevel, <span class="kw-2">&amp;</span>config, <span class="bool-val">true</span>);
+		<span class="kw">let </span>line_num = <span class="self">Self</span>::get_config_bool(CN::DisplayLineNum, <span class="kw-2">&amp;</span>config, <span class="bool-val">true</span>);
+		<span class="kw">let </span>show_backtrace = <span class="self">Self</span>::get_config_bool(CN::DisplayBackTrace, <span class="kw-2">&amp;</span>config, <span class="bool-val">false</span>);
+		<span class="kw">let </span>show_millis = <span class="self">Self</span>::get_config_bool(CN::DisplayMillis, <span class="kw-2">&amp;</span>config, <span class="bool-val">true</span>);
+		<span class="kw">let </span>stdout = <span class="self">Self</span>::get_config_bool(CN::DisplayStdout, <span class="kw-2">&amp;</span>config, <span class="bool-val">true</span>);
+		<span class="kw">let </span>timestamp = <span class="self">Self</span>::get_config_bool(CN::DisplayTimestamp, <span class="kw-2">&amp;</span>config, <span class="bool-val">true</span>);
+		<span class="kw">let </span>max_age_millis = <span class="self">Self</span>::get_config_u64(CN::MaxAgeMillis, <span class="kw-2">&amp;</span>config, u64::MAX);
+		<span class="kw">let </span>max_size_bytes = <span class="self">Self</span>::get_config_u64(CN::MaxSizeBytes, <span class="kw-2">&amp;</span>config, u64::MAX);
+		<span class="kw">let </span>value = DEFAULT_LINE_NUM_DATA_MAX_LEN;
+		<span class="kw">let </span>line_num_data_max_len = <span class="self">Self</span>::get_config_u64(CN::LineNumDataMaxLen, <span class="kw-2">&amp;</span>config, value);
 		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
 			auto_rotate,
 			colors,
