@@ -144,7 +144,7 @@
 </span><span class="attr">#[derive(Hash, Eq, PartialEq, Clone, Debug)]
 </span><span class="kw">pub enum </span>ConfigOption {
 	MaxSizeBytes(u64),
-	MaxAgeMillis(u128),
+	MaxAgeMillis(u64),
 	DisplayColors(bool),
 	DisplayStdout(bool),
 	DisplayTimestamp(bool),
@@ -154,7 +154,7 @@
 	LogFilePath(<span class="prelude-ty">Option</span>&lt;PathBuf&gt;),
 	AutoRotate(bool),
 	DisplayBackTrace(bool),
-	LineNumDataMaxLen(usize),
+	LineNumDataMaxLen(u64),
 	DeleteRotation(bool),
 	FileHeader(String),
 	Debug(bool),
