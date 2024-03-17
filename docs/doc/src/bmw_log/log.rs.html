@@ -838,36 +838,6 @@
 <a href="#837" id="837">837</a>
 <a href="#838" id="838">838</a>
 <a href="#839" id="839">839</a>
-<a href="#840" id="840">840</a>
-<a href="#841" id="841">841</a>
-<a href="#842" id="842">842</a>
-<a href="#843" id="843">843</a>
-<a href="#844" id="844">844</a>
-<a href="#845" id="845">845</a>
-<a href="#846" id="846">846</a>
-<a href="#847" id="847">847</a>
-<a href="#848" id="848">848</a>
-<a href="#849" id="849">849</a>
-<a href="#850" id="850">850</a>
-<a href="#851" id="851">851</a>
-<a href="#852" id="852">852</a>
-<a href="#853" id="853">853</a>
-<a href="#854" id="854">854</a>
-<a href="#855" id="855">855</a>
-<a href="#856" id="856">856</a>
-<a href="#857" id="857">857</a>
-<a href="#858" id="858">858</a>
-<a href="#859" id="859">859</a>
-<a href="#860" id="860">860</a>
-<a href="#861" id="861">861</a>
-<a href="#862" id="862">862</a>
-<a href="#863" id="863">863</a>
-<a href="#864" id="864">864</a>
-<a href="#865" id="865">865</a>
-<a href="#866" id="866">866</a>
-<a href="#867" id="867">867</a>
-<a href="#868" id="868">868</a>
-<a href="#869" id="869">869</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -887,7 +857,10 @@
 
 </span><span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
 <span class="kw">use </span><span class="kw">crate</span>::types::{LogConfig, LogImpl};
-<span class="kw">use crate</span>::{u64, GlobalLogContainer, Log, LogBuilder, LogLevel, LoggingType, BMW_GLOBAL_LOG};
+<span class="kw">use crate</span>::{
+	none_or_err, some_or_err, u64, GlobalLogContainer, Log, LogBuilder, LogLevel, LoggingType,
+	BMW_GLOBAL_LOG,
+};
 <span class="kw">use </span>bmw_conf::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_deps::backtrace;
 <span class="kw">use </span>bmw_deps::backtrace::{Backtrace, Symbol};
@@ -925,15 +898,13 @@
 		<span class="kw">if </span>level <span class="kw">as </span>usize &gt;= global_level <span class="kw">as </span>usize {
 			<span class="self">Self</span>::check_init()<span class="question-mark">?</span>; <span class="comment">// check if we need to call init
 			</span><span class="kw">let </span><span class="kw-2">mut </span>log = BMW_GLOBAL_LOG.write()<span class="question-mark">?</span>;
-			<span class="comment">// call logger based on logging type
-			</span><span class="kw">match </span>(<span class="kw-2">*</span>log).as_mut() {
-				<span class="prelude-val">Some</span>(log) =&gt; <span class="kw">match </span>logging_type {
-					LoggingType::Standard =&gt; log.log(level, line)<span class="question-mark">?</span>,
-					LoggingType::Plain =&gt; log.log_plain(level, line)<span class="question-mark">?</span>,
-					LoggingType::All =&gt; log.log_all(level, line)<span class="question-mark">?</span>,
-				},
-				<span class="comment">// not expected
-				</span><span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Log, <span class="string">"unexpected error: log not initialized"</span>)),
+
+			<span class="comment">// call logger based on logging type (unwrap ok because check_init ensures
+			// there's a logger
+			</span><span class="kw">match </span>logging_type {
+				LoggingType::Standard =&gt; (<span class="kw-2">*</span>log).as_mut().unwrap().log(level, line)<span class="question-mark">?</span>,
+				LoggingType::Plain =&gt; (<span class="kw-2">*</span>log).as_mut().unwrap().log_plain(level, line)<span class="question-mark">?</span>,
+				LoggingType::All =&gt; (<span class="kw-2">*</span>log).as_mut().unwrap().log_all(level, line)<span class="question-mark">?</span>,
 			}
 		}
 		<span class="prelude-val">Ok</span>(())
@@ -1053,41 +1024,21 @@
 		<span class="comment">// standard rotation string format
 		</span><span class="kw">let </span>rotation_string = now.format(<span class="string">".r_%m_%d_%Y_%T"</span>).to_string().replace(<span class="string">":"</span>, <span class="string">"-"</span>);
 
+		<span class="kw">let </span>ekind = ErrKind::IllegalArgument;
+		<span class="kw">let </span>text = <span class="string">"log file cannot be rotated. There is no file associated with this logger"</span>;
+
 		<span class="comment">// get the original file path
-		</span><span class="kw">let </span>original_file_path = <span class="kw">match </span><span class="self">self</span>.config.file_path.clone() {
-			<span class="prelude-val">Some</span>(file_path) =&gt; file_path,
-			<span class="prelude-val">None </span>=&gt; {
-				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Log, <span class="string">"log file cannot be rotated because there is no file associated with this logger"</span>));
-			}
-		};
+		</span><span class="kw">let </span>original_file_path = <span class="macro">some_or_err!</span>(<span class="self">self</span>.config.file_path.clone(), ekind, text)<span class="question-mark">?</span>;
 
 		<span class="comment">// get the parent directory and the file name
-		</span><span class="kw">let </span>parent = <span class="kw">match </span>original_file_path.parent() {
-			<span class="prelude-val">Some</span>(parent) =&gt; parent,
-			<span class="prelude-val">None </span>=&gt; {
-				<span class="kw">let </span>text = <span class="string">"file_path has an unexpected illegal value of None for parent"</span>;
-				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IllegalArgument, text));
-			}
-		};
+		</span><span class="kw">let </span>text = <span class="string">"file_path has an unexpected illegal value of None for parent"</span>;
+		<span class="kw">let </span>parent = <span class="macro">some_or_err!</span>(original_file_path.parent(), ekind, text)<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>file_name = <span class="kw">match </span>original_file_path.file_name() {
-			<span class="prelude-val">Some</span>(file_name) =&gt; file_name,
-			<span class="prelude-val">None </span>=&gt; {
-				<span class="kw">let </span>text = <span class="string">"file_path has an unexpected illegal value of None for file_name"</span>;
-				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IllegalArgument, text));
-			}
-		};
+		<span class="kw">let </span>text = <span class="string">"file_path has an unexpected illegal value of None for file_name"</span>;
+		<span class="kw">let </span>file_name = <span class="macro">some_or_err!</span>(original_file_path.file_name(), ekind, text)<span class="question-mark">?</span>;
 
-		<span class="comment">// to string format
-		</span><span class="kw">let </span>file_name = <span class="kw">match </span>file_name.to_str() {
-			<span class="prelude-val">Some</span>(file_name) =&gt; file_name,
-			<span class="prelude-val">None </span>=&gt; {
-				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
-					ErrKind::IllegalArgument,
-					<span class="string">"file_path could not be converted to string"
-				</span>));
-			}
-		};
+		<span class="kw">let </span>text = <span class="string">"file_path could not be converted to string"</span>;
+		<span class="kw">let </span>file_name = <span class="macro">some_or_err!</span>(file_name.to_str(), ekind, text)<span class="question-mark">?</span>;
 
 		<span class="comment">// create the new rotated file
 		</span><span class="kw">let </span><span class="kw-2">mut </span>new_file_path_buf = parent.to_path_buf();
@@ -1146,16 +1097,9 @@
 		}
 		{
 			<span class="kw">let </span>file = <span class="self">self</span>.file.read()<span class="question-mark">?</span>;
-			<span class="kw">match </span>(<span class="kw-2">*</span>file).as_ref() {
-				<span class="prelude-val">Some</span>(_file) =&gt; {
-					<span class="comment">// unexpected, file already has been created
-					</span><span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
-						ErrKind::IllegalState,
-						<span class="string">"log.init() has already been called"
-					</span>));
-				}
-				<span class="prelude-val">None </span>=&gt; {}
-			}
+			<span class="kw">let </span>errkind = ErrKind::IllegalState;
+			<span class="kw">let </span>text = <span class="string">"log.init() has already been called"</span>;
+			<span class="macro">none_or_err!</span>((<span class="kw-2">*</span>file).as_ref(), errkind, text)<span class="question-mark">?</span>;
 		}
 
 		<span class="kw">match </span><span class="self">self</span>.config.file_path.clone().as_ref() {
@@ -1183,10 +1127,9 @@
 	}
 	<span class="kw">fn </span>close(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">if </span>!<span class="self">self</span>.is_init {
-			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
-				ErrKind::Log,
-				<span class="string">"log file cannot be closed because init() was never called"
-			</span>));
+			<span class="kw">let </span>ekind = ErrKind::Log;
+			<span class="kw">let </span>text = <span class="string">"log file cannot be closed because init() was never called"</span>;
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ekind, text));
 		}
 		<span class="kw">let </span><span class="kw-2">mut </span>file = <span class="self">self</span>.file.write()<span class="question-mark">?</span>;
 		<span class="comment">// drop handler closes the handle
@@ -1196,6 +1139,8 @@
 	<span class="kw">fn </span>set_config_option(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: ConfigOption) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="comment">// set the specified option, LogFilePath results in an error.
 		</span><span class="kw">use </span>bmw_conf::ConfigOption <span class="kw">as </span>CO;
+		<span class="kw">let </span>errkind = ErrKind::Configuration;
+		<span class="kw">let </span>text = <span class="string">"cannot set LogFilePath after logging has been started"</span>;
 		<span class="kw">match </span>value {
 			CO::DisplayColors(v) =&gt; <span class="self">self</span>.config.colors = v,
 			CO::DisplayTimestamp(v) =&gt; <span class="self">self</span>.config.timestamp = v,
@@ -1205,17 +1150,12 @@
 			CO::DisplayLogLevel(v) =&gt; <span class="self">self</span>.config.level = v,
 			CO::DisplayLineNum(v) =&gt; <span class="self">self</span>.config.line_num = v,
 			CO::DisplayMillis(v) =&gt; <span class="self">self</span>.config.show_millis = v,
-			CO::LogFilePath(<span class="kw">_</span>) =&gt; {
-				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
-					ErrKind::Configuration,
-					<span class="string">"cannot set LogFilePath after logging has been started"
-				</span>))
-			}
 			CO::AutoRotate(v) =&gt; <span class="self">self</span>.config.auto_rotate = v,
 			CO::DisplayBackTrace(v) =&gt; <span class="self">self</span>.config.show_backtrace = v,
 			CO::LineNumDataMaxLen(v) =&gt; <span class="self">self</span>.config.line_num_data_max_len = v,
 			CO::DeleteRotation(v) =&gt; <span class="self">self</span>.config.delete_rotation = v,
 			CO::FileHeader(v) =&gt; <span class="self">self</span>.config.file_header = v,
+			CO::LogFilePath(<span class="kw">_</span>) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(errkind, text)),
 			<span class="kw">_ </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Configuration, <span class="string">"unknown config option"</span>)),
 		}
 		<span class="prelude-val">Ok</span>(())

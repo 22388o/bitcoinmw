@@ -153,6 +153,13 @@
 <a href="#152" id="152">152</a>
 <a href="#153" id="153">153</a>
 <a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -304,6 +311,13 @@
 				<span class="macro">vec!</span>[]
 			)
 			.is_ok());
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="attr">#[test]
+	</span><span class="kw">fn </span>test_config_with_debug() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span>config = <span class="macro">config!</span>(Debug(<span class="bool-val">true</span>));
+		<span class="macro">assert!</span>(config.check_config(<span class="macro">vec!</span>[CN::Debug], <span class="macro">vec!</span>[]).is_ok());
 		<span class="prelude-val">Ok</span>(())
 	}
 }
