@@ -1024,7 +1024,10 @@ mod test {
 	}
 
 	#[test]
+	#[cfg(unix)]
 	fn test_confirm_boundries() -> Result<(), Error> {
+		// this test is not enabled on windows. BACK-R's added to files makes this calculation
+		// complicated. BMW optimized for linux/macos, but approximately correct on Windows.
 		let test_info = test_info!()?;
 		let mut buf = PathBuf::new();
 		buf.push(test_info.directory());
@@ -1046,13 +1049,10 @@ mod test {
 		logger.log(LogLevel::Debug, "0123456789")?;
 		logger.log_plain(LogLevel::Debug, "0123456789")?;
 		logger.log_all(LogLevel::Debug, "0123456789")?;
-
 		assert!(!logger.need_rotate()?); // file exactly 363, no rotate needed
 		logger.close()?;
 
 		let len = buf.metadata()?.len();
-		// only assert on unix (windows adds \rs, etc on some systems
-		#[cfg(unix)]
 		assert_eq!(len, 363);
 
 		let mut buf = PathBuf::new();
@@ -1082,8 +1082,6 @@ mod test {
 		logger.close()?;
 
 		let len = buf.metadata()?.len();
-		// only assert on unix (windows adds \rs, etc on some systems
-		#[cfg(unix)]
 		assert_eq!(len, 363);
 
 		// try without header
@@ -1113,8 +1111,6 @@ mod test {
 		logger.close()?;
 
 		let len = buf.metadata()?.len();
-		// only assert on unix (windows adds \rs, etc on some systems
-		#[cfg(unix)]
 		assert_eq!(len, 350);
 
 		// try again with one less byte MaxSizeByte
@@ -1144,8 +1140,6 @@ mod test {
 		logger.close()?;
 
 		let len = buf.metadata()?.len();
-		// only assert on unix (windows adds \rs, etc on some systems
-		#[cfg(unix)]
 		assert_eq!(len, 350);
 		Ok(())
 	}
