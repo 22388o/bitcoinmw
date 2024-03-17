@@ -16,6 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! # The BMW Configuration Crate
 //! The Configuration crate is used by other crates in the BMW repo to build and check configurations.
 //! Configurations should generally be built using the [`crate::config!`] macro and the
 //! [`crate::Config.check_config`] function should be used to confirm the resulting configuration

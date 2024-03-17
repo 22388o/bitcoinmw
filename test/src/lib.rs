@@ -16,6 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! # The BMW test utility crate
 //! This crate provides macros that are used in the tests in other crates
 //! within the BMW repo.
 
