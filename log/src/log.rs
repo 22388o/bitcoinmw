@@ -53,8 +53,9 @@ impl GlobalLogContainer {
 		logging_type: LoggingType,
 	) -> Result<(), Error> {
 		if level as usize >= global_level as usize {
-			Self::check_init()?;
+			Self::check_init()?; // check if we need to call init
 			let mut log = BMW_GLOBAL_LOG.write()?;
+			// call logger based on logging type
 			match (*log).as_mut() {
 				Some(log) => match logging_type {
 					LoggingType::Standard => log.log(level, line)?,
@@ -138,6 +139,8 @@ impl GlobalLogContainer {
 				}
 			}
 		}
+
+		// haven't initialized yet, so call init
 		if need_init {
 			Self::init(vec![])?;
 		}
@@ -146,22 +149,27 @@ impl GlobalLogContainer {
 }
 
 impl Log for LogImpl {
+	// all logging goes through the log_impl fn.
 	fn log(&mut self, level: LogLevel, line: &str) -> Result<(), Error> {
 		self.log_impl(level, line, LoggingType::Standard)
 	}
+	// all logging goes through the log_impl fn.
 	fn log_all(&mut self, level: LogLevel, line: &str) -> Result<(), Error> {
 		self.log_impl(level, line, LoggingType::All)
 	}
+	// all logging goes through the log_impl fn.
 	fn log_plain(&mut self, level: LogLevel, line: &str) -> Result<(), Error> {
 		self.log_impl(level, line, LoggingType::Plain)
 	}
 	fn rotate(&mut self) -> Result<(), Error> {
 		if !self.is_init {
+			// log hasn't been initialized yet, return error
 			let text = "log file cannot be rotated because init() was never called";
 			return Err(err!(ErrKind::Log, text));
 		}
 
 		{
+			// check if there's a file, if not return error
 			let mut file = self.file.write()?;
 			match (*file).as_mut() {
 				Some(_file) => {}
@@ -172,8 +180,10 @@ impl Log for LogImpl {
 		}
 
 		let now: DateTime<Local> = Local::now();
+		// standard rotation string format
 		let rotation_string = now.format(".r_%m_%d_%Y_%T").to_string().replace(":", "-");
 
+		// get the original file path
 		let original_file_path = match self.config.file_path.clone() {
 			Some(file_path) => file_path,
 			None => {
@@ -198,6 +208,7 @@ impl Log for LogImpl {
 			}
 		};
 
+		// to string format
 		let file_name = match file_name.to_str() {
 			Some(file_name) => file_name,
 			None => {
@@ -208,6 +219,7 @@ impl Log for LogImpl {
 			}
 		};
 
+		// create the new rotated file
 		let mut new_file_path_buf = parent.to_path_buf();
 		let file_name = match file_name.rfind(".") {
 			Some(pos) => &file_name[0..pos],
@@ -225,6 +237,7 @@ impl Log for LogImpl {
 		let mut open_options = OpenOptions::new();
 		let open_options = open_options.append(true).create(true);
 		let mut nfile = open_options.open(&original_file_path.as_path())?;
+		// reopen the original file so we can continue logging
 		self.check_open(&mut nfile, &original_file_path)?;
 
 		{
@@ -244,6 +257,7 @@ impl Log for LogImpl {
 		let max_age_millis = self.config.max_age_millis;
 		let max_size_bytes = self.config.max_size_bytes;
 
+		// if the file is either too old or too big we need to rotate
 		if now.duration_since(self.last_rotation).as_millis() > max_age_millis
 			|| self.cur_size > max_size_bytes
 		{
@@ -257,12 +271,14 @@ impl Log for LogImpl {
 	}
 	fn init(&mut self) -> Result<(), Error> {
 		if self.is_init {
+			// init already was called
 			return Err(err!(ErrKind::Log, "log file has already ben initialized"));
 		}
 		{
 			let file = self.file.read()?;
 			match (*file).as_ref() {
 				Some(_file) => {
+					// unexpected, file already has been created
 					return Err(err!(
 						ErrKind::IllegalState,
 						"log.init() has already been called"
@@ -303,10 +319,12 @@ impl Log for LogImpl {
 			));
 		}
 		let mut file = self.file.write()?;
+		// drop handler closes the handle
 		*file = None;
 		Ok(())
 	}
 	fn set_config_option(&mut self, value: ConfigOption) -> Result<(), Error> {
+		// set the specified option, LogFilePath results in an error.
 		use bmw_conf::ConfigOption as CO;
 		match value {
 			CO::DisplayColors(v) => self.config.colors = v,
@@ -333,6 +351,7 @@ impl Log for LogImpl {
 		Ok(())
 	}
 	fn get_config_option(&self, option: ConfigOptionName) -> Result<ConfigOption, Error> {
+		// get any specified options
 		use bmw_conf::ConfigOption as CO;
 		use bmw_conf::ConfigOptionName as CN;
 		Ok(match option {
@@ -382,6 +401,8 @@ impl LogImpl {
 
 		let max_age_millis = self.config.max_age_millis;
 		let max_size_bytes = self.config.max_size_bytes;
+
+		// if the file is too old or too big we rotate
 		if now.duration_since(self.last_rotation).as_millis() > max_age_millis
 			|| self.cur_size > max_size_bytes
 		{
@@ -408,6 +429,7 @@ impl LogImpl {
 			let show_bt = self.config.show_backtrace && level as usize >= LogLevel::Error as usize;
 			let max_len = self.config.line_num_data_max_len;
 
+			// call the main logging function with the specified params
 			self.do_log_impl(
 				show_stdout,
 				show_timestamp,
@@ -437,6 +459,7 @@ impl LogImpl {
 		max_len: usize,
 		line: &str,
 	) -> Result<(), Error> {
+		// if timestamp needs to be shown we print/write it here
 		if show_timestamp {
 			let date = Local::now();
 			let millis = date.timestamp_millis() % 1_000;
@@ -469,6 +492,7 @@ impl LogImpl {
 				}
 			}
 		}
+		// if log level needs to be shown we print/write it here
 		if show_log_level {
 			{
 				let mut file = self.file.write()?;
@@ -491,6 +515,7 @@ impl LogImpl {
 
 			if show_stdout {
 				if show_colors {
+					// specific colors for each level
 					match level {
 						LogLevel::Trace => {
 							print!("({}) ", format!("{}", level).magenta());
@@ -512,6 +537,7 @@ impl LogImpl {
 						}
 					}
 				} else {
+					// without color
 					print!("({}) ", level);
 				}
 			}
@@ -521,6 +547,9 @@ impl LogImpl {
 			let mut found_frame = false;
 			let mut logged_from_file = "*********unknown**********".to_string();
 			let config = self.config.clone();
+
+			// try to look through the backtrace to find the line where logging
+			// occurred. This is especially useful for debugging
 			backtrace::trace(|frame| {
 				backtrace::resolve_frame(frame, |symbol| {
 					found_frame = match Self::process_resolve_frame(
@@ -558,6 +587,7 @@ impl LogImpl {
 				}
 			}
 
+			// if we're showing stdout, do so here
 			if show_stdout {
 				if show_colors {
 					print!("[{}]: ", logged_from_file.yellow());
@@ -567,6 +597,7 @@ impl LogImpl {
 			}
 		}
 
+		// write the line to the file (if it exists)
 		{
 			let mut file = self.file.write()?;
 			match (*file).as_mut() {
@@ -591,6 +622,7 @@ impl LogImpl {
 			}
 		}
 
+		// finally print the actual line
 		if show_stdout {
 			println!("{}", line);
 			if show_bt {
@@ -614,6 +646,8 @@ impl LogImpl {
 			return Err(e);
 		}
 		let mut found_frame = false;
+
+		// test mode (better data)
 		#[cfg(debug_assertions)]
 		if let Some(filename) = symbol.filename() {
 			let filename = filename.display().to_string();
@@ -638,6 +672,8 @@ impl LogImpl {
 				found_frame = true;
 			}
 		}
+
+		// release mode
 		#[cfg(not(debug_assertions))]
 		if let Some(name) = symbol.name() {
 			let name = name.to_string();
@@ -660,6 +696,7 @@ impl LogImpl {
 		Ok(found_frame)
 	}
 
+	// correctly format the milliseconds
 	fn format_millis(&self, millis: i64) -> String {
 		let mut millis_format = format!("{}", millis);
 		if millis < 100 {
@@ -704,6 +741,7 @@ impl LogImpl {
 }
 
 impl LogConfig {
+	// create the log config based on the specified data
 	pub(crate) fn new(configs: Vec<ConfigOption>) -> Result<Self, Error> {
 		let config = ConfigBuilder::build_config(configs);
 		config.check_config(
