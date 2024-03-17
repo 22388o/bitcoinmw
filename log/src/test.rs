@@ -134,12 +134,12 @@ mod test {
 		assert!(need_rotate!().is_ok());
 		assert!(log_rotate!().is_ok());
 
-		set_log_option!(DisplayColors(false));
+		set_log_option!(DisplayColors(false))?;
 		info!("nocolormactest1")?;
 		info_plain!("nocolorplain1")?;
 		info_all!("nocolorall1")?;
 
-		set_log_option!(DisplayBackTrace(true));
+		set_log_option!(DisplayBackTrace(true))?;
 		error!("errbt")?;
 		error_plain!("errorbt")?;
 
@@ -700,6 +700,51 @@ mod test {
 
 		// file1 is 4 bytes bigger because it has the milliseconds displayed
 		assert_eq!(file1_size.unwrap(), file2_size.unwrap() + 4);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_process_resolve_frame_error() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut buf1 = PathBuf::new();
+
+		buf1.push(test_info.directory());
+		buf1.push("file1.log");
+
+		let mut logger1 = logger!(
+			LogFilePath(Some(buf1)),
+			DisplayMillis(true),
+			FileHeader("sometext".to_string())
+		)?;
+		logger1.debug_process_resolve_frame_error();
+		logger1.set_log_level(LogLevel::Debug);
+		logger1.init()?;
+
+		// even with the frame error we continue processing
+		assert!(logger1.log(LogLevel::Info, "test").is_ok());
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_invalid_metadata() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut buf1 = PathBuf::new();
+
+		buf1.push(test_info.directory());
+		buf1.push("file1.log");
+
+		let mut logger1 = logger!(
+			LogFilePath(Some(buf1)),
+			DisplayMillis(true),
+			FileHeader("sometext".to_string())
+		)?;
+		logger1.debug_invalid_metadata();
+		logger1.set_log_level(LogLevel::Debug);
+
+		// with invalid metadata, init will fail
+		assert!(logger1.init().is_err());
 
 		Ok(())
 	}

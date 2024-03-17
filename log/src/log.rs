@@ -342,6 +342,16 @@ impl Log for LogImpl {
 			_ => return Err(err!(ErrKind::Configuration, "unknown config option")),
 		})
 	}
+
+	#[cfg(test)]
+	fn debug_process_resolve_frame_error(&mut self) {
+		self.config.debug_process_resolve_frame_error = true;
+	}
+
+	#[cfg(test)]
+	fn debug_invalid_metadata(&mut self) {
+		self.config.debug_invalid_metadata = true;
+	}
 }
 
 impl LogImpl {

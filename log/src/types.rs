@@ -157,6 +157,12 @@ pub trait Log: DynClone {
 	/// ConfigOption. The function returns either a reference to a
 	/// ConfigOption or a Error.
 	fn get_config_option(&self, option: ConfigOptionName) -> Result<ConfigOption, Error>;
+
+	#[cfg(test)]
+	fn debug_process_resolve_frame_error(&mut self);
+
+	#[cfg(test)]
+	fn debug_invalid_metadata(&mut self);
 }
 
 clone_trait_object!(Log);
