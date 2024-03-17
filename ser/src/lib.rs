@@ -128,7 +128,7 @@ impl<S: Serializable> Serializable for Option<S> {
 	fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
 		writer.write_u8(if self.is_some() { 1 } else { 0 })?;
 		if self.is_some() {
-			self.as_ref().clone().unwrap().write(writer)?;
+			self.as_ref().unwrap().write(writer)?;
 		}
 		Ok(())
 	}
