@@ -144,6 +144,7 @@ mod test {
 		error_plain!("errorbt")?;
 
 		// set the GLOBAL logger back to none for the other tests
+		// only done in tests
 		let mut lock = BMW_GLOBAL_LOG.write()?;
 		*lock = None;
 
@@ -746,6 +747,49 @@ mod test {
 		// with invalid metadata, init will fail
 		assert!(logger1.init().is_err());
 
+		Ok(())
+	}
+
+	#[test]
+	fn test_log_cycle() -> Result<(), Error> {
+		// ensure a long cycle of logging works
+		let _lock = LOCK.write()?;
+		for _ in 0..2000 {
+			sleep(Duration::from_millis(1));
+			info!("test")?;
+		}
+		assert_eq!(
+			get_log_option!(ConfigOptionName::LineNumDataMaxLen)?,
+			ConfigOption::LineNumDataMaxLen(30)
+		);
+
+		// set the GLOBAL logger back to none for the other tests
+		// only done in tests
+		let mut lock = BMW_GLOBAL_LOG.write()?;
+		*lock = None;
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_log_lineno_is_none() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut buf1 = PathBuf::new();
+
+		buf1.push(test_info.directory());
+		buf1.push("file1.log");
+
+		let mut logger1 = logger!(
+			LogFilePath(Some(buf1)),
+			DisplayMillis(true),
+			FileHeader("sometext".to_string())
+		)?;
+		logger1.debug_lineno_is_none();
+		logger1.set_log_level(LogLevel::Debug);
+		logger1.init()?;
+
+		// even with the lineno error processing continues
+		assert!(logger1.log(LogLevel::Info, "test").is_ok());
 		Ok(())
 	}
 }

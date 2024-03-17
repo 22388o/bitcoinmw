@@ -352,6 +352,11 @@ impl Log for LogImpl {
 	fn debug_invalid_metadata(&mut self) {
 		self.config.debug_invalid_metadata = true;
 	}
+
+	#[cfg(test)]
+	fn debug_lineno_is_none(&mut self) {
+		self.config.debug_lineno_is_none = true;
+	}
 }
 
 impl LogImpl {
@@ -633,7 +638,7 @@ impl LogImpl {
 			let filename = filename.display().to_string();
 			let lineno = symbol.lineno();
 
-			let lineno = if lineno.is_none() {
+			let lineno = if lineno.is_none() || config.debug_lineno_is_none {
 				"".to_string()
 			} else {
 				lineno.unwrap().to_string()
@@ -844,6 +849,7 @@ impl LogConfig {
 			},
 			debug_process_resolve_frame_error: false,
 			debug_invalid_metadata: false,
+			debug_lineno_is_none: false,
 		})
 	}
 }

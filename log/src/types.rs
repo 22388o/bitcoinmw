@@ -163,6 +163,9 @@ pub trait Log: DynClone {
 
 	#[cfg(test)]
 	fn debug_invalid_metadata(&mut self);
+
+	#[cfg(test)]
+	fn debug_lineno_is_none(&mut self);
 }
 
 clone_trait_object!(Log);
@@ -193,6 +196,7 @@ pub(crate) struct LogConfig {
 	pub(crate) file_header: String,
 	pub(crate) debug_process_resolve_frame_error: bool,
 	pub(crate) debug_invalid_metadata: bool,
+	pub(crate) debug_lineno_is_none: bool,
 }
 
 #[derive(Clone)]
