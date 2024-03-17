@@ -258,7 +258,7 @@ impl Log for LogImpl {
 		let max_size_bytes = self.config.max_size_bytes;
 
 		// if the file is either too old or too big we need to rotate
-		if now.duration_since(self.last_rotation).as_millis() > max_age_millis
+		if now.duration_since(self.last_rotation).as_millis() > max_age_millis.into()
 			|| self.cur_size > max_size_bytes
 		{
 			Ok(true)
@@ -407,7 +407,7 @@ impl LogImpl {
 		let max_size_bytes = self.config.max_size_bytes;
 
 		// if the file is too old or too big we rotate
-		if now.duration_since(self.last_rotation).as_millis() > max_age_millis
+		if now.duration_since(self.last_rotation).as_millis() > max_age_millis.into()
 			|| self.cur_size > max_size_bytes
 		{
 			self.rotate()?;
@@ -460,7 +460,7 @@ impl LogImpl {
 		show_millis: bool,
 		show_bt: bool,
 		level: LogLevel,
-		max_len: usize,
+		max_len: u64,
 		line: &str,
 	) -> Result<(), Error> {
 		// if timestamp needs to be shown we print/write it here
@@ -572,8 +572,8 @@ impl LogImpl {
 				!found_frame
 			});
 			let len = logged_from_file.len();
-			if len > max_len {
-				let start = len.saturating_sub(max_len);
+			if len > try_into!(max_len)? {
+				let start = len.saturating_sub(try_into!(max_len)?);
 				logged_from_file = format!("..{}", &logged_from_file[start..]);
 			}
 
@@ -745,6 +745,72 @@ impl LogImpl {
 }
 
 impl LogConfig {
+	pub(crate) fn get_config_bool(
+		option: ConfigOptionName,
+		config: &Box<dyn Config>,
+		default: bool,
+	) -> bool {
+		match config.get(&option) {
+			Some(v) => match v {
+				ConfigOption::DisplayColors(v) => v,
+				ConfigOption::AutoRotate(v) => v,
+				ConfigOption::DeleteRotation(v) => v,
+				ConfigOption::DisplayLogLevel(v) => v,
+				ConfigOption::DisplayLineNum(v) => v,
+				ConfigOption::DisplayBackTrace(v) => v,
+				ConfigOption::DisplayMillis(v) => v,
+				ConfigOption::DisplayStdout(v) => v,
+				ConfigOption::DisplayTimestamp(v) => v,
+				_ => default,
+			},
+			None => default,
+		}
+	}
+
+	pub(crate) fn get_config_string(
+		option: ConfigOptionName,
+		config: &Box<dyn Config>,
+		default: String,
+	) -> String {
+		match config.get(&option) {
+			Some(v) => match v {
+				ConfigOption::FileHeader(v) => v,
+				_ => default,
+			},
+			None => default,
+		}
+	}
+
+	pub(crate) fn get_config_path_buf(
+		option: ConfigOptionName,
+		config: &Box<dyn Config>,
+		default: Option<PathBuf>,
+	) -> Option<PathBuf> {
+		match config.get(&option) {
+			Some(v) => match v {
+				ConfigOption::LogFilePath(v) => v,
+				_ => default,
+			},
+			None => default,
+		}
+	}
+
+	pub(crate) fn get_config_u64(
+		option: ConfigOptionName,
+		config: &Box<dyn Config>,
+		default: u64,
+	) -> u64 {
+		match config.get(&option) {
+			Some(v) => match v {
+				ConfigOption::MaxAgeMillis(v) => v,
+				ConfigOption::MaxSizeBytes(v) => v,
+				ConfigOption::LineNumDataMaxLen(v) => v,
+				_ => default,
+			},
+			None => default,
+		}
+	}
+
 	// create the log config based on the specified data
 	pub(crate) fn new(configs: Vec<ConfigOption>) -> Result<Self, Error> {
 		let config = ConfigBuilder::build_config(configs);
@@ -767,105 +833,44 @@ impl LogConfig {
 			],
 			vec![],
 		)?;
+		let auto_rotate = Self::get_config_bool(ConfigOptionName::AutoRotate, &config, false);
+		let colors = Self::get_config_bool(ConfigOptionName::DisplayColors, &config, true);
+		let delete_rotation =
+			Self::get_config_bool(ConfigOptionName::DeleteRotation, &config, false);
+		let file_header =
+			Self::get_config_string(ConfigOptionName::FileHeader, &config, "".to_string());
+		let file_path = Self::get_config_path_buf(ConfigOptionName::LogFilePath, &config, None);
+		let level = Self::get_config_bool(ConfigOptionName::DisplayLogLevel, &config, true);
+		let line_num = Self::get_config_bool(ConfigOptionName::DisplayLineNum, &config, true);
+		let show_backtrace =
+			Self::get_config_bool(ConfigOptionName::DisplayBackTrace, &config, false);
+		let show_millis = Self::get_config_bool(ConfigOptionName::DisplayMillis, &config, true);
+		let stdout = Self::get_config_bool(ConfigOptionName::DisplayStdout, &config, true);
+		let timestamp = Self::get_config_bool(ConfigOptionName::DisplayTimestamp, &config, true);
+		let max_age_millis =
+			Self::get_config_u64(ConfigOptionName::MaxAgeMillis, &config, u64::MAX);
+		let max_size_bytes =
+			Self::get_config_u64(ConfigOptionName::MaxSizeBytes, &config, u64::MAX);
+		let line_num_data_max_len = Self::get_config_u64(
+			ConfigOptionName::LineNumDataMaxLen,
+			&config,
+			DEFAULT_LINE_NUM_DATA_MAX_LEN,
+		);
 		Ok(Self {
-			auto_rotate: match config.get(&ConfigOptionName::AutoRotate) {
-				Some(v) => match v {
-					ConfigOption::AutoRotate(v) => v,
-					_ => false,
-				},
-				None => false,
-			},
-			colors: match config.get(&ConfigOptionName::DisplayColors) {
-				Some(v) => match v {
-					ConfigOption::DisplayColors(v) => v,
-					_ => true,
-				},
-				None => true,
-			},
-			delete_rotation: match config.get(&ConfigOptionName::DeleteRotation) {
-				Some(v) => match v {
-					ConfigOption::DeleteRotation(v) => v,
-					_ => false,
-				},
-				None => false,
-			},
-			file_header: match config.get(&ConfigOptionName::FileHeader) {
-				Some(v) => match v {
-					ConfigOption::FileHeader(v) => v,
-					_ => "".to_string(),
-				},
-				None => "".to_string(),
-			},
-			file_path: match config.get(&ConfigOptionName::LogFilePath) {
-				Some(v) => match v {
-					ConfigOption::LogFilePath(v) => v,
-					_ => None,
-				},
-				None => None,
-			},
-			level: match config.get(&ConfigOptionName::DisplayLogLevel) {
-				Some(v) => match v {
-					ConfigOption::DisplayLogLevel(v) => v,
-					_ => true,
-				},
-				None => true,
-			},
-			line_num: match config.get(&ConfigOptionName::DisplayLineNum) {
-				Some(v) => match v {
-					ConfigOption::DisplayLineNum(v) => v,
-					_ => true,
-				},
-				None => true,
-			},
-			line_num_data_max_len: match config.get(&ConfigOptionName::LineNumDataMaxLen) {
-				Some(v) => match v {
-					ConfigOption::LineNumDataMaxLen(v) => v,
-					_ => DEFAULT_LINE_NUM_DATA_MAX_LEN,
-				},
-				None => DEFAULT_LINE_NUM_DATA_MAX_LEN,
-			},
-			max_age_millis: match config.get(&ConfigOptionName::MaxAgeMillis) {
-				Some(v) => match v {
-					ConfigOption::MaxAgeMillis(v) => v,
-					_ => u128::MAX,
-				},
-				None => u128::MAX,
-			},
-			max_size_bytes: match config.get(&ConfigOptionName::MaxSizeBytes) {
-				Some(v) => match v {
-					ConfigOption::MaxSizeBytes(v) => v,
-					_ => u64::MAX,
-				},
-				None => u64::MAX,
-			},
-			show_backtrace: match config.get(&ConfigOptionName::DisplayBackTrace) {
-				Some(v) => match v {
-					ConfigOption::DisplayBackTrace(v) => v,
-					_ => false,
-				},
-				None => false,
-			},
-			show_millis: match config.get(&ConfigOptionName::DisplayMillis) {
-				Some(v) => match v {
-					ConfigOption::DisplayMillis(v) => v,
-					_ => true,
-				},
-				None => true,
-			},
-			stdout: match config.get(&ConfigOptionName::DisplayStdout) {
-				Some(v) => match v {
-					ConfigOption::DisplayStdout(v) => v,
-					_ => true,
-				},
-				None => true,
-			},
-			timestamp: match config.get(&ConfigOptionName::DisplayTimestamp) {
-				Some(v) => match v {
-					ConfigOption::DisplayTimestamp(v) => v,
-					_ => true,
-				},
-				None => true,
-			},
+			auto_rotate,
+			colors,
+			delete_rotation,
+			file_header,
+			file_path,
+			level,
+			line_num,
+			line_num_data_max_len,
+			max_age_millis,
+			max_size_bytes,
+			show_backtrace,
+			show_millis,
+			stdout,
+			timestamp,
 			debug_process_resolve_frame_error: false,
 			debug_invalid_metadata: false,
 			debug_lineno_is_none: false,

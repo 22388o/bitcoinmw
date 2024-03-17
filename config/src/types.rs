@@ -57,7 +57,7 @@ pub enum ConfigOptionName {
 #[derive(Hash, Eq, PartialEq, Clone, Debug)]
 pub enum ConfigOption {
 	MaxSizeBytes(u64),
-	MaxAgeMillis(u128),
+	MaxAgeMillis(u64),
 	DisplayColors(bool),
 	DisplayStdout(bool),
 	DisplayTimestamp(bool),
@@ -67,7 +67,7 @@ pub enum ConfigOption {
 	LogFilePath(Option<PathBuf>),
 	AutoRotate(bool),
 	DisplayBackTrace(bool),
-	LineNumDataMaxLen(usize),
+	LineNumDataMaxLen(u64),
 	DeleteRotation(bool),
 	FileHeader(String),
 	Debug(bool),

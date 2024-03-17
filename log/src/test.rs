@@ -18,6 +18,7 @@
 #[cfg(test)]
 mod test {
 	use crate as bmw_log;
+	use crate::types::LogConfig;
 	use bmw_conf::*;
 	use bmw_deps::lazy_static::lazy_static;
 	use bmw_err::*;
@@ -790,6 +791,73 @@ mod test {
 
 		// even with the lineno error processing continues
 		assert!(logger1.log(LogLevel::Info, "test").is_ok());
+		Ok(())
+	}
+
+	#[test]
+	fn test_log_all_options() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut buf1 = PathBuf::new();
+
+		buf1.push(test_info.directory());
+		buf1.push("file1.log");
+		let mut log = logger!(
+			MaxSizeBytes(100),
+			MaxAgeMillis(3_000),
+			LogFilePath(Some(buf1)),
+			AutoRotate(true),
+			DisplayColors(true),
+			DisplayStdout(true),
+			DisplayTimestamp(false),
+			DisplayLogLevel(true),
+			DisplayLineNum(false),
+			DisplayMillis(true),
+			DisplayBackTrace(true),
+			LineNumDataMaxLen(32),
+			DeleteRotation(false),
+			FileHeader("header".to_string())
+		)?;
+		log.init()?;
+		Ok(())
+	}
+
+	impl Config for MockConfig {
+		fn get(&self, _: &ConfigOptionName) -> Option<ConfigOption> {
+			if self.v == 0 {
+				Some(ConfigOption::DisplayColors(true))
+			} else {
+				Some(ConfigOption::MaxSizeBytes(1000))
+			}
+		}
+		fn check_config(
+			&self,
+			_: Vec<ConfigOptionName>,
+			_: Vec<ConfigOptionName>,
+		) -> Result<(), Error> {
+			Ok(())
+		}
+	}
+
+	struct MockConfig {
+		v: usize,
+	}
+
+	#[test]
+	fn test_log_unusual_configs() -> Result<(), Error> {
+		let config: Box<dyn Config> = Box::new(MockConfig { v: 0 });
+		let res = LogConfig::get_config_u64(ConfigOptionName::AutoRotate, &config, 1230);
+		assert_eq!(res, 1230);
+		let config: Box<dyn Config> = Box::new(MockConfig { v: 1 });
+		let res = LogConfig::get_config_bool(ConfigOptionName::AutoRotate, &config, false);
+		assert_eq!(res, false);
+		let res = LogConfig::get_config_string(
+			ConfigOptionName::AutoRotate,
+			&config,
+			"mystring".to_string(),
+		);
+		assert_eq!(res, "mystring".to_string());
+		let res = LogConfig::get_config_path_buf(ConfigOptionName::AutoRotate, &config, None);
+		assert_eq!(res, None);
 		Ok(())
 	}
 }

@@ -21,4 +21,4 @@
 // newline as byte array
 pub(crate) const NEWLINE: &[u8] = &['\n' as u8];
 // the default max length for the file location of a logged line
-pub(crate) const DEFAULT_LINE_NUM_DATA_MAX_LEN: usize = 30;
+pub(crate) const DEFAULT_LINE_NUM_DATA_MAX_LEN: u64 = 30;
