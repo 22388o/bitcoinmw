@@ -66,7 +66,6 @@ impl TestInfoImpl {
 				// tests, so even if it is, it's ok.
 				directory = symbol.name().unwrap().to_string();
 			});
-			println!("dir={}", directory);
 			// wait until we get to the actual test directory name.
 			if !directory.starts_with("backtrace")
 				&& !directory.contains("bmw_test::types::TestInfoImpl")

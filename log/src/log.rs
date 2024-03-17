@@ -17,7 +17,10 @@
 
 use crate::constants::*;
 use crate::types::{LogConfig, LogImpl};
-use crate::{u64, GlobalLogContainer, Log, LogBuilder, LogLevel, LoggingType, BMW_GLOBAL_LOG};
+use crate::{
+	none_or_err, some_or_err, u64, GlobalLogContainer, Log, LogBuilder, LogLevel, LoggingType,
+	BMW_GLOBAL_LOG,
+};
 use bmw_conf::*;
 use bmw_deps::backtrace;
 use bmw_deps::backtrace::{Backtrace, Symbol};
@@ -55,15 +58,13 @@ impl GlobalLogContainer {
 		if level as usize >= global_level as usize {
 			Self::check_init()?; // check if we need to call init
 			let mut log = BMW_GLOBAL_LOG.write()?;
-			// call logger based on logging type
-			match (*log).as_mut() {
-				Some(log) => match logging_type {
-					LoggingType::Standard => log.log(level, line)?,
-					LoggingType::Plain => log.log_plain(level, line)?,
-					LoggingType::All => log.log_all(level, line)?,
-				},
-				// not expected
-				None => return Err(err!(ErrKind::Log, "unexpected error: log not initialized")),
+
+			// call logger based on logging type (unwrap ok because check_init ensures
+			// there's a logger
+			match logging_type {
+				LoggingType::Standard => (*log).as_mut().unwrap().log(level, line)?,
+				LoggingType::Plain => (*log).as_mut().unwrap().log_plain(level, line)?,
+				LoggingType::All => (*log).as_mut().unwrap().log_all(level, line)?,
 			}
 		}
 		Ok(())
@@ -183,41 +184,21 @@ impl Log for LogImpl {
 		// standard rotation string format
 		let rotation_string = now.format(".r_%m_%d_%Y_%T").to_string().replace(":", "-");
 
+		let ekind = ErrKind::IllegalArgument;
+		let text = "log file cannot be rotated. There is no file associated with this logger";
+
 		// get the original file path
-		let original_file_path = match self.config.file_path.clone() {
-			Some(file_path) => file_path,
-			None => {
-				return Err(err!(ErrKind::Log, "log file cannot be rotated because there is no file associated with this logger"));
-			}
-		};
+		let original_file_path = some_or_err!(self.config.file_path.clone(), ekind, text)?;
 
 		// get the parent directory and the file name
-		let parent = match original_file_path.parent() {
-			Some(parent) => parent,
-			None => {
-				let text = "file_path has an unexpected illegal value of None for parent";
-				return Err(err!(ErrKind::IllegalArgument, text));
-			}
-		};
+		let text = "file_path has an unexpected illegal value of None for parent";
+		let parent = some_or_err!(original_file_path.parent(), ekind, text)?;
 
-		let file_name = match original_file_path.file_name() {
-			Some(file_name) => file_name,
-			None => {
-				let text = "file_path has an unexpected illegal value of None for file_name";
-				return Err(err!(ErrKind::IllegalArgument, text));
-			}
-		};
+		let text = "file_path has an unexpected illegal value of None for file_name";
+		let file_name = some_or_err!(original_file_path.file_name(), ekind, text)?;
 
-		// to string format
-		let file_name = match file_name.to_str() {
-			Some(file_name) => file_name,
-			None => {
-				return Err(err!(
-					ErrKind::IllegalArgument,
-					"file_path could not be converted to string"
-				));
-			}
-		};
+		let text = "file_path could not be converted to string";
+		let file_name = some_or_err!(file_name.to_str(), ekind, text)?;
 
 		// create the new rotated file
 		let mut new_file_path_buf = parent.to_path_buf();
@@ -276,16 +257,9 @@ impl Log for LogImpl {
 		}
 		{
 			let file = self.file.read()?;
-			match (*file).as_ref() {
-				Some(_file) => {
-					// unexpected, file already has been created
-					return Err(err!(
-						ErrKind::IllegalState,
-						"log.init() has already been called"
-					));
-				}
-				None => {}
-			}
+			let errkind = ErrKind::IllegalState;
+			let text = "log.init() has already been called";
+			none_or_err!((*file).as_ref(), errkind, text)?;
 		}
 
 		match self.config.file_path.clone().as_ref() {
@@ -313,10 +287,9 @@ impl Log for LogImpl {
 	}
 	fn close(&mut self) -> Result<(), Error> {
 		if !self.is_init {
-			return Err(err!(
-				ErrKind::Log,
-				"log file cannot be closed because init() was never called"
-			));
+			let ekind = ErrKind::Log;
+			let text = "log file cannot be closed because init() was never called";
+			return Err(err!(ekind, text));
 		}
 		let mut file = self.file.write()?;
 		// drop handler closes the handle
@@ -326,6 +299,8 @@ impl Log for LogImpl {
 	fn set_config_option(&mut self, value: ConfigOption) -> Result<(), Error> {
 		// set the specified option, LogFilePath results in an error.
 		use bmw_conf::ConfigOption as CO;
+		let errkind = ErrKind::Configuration;
+		let text = "cannot set LogFilePath after logging has been started";
 		match value {
 			CO::DisplayColors(v) => self.config.colors = v,
 			CO::DisplayTimestamp(v) => self.config.timestamp = v,
@@ -335,17 +310,12 @@ impl Log for LogImpl {
 			CO::DisplayLogLevel(v) => self.config.level = v,
 			CO::DisplayLineNum(v) => self.config.line_num = v,
 			CO::DisplayMillis(v) => self.config.show_millis = v,
-			CO::LogFilePath(_) => {
-				return Err(err!(
-					ErrKind::Configuration,
-					"cannot set LogFilePath after logging has been started"
-				))
-			}
 			CO::AutoRotate(v) => self.config.auto_rotate = v,
 			CO::DisplayBackTrace(v) => self.config.show_backtrace = v,
 			CO::LineNumDataMaxLen(v) => self.config.line_num_data_max_len = v,
 			CO::DeleteRotation(v) => self.config.delete_rotation = v,
 			CO::FileHeader(v) => self.config.file_header = v,
+			CO::LogFilePath(_) => return Err(err!(errkind, text)),
 			_ => return Err(err!(ErrKind::Configuration, "unknown config option")),
 		}
 		Ok(())
