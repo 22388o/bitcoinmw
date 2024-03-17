@@ -902,6 +902,12 @@
 <a href="#901" id="901">901</a>
 <a href="#902" id="902">902</a>
 <a href="#903" id="903">903</a>
+<a href="#904" id="904">904</a>
+<a href="#905" id="905">905</a>
+<a href="#906" id="906">906</a>
+<a href="#907" id="907">907</a>
+<a href="#908" id="908">908</a>
+<a href="#909" id="909">909</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1326,6 +1332,12 @@
 		line: <span class="kw-2">&amp;</span>str,
 		logging_type: LoggingType,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">if </span>!<span class="self">self</span>.is_init {
+			<span class="kw">let </span>ekind = ErrKind::Log;
+			<span class="kw">let </span>text = <span class="string">"log file has not been initalized. Call init() first."</span>;
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ekind, text));
+		}
+
 		<span class="kw">if </span>level <span class="kw">as </span>usize &gt;= <span class="self">self</span>.log_level <span class="kw">as </span>usize {
 			<span class="self">self</span>.rotate_if_needed()<span class="question-mark">?</span>;
 			<span class="kw">let </span>show_stdout = <span class="self">self</span>.config.stdout || logging_type == LoggingType::All;
