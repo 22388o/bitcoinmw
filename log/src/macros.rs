@@ -485,7 +485,7 @@ macro_rules! fatal_all {
         };
 }
 
-/// Initialize the global log. This macro takes a list of [`bmw_conf::ConfigOption`], If none are
+/// Initialize the global log. This macro takes a list of ConfigOption, If none are
 /// specified, the default values are used. Note that if this macro
 /// is not called before logging occurs, the default configuration is used. After
 /// either this macro is called or the default is set via another logging macro,
@@ -551,8 +551,8 @@ macro_rules! log_init {
 	}};
 }
 
-/// Configure the global log with the specified [`bmw_conf::ConfigOption`]. This macro takes
-/// a single argument. The macro returns () on success or [`bmw_err::Error`] on failure.
+/// Configure the global log with the specified ConfigOption. This macro takes
+/// a single argument. The macro returns () on success or Error on failure.
 /// See [`crate::Log::set_config_option`] which is the underlying function call for
 /// full details.
 #[macro_export]
@@ -565,8 +565,8 @@ macro_rules! set_log_option {
 }
 
 /// Get the current value of the specified log option for the global log. The single parameter
-/// must be of the type [`bmw_conf::ConfigOptionName`]. The macro returns a [`bmw_conf::ConfigOption`]
-/// on success and [`bmw_err::Error`] on error. See [`crate::Log::get_config_option`] which
+/// must be of the type ConfigOptionName. The macro returns a ConfigOption
+/// on success and Error on error. See [`crate::Log::get_config_option`] which
 /// is the underlying function call for full details.
 ///
 /// # Examples
