@@ -733,6 +733,8 @@ mod test {
 		let mut buf1 = PathBuf::new();
 		let mut buf2 = PathBuf::new();
 
+		// setup two otherwise identical loggers (one with DisplayMillis(false), other
+		// DisplayMillis(true)
 		buf1.push(test_info.directory());
 		buf2.push(test_info.directory());
 		buf1.push("file1.log");
@@ -748,17 +750,23 @@ mod test {
 			DisplayMillis(false),
 			FileHeader("sometext".to_string())
 		)?;
+
+		// set log level and init both loggers
 		logger1.set_log_level(LogLevel::Debug);
 		logger2.set_log_level(LogLevel::Debug);
 		logger1.init()?;
 		logger2.init()?;
 
+		// log same text to both
 		logger1.log(LogLevel::Info, "test")?;
 		logger2.log(LogLevel::Info, "test")?;
 
+		// close loggers
 		logger1.close()?;
 		logger2.close()?;
 
+		// and read the files to get sizes confirm file2 is 4 bytes bigger due to the
+		// milliseconds being displayed
 		let dir = read_dir(test_info.directory())?;
 		let mut file1_size = None;
 		let mut file2_size = None;
@@ -767,7 +775,6 @@ mod test {
 			let file_name = path.file_name().into_string()?;
 			let metadata = path.metadata()?;
 			let len = metadata.len();
-			println!("file_name={},metadata={:?}", file_name, len);
 			if file_name == "file1.log" {
 				file1_size = Some(len);
 			} else if file_name == "file2.log" {
@@ -789,11 +796,14 @@ mod test {
 		buf1.push(test_info.directory());
 		buf1.push("file1.log");
 
+		// create a logger displaying millis and with FileHeader/LogPath specified
 		let mut logger1 = logger!(
 			LogFilePath(Some(buf1)),
 			DisplayMillis(true),
 			FileHeader("sometext".to_string())
 		)?;
+
+		// set the debug flag to trigger specific state
 		logger1.debug_process_resolve_frame_error();
 		logger1.set_log_level(LogLevel::Debug);
 		logger1.init()?;
@@ -806,12 +816,14 @@ mod test {
 
 	#[test]
 	fn test_invalid_metadata() -> Result<(), Error> {
+		// get test_info
 		let test_info = test_info!()?;
 		let mut buf1 = PathBuf::new();
 
 		buf1.push(test_info.directory());
 		buf1.push("file1.log");
 
+		// create a logger with a log file and header
 		let mut logger1 = logger!(
 			LogFilePath(Some(buf1)),
 			DisplayMillis(true),
@@ -855,11 +867,14 @@ mod test {
 		buf1.push(test_info.directory());
 		buf1.push("file1.log");
 
+		// create a logger
 		let mut logger1 = logger!(
 			LogFilePath(Some(buf1)),
 			DisplayMillis(true),
 			FileHeader("sometext".to_string())
 		)?;
+
+		// set debugging flag to trigger a different state
 		logger1.debug_lineno_is_none();
 		logger1.set_log_level(LogLevel::Debug);
 		logger1.init()?;
@@ -871,11 +886,14 @@ mod test {
 
 	#[test]
 	fn test_log_all_options() -> Result<(), Error> {
+		// get test_info
 		let test_info = test_info!()?;
 		let mut buf1 = PathBuf::new();
 
 		buf1.push(test_info.directory());
 		buf1.push("file1.log");
+
+		// create a logger with all options specified to exercise various parts off the code
 		let mut log = logger!(
 			MaxSizeBytes(100),
 			MaxAgeMillis(3_000),
@@ -892,10 +910,13 @@ mod test {
 			DeleteRotation(false),
 			FileHeader("header".to_string())
 		)?;
-		log.init()?;
+
+		// init should be successful
+		assert!(log.init().is_ok());
 		Ok(())
 	}
 
+	// mock configs for tests
 	impl Config for MockConfig {
 		fn get(&self, _: &ConfigOptionName) -> Option<ConfigOption> {
 			if self.v == 0 {
@@ -919,6 +940,8 @@ mod test {
 
 	#[test]
 	fn test_log_unusual_configs() -> Result<(), Error> {
+		// test some unusual configurations that can't happen to exercise part of the code that
+		// was not covered.
 		let config: Box<dyn Config> = Box::new(MockConfig { v: 0 });
 		let res = LogConfig::get_config_u64(ConfigOptionName::AutoRotate, &config, 1230);
 		assert_eq!(res, 1230);
@@ -938,9 +961,14 @@ mod test {
 
 	#[test]
 	fn test_log_invalid_configs() -> Result<(), Error> {
+		// MaxSizeBytes must be 50 or more
 		assert!(logger!(MaxSizeBytes(1)).is_err());
+		// MaxAgeMillis must be 1_000 or more
 		assert!(logger!(MaxAgeMillis(1)).is_err());
+		// LineNumDataMaxLen must be 10 or more
 		assert!(logger!(LineNumDataMaxLen(1)).is_err());
+
+		// test an invalid path
 		let mut buf = PathBuf::new();
 		buf.push("a");
 		buf.push("b");
