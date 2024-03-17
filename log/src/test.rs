@@ -863,4 +863,20 @@ mod test {
 		assert_eq!(res, None);
 		Ok(())
 	}
+
+	#[test]
+	fn test_log_invalid_configs() -> Result<(), Error> {
+		assert!(logger!(MaxSizeBytes(1)).is_err());
+		assert!(logger!(MaxAgeMillis(1)).is_err());
+		assert!(logger!(LineNumDataMaxLen(1)).is_err());
+		let mut buf = PathBuf::new();
+		buf.push("a");
+		buf.push("b");
+		buf.push("c");
+		buf.push("d");
+		buf.push("e.log");
+		assert!(logger!(LogFilePath(Some(buf))).is_err());
+
+		Ok(())
+	}
 }

@@ -22,3 +22,9 @@
 pub(crate) const NEWLINE: &[u8] = &['\n' as u8];
 // the default max length for the file location of a logged line
 pub(crate) const DEFAULT_LINE_NUM_DATA_MAX_LEN: u64 = 30;
+// the minimum value for MaxAgeMillis
+pub(crate) const MINIMUM_MAX_AGE_MILLIS: u64 = 1_000;
+// the minimum value for MaxSizeBytes
+pub(crate) const MINIMUM_MAX_SIZE_BYTES: u64 = 50;
+// the minimum value for LineNumDataMaxLen
+pub(crate) const MINIMUM_LNDML: u64 = 10;

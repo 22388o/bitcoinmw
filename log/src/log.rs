@@ -850,6 +850,36 @@ impl LogConfig {
 		let max_size_bytes = Self::get_config_u64(CN::MaxSizeBytes, &config, u64::MAX);
 		let value = DEFAULT_LINE_NUM_DATA_MAX_LEN;
 		let line_num_data_max_len = Self::get_config_u64(CN::LineNumDataMaxLen, &config, value);
+
+		if max_age_millis < MINIMUM_MAX_AGE_MILLIS {
+			let text = format!("MaxAgeMillis must be at least {}", MINIMUM_MAX_AGE_MILLIS);
+			return Err(err!(ErrKind::Configuration, text));
+		}
+
+		if max_size_bytes < MINIMUM_MAX_SIZE_BYTES {
+			let text = format!("MaxSizeBytes must be at least {}", MINIMUM_MAX_SIZE_BYTES);
+			return Err(err!(ErrKind::Configuration, text));
+		}
+
+		if line_num_data_max_len < MINIMUM_LNDML {
+			let text = format!("LineNumDataMaxLen must be at least {}", MINIMUM_LNDML);
+			return Err(err!(ErrKind::Configuration, text));
+		}
+
+		match file_path {
+			Some(ref file_path) => {
+				let parent = file_path.as_path().parent();
+				let parent = some_or_err!(parent, ErrKind::Log, "parent did not exist")?;
+				if !parent.exists() {
+					let ekind = ErrKind::Log;
+					let x = file_path.as_path().to_str().unwrap_or("");
+					let text = format!("parent directory filepath ({}) does not exist", x);
+					return Err(err!(ekind, text));
+				}
+			}
+			None => {}
+		}
+
 		Ok(Self {
 			auto_rotate,
 			colors,
