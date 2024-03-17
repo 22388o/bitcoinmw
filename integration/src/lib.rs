@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! # The BMW Integration crate
 //! This module includes integration tests. Currently, evh tests are the only ones included. That
 //! is mainly because all the evh tests could not compile on windows on the build pipeline so we
 //! had to move some of them out to their own crate.
