@@ -125,16 +125,10 @@ impl<S: Serializable> Serializable for Vec<S> {
 }
 
 impl<S: Serializable> Serializable for Option<S> {
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
-		match self {
-			Some(s) => {
-				writer.write_u8(1)?;
-				s.write(writer)?;
-			}
-			None => {
-				writer.write_u8(0)?;
-			}
+		writer.write_u8(if self.is_some() { 1 } else { 0 })?;
+		if self.is_some() {
+			self.as_ref().clone().unwrap().write(writer)?;
 		}
 		Ok(())
 	}
