@@ -75,6 +75,7 @@
 <a href="#74" id="74">74</a>
 <a href="#75" id="75">75</a>
 <a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -93,7 +94,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="doccomment">//! The Configuration crate is used by other crates in the BMW repo to build and check configurations.
+</span><span class="doccomment">//! # The BMW Configuration Crate
+//! The Configuration crate is used by other crates in the BMW repo to build and check configurations.
 //! Configurations should generally be built using the [`crate::config!`] macro and the
 //! [`crate::Config.check_config`] function should be used to confirm the resulting configuration
 //! has only allowed values, has all required values, and has no duplicates.
