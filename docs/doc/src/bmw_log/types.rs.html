@@ -199,6 +199,12 @@
 <a href="#198" id="198">198</a>
 <a href="#199" id="199">199</a>
 <a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -358,6 +364,12 @@
 	/// ConfigOption. The function returns either a reference to a
 	/// ConfigOption or a Error.
 	</span><span class="kw">fn </span>get_config_option(<span class="kw-2">&amp;</span><span class="self">self</span>, option: ConfigOptionName) -&gt; <span class="prelude-ty">Result</span>&lt;ConfigOption, Error&gt;;
+
+	<span class="attr">#[cfg(test)]
+	</span><span class="kw">fn </span>debug_process_resolve_frame_error(<span class="kw-2">&amp;mut </span><span class="self">self</span>);
+
+	<span class="attr">#[cfg(test)]
+	</span><span class="kw">fn </span>debug_invalid_metadata(<span class="kw-2">&amp;mut </span><span class="self">self</span>);
 }
 
 <span class="macro">clone_trait_object!</span>(Log);
