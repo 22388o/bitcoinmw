@@ -16,6 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! # The BMW Dependency crate
 //! This is the dependency crate. All bmw dependencies are included in this crate as re-exports and
 //! used by the other crates within the repo.
 

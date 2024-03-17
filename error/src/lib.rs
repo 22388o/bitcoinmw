@@ -16,7 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # The BMW error crate
+//! # The BMW Error crate
 //! This crate includes the main error structs, enums and macros used
 //! in BMW for building and mapping errors. This crate offers
 //! wrappers around the rust failure crate. The [`crate::map_err`]
