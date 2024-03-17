@@ -103,15 +103,15 @@ pub trait Log: DynClone {
 	/// Log data to disk/stdout. Note that even though a log level is specified,
 	/// the line is always logged for display purposes. If you wish to use log levels to
 	/// filter, use the macros: [`crate::fatal`], [`crate::error`], [`crate::warn`], [`crate::info`],
-	/// [`crate::debug`], [`crate::trace`]. This function returns () or a [`bmw_err::Error`].
+	/// [`crate::debug`], [`crate::trace`]. This function returns () or a Error.
 	fn log(&mut self, level: LogLevel, line: &str) -> Result<(), Error>;
 	/// The same as [`Log::log`], but this function will always log to standard output even if
 	/// standard output logging is currently disabled by the underlying logger.
-	/// This function returns () or a [`bmw_err::Error`].
+	/// This function returns () or a Error.
 	fn log_all(&mut self, level: LogLevel, line: &str) -> Result<(), Error>;
 	/// Log without any of the header details. As seen in the example, only 'test3' was logged.
 	/// no timestamp, log level, or line num info is logged. This function returns () or a
-	/// [`bmw_err::Error`].
+	/// Error.
 	fn log_plain(&mut self, level: LogLevel, line: &str) -> Result<(), Error>;
 	/// Do a log rotation. The name of the file rotated is automatically generated and stored
 	/// in the same directory as the original log file. Logging then proceeds with the original
@@ -131,10 +131,10 @@ pub trait Log: DynClone {
 	/// If auto rotation is enabled, then this function does not need to be called, however it
 	/// still may be called manually. Note that auto-rotation only occurs when the logger is
 	/// called so it might take some time to happen unless called manually. This function has
-	/// no parameters and returns () or a [`bmw_err::Error`].
+	/// no parameters and returns () or a Error.
 	fn rotate(&mut self) -> Result<(), Error>;
 	/// This function checks if a log rotation is needed. It returns true if it is needed and
-	/// false otherwise. This function returns () or a [`bmw_err::Error`].
+	/// false otherwise. This function returns () or a Error.
 	fn need_rotate(&self) -> Result<bool, Error>;
 	/// Sets the log level threshold. Logging only occurs if the logged line is logged at at
 	/// least this level
@@ -145,17 +145,17 @@ pub trait Log: DynClone {
 	fn init(&mut self) -> Result<(), Error>;
 	/// Close the log file
 	fn close(&mut self) -> Result<(), Error>;
-	/// Set the specified [`bmw_conf::ConfigOption`]. It may seem a little non-intuitive to see a set
+	/// Set the specified ConfigOption. It may seem a little non-intuitive to see a set
 	/// function with a single parameter, however part of the design of the logger is such that
 	/// there is only a single function to set these values which have multiple types. It is
 	/// possible to do that with enums and that is how it is implemented. The examples should
 	/// make it clear how to set these options which can be set in the initial config or after
 	/// logging has began with the exception of LogFilePath. This function returns () or a
-	/// [`bmw_err::Error`].
+	/// Error.
 	fn set_config_option(&mut self, value: ConfigOption) -> Result<(), Error>;
-	/// Get the specified [`bmw_conf::ConfigOptionName`]. These names correspond to the
-	/// [`bmw_conf::ConfigOption`]. The function returns either a reference to a
-	/// [`bmw_conf::ConfigOption`] or a [`bmw_err::Error`].
+	/// Get the specified ConfigOptionName. These names correspond to the
+	/// ConfigOption. The function returns either a reference to a
+	/// ConfigOption or a Error.
 	fn get_config_option(&self, option: ConfigOptionName) -> Result<ConfigOption, Error>;
 }
 
