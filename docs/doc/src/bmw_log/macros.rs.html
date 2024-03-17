@@ -679,6 +679,15 @@
 <a href="#678" id="678">678</a>
 <a href="#679" id="679">679</a>
 <a href="#680" id="680">680</a>
+<a href="#681" id="681">681</a>
+<a href="#682" id="682">682</a>
+<a href="#683" id="683">683</a>
+<a href="#684" id="684">684</a>
+<a href="#685" id="685">685</a>
+<a href="#686" id="686">686</a>
+<a href="#687" id="687">687</a>
+<a href="#688" id="688">688</a>
+<a href="#689" id="689">689</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1221,6 +1230,8 @@
 ///```
 ///
 /// Note that in the last example, the default values as described in [`crate::logger`] will be used.
+/// Also, see that macro for an exhaustive list of configuration options that are valid for this
+/// macro as well.
 </span><span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>log_init {
 	($(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; {{
@@ -1350,6 +1361,13 @@
 ///     Ok(())
 /// }
 /// ```
+///
+/// # Invalid values
+///
+/// * The value for MaxAgeMillis must be at least 1_000 (1 second).
+/// * The value for MaxSizeBytes must be at least 50 bytes.
+/// * The value for LineNumDataMaxLen must be at least 10 bytes.
+/// * The parent directory of LogFilePath must exist.
 </span><span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>logger {
         ($(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; {{

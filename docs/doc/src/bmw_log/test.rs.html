@@ -865,6 +865,22 @@
 <a href="#864" id="864">864</a>
 <a href="#865" id="865">865</a>
 <a href="#866" id="866">866</a>
+<a href="#867" id="867">867</a>
+<a href="#868" id="868">868</a>
+<a href="#869" id="869">869</a>
+<a href="#870" id="870">870</a>
+<a href="#871" id="871">871</a>
+<a href="#872" id="872">872</a>
+<a href="#873" id="873">873</a>
+<a href="#874" id="874">874</a>
+<a href="#875" id="875">875</a>
+<a href="#876" id="876">876</a>
+<a href="#877" id="877">877</a>
+<a href="#878" id="878">878</a>
+<a href="#879" id="879">879</a>
+<a href="#880" id="880">880</a>
+<a href="#881" id="881">881</a>
+<a href="#882" id="882">882</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1728,6 +1744,22 @@
 		<span class="macro">assert_eq!</span>(res, <span class="string">"mystring"</span>.to_string());
 		<span class="kw">let </span>res = LogConfig::get_config_path_buf(ConfigOptionName::AutoRotate, <span class="kw-2">&amp;</span>config, <span class="prelude-val">None</span>);
 		<span class="macro">assert_eq!</span>(res, <span class="prelude-val">None</span>);
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="attr">#[test]
+	</span><span class="kw">fn </span>test_log_invalid_configs() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="macro">assert!</span>(<span class="macro">logger!</span>(MaxSizeBytes(<span class="number">1</span>)).is_err());
+		<span class="macro">assert!</span>(<span class="macro">logger!</span>(MaxAgeMillis(<span class="number">1</span>)).is_err());
+		<span class="macro">assert!</span>(<span class="macro">logger!</span>(LineNumDataMaxLen(<span class="number">1</span>)).is_err());
+		<span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
+		buf.push(<span class="string">"a"</span>);
+		buf.push(<span class="string">"b"</span>);
+		buf.push(<span class="string">"c"</span>);
+		buf.push(<span class="string">"d"</span>);
+		buf.push(<span class="string">"e.log"</span>);
+		<span class="macro">assert!</span>(<span class="macro">logger!</span>(LogFilePath(<span class="prelude-val">Some</span>(buf))).is_err());
+
 		<span class="prelude-val">Ok</span>(())
 	}
 }
