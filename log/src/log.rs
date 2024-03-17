@@ -813,6 +813,7 @@ impl LogConfig {
 
 	// create the log config based on the specified data
 	pub(crate) fn new(configs: Vec<ConfigOption>) -> Result<Self, Error> {
+		use bmw_conf::ConfigOptionName as CN;
 		let config = ConfigBuilder::build_config(configs);
 		config.check_config(
 			vec![
@@ -833,29 +834,22 @@ impl LogConfig {
 			],
 			vec![],
 		)?;
-		let auto_rotate = Self::get_config_bool(ConfigOptionName::AutoRotate, &config, false);
-		let colors = Self::get_config_bool(ConfigOptionName::DisplayColors, &config, true);
-		let delete_rotation =
-			Self::get_config_bool(ConfigOptionName::DeleteRotation, &config, false);
-		let file_header =
-			Self::get_config_string(ConfigOptionName::FileHeader, &config, "".to_string());
-		let file_path = Self::get_config_path_buf(ConfigOptionName::LogFilePath, &config, None);
-		let level = Self::get_config_bool(ConfigOptionName::DisplayLogLevel, &config, true);
-		let line_num = Self::get_config_bool(ConfigOptionName::DisplayLineNum, &config, true);
-		let show_backtrace =
-			Self::get_config_bool(ConfigOptionName::DisplayBackTrace, &config, false);
-		let show_millis = Self::get_config_bool(ConfigOptionName::DisplayMillis, &config, true);
-		let stdout = Self::get_config_bool(ConfigOptionName::DisplayStdout, &config, true);
-		let timestamp = Self::get_config_bool(ConfigOptionName::DisplayTimestamp, &config, true);
-		let max_age_millis =
-			Self::get_config_u64(ConfigOptionName::MaxAgeMillis, &config, u64::MAX);
-		let max_size_bytes =
-			Self::get_config_u64(ConfigOptionName::MaxSizeBytes, &config, u64::MAX);
-		let line_num_data_max_len = Self::get_config_u64(
-			ConfigOptionName::LineNumDataMaxLen,
-			&config,
-			DEFAULT_LINE_NUM_DATA_MAX_LEN,
-		);
+
+		let auto_rotate = Self::get_config_bool(CN::AutoRotate, &config, false);
+		let colors = Self::get_config_bool(CN::DisplayColors, &config, true);
+		let delete_rotation = Self::get_config_bool(CN::DeleteRotation, &config, false);
+		let file_header = Self::get_config_string(CN::FileHeader, &config, "".to_string());
+		let file_path = Self::get_config_path_buf(CN::LogFilePath, &config, None);
+		let level = Self::get_config_bool(CN::DisplayLogLevel, &config, true);
+		let line_num = Self::get_config_bool(CN::DisplayLineNum, &config, true);
+		let show_backtrace = Self::get_config_bool(CN::DisplayBackTrace, &config, false);
+		let show_millis = Self::get_config_bool(CN::DisplayMillis, &config, true);
+		let stdout = Self::get_config_bool(CN::DisplayStdout, &config, true);
+		let timestamp = Self::get_config_bool(CN::DisplayTimestamp, &config, true);
+		let max_age_millis = Self::get_config_u64(CN::MaxAgeMillis, &config, u64::MAX);
+		let max_size_bytes = Self::get_config_u64(CN::MaxSizeBytes, &config, u64::MAX);
+		let value = DEFAULT_LINE_NUM_DATA_MAX_LEN;
+		let line_num_data_max_len = Self::get_config_u64(CN::LineNumDataMaxLen, &config, value);
 		Ok(Self {
 			auto_rotate,
 			colors,
