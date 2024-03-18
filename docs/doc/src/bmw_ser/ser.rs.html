@@ -321,6 +321,8 @@
 <a href="#320" id="320">320</a>
 <a href="#321" id="321">321</a>
 <a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -354,7 +356,9 @@
 	T::read(<span class="kw-2">&amp;mut </span>reader)
 }
 
-<span class="macro">macro_rules! </span>impl_int {
+<span class="doccomment">/// implement Serializable for some commonly used types (primative and standard)
+
+</span><span class="macro">macro_rules! </span>impl_int {
 	(<span class="macro-nonterminal">$int</span>:ty, <span class="macro-nonterminal">$w_fn</span>:ident, <span class="macro-nonterminal">$r_fn</span>:ident) =&gt; {
 		<span class="kw">impl </span>Serializable <span class="kw">for </span><span class="macro-nonterminal">$int </span>{
 			<span class="kw">fn </span>write&lt;W: Writer&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, writer: <span class="kw-2">&amp;mut </span>W) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {

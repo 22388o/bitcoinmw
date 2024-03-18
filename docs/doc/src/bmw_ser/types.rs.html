@@ -131,6 +131,35 @@
 <a href="#130" id="130">130</a>
 <a href="#131" id="131">131</a>
 <a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -153,58 +182,73 @@
 
 <span class="doccomment">/// Writer trait used for serializing data.
 </span><span class="kw">pub trait </span>Writer {
-	<span class="kw">fn </span>write_u8(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: u8) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="doccomment">/// write a u8 to the stream
+	</span><span class="kw">fn </span>write_u8(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: u8) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.write_fixed_bytes(<span class="kw-2">&amp;</span>[n])
 	}
 
-	<span class="kw">fn </span>write_i8(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: i8) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="doccomment">/// write an i8 to the stream
+	</span><span class="kw">fn </span>write_i8(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: i8) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.write_fixed_bytes(<span class="kw-2">&amp;</span>[n <span class="kw">as </span>u8])
 	}
 
-	<span class="kw">fn </span>write_u16(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: u16) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="doccomment">/// write a u16 to the stream
+	</span><span class="kw">fn </span>write_u16(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: u16) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.write_fixed_bytes(n.to_be_bytes())
 	}
 
-	<span class="kw">fn </span>write_i16(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: i16) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="doccomment">/// write an i16 to the stream
+	</span><span class="kw">fn </span>write_i16(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: i16) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.write_fixed_bytes(n.to_be_bytes())
 	}
 
-	<span class="kw">fn </span>write_u32(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: u32) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="doccomment">/// write a u32 to the stream
+	</span><span class="kw">fn </span>write_u32(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: u32) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.write_fixed_bytes(n.to_be_bytes())
 	}
 
-	<span class="kw">fn </span>write_i32(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: i32) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="doccomment">/// write an i32 to the stream
+	</span><span class="kw">fn </span>write_i32(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: i32) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.write_fixed_bytes(n.to_be_bytes())
 	}
 
-	<span class="kw">fn </span>write_u64(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: u64) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="doccomment">/// write a u64 to the stream
+	</span><span class="kw">fn </span>write_u64(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: u64) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.write_fixed_bytes(n.to_be_bytes())
 	}
 
-	<span class="kw">fn </span>write_i128(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: i128) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="doccomment">/// write an i128 to the stream
+	</span><span class="kw">fn </span>write_i128(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: i128) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.write_fixed_bytes(n.to_be_bytes())
 	}
 
-	<span class="kw">fn </span>write_u128(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: u128) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="doccomment">/// write a u128 to the stream
+	</span><span class="kw">fn </span>write_u128(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: u128) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.write_fixed_bytes(n.to_be_bytes())
 	}
 
-	<span class="kw">fn </span>write_i64(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: i64) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="doccomment">/// write an i64 to the stream
+	</span><span class="kw">fn </span>write_i64(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: i64) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.write_fixed_bytes(n.to_be_bytes())
 	}
 
-	<span class="kw">fn </span>write_usize(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="doccomment">/// write a usize to the stream
+	</span><span class="kw">fn </span>write_usize(<span class="kw-2">&amp;mut </span><span class="self">self</span>, n: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.write_fixed_bytes(n.to_be_bytes())
 	}
 
-	<span class="kw">fn </span>write_bytes&lt;T: AsRef&lt;[u8]&gt;&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, bytes: T) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="doccomment">/// write `bytes` to the stream and specify the length so that variable length data may be
+	/// written to the stream
+	</span><span class="kw">fn </span>write_bytes&lt;T: AsRef&lt;[u8]&gt;&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, bytes: T) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.write_u64(bytes.as_ref().len() <span class="kw">as </span>u64)<span class="question-mark">?</span>;
 		<span class="self">self</span>.write_fixed_bytes(bytes)
 	}
 
-	<span class="kw">fn </span>write_fixed_bytes&lt;T: AsRef&lt;[u8]&gt;&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, bytes: T) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+	<span class="doccomment">/// write `bytes` to the stream
+	</span><span class="kw">fn </span>write_fixed_bytes&lt;T: AsRef&lt;[u8]&gt;&gt;(<span class="kw-2">&amp;mut </span><span class="self">self</span>, bytes: T) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 
-	<span class="kw">fn </span>write_empty_bytes(<span class="kw-2">&amp;mut </span><span class="self">self</span>, length: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="doccomment">/// write `length` empty (0u8) bytes to a stream.
+	</span><span class="kw">fn </span>write_empty_bytes(<span class="kw-2">&amp;mut </span><span class="self">self</span>, length: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">for _ in </span><span class="number">0</span>..length {
 			<span class="self">self</span>.write_u8(<span class="number">0</span>)<span class="question-mark">?</span>;
 		}
@@ -214,21 +258,35 @@
 
 <span class="doccomment">/// Reader trait used for deserializing data.
 </span><span class="kw">pub trait </span>Reader {
-	<span class="kw">fn </span>read_u8(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u8, Error&gt;;
-	<span class="kw">fn </span>read_i8(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;i8, Error&gt;;
-	<span class="kw">fn </span>read_i16(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;i16, Error&gt;;
-	<span class="kw">fn </span>read_u16(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u16, Error&gt;;
-	<span class="kw">fn </span>read_u32(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u32, Error&gt;;
-	<span class="kw">fn </span>read_u64(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u64, Error&gt;;
-	<span class="kw">fn </span>read_u128(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u128, Error&gt;;
-	<span class="kw">fn </span>read_i128(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;i128, Error&gt;;
-	<span class="kw">fn </span>read_i32(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;i32, Error&gt;;
-	<span class="kw">fn </span>read_i64(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;i64, Error&gt;;
-	<span class="kw">fn </span>read_fixed_bytes(<span class="kw-2">&amp;mut </span><span class="self">self</span>, buf: <span class="kw-2">&amp;mut </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
-	<span class="kw">fn </span>read_usize(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt;;
-	<span class="kw">fn </span>expect_u8(<span class="kw-2">&amp;mut </span><span class="self">self</span>, val: u8) -&gt; <span class="prelude-ty">Result</span>&lt;u8, Error&gt;;
+	<span class="doccomment">/// read a u8 from the reader and return the value
+	</span><span class="kw">fn </span>read_u8(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u8, Error&gt;;
+	<span class="doccomment">/// read an i8 from the reader and return the value
+	</span><span class="kw">fn </span>read_i8(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;i8, Error&gt;;
+	<span class="doccomment">/// read an i16 from the reader and return the value
+	</span><span class="kw">fn </span>read_i16(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;i16, Error&gt;;
+	<span class="doccomment">/// read a u16 from the reader and return the value
+	</span><span class="kw">fn </span>read_u16(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u16, Error&gt;;
+	<span class="doccomment">/// read a u32 from the reader and return the value
+	</span><span class="kw">fn </span>read_u32(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u32, Error&gt;;
+	<span class="doccomment">/// read a u64 from the reader and return the value
+	</span><span class="kw">fn </span>read_u64(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u64, Error&gt;;
+	<span class="doccomment">/// read a u128 from the reader and return the value
+	</span><span class="kw">fn </span>read_u128(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u128, Error&gt;;
+	<span class="doccomment">/// read an i128 from the reader and return the value
+	</span><span class="kw">fn </span>read_i128(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;i128, Error&gt;;
+	<span class="doccomment">/// read an i32 from the reader and return the value
+	</span><span class="kw">fn </span>read_i32(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;i32, Error&gt;;
+	<span class="doccomment">/// read an i64 from the reader and return the value
+	</span><span class="kw">fn </span>read_i64(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;i64, Error&gt;;
+	<span class="doccomment">/// read a fixed length of bytes from the reader store them in `buf`
+	</span><span class="kw">fn </span>read_fixed_bytes(<span class="kw-2">&amp;mut </span><span class="self">self</span>, buf: <span class="kw-2">&amp;mut </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+	<span class="doccomment">/// read usize from the Reader.
+	</span><span class="kw">fn </span>read_usize(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt;;
+	<span class="doccomment">/// expect a specific byte, otherwise return an error
+	</span><span class="kw">fn </span>expect_u8(<span class="kw-2">&amp;mut </span><span class="self">self</span>, val: u8) -&gt; <span class="prelude-ty">Result</span>&lt;u8, Error&gt;;
 
-	<span class="kw">fn </span>read_empty_bytes(<span class="kw-2">&amp;mut </span><span class="self">self</span>, length: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="doccomment">/// Read bytes, expect them all to be 0u8. Otherwise, reutrn an error.
+	</span><span class="kw">fn </span>read_empty_bytes(<span class="kw-2">&amp;mut </span><span class="self">self</span>, length: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">for _ in </span><span class="number">0</span>..length {
 			<span class="kw">if </span><span class="self">self</span>.read_u8()<span class="question-mark">? </span>!= <span class="number">0u8 </span>{
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::CorruptedData, <span class="string">"expected 0u8"</span>));

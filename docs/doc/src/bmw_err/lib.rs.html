@@ -94,6 +94,15 @@
 <a href="#93" id="93">93</a>
 <a href="#94" id="94">94</a>
 <a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -165,13 +174,6 @@
 //!     Err(err!(ErrKind::Misc, "misc error occured"))
 //! }
 //!
-//! // The error macro can be used like the format macro to format output
-//! fn show_formatting() -&gt; Result&lt;(), Error&gt; {
-//!     let  code = 404;
-//!     // return an error with formatting
-//!     Err(err!(ErrKind::Http, "The webserver returned the error code: {}", code))
-//! }
-//!
 //! // Example of the try_into macro
 //! fn try_into_ex() -&gt; Result&lt;(), Error&gt; {
 //!     // try to convert a u128 to a usize
@@ -179,6 +181,22 @@
 //!     Ok(())
 //! }
 //!
+//!```
+//!
+//! # Formatting
+//!
+//! The [`crate::err`] macro may be used to format output just like [`std::println`] or
+//! [`std::format`]. See the example below for details.
+//!
+//!```
+//! use bmw_err::{Error, ErrKind, err};
+//!
+//! // The error macro can be used like the format macro to format output
+//! fn show_formatting() -&gt; Result&lt;(), Error&gt; {
+//!     let  code = 404;
+//!     // return an error with formatting
+//!     Err(err!(ErrKind::Http, "The webserver returned the error code: {}", code))
+//! }
 //!```
 
 </span><span class="kw">use </span>bmw_deps::failure;

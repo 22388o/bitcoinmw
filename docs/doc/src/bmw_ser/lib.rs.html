@@ -32,6 +32,7 @@
 <a href="#31" id="31">31</a>
 <a href="#32" id="32">32</a>
 <a href="#33" id="33">33</a>
+<a href="#34" id="34">34</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -49,7 +50,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="doccomment">//! This crate includes the [`crate::Serializable`] trait, the [`crate::Reader`] trait and the
+</span><span class="doccomment">//! # The BMW Serialization crate
+//! This crate includes the [`crate::Serializable`] trait, the [`crate::Reader`] trait and the
 //! [`crate::Writer`] trait. They are separated from the bmw_util crate so that the util crate
 //! does not have to be a dependency of bmw_derive and can therefore use the Serializable
 //! proc_macro that is included in that crate. The Serializable trait is the key to several of the
