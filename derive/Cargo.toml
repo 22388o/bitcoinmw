@@ -2,10 +2,10 @@
 name = "bmw_derive"
 version = "0.0.3-beta.1"
 authors = ["The BitcoinMW Developers"]
-description = "proc-macros bmw"
+description = "Proc Macros for BMW"
 license = "Apache-2.0"
 repository = "https://github.com/cgilliard/bitcoinmw"
-keywords = [ "crypto", "bmw", "mimblewimble" ]
+keywords = [ "crypto", "bitcoinmw" ]
 exclude = ["**/*.bmw"]
 edition = "2021"
 

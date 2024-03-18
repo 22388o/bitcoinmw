@@ -535,6 +535,7 @@ mod rand;
 mod ser;
 mod slabs;
 mod suffix_tree;
+mod test_serializable_derive;
 mod threadpool;
 mod types;
 
