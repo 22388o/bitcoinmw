@@ -59,6 +59,7 @@
 <a href="#58" id="58">58</a>
 <a href="#59" id="59">59</a>
 <a href="#60" id="60">60</a>
+<a href="#61" id="61">61</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -98,10 +99,11 @@
 ///             ConfigOptionName::FileHeader,
 ///             ConfigOptionName::DeleteRotation
 ///         ],
-///         vec![]
+///         vec![ConfigOptionName::DeleteRotation]
 ///     );
 ///
 ///     // this configuration is ok because both FileHeader and DeleteRotation are allowed
+///     // and the only required configuration 'DeleteRotation' is specified
 ///     assert!(res.is_ok());
 ///     Ok(())
 /// }

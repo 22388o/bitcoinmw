@@ -4525,6 +4525,7 @@
 <a href="#4524" id="4524">4524</a>
 <a href="#4525" id="4525">4525</a>
 <a href="#4526" id="4526">4526</a>
+<a href="#4527" id="4527">4527</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -4558,6 +4559,7 @@
 	<span class="kw">use </span>bmw_deps::rand::random;
 	<span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
+	<span class="kw">use </span>bmw_ser::{deserialize, serialize};
 	<span class="kw">use </span>bmw_test::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
 	<span class="kw">use </span>std::io::Read;
