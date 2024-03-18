@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["Cell","ChannelDirection"],"struct":["Builder","ChannelState","CircuitPlan","CircuitState","Peer"],"trait":["Channel","Circuit","RngCompatExt","Stream"]};

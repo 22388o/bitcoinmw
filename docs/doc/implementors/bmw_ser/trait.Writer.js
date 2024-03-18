@@ -1,3 +1,0 @@
-(function() {var implementors = {
-"bmw_util":[["impl&lt;'a&gt; <a class=\"trait\" href=\"bmw_util/trait.Writer.html\" title=\"trait bmw_util::Writer\">Writer</a> for <a class=\"struct\" href=\"bmw_util/struct.BinWriter.html\" title=\"struct bmw_util::BinWriter\">BinWriter</a>&lt;'a&gt;"],["impl <a class=\"trait\" href=\"bmw_util/trait.Writer.html\" title=\"trait bmw_util::Writer\">Writer</a> for <a class=\"struct\" href=\"bmw_util/struct.SlabWriter.html\" title=\"struct bmw_util::SlabWriter\">SlabWriter</a>"]]
-};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

@@ -1,3 +1,0 @@
-(function() {var implementors = {
-"bmw_err":[["impl Fail for <a class=\"enum\" href=\"bmw_err/enum.ErrorKind.html\" title=\"enum bmw_err::ErrorKind\">ErrorKind</a>"],["impl Fail for <a class=\"struct\" href=\"bmw_err/struct.Error.html\" title=\"struct bmw_err::Error\">Error</a>"]]
-};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

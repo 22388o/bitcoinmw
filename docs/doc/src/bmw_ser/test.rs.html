@@ -223,6 +223,30 @@
 <a href="#222" id="222">222</a>
 <a href="#223" id="223">223</a>
 <a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a>
+<a href="#227" id="227">227</a>
+<a href="#228" id="228">228</a>
+<a href="#229" id="229">229</a>
+<a href="#230" id="230">230</a>
+<a href="#231" id="231">231</a>
+<a href="#232" id="232">232</a>
+<a href="#233" id="233">233</a>
+<a href="#234" id="234">234</a>
+<a href="#235" id="235">235</a>
+<a href="#236" id="236">236</a>
+<a href="#237" id="237">237</a>
+<a href="#238" id="238">238</a>
+<a href="#239" id="239">239</a>
+<a href="#240" id="240">240</a>
+<a href="#241" id="241">241</a>
+<a href="#242" id="242">242</a>
+<a href="#243" id="243">243</a>
+<a href="#244" id="244">244</a>
+<a href="#245" id="245">245</a>
+<a href="#246" id="246">246</a>
+<a href="#247" id="247">247</a>
+<a href="#248" id="248">248</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -247,7 +271,8 @@
 	<span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 	<span class="kw">use </span>std::fmt::Debug;
 
-	<span class="attr">#[derive(Debug, PartialEq)]
+	<span class="comment">// type that can be used to generate an error
+	</span><span class="attr">#[derive(Debug, PartialEq)]
 	</span><span class="kw">struct </span>SerErr {
 		exp: u8,
 		empty: u8,
@@ -255,18 +280,22 @@
 
 	<span class="kw">impl </span>Serializable <span class="kw">for </span>SerErr {
 		<span class="kw">fn </span>read&lt;R: Reader&gt;(reader: <span class="kw-2">&amp;mut </span>R) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
-			reader.expect_u8(<span class="number">99</span>)<span class="question-mark">?</span>;
+			<span class="comment">// read data but return an error unless a specific value is set
+			</span>reader.expect_u8(<span class="number">99</span>)<span class="question-mark">?</span>;
 			reader.read_empty_bytes(<span class="number">1</span>)<span class="question-mark">?</span>;
 			<span class="prelude-val">Ok</span>(<span class="self">Self </span>{ exp: <span class="number">99</span>, empty: <span class="number">0 </span>})
 		}
 		<span class="kw">fn </span>write&lt;W: Writer&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, writer: <span class="kw-2">&amp;mut </span>W) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-			writer.write_u8(<span class="self">self</span>.exp)<span class="question-mark">?</span>;
+			<span class="comment">// write is regular with no errors
+			</span>writer.write_u8(<span class="self">self</span>.exp)<span class="question-mark">?</span>;
 			writer.write_u8(<span class="self">self</span>.empty)<span class="question-mark">?</span>;
 			<span class="prelude-val">Ok</span>(())
 		}
 	}
 
-	<span class="kw">fn </span>ser_helper&lt;S: Serializable + Debug + PartialEq&gt;(ser_out: S) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="comment">// helper function that serializes and deserializes a Serializable and tests them for
+	// equality
+	</span><span class="kw">fn </span>ser_helper&lt;S: Serializable + Debug + PartialEq&gt;(ser_out: S) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>v: Vec&lt;u8&gt; = <span class="macro">vec!</span>[];
 		serialize(<span class="kw-2">&amp;mut </span>v, <span class="kw-2">&amp;</span>ser_out)<span class="question-mark">?</span>;
 		<span class="kw">let </span>ser_in: S = deserialize(<span class="kw-2">&amp;mut &amp;</span>v[..])<span class="question-mark">?</span>;
@@ -274,7 +303,8 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="attr">#[derive(Debug, PartialEq)]
+	<span class="comment">// struct with all types
+	</span><span class="attr">#[derive(Debug, PartialEq)]
 	</span><span class="kw">struct </span>SerAll {
 		a: u8,
 		b: i8,
@@ -294,7 +324,8 @@
 		o: <span class="prelude-ty">Option</span>&lt;u8&gt;,
 	}
 
-	<span class="kw">impl </span>Serializable <span class="kw">for </span>SerAll {
+	<span class="comment">// read/write with some added data to exercise all functions in the interface
+	</span><span class="kw">impl </span>Serializable <span class="kw">for </span>SerAll {
 		<span class="kw">fn </span>read&lt;R: Reader&gt;(reader: <span class="kw-2">&amp;mut </span>R) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
 			<span class="kw">let </span>a = reader.read_u8()<span class="question-mark">?</span>;
 			<span class="kw">let </span>b = reader.read_i8()<span class="question-mark">?</span>;
@@ -366,7 +397,8 @@
 	}
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_ser() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>rand_u8: u8 = rand::random();
+		<span class="comment">// create a SerAll with random values
+		</span><span class="kw">let </span>rand_u8: u8 = rand::random();
 		<span class="kw">let </span>rand_ch: char = rand_u8 <span class="kw">as </span>char;
 		<span class="kw">let </span>ser_out = SerAll {
 			a: rand::random(),
@@ -386,9 +418,12 @@
 			v: <span class="macro">vec!</span>[rand::random(), rand::random(), rand::random()],
 			o: <span class="prelude-val">Some</span>(rand::random()),
 		};
-		ser_helper(ser_out)<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>rand_u8: u8 = rand::random();
+		<span class="comment">// test it
+		</span>ser_helper(ser_out)<span class="question-mark">?</span>;
+
+		<span class="comment">// create again with some other options
+		</span><span class="kw">let </span>rand_u8: u8 = rand::random();
 		<span class="kw">let </span>rand_ch: char = rand_u8 <span class="kw">as </span>char;
 		<span class="kw">let </span>ser_out = SerAll {
 			a: rand::random(),
@@ -409,36 +444,49 @@
 			o: <span class="prelude-val">None</span>,
 		};
 
-		ser_helper(ser_out)<span class="question-mark">?</span>;
+		<span class="comment">// test it
+		</span>ser_helper(ser_out)<span class="question-mark">?</span>;
 
-		ser_helper(())<span class="question-mark">?</span>;
-		ser_helper((rand::random::&lt;u32&gt;(), rand::random::&lt;i128&gt;()))<span class="question-mark">?</span>;
-		ser_helper((<span class="string">"hi there"</span>.to_string(), <span class="number">123</span>))<span class="question-mark">?</span>;
-		<span class="kw">let </span>x = [<span class="number">3u8</span>; <span class="number">8</span>];
+		<span class="comment">// test with ()
+		</span>ser_helper(())<span class="question-mark">?</span>;
+		<span class="comment">// test with a tuple
+		</span>ser_helper((rand::random::&lt;u32&gt;(), rand::random::&lt;i128&gt;()))<span class="question-mark">?</span>;
+
+		<span class="comment">// test with a string
+		</span>ser_helper((<span class="string">"hi there"</span>.to_string(), <span class="number">123</span>))<span class="question-mark">?</span>;
+
+		<span class="comment">// test an array
+		</span><span class="kw">let </span>x = [<span class="number">3u8</span>; <span class="number">8</span>];
 		ser_helper(x)<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>ser_out = SerErr { exp: <span class="number">100</span>, empty: <span class="number">0 </span>};
+		<span class="comment">// test an error
+		</span><span class="kw">let </span>ser_out = SerErr { exp: <span class="number">100</span>, empty: <span class="number">0 </span>};
 		<span class="kw">let </span><span class="kw-2">mut </span>v: Vec&lt;u8&gt; = <span class="macro">vec!</span>[];
 		serialize(<span class="kw-2">&amp;mut </span>v, <span class="kw-2">&amp;</span>ser_out)<span class="question-mark">?</span>;
 		<span class="kw">let </span>ser_in: <span class="prelude-ty">Result</span>&lt;SerErr, Error&gt; = deserialize(<span class="kw-2">&amp;mut &amp;</span>v[..]);
 		<span class="macro">assert!</span>(ser_in.is_err());
 
-		<span class="kw">let </span>ser_out = SerErr { exp: <span class="number">99</span>, empty: <span class="number">0 </span>};
+		<span class="comment">// test with the values that do not generate an error
+		</span><span class="kw">let </span>ser_out = SerErr { exp: <span class="number">99</span>, empty: <span class="number">0 </span>};
 		<span class="kw">let </span><span class="kw-2">mut </span>v: Vec&lt;u8&gt; = <span class="macro">vec!</span>[];
 		serialize(<span class="kw-2">&amp;mut </span>v, <span class="kw-2">&amp;</span>ser_out)<span class="question-mark">?</span>;
 		<span class="kw">let </span>ser_in: <span class="prelude-ty">Result</span>&lt;SerErr, Error&gt; = deserialize(<span class="kw-2">&amp;mut &amp;</span>v[..]);
 		<span class="macro">assert!</span>(ser_in.is_ok());
 
-		<span class="kw">let </span>ser_out = SerErr { exp: <span class="number">99</span>, empty: <span class="number">1 </span>};
+		<span class="comment">// generate an error again
+		</span><span class="kw">let </span>ser_out = SerErr { exp: <span class="number">99</span>, empty: <span class="number">1 </span>};
 		<span class="kw">let </span><span class="kw-2">mut </span>v: Vec&lt;u8&gt; = <span class="macro">vec!</span>[];
 		serialize(<span class="kw-2">&amp;mut </span>v, <span class="kw-2">&amp;</span>ser_out)<span class="question-mark">?</span>;
 		<span class="kw">let </span>ser_in: <span class="prelude-ty">Result</span>&lt;SerErr, Error&gt; = deserialize(<span class="kw-2">&amp;mut &amp;</span>v[..]);
 		<span class="macro">assert!</span>(ser_in.is_err());
 
-		<span class="kw">let </span>v = <span class="macro">vec!</span>[<span class="string">"test1"</span>.to_string(), <span class="string">"a"</span>.to_string(), <span class="string">"okokok"</span>.to_string()];
+		<span class="comment">// test a vec of strings
+		</span><span class="kw">let </span>v = <span class="macro">vec!</span>[<span class="string">"test1"</span>.to_string(), <span class="string">"a"</span>.to_string(), <span class="string">"okokok"</span>.to_string()];
 		ser_helper(v)<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>s = <span class="string">"abc"</span>.to_string();
+		<span class="comment">// test a ref to a string (read is an error beacuse we can't return a reference
+		// from read).
+		</span><span class="kw">let </span>s = <span class="string">"abc"</span>.to_string();
 		<span class="kw">let </span><span class="kw-2">mut </span>v: Vec&lt;u8&gt; = <span class="macro">vec!</span>[];
 		serialize(<span class="kw-2">&amp;mut </span>v, &amp;&amp;s)<span class="question-mark">?</span>;
 		<span class="kw">let </span>s1: <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>String, Error&gt; = deserialize(<span class="kw-2">&amp;mut &amp;</span>v[..]);
