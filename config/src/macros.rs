@@ -37,10 +37,11 @@
 ///             ConfigOptionName::FileHeader,
 ///             ConfigOptionName::DeleteRotation
 ///         ],
-///         vec![]
+///         vec![ConfigOptionName::DeleteRotation]
 ///     );
 ///
 ///     // this configuration is ok because both FileHeader and DeleteRotation are allowed
+///     // and the only required configuration 'DeleteRotation' is specified
 ///     assert!(res.is_ok());
 ///     Ok(())
 /// }

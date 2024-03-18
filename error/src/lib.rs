@@ -69,13 +69,6 @@
 //!     Err(err!(ErrKind::Misc, "misc error occured"))
 //! }
 //!
-//! // The error macro can be used like the format macro to format output
-//! fn show_formatting() -> Result<(), Error> {
-//!     let  code = 404;
-//!     // return an error with formatting
-//!     Err(err!(ErrKind::Http, "The webserver returned the error code: {}", code))
-//! }
-//!
 //! // Example of the try_into macro
 //! fn try_into_ex() -> Result<(), Error> {
 //!     // try to convert a u128 to a usize
@@ -83,6 +76,22 @@
 //!     Ok(())
 //! }
 //!
+//!```
+//!
+//! # Formatting
+//!
+//! The [`crate::err`] macro may be used to format output just like [`std::println`] or
+//! [`std::format`]. See the example below for details.
+//!
+//!```
+//! use bmw_err::{Error, ErrKind, err};
+//!
+//! // The error macro can be used like the format macro to format output
+//! fn show_formatting() -> Result<(), Error> {
+//!     let  code = 404;
+//!     // return an error with formatting
+//!     Err(err!(ErrKind::Http, "The webserver returned the error code: {}", code))
+//! }
 //!```
 
 use bmw_deps::failure;
