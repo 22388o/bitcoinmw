@@ -25,7 +25,6 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::fmt::Debug;
 use std::future::Future;
-use std::io::{Read, Write};
 use std::marker::PhantomData;
 use std::pin::Pin;
 use std::rc::Rc;
@@ -218,18 +217,6 @@ pub struct SlabReader {
 	pub(crate) slab_size: usize,
 	pub(crate) bytes_per_slab: usize,
 	pub(crate) max_value: usize,
-}
-
-/// Utility wrapper for an underlying byte Writer. Defines higher level methods
-/// to write numbers, byte vectors, hashes, etc.
-pub struct BinWriter<'a> {
-	pub(crate) sink: &'a mut dyn Write,
-}
-
-/// Utility wrapper for an underlying byte Reader. Defines higher level methods
-/// to write numbers, byte vectors, hashes, etc.
-pub struct BinReader<'a, R: Read> {
-	pub(crate) source: &'a mut R,
 }
 
 /// The configuration struct for a [`crate::ThreadPool`]. This struct is passed into the
@@ -1346,9 +1333,10 @@ where
 #[cfg(test)]
 mod test {
 	use crate as bmw_util;
+	use crate::slab_allocator;
 	use crate::types::ConfigOption;
-	use crate::{deserialize, serialize, slab_allocator};
 	use bmw_err::*;
+	use bmw_ser::{deserialize, serialize};
 
 	#[test]
 	fn test_config_option_ser() -> Result<(), Error> {

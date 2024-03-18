@@ -31,6 +31,7 @@ mod test {
 	use bmw_deps::rand::random;
 	use bmw_err::*;
 	use bmw_log::*;
+	use bmw_ser::{deserialize, serialize};
 	use bmw_test::*;
 	use bmw_util::*;
 	use std::io::Read;

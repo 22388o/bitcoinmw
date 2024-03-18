@@ -20,57 +20,72 @@ use std::io::{Read, Write};
 
 /// Writer trait used for serializing data.
 pub trait Writer {
+	/// write a u8 to the stream
 	fn write_u8(&mut self, n: u8) -> Result<(), Error> {
 		self.write_fixed_bytes(&[n])
 	}
 
+	/// write an i8 to the stream
 	fn write_i8(&mut self, n: i8) -> Result<(), Error> {
 		self.write_fixed_bytes(&[n as u8])
 	}
 
+	/// write a u16 to the stream
 	fn write_u16(&mut self, n: u16) -> Result<(), Error> {
 		self.write_fixed_bytes(n.to_be_bytes())
 	}
 
+	/// write an i16 to the stream
 	fn write_i16(&mut self, n: i16) -> Result<(), Error> {
 		self.write_fixed_bytes(n.to_be_bytes())
 	}
 
+	/// write a u32 to the stream
 	fn write_u32(&mut self, n: u32) -> Result<(), Error> {
 		self.write_fixed_bytes(n.to_be_bytes())
 	}
 
+	/// write an i32 to the stream
 	fn write_i32(&mut self, n: i32) -> Result<(), Error> {
 		self.write_fixed_bytes(n.to_be_bytes())
 	}
 
+	/// write a u64 to the stream
 	fn write_u64(&mut self, n: u64) -> Result<(), Error> {
 		self.write_fixed_bytes(n.to_be_bytes())
 	}
 
+	/// write an i128 to the stream
 	fn write_i128(&mut self, n: i128) -> Result<(), Error> {
 		self.write_fixed_bytes(n.to_be_bytes())
 	}
 
+	/// write a u128 to the stream
 	fn write_u128(&mut self, n: u128) -> Result<(), Error> {
 		self.write_fixed_bytes(n.to_be_bytes())
 	}
 
+	/// write an i64 to the stream
 	fn write_i64(&mut self, n: i64) -> Result<(), Error> {
 		self.write_fixed_bytes(n.to_be_bytes())
 	}
 
+	/// write a usize to the stream
 	fn write_usize(&mut self, n: usize) -> Result<(), Error> {
 		self.write_fixed_bytes(n.to_be_bytes())
 	}
 
+	/// write `bytes` to the stream and specify the length so that variable length data may be
+	/// written to the stream
 	fn write_bytes<T: AsRef<[u8]>>(&mut self, bytes: T) -> Result<(), Error> {
 		self.write_u64(bytes.as_ref().len() as u64)?;
 		self.write_fixed_bytes(bytes)
 	}
 
+	/// write `bytes` to the stream
 	fn write_fixed_bytes<T: AsRef<[u8]>>(&mut self, bytes: T) -> Result<(), Error>;
 
+	/// write `length` empty (0u8) bytes to a stream.
 	fn write_empty_bytes(&mut self, length: usize) -> Result<(), Error> {
 		for _ in 0..length {
 			self.write_u8(0)?;
@@ -81,20 +96,34 @@ pub trait Writer {
 
 /// Reader trait used for deserializing data.
 pub trait Reader {
+	/// read a u8 from the reader and return the value
 	fn read_u8(&mut self) -> Result<u8, Error>;
+	/// read an i8 from the reader and return the value
 	fn read_i8(&mut self) -> Result<i8, Error>;
+	/// read an i16 from the reader and return the value
 	fn read_i16(&mut self) -> Result<i16, Error>;
+	/// read a u16 from the reader and return the value
 	fn read_u16(&mut self) -> Result<u16, Error>;
+	/// read a u32 from the reader and return the value
 	fn read_u32(&mut self) -> Result<u32, Error>;
+	/// read a u64 from the reader and return the value
 	fn read_u64(&mut self) -> Result<u64, Error>;
+	/// read a u128 from the reader and return the value
 	fn read_u128(&mut self) -> Result<u128, Error>;
+	/// read an i128 from the reader and return the value
 	fn read_i128(&mut self) -> Result<i128, Error>;
+	/// read an i32 from the reader and return the value
 	fn read_i32(&mut self) -> Result<i32, Error>;
+	/// read an i64 from the reader and return the value
 	fn read_i64(&mut self) -> Result<i64, Error>;
+	/// read a fixed length of bytes from the reader store them in `buf`
 	fn read_fixed_bytes(&mut self, buf: &mut [u8]) -> Result<(), Error>;
+	/// read usize from the Reader.
 	fn read_usize(&mut self) -> Result<usize, Error>;
+	/// expect a specific byte, otherwise return an error
 	fn expect_u8(&mut self, val: u8) -> Result<u8, Error>;
 
+	/// Read bytes, expect them all to be 0u8. Otherwise, reutrn an error.
 	fn read_empty_bytes(&mut self, length: usize) -> Result<(), Error> {
 		for _ in 0..length {
 			if self.read_u8()? != 0u8 {

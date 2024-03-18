@@ -19,16 +19,16 @@ use crate::misc::set_max;
 use crate::misc::{slice_to_usize, usize_to_slice};
 use crate::ConfigOption::*;
 use crate::{
-	Array, ArrayList, BinReader, BinWriter, Builder, ConfigOption, Hashset, HashsetConfig,
-	Hashtable, HashtableConfig, List, ListConfig, Reader, Serializable, SlabAllocator,
-	SlabAllocatorConfig, SlabReader, SlabWriter, SortableList, Writer, GLOBAL_SLAB_ALLOCATOR,
+	Array, ArrayList, Builder, ConfigOption, Hashset, HashsetConfig, Hashtable, HashtableConfig,
+	List, ListConfig, SlabAllocator, SlabAllocatorConfig, SlabReader, SlabWriter, SortableList,
+	GLOBAL_SLAB_ALLOCATOR,
 };
 use bmw_err::{err, Error};
 use bmw_log::*;
+use bmw_ser::{Reader, Serializable, Writer};
 use std::cell::{Ref, RefCell};
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::io::{Read, Write};
 use std::rc::Rc;
 use std::thread;
 
@@ -731,113 +731,6 @@ impl Reader for SlabReader {
 	}
 }
 
-impl<'a> BinWriter<'a> {
-	/// Wraps a standard Write in a new BinWriter
-	pub fn new(sink: &'a mut dyn Write) -> BinWriter<'a> {
-		BinWriter { sink }
-	}
-}
-
-impl<'a> Writer for BinWriter<'a> {
-	fn write_fixed_bytes<T: AsRef<[u8]>>(&mut self, bytes: T) -> Result<(), Error> {
-		self.sink.write_all(bytes.as_ref())?;
-		Ok(())
-	}
-}
-
-impl<'a, R: Read> BinReader<'a, R> {
-	/// Constructor for a new BinReader for the provided source
-	pub fn new(source: &'a mut R) -> Self {
-		BinReader { source }
-	}
-}
-
-impl<'a, R: Read> Reader for BinReader<'a, R> {
-	fn read_u8(&mut self) -> Result<u8, Error> {
-		let mut b = [0u8; 1];
-		self.source.read_exact(&mut b)?;
-		Ok(b[0])
-	}
-	fn read_i8(&mut self) -> Result<i8, Error> {
-		let mut b = [0u8; 1];
-		self.source.read_exact(&mut b)?;
-		Ok(b[0] as i8)
-	}
-	fn read_i16(&mut self) -> Result<i16, Error> {
-		let mut b = [0u8; 2];
-		self.source.read_exact(&mut b)?;
-		Ok(i16::from_be_bytes(b))
-	}
-	fn read_u16(&mut self) -> Result<u16, Error> {
-		let mut b = [0u8; 2];
-		self.source.read_exact(&mut b)?;
-		Ok(u16::from_be_bytes(b))
-	}
-	fn read_u32(&mut self) -> Result<u32, Error> {
-		let mut b = [0u8; 4];
-		self.source.read_exact(&mut b)?;
-		Ok(u32::from_be_bytes(b))
-	}
-	fn read_i32(&mut self) -> Result<i32, Error> {
-		let mut b = [0u8; 4];
-		self.source.read_exact(&mut b)?;
-		Ok(i32::from_be_bytes(b))
-	}
-	fn read_u64(&mut self) -> Result<u64, Error> {
-		let mut b = [0u8; 8];
-		self.source.read_exact(&mut b)?;
-		Ok(u64::from_be_bytes(b))
-	}
-	fn read_i128(&mut self) -> Result<i128, Error> {
-		let mut b = [0u8; 16];
-		self.source.read_exact(&mut b)?;
-		Ok(i128::from_be_bytes(b))
-	}
-	fn read_usize(&mut self) -> Result<usize, Error> {
-		let mut b = [0u8; 8];
-		self.source.read_exact(&mut b)?;
-		Ok(usize::from_be_bytes(b))
-	}
-
-	fn read_u128(&mut self) -> Result<u128, Error> {
-		let mut b = [0u8; 16];
-		self.source.read_exact(&mut b)?;
-		Ok(u128::from_be_bytes(b))
-	}
-	fn read_i64(&mut self) -> Result<i64, Error> {
-		let mut b = [0u8; 8];
-		self.source.read_exact(&mut b)?;
-		Ok(i64::from_be_bytes(b))
-	}
-
-	fn read_fixed_bytes(&mut self, buf: &mut [u8]) -> Result<(), Error> {
-		self.source.read_exact(buf)?;
-		Ok(())
-	}
-
-	fn expect_u8(&mut self, val: u8) -> Result<u8, Error> {
-		let b = self.read_u8()?;
-		if b == val {
-			Ok(b)
-		} else {
-			let fmt = format!("expected: {:?}, received: {:?}", val, b);
-			Err(err!(ErrKind::CorruptedData, fmt))
-		}
-	}
-}
-
-/// Serializes a Serializable into any std::io::Write implementation.
-pub fn serialize<W: Serializable>(sink: &mut dyn Write, thing: &W) -> Result<(), Error> {
-	let mut writer = BinWriter::new(sink);
-	thing.write(&mut writer)
-}
-
-/// Deserializes a Serializable from any std::io::Read implementation.
-pub fn deserialize<T: Serializable, R: Read>(source: &mut R) -> Result<T, Error> {
-	let mut reader = BinReader::new(source);
-	T::read(&mut reader)
-}
-
 #[cfg(test)]
 mod test {
 	use crate as bmw_util;
@@ -847,6 +740,7 @@ mod test {
 	use bmw_deps::rand;
 	use bmw_err::*;
 	use bmw_log::*;
+	use bmw_ser::{deserialize, serialize};
 	use std::cell::{RefCell, RefMut};
 	use std::fmt::Debug;
 	use std::rc::Rc;

@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! # The BMW Serialization crate
 //! This crate includes the [`crate::Serializable`] trait, the [`crate::Reader`] trait and the
 //! [`crate::Writer`] trait. They are separated from the bmw_util crate so that the util crate
 //! does not have to be a dependency of bmw_derive and can therefore use the Serializable

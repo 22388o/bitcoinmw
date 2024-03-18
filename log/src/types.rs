@@ -178,6 +178,7 @@ pub struct GlobalLogContainer {}
 
 // Crate local types
 
+#[allow(dead_code)]
 #[derive(Clone)]
 pub(crate) struct LogConfig {
 	pub(crate) colors: bool,

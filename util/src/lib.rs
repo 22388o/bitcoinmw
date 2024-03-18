@@ -543,18 +543,17 @@ pub use crate::misc::{
 	u128_to_slice, u32_to_slice, u64_to_slice, usize_to_slice,
 };
 pub use crate::rand::{random_bytes, random_u128, random_u32, random_u64};
-pub use crate::ser::{deserialize, serialize};
 pub use crate::slabs::GLOBAL_SLAB_ALLOCATOR;
 pub use crate::types::ConfigOption::*;
 pub use crate::types::PatternParam::*;
 pub use crate::types::SuffixParam::*;
 pub use crate::types::{
-	Array, ArrayIterator, ArrayList, BinReader, BinWriter, Builder, ConfigOption, Hashset,
-	HashsetConfig, HashsetIterator, Hashtable, HashtableConfig, HashtableIterator, List,
-	ListConfig, ListIterator, Lock, LockBox, Match, Pattern, PatternParam, PoolResult, Queue,
-	RwLockReadGuardWrapper, RwLockWriteGuardWrapper, Slab, SlabAllocator, SlabAllocatorConfig,
-	SlabMut, SlabReader, SlabWriter, SortableList, Stack, SuffixParam, SuffixTree, ThreadPool,
-	ThreadPoolConfig, ThreadPoolExecutor, ThreadPoolStopper,
+	Array, ArrayIterator, ArrayList, Builder, ConfigOption, Hashset, HashsetConfig,
+	HashsetIterator, Hashtable, HashtableConfig, HashtableIterator, List, ListConfig, ListIterator,
+	Lock, LockBox, Match, Pattern, PatternParam, PoolResult, Queue, RwLockReadGuardWrapper,
+	RwLockWriteGuardWrapper, Slab, SlabAllocator, SlabAllocatorConfig, SlabMut, SlabReader,
+	SlabWriter, SortableList, Stack, SuffixParam, SuffixTree, ThreadPool, ThreadPoolConfig,
+	ThreadPoolExecutor, ThreadPoolStopper,
 };
 
 pub use crate::lock::lock_box_from_usize;

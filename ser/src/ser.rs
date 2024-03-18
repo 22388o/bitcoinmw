@@ -31,6 +31,8 @@ pub fn deserialize<T: Serializable, R: Read>(source: &mut R) -> Result<T, Error>
 	T::read(&mut reader)
 }
 
+/// implement Serializable for some commonly used types (primative and standard)
+
 macro_rules! impl_int {
 	($int:ty, $w_fn:ident, $r_fn:ident) => {
 		impl Serializable for $int {
