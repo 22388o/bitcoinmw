@@ -22,6 +22,7 @@ mod test {
 	use bmw_err::*;
 	use std::fmt::Debug;
 
+	// type that can be used to generate an error
 	#[derive(Debug, PartialEq)]
 	struct SerErr {
 		exp: u8,
@@ -30,17 +31,21 @@ mod test {
 
 	impl Serializable for SerErr {
 		fn read<R: Reader>(reader: &mut R) -> Result<Self, Error> {
+			// read data but return an error unless a specific value is set
 			reader.expect_u8(99)?;
 			reader.read_empty_bytes(1)?;
 			Ok(Self { exp: 99, empty: 0 })
 		}
 		fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
+			// write is regular with no errors
 			writer.write_u8(self.exp)?;
 			writer.write_u8(self.empty)?;
 			Ok(())
 		}
 	}
 
+	// helper function that serializes and deserializes a Serializable and tests them for
+	// equality
 	fn ser_helper<S: Serializable + Debug + PartialEq>(ser_out: S) -> Result<(), Error> {
 		let mut v: Vec<u8> = vec![];
 		serialize(&mut v, &ser_out)?;
@@ -49,6 +54,7 @@ mod test {
 		Ok(())
 	}
 
+	// struct with all types
 	#[derive(Debug, PartialEq)]
 	struct SerAll {
 		a: u8,
@@ -69,6 +75,7 @@ mod test {
 		o: Option<u8>,
 	}
 
+	// read/write with some added data to exercise all functions in the interface
 	impl Serializable for SerAll {
 		fn read<R: Reader>(reader: &mut R) -> Result<Self, Error> {
 			let a = reader.read_u8()?;
@@ -141,6 +148,7 @@ mod test {
 	}
 	#[test]
 	fn test_ser() -> Result<(), Error> {
+		// create a SerAll with random values
 		let rand_u8: u8 = rand::random();
 		let rand_ch: char = rand_u8 as char;
 		let ser_out = SerAll {
@@ -161,8 +169,11 @@ mod test {
 			v: vec![rand::random(), rand::random(), rand::random()],
 			o: Some(rand::random()),
 		};
+
+		// test it
 		ser_helper(ser_out)?;
 
+		// create again with some other options
 		let rand_u8: u8 = rand::random();
 		let rand_ch: char = rand_u8 as char;
 		let ser_out = SerAll {
@@ -184,35 +195,48 @@ mod test {
 			o: None,
 		};
 
+		// test it
 		ser_helper(ser_out)?;
 
+		// test with ()
 		ser_helper(())?;
+		// test with a tuple
 		ser_helper((rand::random::<u32>(), rand::random::<i128>()))?;
+
+		// test with a string
 		ser_helper(("hi there".to_string(), 123))?;
+
+		// test an array
 		let x = [3u8; 8];
 		ser_helper(x)?;
 
+		// test an error
 		let ser_out = SerErr { exp: 100, empty: 0 };
 		let mut v: Vec<u8> = vec![];
 		serialize(&mut v, &ser_out)?;
 		let ser_in: Result<SerErr, Error> = deserialize(&mut &v[..]);
 		assert!(ser_in.is_err());
 
+		// test with the values that do not generate an error
 		let ser_out = SerErr { exp: 99, empty: 0 };
 		let mut v: Vec<u8> = vec![];
 		serialize(&mut v, &ser_out)?;
 		let ser_in: Result<SerErr, Error> = deserialize(&mut &v[..]);
 		assert!(ser_in.is_ok());
 
+		// generate an error again
 		let ser_out = SerErr { exp: 99, empty: 1 };
 		let mut v: Vec<u8> = vec![];
 		serialize(&mut v, &ser_out)?;
 		let ser_in: Result<SerErr, Error> = deserialize(&mut &v[..]);
 		assert!(ser_in.is_err());
 
+		// test a vec of strings
 		let v = vec!["test1".to_string(), "a".to_string(), "okokok".to_string()];
 		ser_helper(v)?;
 
+		// test a ref to a string (read is an error beacuse we can't return a reference
+		// from read).
 		let s = "abc".to_string();
 		let mut v: Vec<u8> = vec![];
 		serialize(&mut v, &&s)?;
