@@ -87,13 +87,12 @@ where
 		config.check_config(vec![CN::SyncChannelSize, CN::MinSize, CN::MaxSize], vec![])?;
 		let min_size = THREAD_POOL_DEFAULT_MIN_SIZE;
 		let min_size = Self::get_option(CN::MinSize, &config, min_size);
-		let max_size = THREAD_POOL_DEFAULT_MAX_SIZE;
-		let max_size = Self::get_option(CN::MaxSize, &config, max_size);
+		let max_size = Self::get_option(CN::MaxSize, &config, min_size);
 		let sync_channel_size = THREAD_POOL_DEFAULT_SYNC_CHANNEL_SIZE;
 		let sync_channel_size = Self::get_option(CN::SyncChannelSize, &config, sync_channel_size);
 
 		if min_size == 0 || min_size > max_size {
-			let fmt = "min_size must be > 0 and < max_size";
+			let fmt = "min_size must be > 0 and <= max_size";
 			return Err(err!(ErrKind::Configuration, fmt));
 		}
 

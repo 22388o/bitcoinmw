@@ -32,6 +32,8 @@ pub use std::sync::mpsc::sync_channel;
 #[doc(hidden)]
 pub use std::thread::sleep;
 #[doc(hidden)]
+pub use std::thread::spawn;
+#[doc(hidden)]
 pub use std::time::Duration;
 
 pub use crate::types::{Builder, TestInfo};

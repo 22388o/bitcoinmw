@@ -259,6 +259,7 @@ macro_rules! global_slab_allocator {
 #[macro_export]
 macro_rules! slab_allocator {
 ( $( $config:expr ),* ) => {{
+            #[allow(unused_imports)]
             use bmw_conf::ConfigOption::*;
             let mut slabs = bmw_util::UtilBuilder::build_sync_slabs();
             let mut config = bmw_util::SlabAllocatorConfig::default();
@@ -1144,6 +1145,7 @@ macro_rules! list {
     ( $( $x:expr ),* ) => {
         {
             use bmw_util::List;
+            #[allow(unused_mut)]
             let mut temp_list = bmw_util::UtilBuilder::build_list(vec![])?;
             $(
                 temp_list.push($x)?;
@@ -1159,6 +1161,7 @@ macro_rules! list {
 macro_rules! list_box {
     ( $( $x:expr ),* ) => {
         {
+            #[allow(unused_mut)]
             let mut temp_list = bmw_util::UtilBuilder::build_list_box(vec![])?;
             $(
                 temp_list.push($x)?;
@@ -1176,6 +1179,7 @@ macro_rules! list_box {
 macro_rules! list_sync {
     ( $( $x:expr ),* ) => {
         {
+            #[allow(unused_mut)]
             let mut temp_list = bmw_util::UtilBuilder::build_list_sync(vec![])?;
             $(
                 temp_list.push($x)?;
@@ -1190,6 +1194,7 @@ macro_rules! list_sync {
 macro_rules! list_sync_box {
     ( $( $x:expr ),* ) => {
         {
+            #[allow(unused_mut)]
             let mut temp_list = bmw_util::UtilBuilder::build_list_sync_box(vec![])?;
             $(
                 temp_list.push($x)?;

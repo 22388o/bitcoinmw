@@ -29,11 +29,13 @@ mod test {
 	use bmw_test::*;
 	use bmw_util::*;
 	use std::collections::HashMap;
+	use std::sync::mpsc::Receiver;
+	use std::sync::{Arc, RwLock};
 
 	info!();
 
 	#[test]
-	fn test_suffix_tree_macro() -> Result<(), Error> {
+	fn test_search_trie_macro() -> Result<(), Error> {
 		// build a suffix tree with a wild card
 		let mut search_trie = search_trie!(
 			vec![
@@ -55,42 +57,6 @@ mod test {
 		// since p2 is at the beginning, both match
 		let count = search_trie.tmatch(b"p2p1", &mut matches)?;
 		assert_eq!(count, 2);
-		Ok(())
-	}
-
-	#[test]
-	fn test_slab_allocator_macro() -> Result<(), Error> {
-		let _slabs = slab_allocator!(SlabSize(128), SlabCount(5000))?;
-		Ok(())
-	}
-
-	#[test]
-	fn test_hashtable_macro() -> Result<(), Error> {
-		// create a hashtable with the specified parameters
-		let mut hashtable = hashtable!(
-			MaxEntries(1_000),
-			MaxLoadFactor(0.9),
-			GlobalSlabAllocator(false),
-			SlabCount(100),
-			SlabSize(100)
-		)?;
-
-		// do an insert, rust will figure out what type is being inserted
-		hashtable.insert(&1, &2)?;
-
-		// assert that the entry was inserted
-		assert_eq!(hashtable.get(&1)?, Some(2));
-
-		// create another hashtable with defaults, this time the global slab allocator will be
-		// used. Since we did not initialize it default values will be used.
-		let mut hashtable = hashtable!()?;
-
-		// do an insert, rust will figure out what type is being inserted
-		hashtable.insert(&1, &3)?;
-
-		// assert that the entry was inserted
-		assert_eq!(hashtable.get(&1)?, Some(3));
-
 		Ok(())
 	}
 
@@ -595,7 +561,7 @@ mod test {
 		hashtable: Box<dyn Hashtable<u32, u32> + Send + Sync>,
 		hashset: Box<dyn Hashset<u32> + Send + Sync>,
 		list: Box<dyn SortableList<u32> + Send + Sync>,
-		suffix_tree: Box<dyn SearchTrie + Send + Sync>,
+		search_trie: Box<dyn SearchTrie + Send + Sync>,
 	}
 
 	#[test]
@@ -624,7 +590,7 @@ mod test {
 				SlabSize(1_000),
 				SlabCount(300),
 			])?,
-			suffix_tree: UtilBuilder::build_search_trie_box(
+			search_trie: UtilBuilder::build_search_trie_box(
 				vec![pattern!(Regex("abc".to_string()), PatternId(0))?],
 				100,
 				50,
@@ -664,7 +630,7 @@ mod test {
 				(**guard).hashset.insert(&0)?;
 				(**guard).list.push(0)?;
 				let mut matches = [tmatch!()?; 10];
-				(**guard).suffix_tree.tmatch(b"test", &mut matches)?;
+				(**guard).search_trie.tmatch(b"test", &mut matches)?;
 			}
 			{
 				let mut array_list_sync = array_list_sync.wlock()?;
@@ -2094,6 +2060,723 @@ mod test {
 		hashtable.raw_write(&1, 4, &bytes, BUFFER_SIZE)?;
 		hashtable.remove_oldest()?;
 
+		Ok(())
+	}
+
+	#[test]
+	fn test_locks() -> Result<(), Error> {
+		let mut lock = UtilBuilder::build_lock(1)?;
+		let mut lock2 = lock.clone();
+		{
+			let x = lock.rlock()?;
+			println!("x={}", *x.guard());
+		}
+		{
+			let mut y = lock.wlock()?;
+			**(y.guard()) = 2;
+
+			assert!(lock2.wlock().is_err());
+		}
+
+		{
+			let mut z = lock.wlock()?;
+			assert_eq!(**(z.guard()), 2);
+		}
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_read_deadlock() -> Result<(), Error> {
+		let mut lock = UtilBuilder::build_lock(1)?;
+		let lock2 = lock.clone();
+		{
+			let x = lock.rlock()?;
+			println!("x={}", *x.guard());
+		}
+		{
+			let mut y = lock.wlock()?;
+			**(y.guard()) = 2;
+
+			assert!(lock2.rlock().is_err());
+		}
+
+		{
+			let mut z = lock.wlock()?;
+			assert_eq!(**(z.guard()), 2);
+		}
+
+		let mut lock = UtilBuilder::build_lock_box(1)?;
+		let lock2 = lock.clone();
+		{
+			let x = lock.rlock_ignore_poison()?;
+			println!("x={}", *x.guard());
+			assert!(lock.rlock_ignore_poison().is_err());
+		}
+		{
+			let mut y = lock.wlock()?;
+			**(y.guard()) = 2;
+
+			assert!(lock2.rlock_ignore_poison().is_err());
+			assert!(lock2.rlock_ignore_poison().is_err());
+		}
+
+		{
+			let mut z = lock.wlock()?;
+			assert_eq!(**(z.guard()), 2);
+		}
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_lock_threads() -> Result<(), Error> {
+		let mut lock = UtilBuilder::build_lock(1)?;
+		let mut lock_clone = lock.clone();
+
+		spawn(move || -> Result<(), Error> {
+			let mut x = lock.wlock()?;
+			sleep(Duration::from_millis(3000));
+			**(x.guard()) = 2;
+			Ok(())
+		});
+
+		sleep(Duration::from_millis(1000));
+		let mut x = lock_clone.wlock()?;
+		assert_eq!(**(x.guard()), 2);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_lock_macro() -> Result<(), Error> {
+		let mut lock = lock!(1)?;
+		let lock_clone = lock.clone();
+		println!("lock={:?}", lock);
+
+		spawn(move || -> Result<(), Error> {
+			let mut x = lock.wlock()?;
+			assert_eq!(**(x.guard()), 1);
+			sleep(Duration::from_millis(3000));
+			**(x.guard()) = 2;
+			Ok(())
+		});
+
+		sleep(Duration::from_millis(1000));
+		let x = lock_clone.rlock()?;
+		assert_eq!(**(x.guard()), 2);
+
+		Ok(())
+	}
+
+	struct TestLockBox<T> {
+		lock_box: Box<dyn LockBox<T>>,
+	}
+
+	#[test]
+	fn test_lock_box() -> Result<(), Error> {
+		let lock_box = lock_box!(1u32)?;
+		let mut lock_box2 = lock_box.clone();
+		let mut tlb = TestLockBox { lock_box };
+		{
+			let mut tlb = tlb.lock_box.wlock()?;
+			(**tlb.guard()) = 2u32;
+		}
+
+		{
+			let tlb = tlb.lock_box.rlock()?;
+			assert_eq!((**tlb.guard()), 2u32);
+		}
+
+		{
+			let mut tlb = lock_box2.wlock()?;
+			assert_eq!((**tlb.guard()), 2u32);
+			(**tlb.guard()) = 3u32;
+		}
+
+		{
+			let clone = tlb.lock_box.clone();
+			let tlb2 = tlb.lock_box.rlock_ignore_poison()?;
+			assert_eq!((**tlb2.guard()), 3u32);
+			assert!(clone.rlock_ignore_poison().is_err());
+		}
+
+		{
+			let mut tlb = lock_box2.wlock_ignore_poison()?;
+			assert_eq!((**tlb.guard()), 3u32);
+		}
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_rw_guards() -> Result<(), Error> {
+		{
+			let lock = Arc::new(RwLock::new(1));
+			let guard = lock.read().unwrap();
+			let x = RwLockReadGuardWrapper {
+				guard,
+				id: 0,
+				debug_err: true,
+			};
+			let guard = x.guard();
+			assert_eq!(**guard, 1);
+		}
+		{
+			let lock = Arc::new(RwLock::new(1));
+			let guard = lock.write().unwrap();
+			let mut x = RwLockWriteGuardWrapper {
+				guard,
+				id: 0,
+				debug_err: true,
+			};
+			let guard = x.guard();
+			assert_eq!(**guard, 1);
+		}
+		Ok(())
+	}
+
+	#[test]
+	fn test_ignore_poison_scenarios() -> Result<(), Error> {
+		let mut x = crate::types::LockImpl::new(1u32);
+		let x_clone = crate::types::Lock::clone(&x);
+
+		spawn(move || -> Result<(), Error> {
+			let _v = x_clone.t.write();
+			let p: Option<usize> = None;
+			p.unwrap();
+			Ok(())
+		});
+
+		sleep(Duration::from_millis(5_000));
+		x.rlock_ignore_poison()?;
+		x.wlock_ignore_poison()?;
+		Ok(())
+	}
+
+	#[test]
+	fn test_to_usize() -> Result<(), Error> {
+		let v = {
+			let x: Box<dyn LockBox<u32>> = lock_box!(100u32)?;
+			let v = x.danger_to_usize();
+			v
+		};
+
+		let arc = Arc::new(unsafe { Arc::from_raw(v as *mut RwLock<u32>) });
+		let v = arc.read().unwrap();
+		info!("ptr_ret = {}", *v)?;
+		assert_eq!(*v, 100);
+
+		let mut lbox = lock_box!(1_100)?;
+		let v = lbox.danger_to_usize();
+		let lbox_new: Box<dyn LockBox<u32>> = crate::lock_box_from_usize(v);
+		(**(lbox.wlock()?.guard())) = 1_200;
+		assert_eq!((**(lbox_new.rlock()?.guard())), 1_200);
+
+		Ok(())
+	}
+
+	struct TestHashsetHolder {
+		h1: Option<Box<dyn Hashset<u32>>>,
+		h2: Option<Box<dyn LockBox<Box<dyn Hashset<u32> + Send + Sync>>>>,
+	}
+
+	#[test]
+	fn test_hashset_macros() -> Result<(), Error> {
+		{
+			let mut hashset = hashset!(SlabSize(128), SlabCount(1), GlobalSlabAllocator(false))?;
+			hashset.insert(&1)?;
+			assert!(hashset.contains(&1)?);
+			assert!(!hashset.contains(&2)?);
+			assert!(hashset.insert(&2).is_err());
+		}
+
+		{
+			let mut hashset =
+				hashset_box!(SlabSize(128), SlabCount(1), GlobalSlabAllocator(false))?;
+			hashset.insert(&1)?;
+			assert!(hashset.contains(&1)?);
+			assert!(!hashset.contains(&2)?);
+			assert!(hashset.insert(&2).is_err());
+
+			let mut thh = TestHashsetHolder {
+				h2: None,
+				h1: Some(hashset),
+			};
+
+			{
+				let hashset = thh.h1.as_mut().unwrap();
+				assert_eq!(hashset.size(), 1);
+			}
+		}
+
+		{
+			let mut hashset =
+				hashset_sync!(SlabSize(128), SlabCount(1), GlobalSlabAllocator(false))?;
+			hashset.insert(&1)?;
+			assert!(hashset.contains(&1)?);
+			assert!(!hashset.contains(&2)?);
+			assert!(hashset.insert(&2).is_err());
+		}
+
+		{
+			let hashset =
+				hashset_sync_box!(SlabSize(128), SlabCount(1), GlobalSlabAllocator(false))?;
+			let mut hashset = lock_box!(hashset)?;
+
+			{
+				let mut hashset = hashset.wlock()?;
+				(**hashset.guard()).insert(&1)?;
+				assert!((**hashset.guard()).contains(&1)?);
+				assert!(!(**hashset.guard()).contains(&2)?);
+				assert!((**hashset.guard()).insert(&2).is_err());
+			}
+
+			let mut thh = TestHashsetHolder {
+				h1: None,
+				h2: Some(hashset),
+			};
+
+			{
+				let mut hashset = thh.h2.as_mut().unwrap().wlock()?;
+				assert_eq!((**hashset.guard()).size(), 1);
+			}
+		}
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_slabs_in_hashtable_macro() -> Result<(), Error> {
+		let mut hashtable = hashtable!(SlabSize(128), SlabCount(1), GlobalSlabAllocator(false))?;
+		hashtable.insert(&1, &2)?;
+
+		assert_eq!(hashtable.get(&1).unwrap(), Some(2));
+
+		assert!(hashtable.insert(&2, &3).is_err());
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_hashtable_box_macro() -> Result<(), Error> {
+		let mut hashtable =
+			hashtable_box!(SlabSize(128), SlabCount(1), GlobalSlabAllocator(false))?;
+		hashtable.insert(&1, &2)?;
+
+		assert_eq!(hashtable.get(&1).unwrap(), Some(2));
+
+		assert!(hashtable.insert(&2, &3).is_err());
+
+		Ok(())
+	}
+
+	struct TestHashtableSyncBox {
+		h: Box<dyn LockBox<Box<dyn Hashtable<u32, u32> + Send + Sync>>>,
+	}
+
+	#[test]
+	fn test_hashtable_sync_box_macro() -> Result<(), Error> {
+		let hashtable =
+			hashtable_sync_box!(SlabSize(128), SlabCount(1), GlobalSlabAllocator(false))?;
+		let mut hashtable = lock_box!(hashtable)?;
+
+		{
+			let mut hashtable = hashtable.wlock()?;
+			(**hashtable.guard()).insert(&1, &2)?;
+			assert_eq!((**hashtable.guard()).get(&1).unwrap(), Some(2));
+			assert!((**hashtable.guard()).insert(&2, &3).is_err());
+		}
+
+		let thsb = TestHashtableSyncBox { h: hashtable };
+
+		{
+			let h = thsb.h.rlock()?;
+			assert!((**h.guard()).get(&1)?.is_some());
+			assert!((**h.guard()).get(&2)?.is_none());
+		}
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_hashtable_sync_macro() -> Result<(), Error> {
+		let hashtable =
+			hashtable_sync_box!(SlabSize(128), SlabCount(1), GlobalSlabAllocator(false))?;
+		let mut hashtable = lock!(hashtable)?;
+
+		{
+			let mut hashtable = hashtable.wlock()?;
+			(**hashtable.guard()).insert(&1, &2)?;
+			assert_eq!((**hashtable.guard()).get(&1).unwrap(), Some(2));
+			assert!((**hashtable.guard()).insert(&2, &3).is_err());
+		}
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_slab_allocator_macro() -> Result<(), bmw_err::Error> {
+		let mut slabs = slab_allocator!()?;
+		let mut slabs2 = slab_allocator!(SlabSize(128), SlabCount(1))?;
+		let slab = slabs.allocate()?;
+		assert_eq!(
+			slab.get().len(),
+			bmw_util::SlabAllocatorConfig::default().slab_size
+		);
+		let slab = slabs2.allocate()?;
+		assert_eq!(slab.get().len(), 128);
+		assert!(slabs2.allocate().is_err());
+		assert!(slabs.allocate().is_ok());
+
+		assert!(slab_allocator!(SlabSize(128), SlabSize(64)).is_err());
+		assert!(slab_allocator!(SlabCount(128), SlabCount(64)).is_err());
+		assert!(slab_allocator!(MaxEntries(128)).is_err());
+		assert!(slab_allocator!(MaxLoadFactor(128.0)).is_err());
+		Ok(())
+	}
+
+	#[test]
+	fn test_hashtable_macro() -> Result<(), bmw_err::Error> {
+		let mut hashtable = hashtable!()?;
+		hashtable.insert(&1, &2)?;
+		assert_eq!(hashtable.get(&1).unwrap().unwrap(), 2);
+		let mut hashtable = hashtable!(MaxEntries(100), MaxLoadFactor(0.9))?;
+		hashtable.insert(&"test".to_string(), &1)?;
+		assert_eq!(hashtable.size(), 1);
+		hashtable.insert(&"something".to_string(), &2)?;
+		info!("hashtable={:?}", hashtable)?;
+
+		let mut hashtable = hashtable_sync!()?;
+		hashtable.insert(&1, &2)?;
+		assert_eq!(hashtable.get(&1).unwrap().unwrap(), 2);
+		let mut hashtable = hashtable_sync!(
+			MaxEntries(100),
+			MaxLoadFactor(0.9),
+			SlabSize(100),
+			SlabCount(100),
+			GlobalSlabAllocator(false),
+		)?;
+		hashtable.insert(&"test".to_string(), &1)?;
+		assert_eq!(hashtable.size(), 1);
+		hashtable.insert(&"something".to_string(), &2)?;
+		info!("hashtable={:?}", hashtable)?;
+
+		let mut hashtable = hashtable_box!()?;
+		hashtable.insert(&1, &2)?;
+		assert_eq!(hashtable.get(&1).unwrap().unwrap(), 2);
+		let mut hashtable = hashtable_box!(MaxEntries(100), MaxLoadFactor(0.9))?;
+		hashtable.insert(&"test".to_string(), &1)?;
+		assert_eq!(hashtable.size(), 1);
+		hashtable.insert(&"something".to_string(), &2)?;
+		info!("hashtable={:?}", hashtable)?;
+
+		let mut hashtable = hashtable_sync_box!()?;
+		hashtable.insert(&1, &2)?;
+		assert_eq!(hashtable.get(&1).unwrap().unwrap(), 2);
+		let mut hashtable = hashtable_sync_box!(
+			MaxEntries(100),
+			MaxLoadFactor(0.9),
+			SlabSize(100),
+			SlabCount(100),
+			GlobalSlabAllocator(false)
+		)?;
+		hashtable.insert(&"test".to_string(), &1)?;
+		assert_eq!(hashtable.size(), 1);
+		hashtable.insert(&"something".to_string(), &2)?;
+		info!("hashtable={:?}", hashtable)?;
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_hashset_macro() -> Result<(), bmw_err::Error> {
+		let mut hashset = hashset!()?;
+		hashset.insert(&1)?;
+		assert_eq!(hashset.contains(&1).unwrap(), true);
+		assert_eq!(hashset.contains(&2).unwrap(), false);
+		let mut hashset = hashset!(MaxEntries(100), MaxLoadFactor(0.9))?;
+		hashset.insert(&"test".to_string())?;
+		assert_eq!(hashset.size(), 1);
+		assert!(hashset.contains(&"test".to_string())?);
+		info!("hashset={:?}", hashset)?;
+		hashset.insert(&"another item".to_string())?;
+		hashset.insert(&"third item".to_string())?;
+		info!("hashset={:?}", hashset)?;
+
+		let mut hashset = hashset_sync!()?;
+		hashset.insert(&1)?;
+		assert_eq!(hashset.contains(&1).unwrap(), true);
+		assert_eq!(hashset.contains(&2).unwrap(), false);
+		let mut hashset = hashset_sync!(
+			MaxEntries(100),
+			MaxLoadFactor(0.9),
+			SlabSize(100),
+			SlabCount(100),
+			GlobalSlabAllocator(false)
+		)?;
+		hashset.insert(&"test".to_string())?;
+		assert_eq!(hashset.size(), 1);
+		assert!(hashset.contains(&"test".to_string())?);
+		info!("hashset={:?}", hashset)?;
+		hashset.insert(&"another item".to_string())?;
+		hashset.insert(&"third item".to_string())?;
+		info!("hashset={:?}", hashset)?;
+
+		let mut hashset = hashset_box!()?;
+		hashset.insert(&1)?;
+		assert_eq!(hashset.contains(&1).unwrap(), true);
+		assert_eq!(hashset.contains(&2).unwrap(), false);
+		let mut hashset = hashset_box!(MaxEntries(100), MaxLoadFactor(0.9))?;
+		hashset.insert(&"test".to_string())?;
+		assert_eq!(hashset.size(), 1);
+		assert!(hashset.contains(&"test".to_string())?);
+		info!("hashset={:?}", hashset)?;
+		hashset.insert(&"another item".to_string())?;
+		hashset.insert(&"third item".to_string())?;
+		info!("hashset={:?}", hashset)?;
+
+		let mut hashset = hashset_sync_box!()?;
+		hashset.insert(&1)?;
+		assert_eq!(hashset.contains(&1).unwrap(), true);
+		assert_eq!(hashset.contains(&2).unwrap(), false);
+		let mut hashset = hashset_sync_box!(
+			MaxEntries(100),
+			MaxLoadFactor(0.9),
+			SlabSize(100),
+			SlabCount(100),
+			GlobalSlabAllocator(false),
+		)?;
+		hashset.insert(&"test".to_string())?;
+		assert_eq!(hashset.size(), 1);
+		assert!(hashset.contains(&"test".to_string())?);
+		info!("hashset={:?}", hashset)?;
+		hashset.insert(&"another item".to_string())?;
+		hashset.insert(&"third item".to_string())?;
+		info!("hashset={:?}", hashset)?;
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_list_macro() -> Result<(), bmw_err::Error> {
+		let mut list1 = list!['1', '2', '3'];
+		list_append!(list1, list!['a', 'b', 'c']);
+		let list2 = list!['1', '2', '3', 'a', 'b', 'c'];
+		assert!(list_eq!(list1, list2));
+		let list2 = list!['a', 'b', 'c', '1', '2'];
+		assert!(!list_eq!(list1, list2));
+
+		let list3 = list![1, 2, 3, 4, 5];
+		info!("list={:?}", list3)?;
+
+		let list4 = list_box![1, 2, 3, 4, 5];
+		let mut list5 = list_sync!();
+		let mut list6 = list_sync_box!();
+		list_append!(list5, list4);
+		list_append!(list6, list4);
+		assert!(list_eq!(list4, list3));
+		assert!(list_eq!(list4, list5));
+		assert!(list_eq!(list4, list6));
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_thread_pool_macro() -> Result<(), bmw_err::Error> {
+		let mut tp = thread_pool!()?;
+		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
+		tp.start()?;
+
+		let resp = execute!(tp, {
+			info!("in thread pool")?;
+			Ok(123)
+		})?;
+		assert_eq!(block_on!(resp), PoolResult::Ok(123));
+
+		let mut tp = thread_pool!(MinSize(3))?;
+		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
+		tp.start()?;
+		let resp: Receiver<PoolResult<u32, Error>> = execute!(tp, {
+			info!("thread pool2")?;
+			Err(err!(ErrKind::Test, "test err"))
+		})?;
+		assert_eq!(
+			block_on!(resp),
+			PoolResult::Err(err!(ErrKind::Test, "test err"))
+		);
+
+		let mut tp = thread_pool!(MinSize(3))?;
+		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
+		tp.start()?;
+
+		let resp: Receiver<PoolResult<u32, Error>> = execute!(tp, {
+			info!("thread pool panic")?;
+			let x: Option<u32> = None;
+			Ok(x.unwrap())
+		})?;
+		assert_eq!(
+			block_on!(resp),
+			PoolResult::Err(err!(
+				ErrKind::ThreadPanic,
+				"thread pool panic: receiving on a closed channel"
+			))
+		);
+		Ok(())
+	}
+
+	#[test]
+	fn test_thread_pool_options() -> Result<(), Error> {
+		let mut tp = thread_pool!(MinSize(4), MaxSize(5), SyncChannelSize(10))?;
+		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
+		tp.start()?;
+
+		assert_eq!(tp.size()?, 4);
+		sleep(Duration::from_millis(2_000));
+		let resp = execute!(tp, {
+			info!("thread pool")?;
+			Ok(0)
+		})?;
+		assert_eq!(block_on!(resp), PoolResult::Ok(0));
+		assert_eq!(tp.size()?, 4);
+
+		for _ in 0..10 {
+			execute!(tp, {
+				info!("thread pool")?;
+				sleep(Duration::from_millis(5_000));
+				Ok(0)
+			})?;
+		}
+		sleep(Duration::from_millis(2_000));
+		assert_eq!(tp.size()?, 5);
+		Ok(())
+	}
+
+	#[test]
+	fn test_list_eq() -> Result<(), Error> {
+		let list1 = list![1, 2, 3];
+		let eq = list_eq!(list1, list![1, 2, 3]);
+		let mut list2 = list![4, 5, 6];
+		list_append!(list2, list![5, 5, 5]);
+		assert!(eq);
+		assert!(list_eq!(list2, list![4, 5, 6, 5, 5, 5]));
+		list2.sort_unstable()?;
+		assert!(list_eq!(list2, list![4, 5, 5, 5, 5, 6]));
+		assert!(!list_eq!(list2, list![1, 2, 3]));
+		Ok(())
+	}
+
+	#[test]
+	fn test_array_macro() -> Result<(), Error> {
+		let mut array = array!(10, &0)?;
+		array[1] = 2;
+		assert_eq!(array[1], 2);
+
+		let mut a = array_list_box!(10, &0)?;
+		a.push(1)?;
+		assert_eq!(a.size(), 1);
+
+		let mut a = array_list_sync!(10, &0)?;
+		a.push(1)?;
+		assert_eq!(a.size(), 1);
+
+		let mut a = array_list_sync!(10, &0)?;
+		a.push(1)?;
+		assert_eq!(a.size(), 1);
+
+		let mut q = queue!(10, &0)?;
+		q.enqueue(1)?;
+		assert_eq!(q.peek(), Some(&1));
+
+		let mut q = queue_sync!(10, &0)?;
+		q.enqueue(1)?;
+		assert_eq!(q.peek(), Some(&1));
+
+		let mut q = queue_box!(10, &0)?;
+		q.enqueue(1)?;
+		assert_eq!(q.peek(), Some(&1));
+
+		let mut q = queue_sync_box!(10, &0)?;
+		q.enqueue(1)?;
+		assert_eq!(q.peek(), Some(&1));
+
+		let mut s = stack!(10, &0)?;
+		s.push(1)?;
+		assert_eq!(s.peek(), Some(&1));
+
+		let mut s = stack_box!(10, &0)?;
+		s.push(1)?;
+		assert_eq!(s.peek(), Some(&1));
+
+		let mut s = stack_sync!(10, &0)?;
+		s.push(1)?;
+		assert_eq!(s.peek(), Some(&1));
+
+		let mut s = stack_sync_box!(10, &0)?;
+		s.push(1)?;
+		assert_eq!(s.peek(), Some(&1));
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_pattern_suffix_macros() -> Result<(), Error> {
+		// create matches array
+		let mut matches = [tmatch!()?; 10];
+
+		// test pattern
+		let pattern = pattern!(Regex("abc".to_string()), PatternId(0))?;
+		assert_eq!(
+			pattern,
+			UtilBuilder::build_pattern(vec![
+				Regex("abc".to_string()),
+				IsCaseSensitive(true),
+				IsTerminationPattern(false),
+				PatternId(0),
+				IsMultiLine(true)
+			])?,
+		);
+
+		// test suffix tree
+		let mut search_trie = search_trie!(
+			vec![
+				pattern!(Regex("abc".to_string()), PatternId(0))?,
+				pattern!(Regex("def".to_string()), PatternId(1))?
+			],
+			TerminationLength(100),
+			MaxWildcardLength(50)
+		)?;
+		let match_count = search_trie.tmatch(b"abc", &mut matches)?;
+		assert_eq!(match_count, 1);
+		Ok(())
+	}
+
+	#[test]
+	fn test_simple_search_trie() -> Result<(), Error> {
+		// create matches array
+		let mut matches = [tmatch!()?; 10];
+
+		// create a suffix tree
+		let mut search_trie = search_trie!(vec![
+			pattern!(Regex("aaa".to_string()), PatternId(0))?,
+			pattern!(Regex("bbb".to_string()), PatternId(1))?
+		],)?;
+
+		// match
+		let match_count = search_trie.tmatch(b"aaa", &mut matches)?;
+		assert_eq!(match_count, 1);
+		Ok(())
+	}
+
+	#[test]
+	fn test_list_sync() -> Result<(), Error> {
+		let mut list = list_sync!();
+		list.push(1)?;
+		assert!(list_eq!(list, list![1]));
+
+		let mut list2: Box<dyn SortableList<_>> = list_sync_box!();
+		list2.push(1)?;
+		assert!(list_eq!(list2, list![1]));
 		Ok(())
 	}
 }
