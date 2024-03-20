@@ -225,6 +225,9 @@ where
 	fn clear(&mut self) -> Result<(), Error>;
 	/// Returns an [`std::iter::Iterator`] to iterate through this hashset.
 	fn iter<'a>(&'a self) -> HashsetIterator<'a, K>;
+	fn slabs(
+		&self,
+	) -> Result<Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>, Error>;
 }
 
 /// An iterator for the [`crate::Hashtable`].

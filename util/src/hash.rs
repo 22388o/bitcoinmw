@@ -509,6 +509,11 @@ where
 	fn max_entries(&self) -> usize {
 		self.static_impl.max_entries
 	}
+	fn slabs(
+		&self,
+	) -> Result<Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>, Error> {
+		self.static_impl.slabs_impl()
+	}
 }
 
 impl<V> List<V> for HashImplSync<V>
@@ -997,7 +1002,11 @@ where
 
 	// None line reported as not covered, but it is
 	#[cfg(not(tarpaulin_include))]
-	fn get_impl(&self, key: &K, hash: usize) -> Result<Option<(usize, SlabReader)>, Error>
+	pub(crate) fn get_impl(
+		&self,
+		key: &K,
+		hash: usize,
+	) -> Result<Option<(usize, SlabReader)>, Error>
 	where
 		K: Serializable + PartialEq + Clone,
 	{
@@ -1412,6 +1421,16 @@ where
 	) -> Result<Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>, Error> {
 		Ok(self.slabs.clone())
 	}
+
+	#[cfg(test)]
+	pub(crate) fn set_debug_get_next_slot_error(&mut self, v: bool) {
+		self.debug_get_next_slot_error = v;
+	}
+
+	#[cfg(test)]
+	pub(crate) fn set_debug_entry_array_len(&mut self, v: bool) {
+		self.debug_entry_array_len = v;
+	}
 }
 
 impl<K> Drop for HashImpl<K>
@@ -1556,6 +1575,11 @@ where
 	}
 	fn max_entries(&self) -> usize {
 		self.max_entries
+	}
+	fn slabs(
+		&self,
+	) -> Result<Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>, Error> {
+		self.slabs_impl()
 	}
 }
 
