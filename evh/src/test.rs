@@ -302,7 +302,7 @@ mod test {
 		let port = free_port!()?;
 		info!("close1 Using port: {}", port)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
-		let threads = 2;
+		let threads = 1;
 		let config = EventHandlerConfig {
 			threads,
 			housekeeping_frequency_millis: 1_000_000,
