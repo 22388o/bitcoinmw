@@ -1102,6 +1102,15 @@
 <a href="#1101" id="1101">1101</a>
 <a href="#1102" id="1102">1102</a>
 <a href="#1103" id="1103">1103</a>
+<a href="#1104" id="1104">1104</a>
+<a href="#1105" id="1105">1105</a>
+<a href="#1106" id="1106">1106</a>
+<a href="#1107" id="1107">1107</a>
+<a href="#1108" id="1108">1108</a>
+<a href="#1109" id="1109">1109</a>
+<a href="#1110" id="1110">1110</a>
+<a href="#1111" id="1111">1111</a>
+<a href="#1112" id="1112">1112</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1122,6 +1131,7 @@
 </span><span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
 	<span class="kw">use crate as </span>bmw_log;
+	<span class="kw">use </span><span class="kw">crate</span>::types::LogConfig;
 	<span class="kw">use </span>bmw_conf::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_deps::lazy_static::lazy_static;
 	<span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
@@ -2202,6 +2212,14 @@
 
 		<span class="kw">let </span>len = buf.metadata()<span class="question-mark">?</span>.len();
 		<span class="macro">assert_eq!</span>(len, <span class="number">350</span>);
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="attr">#[test]
+	</span><span class="kw">fn </span>test_log_unusual_config() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span>c = <span class="macro">config!</span>(ConfigOption::MaxSizeBytes(<span class="number">100</span>));
+		<span class="kw">let </span>res = LogConfig::get_config_path_buf(ConfigOptionName::MaxSizeBytes, <span class="kw-2">&amp;</span>c, <span class="prelude-val">None</span>);
+		<span class="macro">assert!</span>(res.is_none());
 		<span class="prelude-val">Ok</span>(())
 	}
 }
