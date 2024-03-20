@@ -111,29 +111,41 @@ mod test {
 	fn test_config_all_options() -> Result<(), Error> {
 		// create a config with everything
 		let config = config!(
-			MaxSizeBytes(100),
-			MaxAgeMillis(200),
+			MaxSizeBytes(10),
+			MaxAgeMillis(10),
 			DisplayColors(true),
 			DisplayStdout(true),
 			DisplayTimestamp(true),
-			DisplayLogLevel(false),
-			DisplayLineNum(false),
-			DisplayMillis(false),
+			DisplayLogLevel(true),
+			DisplayLineNum(true),
+			DisplayMillis(true),
 			LogFilePath(None),
-			DisplayBackTrace(false),
-			LineNumDataMaxLen(300),
+			DisplayBackTrace(true),
+			LineNumDataMaxLen(10),
 			FileHeader("test".to_string()),
-			DeleteRotation(false),
+			DeleteRotation(true),
 			AutoRotate(true),
-			MaxEntries(100),
-			MaxLoadFactor(0.5),
-			SlabSize(100),
-			SlabCount(200),
-			MinSize(1),
-			MaxSize(100),
-			SyncChannelSize(1),
-			GlobalSlabAllocator(false),
-			Debug(true)
+			MaxEntries(10),
+			MaxLoadFactor(10.0),
+			SlabSize(10),
+			SlabCount(10),
+			MinSize(10),
+			MaxSize(10),
+			SyncChannelSize(10),
+			GlobalSlabAllocator(true),
+			Start(10),
+			End(10),
+			MatchId(10),
+			Regex("test".to_string()),
+			IsCaseSensitive(true),
+			IsTerminationPattern(true),
+			IsMultiLine(true),
+			PatternId(10),
+			IsHashtable(true),
+			IsHashset(true),
+			IsList(true),
+			Debug(true),
+			DebugLargeSlabCount(true)
 		);
 
 		// since everything is allowed, it's ok
@@ -162,11 +174,87 @@ mod test {
 					CN::MaxSize,
 					CN::SyncChannelSize,
 					CN::GlobalSlabAllocator,
-					CN::Debug
+					CN::Start,
+					CN::End,
+					CN::MatchId,
+					CN::Regex,
+					CN::IsCaseSensitive,
+					CN::IsTerminationPattern,
+					CN::IsMultiLine,
+					CN::PatternId,
+					CN::IsHashtable,
+					CN::IsHashset,
+					CN::IsList,
+					CN::Debug,
+					CN::DebugLargeSlabCount,
 				],
 				vec![]
 			)
 			.is_ok());
+
+		assert!(config.get_or_bool(&CN::DisplayColors, false));
+		assert!(config.get_or_bool(&CN::AutoRotate, false));
+		assert!(config.get_or_bool(&CN::DisplayStdout, false));
+		assert!(config.get_or_bool(&CN::DisplayTimestamp, false));
+		assert!(config.get_or_bool(&CN::DisplayLogLevel, false));
+		assert!(config.get_or_bool(&CN::DisplayLineNum, false));
+		assert!(config.get_or_bool(&CN::DisplayMillis, false));
+		assert!(config.get_or_bool(&CN::DisplayBackTrace, false));
+		assert!(config.get_or_bool(&CN::DeleteRotation, false));
+		assert!(config.get_or_bool(&CN::GlobalSlabAllocator, false));
+		assert!(config.get_or_bool(&CN::IsCaseSensitive, false));
+		assert!(config.get_or_bool(&CN::IsTerminationPattern, false));
+		assert!(config.get_or_bool(&CN::IsMultiLine, false));
+		assert!(config.get_or_bool(&CN::IsHashtable, false));
+		assert!(config.get_or_bool(&CN::IsHashset, false));
+		assert!(config.get_or_bool(&CN::IsList, false));
+		assert!(config.get_or_bool(&CN::Debug, false));
+		assert!(config.get_or_bool(&CN::DebugLargeSlabCount, false));
+		assert!(!config.get_or_bool(&CN::MaxSize, false));
+
+		assert_eq!(config.get_or_usize(&CN::MaxEntries, usize::MAX), 10);
+		assert_eq!(config.get_or_usize(&CN::SlabSize, usize::MAX), 10);
+		assert_eq!(config.get_or_usize(&CN::SlabCount, usize::MAX), 10);
+		assert_eq!(config.get_or_usize(&CN::MinSize, usize::MAX), 10);
+		assert_eq!(config.get_or_usize(&CN::MaxSize, usize::MAX), 10);
+		assert_eq!(config.get_or_usize(&CN::SyncChannelSize, usize::MAX), 10);
+		assert_eq!(config.get_or_usize(&CN::Start, usize::MAX), 10);
+		assert_eq!(config.get_or_usize(&CN::End, usize::MAX), 10);
+		assert_eq!(config.get_or_usize(&CN::MatchId, usize::MAX), 10);
+		assert_eq!(config.get_or_usize(&CN::PatternId, usize::MAX), 10);
+		assert_eq!(config.get_or_usize(&CN::AutoRotate, usize::MAX), usize::MAX);
+
+		assert_eq!(config.get_or_u64(&CN::MaxSizeBytes, u64::MAX), 10);
+		assert_eq!(config.get_or_u64(&CN::MaxAgeMillis, u64::MAX), 10);
+		assert_eq!(config.get_or_u64(&CN::LineNumDataMaxLen, u64::MAX), 10);
+		assert_eq!(config.get_or_u64(&CN::AutoRotate, u64::MAX), u64::MAX);
+
+		assert_eq!(
+			config.get_or_string(&CN::FileHeader, "".to_string()),
+			"test".to_string()
+		);
+		assert_eq!(
+			config.get_or_string(&CN::Regex, "".to_string()),
+			"test".to_string()
+		);
+		assert_eq!(
+			config.get_or_string(&CN::AutoRotate, "".to_string()),
+			"".to_string()
+		);
+
+		assert_eq!(config.get_or_f64(&CN::MaxLoadFactor, f64::MAX), 10.0);
+		assert_eq!(config.get_or_f64(&CN::AutoRotate, f64::MAX), f64::MAX);
+
+		let empty_config = config!();
+		assert_eq!(empty_config.get_or_bool(&CN::MaxSize, false), false);
+		assert_eq!(empty_config.get_or_usize(&CN::AutoRotate, 0), 0);
+		assert_eq!(empty_config.get_or_u64(&CN::AutoRotate, 0), 0);
+		assert_eq!(
+			empty_config.get_or_string(&CN::AutoRotate, "".to_string()),
+			"".to_string()
+		);
+		assert_eq!(empty_config.get_or_f64(&CN::AutoRotate, 0.0), 0.0);
+
 		Ok(())
 	}
 

@@ -18,6 +18,7 @@
 #[cfg(test)]
 mod test {
 	use crate as bmw_log;
+	use crate::types::LogConfig;
 	use bmw_conf::*;
 	use bmw_deps::lazy_static::lazy_static;
 	use bmw_err::*;
@@ -1098,6 +1099,14 @@ mod test {
 
 		let len = buf.metadata()?.len();
 		assert_eq!(len, 350);
+		Ok(())
+	}
+
+	#[test]
+	fn test_log_unusual_config() -> Result<(), Error> {
+		let c = config!(ConfigOption::MaxSizeBytes(100));
+		let res = LogConfig::get_config_path_buf(ConfigOptionName::MaxSizeBytes, &c, None);
+		assert!(res.is_none());
 		Ok(())
 	}
 }

@@ -79,6 +79,7 @@ impl MacroState {
 	}
 }
 
+#[cfg(not(tarpaulin_include))]
 pub(crate) fn do_derive_serialize(strm: TokenStream) -> TokenStream {
 	let mut state = MacroState::new();
 	let _ = debug!("-----------------derive serialization----------------");
