@@ -209,7 +209,6 @@ where
 		Ok(())
 	}
 
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = T> + 'a>
 	where
 		T: Serializable,
@@ -222,7 +221,6 @@ where
 		Box::new(ret)
 	}
 
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn iter_rev<'a>(&'a self) -> Box<dyn Iterator<Item = T> + 'a>
 	where
 		T: Serializable,

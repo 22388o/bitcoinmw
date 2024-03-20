@@ -467,7 +467,6 @@ impl Pattern {
 }
 
 impl Serializable for Pattern {
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn read<R: Reader>(reader: &mut R) -> Result<Self, Error> {
 		let regex = String::read(reader)?;
 		let is_case_sensitive = match reader.read_u8()? {

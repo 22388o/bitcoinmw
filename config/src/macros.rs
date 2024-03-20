@@ -50,7 +50,9 @@
 #[macro_export]
 macro_rules! config {
 	( $( $config:expr ),* ) => {{
+                #[allow(unused_imports)]
                 use bmw_conf::{ConfigBuilder, ConfigOption, ConfigOption::*};
+                #[allow(unused_mut)]
                 let mut config_values: Vec<ConfigOption> = vec![];
                 $(
                         config_values.push($config);

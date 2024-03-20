@@ -31,7 +31,6 @@ info!();
 
 /*
 impl Serializable for ConfigOption<'_> {
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn read<R: Reader>(reader: &mut R) -> Result<Self, Error> {
 		match reader.read_u8()? {
 			0 => Ok(MaxEntries(reader.read_usize()?)),
@@ -49,7 +48,6 @@ impl Serializable for ConfigOption<'_> {
 		}
 	}
 
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
 		match self {
 			MaxEntries(size) => {
@@ -216,7 +214,6 @@ impl SlabWriter {
 		self.do_write_fixed_bytes_impl(&[0u8; 0], Some(count))
 	}
 
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn process_write(
 		&mut self,
 		bytes: &[u8],
@@ -260,7 +257,6 @@ impl SlabWriter {
 		Ok(wlen)
 	}
 
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn do_write_fixed_bytes_impl<T: AsRef<[u8]>>(
 		&mut self,
 		bytes: T,
@@ -400,7 +396,6 @@ impl Writer for SlabWriter {
 }
 
 impl<'a> SlabReader {
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	pub fn new(
 		slabs: Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>,
 		slab_id: usize,
@@ -520,12 +515,10 @@ impl<'a> SlabReader {
 		self.do_read_exact(&mut [0u8; 0], Some(count))
 	}
 
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	pub fn read_exact(&mut self, buf: &mut [u8]) -> Result<(), Error> {
 		self.do_read_exact(buf, None)
 	}
 
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	pub fn do_read_exact(&mut self, buf: &mut [u8], count: Option<usize>) -> Result<(), Error> {
 		debug!("do read exact {:?},buf.len={}", count, buf.len())?;
 		let mut buf_offset = 0;

@@ -134,7 +134,6 @@ where
 		Ok(ret)
 	}
 
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn run_thread<R: 'static>(
 		rx: Arc<Mutex<Receiver<FutureWrapper<R>>>>,
 		mut state: Box<dyn LockBox<ThreadPoolState>>,
@@ -270,7 +269,6 @@ where
 		Ok(rx)
 	}
 
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn start(&mut self) -> Result<(), Error> {
 		let (tx, rx) = sync_channel(self.config.sync_channel_size);
 		let rx = Arc::new(Mutex::new(rx));

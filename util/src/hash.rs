@@ -87,8 +87,6 @@ where
 {
 	type Item = V;
 
-	// only the None line is reported as not covered but it is
-	#[cfg(not(tarpaulin_include))]
 	fn next(&mut self) -> Option<<Self as Iterator>::Item> {
 		match self.linked_list_ref {
 			Some(list) => {
@@ -216,8 +214,6 @@ impl<K> PartialEq for HashImpl<K>
 where
 	K: Serializable + PartialEq + Clone + Debug,
 {
-	// break and loop line reported as not covered but they are
-	#[cfg(not(tarpaulin_include))]
 	fn eq(&self, rhs: &Self) -> bool {
 		if self.size != rhs.size {
 			false
@@ -801,8 +797,6 @@ where
 		}
 	}
 
-	// a few lines reported as not covered, but they are
-	#[cfg(not(tarpaulin_include))]
 	fn get_next_slot(
 		&self,
 		cur: &mut usize,
@@ -849,8 +843,6 @@ where
 		Ok(())
 	}
 
-	// fully tested, but some lines reported as not covered
-	#[cfg(not(tarpaulin_include))]
 	fn clear_impl(&mut self) -> Result<(), Error> {
 		let mut cur = self.tail;
 		loop {
@@ -1000,8 +992,6 @@ where
 		Ok(())
 	}
 
-	// None line reported as not covered, but it is
-	#[cfg(not(tarpaulin_include))]
 	pub(crate) fn get_impl(
 		&self,
 		key: &K,
@@ -1047,8 +1037,6 @@ where
 		}
 	}
 
-	// fully covered but tarpaulin reporting a few lines uncovered
-	#[cfg(not(tarpaulin_include))]
 	fn insert_hash_impl<V>(
 		&mut self,
 		key: Option<&K>,
@@ -1130,8 +1118,6 @@ where
 		Ok(())
 	}
 
-	// fully covered but tarpaulin reporting a few lines uncovered
-	#[cfg(not(tarpaulin_include))]
 	fn insert_impl<V>(
 		&mut self,
 		key: Option<&K>,
@@ -1305,8 +1291,6 @@ where
 		}
 	}
 
-	// loop and break counted as not covered, but are covered
-	#[cfg(not(tarpaulin_include))]
 	fn free_chain(&mut self, slab_id: usize) -> Result<(), Error> {
 		debug!("free chain {}", slab_id)?;
 		let bytes_per_slab = self.bytes_per_slab;
