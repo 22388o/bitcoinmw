@@ -23,6 +23,7 @@ mod test {
 	use bmw_deps::random_string;
 	use bmw_err::*;
 	use bmw_log::*;
+	use bmw_test::*;
 	use bmw_util::*;
 
 	info!();
@@ -551,6 +552,154 @@ mod test {
 
 		for i in 0..100 {
 			assert_eq!(vec[i], arr[i]);
+		}
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_builder() -> Result<(), Error> {
+		let mut arrlist = UtilBuilder::build_array_list_box(10, &0)?;
+		arrlist.push(0)?;
+		let mut i = 0;
+		for x in arrlist.iter() {
+			assert_eq!(x, 0);
+			i += 1;
+		}
+		assert_eq!(i, 1);
+
+		let mut list = UtilBuilder::build_list_sync_box(vec![])?;
+		list.push(0)?;
+		assert_eq!(list.size(), 1);
+
+		let nmatch = UtilBuilder::build_match(vec![Start(0), End(1), MatchId(2)])?;
+		assert_eq!(nmatch.start(), 0);
+		assert_eq!(nmatch.end(), 1);
+		assert_eq!(nmatch.id(), 2);
+
+		assert!(!UtilBuilder::build_sync_slabs().is_init());
+
+		Ok(())
+	}
+
+	#[derive(Clone)]
+	struct TestObj {
+		array: Array<u32>,
+		array_list: Box<dyn SortableList<u32> + Send + Sync>,
+		queue: Box<dyn Queue<u32> + Send + Sync>,
+		stack: Box<dyn Stack<u32> + Send + Sync>,
+		hashtable: Box<dyn Hashtable<u32, u32> + Send + Sync>,
+		hashset: Box<dyn Hashset<u32> + Send + Sync>,
+		list: Box<dyn SortableList<u32> + Send + Sync>,
+		suffix_tree: Box<dyn SearchTrie + Send + Sync>,
+	}
+
+	#[test]
+	fn test_builder_sync() -> Result<(), Error> {
+		let mut tp = thread_pool!()?;
+		tp.set_on_panic(move |_, _| Ok(()))?;
+		tp.start()?;
+
+		let test_obj = TestObj {
+			array: UtilBuilder::build_array(10, &0)?,
+			array_list: UtilBuilder::build_array_list_sync_box(10, &0)?,
+			queue: UtilBuilder::build_queue_sync_box(10, &0)?,
+			stack: UtilBuilder::build_stack_sync_box(10, &0)?,
+			hashtable: UtilBuilder::build_hashtable_sync_box(vec![
+				GlobalSlabAllocator(false),
+				SlabSize(1_000),
+				SlabCount(300),
+			])?,
+			hashset: UtilBuilder::build_hashset_sync_box(vec![
+				GlobalSlabAllocator(false),
+				SlabSize(1_000),
+				SlabCount(300),
+			])?,
+			list: UtilBuilder::build_list_sync_box(vec![
+				GlobalSlabAllocator(false),
+				SlabSize(1_000),
+				SlabCount(300),
+			])?,
+			suffix_tree: UtilBuilder::build_search_trie_box(
+				vec![pattern!(Regex("abc".to_string()), PatternId(0))?],
+				100,
+				50,
+			)?,
+		};
+		let array_list_sync = UtilBuilder::build_array_list_sync(10, &0)?;
+		let mut array_list_sync = lock_box!(array_list_sync)?;
+		let queue_sync = UtilBuilder::build_queue_sync(10, &0)?;
+		let mut queue_sync = lock_box!(queue_sync)?;
+		let stack_sync = UtilBuilder::build_stack_sync(10, &0)?;
+		let mut stack_sync = lock_box!(stack_sync)?;
+
+		let mut stack_box = UtilBuilder::build_stack_box(10, &0)?;
+		stack_box.push(50)?;
+		assert_eq!(stack_box.pop(), Some(&50));
+		assert_eq!(stack_box.pop(), None);
+
+		assert_eq!(test_obj.array[0], 0);
+		assert_eq!(test_obj.array_list.iter().next().is_none(), true);
+		assert_eq!(test_obj.queue.peek().is_none(), true);
+		assert_eq!(test_obj.stack.peek().is_none(), true);
+		assert_eq!(test_obj.hashtable.size(), 0);
+		assert_eq!(test_obj.hashset.size(), 0);
+		assert_eq!(test_obj.list.size(), 0);
+		let mut test_obj = lock_box!(test_obj)?;
+		let test_obj_clone = test_obj.clone();
+
+		execute!(tp, {
+			{
+				let mut test_obj = test_obj.wlock()?;
+				let guard = test_obj.guard();
+				(**guard).array[0] = 1;
+				(**guard).array_list.push(1)?;
+				(**guard).queue.enqueue(1)?;
+				(**guard).stack.push(1)?;
+				(**guard).hashtable.insert(&0, &0)?;
+				(**guard).hashset.insert(&0)?;
+				(**guard).list.push(0)?;
+				let mut matches = [tmatch!()?; 10];
+				(**guard).suffix_tree.tmatch(b"test", &mut matches)?;
+			}
+			{
+				let mut array_list_sync = array_list_sync.wlock()?;
+				let guard = array_list_sync.guard();
+				(**guard).push(0)?;
+			}
+
+			{
+				let mut queue_sync = queue_sync.wlock()?;
+				let guard = queue_sync.guard();
+				(**guard).enqueue(0)?;
+			}
+
+			{
+				let mut stack_sync = stack_sync.wlock()?;
+				let guard = stack_sync.guard();
+				(**guard).push(0)?;
+			}
+
+			Ok(())
+		})?;
+
+		let mut count = 0;
+		loop {
+			count += 1;
+			sleep(Duration::from_millis(1));
+			let test_obj = test_obj_clone.rlock()?;
+			let guard = test_obj.guard();
+			if (**guard).array[0] != 1 && count < 2_000 {
+				continue;
+			}
+			assert_eq!((**guard).array[0], 1);
+			assert_eq!((**guard).array_list.iter().next().is_none(), false);
+			assert_eq!((**guard).queue.peek().is_some(), true);
+			assert_eq!((**guard).stack.peek().is_some(), true);
+			assert_eq!((**guard).hashtable.size(), 1);
+			assert_eq!((**guard).hashset.size(), 1);
+			assert_eq!((**guard).list.size(), 1);
+			break;
 		}
 
 		Ok(())
