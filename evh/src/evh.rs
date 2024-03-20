@@ -419,7 +419,11 @@ impl EventHandlerContext {
 		)?;
 
 		#[cfg(target_os = "windows")]
-		let write_set = hashset_sync_box!(SlabSize(WRITE_SET_SIZE), SlabCount(2 * MAX_EVENTS))?;
+		let write_set = hashset_sync_box!(
+			SlabSize(WRITE_SET_SIZE),
+			SlabCount(2 * MAX_EVENTS),
+			GlobalSlabAllocator(false)
+		)?;
 
 		#[cfg(target_os = "linux")]
 		let epoll_events = {
