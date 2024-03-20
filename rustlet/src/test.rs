@@ -41,13 +41,13 @@ mod test {
 					)?)
 				)?,
 				BaseDir(directory),
-				Debug(true)
+				bmw_http::Debug(true)
 			)?;
 		} else {
 			rustlet_init!(
 				instance!(BaseDir(&base_dir), Port(port))?,
 				BaseDir(directory),
-				Debug(true)
+				bmw_http::Debug(true)
 			)?;
 		}
 

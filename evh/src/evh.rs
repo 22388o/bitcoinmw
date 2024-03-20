@@ -35,6 +35,7 @@ use bmw_deps::rustls_pemfile;
 use bmw_deps::webpki_roots::TLS_SERVER_ROOTS;
 use bmw_err::*;
 use bmw_log::*;
+use bmw_ser::{Reader, Serializable, Writer};
 use bmw_util::*;
 use std::any::Any;
 use std::collections::HashMap;
@@ -408,11 +409,13 @@ impl EventHandlerContext {
 
 		let handle_hashtable = hashtable_sync_box!(
 			SlabSize(HANDLE_SLAB_SIZE),
-			SlabCount(max_handles_per_thread)
+			SlabCount(max_handles_per_thread),
+			GlobalSlabAllocator(false)
 		)?;
 		let connection_hashtable = hashtable_sync_box!(
 			SlabSize(CONNECTION_SLAB_SIZE),
-			SlabCount(max_handles_per_thread)
+			SlabCount(max_handles_per_thread),
+			GlobalSlabAllocator(false)
 		)?;
 
 		#[cfg(target_os = "windows")]
@@ -425,7 +428,7 @@ impl EventHandlerContext {
 			epoll_events
 		};
 
-		let mut read_slabs = Builder::build_sync_slabs();
+		let mut read_slabs = UtilBuilder::build_sync_slabs();
 		read_slabs.init(SlabAllocatorConfig {
 			slab_size: READ_SLAB_SIZE,
 			slab_count: read_slab_count,
@@ -2501,13 +2504,11 @@ where
 
 	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn start(&mut self) -> Result<(), Error> {
-		let config = ThreadPoolConfig {
-			max_size: self.config.threads,
-			min_size: self.config.threads,
-			sync_channel_size: self.config.sync_channel_size,
-			..Default::default()
-		};
-		let mut tp = Builder::build_thread_pool(config)?;
+		let mut tp = thread_pool!(
+			MaxSize(self.config.threads),
+			MinSize(self.config.threads),
+			SyncChannelSize(self.config.sync_channel_size)
+		)?;
 
 		let mut v = vec![];
 		let mut v_panic = vec![];

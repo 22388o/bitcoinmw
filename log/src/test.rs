@@ -18,7 +18,6 @@
 #[cfg(test)]
 mod test {
 	use crate as bmw_log;
-	use crate::types::LogConfig;
 	use bmw_conf::*;
 	use bmw_deps::lazy_static::lazy_static;
 	use bmw_err::*;
@@ -50,7 +49,8 @@ mod test {
 		log.set_log_level(LogLevel::Debug);
 		log.init()?; // in logger
 		log.log(LogLevel::Debug, "test10")?; // log a message
-									 // check that display colors is true (default)
+
+		// check that display colors is true (default)
 		assert_eq!(
 			log.get_config_option(ConfigOptionName::DisplayColors)?,
 			ConfigOption::DisplayColors(true)
@@ -913,49 +913,6 @@ mod test {
 
 		// init should be successful
 		assert!(log.init().is_ok());
-		Ok(())
-	}
-
-	// mock configs for tests
-	impl Config for MockConfig {
-		fn get(&self, _: &ConfigOptionName) -> Option<ConfigOption> {
-			if self.v == 0 {
-				Some(ConfigOption::DisplayColors(true))
-			} else {
-				Some(ConfigOption::MaxSizeBytes(1000))
-			}
-		}
-		fn check_config(
-			&self,
-			_: Vec<ConfigOptionName>,
-			_: Vec<ConfigOptionName>,
-		) -> Result<(), Error> {
-			Ok(())
-		}
-	}
-
-	struct MockConfig {
-		v: usize,
-	}
-
-	#[test]
-	fn test_log_unusual_configs() -> Result<(), Error> {
-		// test some unusual configurations that can't happen to exercise part of the code that
-		// was not covered.
-		let config: Box<dyn Config> = Box::new(MockConfig { v: 0 });
-		let res = LogConfig::get_config_u64(ConfigOptionName::AutoRotate, &config, 1230);
-		assert_eq!(res, 1230);
-		let config: Box<dyn Config> = Box::new(MockConfig { v: 1 });
-		let res = LogConfig::get_config_bool(ConfigOptionName::AutoRotate, &config, false);
-		assert_eq!(res, false);
-		let res = LogConfig::get_config_string(
-			ConfigOptionName::AutoRotate,
-			&config,
-			"mystring".to_string(),
-		);
-		assert_eq!(res, "mystring".to_string());
-		let res = LogConfig::get_config_path_buf(ConfigOptionName::AutoRotate, &config, None);
-		assert_eq!(res, None);
 		Ok(())
 	}
 

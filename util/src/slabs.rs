@@ -17,7 +17,7 @@
 
 use crate::misc::{set_max, slice_to_usize, usize_to_slice};
 use crate::types::SlabAllocatorImpl;
-use crate::{Array, Builder, Slab, SlabAllocator, SlabAllocatorConfig, SlabMut};
+use crate::{Array, Slab, SlabAllocator, SlabAllocatorConfig, SlabMut, UtilBuilder};
 use bmw_err::{err, Error};
 use bmw_log::*;
 use std::cell::UnsafeCell;
@@ -35,7 +35,7 @@ impl Default for SlabAllocatorConfig {
 
 thread_local! {
 		#[doc(hidden)]
-		pub static GLOBAL_SLAB_ALLOCATOR: UnsafeCell<Box<dyn SlabAllocator>> = Builder::build_slabs_unsafe();
+		pub static GLOBAL_SLAB_ALLOCATOR: UnsafeCell<Box<dyn SlabAllocator>> = UtilBuilder::build_slabs_unsafe();
 }
 
 impl<'a> SlabMut<'a> {
@@ -228,7 +228,7 @@ impl SlabAllocator for SlabAllocatorImpl {
 				}
 
 				// build data array
-				let mut data = Builder::build_array(
+				let mut data = UtilBuilder::build_array(
 					config.slab_count * (config.slab_size + self.ptr_size),
 					&0u8,
 				)?;
@@ -269,7 +269,7 @@ impl SlabAllocator for SlabAllocatorImpl {
 
 impl SlabAllocatorImpl {
 	pub(crate) fn new() -> Self {
-		let data = Builder::build_array(1, &0u8).unwrap();
+		let data = UtilBuilder::build_array(1, &0u8).unwrap();
 		Self {
 			config: None,
 			free_count: 0,
@@ -300,172 +300,6 @@ impl SlabAllocatorImpl {
 			data.as_mut()[offset_next..offset_next + ptr_size]
 				.clone_from_slice(&next_bytes[0..ptr_size]);
 		}
-		Ok(())
-	}
-}
-
-#[cfg(test)]
-mod test {
-	use crate::slabs::SlabMut;
-	use crate::types::SlabAllocatorConfig;
-	use crate::Builder;
-	use bmw_err::Error;
-	use bmw_log::*;
-
-	info!();
-
-	#[test]
-	fn test_simple() -> Result<(), Error> {
-		let mut slabs = Builder::build_slabs();
-
-		assert!(slabs.slab_count().is_err());
-		assert!(slabs.slab_size().is_err());
-
-		slabs.init(SlabAllocatorConfig::default())?;
-
-		let (id1, id2);
-		{
-			let mut slab = slabs.allocate()?;
-			id1 = slab.id();
-			slab.get_mut()[0] = 111;
-		}
-
-		{
-			let mut slab = slabs.allocate()?;
-			id2 = slab.id();
-			slab.get_mut()[0] = 112;
-		}
-
-		assert_eq!(slabs.get(id1)?.get()[0], 111);
-		assert_eq!(slabs.get(id2)?.get()[0], 112);
-
-		Ok(())
-	}
-
-	#[test]
-	fn test_static_slaballoc() -> Result<(), Error> {
-		crate::slabs::GLOBAL_SLAB_ALLOCATOR.with(|f| -> Result<(), Error> {
-			unsafe {
-				f.get()
-					.as_mut()
-					.unwrap()
-					.init(SlabAllocatorConfig::default())?;
-				Ok(())
-			}
-		})?;
-		let slab = crate::slabs::GLOBAL_SLAB_ALLOCATOR.with(|f| -> Result<SlabMut<'_>, Error> {
-			Ok(unsafe { f.get().as_mut().unwrap().allocate()? })
-		})?;
-		info!("slab={:?}", slab.get())?;
-		Ok(())
-	}
-
-	#[test]
-	fn test_capacity() -> Result<(), Error> {
-		let mut slabs = Builder::build_slabs();
-		slabs.init(SlabAllocatorConfig {
-			slab_count: 10,
-			..SlabAllocatorConfig::default()
-		})?;
-		for _ in 0..10 {
-			slabs.allocate()?;
-		}
-		assert!(slabs.allocate().is_err());
-
-		slabs.free(0)?;
-		assert!(slabs.allocate().is_ok());
-		assert!(slabs.allocate().is_err());
-		Ok(())
-	}
-
-	#[test]
-	fn test_error_conditions() -> Result<(), Error> {
-		let mut slabs = Builder::build_slabs();
-		assert!(slabs.allocate().is_err());
-		assert!(slabs.free(0).is_err());
-		assert!(slabs.get(0).is_err());
-		assert!(slabs.get_mut(0).is_err());
-		assert!(slabs.free_count().is_err());
-		slabs.init(SlabAllocatorConfig::default())?;
-		assert!(slabs.allocate().is_ok());
-		assert!(slabs.free_count().is_ok());
-		assert!(slabs.free(usize::MAX).is_err());
-		assert!(slabs.get(usize::MAX).is_err());
-		assert!(slabs.get_mut(usize::MAX).is_err());
-		assert!(slabs.init(SlabAllocatorConfig::default()).is_err());
-		Ok(())
-	}
-
-	#[test]
-	fn test_double_free() -> Result<(), Error> {
-		let mut slabs = Builder::build_slabs();
-		slabs.init(SlabAllocatorConfig::default())?;
-		let id = {
-			let slab = slabs.allocate()?;
-			slab.id()
-		};
-		let slab = slabs.get(id)?;
-		assert_eq!(slab.id(), id);
-		slabs.free(id)?;
-		assert!(slabs.free(id).is_err());
-		let id2 = {
-			let slab = slabs.allocate()?;
-			slab.id()
-		};
-		slabs.free(id2)?;
-		assert!(slabs.free(id2).is_err());
-		// we know id and id2 are equal because when you free a slab it's added to the
-		// front of the list
-		assert_eq!(id, id2);
-		Ok(())
-	}
-
-	#[test]
-	fn test_other_slabs_configs() -> Result<(), Error> {
-		assert!(Builder::build_slabs()
-			.init(SlabAllocatorConfig::default())
-			.is_ok());
-
-		assert!(Builder::build_slabs()
-			.init(SlabAllocatorConfig {
-				slab_size: 100,
-				..SlabAllocatorConfig::default()
-			})
-			.is_ok());
-
-		assert!(Builder::build_slabs()
-			.init(SlabAllocatorConfig {
-				slab_size: 48,
-				..SlabAllocatorConfig::default()
-			})
-			.is_ok());
-
-		assert!(Builder::build_slabs()
-			.init(SlabAllocatorConfig {
-				slab_size: 7,
-				..SlabAllocatorConfig::default()
-			})
-			.is_err());
-		assert!(Builder::build_slabs()
-			.init(SlabAllocatorConfig {
-				slab_count: 0,
-				..SlabAllocatorConfig::default()
-			})
-			.is_err());
-
-		let mut sh = Builder::build_slabs();
-		sh.init(SlabAllocatorConfig {
-			slab_count: 1,
-			..SlabAllocatorConfig::default()
-		})?;
-
-		let slab = sh.allocate();
-		assert!(slab.is_ok());
-		let id = slab.unwrap().id();
-		assert!(sh.allocate().is_err());
-		sh.free(id)?;
-		assert!(sh.allocate().is_ok());
-
 		Ok(())
 	}
 }

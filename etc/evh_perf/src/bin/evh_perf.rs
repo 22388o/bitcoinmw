@@ -26,7 +26,7 @@ use bmw_log::bmw_conf::ConfigOption;
 use bmw_log::*;
 use bmw_util::{
 	block_on, execute, global_slab_allocator, lock_box, slice_to_u128, slice_to_usize, thread_pool,
-	u128_to_slice, u32_to_slice, usize_to_slice, LockBox, MaxSize, MinSize, ThreadPool,
+	u128_to_slice, u32_to_slice, usize_to_slice, LockBox, ThreadPool,
 };
 use clap::{load_yaml, App, ArgMatches};
 use std::collections::HashMap;
@@ -375,6 +375,7 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 	};
 
 	let mut pool = thread_pool!(MinSize(threads), MaxSize(threads))?;
+	pool.start()?;
 	pool.set_on_panic(move |_, _| Ok(()))?;
 	let mut completions = vec![];
 	let state = lock_box!(GlobalStats::new())?;

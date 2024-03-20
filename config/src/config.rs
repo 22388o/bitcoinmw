@@ -37,6 +37,85 @@ impl Config for ConfigImpl {
 		self.hash.get(name).cloned()
 	}
 
+	fn get_or_bool(&self, name: &CN, default: bool) -> bool {
+		match self.hash.get(name) {
+			Some(v) => match v {
+				ConfigOption::DisplayColors(v) => *v,
+				ConfigOption::AutoRotate(v) => *v,
+				ConfigOption::DeleteRotation(v) => *v,
+				ConfigOption::DisplayLogLevel(v) => *v,
+				ConfigOption::DisplayLineNum(v) => *v,
+				ConfigOption::DisplayBackTrace(v) => *v,
+				ConfigOption::DisplayMillis(v) => *v,
+				ConfigOption::DisplayStdout(v) => *v,
+				ConfigOption::DisplayTimestamp(v) => *v,
+				ConfigOption::GlobalSlabAllocator(v) => *v,
+				ConfigOption::IsCaseSensitive(v) => *v,
+				ConfigOption::IsTerminationPattern(v) => *v,
+				ConfigOption::IsMultiLine(v) => *v,
+				ConfigOption::IsHashtable(v) => *v,
+				ConfigOption::IsHashset(v) => *v,
+				ConfigOption::IsList(v) => *v,
+				ConfigOption::Debug(v) => *v,
+				ConfigOption::DebugLargeSlabCount(v) => *v,
+				_ => default,
+			},
+			None => default,
+		}
+	}
+
+	fn get_or_usize(&self, name: &CN, default: usize) -> usize {
+		match self.hash.get(name) {
+			Some(v) => match v {
+				ConfigOption::MaxEntries(v) => *v,
+				ConfigOption::SlabSize(v) => *v,
+				ConfigOption::SlabCount(v) => *v,
+				ConfigOption::MinSize(v) => *v,
+				ConfigOption::MaxSize(v) => *v,
+				ConfigOption::SyncChannelSize(v) => *v,
+				ConfigOption::Start(v) => *v,
+				ConfigOption::End(v) => *v,
+				ConfigOption::MatchId(v) => *v,
+				ConfigOption::PatternId(v) => *v,
+				_ => default,
+			},
+			None => default,
+		}
+	}
+
+	fn get_or_u64(&self, name: &CN, default: u64) -> u64 {
+		match self.hash.get(name) {
+			Some(v) => match v {
+				ConfigOption::MaxSizeBytes(v) => *v,
+				ConfigOption::MaxAgeMillis(v) => *v,
+				ConfigOption::LineNumDataMaxLen(v) => *v,
+				_ => default,
+			},
+			None => default,
+		}
+	}
+
+	fn get_or_string(&self, name: &CN, default: String) -> String {
+		match self.hash.get(name) {
+			Some(v) => match v {
+				ConfigOption::FileHeader(v) => v.to_string(),
+				ConfigOption::Regex(v) => v.to_string(),
+				_ => default,
+			},
+			None => default,
+		}
+	}
+
+	fn get_or_f64(&self, name: &CN, default: f64) -> f64 {
+		match self.hash.get(name) {
+			Some(v) => match v {
+				ConfigOption::MaxLoadFactor(v) => *v,
+				_ => default,
+			},
+			None => default,
+		}
+	}
+
 	fn check_config(&self, allowed: Vec<CN>, required: Vec<CN>) -> Result<(), Error> {
 		self.check_config_impl(allowed, required)
 	}
@@ -63,7 +142,27 @@ impl ConfigImpl {
 				LineNumDataMaxLen(_) => hash.insert(CN::LineNumDataMaxLen, config.clone()),
 				DeleteRotation(_) => hash.insert(CN::DeleteRotation, config.clone()),
 				FileHeader(_) => hash.insert(CN::FileHeader, config.clone()),
+				MaxEntries(_) => hash.insert(CN::MaxEntries, config.clone()),
+				MaxLoadFactor(_) => hash.insert(CN::MaxLoadFactor, config.clone()),
+				SlabSize(_) => hash.insert(CN::SlabSize, config.clone()),
+				SlabCount(_) => hash.insert(CN::SlabCount, config.clone()),
+				MinSize(_) => hash.insert(CN::MinSize, config.clone()),
+				MaxSize(_) => hash.insert(CN::MaxSize, config.clone()),
+				SyncChannelSize(_) => hash.insert(CN::SyncChannelSize, config.clone()),
+				GlobalSlabAllocator(_) => hash.insert(CN::GlobalSlabAllocator, config.clone()),
+				Start(_) => hash.insert(CN::Start, config.clone()),
+				End(_) => hash.insert(CN::End, config.clone()),
+				MatchId(_) => hash.insert(CN::MatchId, config.clone()),
+				Regex(_) => hash.insert(CN::Regex, config.clone()),
+				IsCaseSensitive(_) => hash.insert(CN::IsCaseSensitive, config.clone()),
+				IsTerminationPattern(_) => hash.insert(CN::IsTerminationPattern, config.clone()),
+				IsMultiLine(_) => hash.insert(CN::IsMultiLine, config.clone()),
+				PatternId(_) => hash.insert(CN::PatternId, config.clone()),
+				IsHashtable(_) => hash.insert(CN::IsHashtable, config.clone()),
+				IsHashset(_) => hash.insert(CN::IsHashset, config.clone()),
+				IsList(_) => hash.insert(CN::IsList, config.clone()),
 				Debug(_) => hash.insert(CN::Debug, config.clone()),
+				DebugLargeSlabCount(_) => hash.insert(CN::DebugLargeSlabCount, config.clone()),
 			};
 		}
 		Self { configs, hash }
@@ -94,7 +193,27 @@ impl ConfigImpl {
 				LineNumDataMaxLen(_) => cc!(self, t, &mut s, CN::LineNumDataMaxLen),
 				DeleteRotation(_) => cc!(self, t, &mut s, CN::DeleteRotation),
 				FileHeader(_) => cc!(self, t, &mut s, CN::FileHeader),
+				MaxEntries(_) => cc!(self, t, &mut s, CN::MaxEntries),
+				MaxLoadFactor(_) => cc!(self, t, &mut s, CN::MaxLoadFactor),
+				SlabSize(_) => cc!(self, t, &mut s, CN::SlabSize),
+				SlabCount(_) => cc!(self, t, &mut s, CN::SlabCount),
+				MinSize(_) => cc!(self, t, &mut s, CN::MinSize),
+				MaxSize(_) => cc!(self, t, &mut s, CN::MaxSize),
+				SyncChannelSize(_) => cc!(self, t, &mut s, CN::SyncChannelSize),
+				GlobalSlabAllocator(_) => cc!(self, t, &mut s, CN::GlobalSlabAllocator),
+				Start(_) => cc!(self, t, &mut s, CN::Start),
+				End(_) => cc!(self, t, &mut s, CN::End),
+				MatchId(_) => cc!(self, t, &mut s, CN::MatchId),
+				Regex(_) => cc!(self, t, &mut s, CN::Regex),
+				IsCaseSensitive(_) => cc!(self, t, &mut s, CN::IsCaseSensitive),
+				IsTerminationPattern(_) => cc!(self, t, &mut s, CN::IsTerminationPattern),
+				IsMultiLine(_) => cc!(self, t, &mut s, CN::IsMultiLine),
+				PatternId(_) => cc!(self, t, &mut s, CN::PatternId),
+				IsHashtable(_) => cc!(self, t, &mut s, CN::IsHashtable),
+				IsHashset(_) => cc!(self, t, &mut s, CN::IsHashset),
+				IsList(_) => cc!(self, t, &mut s, CN::IsList),
 				Debug(_) => cc!(self, t, &mut s, CN::Debug),
+				DebugLargeSlabCount(_) => cc!(self, t, &mut s, CN::DebugLargeSlabCount),
 			}
 		}
 

@@ -25,6 +25,11 @@ use std::path::PathBuf;
 /// [`crate::Config::check_config`] function.
 pub trait Config {
 	fn get(&self, name: &ConfigOptionName) -> Option<ConfigOption>;
+	fn get_or_bool(&self, name: &ConfigOptionName, default: bool) -> bool;
+	fn get_or_usize(&self, name: &ConfigOptionName, default: usize) -> usize;
+	fn get_or_u64(&self, name: &ConfigOptionName, default: u64) -> u64;
+	fn get_or_string(&self, name: &ConfigOptionName, default: String) -> String;
+	fn get_or_f64(&self, name: &ConfigOptionName, default: f64) -> f64;
 	fn check_config(
 		&self,
 		allowed: Vec<ConfigOptionName>,
@@ -50,11 +55,31 @@ pub enum ConfigOptionName {
 	LineNumDataMaxLen,
 	DeleteRotation,
 	FileHeader,
+	MaxEntries,
+	MaxLoadFactor,
+	SlabSize,
+	SlabCount,
+	MinSize,
+	MaxSize,
+	SyncChannelSize,
+	GlobalSlabAllocator,
+	Start,
+	End,
+	MatchId,
+	Regex,
+	IsCaseSensitive,
+	IsTerminationPattern,
+	IsMultiLine,
+	PatternId,
+	IsHashtable,
+	IsHashset,
+	IsList,
 	Debug,
+	DebugLargeSlabCount,
 }
 
 /// Configuration options used throughout BMW via macro.
-#[derive(Hash, Eq, PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum ConfigOption {
 	MaxSizeBytes(u64),
 	MaxAgeMillis(u64),
@@ -70,7 +95,27 @@ pub enum ConfigOption {
 	LineNumDataMaxLen(u64),
 	DeleteRotation(bool),
 	FileHeader(String),
+	MaxEntries(usize),
+	MaxLoadFactor(f64),
+	SlabSize(usize),
+	SlabCount(usize),
+	MinSize(usize),
+	MaxSize(usize),
+	SyncChannelSize(usize),
+	GlobalSlabAllocator(bool),
+	Start(usize),
+	End(usize),
+	MatchId(usize),
+	Regex(String),
+	IsCaseSensitive(bool),
+	IsTerminationPattern(bool),
+	IsMultiLine(bool),
+	PatternId(usize),
+	IsHashtable(bool),
+	IsHashset(bool),
+	IsList(bool),
 	Debug(bool),
+	DebugLargeSlabCount(bool),
 }
 
 /// A builder struct which can be used to build configs. This is typically done using the

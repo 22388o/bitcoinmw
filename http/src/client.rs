@@ -377,7 +377,7 @@ impl HttpClientImpl {
 		let mut evh = Builder::build_evh(evh_config)?;
 		let event_handler_data = evh.event_handler_data()?;
 
-		let mut content_allocator = bmw_util::Builder::build_sync_slabs();
+		let mut content_allocator = bmw_util::UtilBuilder::build_sync_slabs();
 		content_allocator.init(SlabAllocatorConfig {
 			slab_size: CONTENT_SLAB_SIZE,
 			slab_count: config.slab_count,
@@ -432,27 +432,28 @@ impl HttpClientImpl {
 		let max_wildcard = config.max_headers_len;
 		let termination_length = config.max_headers_len + 300;
 
-		let matches = [bmw_util::Builder::build_match_default(); MATCH_ARRAY_SIZE];
+		let matches = [tmatch!()?; MATCH_ARRAY_SIZE];
 
-		let slab_allocator = slab_allocator!()?;
-		let mut list =
-			bmw_util::Builder::build_list(ListConfig::default(), &Some(&slab_allocator))?;
-		list.push(bmw_util::Builder::build_pattern(
-			"\r\n\r\n",
-			false,
-			true,
-			true,
-			SUFFIX_TREE_TERMINATE_HEADERS_ID,
-		)?)?;
+		let mut list = vec![];
+		list.push(pattern!(
+			Regex("\r\n\r\n".to_string()),
+			IsTerminationPattern(true),
+			IsMultiLine(true),
+			IsCaseSensitive(false),
+			PatternId(SUFFIX_TREE_TERMINATE_HEADERS_ID)
+		)?);
 
 		list.push(pattern!(
-			Regex("Connection: close"),
-			Id(CONNECTION_CLOSE_ID)
-		)?)?;
+			Regex("Connection: close".to_string()),
+			PatternId(CONNECTION_CLOSE_ID)
+		)?);
 
-		list.push(pattern!(Regex("\r\n.*: "), Id(SUFFIX_TREE_HEADER_ID))?)?;
+		list.push(pattern!(
+			Regex("\r\n.*: ".to_string()),
+			PatternId(SUFFIX_TREE_HEADER_ID)
+		)?);
 
-		let suffix_tree = Box::new(suffix_tree!(
+		let search_trie = Box::new(search_trie!(
 			list,
 			TerminationLength(termination_length),
 			MaxWildcardLength(max_wildcard)
@@ -460,7 +461,7 @@ impl HttpClientImpl {
 
 		Ok(HttpClientContext {
 			slab_start: 0,
-			suffix_tree,
+			search_trie,
 			matches,
 		})
 	}
@@ -604,7 +605,7 @@ impl HttpClientImpl {
 		if config.debug {
 			info!("res='{}'", std::str::from_utf8(&res).unwrap_or("utf8err"))?;
 		}
-		let count = ctx.suffix_tree.tmatch(&res, &mut ctx.matches)?;
+		let count = ctx.search_trie.tmatch(&res, &mut ctx.matches)?;
 		let tmp_file_dir = canonicalize(config.base_dir.clone())?;
 		let mut response = HttpResponseImpl::new(
 			HttpContentReaderData::new(),

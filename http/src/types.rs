@@ -558,7 +558,7 @@ pub(crate) struct HttpConnectionImpl {
 
 pub(crate) struct HttpClientContext {
 	pub(crate) slab_start: usize,
-	pub(crate) suffix_tree: Box<dyn SuffixTree + Send + Sync>,
+	pub(crate) search_trie: Box<dyn SearchTrie + Send + Sync>,
 	pub(crate) matches: [Match; 1_000],
 }
 
@@ -584,7 +584,7 @@ pub(crate) struct HttpCacheImpl {
 }
 
 pub(crate) struct HttpContext {
-	pub(crate) suffix_tree: Box<dyn SuffixTree + Send + Sync>,
+	pub(crate) search_trie: Box<dyn SearchTrie + Send + Sync>,
 	pub(crate) matches: [Match; 1_000],
 	pub(crate) connections: HashMap<u128, HttpConnectionData>,
 	pub(crate) mime_map: HashMap<String, String>,

@@ -124,7 +124,16 @@ mod test {
 			LineNumDataMaxLen(300),
 			FileHeader("test".to_string()),
 			DeleteRotation(false),
-			AutoRotate(true)
+			AutoRotate(true),
+			MaxEntries(100),
+			MaxLoadFactor(0.5),
+			SlabSize(100),
+			SlabCount(200),
+			MinSize(1),
+			MaxSize(100),
+			SyncChannelSize(1),
+			GlobalSlabAllocator(false),
+			Debug(true)
 		);
 
 		// since everything is allowed, it's ok
@@ -144,7 +153,16 @@ mod test {
 					CN::LineNumDataMaxLen,
 					CN::DeleteRotation,
 					CN::FileHeader,
-					CN::AutoRotate
+					CN::AutoRotate,
+					CN::MaxEntries,
+					CN::MaxLoadFactor,
+					CN::SlabSize,
+					CN::SlabCount,
+					CN::MinSize,
+					CN::MaxSize,
+					CN::SyncChannelSize,
+					CN::GlobalSlabAllocator,
+					CN::Debug
 				],
 				vec![]
 			)

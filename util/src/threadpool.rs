@@ -15,11 +15,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::constants::*;
 use crate::types::{FutureWrapper, Lock, ThreadPoolImpl, ThreadPoolState};
 use crate::{
-	Builder, LockBox, PoolResult, ThreadPool, ThreadPoolConfig, ThreadPoolExecutor,
-	ThreadPoolStopper,
+	LockBox, PoolResult, ThreadPool, ThreadPoolConfig, ThreadPoolExecutor, ThreadPoolStopper,
+	UtilBuilder,
 };
+use bmw_conf::ConfigOptionName as CN;
+use bmw_conf::{Config, ConfigBuilder, ConfigOption};
 use bmw_deps::futures::executor::block_on;
 use bmw_err::{err, Error};
 use bmw_log::*;
@@ -56,6 +59,7 @@ where
 		+ Unpin,
 	T: 'static + Send + Sync,
 {
+	/*
 	#[cfg(test)]
 	pub(crate) fn new_with_on_panic_and_t(
 		config: ThreadPoolConfig,
@@ -64,15 +68,48 @@ where
 	) -> Result<Self, Error> {
 		Self::new(config)
 	}
+	*/
 
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
-	pub(crate) fn new(config: ThreadPoolConfig) -> Result<Self, Error> {
-		if config.min_size == 0 || config.min_size > config.max_size {
+	fn get_option(option: CN, config: &Box<dyn Config>, default: usize) -> usize {
+		match config.get(&option) {
+			Some(v) => match v {
+				ConfigOption::MaxSize(v) => v,
+				ConfigOption::MinSize(v) => v,
+				ConfigOption::SyncChannelSize(v) => v,
+				_ => default,
+			},
+			None => default,
+		}
+	}
+
+	pub(crate) fn new(configs: Vec<ConfigOption>) -> Result<Self, Error> {
+		let config = ConfigBuilder::build_config(configs);
+		config.check_config(vec![CN::SyncChannelSize, CN::MinSize, CN::MaxSize], vec![])?;
+		let min_size = THREAD_POOL_DEFAULT_MIN_SIZE;
+		let min_size = Self::get_option(CN::MinSize, &config, min_size);
+		let max_size = THREAD_POOL_DEFAULT_MAX_SIZE;
+		let max_size = Self::get_option(CN::MaxSize, &config, max_size);
+		let sync_channel_size = THREAD_POOL_DEFAULT_SYNC_CHANNEL_SIZE;
+		let sync_channel_size = Self::get_option(CN::SyncChannelSize, &config, sync_channel_size);
+
+		if min_size == 0 || min_size > max_size {
 			let fmt = "min_size must be > 0 and < max_size";
 			return Err(err!(ErrKind::Configuration, fmt));
 		}
+
+		if sync_channel_size == 0 {
+			let fmt = "sync_channel_size must be greater than 0";
+			return Err(err!(ErrKind::Configuration, fmt));
+		}
+
+		let config = ThreadPoolConfig {
+			min_size,
+			max_size,
+			sync_channel_size,
+		};
+
 		let waiting = 0;
-		let cur_size = config.min_size;
+		let cur_size = min_size;
 		let config_clone = config.clone();
 		let stop = false;
 		let tps = ThreadPoolState {
@@ -81,7 +118,7 @@ where
 			config,
 			stop,
 		};
-		let state = Builder::build_lock_box(tps)?;
+		let state = UtilBuilder::build_lock_box(tps)?;
 
 		let config = config_clone;
 		let rx = None;
@@ -108,7 +145,7 @@ where
 				let rx = rx.clone();
 				let mut state_clone = state.clone();
 				let on_panic_clone = on_panic.clone();
-				let mut id = Builder::build_lock(0)?;
+				let mut id = UtilBuilder::build_lock(0)?;
 				let id_clone = id.clone();
 				let jh = spawn(move || -> Result<(), Error> {
 					loop {
@@ -328,421 +365,6 @@ impl ThreadPoolStopper {
 	/// should be used where possible.
 	pub fn stop(&mut self) -> Result<(), Error> {
 		(**self.state.wlock()?.guard()).stop = true;
-		Ok(())
-	}
-}
-
-#[cfg(test)]
-mod test {
-	use crate as bmw_util;
-	use crate::execute;
-	use crate::types::ThreadPoolImpl;
-	use crate::{lock, lock_box, Builder, Lock, PoolResult, ThreadPool, ThreadPoolConfig};
-	use bmw_err::{err, Error};
-	use bmw_log::*;
-	use std::thread::sleep;
-	use std::time::Duration;
-
-	info!();
-
-	#[test]
-	fn test_threadpool1() -> Result<(), Error> {
-		let mut tp = Builder::build_thread_pool(ThreadPoolConfig {
-			min_size: 10,
-			max_size: 10,
-			..Default::default()
-		})?;
-		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
-		tp.start()?;
-
-		// simple execution, return value
-		let res = tp.execute(async move { Ok(1) }, 0)?;
-		assert_eq!(res.recv()?, PoolResult::Ok(1));
-
-		// increment value using locks
-		let mut x = lock!(1)?;
-		let x_clone = x.clone();
-		tp.execute(
-			async move {
-				**x.wlock()?.guard() = 2;
-				Ok(1)
-			},
-			0,
-		)?;
-
-		let mut count = 0;
-		loop {
-			count += 1;
-			assert!(count < 500);
-			sleep(Duration::from_millis(10));
-			if **x_clone.rlock()?.guard() == 2 {
-				break;
-			}
-		}
-
-		// return an error
-		let res = tp.execute(async move { Err(err!(ErrKind::Test, "test")) }, 0)?;
-
-		assert_eq!(res.recv()?, PoolResult::Err(err!(ErrKind::Test, "test")));
-
-		// handle panic
-		let res = tp.execute(
-			async move {
-				let x: Option<u32> = None;
-				Ok(x.unwrap())
-			},
-			0,
-		)?;
-
-		assert!(res.recv().is_err());
-
-		// 10 more panics to ensure pool keeps running
-		for _ in 0..10 {
-			let res = tp.execute(
-				async move {
-					let x: Option<u32> = None;
-					Ok(x.unwrap())
-				},
-				0,
-			)?;
-
-			assert!(res.recv().is_err());
-		}
-
-		// now do a regular request
-		let res = tp.execute(async move { Ok(5) }, 0)?;
-		assert_eq!(res.recv()?, PoolResult::Ok(5));
-
-		sleep(Duration::from_millis(1000));
-		info!("test sending errors")?;
-
-		// send an error and ignore the response
-		{
-			let res = tp.execute(async move { Err(err!(ErrKind::Test, "")) }, 0)?;
-			drop(res);
-			sleep(Duration::from_millis(1000));
-		}
-		{
-			let res = tp.execute(async move { Err(err!(ErrKind::Test, "test")) }, 0)?;
-			assert_eq!(res.recv()?, PoolResult::Err(err!(ErrKind::Test, "test")));
-		}
-		sleep(Duration::from_millis(1_000));
-
-		Ok(())
-	}
-
-	#[test]
-	fn test_sizing() -> Result<(), Error> {
-		let mut tp = ThreadPoolImpl::new(ThreadPoolConfig {
-			min_size: 2,
-			max_size: 4,
-			..Default::default()
-		})?;
-		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
-		tp.start()?;
-		let mut v = vec![];
-
-		let x = lock!(0)?;
-
-		loop {
-			sleep(Duration::from_millis(10));
-			{
-				let state = tp.state.rlock()?;
-				if (**state.guard()).waiting == 2 {
-					break;
-				}
-			}
-		}
-		assert_eq!(tp.size()?, 2);
-		// first use up all the min_size threads
-		let y = lock!(0)?;
-		for _ in 0..2 {
-			let mut y_clone = y.clone();
-			let x_clone = x.clone();
-			let res = tp.execute(
-				async move {
-					**(y_clone.wlock()?.guard()) += 1;
-					loop {
-						if **(x_clone.rlock()?.guard()) != 0 {
-							break;
-						}
-						sleep(Duration::from_millis(50));
-					}
-					Ok(1)
-				},
-				0,
-			)?;
-			v.push(res);
-		}
-		loop {
-			sleep(Duration::from_millis(100));
-			{
-				let y = y.rlock()?;
-				if (**y.guard()) == 2 {
-					break;
-				}
-			}
-		}
-		assert_eq!(tp.size()?, 3);
-
-		// confirm we can still process
-		for _ in 0..10 {
-			let mut x_clone = x.clone();
-			let res = tp.execute(
-				async move {
-					**(x_clone.wlock()?.guard()) = 1;
-
-					Ok(2)
-				},
-				0,
-			)?;
-			assert_eq!(res.recv()?, PoolResult::Ok(2));
-		}
-
-		sleep(Duration::from_millis(2_000));
-		assert_eq!(tp.size()?, 2);
-
-		let mut i = 0;
-		for res in v {
-			assert_eq!(res.recv()?, PoolResult::Ok(1));
-			info!("res complete {}", i)?;
-			i += 1;
-		}
-
-		sleep(Duration::from_millis(1000));
-
-		let mut x2 = lock!(0)?;
-
-		// confirm that the maximum is in place
-
-		// block all 4 threads waiting on x2
-		for _ in 0..4 {
-			let mut x2_clone = x2.clone();
-			tp.execute(
-				async move {
-					info!("x0a")?;
-					loop {
-						if **(x2_clone.rlock()?.guard()) != 0 {
-							break;
-						}
-						sleep(Duration::from_millis(50));
-					}
-					info!("x2")?;
-					**(x2_clone.wlock()?.guard()) += 1;
-
-					Ok(0)
-				},
-				0,
-			)?;
-		}
-
-		sleep(Duration::from_millis(2_000));
-		assert_eq!(tp.size()?, 4);
-
-		// confirm that the next thread cannot be processed
-		let mut x2_clone = x2.clone();
-		tp.execute(
-			async move {
-				info!("x0")?;
-				**(x2_clone.wlock()?.guard()) += 1;
-				info!("x1")?;
-				Ok(0)
-			},
-			0,
-		)?;
-
-		// wait
-		sleep(Duration::from_millis(2_000));
-
-		// confirm situation hasn't changed
-		assert_eq!(**(x2.rlock()?.guard()), 0);
-
-		// unlock the threads by setting x2 to 1
-		**(x2.wlock()?.guard()) = 1;
-
-		// wait
-		sleep(Duration::from_millis(4_000));
-		assert_eq!(**(x2.rlock()?.guard()), 6);
-		info!("exit all")?;
-
-		sleep(Duration::from_millis(2_000));
-		assert_eq!(tp.size()?, 2);
-
-		tp.stop()?;
-		sleep(Duration::from_millis(2_000));
-		assert_eq!(tp.size()?, 0);
-
-		Ok(())
-	}
-
-	#[test]
-	fn test_stop() -> Result<(), Error> {
-		let mut tp = Builder::build_thread_pool(ThreadPoolConfig {
-			min_size: 2,
-			max_size: 4,
-			..Default::default()
-		})?;
-		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
-		tp.start()?;
-
-		sleep(Duration::from_millis(1000));
-		assert_eq!(tp.size()?, 2);
-		tp.execute(async move { Ok(()) }, 0)?;
-
-		sleep(Duration::from_millis(1000));
-		info!("stopping pool")?;
-		assert_eq!(tp.size()?, 2);
-		tp.stop()?;
-
-		sleep(Duration::from_millis(1000));
-		assert_eq!(tp.size()?, 0);
-		Ok(())
-	}
-
-	#[test]
-	fn pass_to_threads() -> Result<(), Error> {
-		let mut tp = Builder::build_thread_pool(ThreadPoolConfig {
-			min_size: 2,
-			max_size: 4,
-			..Default::default()
-		})?;
-		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
-		tp.start()?;
-
-		let tp = lock!(tp)?;
-		for _ in 0..6 {
-			let tp = tp.clone();
-			std::thread::spawn(move || -> Result<(), Error> {
-				let tp = tp.rlock()?;
-				execute!((**tp.guard()), {
-					info!("executing in thread pool")?;
-					Ok(1)
-				})?;
-				Ok(())
-			});
-		}
-		Ok(())
-	}
-
-	#[test]
-	fn test_bad_configs() -> Result<(), Error> {
-		assert!(ThreadPoolImpl::new_with_on_panic_and_t(
-			ThreadPoolConfig {
-				min_size: 5,
-				max_size: 4,
-				..Default::default()
-			},
-			move |_, _| -> Result<(), Error> { Ok(()) },
-			0u32
-		)
-		.is_err());
-
-		assert!(ThreadPoolImpl::new_with_on_panic_and_t(
-			ThreadPoolConfig {
-				min_size: 0,
-				max_size: 4,
-				..Default::default()
-			},
-			move |_, _| -> Result<(), Error> { Ok(()) },
-			0u32
-		)
-		.is_err());
-
-		let mut tp = Builder::build_thread_pool(ThreadPoolConfig {
-			min_size: 5,
-			max_size: 6,
-			..Default::default()
-		})?;
-		tp.set_on_panic(move |_, _| -> Result<(), Error> { Ok(()) })?;
-
-		assert_eq!(
-			tp.execute(async move { Ok(()) }, 0).unwrap_err(),
-			err!(
-				ErrKind::IllegalState,
-				"Thread pool has not been initialized"
-			)
-		);
-		Ok(())
-	}
-
-	#[test]
-	fn test_no_on_panic_handler() -> Result<(), Error> {
-		let mut tp = Builder::build_thread_pool(ThreadPoolConfig {
-			min_size: 1,
-			max_size: 1,
-			..Default::default()
-		})?;
-
-		tp.set_on_panic(move |_, _| -> Result<(), Error> { Ok(()) })?;
-		tp.set_on_panic_none()?;
-		tp.start()?;
-		tp.execute(
-			async move {
-				if true {
-					panic!("2");
-				}
-				Ok(())
-			},
-			0,
-		)?;
-
-		sleep(Duration::from_millis(1_000));
-
-		Ok(())
-	}
-
-	#[test]
-	fn test_on_panic_error() -> Result<(), Error> {
-		let mut tp = Builder::build_thread_pool(ThreadPoolConfig {
-			min_size: 1,
-			max_size: 1,
-			..Default::default()
-		})?;
-
-		let mut count = lock_box!(0)?;
-		let count_clone = count.clone();
-		tp.set_on_panic(move |_, _| -> Result<(), Error> {
-			let mut count = count.wlock()?;
-			**count.guard() += 1;
-			return Err(err!(ErrKind::Test, "panic errored"));
-		})?;
-
-		// test that unstarted pool returns err
-		let executor = tp.executor()?;
-		assert!(executor.execute(async move { Ok(0) }, 0,).is_err());
-
-		tp.start()?;
-
-		tp.execute(
-			async move {
-				panic!("err");
-			},
-			0,
-		)?;
-
-		let mut count = 0;
-		loop {
-			count += 1;
-			sleep(Duration::from_millis(1));
-			if **(count_clone.rlock()?.guard()) != 1 && count < 5_000 {
-				continue;
-			}
-			assert_eq!(**(count_clone.rlock()?.guard()), 1);
-			break;
-		}
-
-		// ensure processing can still occur (1 thread means that thread recovered after
-		// panic)
-		let res = tp.execute(
-			async move {
-				info!("execute")?;
-				Ok(1)
-			},
-			0,
-		)?;
-
-		assert_eq!(res.recv()?, PoolResult::Ok(1));
-
 		Ok(())
 	}
 }

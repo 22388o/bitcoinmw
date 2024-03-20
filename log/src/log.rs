@@ -333,7 +333,7 @@ impl Log for LogImpl {
 			CO::DisplayBackTrace(v) => self.config.show_backtrace = v,
 			CO::LineNumDataMaxLen(v) => self.config.line_num_data_max_len = v,
 			CO::DeleteRotation(v) => self.config.delete_rotation = v,
-			CO::FileHeader(v) => self.config.file_header = v,
+			CO::FileHeader(v) => self.config.file_header = v.to_string(),
 			CO::LogFilePath(_) => return Err(err!(errkind, text)),
 			_ => return Err(err!(ErrKind::Configuration, "unknown config option")),
 		}
@@ -751,42 +751,6 @@ impl LogImpl {
 }
 
 impl LogConfig {
-	pub(crate) fn get_config_bool(
-		option: ConfigOptionName,
-		config: &Box<dyn Config>,
-		default: bool,
-	) -> bool {
-		match config.get(&option) {
-			Some(v) => match v {
-				ConfigOption::DisplayColors(v) => v,
-				ConfigOption::AutoRotate(v) => v,
-				ConfigOption::DeleteRotation(v) => v,
-				ConfigOption::DisplayLogLevel(v) => v,
-				ConfigOption::DisplayLineNum(v) => v,
-				ConfigOption::DisplayBackTrace(v) => v,
-				ConfigOption::DisplayMillis(v) => v,
-				ConfigOption::DisplayStdout(v) => v,
-				ConfigOption::DisplayTimestamp(v) => v,
-				_ => default,
-			},
-			None => default,
-		}
-	}
-
-	pub(crate) fn get_config_string(
-		option: ConfigOptionName,
-		config: &Box<dyn Config>,
-		default: String,
-	) -> String {
-		match config.get(&option) {
-			Some(v) => match v {
-				ConfigOption::FileHeader(v) => v,
-				_ => default,
-			},
-			None => default,
-		}
-	}
-
 	pub(crate) fn get_config_path_buf(
 		option: ConfigOptionName,
 		config: &Box<dyn Config>,
@@ -795,22 +759,6 @@ impl LogConfig {
 		match config.get(&option) {
 			Some(v) => match v {
 				ConfigOption::LogFilePath(v) => v,
-				_ => default,
-			},
-			None => default,
-		}
-	}
-
-	pub(crate) fn get_config_u64(
-		option: ConfigOptionName,
-		config: &Box<dyn Config>,
-		default: u64,
-	) -> u64 {
-		match config.get(&option) {
-			Some(v) => match v {
-				ConfigOption::MaxAgeMillis(v) => v,
-				ConfigOption::MaxSizeBytes(v) => v,
-				ConfigOption::LineNumDataMaxLen(v) => v,
 				_ => default,
 			},
 			None => default,
@@ -841,21 +789,21 @@ impl LogConfig {
 			vec![],
 		)?;
 
-		let auto_rotate = Self::get_config_bool(CN::AutoRotate, &config, false);
-		let colors = Self::get_config_bool(CN::DisplayColors, &config, true);
-		let delete_rotation = Self::get_config_bool(CN::DeleteRotation, &config, false);
-		let file_header = Self::get_config_string(CN::FileHeader, &config, "".to_string());
+		let auto_rotate = config.get_or_bool(&CN::AutoRotate, false);
+		let colors = config.get_or_bool(&CN::DisplayColors, true);
+		let delete_rotation = config.get_or_bool(&CN::DeleteRotation, false);
+		let file_header = config.get_or_string(&CN::FileHeader, "".to_string());
 		let file_path = Self::get_config_path_buf(CN::LogFilePath, &config, None);
-		let level = Self::get_config_bool(CN::DisplayLogLevel, &config, true);
-		let line_num = Self::get_config_bool(CN::DisplayLineNum, &config, true);
-		let show_backtrace = Self::get_config_bool(CN::DisplayBackTrace, &config, false);
-		let show_millis = Self::get_config_bool(CN::DisplayMillis, &config, true);
-		let stdout = Self::get_config_bool(CN::DisplayStdout, &config, true);
-		let timestamp = Self::get_config_bool(CN::DisplayTimestamp, &config, true);
-		let max_age_millis = Self::get_config_u64(CN::MaxAgeMillis, &config, u64::MAX);
-		let max_size_bytes = Self::get_config_u64(CN::MaxSizeBytes, &config, u64::MAX);
+		let level = config.get_or_bool(&CN::DisplayLogLevel, true);
+		let line_num = config.get_or_bool(&CN::DisplayLineNum, true);
+		let show_backtrace = config.get_or_bool(&CN::DisplayBackTrace, false);
+		let show_millis = config.get_or_bool(&CN::DisplayMillis, true);
+		let stdout = config.get_or_bool(&CN::DisplayStdout, true);
+		let timestamp = config.get_or_bool(&CN::DisplayTimestamp, true);
+		let max_age_millis = config.get_or_u64(&CN::MaxAgeMillis, u64::MAX);
+		let max_size_bytes = config.get_or_u64(&CN::MaxSizeBytes, u64::MAX);
 		let value = DEFAULT_LINE_NUM_DATA_MAX_LEN;
-		let line_num_data_max_len = Self::get_config_u64(CN::LineNumDataMaxLen, &config, value);
+		let line_num_data_max_len = config.get_or_u64(&CN::LineNumDataMaxLen, value);
 
 		if max_age_millis < MINIMUM_MAX_AGE_MILLIS {
 			let text = format!("MaxAgeMillis must be at least {}", MINIMUM_MAX_AGE_MILLIS);

@@ -15,4 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub(crate) const CACHE_BUFFER_SIZE: usize = 412;
+pub(crate) const BUFFER_SIZE: usize = 412;
+
+pub(crate) const THREAD_POOL_DEFAULT_MIN_SIZE: usize = 1;
+pub(crate) const THREAD_POOL_DEFAULT_MAX_SIZE: usize = 1;
+pub(crate) const THREAD_POOL_DEFAULT_SYNC_CHANNEL_SIZE: usize = 10;
+
+pub(crate) const HASH_DEFAULT_MAX_ENTRIES: usize = 1_000;
+pub(crate) const HASH_DEFAULT_MAX_LOAD_FACTOR: f64 = 0.7;
+pub(crate) const HASH_DEFAULT_SLAB_SIZE: usize = 514;
+pub(crate) const HASH_DEFAULT_SLAB_COUNT: usize = 1_000;

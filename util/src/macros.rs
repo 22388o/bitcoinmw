@@ -66,7 +66,7 @@ info!();
 #[macro_export]
 macro_rules! lock {
 	($value:expr) => {{
-		bmw_util::Builder::build_lock($value)
+		bmw_util::UtilBuilder::build_lock($value)
 	}};
 }
 
@@ -75,7 +75,7 @@ macro_rules! lock {
 #[macro_export]
 macro_rules! lock_box {
 	($value:expr) => {{
-		bmw_util::Builder::build_lock_box($value)
+		bmw_util::UtilBuilder::build_lock_box($value)
 	}};
 }
 
@@ -150,6 +150,7 @@ macro_rules! rlock {
 #[macro_export]
 macro_rules! global_slab_allocator {
 ( $( $config:expr ),* ) => {{
+            use bmw_conf::ConfigOption::*;
             let mut config = bmw_util::SlabAllocatorConfig::default();
             let mut error: Option<String> = None;
             let mut slab_size_specified = false;
@@ -166,7 +167,7 @@ macro_rules! global_slab_allocator {
 
             $(
                 match $config {
-                    bmw_util::ConfigOption::SlabSize(slab_size) => {
+                    bmw_conf::ConfigOption::SlabSize(slab_size) => {
                         config.slab_size = slab_size;
 
                         if slab_size_specified {
@@ -176,7 +177,7 @@ macro_rules! global_slab_allocator {
                         if slab_size_specified {}
 
                     },
-                    bmw_util::ConfigOption::SlabCount(slab_count) => {
+                    bmw_conf::ConfigOption::SlabCount(slab_count) => {
                         config.slab_count = slab_count;
 
                         if slab_count_specified {
@@ -240,15 +241,15 @@ macro_rules! global_slab_allocator {
 ///     let slabs = slab_allocator!(SlabSize(128), SlabCount(5000))?;
 ///
 ///     // this will use the specified slab allocator
-///     let hashtable: Box<dyn Hashtable<u32, u32>> = hashtable_box!(Slabs(&slabs))?;
+///     //let hashtable: Box<dyn Hashtable<u32, u32>> = hashtable_box!(Slabs(&slabs))?;
 ///
 ///     // this will also use the specified slab allocator
 ///     // (they may be shared within the thread)
-///     let hashtable2: Box<dyn Hashtable<u32, u32>> = hashtable_box!(
-///             Slabs(&slabs),
-///             MaxEntries(1_000),
-///             MaxLoadFactor(0.9)
-///     )?;
+///     //let hashtable2: Box<dyn Hashtable<u32, u32>> = hashtable_box!(
+///     //        Slabs(&slabs),
+///     //        MaxEntries(1_000),
+///     //        MaxLoadFactor(0.9)
+///     //)?;
 ///
 ///     // ...
 ///
@@ -258,7 +259,8 @@ macro_rules! global_slab_allocator {
 #[macro_export]
 macro_rules! slab_allocator {
 ( $( $config:expr ),* ) => {{
-            let slabs = bmw_util::Builder::build_slabs_ref();
+            use bmw_conf::ConfigOption::*;
+            let mut slabs = bmw_util::UtilBuilder::build_sync_slabs();
             let mut config = bmw_util::SlabAllocatorConfig::default();
             let mut error: Option<String> = None;
             let mut slab_size_specified = false;
@@ -275,7 +277,7 @@ macro_rules! slab_allocator {
 
             $(
                 match $config {
-                    bmw_util::ConfigOption::SlabSize(slab_size) => {
+                    bmw_conf::ConfigOption::SlabSize(slab_size) => {
                         config.slab_size = slab_size;
 
                         if slab_size_specified {
@@ -285,7 +287,7 @@ macro_rules! slab_allocator {
                         if slab_size_specified {}
 
                     },
-                    bmw_util::ConfigOption::SlabCount(slab_count) => {
+                    bmw_conf::ConfigOption::SlabCount(slab_count) => {
                         config.slab_count = slab_count;
 
                         if slab_count_specified {
@@ -303,10 +305,7 @@ macro_rules! slab_allocator {
             match error {
                 Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, error)),
                 None => {
-                        {
-                                let mut slabs: std::cell::RefMut<_> = slabs.borrow_mut();
-                                slabs.init(config)?;
-                        }
+                        slabs.init(config)?;
                         Ok(slabs)
                 },
             }
@@ -322,12 +321,12 @@ macro_rules! slab_allocator {
 ///                                      for full details.
 /// * Id(usize)             (required) - The id for this pattern. This id is returned in the
 ///                                      [`crate::Match`] array if this match occurs when the
-///                                      [`crate::SuffixTree::tmatch`] function is called.
+///                                      [`crate::SuffixTree::match`] function is called.
 /// * IsMulti(bool)         (optional) - If true is specified this pattern is a multi-line pattern meaning
 ///                                      that wildcards can cross newlines. Otherwise newlines are not
 ///                                      allowed in wildcard matches.
 /// * IsTerm(bool)          (optional) - If true, this is a termination pattern meaning that if it is
-///                                      found, when the [`crate::SuffixTree::tmatch`] function is called,
+///                                      found, when the [`crate::SuffixTree::match`] function is called,
 ///                                      matching will terminate and the matches found up to that point in
 ///                                      the text will be returned.
 /// * IsCaseSensitive(bool) (optional) - If true only case sensitive matches are returned for this
@@ -341,38 +340,32 @@ macro_rules! slab_allocator {
 ///
 /// # Examples
 ///
-/// See [`crate::suffix_tree!`] for examples.
+/// See [`crate::search_trie!`] for examples.
 #[macro_export]
 macro_rules! pattern {
-	( $( $pattern_items:expr ),* ) => {{
-                let mut regex: Option<&str> = None;
-                let mut is_term = false;
-                let mut is_multi = true;
-                let mut is_case_sensitive = false;
-                let mut id: Option<usize> = None;
-                $(
-                        match $pattern_items {
-                                bmw_util::PatternParam::Regex(r) => { regex = Some(r); },
-                                bmw_util::PatternParam::IsTerm(is_t) => { is_term = is_t; },
-                                bmw_util::PatternParam::IsMulti(is_m) => { is_multi = is_m; },
-                                bmw_util::PatternParam::IsCaseSensitive(is_cs) => { is_case_sensitive = is_cs; },
-                                bmw_util::PatternParam::Id(i) => { id = Some(i) },
-                        }
-                )*
-
-                match id {
-                        Some(id) => match regex {
-                                Some(regex) => bmw_util::Builder::build_pattern(regex, is_case_sensitive, is_term, is_multi, id),
-                                None => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, "Regex must be specified")),
-                        }
-                        None => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, "Id must be specified")),
-                }
+	( $( $pattern_items:tt)* ) => {{
+                #[allow(unused_imports)]
+                use bmw_conf::ConfigOption::*;
+                use bmw_conf::ConfigOption;
+                let v: Vec<ConfigOption> = vec![$($pattern_items)*];
+                bmw_util::UtilBuilder::build_pattern(v)
 	}};
 }
 
-/// The `suffix_tree` macro builds a [`crate::SuffixTree`] which can be used to match multiple
+#[macro_export]
+macro_rules! tmatch {
+        ( $( $match_items:tt)* ) => {{
+                #[allow(unused_imports)]
+                use bmw_conf::ConfigOption::*;
+                use bmw_conf::ConfigOption;
+                let v: Vec<ConfigOption> = vec![$($match_items)*];
+                bmw_util::UtilBuilder::build_match(v)
+        }};
+}
+
+/// The `search_trie` macro builds a [`crate::SuffixTree`] which can be used to match multiple
 /// patterns for a given text in a performant way.
-/// The suffix_tree macro takes the following parameters:
+/// The search_trie macro takes the following parameters:
 ///
 /// * `List<Pattern>`            (required) - The list of [`crate::Pattern`]s that this [`crate::SuffixTree`]
 ///                                         will use to match.
@@ -397,21 +390,21 @@ macro_rules! pattern {
 ///
 /// fn main() -> Result<(), Error> {
 ///         // build a suffix tree with three patterns
-///         let mut suffix_tree = suffix_tree!(
-///                 list![
-///                         pattern!(Regex("p1"), Id(0))?,
-///                         pattern!(Regex("p2"), Id(1))?,
-///                         pattern!(Regex("p3"), Id(2))?
+///         let mut search_trie = search_trie!(
+///                 vec![
+///                         pattern!(Regex("p1".to_string()), PatternId(0))?,
+///                         pattern!(Regex("p2".to_string()), PatternId(1))?,
+///                         pattern!(Regex("p3".to_string()), PatternId(2))?
 ///                 ],
 ///                 TerminationLength(1_000),
 ///                 MaxWildcardLength(100)
 ///         )?;
 ///
 ///         // create a matches array for the suffix tree to return matches in
-///         let mut matches = [Builder::build_match_default(); 10];
+///         let mut matches = [tmatch!()?; 10];
 ///
 ///         // run the match for the input text b"p1p2".
-///         let count = suffix_tree.tmatch(b"p1p2", &mut matches)?;
+///         let count = search_trie.tmatch(b"p1p2", &mut matches)?;
 ///
 ///         // assert that two matches were returned "p1" and "p2"
 ///         // and that their start/end/id is correct.
@@ -439,26 +432,26 @@ macro_rules! pattern {
 ///
 /// fn main() -> Result<(), Error> {
 ///         // build a suffix tree with a wild card
-///         let mut suffix_tree = suffix_tree!(
-///                 list![
-///                         pattern!(Regex("p1"), Id(0))?,
-///                         pattern!(Regex("p2.*test"), Id(1))?,
-///                         pattern!(Regex("p3"), Id(2))?
+///         let mut search_trie = search_trie!(
+///                 vec![
+///                         pattern!(Regex("p1".to_string()), PatternId(0))?,
+///                         pattern!(Regex("p2.*test".to_string()), PatternId(1))?,
+///                         pattern!(Regex("p3".to_string()), PatternId(2))?
 ///                 ],
 ///                 TerminationLength(1_000),
 ///                 MaxWildcardLength(100)
 ///         )?;
 ///
 ///         // create a matches array for the suffix tree to return matches in
-///         let mut matches = [Builder::build_match_default(); 10];
+///         let mut matches = [UtilBuilder::build_match(vec![])?; 10];
 ///
 ///         // run the match for the input text b"p1p2". Only "p1" matches this time.
-///         let count = suffix_tree.tmatch(b"p1p2", &mut matches)?;
+///         let count = search_trie.tmatch(b"p1p2", &mut matches)?;
 ///         assert_eq!(count, 1);
 ///
 ///         // run the match for the input text b"p1p2xxxxxxtest1". Now the wildcard
 ///         // match succeeds to two matches are returned.
-///         let count = suffix_tree.tmatch(b"p1p2xxxxxxtest1", &mut matches)?;
+///         let count = search_trie.tmatch(b"p1p2xxxxxxtest1", &mut matches)?;
 ///         assert_eq!(count, 2);
 ///
 ///         Ok(())
@@ -476,30 +469,30 @@ macro_rules! pattern {
 ///
 /// fn main() -> Result<(), Error> {
 ///         // build a suffix tree with a wild card
-///         let mut suffix_tree = suffix_tree!(
-///                 list![
-///                         pattern!(Regex("p1"), Id(0))?,
-///                         pattern!(Regex("p2.test"), Id(1))?,
-///                         pattern!(Regex("p3"), Id(2))?
+///         let mut search_trie = search_trie!(
+///                 vec![
+///                         pattern!(Regex("p1".to_string()), PatternId(0))?,
+///                         pattern!(Regex("p2.test".to_string()), PatternId(1))?,
+///                         pattern!(Regex("p3".to_string()), PatternId(2))?
 ///                 ],
 ///                 TerminationLength(1_000),
 ///                 MaxWildcardLength(100)
 ///         )?;
 ///
 ///         // create a matches array for the suffix tree to return matches in
-///         let mut matches = [Builder::build_match_default(); 10];
+///         let mut matches = [tmatch!()?; 10];
 ///
 ///         // run the match for the input text b"p1p2". Only "p1" matches this time.
-///         let count = suffix_tree.tmatch(b"p1p2", &mut matches)?;
+///         let count = search_trie.tmatch(b"p1p2", &mut matches)?;
 ///         assert_eq!(count, 1);
 ///
 ///         // run the match for the input text b"p1p2xxxxxxtest1". Now the wildcard
 ///         // match doesn't succeed because it's a single char match. One match is returned.
-///         let count = suffix_tree.tmatch(b"p1p2xxxxxxtest1", &mut matches)?;
+///         let count = search_trie.tmatch(b"p1p2xxxxxxtest1", &mut matches)?;
 ///         assert_eq!(count, 1);
 ///
 ///         // run it with a single char and see that it matches pattern two.
-///         let count = suffix_tree.tmatch(b"p1p2xtestx", &mut matches)?;
+///         let count = search_trie.tmatch(b"p1p2xtestx", &mut matches)?;
 ///         assert_eq!(count, 2);
 ///
 ///         Ok(())
@@ -517,32 +510,32 @@ macro_rules! pattern {
 ///
 /// fn main() -> Result<(), Error> {      
 ///         // build a suffix tree with a wild card
-///         let mut suffix_tree = suffix_tree!(
-///                 list![
-///                         pattern!(Regex("p1"), Id(0))?,
-///                         pattern!(Regex("^p2"), Id(2))?
+///         let mut search_trie = search_trie!(
+///                 vec![
+///                         pattern!(Regex("p1".to_string()), PatternId(0))?,
+///                         pattern!(Regex("^p2".to_string()), PatternId(2))?
 ///                 ],
 ///                 TerminationLength(1_000),
 ///                 MaxWildcardLength(100)
 ///         )?;
 ///
 ///         // create a matches array for the suffix tree to return matches in
-///         let mut matches = [Builder::build_match_default(); 10];
+///         let mut matches = [tmatch!()?; 10];
 ///
 ///         // run the match for the input text b"p1p2". Only "p1" matches this time
 ///         // because p2 is not at the start
-///         let count = suffix_tree.tmatch(b"p1p2", &mut matches)?;
+///         let count = search_trie.tmatch(b"p1p2", &mut matches)?;
 ///         assert_eq!(count, 1);
 ///
 ///         // since p2 is at the beginning, both match
-///         let count = suffix_tree.tmatch(b"p2p1", &mut matches)?;
+///         let count = search_trie.tmatch(b"p2p1", &mut matches)?;
 ///         assert_eq!(count, 2);
 ///
 ///         Ok(())
 /// }
 ///```
 #[macro_export]
-macro_rules! suffix_tree {
+macro_rules! search_trie {
 	( $patterns:expr, $( $suffix_items:expr ),* ) => {{
                 let mut termination_length = usize::MAX;
                 let mut max_wildcard_length = usize::MAX;
@@ -558,12 +551,12 @@ macro_rules! suffix_tree {
 
                 $(
                         match $suffix_items {
-                                bmw_util::SuffixParam::TerminationLength(t) => { termination_length = t; },
-                                bmw_util::SuffixParam::MaxWildcardLength(m) => { max_wildcard_length = m; },
+                                bmw_util::SearchParam::TerminationLength(t) => { termination_length = t; },
+                                bmw_util::SearchParam::MaxWildcardLength(m) => { max_wildcard_length = m; },
                         }
                 )*
 
-                bmw_util::Builder::build_suffix_tree($patterns, termination_length, max_wildcard_length)
+                bmw_util::UtilBuilder::build_search_trie($patterns, termination_length, max_wildcard_length)
         }};
 }
 
@@ -595,7 +588,7 @@ macro_rules! hashtable_config {
 
 		for config_item in $config_list.iter() {
 			match config_item {
-				bmw_util::ConfigOption::MaxEntries(max_entries) => {
+				bmw_conf::ConfigOption::MaxEntries(max_entries) => {
 					config.max_entries = max_entries;
 
 					if max_entries_specified {
@@ -605,7 +598,7 @@ macro_rules! hashtable_config {
 					max_entries_specified = true;
 					if max_entries_specified {}
 				}
-				bmw_util::ConfigOption::MaxLoadFactor(max_load_factor) => {
+				bmw_conf::ConfigOption::MaxLoadFactor(max_load_factor) => {
 					config.max_load_factor = max_load_factor;
 
 					if max_load_factor_specified {
@@ -659,7 +652,7 @@ macro_rules! hashtable_sync_config {
 
 		for config_item in $config_list.iter() {
 			match config_item {
-				bmw_util::ConfigOption::MaxEntries(max_entries) => {
+				bmw_conf::ConfigOption::MaxEntries(max_entries) => {
 					config.max_entries = max_entries;
 
 					if max_entries_specified {
@@ -669,7 +662,7 @@ macro_rules! hashtable_sync_config {
 					max_entries_specified = true;
 					if max_entries_specified {}
 				}
-				bmw_util::ConfigOption::MaxLoadFactor(max_load_factor) => {
+				bmw_conf::ConfigOption::MaxLoadFactor(max_load_factor) => {
 					config.max_load_factor = max_load_factor;
 
 					if max_load_factor_specified {
@@ -679,7 +672,7 @@ macro_rules! hashtable_sync_config {
 					max_load_factor_specified = true;
 					if max_load_factor_specified {}
 				}
-				bmw_util::ConfigOption::SlabSize(slab_size) => {
+				bmw_conf::ConfigOption::SlabSize(slab_size) => {
 					slab_config.slab_size = slab_size;
 
 					if slab_size_specified {
@@ -688,7 +681,7 @@ macro_rules! hashtable_sync_config {
 					slab_size_specified = true;
 					if slab_size_specified {}
 				}
-				bmw_util::ConfigOption::SlabCount(slab_count) => {
+				bmw_conf::ConfigOption::SlabCount(slab_count) => {
 					slab_config.slab_count = slab_count;
 
 					if slab_count_specified {
@@ -739,7 +732,7 @@ macro_rules! hashset_config {
 
 		for config_item in $config_list.iter() {
 			match config_item {
-				bmw_util::ConfigOption::MaxEntries(max_entries) => {
+				bmw_conf::ConfigOption::MaxEntries(max_entries) => {
 					config.max_entries = max_entries;
 
 					if max_entries_specified {
@@ -749,7 +742,7 @@ macro_rules! hashset_config {
 					max_entries_specified = true;
 					if max_entries_specified {}
 				}
-				bmw_util::ConfigOption::MaxLoadFactor(max_load_factor) => {
+				bmw_conf::ConfigOption::MaxLoadFactor(max_load_factor) => {
 					config.max_load_factor = max_load_factor;
 
 					if max_load_factor_specified {
@@ -803,7 +796,7 @@ macro_rules! hashset_sync_config {
 
 		for config_item in $config_list.iter() {
 			match config_item {
-				bmw_util::ConfigOption::MaxEntries(max_entries) => {
+				bmw_conf::ConfigOption::MaxEntries(max_entries) => {
 					config.max_entries = max_entries;
 
 					if max_entries_specified {
@@ -813,7 +806,7 @@ macro_rules! hashset_sync_config {
 					max_entries_specified = true;
 					if max_entries_specified {}
 				}
-				bmw_util::ConfigOption::MaxLoadFactor(max_load_factor) => {
+				bmw_conf::ConfigOption::MaxLoadFactor(max_load_factor) => {
 					config.max_load_factor = max_load_factor;
 
 					if max_load_factor_specified {
@@ -823,7 +816,7 @@ macro_rules! hashset_sync_config {
 					max_load_factor_specified = true;
 					if max_load_factor_specified {}
 				}
-				bmw_util::ConfigOption::SlabSize(slab_size) => {
+				bmw_conf::ConfigOption::SlabSize(slab_size) => {
 					slab_config.slab_size = slab_size;
 
 					if slab_size_specified {
@@ -832,7 +825,7 @@ macro_rules! hashset_sync_config {
 					slab_size_specified = true;
 					if slab_size_specified {}
 				}
-				bmw_util::ConfigOption::SlabCount(slab_count) => {
+				bmw_conf::ConfigOption::SlabCount(slab_count) => {
 					slab_config.slab_count = slab_count;
 
 					if slab_count_specified {
@@ -895,11 +888,15 @@ macro_rules! hashset_sync_config {
 /// use bmw_err::*;
 ///
 /// fn main() -> Result<(), Error> {
-///         // create a default slab allocator
-///         let slabs = slab_allocator!()?;
 ///
 ///         // create a hashtable with the specified parameters
-///         let mut hashtable = hashtable!(MaxEntries(1_000), MaxLoadFactor(0.9), Slabs(&slabs))?;
+///         let mut hashtable = hashtable!(
+///                 MaxEntries(1_000),
+///                 MaxLoadFactor(0.9),
+///                 GlobalSlabAllocator(false),
+///                 SlabSize(100),
+///                 SlabCount(100)
+///         )?;
 ///
 ///         // do an insert, rust will figure out what type is being inserted
 ///         hashtable.insert(&1, &2)?;
@@ -922,49 +919,13 @@ macro_rules! hashset_sync_config {
 ///```
 #[macro_export]
 macro_rules! hashtable {
-	( $( $config:expr ),* ) => {{
-                use bmw_util::List;
-
-                let mut slabs: Option<&std::rc::Rc<std::cell::RefCell<dyn bmw_util::SlabAllocator>>> = None;
-                if slabs.is_some() {
-                    slabs = None;
-                }
-                $(
-                    match $config {
-                        bmw_util::ConfigOption::Slabs(s) => {
-                            slabs = Some(&s);
-                        }
-                        _ => {
-                        }
-                    }
-                )*
-
-                let mut config_list = bmw_util::Builder::build_list(
-                        bmw_util::ListConfig::default(),
-                        &slabs
-                )?;
-
-                // delete_head is called to remove compiler warning about not needing to be mutable.
-                // It does need to be mutable.
-                config_list.delete_head()?;
-
-
-                $(
-                    match $config {
-                        bmw_util::ConfigOption::Slabs(_) => {
-                        }
-                        _ => {
-                            config_list.push($config)?;
-                        }
-                    }
-                )*
-
-		let (error, config) = bmw_util::hashtable_config!(config_list);
-		match error {
-			Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, error)),
-			None => bmw_util::Builder::build_hashtable(config.unwrap(), &slabs),
-		}
-	}};
+	($($config:tt)*) => {{
+                #[allow(unused_imports)]
+                use bmw_conf::ConfigOption::*;
+                use bmw_conf::ConfigOption;
+                let v: Vec<ConfigOption> = vec![$($config)*];
+                bmw_util::UtilBuilder::build_hashtable(v)
+        }};
 }
 
 /// The [`crate::hashtable_box`] macro builds a [`crate::Hashtable`] with the specified configuration and
@@ -974,48 +935,12 @@ macro_rules! hashtable {
 /// details.
 #[macro_export]
 macro_rules! hashtable_box {
-        ( $( $config:expr ),* ) => {{
-                use bmw_util::List;
-
-                let mut slabs: Option<&std::rc::Rc<std::cell::RefCell<dyn bmw_util::SlabAllocator>>> = None;
-                if slabs.is_some() {
-                    slabs = None;
-                }
-                $(
-                    match $config {
-                        bmw_util::ConfigOption::Slabs(s) => {
-                            slabs = Some(&s);
-                        }
-                        _ => {
-                        }
-                    }
-                )*
-
-                let mut config_list = bmw_util::Builder::build_list(
-                        bmw_util::ListConfig::default(),
-                        &slabs
-                )?;
-
-                // delete_head is called to remove compiler warning about not needing to be mutable.
-                // It does need to be mutable.
-                config_list.delete_head()?;
-
-
-                $(
-                    match $config {
-                        bmw_util::ConfigOption::Slabs(_) => {
-                        }
-                        _ => {
-                            config_list.push($config)?;
-                        }
-                    }
-                )*
-
-                let (error, config) = bmw_util::hashtable_config!(config_list);
-                match error {
-                        Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, error)),
-                        None => bmw_util::Builder::build_hashtable_box(config.unwrap(), &slabs),
-                }
+        ($($config:tt)*) => {{
+                #[allow(unused_imports)]
+                use bmw_conf::ConfigOption::*;
+                use bmw_conf::ConfigOption;
+                let v: Vec<ConfigOption> = vec![$($config)*];
+                bmw_util::UtilBuilder::build_hashtable_box(v)
         }};
 }
 
@@ -1047,47 +972,12 @@ macro_rules! hashtable_box {
 /// See the [`crate`] for examples.
 #[macro_export]
 macro_rules! hashtable_sync {
-        ( $( $config:expr ),* ) => {{
-                use bmw_util::List;
-
-                $(
-                    match $config {
-                        bmw_util::ConfigOption::Slabs(_) => {
-                            return Err(bmw_err::err!(
-                                    bmw_err::ErrKind::Configuration,
-                                    "Slabs cannot be specified with hashtable_sync"
-                            ));
-                        }
-                        _ => {
-                        }
-                    }
-                )*
-
-                let slabs = slab_allocator!(SlabSize(256),SlabCount(256))?;
-                let mut config_list = bmw_util::Builder::build_list(
-                        bmw_util::ListConfig::default(),
-                        &Some(&slabs)
-                )?;
-
-                // delete_head is called to remove compiler warning about not needing to be mutable.
-                // It does need to be mutable.
-                config_list.delete_head()?;
-
-                $(
-                    match $config {
-                        bmw_util::ConfigOption::Slabs(_) => {
-                        }
-                        _ => {
-                            config_list.push($config)?;
-                        }
-                    }
-                )*
-
-                let (error, config, slab_config) = bmw_util::hashtable_sync_config!(config_list);
-                match error {
-                        Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, error)),
-                        None => bmw_util::Builder::build_hashtable_sync(config.unwrap(), slab_config.unwrap()),
-                }
+        ($($config:tt)*) => {{
+                #[allow(unused_imports)]
+                use bmw_conf::ConfigOption::*;
+                use bmw_conf::ConfigOption;
+                let v: Vec<ConfigOption> = vec![$($config)*];
+                bmw_util::UtilBuilder::build_hashtable_sync(v)
         }};
 }
 
@@ -1096,47 +986,12 @@ macro_rules! hashtable_sync {
 /// See [`crate::hashtable`] and [`crate::hashtable_sync`] for further details.
 #[macro_export]
 macro_rules! hashtable_sync_box {
-        ( $( $config:expr ),* ) => {{
-                use bmw_util::List;
-
-                $(
-                    match $config {
-                        bmw_util::ConfigOption::Slabs(_) => {
-                            return Err(bmw_err::err!(
-                                    bmw_err::ErrKind::Configuration,
-                                    "Slabs cannot be specified with hashtable_sync"
-                            ));
-                        }
-                        _ => {
-                        }
-                    }
-                )*
-
-                let slabs = slab_allocator!(SlabSize(256),SlabCount(256))?;
-                let mut config_list = bmw_util::Builder::build_list(
-                        bmw_util::ListConfig::default(),
-                        &Some(&slabs)
-                )?;
-
-                // delete_head is called to remove compiler warning about not needing to be mutable.
-                // It does need to be mutable.
-                config_list.delete_head()?;
-
-                $(
-                    match $config {
-                        bmw_util::ConfigOption::Slabs(_) => {
-                        }
-                        _ => {
-                            config_list.push($config)?;
-                        }
-                    }
-                )*
-
-                let (error, config, slab_config) = bmw_util::hashtable_sync_config!(config_list);
-                match error {
-                        Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, error)),
-                        None => bmw_util::Builder::build_hashtable_sync_box(config.unwrap(), slab_config.unwrap()),
-                }
+        ($($config:tt)*) => {{
+                #[allow(unused_imports)]
+                use bmw_conf::ConfigOption::*;
+                use bmw_conf::ConfigOption;
+                let v: Vec<ConfigOption> = vec![$($config)*];
+                bmw_util::UtilBuilder::build_hashtable_sync_box(v)
         }};
 }
 
@@ -1180,11 +1035,14 @@ macro_rules! hashtable_sync_box {
 /// use bmw_err::*;
 ///
 /// fn main() -> Result<(), Error> {
-///         // create a default slab allocator
-///         let slabs = slab_allocator!()?;
-///
 ///         // create a hashset with the specified parameters
-///         let mut hashset = hashset!(MaxEntries(1_000), MaxLoadFactor(0.9), Slabs(&slabs))?;
+///         let mut hashset = hashset!(
+///                 MaxEntries(1_000),
+///                 MaxLoadFactor(0.9),
+///                 GlobalSlabAllocator(false),
+///                 SlabSize(100),
+///                 SlabCount(100)
+///         )?;
 ///
 ///         // do an insert, rust will figure out what type is being inserted
 ///         hashset.insert(&1)?;
@@ -1207,48 +1065,12 @@ macro_rules! hashtable_sync_box {
 ///```
 #[macro_export]
 macro_rules! hashset {
-        ( $( $config:expr ),* ) => {{
-                use bmw_util::List;
-
-                let mut slabs: Option<&std::rc::Rc<std::cell::RefCell<dyn bmw_util::SlabAllocator>>> = None;
-                if slabs.is_some() {
-                    slabs = None;
-                }
-                $(
-                    match $config {
-                        bmw_util::ConfigOption::Slabs(s) => {
-                            slabs = Some(&s);
-                        }
-                        _ => {
-                        }
-                    }
-                )*
-
-                let mut config_list = bmw_util::Builder::build_list(
-                        bmw_util::ListConfig::default(),
-                        &slabs
-                )?;
-
-                // delete_head is called to remove compiler warning about not needing to be mutable.
-                // It does need to be mutable.
-                config_list.delete_head()?;
-
-
-                $(
-                    match $config {
-                        bmw_util::ConfigOption::Slabs(_) => {
-                        }
-                        _ => {
-                            config_list.push($config)?;
-                        }
-                    }
-                )*
-
-                let (error, config) = bmw_util::hashset_config!(config_list);
-                match error {
-                        Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, error)),
-                        None => bmw_util::Builder::build_hashset(config.unwrap(), &slabs),
-                }
+        ($($config:tt)*) => {{
+                #[allow(unused_imports)]
+                use bmw_conf::ConfigOption::*;
+                use bmw_conf::ConfigOption;
+                let v: Vec<ConfigOption> = vec![$($config)*];
+                bmw_util::UtilBuilder::build_hashset(v)
         }};
 }
 
@@ -1256,48 +1078,12 @@ macro_rules! hashset {
 /// hashset is returned in a box. See [`crate::hashset`].
 #[macro_export]
 macro_rules! hashset_box {
-        ( $( $config:expr ),* ) => {{
-                use bmw_util::List;
-
-                let mut slabs: Option<&std::rc::Rc<std::cell::RefCell<dyn bmw_util::SlabAllocator>>> = None;
-                if slabs.is_some() {
-                    slabs = None;
-                }
-                $(
-                    match $config {
-                        bmw_util::ConfigOption::Slabs(s) => {
-                            slabs = Some(&s);
-                        }
-                        _ => {
-                        }
-                    }
-                )*
-
-                let mut config_list = bmw_util::Builder::build_list(
-                        bmw_util::ListConfig::default(),
-                        &slabs
-                )?;
-
-                // delete_head is called to remove compiler warning about not needing to be mutable.
-                // It does need to be mutable.
-                config_list.delete_head()?;
-
-
-                $(
-                    match $config {
-                        bmw_util::ConfigOption::Slabs(_) => {
-                        }
-                        _ => {
-                            config_list.push($config)?;
-                        }
-                    }
-                )*
-
-                let (error, config) = bmw_util::hashset_config!(config_list);
-                match error {
-                        Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, error)),
-                        None => bmw_util::Builder::build_hashset_box(config.unwrap(), &slabs),
-                }
+        ($($config:tt)*) => {{
+                #[allow(unused_imports)]
+                use bmw_conf::ConfigOption::*;
+                use bmw_conf::ConfigOption;
+                let v: Vec<ConfigOption> = vec![$($config)*];
+                bmw_util::UtilBuilder::build_hashset_box(v)
         }};
 }
 
@@ -1306,47 +1092,12 @@ macro_rules! hashset_box {
 /// [`crate::hashtable_sync`] for further details.
 #[macro_export]
 macro_rules! hashset_sync {
-        ( $( $config:expr ),* ) => {{
-                use bmw_util::List;
-
-                $(
-                    match $config {
-                        bmw_util::ConfigOption::Slabs(_) => {
-                            return Err(bmw_err::err!(
-                                    bmw_err::ErrKind::Configuration,
-                                    "Slabs cannot be specified with hashset_sync"
-                            ));
-                        }
-                        _ => {
-                        }
-                    }
-                )*
-
-                let slabs = slab_allocator!(SlabSize(256),SlabCount(256))?;
-                let mut config_list = bmw_util::Builder::build_list(
-                        bmw_util::ListConfig::default(),
-                        &Some(&slabs)
-                )?;
-
-                // delete_head is called to remove compiler warning about not needing to be mutable.
-                // It does need to be mutable.
-                config_list.delete_head()?;
-
-                $(
-                    match $config {
-                        bmw_util::ConfigOption::Slabs(_) => {
-                        }
-                        _ => {
-                            config_list.push($config)?;
-                        }
-                    }
-                )*
-
-                let (error, config, slab_config) = bmw_util::hashset_sync_config!(config_list);
-                match error {
-                        Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, error)),
-                        None => bmw_util::Builder::build_hashset_sync(config.unwrap(), slab_config.unwrap()),
-                }
+        ($($config:tt)*) => {{
+                #[allow(unused_imports)]
+                use bmw_conf::ConfigOption::*;
+                use bmw_conf::ConfigOption;
+                let v: Vec<ConfigOption> = vec![$($config)*];
+                bmw_util::UtilBuilder::build_hashset_sync(v)
         }};
 }
 
@@ -1355,52 +1106,17 @@ macro_rules! hashset_sync {
 /// enums.
 #[macro_export]
 macro_rules! hashset_sync_box {
-        ( $( $config:expr ),* ) => {{
-                use bmw_util::List;
-
-                $(
-                    match $config {
-                        bmw_util::ConfigOption::Slabs(_) => {
-                            return Err(bmw_err::err!(
-                                    bmw_err::ErrKind::Configuration,
-                                    "Slabs cannot be specified with hashset_sync"
-                            ));
-                        }
-                        _ => {
-                        }
-                    }
-                )*
-
-                let slabs = slab_allocator!(SlabSize(256),SlabCount(256))?;
-                let mut config_list = bmw_util::Builder::build_list(
-                        bmw_util::ListConfig::default(),
-                        &Some(&slabs)
-                )?;
-
-                // delete_head is called to remove compiler warning about not needing to be mutable.
-                // It does need to be mutable.
-                config_list.delete_head()?;
-
-                $(
-                    match $config {
-                        bmw_util::ConfigOption::Slabs(_) => {
-                        }
-                        _ => {
-                            config_list.push($config)?;
-                        }
-                    }
-                )*
-
-                let (error, config, slab_config) = bmw_util::hashset_sync_config!(config_list);
-                match error {
-                        Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, error)),
-                        None => bmw_util::Builder::build_hashset_sync_box(config.unwrap(), slab_config.unwrap()),
-                }
+        ($($config:tt)*) => {{
+                #[allow(unused_imports)]
+                use bmw_conf::ConfigOption::*;
+                use bmw_conf::ConfigOption;
+                let v: Vec<ConfigOption> = vec![$($config)*];
+                bmw_util::UtilBuilder::build_hashset_sync_box(v)
         }};
 }
 
 /// The list macro is used to create lists. This macro uses the global slab allocator. To use a
-/// specified slab allocator, see [`crate::Builder::build_list`]. It has the same syntax as the
+/// specified slab allocator, see [`crate::UtilBuilder::build_list`]. It has the same syntax as the
 /// [`std::vec!`] macro. Note that this macro and the builder function both
 /// return an implementation of the [`crate::SortableList`] trait.
 ///
@@ -1428,7 +1144,7 @@ macro_rules! list {
     ( $( $x:expr ),* ) => {
         {
             use bmw_util::List;
-            let mut temp_list = bmw_util::Builder::build_list(bmw_util::ListConfig::default(), &None)?;
+            let mut temp_list = bmw_util::UtilBuilder::build_list(vec![])?;
             $(
                 temp_list.push($x)?;
             )*
@@ -1443,7 +1159,7 @@ macro_rules! list {
 macro_rules! list_box {
     ( $( $x:expr ),* ) => {
         {
-            let mut temp_list = bmw_util::Builder::build_list_box(bmw_util::ListConfig::default(), &None)?;
+            let mut temp_list = bmw_util::UtilBuilder::build_list_box(vec![])?;
             $(
                 temp_list.push($x)?;
             )*
@@ -1460,58 +1176,11 @@ macro_rules! list_box {
 macro_rules! list_sync {
     ( $( $x:expr ),* ) => {
         {
-            let mut config = bmw_util::SlabAllocatorConfig::default();
-            let mut error: Option<String> = None;
-            let mut slab_size_specified = false;
-            let mut slab_count_specified = false;
-
-            // compiler sees macro as not used if it's not used in one part of the code
-            // these lines make the warnings go away
-            if config.slab_size == 0 { config.slab_size = 0; }
-            if slab_count_specified { slab_count_specified = false; }
-            if slab_size_specified { slab_size_specified = false; }
-            if slab_count_specified {}
-            if slab_size_specified {}
-            if error.is_some() { error = None; }
-
+            let mut temp_list = bmw_util::UtilBuilder::build_list_sync(vec![])?;
             $(
-                match $x {
-                    bmw_util::ConfigOption::SlabSize(slab_size) => {
-                        config.slab_size = slab_size;
-
-                        if slab_size_specified {
-                            error = Some("SlabSize was specified more than once!".to_string());
-                        }
-                        slab_size_specified = true;
-                        if slab_size_specified {}
-
-                    },
-                    bmw_util::ConfigOption::SlabCount(slab_count) => {
-                        config.slab_count = slab_count;
-
-                        if slab_count_specified {
-                            error = Some("SlabCount was specified more than once!".to_string());
-                        }
-
-                        slab_count_specified = true;
-                        if slab_count_specified {}
-                    },
-                    _ => {
-                        error = Some(format!("'{:?}' is not allowed for sync_list", $x));
-                    }
-                }
+                temp_list.push($x)?;
             )*
-            match error {
-                Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, error)),
-                None => {
-                    let mut temp_list = bmw_util::Builder::build_list_sync(bmw_util::ListConfig::default(), config)?;
-                    temp_list.delete_head()?;
-                    $(
-                        temp_list.push($x)?;
-                    )*
-                    Ok(temp_list)
-                },
-            }
+            temp_list
         }
     };
 }
@@ -1521,58 +1190,11 @@ macro_rules! list_sync {
 macro_rules! list_sync_box {
     ( $( $x:expr ),* ) => {
         {
-            let mut config = bmw_util::SlabAllocatorConfig::default();
-            let mut error: Option<String> = None;
-            let mut slab_size_specified = false;
-            let mut slab_count_specified = false;
-
-            // compiler sees macro as not used if it's not used in one part of the code
-            // these lines make the warnings go away
-            if config.slab_size == 0 { config.slab_size = 0; }
-            if slab_count_specified { slab_count_specified = false; }
-            if slab_size_specified { slab_size_specified = false; }
-            if slab_count_specified {}
-            if slab_size_specified {}
-            if error.is_some() { error = None; }
-
+            let mut temp_list = bmw_util::UtilBuilder::build_list_sync_box(vec![])?;
             $(
-                match $x {
-                    bmw_util::ConfigOption::SlabSize(slab_size) => {
-                        config.slab_size = slab_size;
-
-                        if slab_size_specified {
-                            error = Some("SlabSize was specified more than once!".to_string());
-                        }
-                        slab_size_specified = true;
-                        if slab_size_specified {}
-
-                    },
-                    bmw_util::ConfigOption::SlabCount(slab_count) => {
-                        config.slab_count = slab_count;
-
-                        if slab_count_specified {
-                            error = Some("SlabCount was specified more than once!".to_string());
-                        }
-
-                        slab_count_specified = true;
-                        if slab_count_specified {}
-                    },
-                    _ => {
-                        error = Some(format!("'{:?}' is not allowed for sync_list", $x));
-                    }
-                }
+                temp_list.push($x)?;
             )*
-            match error {
-                Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, error)),
-                None => {
-                    let mut temp_list = bmw_util::Builder::build_list_sync(bmw_util::ListConfig::default(), config)?;
-                    temp_list.delete_head()?;
-                    $(
-                        temp_list.push($x)?;
-                    )*
-                    Ok(Box::new(temp_list))
-                },
-            }
+            temp_list
         }
     };
 }
@@ -1606,7 +1228,7 @@ macro_rules! list_sync_box {
 #[macro_export]
 macro_rules! array {
 	( $size:expr, $default:expr ) => {{
-		bmw_util::Builder::build_array($size, $default)
+		bmw_util::UtilBuilder::build_array($size, $default)
 	}};
 }
 
@@ -1642,7 +1264,7 @@ macro_rules! array {
 #[macro_export]
 macro_rules! array_list {
 	( $size:expr, $default:expr ) => {{
-		bmw_util::Builder::build_array_list($size, $default)
+		bmw_util::UtilBuilder::build_array_list($size, $default)
 	}};
 }
 
@@ -1652,7 +1274,7 @@ macro_rules! array_list {
 #[macro_export]
 macro_rules! array_list_box {
 	( $size:expr, $default:expr ) => {{
-		bmw_util::Builder::build_array_list_box($size, $default)
+		bmw_util::UtilBuilder::build_array_list_box($size, $default)
 	}};
 }
 
@@ -1660,7 +1282,7 @@ macro_rules! array_list_box {
 #[macro_export]
 macro_rules! array_list_sync {
 	( $size:expr, $default:expr ) => {{
-		bmw_util::Builder::build_array_list_sync($size, $default)
+		bmw_util::UtilBuilder::build_array_list_sync($size, $default)
 	}};
 }
 
@@ -1668,7 +1290,7 @@ macro_rules! array_list_sync {
 #[macro_export]
 macro_rules! array_list_sync_box {
 	( $size:expr, $default:expr ) => {{
-		bmw_util::Builder::build_array_list_sync_box($size, $default)
+		bmw_util::UtilBuilder::build_array_list_sync_box($size, $default)
 	}};
 }
 
@@ -1707,7 +1329,7 @@ macro_rules! array_list_sync_box {
 #[macro_export]
 macro_rules! queue {
 	( $size:expr, $default:expr ) => {{
-		bmw_util::Builder::build_queue($size, $default)
+		bmw_util::UtilBuilder::build_queue($size, $default)
 	}};
 }
 
@@ -1716,7 +1338,7 @@ macro_rules! queue {
 #[macro_export]
 macro_rules! queue_box {
 	( $size:expr, $default:expr ) => {{
-		bmw_util::Builder::build_queue_box($size, $default)
+		bmw_util::UtilBuilder::build_queue_box($size, $default)
 	}};
 }
 
@@ -1725,7 +1347,7 @@ macro_rules! queue_box {
 #[macro_export]
 macro_rules! queue_sync {
 	( $size:expr, $default:expr ) => {{
-		bmw_util::Builder::build_queue_sync($size, $default)
+		bmw_util::UtilBuilder::build_queue_sync($size, $default)
 	}};
 }
 
@@ -1734,7 +1356,7 @@ macro_rules! queue_sync {
 #[macro_export]
 macro_rules! queue_sync_box {
 	( $size:expr, $default:expr ) => {{
-		bmw_util::Builder::build_queue_sync_box($size, $default)
+		bmw_util::UtilBuilder::build_queue_sync_box($size, $default)
 	}};
 }
 
@@ -1773,7 +1395,7 @@ macro_rules! queue_sync_box {
 #[macro_export]
 macro_rules! stack {
 	( $size:expr, $default:expr ) => {{
-		bmw_util::Builder::build_stack($size, $default)
+		bmw_util::UtilBuilder::build_stack($size, $default)
 	}};
 }
 
@@ -1782,7 +1404,7 @@ macro_rules! stack {
 #[macro_export]
 macro_rules! stack_box {
 	( $size:expr, $default:expr ) => {{
-		bmw_util::Builder::build_stack_box($size, $default)
+		bmw_util::UtilBuilder::build_stack_box($size, $default)
 	}};
 }
 
@@ -1790,7 +1412,7 @@ macro_rules! stack_box {
 #[macro_export]
 macro_rules! stack_sync {
 	( $size:expr, $default:expr ) => {{
-		bmw_util::Builder::build_stack_sync($size, $default)
+		bmw_util::UtilBuilder::build_stack_sync($size, $default)
 	}};
 }
 
@@ -1798,7 +1420,7 @@ macro_rules! stack_sync {
 #[macro_export]
 macro_rules! stack_sync_box {
 	( $size:expr, $default:expr ) => {{
-		bmw_util::Builder::build_stack_sync_box($size, $default)
+		bmw_util::UtilBuilder::build_stack_sync_box($size, $default)
 	}};
 }
 
@@ -1840,78 +1462,12 @@ macro_rules! list_eq {
 /// Macro used to configure/build a thread pool. See [`crate::ThreadPool`] for working examples.
 #[macro_export]
 macro_rules! thread_pool {
-	() => {{
-                let config = bmw_util::ThreadPoolConfig::default();
-                match bmw_util::Builder::build_thread_pool(config) {
-                        Ok(mut ret) => {
-                                ret.start()?;
-                                Ok(ret)
-                        }
-                        Err(e) => {
-                            Err(
-                                    bmw_err::err!(
-                                            bmw_err::ErrKind::Misc,
-                                            format!("threadpoolbuilder buld error: {}", e)
-                                    )
-                            )
-                        }
-                }
-        }};
-	( $( $config:expr ),* ) => {{
-                let mut config = bmw_util::ThreadPoolConfig::default();
-		let mut error: Option<String> = None;
-		let mut min_size_specified = false;
-                let mut max_size_specified = false;
-                let mut sync_channel_size_specified = false;
-
-                $(
-                match $config {
-                    bmw_util::ConfigOption::MinSize(min_size) => {
-                        config.min_size = min_size;
-                         if min_size_specified {
-                            error = Some("MinSize was specified more than once!".to_string());
-                        }
-
-                        min_size_specified = true;
-                        if min_size_specified {}
-                    },
-                    bmw_util::ConfigOption::MaxSize(max_size) => {
-                        config.max_size = max_size;
-                        if max_size_specified {
-                            error = Some("MaxSize was specified more than once!".to_string());
-                        }
-
-                        max_size_specified = true;
-                        if max_size_specified {}
-                    },
-                    bmw_util::ConfigOption::SyncChannelSize(sync_channel_size) => {
-                        config.sync_channel_size = sync_channel_size;
-                        if sync_channel_size_specified {
-                             error = Some("SyncChannelSize was specified more than once!".to_string());
-                        }
-
-                        sync_channel_size_specified = true;
-                        if sync_channel_size_specified {}
-                    }
-                    _ => {
-                        error = Some(
-                            format!(
-                                "Invalid configuration {:?} is not allowed for thread_pool!",
-                                $config
-                            )
-                        );
-                    }
-                }
-                )*
-
-                match error {
-                    Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, error)),
-                    None => {
-                            let mut ret = bmw_util::Builder::build_thread_pool(config)?;
-                            ret.start()?;
-                            Ok(ret)
-                    },
-                }
+        ( $( $match_items:tt)* ) => {{
+                #[allow(unused_imports)]
+                use bmw_conf::ConfigOption::*;
+                use bmw_conf::ConfigOption;
+                let v: Vec<ConfigOption> = vec![$($match_items)*];
+                bmw_util::UtilBuilder::build_thread_pool(v)
         }};
 }
 
@@ -1938,514 +1494,4 @@ macro_rules! block_on {
 			)),
 		}
 	}};
-}
-
-#[cfg(test)]
-mod test {
-	use crate as bmw_util;
-	use crate::PatternParam::*;
-	use crate::{
-		lock, lock_box, thread_pool, Builder, Hashset, Hashtable, List, Lock, LockBox, PoolResult,
-		Queue, SortableList, Stack, SuffixTree, ThreadPool,
-	};
-	use bmw_err::{err, Error};
-	use bmw_log::*;
-	use bmw_util::ConfigOption::*;
-	use bmw_util::SuffixParam::*;
-	use std::cell::RefMut;
-	use std::sync::mpsc::Receiver;
-	use std::thread::sleep;
-	use std::time::Duration;
-
-	info!();
-
-	struct TestHashsetHolder {
-		h1: Option<Box<dyn Hashset<u32>>>,
-		h2: Option<Box<dyn LockBox<Box<dyn Hashset<u32> + Send + Sync>>>>,
-	}
-
-	#[test]
-	fn test_hashset_macros() -> Result<(), Error> {
-		let slabs = slab_allocator!(SlabSize(128), SlabCount(1))?;
-		{
-			let mut hashset = hashset!(Slabs(&slabs))?;
-			hashset.insert(&1)?;
-			assert!(hashset.contains(&1)?);
-			assert!(!hashset.contains(&2)?);
-			assert!(hashset.insert(&2).is_err());
-		}
-
-		{
-			let mut hashset = hashset_box!(Slabs(&slabs))?;
-			hashset.insert(&1)?;
-			assert!(hashset.contains(&1)?);
-			assert!(!hashset.contains(&2)?);
-			assert!(hashset.insert(&2).is_err());
-
-			let mut thh = TestHashsetHolder {
-				h2: None,
-				h1: Some(hashset),
-			};
-
-			{
-				let hashset = thh.h1.as_mut().unwrap();
-				assert_eq!(hashset.size(), 1);
-			}
-		}
-
-		{
-			let mut hashset = hashset_sync!(SlabSize(128), SlabCount(1))?;
-			hashset.insert(&1)?;
-			assert!(hashset.contains(&1)?);
-			assert!(!hashset.contains(&2)?);
-			assert!(hashset.insert(&2).is_err());
-		}
-
-		{
-			let hashset = hashset_sync_box!(SlabSize(128), SlabCount(1))?;
-			let mut hashset = lock_box!(hashset)?;
-
-			{
-				let mut hashset = hashset.wlock()?;
-				(**hashset.guard()).insert(&1)?;
-				assert!((**hashset.guard()).contains(&1)?);
-				assert!(!(**hashset.guard()).contains(&2)?);
-				assert!((**hashset.guard()).insert(&2).is_err());
-			}
-
-			let mut thh = TestHashsetHolder {
-				h1: None,
-				h2: Some(hashset),
-			};
-
-			{
-				let mut hashset = thh.h2.as_mut().unwrap().wlock()?;
-				assert_eq!((**hashset.guard()).size(), 1);
-			}
-		}
-
-		Ok(())
-	}
-
-	#[test]
-	fn test_slabs_in_hashtable_macro() -> Result<(), Error> {
-		let slabs = slab_allocator!(SlabSize(128), SlabCount(1))?;
-		let mut hashtable = hashtable!(Slabs(&slabs))?;
-		hashtable.insert(&1, &2)?;
-
-		assert_eq!(hashtable.get(&1).unwrap(), Some(2));
-
-		assert!(hashtable.insert(&2, &3).is_err());
-
-		Ok(())
-	}
-
-	#[test]
-	fn test_hashtable_box_macro() -> Result<(), Error> {
-		let slabs = slab_allocator!(SlabSize(128), SlabCount(1))?;
-		let mut hashtable = hashtable_box!(Slabs(&slabs))?;
-		hashtable.insert(&1, &2)?;
-
-		assert_eq!(hashtable.get(&1).unwrap(), Some(2));
-
-		assert!(hashtable.insert(&2, &3).is_err());
-
-		Ok(())
-	}
-
-	struct TestHashtableSyncBox {
-		h: Box<dyn LockBox<Box<dyn Hashtable<u32, u32> + Send + Sync>>>,
-	}
-
-	#[test]
-	fn test_hashtable_sync_box_macro() -> Result<(), Error> {
-		let hashtable = hashtable_sync_box!(SlabSize(128), SlabCount(1), MaxEntries(10))?;
-		let mut hashtable = lock_box!(hashtable)?;
-
-		{
-			let mut hashtable = hashtable.wlock()?;
-			(**hashtable.guard()).insert(&1, &2)?;
-			assert_eq!((**hashtable.guard()).get(&1).unwrap(), Some(2));
-			assert!((**hashtable.guard()).insert(&2, &3).is_err());
-		}
-
-		let thsb = TestHashtableSyncBox { h: hashtable };
-
-		{
-			let h = thsb.h.rlock()?;
-			assert!((**h.guard()).get(&1)?.is_some());
-			assert!((**h.guard()).get(&2)?.is_none());
-		}
-
-		Ok(())
-	}
-
-	#[test]
-	fn test_hashtable_sync_macro() -> Result<(), Error> {
-		let hashtable = hashtable_sync_box!(SlabSize(128), SlabCount(1), MaxEntries(10))?;
-		let mut hashtable = lock!(hashtable)?;
-
-		{
-			let mut hashtable = hashtable.wlock()?;
-			(**hashtable.guard()).insert(&1, &2)?;
-			assert_eq!((**hashtable.guard()).get(&1).unwrap(), Some(2));
-			assert!((**hashtable.guard()).insert(&2, &3).is_err());
-		}
-
-		Ok(())
-	}
-
-	#[test]
-	fn test_slab_allocator_macro() -> Result<(), bmw_err::Error> {
-		let slabs = slab_allocator!()?;
-		let slabs2 = slab_allocator!(SlabSize(128), SlabCount(1))?;
-
-		let mut slabs: RefMut<_> = slabs.borrow_mut();
-		let mut slabs2: RefMut<_> = slabs2.borrow_mut();
-
-		let slab = slabs.allocate()?;
-		assert_eq!(
-			slab.get().len(),
-			bmw_util::SlabAllocatorConfig::default().slab_size
-		);
-		let slab = slabs2.allocate()?;
-		assert_eq!(slab.get().len(), 128);
-		assert!(slabs2.allocate().is_err());
-		assert!(slabs.allocate().is_ok());
-
-		assert!(slab_allocator!(SlabSize(128), SlabSize(64)).is_err());
-		assert!(slab_allocator!(SlabCount(128), SlabCount(64)).is_err());
-		assert!(slab_allocator!(MaxEntries(128)).is_err());
-		assert!(slab_allocator!(MaxLoadFactor(128.0)).is_err());
-		Ok(())
-	}
-
-	#[test]
-	fn test_hashtable_macro() -> Result<(), bmw_err::Error> {
-		let mut hashtable = hashtable!()?;
-		hashtable.insert(&1, &2)?;
-		assert_eq!(hashtable.get(&1).unwrap().unwrap(), 2);
-		let mut hashtable = hashtable!(MaxEntries(100), MaxLoadFactor(0.9))?;
-		hashtable.insert(&"test".to_string(), &1)?;
-		assert_eq!(hashtable.size(), 1);
-		hashtable.insert(&"something".to_string(), &2)?;
-		info!("hashtable={:?}", hashtable)?;
-
-		let mut hashtable = hashtable_sync!()?;
-		hashtable.insert(&1, &2)?;
-		assert_eq!(hashtable.get(&1).unwrap().unwrap(), 2);
-		let mut hashtable = hashtable_sync!(
-			MaxEntries(100),
-			MaxLoadFactor(0.9),
-			SlabSize(100),
-			SlabCount(100)
-		)?;
-		hashtable.insert(&"test".to_string(), &1)?;
-		assert_eq!(hashtable.size(), 1);
-		hashtable.insert(&"something".to_string(), &2)?;
-		info!("hashtable={:?}", hashtable)?;
-
-		let mut hashtable = hashtable_box!()?;
-		hashtable.insert(&1, &2)?;
-		assert_eq!(hashtable.get(&1).unwrap().unwrap(), 2);
-		let mut hashtable = hashtable_box!(MaxEntries(100), MaxLoadFactor(0.9))?;
-		hashtable.insert(&"test".to_string(), &1)?;
-		assert_eq!(hashtable.size(), 1);
-		hashtable.insert(&"something".to_string(), &2)?;
-		info!("hashtable={:?}", hashtable)?;
-
-		let mut hashtable = hashtable_sync_box!()?;
-		hashtable.insert(&1, &2)?;
-		assert_eq!(hashtable.get(&1).unwrap().unwrap(), 2);
-		let mut hashtable = hashtable_sync_box!(
-			MaxEntries(100),
-			MaxLoadFactor(0.9),
-			SlabSize(100),
-			SlabCount(100)
-		)?;
-		hashtable.insert(&"test".to_string(), &1)?;
-		assert_eq!(hashtable.size(), 1);
-		hashtable.insert(&"something".to_string(), &2)?;
-		info!("hashtable={:?}", hashtable)?;
-
-		Ok(())
-	}
-
-	#[test]
-	fn test_hashset_macro() -> Result<(), bmw_err::Error> {
-		let mut hashset = hashset!()?;
-		hashset.insert(&1)?;
-		assert_eq!(hashset.contains(&1).unwrap(), true);
-		assert_eq!(hashset.contains(&2).unwrap(), false);
-		let mut hashset = hashset!(MaxEntries(100), MaxLoadFactor(0.9))?;
-		hashset.insert(&"test".to_string())?;
-		assert_eq!(hashset.size(), 1);
-		assert!(hashset.contains(&"test".to_string())?);
-		info!("hashset={:?}", hashset)?;
-		hashset.insert(&"another item".to_string())?;
-		hashset.insert(&"third item".to_string())?;
-		info!("hashset={:?}", hashset)?;
-
-		let mut hashset = hashset_sync!()?;
-		hashset.insert(&1)?;
-		assert_eq!(hashset.contains(&1).unwrap(), true);
-		assert_eq!(hashset.contains(&2).unwrap(), false);
-		let mut hashset = hashset_sync!(
-			MaxEntries(100),
-			MaxLoadFactor(0.9),
-			SlabSize(100),
-			SlabCount(100)
-		)?;
-		hashset.insert(&"test".to_string())?;
-		assert_eq!(hashset.size(), 1);
-		assert!(hashset.contains(&"test".to_string())?);
-		info!("hashset={:?}", hashset)?;
-		hashset.insert(&"another item".to_string())?;
-		hashset.insert(&"third item".to_string())?;
-		info!("hashset={:?}", hashset)?;
-
-		let mut hashset = hashset_box!()?;
-		hashset.insert(&1)?;
-		assert_eq!(hashset.contains(&1).unwrap(), true);
-		assert_eq!(hashset.contains(&2).unwrap(), false);
-		let mut hashset = hashset_box!(MaxEntries(100), MaxLoadFactor(0.9))?;
-		hashset.insert(&"test".to_string())?;
-		assert_eq!(hashset.size(), 1);
-		assert!(hashset.contains(&"test".to_string())?);
-		info!("hashset={:?}", hashset)?;
-		hashset.insert(&"another item".to_string())?;
-		hashset.insert(&"third item".to_string())?;
-		info!("hashset={:?}", hashset)?;
-
-		let mut hashset = hashset_sync_box!()?;
-		hashset.insert(&1)?;
-		assert_eq!(hashset.contains(&1).unwrap(), true);
-		assert_eq!(hashset.contains(&2).unwrap(), false);
-		let mut hashset = hashset_sync_box!(
-			MaxEntries(100),
-			MaxLoadFactor(0.9),
-			SlabSize(100),
-			SlabCount(100)
-		)?;
-		hashset.insert(&"test".to_string())?;
-		assert_eq!(hashset.size(), 1);
-		assert!(hashset.contains(&"test".to_string())?);
-		info!("hashset={:?}", hashset)?;
-		hashset.insert(&"another item".to_string())?;
-		hashset.insert(&"third item".to_string())?;
-		info!("hashset={:?}", hashset)?;
-
-		Ok(())
-	}
-
-	#[test]
-	fn test_list_macro() -> Result<(), bmw_err::Error> {
-		let mut list1 = list!['1', '2', '3'];
-		list_append!(list1, list!['a', 'b', 'c']);
-		let list2 = list!['1', '2', '3', 'a', 'b', 'c'];
-		assert!(list_eq!(list1, list2));
-		let list2 = list!['a', 'b', 'c', '1', '2'];
-		assert!(!list_eq!(list1, list2));
-
-		let list3 = list![1, 2, 3, 4, 5];
-		info!("list={:?}", list3)?;
-
-		let list4 = list_box![1, 2, 3, 4, 5];
-		let mut list5 = list_sync!()?;
-		let mut list6 = list_sync_box!()?;
-		list_append!(list5, list4);
-		list_append!(list6, list4);
-		assert!(list_eq!(list4, list3));
-		assert!(list_eq!(list4, list5));
-		assert!(list_eq!(list4, list6));
-
-		Ok(())
-	}
-
-	#[test]
-	fn test_thread_pool_macro() -> Result<(), bmw_err::Error> {
-		let mut tp = thread_pool!()?;
-		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
-		let resp = execute!(tp, {
-			info!("in thread pool")?;
-			Ok(123)
-		})?;
-		assert_eq!(block_on!(resp), PoolResult::Ok(123));
-
-		let mut tp = thread_pool!(MinSize(3))?;
-		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
-		let resp: Receiver<PoolResult<u32, Error>> = execute!(tp, {
-			info!("thread pool2")?;
-			Err(err!(ErrKind::Test, "test err"))
-		})?;
-		assert_eq!(
-			block_on!(resp),
-			PoolResult::Err(err!(ErrKind::Test, "test err"))
-		);
-
-		let mut tp = thread_pool!(MinSize(3))?;
-		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
-		let resp: Receiver<PoolResult<u32, Error>> = execute!(tp, {
-			info!("thread pool panic")?;
-			let x: Option<u32> = None;
-			Ok(x.unwrap())
-		})?;
-		assert_eq!(
-			block_on!(resp),
-			PoolResult::Err(err!(
-				ErrKind::ThreadPanic,
-				"thread pool panic: receiving on a closed channel"
-			))
-		);
-		Ok(())
-	}
-
-	#[test]
-	fn test_thread_pool_options() -> Result<(), Error> {
-		let mut tp = thread_pool!(MinSize(4), MaxSize(5), SyncChannelSize(10))?;
-		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
-
-		assert_eq!(tp.size()?, 4);
-		sleep(Duration::from_millis(2_000));
-		let resp = execute!(tp, {
-			info!("thread pool")?;
-			Ok(0)
-		})?;
-		assert_eq!(block_on!(resp), PoolResult::Ok(0));
-		assert_eq!(tp.size()?, 4);
-
-		for _ in 0..10 {
-			execute!(tp, {
-				info!("thread pool")?;
-				sleep(Duration::from_millis(5_000));
-				Ok(0)
-			})?;
-		}
-		sleep(Duration::from_millis(2_000));
-		assert_eq!(tp.size()?, 5);
-		Ok(())
-	}
-
-	#[test]
-	fn test_list_eq() -> Result<(), Error> {
-		let list1 = list![1, 2, 3];
-		let eq = list_eq!(list1, list![1, 2, 3]);
-		let mut list2 = list![4, 5, 6];
-		list_append!(list2, list![5, 5, 5]);
-		assert!(eq);
-		assert!(list_eq!(list2, list![4, 5, 6, 5, 5, 5]));
-		list2.sort_unstable()?;
-		assert!(list_eq!(list2, list![4, 5, 5, 5, 5, 6]));
-		assert!(!list_eq!(list2, list![1, 2, 3]));
-		Ok(())
-	}
-
-	#[test]
-	fn test_array_macro() -> Result<(), Error> {
-		let mut array = array!(10, &0)?;
-		array[1] = 2;
-		assert_eq!(array[1], 2);
-
-		let mut a = array_list_box!(10, &0)?;
-		a.push(1)?;
-		assert_eq!(a.size(), 1);
-
-		let mut a = array_list_sync!(10, &0)?;
-		a.push(1)?;
-		assert_eq!(a.size(), 1);
-
-		let mut a = array_list_sync!(10, &0)?;
-		a.push(1)?;
-		assert_eq!(a.size(), 1);
-
-		let mut q = queue!(10, &0)?;
-		q.enqueue(1)?;
-		assert_eq!(q.peek(), Some(&1));
-
-		let mut q = queue_sync!(10, &0)?;
-		q.enqueue(1)?;
-		assert_eq!(q.peek(), Some(&1));
-
-		let mut q = queue_box!(10, &0)?;
-		q.enqueue(1)?;
-		assert_eq!(q.peek(), Some(&1));
-
-		let mut q = queue_sync_box!(10, &0)?;
-		q.enqueue(1)?;
-		assert_eq!(q.peek(), Some(&1));
-
-		let mut s = stack!(10, &0)?;
-		s.push(1)?;
-		assert_eq!(s.peek(), Some(&1));
-
-		let mut s = stack_box!(10, &0)?;
-		s.push(1)?;
-		assert_eq!(s.peek(), Some(&1));
-
-		let mut s = stack_sync!(10, &0)?;
-		s.push(1)?;
-		assert_eq!(s.peek(), Some(&1));
-
-		let mut s = stack_sync_box!(10, &0)?;
-		s.push(1)?;
-		assert_eq!(s.peek(), Some(&1));
-
-		Ok(())
-	}
-
-	#[test]
-	fn test_pattern_suffix_macros() -> Result<(), Error> {
-		// create matches array
-		let mut matches = [Builder::build_match_default(); 10];
-
-		// test pattern
-		let pattern = pattern!(Regex("abc"), Id(0))?;
-		assert_eq!(
-			pattern,
-			Builder::build_pattern("abc", false, false, true, 0)?
-		);
-
-		// test suffix tree
-		let mut suffix_tree = suffix_tree!(
-			list![
-				pattern!(Regex("abc"), Id(0))?,
-				pattern!(Regex("def"), Id(1))?
-			],
-			TerminationLength(100),
-			MaxWildcardLength(50)
-		)?;
-		let match_count = suffix_tree.tmatch(b"abc", &mut matches)?;
-		assert_eq!(match_count, 1);
-		Ok(())
-	}
-
-	#[test]
-	fn test_simple_suffix_tree() -> Result<(), Error> {
-		// create matches array
-		let mut matches = [Builder::build_match_default(); 10];
-
-		// create a suffix tree
-		let mut suffix_tree = suffix_tree!(list![
-			pattern!(Regex("aaa"), Id(0))?,
-			pattern!(Regex("bbb"), Id(1))?
-		],)?;
-
-		// match
-		let match_count = suffix_tree.tmatch(b"aaa", &mut matches)?;
-		assert_eq!(match_count, 1);
-		Ok(())
-	}
-
-	#[test]
-	fn test_list_sync() -> Result<(), Error> {
-		let mut list = list_sync!()?;
-		//let mut hash = hashset_sync_box!()?;
-		list.push(1)?;
-		assert!(list_eq!(list, list![1]));
-
-		let mut list2: Box<dyn SortableList<_>> = list_sync_box!()?;
-		list2.push(1)?;
-		assert!(list_eq!(list2, list![1]));
-		Ok(())
-	}
 }

@@ -134,6 +134,6 @@ pub(crate) struct WebSocketRequestImpl {
 }
 
 pub(crate) struct RustletContext {
-	pub(crate) suffix_tree: Box<dyn SuffixTree + Sync + Send>,
+	pub(crate) search_trie: Box<dyn SearchTrie + Sync + Send>,
 	pub(crate) matches: [Match; 1_000],
 }

@@ -75,18 +75,16 @@ impl Default for RustletContainerConfig {
 
 impl RustletContext {
 	fn new(_config: &RustletContainerConfig) -> Result<Self, Error> {
-		let slab_allocator = slab_allocator!()?;
-		let mut list =
-			bmw_util::Builder::build_list(ListConfig::default(), &Some(&slab_allocator))?;
-		list.push(pattern!(Regex("$(@"), Id(0))?)?;
-		let suffix_tree = Box::new(suffix_tree!(
+		let mut list = vec![];
+		list.push(pattern!(Regex("$(@".to_string()), PatternId(0))?);
+		let search_trie = Box::new(search_trie!(
 			list,
 			TerminationLength(1_000_000_000),
 			MaxWildcardLength(1_000)
 		)?);
-		let matches = [bmw_util::Builder::build_match_default(); 1_000];
+		let matches = [tmatch!()?; 1_000];
 		Ok(RustletContext {
-			suffix_tree,
+			search_trie,
 			matches,
 		})
 	}
@@ -446,7 +444,7 @@ impl RustletContainer {
 		let rsp_bytes = rsp_text.as_bytes();
 		let rsp_bytes_len = rsp_bytes.len();
 
-		let count = ctx.suffix_tree.tmatch(&rsp_bytes, &mut ctx.matches)?;
+		let count = ctx.search_trie.tmatch(&rsp_bytes, &mut ctx.matches)?;
 
 		let mut itt = 0;
 		for i in 0..count {

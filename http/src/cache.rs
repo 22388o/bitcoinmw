@@ -33,7 +33,8 @@ impl HttpCacheImpl {
 	pub(crate) fn new(config: &HttpConfig) -> Result<Box<dyn HttpCache + Send + Sync>, Error> {
 		let hashtable = hashtable_sync_box!(
 			SlabSize(CACHE_SLAB_SIZE),
-			SlabCount(config.cache_slab_count)
+			SlabCount(config.cache_slab_count),
+			GlobalSlabAllocator(false),
 		)?;
 		Ok(Box::new(HttpCacheImpl { hashtable }))
 	}
@@ -248,8 +249,9 @@ impl HttpCache for HttpCacheImpl {
 		let slab_count;
 		(free_count, slab_count) = {
 			let slabs = self.hashtable.slabs()?.unwrap();
-			let slabs = slabs.borrow();
-			(slabs.free_count()?, slabs.slab_count()?)
+			let slabs = slabs.rlock()?;
+			let guard = slabs.guard();
+			((**guard).free_count()?, (**guard).slab_count()?)
 		};
 		let bytes_needed = len + path.len() + CACHE_OVERHEAD_BYTES;
 		let blocks_needed = 1 + (bytes_needed / CACHE_BYTES_PER_SLAB);
@@ -266,7 +268,7 @@ impl HttpCache for HttpCacheImpl {
 				debug!("removing oldest")?;
 				self.hashtable.remove_oldest()?;
 
-				free_count = self.hashtable.slabs()?.unwrap().borrow().free_count()?;
+				free_count = rlock!(self.hashtable.slabs()?.unwrap()).free_count()?;
 				debug!(
 					"loop free_count={},blocks_needed={}",
 					free_count, blocks_needed

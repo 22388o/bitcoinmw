@@ -881,64 +881,137 @@ impl HttpServerImpl {
 
 		let max_wildcard = config.max_uri_len + config.max_uri_len + 100;
 		let termination_length = config.max_headers_len + config.max_uri_len + 100;
-		let slab_allocator = slab_allocator!()?;
-		let mut list =
-			bmw_util::Builder::build_list(ListConfig::default(), &Some(&slab_allocator))?;
-		list.push(bmw_util::Builder::build_pattern(
-			"\r\n\r\n",
-			false,
-			true,
-			true,
-			SUFFIX_TREE_TERMINATE_HEADERS_ID,
-		)?)?;
+		let mut list = vec![];
+		list.push(pattern!(
+			Regex("\r\n\r\n".to_string()),
+			IsTerminationPattern(true),
+			IsMultiLine(true),
+			IsCaseSensitive(false),
+			PatternId(SUFFIX_TREE_TERMINATE_HEADERS_ID)
+		)?);
 
-		list.push(pattern!(Regex("^GET .* "), Id(SUFFIX_TREE_GET_ID))?)?;
-		list.push(pattern!(Regex("^POST .* "), Id(SUFFIX_TREE_POST_ID))?)?;
-		list.push(pattern!(Regex("^HEAD .* "), Id(SUFFIX_TREE_HEAD_ID))?)?;
-		list.push(pattern!(Regex("^PUT .* "), Id(SUFFIX_TREE_PUT_ID))?)?;
-		list.push(pattern!(Regex("^DELETE .* "), Id(SUFFIX_TREE_DELETE_ID))?)?;
-		list.push(pattern!(Regex("^OPTIONS .* "), Id(SUFFIX_TREE_OPTIONS_ID))?)?;
-		list.push(pattern!(Regex("^CONNECT .* "), Id(SUFFIX_TREE_CONNECT_ID))?)?;
-		list.push(pattern!(Regex("^TRACE .* "), Id(SUFFIX_TREE_TRACE_ID))?)?;
-		list.push(pattern!(Regex("^PATCH .* "), Id(SUFFIX_TREE_PATCH_ID))?)?;
-		list.push(pattern!(Regex("^GET .*\n"), Id(SUFFIX_TREE_GET_ID))?)?;
-		list.push(pattern!(Regex("^POST .*\n"), Id(SUFFIX_TREE_POST_ID))?)?;
-		list.push(pattern!(Regex("^HEAD .*\n"), Id(SUFFIX_TREE_HEAD_ID))?)?;
-		list.push(pattern!(Regex("^PUT .*\n"), Id(SUFFIX_TREE_PUT_ID))?)?;
-		list.push(pattern!(Regex("^DELETE .*\n"), Id(SUFFIX_TREE_DELETE_ID))?)?;
 		list.push(pattern!(
-			Regex("^OPTIONS .*\n"),
-			Id(SUFFIX_TREE_OPTIONS_ID)
-		)?)?;
+			Regex("^GET .* ".to_string()),
+			PatternId(SUFFIX_TREE_GET_ID)
+		)?);
 		list.push(pattern!(
-			Regex("^CONNECT .*\n"),
-			Id(SUFFIX_TREE_CONNECT_ID)
-		)?)?;
-		list.push(pattern!(Regex("^TRACE .*\n"), Id(SUFFIX_TREE_TRACE_ID))?)?;
-		list.push(pattern!(Regex("^PATCH .*\n"), Id(SUFFIX_TREE_PATCH_ID))?)?;
-		list.push(pattern!(Regex("^GET .*\r"), Id(SUFFIX_TREE_GET_ID))?)?;
-		list.push(pattern!(Regex("^POST .*\r"), Id(SUFFIX_TREE_POST_ID))?)?;
-		list.push(pattern!(Regex("^HEAD .*\r"), Id(SUFFIX_TREE_HEAD_ID))?)?;
-		list.push(pattern!(Regex("^PUT .*\r"), Id(SUFFIX_TREE_PUT_ID))?)?;
-		list.push(pattern!(Regex("^DELETE .*\r"), Id(SUFFIX_TREE_DELETE_ID))?)?;
+			Regex("^POST .* ".to_string()),
+			PatternId(SUFFIX_TREE_POST_ID)
+		)?);
 		list.push(pattern!(
-			Regex("^OPTIONS .*\r"),
-			Id(SUFFIX_TREE_OPTIONS_ID)
-		)?)?;
+			Regex("^HEAD .* ".to_string()),
+			PatternId(SUFFIX_TREE_HEAD_ID)
+		)?);
 		list.push(pattern!(
-			Regex("^CONNECT .*\r"),
-			Id(SUFFIX_TREE_CONNECT_ID)
-		)?)?;
-		list.push(pattern!(Regex("^TRACE .*\r"), Id(SUFFIX_TREE_TRACE_ID))?)?;
-		list.push(pattern!(Regex("^PATCH .*\r"), Id(SUFFIX_TREE_PATCH_ID))?)?;
-		list.push(pattern!(Regex("\r\n.*: "), Id(SUFFIX_TREE_HEADER_ID))?)?;
-
-		let suffix_tree = Box::new(suffix_tree!(
+			Regex("^PUT .* ".to_string()),
+			PatternId(SUFFIX_TREE_PUT_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^DELETE .* ".to_string()),
+			PatternId(SUFFIX_TREE_DELETE_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^OPTIONS .* ".to_string()),
+			PatternId(SUFFIX_TREE_OPTIONS_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^CONNECT .* ".to_string()),
+			PatternId(SUFFIX_TREE_CONNECT_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^TRACE .* ".to_string()),
+			PatternId(SUFFIX_TREE_TRACE_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^PATCH .* ".to_string()),
+			PatternId(SUFFIX_TREE_PATCH_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^GET .*\n".to_string()),
+			PatternId(SUFFIX_TREE_GET_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^POST .*\n".to_string()),
+			PatternId(SUFFIX_TREE_POST_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^HEAD .*\n".to_string()),
+			PatternId(SUFFIX_TREE_HEAD_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^PUT .*\n".to_string()),
+			PatternId(SUFFIX_TREE_PUT_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^DELETE .*\n".to_string()),
+			PatternId(SUFFIX_TREE_DELETE_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^OPTIONS .*\n".to_string()),
+			PatternId(SUFFIX_TREE_OPTIONS_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^CONNECT .*\n".to_string()),
+			PatternId(SUFFIX_TREE_CONNECT_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^TRACE .*\n".to_string()),
+			PatternId(SUFFIX_TREE_TRACE_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^PATCH .*\n".to_string()),
+			PatternId(SUFFIX_TREE_PATCH_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^GET .*\r".to_string()),
+			PatternId(SUFFIX_TREE_GET_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^POST .*\r".to_string()),
+			PatternId(SUFFIX_TREE_POST_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^HEAD .*\r".to_string()),
+			PatternId(SUFFIX_TREE_HEAD_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^PUT .*\r".to_string()),
+			PatternId(SUFFIX_TREE_PUT_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^DELETE .*\r".to_string()),
+			PatternId(SUFFIX_TREE_DELETE_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^OPTIONS .*\r".to_string()),
+			PatternId(SUFFIX_TREE_OPTIONS_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^CONNECT .*\r".to_string()),
+			PatternId(SUFFIX_TREE_CONNECT_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^TRACE .*\r".to_string()),
+			PatternId(SUFFIX_TREE_TRACE_ID)
+		)?);
+		list.push(pattern!(
+			Regex("^PATCH .*\r".to_string()),
+			PatternId(SUFFIX_TREE_PATCH_ID)
+		)?);
+		list.push(pattern!(
+			Regex("\r\n.*: ".to_string()),
+			PatternId(SUFFIX_TREE_HEADER_ID)
+		)?);
+		debug!(
+			"suffix tree term = {}, wc={}",
+			termination_length, max_wildcard
+		)?;
+		let search_trie = Box::new(search_trie!(
 			list,
 			TerminationLength(termination_length),
 			MaxWildcardLength(max_wildcard)
 		)?);
-		let matches = [bmw_util::Builder::build_match_default(); MATCH_ARRAY_SIZE];
+		let matches = [tmatch!()?; MATCH_ARRAY_SIZE];
 		let connections = HashMap::new();
 		let mut mime_map = HashMap::new();
 		let mut mime_lookup = HashMap::new();
@@ -950,14 +1023,14 @@ impl HttpServerImpl {
 			mime_map.insert(config.mime_map[i].0.clone(), config.mime_map[i].1.clone());
 		}
 
-		let mut content_allocator = bmw_util::Builder::build_sync_slabs();
+		let mut content_allocator = bmw_util::UtilBuilder::build_sync_slabs();
 		let mut slab_allocator_config = bmw_util::SlabAllocatorConfig::default();
 		slab_allocator_config.slab_size = CONTENT_SLAB_SIZE;
 		slab_allocator_config.slab_count = config.content_slab_count;
 		content_allocator.init(slab_allocator_config)?;
 		let thread_context = ThreadContext::new();
 		Ok(HttpContext {
-			suffix_tree,
+			search_trie,
 			matches,
 			connections,
 			mime_map,
@@ -1646,12 +1719,12 @@ impl HttpServerImpl {
 		req: &'a Vec<u8>,
 		start: usize,
 		mut matches: [bmw_util::Match; 1_000],
-		suffix_tree: &mut Box<dyn SuffixTree + Send + Sync>,
+		search_trie: &mut Box<dyn SearchTrie + Send + Sync>,
 		slab_offset: usize,
 	) -> Result<HttpHeaders<'a>, Error> {
 		let mut termination_point = 0;
 		debug!("about to build headers req.len={}", req.len())?;
-		let count = suffix_tree.tmatch(&req[start..], &mut matches)?;
+		let count = search_trie.tmatch(&req[start..], &mut matches)?;
 
 		debug!(
 			"count={},slab_offset={},start={}",
@@ -2277,7 +2350,7 @@ impl HttpServerImpl {
 											&headers_clone,
 											0,
 											ctx.matches,
-											&mut ctx.suffix_tree,
+											&mut ctx.search_trie,
 											len,
 										)
 									} else {
@@ -2287,7 +2360,7 @@ impl HttpServerImpl {
 											&req,
 											start,
 											ctx.matches,
-											&mut ctx.suffix_tree,
+											&mut ctx.search_trie,
 											(slab_offset as usize
 												+ (slab_count - 1) * READ_SLAB_DATA_SIZE)
 												.into(),

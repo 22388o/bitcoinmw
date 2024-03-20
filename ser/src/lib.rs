@@ -24,6 +24,9 @@
 //! that it can be stored in various forms. The Reader and Writer traits are abstractions
 //! for reading and writing serializable data structures. The [`crate::Serializable`] macro is implemented for
 //! several data structures in this crate as well.
+//! # Generics
+//! It's important to note that generics are not currently supported and will result in an error. If you need
+//! generics, currenly you must build your own Serializable implementation.
 
 mod ser;
 mod test;
