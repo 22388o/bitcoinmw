@@ -4830,7 +4830,7 @@
 		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
 		<span class="macro">info!</span>(<span class="string">"close1 Using port: {}"</span>, port)<span class="question-mark">?</span>;
 		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
-		<span class="kw">let </span>threads = <span class="number">2</span>;
+		<span class="kw">let </span>threads = <span class="number">1</span>;
 		<span class="kw">let </span>config = EventHandlerConfig {
 			threads,
 			housekeeping_frequency_millis: <span class="number">1_000_000</span>,
