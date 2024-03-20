@@ -328,6 +328,8 @@
 <a href="#327" id="327">327</a>
 <a href="#328" id="328">328</a>
 <a href="#329" id="329">329</a>
+<a href="#330" id="330">330</a>
+<a href="#331" id="331">331</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -363,7 +365,8 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(config: <span class="kw-2">&amp;</span>HttpConfig) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>HttpCache + Send + Sync&gt;, Error&gt; {
 		<span class="kw">let </span>hashtable = <span class="macro">hashtable_sync_box!</span>(
 			SlabSize(CACHE_SLAB_SIZE),
-			SlabCount(config.cache_slab_count)
+			SlabCount(config.cache_slab_count),
+			GlobalSlabAllocator(<span class="bool-val">false</span>),
 		)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(Box::new(HttpCacheImpl { hashtable }))
 	}
@@ -578,8 +581,9 @@
 		<span class="kw">let </span>slab_count;
 		(free_count, slab_count) = {
 			<span class="kw">let </span>slabs = <span class="self">self</span>.hashtable.slabs()<span class="question-mark">?</span>.unwrap();
-			<span class="kw">let </span>slabs = slabs.borrow();
-			(slabs.free_count()<span class="question-mark">?</span>, slabs.slab_count()<span class="question-mark">?</span>)
+			<span class="kw">let </span>slabs = slabs.rlock()<span class="question-mark">?</span>;
+			<span class="kw">let </span>guard = slabs.guard();
+			((<span class="kw-2">**</span>guard).free_count()<span class="question-mark">?</span>, (<span class="kw-2">**</span>guard).slab_count()<span class="question-mark">?</span>)
 		};
 		<span class="kw">let </span>bytes_needed = len + path.len() + CACHE_OVERHEAD_BYTES;
 		<span class="kw">let </span>blocks_needed = <span class="number">1 </span>+ (bytes_needed / CACHE_BYTES_PER_SLAB);
@@ -596,7 +600,7 @@
 				<span class="macro">debug!</span>(<span class="string">"removing oldest"</span>)<span class="question-mark">?</span>;
 				<span class="self">self</span>.hashtable.remove_oldest()<span class="question-mark">?</span>;
 
-				free_count = <span class="self">self</span>.hashtable.slabs()<span class="question-mark">?</span>.unwrap().borrow().free_count()<span class="question-mark">?</span>;
+				free_count = <span class="macro">rlock!</span>(<span class="self">self</span>.hashtable.slabs()<span class="question-mark">?</span>.unwrap()).free_count()<span class="question-mark">?</span>;
 				<span class="macro">debug!</span>(
 					<span class="string">"loop free_count={},blocks_needed={}"</span>,
 					free_count, blocks_needed

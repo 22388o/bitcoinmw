@@ -1537,6 +1537,7 @@
 <a href="#1536" id="1536">1536</a>
 <a href="#1537" id="1537">1537</a>
 <a href="#1538" id="1538">1538</a>
+<a href="#1539" id="1539">1539</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1916,7 +1917,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>evh = Builder::build_evh(evh_config)<span class="question-mark">?</span>;
 		<span class="kw">let </span>event_handler_data = evh.event_handler_data()<span class="question-mark">?</span>;
 
-		<span class="kw">let </span><span class="kw-2">mut </span>content_allocator = bmw_util::Builder::build_sync_slabs();
+		<span class="kw">let </span><span class="kw-2">mut </span>content_allocator = bmw_util::UtilBuilder::build_sync_slabs();
 		content_allocator.init(SlabAllocatorConfig {
 			slab_size: CONTENT_SLAB_SIZE,
 			slab_count: config.slab_count,
@@ -1971,27 +1972,28 @@
 		<span class="kw">let </span>max_wildcard = config.max_headers_len;
 		<span class="kw">let </span>termination_length = config.max_headers_len + <span class="number">300</span>;
 
-		<span class="kw">let </span>matches = [bmw_util::Builder::build_match_default(); MATCH_ARRAY_SIZE];
+		<span class="kw">let </span>matches = [<span class="macro">tmatch!</span>()<span class="question-mark">?</span>; MATCH_ARRAY_SIZE];
 
-		<span class="kw">let </span>slab_allocator = <span class="macro">slab_allocator!</span>()<span class="question-mark">?</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>list =
-			bmw_util::Builder::build_list(ListConfig::default(), <span class="kw-2">&amp;</span><span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>slab_allocator))<span class="question-mark">?</span>;
-		list.push(bmw_util::Builder::build_pattern(
-			<span class="string">"\r\n\r\n"</span>,
-			<span class="bool-val">false</span>,
-			<span class="bool-val">true</span>,
-			<span class="bool-val">true</span>,
-			SUFFIX_TREE_TERMINATE_HEADERS_ID,
-		)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>list = <span class="macro">vec!</span>[];
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"\r\n\r\n"</span>.to_string()),
+			IsTerminationPattern(<span class="bool-val">true</span>),
+			IsMultiLine(<span class="bool-val">true</span>),
+			IsCaseSensitive(<span class="bool-val">false</span>),
+			PatternId(SUFFIX_TREE_TERMINATE_HEADERS_ID)
+		)<span class="question-mark">?</span>);
 
 		list.push(<span class="macro">pattern!</span>(
-			Regex(<span class="string">"Connection: close"</span>),
-			Id(CONNECTION_CLOSE_ID)
-		)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+			Regex(<span class="string">"Connection: close"</span>.to_string()),
+			PatternId(CONNECTION_CLOSE_ID)
+		)<span class="question-mark">?</span>);
 
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"\r\n.*: "</span>), Id(SUFFIX_TREE_HEADER_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"\r\n.*: "</span>.to_string()),
+			PatternId(SUFFIX_TREE_HEADER_ID)
+		)<span class="question-mark">?</span>);
 
-		<span class="kw">let </span>suffix_tree = Box::new(<span class="macro">suffix_tree!</span>(
+		<span class="kw">let </span>search_trie = Box::new(<span class="macro">search_trie!</span>(
 			list,
 			TerminationLength(termination_length),
 			MaxWildcardLength(max_wildcard)
@@ -1999,7 +2001,7 @@
 
 		<span class="prelude-val">Ok</span>(HttpClientContext {
 			slab_start: <span class="number">0</span>,
-			suffix_tree,
+			search_trie,
 			matches,
 		})
 	}
@@ -2143,7 +2145,7 @@
 		<span class="kw">if </span>config.debug {
 			<span class="macro">info!</span>(<span class="string">"res='{}'"</span>, std::str::from_utf8(<span class="kw-2">&amp;</span>res).unwrap_or(<span class="string">"utf8err"</span>))<span class="question-mark">?</span>;
 		}
-		<span class="kw">let </span>count = ctx.suffix_tree.tmatch(<span class="kw-2">&amp;</span>res, <span class="kw-2">&amp;mut </span>ctx.matches)<span class="question-mark">?</span>;
+		<span class="kw">let </span>count = ctx.search_trie.tmatch(<span class="kw-2">&amp;</span>res, <span class="kw-2">&amp;mut </span>ctx.matches)<span class="question-mark">?</span>;
 		<span class="kw">let </span>tmp_file_dir = canonicalize(config.base_dir.clone())<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>response = HttpResponseImpl::new(
 			HttpContentReaderData::new(),

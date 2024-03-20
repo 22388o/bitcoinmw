@@ -2966,6 +2966,11 @@
 <a href="#2965" id="2965">2965</a>
 <a href="#2966" id="2966">2966</a>
 <a href="#2967" id="2967">2967</a>
+<a href="#2968" id="2968">2968</a>
+<a href="#2969" id="2969">2969</a>
+<a href="#2970" id="2970">2970</a>
+<a href="#2971" id="2971">2971</a>
+<a href="#2972" id="2972">2972</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -3003,6 +3008,7 @@
 <span class="kw">use </span>bmw_deps::webpki_roots::TLS_SERVER_ROOTS;
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
+<span class="kw">use </span>bmw_ser::{Reader, Serializable, Writer};
 <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
 <span class="kw">use </span>std::any::Any;
 <span class="kw">use </span>std::collections::HashMap;
@@ -3376,15 +3382,21 @@
 
 		<span class="kw">let </span>handle_hashtable = <span class="macro">hashtable_sync_box!</span>(
 			SlabSize(HANDLE_SLAB_SIZE),
-			SlabCount(max_handles_per_thread)
+			SlabCount(max_handles_per_thread),
+			GlobalSlabAllocator(<span class="bool-val">false</span>)
 		)<span class="question-mark">?</span>;
 		<span class="kw">let </span>connection_hashtable = <span class="macro">hashtable_sync_box!</span>(
 			SlabSize(CONNECTION_SLAB_SIZE),
-			SlabCount(max_handles_per_thread)
+			SlabCount(max_handles_per_thread),
+			GlobalSlabAllocator(<span class="bool-val">false</span>)
 		)<span class="question-mark">?</span>;
 
 		<span class="attr">#[cfg(target_os = <span class="string">"windows"</span>)]
-		</span><span class="kw">let </span>write_set = <span class="macro">hashset_sync_box!</span>(SlabSize(WRITE_SET_SIZE), SlabCount(<span class="number">2 </span>* MAX_EVENTS))<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>write_set = <span class="macro">hashset_sync_box!</span>(
+			SlabSize(WRITE_SET_SIZE),
+			SlabCount(<span class="number">2 </span>* MAX_EVENTS),
+			GlobalSlabAllocator(<span class="bool-val">false</span>)
+		)<span class="question-mark">?</span>;
 
 		<span class="attr">#[cfg(target_os = <span class="string">"linux"</span>)]
 		</span><span class="kw">let </span>epoll_events = {
@@ -3393,7 +3405,7 @@
 			epoll_events
 		};
 
-		<span class="kw">let </span><span class="kw-2">mut </span>read_slabs = Builder::build_sync_slabs();
+		<span class="kw">let </span><span class="kw-2">mut </span>read_slabs = UtilBuilder::build_sync_slabs();
 		read_slabs.init(SlabAllocatorConfig {
 			slab_size: READ_SLAB_SIZE,
 			slab_count: read_slab_count,
@@ -5469,13 +5481,11 @@
 
 	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
 	</span><span class="kw">fn </span>start(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>config = ThreadPoolConfig {
-			max_size: <span class="self">self</span>.config.threads,
-			min_size: <span class="self">self</span>.config.threads,
-			sync_channel_size: <span class="self">self</span>.config.sync_channel_size,
-			..Default::default()
-		};
-		<span class="kw">let </span><span class="kw-2">mut </span>tp = Builder::build_thread_pool(config)<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>tp = <span class="macro">thread_pool!</span>(
+			MaxSize(<span class="self">self</span>.config.threads),
+			MinSize(<span class="self">self</span>.config.threads),
+			SyncChannelSize(<span class="self">self</span>.config.sync_channel_size)
+		)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>v = <span class="macro">vec!</span>[];
 		<span class="kw">let </span><span class="kw-2">mut </span>v_panic = <span class="macro">vec!</span>[];

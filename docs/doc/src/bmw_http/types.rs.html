@@ -1222,7 +1222,7 @@
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpClientContext {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) slab_start: usize,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) suffix_tree: Box&lt;<span class="kw">dyn </span>SuffixTree + Send + Sync&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) search_trie: Box&lt;<span class="kw">dyn </span>SearchTrie + Send + Sync&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) matches: [Match; <span class="number">1_000</span>],
 }
 
@@ -1248,7 +1248,7 @@
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpContext {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) suffix_tree: Box&lt;<span class="kw">dyn </span>SuffixTree + Send + Sync&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) search_trie: Box&lt;<span class="kw">dyn </span>SearchTrie + Send + Sync&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) matches: [Match; <span class="number">1_000</span>],
 	<span class="kw">pub</span>(<span class="kw">crate</span>) connections: HashMap&lt;u128, HttpConnectionData&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) mime_map: HashMap&lt;String, String&gt;,

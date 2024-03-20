@@ -85,6 +85,51 @@
 <a href="#84" id="84">84</a>
 <a href="#85" id="85">85</a>
 <a href="#86" id="86">86</a>
+<a href="#87" id="87">87</a>
+<a href="#88" id="88">88</a>
+<a href="#89" id="89">89</a>
+<a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -112,6 +157,11 @@
 /// [`crate::Config::check_config`] function.
 </span><span class="kw">pub trait </span>Config {
 	<span class="kw">fn </span>get(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>ConfigOptionName) -&gt; <span class="prelude-ty">Option</span>&lt;ConfigOption&gt;;
+	<span class="kw">fn </span>get_or_bool(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>ConfigOptionName, default: bool) -&gt; bool;
+	<span class="kw">fn </span>get_or_usize(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>ConfigOptionName, default: usize) -&gt; usize;
+	<span class="kw">fn </span>get_or_u64(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>ConfigOptionName, default: u64) -&gt; u64;
+	<span class="kw">fn </span>get_or_string(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>ConfigOptionName, default: String) -&gt; String;
+	<span class="kw">fn </span>get_or_f64(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>ConfigOptionName, default: f64) -&gt; f64;
 	<span class="kw">fn </span>check_config(
 		<span class="kw-2">&amp;</span><span class="self">self</span>,
 		allowed: Vec&lt;ConfigOptionName&gt;,
@@ -137,11 +187,31 @@
 	LineNumDataMaxLen,
 	DeleteRotation,
 	FileHeader,
+	MaxEntries,
+	MaxLoadFactor,
+	SlabSize,
+	SlabCount,
+	MinSize,
+	MaxSize,
+	SyncChannelSize,
+	GlobalSlabAllocator,
+	Start,
+	End,
+	MatchId,
+	Regex,
+	IsCaseSensitive,
+	IsTerminationPattern,
+	IsMultiLine,
+	PatternId,
+	IsHashtable,
+	IsHashset,
+	IsList,
 	Debug,
+	DebugLargeSlabCount,
 }
 
 <span class="doccomment">/// Configuration options used throughout BMW via macro.
-</span><span class="attr">#[derive(Hash, Eq, PartialEq, Clone, Debug)]
+</span><span class="attr">#[derive(PartialEq, Clone, Debug)]
 </span><span class="kw">pub enum </span>ConfigOption {
 	MaxSizeBytes(u64),
 	MaxAgeMillis(u64),
@@ -157,7 +227,27 @@
 	LineNumDataMaxLen(u64),
 	DeleteRotation(bool),
 	FileHeader(String),
+	MaxEntries(usize),
+	MaxLoadFactor(f64),
+	SlabSize(usize),
+	SlabCount(usize),
+	MinSize(usize),
+	MaxSize(usize),
+	SyncChannelSize(usize),
+	GlobalSlabAllocator(bool),
+	Start(usize),
+	End(usize),
+	MatchId(usize),
+	Regex(String),
+	IsCaseSensitive(bool),
+	IsTerminationPattern(bool),
+	IsMultiLine(bool),
+	PatternId(usize),
+	IsHashtable(bool),
+	IsHashset(bool),
+	IsList(bool),
 	Debug(bool),
+	DebugLargeSlabCount(bool),
 }
 
 <span class="doccomment">/// A builder struct which can be used to build configs. This is typically done using the

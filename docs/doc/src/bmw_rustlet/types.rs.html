@@ -274,7 +274,7 @@
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>RustletContext {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) suffix_tree: Box&lt;<span class="kw">dyn </span>SuffixTree + Sync + Send&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) search_trie: Box&lt;<span class="kw">dyn </span>SearchTrie + Sync + Send&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) matches: [Match; <span class="number">1_000</span>],
 }
 </code></pre></div></section></main></body></html>

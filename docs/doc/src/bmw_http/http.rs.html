@@ -3568,6 +3568,79 @@
 <a href="#3567" id="3567">3567</a>
 <a href="#3568" id="3568">3568</a>
 <a href="#3569" id="3569">3569</a>
+<a href="#3570" id="3570">3570</a>
+<a href="#3571" id="3571">3571</a>
+<a href="#3572" id="3572">3572</a>
+<a href="#3573" id="3573">3573</a>
+<a href="#3574" id="3574">3574</a>
+<a href="#3575" id="3575">3575</a>
+<a href="#3576" id="3576">3576</a>
+<a href="#3577" id="3577">3577</a>
+<a href="#3578" id="3578">3578</a>
+<a href="#3579" id="3579">3579</a>
+<a href="#3580" id="3580">3580</a>
+<a href="#3581" id="3581">3581</a>
+<a href="#3582" id="3582">3582</a>
+<a href="#3583" id="3583">3583</a>
+<a href="#3584" id="3584">3584</a>
+<a href="#3585" id="3585">3585</a>
+<a href="#3586" id="3586">3586</a>
+<a href="#3587" id="3587">3587</a>
+<a href="#3588" id="3588">3588</a>
+<a href="#3589" id="3589">3589</a>
+<a href="#3590" id="3590">3590</a>
+<a href="#3591" id="3591">3591</a>
+<a href="#3592" id="3592">3592</a>
+<a href="#3593" id="3593">3593</a>
+<a href="#3594" id="3594">3594</a>
+<a href="#3595" id="3595">3595</a>
+<a href="#3596" id="3596">3596</a>
+<a href="#3597" id="3597">3597</a>
+<a href="#3598" id="3598">3598</a>
+<a href="#3599" id="3599">3599</a>
+<a href="#3600" id="3600">3600</a>
+<a href="#3601" id="3601">3601</a>
+<a href="#3602" id="3602">3602</a>
+<a href="#3603" id="3603">3603</a>
+<a href="#3604" id="3604">3604</a>
+<a href="#3605" id="3605">3605</a>
+<a href="#3606" id="3606">3606</a>
+<a href="#3607" id="3607">3607</a>
+<a href="#3608" id="3608">3608</a>
+<a href="#3609" id="3609">3609</a>
+<a href="#3610" id="3610">3610</a>
+<a href="#3611" id="3611">3611</a>
+<a href="#3612" id="3612">3612</a>
+<a href="#3613" id="3613">3613</a>
+<a href="#3614" id="3614">3614</a>
+<a href="#3615" id="3615">3615</a>
+<a href="#3616" id="3616">3616</a>
+<a href="#3617" id="3617">3617</a>
+<a href="#3618" id="3618">3618</a>
+<a href="#3619" id="3619">3619</a>
+<a href="#3620" id="3620">3620</a>
+<a href="#3621" id="3621">3621</a>
+<a href="#3622" id="3622">3622</a>
+<a href="#3623" id="3623">3623</a>
+<a href="#3624" id="3624">3624</a>
+<a href="#3625" id="3625">3625</a>
+<a href="#3626" id="3626">3626</a>
+<a href="#3627" id="3627">3627</a>
+<a href="#3628" id="3628">3628</a>
+<a href="#3629" id="3629">3629</a>
+<a href="#3630" id="3630">3630</a>
+<a href="#3631" id="3631">3631</a>
+<a href="#3632" id="3632">3632</a>
+<a href="#3633" id="3633">3633</a>
+<a href="#3634" id="3634">3634</a>
+<a href="#3635" id="3635">3635</a>
+<a href="#3636" id="3636">3636</a>
+<a href="#3637" id="3637">3637</a>
+<a href="#3638" id="3638">3638</a>
+<a href="#3639" id="3639">3639</a>
+<a href="#3640" id="3640">3640</a>
+<a href="#3641" id="3641">3641</a>
+<a href="#3642" id="3642">3642</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -4451,64 +4524,137 @@
 
 		<span class="kw">let </span>max_wildcard = config.max_uri_len + config.max_uri_len + <span class="number">100</span>;
 		<span class="kw">let </span>termination_length = config.max_headers_len + config.max_uri_len + <span class="number">100</span>;
-		<span class="kw">let </span>slab_allocator = <span class="macro">slab_allocator!</span>()<span class="question-mark">?</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>list =
-			bmw_util::Builder::build_list(ListConfig::default(), <span class="kw-2">&amp;</span><span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>slab_allocator))<span class="question-mark">?</span>;
-		list.push(bmw_util::Builder::build_pattern(
-			<span class="string">"\r\n\r\n"</span>,
-			<span class="bool-val">false</span>,
-			<span class="bool-val">true</span>,
-			<span class="bool-val">true</span>,
-			SUFFIX_TREE_TERMINATE_HEADERS_ID,
-		)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>list = <span class="macro">vec!</span>[];
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"\r\n\r\n"</span>.to_string()),
+			IsTerminationPattern(<span class="bool-val">true</span>),
+			IsMultiLine(<span class="bool-val">true</span>),
+			IsCaseSensitive(<span class="bool-val">false</span>),
+			PatternId(SUFFIX_TREE_TERMINATE_HEADERS_ID)
+		)<span class="question-mark">?</span>);
 
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^GET .* "</span>), Id(SUFFIX_TREE_GET_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^POST .* "</span>), Id(SUFFIX_TREE_POST_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^HEAD .* "</span>), Id(SUFFIX_TREE_HEAD_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^PUT .* "</span>), Id(SUFFIX_TREE_PUT_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^DELETE .* "</span>), Id(SUFFIX_TREE_DELETE_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^OPTIONS .* "</span>), Id(SUFFIX_TREE_OPTIONS_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^CONNECT .* "</span>), Id(SUFFIX_TREE_CONNECT_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^TRACE .* "</span>), Id(SUFFIX_TREE_TRACE_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^PATCH .* "</span>), Id(SUFFIX_TREE_PATCH_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^GET .*\n"</span>), Id(SUFFIX_TREE_GET_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^POST .*\n"</span>), Id(SUFFIX_TREE_POST_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^HEAD .*\n"</span>), Id(SUFFIX_TREE_HEAD_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^PUT .*\n"</span>), Id(SUFFIX_TREE_PUT_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^DELETE .*\n"</span>), Id(SUFFIX_TREE_DELETE_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 		list.push(<span class="macro">pattern!</span>(
-			Regex(<span class="string">"^OPTIONS .*\n"</span>),
-			Id(SUFFIX_TREE_OPTIONS_ID)
-		)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+			Regex(<span class="string">"^GET .* "</span>.to_string()),
+			PatternId(SUFFIX_TREE_GET_ID)
+		)<span class="question-mark">?</span>);
 		list.push(<span class="macro">pattern!</span>(
-			Regex(<span class="string">"^CONNECT .*\n"</span>),
-			Id(SUFFIX_TREE_CONNECT_ID)
-		)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^TRACE .*\n"</span>), Id(SUFFIX_TREE_TRACE_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^PATCH .*\n"</span>), Id(SUFFIX_TREE_PATCH_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^GET .*\r"</span>), Id(SUFFIX_TREE_GET_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^POST .*\r"</span>), Id(SUFFIX_TREE_POST_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^HEAD .*\r"</span>), Id(SUFFIX_TREE_HEAD_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^PUT .*\r"</span>), Id(SUFFIX_TREE_PUT_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^DELETE .*\r"</span>), Id(SUFFIX_TREE_DELETE_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+			Regex(<span class="string">"^POST .* "</span>.to_string()),
+			PatternId(SUFFIX_TREE_POST_ID)
+		)<span class="question-mark">?</span>);
 		list.push(<span class="macro">pattern!</span>(
-			Regex(<span class="string">"^OPTIONS .*\r"</span>),
-			Id(SUFFIX_TREE_OPTIONS_ID)
-		)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+			Regex(<span class="string">"^HEAD .* "</span>.to_string()),
+			PatternId(SUFFIX_TREE_HEAD_ID)
+		)<span class="question-mark">?</span>);
 		list.push(<span class="macro">pattern!</span>(
-			Regex(<span class="string">"^CONNECT .*\r"</span>),
-			Id(SUFFIX_TREE_CONNECT_ID)
-		)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^TRACE .*\r"</span>), Id(SUFFIX_TREE_TRACE_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"^PATCH .*\r"</span>), Id(SUFFIX_TREE_PATCH_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"\r\n.*: "</span>), Id(SUFFIX_TREE_HEADER_ID))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-
-		<span class="kw">let </span>suffix_tree = Box::new(<span class="macro">suffix_tree!</span>(
+			Regex(<span class="string">"^PUT .* "</span>.to_string()),
+			PatternId(SUFFIX_TREE_PUT_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^DELETE .* "</span>.to_string()),
+			PatternId(SUFFIX_TREE_DELETE_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^OPTIONS .* "</span>.to_string()),
+			PatternId(SUFFIX_TREE_OPTIONS_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^CONNECT .* "</span>.to_string()),
+			PatternId(SUFFIX_TREE_CONNECT_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^TRACE .* "</span>.to_string()),
+			PatternId(SUFFIX_TREE_TRACE_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^PATCH .* "</span>.to_string()),
+			PatternId(SUFFIX_TREE_PATCH_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^GET .*\n"</span>.to_string()),
+			PatternId(SUFFIX_TREE_GET_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^POST .*\n"</span>.to_string()),
+			PatternId(SUFFIX_TREE_POST_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^HEAD .*\n"</span>.to_string()),
+			PatternId(SUFFIX_TREE_HEAD_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^PUT .*\n"</span>.to_string()),
+			PatternId(SUFFIX_TREE_PUT_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^DELETE .*\n"</span>.to_string()),
+			PatternId(SUFFIX_TREE_DELETE_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^OPTIONS .*\n"</span>.to_string()),
+			PatternId(SUFFIX_TREE_OPTIONS_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^CONNECT .*\n"</span>.to_string()),
+			PatternId(SUFFIX_TREE_CONNECT_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^TRACE .*\n"</span>.to_string()),
+			PatternId(SUFFIX_TREE_TRACE_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^PATCH .*\n"</span>.to_string()),
+			PatternId(SUFFIX_TREE_PATCH_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^GET .*\r"</span>.to_string()),
+			PatternId(SUFFIX_TREE_GET_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^POST .*\r"</span>.to_string()),
+			PatternId(SUFFIX_TREE_POST_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^HEAD .*\r"</span>.to_string()),
+			PatternId(SUFFIX_TREE_HEAD_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^PUT .*\r"</span>.to_string()),
+			PatternId(SUFFIX_TREE_PUT_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^DELETE .*\r"</span>.to_string()),
+			PatternId(SUFFIX_TREE_DELETE_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^OPTIONS .*\r"</span>.to_string()),
+			PatternId(SUFFIX_TREE_OPTIONS_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^CONNECT .*\r"</span>.to_string()),
+			PatternId(SUFFIX_TREE_CONNECT_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^TRACE .*\r"</span>.to_string()),
+			PatternId(SUFFIX_TREE_TRACE_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"^PATCH .*\r"</span>.to_string()),
+			PatternId(SUFFIX_TREE_PATCH_ID)
+		)<span class="question-mark">?</span>);
+		list.push(<span class="macro">pattern!</span>(
+			Regex(<span class="string">"\r\n.*: "</span>.to_string()),
+			PatternId(SUFFIX_TREE_HEADER_ID)
+		)<span class="question-mark">?</span>);
+		<span class="macro">debug!</span>(
+			<span class="string">"suffix tree term = {}, wc={}"</span>,
+			termination_length, max_wildcard
+		)<span class="question-mark">?</span>;
+		<span class="kw">let </span>search_trie = Box::new(<span class="macro">search_trie!</span>(
 			list,
 			TerminationLength(termination_length),
 			MaxWildcardLength(max_wildcard)
 		)<span class="question-mark">?</span>);
-		<span class="kw">let </span>matches = [bmw_util::Builder::build_match_default(); MATCH_ARRAY_SIZE];
+		<span class="kw">let </span>matches = [<span class="macro">tmatch!</span>()<span class="question-mark">?</span>; MATCH_ARRAY_SIZE];
 		<span class="kw">let </span>connections = HashMap::new();
 		<span class="kw">let </span><span class="kw-2">mut </span>mime_map = HashMap::new();
 		<span class="kw">let </span><span class="kw-2">mut </span>mime_lookup = HashMap::new();
@@ -4520,14 +4666,14 @@
 			mime_map.insert(config.mime_map[i].<span class="number">0</span>.clone(), config.mime_map[i].<span class="number">1</span>.clone());
 		}
 
-		<span class="kw">let </span><span class="kw-2">mut </span>content_allocator = bmw_util::Builder::build_sync_slabs();
+		<span class="kw">let </span><span class="kw-2">mut </span>content_allocator = bmw_util::UtilBuilder::build_sync_slabs();
 		<span class="kw">let </span><span class="kw-2">mut </span>slab_allocator_config = bmw_util::SlabAllocatorConfig::default();
 		slab_allocator_config.slab_size = CONTENT_SLAB_SIZE;
 		slab_allocator_config.slab_count = config.content_slab_count;
 		content_allocator.init(slab_allocator_config)<span class="question-mark">?</span>;
 		<span class="kw">let </span>thread_context = ThreadContext::new();
 		<span class="prelude-val">Ok</span>(HttpContext {
-			suffix_tree,
+			search_trie,
 			matches,
 			connections,
 			mime_map,
@@ -5216,12 +5362,12 @@
 		req: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Vec&lt;u8&gt;,
 		start: usize,
 		<span class="kw-2">mut </span>matches: [bmw_util::Match; <span class="number">1_000</span>],
-		suffix_tree: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>SuffixTree + Send + Sync&gt;,
+		search_trie: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>SearchTrie + Send + Sync&gt;,
 		slab_offset: usize,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;HttpHeaders&lt;<span class="lifetime">'a</span>&gt;, Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>termination_point = <span class="number">0</span>;
 		<span class="macro">debug!</span>(<span class="string">"about to build headers req.len={}"</span>, req.len())<span class="question-mark">?</span>;
-		<span class="kw">let </span>count = suffix_tree.tmatch(<span class="kw-2">&amp;</span>req[start..], <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+		<span class="kw">let </span>count = search_trie.tmatch(<span class="kw-2">&amp;</span>req[start..], <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 
 		<span class="macro">debug!</span>(
 			<span class="string">"count={},slab_offset={},start={}"</span>,
@@ -5847,7 +5993,7 @@
 											<span class="kw-2">&amp;</span>headers_clone,
 											<span class="number">0</span>,
 											ctx.matches,
-											<span class="kw-2">&amp;mut </span>ctx.suffix_tree,
+											<span class="kw-2">&amp;mut </span>ctx.search_trie,
 											len,
 										)
 									} <span class="kw">else </span>{
@@ -5857,7 +6003,7 @@
 											<span class="kw-2">&amp;</span>req,
 											start,
 											ctx.matches,
-											<span class="kw-2">&amp;mut </span>ctx.suffix_tree,
+											<span class="kw-2">&amp;mut </span>ctx.search_trie,
 											(slab_offset <span class="kw">as </span>usize
 												+ (slab_count - <span class="number">1</span>) * READ_SLAB_DATA_SIZE)
 												.into(),

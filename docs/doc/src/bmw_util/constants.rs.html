@@ -17,6 +17,15 @@
 <a href="#16" id="16">16</a>
 <a href="#17" id="17">17</a>
 <a href="#18" id="18">18</a>
+<a href="#19" id="19">19</a>
+<a href="#20" id="20">20</a>
+<a href="#21" id="21">21</a>
+<a href="#22" id="22">22</a>
+<a href="#23" id="23">23</a>
+<a href="#24" id="24">24</a>
+<a href="#25" id="25">25</a>
+<a href="#26" id="26">26</a>
+<a href="#27" id="27">27</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -34,5 +43,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>CACHE_BUFFER_SIZE: usize = <span class="number">412</span>;
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>BUFFER_SIZE: usize = <span class="number">412</span>;
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>THREAD_POOL_DEFAULT_MIN_SIZE: usize = <span class="number">1</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>THREAD_POOL_DEFAULT_MAX_SIZE: usize = <span class="number">1</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>THREAD_POOL_DEFAULT_SYNC_CHANNEL_SIZE: usize = <span class="number">10</span>;
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HASH_DEFAULT_MAX_ENTRIES: usize = <span class="number">1_000</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HASH_DEFAULT_MAX_LOAD_FACTOR: f64 = <span class="number">0.7</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HASH_DEFAULT_SLAB_SIZE: usize = <span class="number">514</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HASH_DEFAULT_SLAB_COUNT: usize = <span class="number">1_000</span>;
 </code></pre></div></section></main></body></html>

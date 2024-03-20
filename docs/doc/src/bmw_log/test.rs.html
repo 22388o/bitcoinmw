@@ -1102,49 +1102,6 @@
 <a href="#1101" id="1101">1101</a>
 <a href="#1102" id="1102">1102</a>
 <a href="#1103" id="1103">1103</a>
-<a href="#1104" id="1104">1104</a>
-<a href="#1105" id="1105">1105</a>
-<a href="#1106" id="1106">1106</a>
-<a href="#1107" id="1107">1107</a>
-<a href="#1108" id="1108">1108</a>
-<a href="#1109" id="1109">1109</a>
-<a href="#1110" id="1110">1110</a>
-<a href="#1111" id="1111">1111</a>
-<a href="#1112" id="1112">1112</a>
-<a href="#1113" id="1113">1113</a>
-<a href="#1114" id="1114">1114</a>
-<a href="#1115" id="1115">1115</a>
-<a href="#1116" id="1116">1116</a>
-<a href="#1117" id="1117">1117</a>
-<a href="#1118" id="1118">1118</a>
-<a href="#1119" id="1119">1119</a>
-<a href="#1120" id="1120">1120</a>
-<a href="#1121" id="1121">1121</a>
-<a href="#1122" id="1122">1122</a>
-<a href="#1123" id="1123">1123</a>
-<a href="#1124" id="1124">1124</a>
-<a href="#1125" id="1125">1125</a>
-<a href="#1126" id="1126">1126</a>
-<a href="#1127" id="1127">1127</a>
-<a href="#1128" id="1128">1128</a>
-<a href="#1129" id="1129">1129</a>
-<a href="#1130" id="1130">1130</a>
-<a href="#1131" id="1131">1131</a>
-<a href="#1132" id="1132">1132</a>
-<a href="#1133" id="1133">1133</a>
-<a href="#1134" id="1134">1134</a>
-<a href="#1135" id="1135">1135</a>
-<a href="#1136" id="1136">1136</a>
-<a href="#1137" id="1137">1137</a>
-<a href="#1138" id="1138">1138</a>
-<a href="#1139" id="1139">1139</a>
-<a href="#1140" id="1140">1140</a>
-<a href="#1141" id="1141">1141</a>
-<a href="#1142" id="1142">1142</a>
-<a href="#1143" id="1143">1143</a>
-<a href="#1144" id="1144">1144</a>
-<a href="#1145" id="1145">1145</a>
-<a href="#1146" id="1146">1146</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1165,7 +1122,6 @@
 </span><span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
 	<span class="kw">use crate as </span>bmw_log;
-	<span class="kw">use </span><span class="kw">crate</span>::types::LogConfig;
 	<span class="kw">use </span>bmw_conf::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_deps::lazy_static::lazy_static;
 	<span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
@@ -1197,7 +1153,8 @@
 		</span>log.set_log_level(LogLevel::Debug);
 		log.init()<span class="question-mark">?</span>; <span class="comment">// in logger
 		</span>log.log(LogLevel::Debug, <span class="string">"test10"</span>)<span class="question-mark">?</span>; <span class="comment">// log a message
-									 // check that display colors is true (default)
+
+		// check that display colors is true (default)
 		</span><span class="macro">assert_eq!</span>(
 			log.get_config_option(ConfigOptionName::DisplayColors)<span class="question-mark">?</span>,
 			ConfigOption::DisplayColors(<span class="bool-val">true</span>)
@@ -2060,49 +2017,6 @@
 
 		<span class="comment">// init should be successful
 		</span><span class="macro">assert!</span>(log.init().is_ok());
-		<span class="prelude-val">Ok</span>(())
-	}
-
-	<span class="comment">// mock configs for tests
-	</span><span class="kw">impl </span>Config <span class="kw">for </span>MockConfig {
-		<span class="kw">fn </span>get(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="kw">_</span>: <span class="kw-2">&amp;</span>ConfigOptionName) -&gt; <span class="prelude-ty">Option</span>&lt;ConfigOption&gt; {
-			<span class="kw">if </span><span class="self">self</span>.v == <span class="number">0 </span>{
-				<span class="prelude-val">Some</span>(ConfigOption::DisplayColors(<span class="bool-val">true</span>))
-			} <span class="kw">else </span>{
-				<span class="prelude-val">Some</span>(ConfigOption::MaxSizeBytes(<span class="number">1000</span>))
-			}
-		}
-		<span class="kw">fn </span>check_config(
-			<span class="kw-2">&amp;</span><span class="self">self</span>,
-			<span class="kw">_</span>: Vec&lt;ConfigOptionName&gt;,
-			<span class="kw">_</span>: Vec&lt;ConfigOptionName&gt;,
-		) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-			<span class="prelude-val">Ok</span>(())
-		}
-	}
-
-	<span class="kw">struct </span>MockConfig {
-		v: usize,
-	}
-
-	<span class="attr">#[test]
-	</span><span class="kw">fn </span>test_log_unusual_configs() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="comment">// test some unusual configurations that can't happen to exercise part of the code that
-		// was not covered.
-		</span><span class="kw">let </span>config: Box&lt;<span class="kw">dyn </span>Config&gt; = Box::new(MockConfig { v: <span class="number">0 </span>});
-		<span class="kw">let </span>res = LogConfig::get_config_u64(ConfigOptionName::AutoRotate, <span class="kw-2">&amp;</span>config, <span class="number">1230</span>);
-		<span class="macro">assert_eq!</span>(res, <span class="number">1230</span>);
-		<span class="kw">let </span>config: Box&lt;<span class="kw">dyn </span>Config&gt; = Box::new(MockConfig { v: <span class="number">1 </span>});
-		<span class="kw">let </span>res = LogConfig::get_config_bool(ConfigOptionName::AutoRotate, <span class="kw-2">&amp;</span>config, <span class="bool-val">false</span>);
-		<span class="macro">assert_eq!</span>(res, <span class="bool-val">false</span>);
-		<span class="kw">let </span>res = LogConfig::get_config_string(
-			ConfigOptionName::AutoRotate,
-			<span class="kw-2">&amp;</span>config,
-			<span class="string">"mystring"</span>.to_string(),
-		);
-		<span class="macro">assert_eq!</span>(res, <span class="string">"mystring"</span>.to_string());
-		<span class="kw">let </span>res = LogConfig::get_config_path_buf(ConfigOptionName::AutoRotate, <span class="kw-2">&amp;</span>config, <span class="prelude-val">None</span>);
-		<span class="macro">assert_eq!</span>(res, <span class="prelude-val">None</span>);
 		<span class="prelude-val">Ok</span>(())
 	}
 

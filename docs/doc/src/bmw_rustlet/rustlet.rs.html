@@ -802,8 +802,6 @@
 <a href="#801" id="801">801</a>
 <a href="#802" id="802">802</a>
 <a href="#803" id="803">803</a>
-<a href="#804" id="804">804</a>
-<a href="#805" id="805">805</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -881,18 +879,16 @@
 
 <span class="kw">impl </span>RustletContext {
 	<span class="kw">fn </span>new(_config: <span class="kw-2">&amp;</span>RustletContainerConfig) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
-		<span class="kw">let </span>slab_allocator = <span class="macro">slab_allocator!</span>()<span class="question-mark">?</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>list =
-			bmw_util::Builder::build_list(ListConfig::default(), <span class="kw-2">&amp;</span><span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>slab_allocator))<span class="question-mark">?</span>;
-		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"$(@"</span>), Id(<span class="number">0</span>))<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-		<span class="kw">let </span>suffix_tree = Box::new(<span class="macro">suffix_tree!</span>(
+		<span class="kw">let </span><span class="kw-2">mut </span>list = <span class="macro">vec!</span>[];
+		list.push(<span class="macro">pattern!</span>(Regex(<span class="string">"$(@"</span>.to_string()), PatternId(<span class="number">0</span>))<span class="question-mark">?</span>);
+		<span class="kw">let </span>search_trie = Box::new(<span class="macro">search_trie!</span>(
 			list,
 			TerminationLength(<span class="number">1_000_000_000</span>),
 			MaxWildcardLength(<span class="number">1_000</span>)
 		)<span class="question-mark">?</span>);
-		<span class="kw">let </span>matches = [bmw_util::Builder::build_match_default(); <span class="number">1_000</span>];
+		<span class="kw">let </span>matches = [<span class="macro">tmatch!</span>()<span class="question-mark">?</span>; <span class="number">1_000</span>];
 		<span class="prelude-val">Ok</span>(RustletContext {
-			suffix_tree,
+			search_trie,
 			matches,
 		})
 	}
@@ -1252,7 +1248,7 @@
 		<span class="kw">let </span>rsp_bytes = rsp_text.as_bytes();
 		<span class="kw">let </span>rsp_bytes_len = rsp_bytes.len();
 
-		<span class="kw">let </span>count = ctx.suffix_tree.tmatch(<span class="kw-2">&amp;</span>rsp_bytes, <span class="kw-2">&amp;mut </span>ctx.matches)<span class="question-mark">?</span>;
+		<span class="kw">let </span>count = ctx.search_trie.tmatch(<span class="kw-2">&amp;</span>rsp_bytes, <span class="kw-2">&amp;mut </span>ctx.matches)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>itt = <span class="number">0</span>;
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..count {
