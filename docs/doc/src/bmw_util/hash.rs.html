@@ -1584,6 +1584,14 @@
 <a href="#1583" id="1583">1583</a>
 <a href="#1584" id="1584">1584</a>
 <a href="#1585" id="1585">1585</a>
+<a href="#1586" id="1586">1586</a>
+<a href="#1587" id="1587">1587</a>
+<a href="#1588" id="1588">1588</a>
+<a href="#1589" id="1589">1589</a>
+<a href="#1590" id="1590">1590</a>
+<a href="#1591" id="1591">1591</a>
+<a href="#1592" id="1592">1592</a>
+<a href="#1593" id="1593">1593</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1673,9 +1681,7 @@
 {
 	<span class="kw">type </span>Item = V;
 
-	<span class="comment">// only the None line is reported as not covered but it is
-	</span><span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;&lt;<span class="self">Self </span><span class="kw">as </span>Iterator&gt;::Item&gt; {
+	<span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;&lt;<span class="self">Self </span><span class="kw">as </span>Iterator&gt;::Item&gt; {
 		<span class="kw">match </span><span class="self">self</span>.linked_list_ref {
 			<span class="prelude-val">Some</span>(list) =&gt; {
 				<span class="kw">let </span><span class="kw-2">mut </span>slab_reader = <span class="self">self</span>.slab_reader.as_mut().unwrap();
@@ -1802,9 +1808,7 @@
 <span class="kw">where
 	</span>K: Serializable + PartialEq + Clone + Debug,
 {
-	<span class="comment">// break and loop line reported as not covered but they are
-	</span><span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, rhs: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; bool {
+	<span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, rhs: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; bool {
 		<span class="kw">if </span><span class="self">self</span>.size != rhs.size {
 			<span class="bool-val">false
 		</span>} <span class="kw">else </span>{
@@ -2095,6 +2099,11 @@
 	<span class="kw">fn </span>max_entries(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
 		<span class="self">self</span>.static_impl.max_entries
 	}
+	<span class="kw">fn </span>slabs(
+		<span class="kw-2">&amp;</span><span class="self">self</span>,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;&gt;&gt;&gt;, Error&gt; {
+		<span class="self">self</span>.static_impl.slabs_impl()
+	}
 }
 
 <span class="kw">impl</span>&lt;V&gt; List&lt;V&gt; <span class="kw">for </span>HashImplSync&lt;V&gt;
@@ -2382,9 +2391,7 @@
 		}
 	}
 
-	<span class="comment">// a few lines reported as not covered, but they are
-	</span><span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>get_next_slot(
+	<span class="kw">fn </span>get_next_slot(
 		<span class="kw-2">&amp;</span><span class="self">self</span>,
 		cur: <span class="kw-2">&amp;mut </span>usize,
 		direction: Direction,
@@ -2430,9 +2437,7 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="comment">// fully tested, but some lines reported as not covered
-	</span><span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>clear_impl(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">fn </span>clear_impl(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>cur = <span class="self">self</span>.tail;
 		<span class="kw">loop </span>{
 			<span class="kw">if </span>cur == SLOT_EMPTY || cur == SLOT_DELETED {
@@ -2581,9 +2586,11 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="comment">// None line reported as not covered, but it is
-	</span><span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>get_impl(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>K, hash: usize) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;(usize, SlabReader)&gt;, Error&gt;
+	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_impl(
+		<span class="kw-2">&amp;</span><span class="self">self</span>,
+		key: <span class="kw-2">&amp;</span>K,
+		hash: usize,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;(usize, SlabReader)&gt;, Error&gt;
 	<span class="kw">where
 		</span>K: Serializable + PartialEq + Clone,
 	{
@@ -2624,9 +2631,7 @@
 		}
 	}
 
-	<span class="comment">// fully covered but tarpaulin reporting a few lines uncovered
-	</span><span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>insert_hash_impl&lt;V&gt;(
+	<span class="kw">fn </span>insert_hash_impl&lt;V&gt;(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		key: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>K&gt;,
 		value: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>V&gt;,
@@ -2707,9 +2712,7 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="comment">// fully covered but tarpaulin reporting a few lines uncovered
-	</span><span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>insert_impl&lt;V&gt;(
+	<span class="kw">fn </span>insert_impl&lt;V&gt;(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		key: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>K&gt;,
 		value: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>V&gt;,
@@ -2882,9 +2885,7 @@
 		}
 	}
 
-	<span class="comment">// loop and break counted as not covered, but are covered
-	</span><span class="attr">#[cfg(not(tarpaulin_include))]
-	</span><span class="kw">fn </span>free_chain(<span class="kw-2">&amp;mut </span><span class="self">self</span>, slab_id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">fn </span>free_chain(<span class="kw-2">&amp;mut </span><span class="self">self</span>, slab_id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="macro">debug!</span>(<span class="string">"free chain {}"</span>, slab_id)<span class="question-mark">?</span>;
 		<span class="kw">let </span>bytes_per_slab = <span class="self">self</span>.bytes_per_slab;
 		<span class="kw">let </span>slab_size = <span class="self">self</span>.slab_size;
@@ -2997,6 +2998,16 @@
 		<span class="kw-2">&amp;</span><span class="self">self</span>,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;&gt;&gt;&gt;, Error&gt; {
 		<span class="prelude-val">Ok</span>(<span class="self">self</span>.slabs.clone())
+	}
+
+	<span class="attr">#[cfg(test)]
+	</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>set_debug_get_next_slot_error(<span class="kw-2">&amp;mut </span><span class="self">self</span>, v: bool) {
+		<span class="self">self</span>.debug_get_next_slot_error = v;
+	}
+
+	<span class="attr">#[cfg(test)]
+	</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>set_debug_entry_array_len(<span class="kw-2">&amp;mut </span><span class="self">self</span>, v: bool) {
+		<span class="self">self</span>.debug_entry_array_len = v;
 	}
 }
 
@@ -3142,6 +3153,11 @@
 	}
 	<span class="kw">fn </span>max_entries(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
 		<span class="self">self</span>.max_entries
+	}
+	<span class="kw">fn </span>slabs(
+		<span class="kw-2">&amp;</span><span class="self">self</span>,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;&gt;&gt;&gt;, Error&gt; {
+		<span class="self">self</span>.slabs_impl()
 	}
 }
 

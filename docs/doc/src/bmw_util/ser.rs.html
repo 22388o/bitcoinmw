@@ -641,13 +641,6 @@
 <a href="#640" id="640">640</a>
 <a href="#641" id="641">641</a>
 <a href="#642" id="642">642</a>
-<a href="#643" id="643">643</a>
-<a href="#644" id="644">644</a>
-<a href="#645" id="645">645</a>
-<a href="#646" id="646">646</a>
-<a href="#647" id="647">647</a>
-<a href="#648" id="648">648</a>
-<a href="#649" id="649">649</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -681,7 +674,6 @@
 
 <span class="comment">/*
 impl Serializable for ConfigOption&lt;'_&gt; {
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn read&lt;R: Reader&gt;(reader: &amp;mut R) -&gt; Result&lt;Self, Error&gt; {
 		match reader.read_u8()? {
 			0 =&gt; Ok(MaxEntries(reader.read_usize()?)),
@@ -699,7 +691,6 @@ impl Serializable for ConfigOption&lt;'_&gt; {
 		}
 	}
 
-	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	fn write&lt;W: Writer&gt;(&amp;self, writer: &amp;mut W) -&gt; Result&lt;(), Error&gt; {
 		match self {
 			MaxEntries(size) =&gt; {
@@ -866,8 +857,7 @@ impl Serializable for ConfigOption&lt;'_&gt; {
 		<span class="self">self</span>.do_write_fixed_bytes_impl(<span class="kw-2">&amp;</span>[<span class="number">0u8</span>; <span class="number">0</span>], <span class="prelude-val">Some</span>(count))
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
-	</span><span class="kw">fn </span>process_write(
+	<span class="kw">fn </span>process_write(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		bytes: <span class="kw-2">&amp;</span>[u8],
 		bytes_len: usize,
@@ -910,8 +900,7 @@ impl Serializable for ConfigOption&lt;'_&gt; {
 		<span class="prelude-val">Ok</span>(wlen)
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
-	</span><span class="kw">fn </span>do_write_fixed_bytes_impl&lt;T: AsRef&lt;[u8]&gt;&gt;(
+	<span class="kw">fn </span>do_write_fixed_bytes_impl&lt;T: AsRef&lt;[u8]&gt;&gt;(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
 		bytes: T,
 		count: <span class="prelude-ty">Option</span>&lt;usize&gt;,
@@ -1050,8 +1039,7 @@ impl Serializable for ConfigOption&lt;'_&gt; {
 }
 
 <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; SlabReader {
-	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
-	</span><span class="kw">pub fn </span>new(
+	<span class="kw">pub fn </span>new(
 		slabs: <span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;&gt;&gt;&gt;,
 		slab_id: usize,
 		slab_ptr_size: <span class="prelude-ty">Option</span>&lt;usize&gt;,
@@ -1170,13 +1158,11 @@ impl Serializable for ConfigOption&lt;'_&gt; {
 		<span class="self">self</span>.do_read_exact(<span class="kw-2">&amp;mut </span>[<span class="number">0u8</span>; <span class="number">0</span>], <span class="prelude-val">Some</span>(count))
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
-	</span><span class="kw">pub fn </span>read_exact(<span class="kw-2">&amp;mut </span><span class="self">self</span>, buf: <span class="kw-2">&amp;mut </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">pub fn </span>read_exact(<span class="kw-2">&amp;mut </span><span class="self">self</span>, buf: <span class="kw-2">&amp;mut </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.do_read_exact(buf, <span class="prelude-val">None</span>)
 	}
 
-	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
-	</span><span class="kw">pub fn </span>do_read_exact(<span class="kw-2">&amp;mut </span><span class="self">self</span>, buf: <span class="kw-2">&amp;mut </span>[u8], count: <span class="prelude-ty">Option</span>&lt;usize&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">pub fn </span>do_read_exact(<span class="kw-2">&amp;mut </span><span class="self">self</span>, buf: <span class="kw-2">&amp;mut </span>[u8], count: <span class="prelude-ty">Option</span>&lt;usize&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="macro">debug!</span>(<span class="string">"do read exact {:?},buf.len={}"</span>, count, buf.len())<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>buf_offset = <span class="number">0</span>;
 		<span class="kw">let </span>buf_len = <span class="kw">match </span>count {

@@ -511,7 +511,6 @@
 <a href="#510" id="510">510</a>
 <a href="#511" id="511">511</a>
 <a href="#512" id="512">512</a>
-<a href="#513" id="513">513</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -981,8 +980,7 @@
 }
 
 <span class="kw">impl </span>Serializable <span class="kw">for </span>Pattern {
-	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
-	</span><span class="kw">fn </span>read&lt;R: Reader&gt;(reader: <span class="kw-2">&amp;mut </span>R) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
+	<span class="kw">fn </span>read&lt;R: Reader&gt;(reader: <span class="kw-2">&amp;mut </span>R) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
 		<span class="kw">let </span>regex = String::read(reader)<span class="question-mark">?</span>;
 		<span class="kw">let </span>is_case_sensitive = <span class="kw">match </span>reader.read_u8()<span class="question-mark">? </span>{
 			<span class="number">0 </span>=&gt; <span class="bool-val">false</span>,
