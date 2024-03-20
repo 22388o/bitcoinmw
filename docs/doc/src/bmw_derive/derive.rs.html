@@ -243,6 +243,7 @@
 <a href="#242" id="242">242</a>
 <a href="#243" id="243">243</a>
 <a href="#244" id="244">244</a>
+<a href="#245" id="245">245</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -324,7 +325,8 @@
 	}
 }
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>do_derive_serialize(strm: TokenStream) -&gt; TokenStream {
+<span class="attr">#[cfg(not(tarpaulin_include))]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>do_derive_serialize(strm: TokenStream) -&gt; TokenStream {
 	<span class="kw">let </span><span class="kw-2">mut </span>state = MacroState::new();
 	<span class="kw">let _ </span>= <span class="macro">debug!</span>(<span class="string">"-----------------derive serialization----------------"</span>);
 	<span class="kw">match </span>process_strm(strm, <span class="kw-2">&amp;mut </span>state) {

@@ -178,6 +178,94 @@
 <a href="#177" id="177">177</a>
 <a href="#178" id="178">178</a>
 <a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a>
+<a href="#227" id="227">227</a>
+<a href="#228" id="228">228</a>
+<a href="#229" id="229">229</a>
+<a href="#230" id="230">230</a>
+<a href="#231" id="231">231</a>
+<a href="#232" id="232">232</a>
+<a href="#233" id="233">233</a>
+<a href="#234" id="234">234</a>
+<a href="#235" id="235">235</a>
+<a href="#236" id="236">236</a>
+<a href="#237" id="237">237</a>
+<a href="#238" id="238">238</a>
+<a href="#239" id="239">239</a>
+<a href="#240" id="240">240</a>
+<a href="#241" id="241">241</a>
+<a href="#242" id="242">242</a>
+<a href="#243" id="243">243</a>
+<a href="#244" id="244">244</a>
+<a href="#245" id="245">245</a>
+<a href="#246" id="246">246</a>
+<a href="#247" id="247">247</a>
+<a href="#248" id="248">248</a>
+<a href="#249" id="249">249</a>
+<a href="#250" id="250">250</a>
+<a href="#251" id="251">251</a>
+<a href="#252" id="252">252</a>
+<a href="#253" id="253">253</a>
+<a href="#254" id="254">254</a>
+<a href="#255" id="255">255</a>
+<a href="#256" id="256">256</a>
+<a href="#257" id="257">257</a>
+<a href="#258" id="258">258</a>
+<a href="#259" id="259">259</a>
+<a href="#260" id="260">260</a>
+<a href="#261" id="261">261</a>
+<a href="#262" id="262">262</a>
+<a href="#263" id="263">263</a>
+<a href="#264" id="264">264</a>
+<a href="#265" id="265">265</a>
+<a href="#266" id="266">266</a>
+<a href="#267" id="267">267</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -291,29 +379,41 @@
 	</span><span class="kw">fn </span>test_config_all_options() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="comment">// create a config with everything
 		</span><span class="kw">let </span>config = <span class="macro">config!</span>(
-			MaxSizeBytes(<span class="number">100</span>),
-			MaxAgeMillis(<span class="number">200</span>),
+			MaxSizeBytes(<span class="number">10</span>),
+			MaxAgeMillis(<span class="number">10</span>),
 			DisplayColors(<span class="bool-val">true</span>),
 			DisplayStdout(<span class="bool-val">true</span>),
 			DisplayTimestamp(<span class="bool-val">true</span>),
-			DisplayLogLevel(<span class="bool-val">false</span>),
-			DisplayLineNum(<span class="bool-val">false</span>),
-			DisplayMillis(<span class="bool-val">false</span>),
+			DisplayLogLevel(<span class="bool-val">true</span>),
+			DisplayLineNum(<span class="bool-val">true</span>),
+			DisplayMillis(<span class="bool-val">true</span>),
 			LogFilePath(<span class="prelude-val">None</span>),
-			DisplayBackTrace(<span class="bool-val">false</span>),
-			LineNumDataMaxLen(<span class="number">300</span>),
+			DisplayBackTrace(<span class="bool-val">true</span>),
+			LineNumDataMaxLen(<span class="number">10</span>),
 			FileHeader(<span class="string">"test"</span>.to_string()),
-			DeleteRotation(<span class="bool-val">false</span>),
+			DeleteRotation(<span class="bool-val">true</span>),
 			AutoRotate(<span class="bool-val">true</span>),
-			MaxEntries(<span class="number">100</span>),
-			MaxLoadFactor(<span class="number">0.5</span>),
-			SlabSize(<span class="number">100</span>),
-			SlabCount(<span class="number">200</span>),
-			MinSize(<span class="number">1</span>),
-			MaxSize(<span class="number">100</span>),
-			SyncChannelSize(<span class="number">1</span>),
-			GlobalSlabAllocator(<span class="bool-val">false</span>),
-			Debug(<span class="bool-val">true</span>)
+			MaxEntries(<span class="number">10</span>),
+			MaxLoadFactor(<span class="number">10.0</span>),
+			SlabSize(<span class="number">10</span>),
+			SlabCount(<span class="number">10</span>),
+			MinSize(<span class="number">10</span>),
+			MaxSize(<span class="number">10</span>),
+			SyncChannelSize(<span class="number">10</span>),
+			GlobalSlabAllocator(<span class="bool-val">true</span>),
+			Start(<span class="number">10</span>),
+			End(<span class="number">10</span>),
+			MatchId(<span class="number">10</span>),
+			Regex(<span class="string">"test"</span>.to_string()),
+			IsCaseSensitive(<span class="bool-val">true</span>),
+			IsTerminationPattern(<span class="bool-val">true</span>),
+			IsMultiLine(<span class="bool-val">true</span>),
+			PatternId(<span class="number">10</span>),
+			IsHashtable(<span class="bool-val">true</span>),
+			IsHashset(<span class="bool-val">true</span>),
+			IsList(<span class="bool-val">true</span>),
+			Debug(<span class="bool-val">true</span>),
+			DebugLargeSlabCount(<span class="bool-val">true</span>)
 		);
 
 		<span class="comment">// since everything is allowed, it's ok
@@ -342,11 +442,87 @@
 					CN::MaxSize,
 					CN::SyncChannelSize,
 					CN::GlobalSlabAllocator,
-					CN::Debug
+					CN::Start,
+					CN::End,
+					CN::MatchId,
+					CN::Regex,
+					CN::IsCaseSensitive,
+					CN::IsTerminationPattern,
+					CN::IsMultiLine,
+					CN::PatternId,
+					CN::IsHashtable,
+					CN::IsHashset,
+					CN::IsList,
+					CN::Debug,
+					CN::DebugLargeSlabCount,
 				],
 				<span class="macro">vec!</span>[]
 			)
 			.is_ok());
+
+		<span class="macro">assert!</span>(config.get_or_bool(<span class="kw-2">&amp;</span>CN::DisplayColors, <span class="bool-val">false</span>));
+		<span class="macro">assert!</span>(config.get_or_bool(<span class="kw-2">&amp;</span>CN::AutoRotate, <span class="bool-val">false</span>));
+		<span class="macro">assert!</span>(config.get_or_bool(<span class="kw-2">&amp;</span>CN::DisplayStdout, <span class="bool-val">false</span>));
+		<span class="macro">assert!</span>(config.get_or_bool(<span class="kw-2">&amp;</span>CN::DisplayTimestamp, <span class="bool-val">false</span>));
+		<span class="macro">assert!</span>(config.get_or_bool(<span class="kw-2">&amp;</span>CN::DisplayLogLevel, <span class="bool-val">false</span>));
+		<span class="macro">assert!</span>(config.get_or_bool(<span class="kw-2">&amp;</span>CN::DisplayLineNum, <span class="bool-val">false</span>));
+		<span class="macro">assert!</span>(config.get_or_bool(<span class="kw-2">&amp;</span>CN::DisplayMillis, <span class="bool-val">false</span>));
+		<span class="macro">assert!</span>(config.get_or_bool(<span class="kw-2">&amp;</span>CN::DisplayBackTrace, <span class="bool-val">false</span>));
+		<span class="macro">assert!</span>(config.get_or_bool(<span class="kw-2">&amp;</span>CN::DeleteRotation, <span class="bool-val">false</span>));
+		<span class="macro">assert!</span>(config.get_or_bool(<span class="kw-2">&amp;</span>CN::GlobalSlabAllocator, <span class="bool-val">false</span>));
+		<span class="macro">assert!</span>(config.get_or_bool(<span class="kw-2">&amp;</span>CN::IsCaseSensitive, <span class="bool-val">false</span>));
+		<span class="macro">assert!</span>(config.get_or_bool(<span class="kw-2">&amp;</span>CN::IsTerminationPattern, <span class="bool-val">false</span>));
+		<span class="macro">assert!</span>(config.get_or_bool(<span class="kw-2">&amp;</span>CN::IsMultiLine, <span class="bool-val">false</span>));
+		<span class="macro">assert!</span>(config.get_or_bool(<span class="kw-2">&amp;</span>CN::IsHashtable, <span class="bool-val">false</span>));
+		<span class="macro">assert!</span>(config.get_or_bool(<span class="kw-2">&amp;</span>CN::IsHashset, <span class="bool-val">false</span>));
+		<span class="macro">assert!</span>(config.get_or_bool(<span class="kw-2">&amp;</span>CN::IsList, <span class="bool-val">false</span>));
+		<span class="macro">assert!</span>(config.get_or_bool(<span class="kw-2">&amp;</span>CN::Debug, <span class="bool-val">false</span>));
+		<span class="macro">assert!</span>(config.get_or_bool(<span class="kw-2">&amp;</span>CN::DebugLargeSlabCount, <span class="bool-val">false</span>));
+		<span class="macro">assert!</span>(!config.get_or_bool(<span class="kw-2">&amp;</span>CN::MaxSize, <span class="bool-val">false</span>));
+
+		<span class="macro">assert_eq!</span>(config.get_or_usize(<span class="kw-2">&amp;</span>CN::MaxEntries, usize::MAX), <span class="number">10</span>);
+		<span class="macro">assert_eq!</span>(config.get_or_usize(<span class="kw-2">&amp;</span>CN::SlabSize, usize::MAX), <span class="number">10</span>);
+		<span class="macro">assert_eq!</span>(config.get_or_usize(<span class="kw-2">&amp;</span>CN::SlabCount, usize::MAX), <span class="number">10</span>);
+		<span class="macro">assert_eq!</span>(config.get_or_usize(<span class="kw-2">&amp;</span>CN::MinSize, usize::MAX), <span class="number">10</span>);
+		<span class="macro">assert_eq!</span>(config.get_or_usize(<span class="kw-2">&amp;</span>CN::MaxSize, usize::MAX), <span class="number">10</span>);
+		<span class="macro">assert_eq!</span>(config.get_or_usize(<span class="kw-2">&amp;</span>CN::SyncChannelSize, usize::MAX), <span class="number">10</span>);
+		<span class="macro">assert_eq!</span>(config.get_or_usize(<span class="kw-2">&amp;</span>CN::Start, usize::MAX), <span class="number">10</span>);
+		<span class="macro">assert_eq!</span>(config.get_or_usize(<span class="kw-2">&amp;</span>CN::End, usize::MAX), <span class="number">10</span>);
+		<span class="macro">assert_eq!</span>(config.get_or_usize(<span class="kw-2">&amp;</span>CN::MatchId, usize::MAX), <span class="number">10</span>);
+		<span class="macro">assert_eq!</span>(config.get_or_usize(<span class="kw-2">&amp;</span>CN::PatternId, usize::MAX), <span class="number">10</span>);
+		<span class="macro">assert_eq!</span>(config.get_or_usize(<span class="kw-2">&amp;</span>CN::AutoRotate, usize::MAX), usize::MAX);
+
+		<span class="macro">assert_eq!</span>(config.get_or_u64(<span class="kw-2">&amp;</span>CN::MaxSizeBytes, u64::MAX), <span class="number">10</span>);
+		<span class="macro">assert_eq!</span>(config.get_or_u64(<span class="kw-2">&amp;</span>CN::MaxAgeMillis, u64::MAX), <span class="number">10</span>);
+		<span class="macro">assert_eq!</span>(config.get_or_u64(<span class="kw-2">&amp;</span>CN::LineNumDataMaxLen, u64::MAX), <span class="number">10</span>);
+		<span class="macro">assert_eq!</span>(config.get_or_u64(<span class="kw-2">&amp;</span>CN::AutoRotate, u64::MAX), u64::MAX);
+
+		<span class="macro">assert_eq!</span>(
+			config.get_or_string(<span class="kw-2">&amp;</span>CN::FileHeader, <span class="string">""</span>.to_string()),
+			<span class="string">"test"</span>.to_string()
+		);
+		<span class="macro">assert_eq!</span>(
+			config.get_or_string(<span class="kw-2">&amp;</span>CN::Regex, <span class="string">""</span>.to_string()),
+			<span class="string">"test"</span>.to_string()
+		);
+		<span class="macro">assert_eq!</span>(
+			config.get_or_string(<span class="kw-2">&amp;</span>CN::AutoRotate, <span class="string">""</span>.to_string()),
+			<span class="string">""</span>.to_string()
+		);
+
+		<span class="macro">assert_eq!</span>(config.get_or_f64(<span class="kw-2">&amp;</span>CN::MaxLoadFactor, f64::MAX), <span class="number">10.0</span>);
+		<span class="macro">assert_eq!</span>(config.get_or_f64(<span class="kw-2">&amp;</span>CN::AutoRotate, f64::MAX), f64::MAX);
+
+		<span class="kw">let </span>empty_config = <span class="macro">config!</span>();
+		<span class="macro">assert_eq!</span>(empty_config.get_or_bool(<span class="kw-2">&amp;</span>CN::MaxSize, <span class="bool-val">false</span>), <span class="bool-val">false</span>);
+		<span class="macro">assert_eq!</span>(empty_config.get_or_usize(<span class="kw-2">&amp;</span>CN::AutoRotate, <span class="number">0</span>), <span class="number">0</span>);
+		<span class="macro">assert_eq!</span>(empty_config.get_or_u64(<span class="kw-2">&amp;</span>CN::AutoRotate, <span class="number">0</span>), <span class="number">0</span>);
+		<span class="macro">assert_eq!</span>(
+			empty_config.get_or_string(<span class="kw-2">&amp;</span>CN::AutoRotate, <span class="string">""</span>.to_string()),
+			<span class="string">""</span>.to_string()
+		);
+		<span class="macro">assert_eq!</span>(empty_config.get_or_f64(<span class="kw-2">&amp;</span>CN::AutoRotate, <span class="number">0.0</span>), <span class="number">0.0</span>);
+
 		<span class="prelude-val">Ok</span>(())
 	}
 
