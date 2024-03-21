@@ -4528,4 +4528,202 @@ mod test {
 
 		Ok(())
 	}
+
+	#[test]
+	fn test_thread_pool_macro_panic() -> Result<(), Error> {
+		let (tx, rx) = sync_channel(1);
+		let mut v = lock_box!(0)?;
+		let v_clone = v.clone();
+		info!("testing thread_pool macro")?;
+
+		let mut tp = thread_pool!(MinSize(4))?;
+		tp.set_on_panic(move |id, e| -> Result<(), Error> {
+			match e.downcast_ref::<&str>() {
+				Some(as_str) => {
+					info!("Error: {:?}", as_str)?;
+					assert_eq!(as_str, &"test88");
+					wlock!(v) += 1;
+					tx.send(())?;
+				}
+				None => {
+					info!("Unknown panic type")?;
+				}
+			}
+
+			info!("PANIC: id={},e={:?}", id, e)?;
+			Ok(())
+		})?;
+
+		tp.start()?;
+
+		execute!(tp, {
+			info!("executing a thread")?;
+			if true {
+				// avoid compiler warning
+				panic!("test88");
+			}
+
+			Ok(())
+		})?;
+
+		rx.recv()?;
+		assert_eq!(rlock!(v_clone), 1);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_thread_pool_resources() -> Result<(), Error> {
+		let mut tp = thread_pool!(MinSize(2), MaxSize(3))?;
+		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
+		tp.start()?;
+		assert_eq!(tp.size()?, 2);
+
+		let count = lock_box!(0)?;
+		let complete_count = lock_box!(0)?;
+
+		let (tx, rx) = sync_channel(1);
+		let mut v = vec![];
+		let (comptx, comprx) = sync_channel(1);
+
+		for _ in 0..5 {
+			let mut count = count.clone();
+			let mut complete_count = complete_count.clone();
+			let comptx = comptx.clone();
+			let tx = tx.clone();
+			let (tx2, rx2) = sync_channel(1);
+			v.push(tx2);
+			execute!(tp, {
+				let localcount;
+				{
+					let mut count = count.wlock()?;
+					let guard = count.guard();
+					localcount = **guard;
+					(**guard) += 1;
+				}
+
+				info!("i={}", localcount)?;
+
+				if localcount >= 2 {
+					info!("sending")?;
+					tx.send(())?;
+				}
+
+				rx2.recv()?;
+				info!("ending thread {}", localcount)?;
+
+				{
+					let mut count = complete_count.wlock()?;
+					let guard = count.guard();
+					(**guard) += 1;
+
+					if **guard == 5 {
+						comptx.send(())?;
+					}
+				}
+				Ok(())
+			})?;
+		}
+
+		rx.recv()?;
+		assert_eq!(tp.size()?, 3);
+		v[0].send(())?;
+		rx.recv()?;
+		assert_eq!(tp.size()?, 3);
+		v[1].send(())?;
+		rx.recv()?;
+		assert_eq!(tp.size()?, 3);
+		v[2].send(())?;
+		v[3].send(())?;
+		v[4].send(())?;
+		comprx.recv()?;
+		assert_eq!(rlock!(complete_count), 5);
+		sleep(Duration::from_millis(1_000));
+		assert_eq!(tp.size()?, 2);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_thread_pool_resources_w_panic() -> Result<(), Error> {
+		let mut tp = thread_pool!(MinSize(2), MaxSize(3))?;
+		let mut panic_count = lock_box!(0)?;
+		let panic_count_clone = panic_count.clone();
+		tp.set_on_panic(move |_id, _e| -> Result<(), Error> {
+			wlock!(panic_count) += 1;
+			Ok(())
+		})?;
+		tp.start()?;
+		assert_eq!(tp.size()?, 2);
+
+		let count = lock_box!(0)?;
+		let complete_count = lock_box!(0)?;
+
+		let (tx, rx) = sync_channel(1);
+		let mut v = vec![];
+		let (comptx, comprx) = sync_channel(1);
+
+		for _ in 0..5 {
+			let mut count = count.clone();
+			let mut complete_count = complete_count.clone();
+			let comptx = comptx.clone();
+			let tx = tx.clone();
+			let (tx2, rx2) = sync_channel(1);
+			v.push(tx2);
+			execute!(tp, {
+				let localcount;
+				{
+					let mut count = count.wlock()?;
+					let guard = count.guard();
+					localcount = **guard;
+					(**guard) += 1;
+				}
+
+				info!("i={}", localcount)?;
+
+				if localcount >= 2 {
+					info!("sending")?;
+					tx.send(())?;
+				}
+
+				rx2.recv()?;
+				info!("ending thread {}", localcount)?;
+
+				{
+					let mut count = complete_count.wlock()?;
+					let guard = count.guard();
+					(**guard) += 1;
+
+					if **guard == 5 {
+						comptx.send(())?;
+					}
+				}
+
+				if true {
+					// to avoid compiler warning
+					panic!("panic");
+				}
+				Ok(())
+			})?;
+		}
+
+		rx.recv()?;
+		assert_eq!(tp.size()?, 3);
+		v[0].send(())?;
+		rx.recv()?;
+		assert_eq!(tp.size()?, 3);
+		v[1].send(())?;
+		rx.recv()?;
+		assert_eq!(tp.size()?, 3);
+		v[2].send(())?;
+		v[3].send(())?;
+		v[4].send(())?;
+		comprx.recv()?;
+		assert_eq!(rlock!(complete_count), 5);
+		sleep(Duration::from_millis(1_000));
+		assert_eq!(rlock!(panic_count_clone), 5);
+		assert_eq!(tp.size()?, 2);
+
+		Ok(())
+	}
 }

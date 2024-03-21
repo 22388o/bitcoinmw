@@ -1466,6 +1466,36 @@ macro_rules! list_eq {
 }
 
 /// Macro used to configure/build a thread pool. See [`crate::ThreadPool`] for working examples.
+///
+/// # Examples
+///
+///```
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_test::*;
+/// use bmw_util::*;
+///
+/// info!();
+///
+/// fn test_thread_pool_macro() -> Result<(), Error> {
+///     info!("testing thread_pool macro")?;
+///
+///     let mut tp = thread_pool!(MinSize(4))?;
+///     tp.set_on_panic(move |id, e| -> Result<(), Error> {
+///         info!("PANIC: id={},e={:?}", id, e)?;
+///         Ok(())
+///     })?;
+///
+///     tp.start()?;
+///
+///     execute!(tp, {
+///          info!("executing a thread")?;
+///          Ok(())
+///     })?;
+///
+///     Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! thread_pool {
         ( $( $match_items:tt)* ) => {{
