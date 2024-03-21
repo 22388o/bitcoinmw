@@ -181,7 +181,7 @@ where
 				} else {
 					let e = res.unwrap_err();
 					if on_panic.is_some() {
-						let mut on_panic = on_panic.as_mut().unwrap();
+						let on_panic = on_panic.as_mut().unwrap();
 						debug!("found an onpanic")?;
 						let id = id_clone.rlock()?;
 						let guard = id.guard();
