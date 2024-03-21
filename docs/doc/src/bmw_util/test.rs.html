@@ -4728,6 +4728,34 @@
 <a href="#4727" id="4727">4727</a>
 <a href="#4728" id="4728">4728</a>
 <a href="#4729" id="4729">4729</a>
+<a href="#4730" id="4730">4730</a>
+<a href="#4731" id="4731">4731</a>
+<a href="#4732" id="4732">4732</a>
+<a href="#4733" id="4733">4733</a>
+<a href="#4734" id="4734">4734</a>
+<a href="#4735" id="4735">4735</a>
+<a href="#4736" id="4736">4736</a>
+<a href="#4737" id="4737">4737</a>
+<a href="#4738" id="4738">4738</a>
+<a href="#4739" id="4739">4739</a>
+<a href="#4740" id="4740">4740</a>
+<a href="#4741" id="4741">4741</a>
+<a href="#4742" id="4742">4742</a>
+<a href="#4743" id="4743">4743</a>
+<a href="#4744" id="4744">4744</a>
+<a href="#4745" id="4745">4745</a>
+<a href="#4746" id="4746">4746</a>
+<a href="#4747" id="4747">4747</a>
+<a href="#4748" id="4748">4748</a>
+<a href="#4749" id="4749">4749</a>
+<a href="#4750" id="4750">4750</a>
+<a href="#4751" id="4751">4751</a>
+<a href="#4752" id="4752">4752</a>
+<a href="#4753" id="4753">4753</a>
+<a href="#4754" id="4754">4754</a>
+<a href="#4755" id="4755">4755</a>
+<a href="#4756" id="4756">4756</a>
+<a href="#4757" id="4757">4757</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -9454,6 +9482,34 @@
 		<span class="macro">assert_eq!</span>(<span class="macro">rlock!</span>(panic_count_clone), <span class="number">5</span>);
 		<span class="macro">assert_eq!</span>(tp.size()<span class="question-mark">?</span>, <span class="number">2</span>);
 
+		tp.executor()<span class="question-mark">?</span>.execute(<span class="kw">async move </span>{ <span class="prelude-val">Ok</span>(()) }, <span class="number">0</span>)<span class="question-mark">?</span>;
+
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="kw">fn </span>build_tp(min: usize, max: usize, sync: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>tp = <span class="macro">thread_pool!</span>(MinSize(min), MaxSize(max), SyncChannelSize(sync))<span class="question-mark">?</span>;
+		tp.set_on_panic(<span class="kw">move </span>|_id, _e| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; { <span class="prelude-val">Ok</span>(()) })<span class="question-mark">?</span>;
+		tp.start()<span class="question-mark">?</span>;
+
+		<span class="macro">execute!</span>(tp, {
+			<span class="macro">info!</span>(<span class="string">"in execute"</span>)<span class="question-mark">?</span>;
+			<span class="prelude-val">Ok</span>(())
+		})<span class="question-mark">?</span>;
+
+		<span class="macro">assert!</span>(tp.stopper().is_ok());
+		<span class="macro">assert!</span>(tp.stopper()<span class="question-mark">?</span>.stop().is_ok());
+
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="attr">#[test]
+	</span><span class="kw">fn </span>test_threadpool_bad_configs() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="macro">assert!</span>(build_tp(<span class="number">1</span>, <span class="number">1</span>, <span class="number">1</span>).is_ok());
+		<span class="macro">assert!</span>(build_tp(<span class="number">1</span>, <span class="number">1</span>, <span class="number">0</span>).is_err());
+		<span class="macro">assert!</span>(build_tp(<span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>).is_err());
+		<span class="macro">assert!</span>(build_tp(<span class="number">1</span>, <span class="number">0</span>, <span class="number">1</span>).is_err());
+		<span class="macro">assert!</span>(build_tp(<span class="number">2</span>, <span class="number">1</span>, <span class="number">1</span>).is_err());
 		<span class="prelude-val">Ok</span>(())
 	}
 }
