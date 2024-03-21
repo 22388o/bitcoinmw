@@ -327,12 +327,6 @@
 <a href="#326" id="326">326</a>
 <a href="#327" id="327">327</a>
 <a href="#328" id="328">328</a>
-<a href="#329" id="329">329</a>
-<a href="#330" id="330">330</a>
-<a href="#331" id="331">331</a>
-<a href="#332" id="332">332</a>
-<a href="#333" id="333">333</a>
-<a href="#334" id="334">334</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -359,7 +353,7 @@
 <span class="kw">use </span>bmw_conf::ConfigOptionName <span class="kw">as </span>CN;
 <span class="kw">use </span>bmw_conf::{ConfigBuilder, ConfigOption};
 <span class="kw">use </span>bmw_deps::futures::executor::block_on;
-<span class="kw">use </span>bmw_err::{err, Error};
+<span class="kw">use </span>bmw_err::{cbreak, err, Error};
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
 <span class="kw">use </span>std::any::Any;
 <span class="kw">use </span>std::future::Future;
@@ -395,44 +389,39 @@
 
 		<span class="kw">if </span>min_size == <span class="number">0 </span>|| min_size &gt; max_size {
 			<span class="kw">let </span>fmt = <span class="string">"min_size must be &gt; 0 and &lt;= max_size"</span>;
-			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Configuration, fmt));
-		}
-
-		<span class="kw">if </span>sync_channel_size == <span class="number">0 </span>{
+			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Configuration, fmt))
+		} <span class="kw">else if </span>sync_channel_size == <span class="number">0 </span>{
 			<span class="kw">let </span>fmt = <span class="string">"sync_channel_size must be greater than 0"</span>;
-			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Configuration, fmt));
+			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Configuration, fmt))
+		} <span class="kw">else </span>{
+			<span class="kw">let </span>config = ThreadPoolConfig {
+				min_size,
+				max_size,
+				sync_channel_size,
+			};
+
+			<span class="kw">let </span>waiting = <span class="number">0</span>;
+			<span class="kw">let </span>stop = <span class="bool-val">false</span>;
+			<span class="kw">let </span>tps = ThreadPoolState {
+				waiting,
+				cur_size: min_size,
+				config: config.clone(),
+				stop,
+			};
+			<span class="kw">let </span>state = UtilBuilder::build_lock_box(tps)<span class="question-mark">?</span>;
+
+			<span class="kw">let </span>rx = <span class="prelude-val">None</span>;
+			<span class="kw">let </span>tx = <span class="prelude-val">None</span>;
+
+			<span class="kw">let </span>ret = <span class="self">Self </span>{
+				config,
+				tx,
+				rx,
+				state,
+				on_panic: <span class="prelude-val">None</span>,
+			};
+			<span class="prelude-val">Ok</span>(ret)
 		}
-
-		<span class="kw">let </span>config = ThreadPoolConfig {
-			min_size,
-			max_size,
-			sync_channel_size,
-		};
-
-		<span class="kw">let </span>waiting = <span class="number">0</span>;
-		<span class="kw">let </span>cur_size = min_size;
-		<span class="kw">let </span>config_clone = config.clone();
-		<span class="kw">let </span>stop = <span class="bool-val">false</span>;
-		<span class="kw">let </span>tps = ThreadPoolState {
-			waiting,
-			cur_size,
-			config,
-			stop,
-		};
-		<span class="kw">let </span>state = UtilBuilder::build_lock_box(tps)<span class="question-mark">?</span>;
-
-		<span class="kw">let </span>config = config_clone;
-		<span class="kw">let </span>rx = <span class="prelude-val">None</span>;
-		<span class="kw">let </span>tx = <span class="prelude-val">None</span>;
-
-		<span class="kw">let </span>ret = <span class="self">Self </span>{
-			config,
-			tx,
-			rx,
-			state,
-			on_panic: <span class="prelude-val">None</span>,
-		};
-		<span class="prelude-val">Ok</span>(ret)
 	}
 
 	<span class="kw">fn </span>run_thread&lt;R: <span class="lifetime">'static</span>&gt;(
@@ -511,28 +500,26 @@
 					}
 				});
 
-				<span class="kw">match </span>jh.join() {
-					<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {
-						<span class="kw">let </span><span class="kw-2">mut </span>state = state.wlock()<span class="question-mark">?</span>;
-						<span class="kw">let </span>guard = <span class="kw-2">&amp;mut **</span>state.guard();
-						guard.cur_size = guard.cur_size.saturating_sub(<span class="number">1</span>);
-						<span class="macro">debug!</span>(<span class="string">"exiting a thread, ncur={}"</span>, guard.cur_size)<span class="question-mark">?</span>;
-						<span class="kw">break</span>;
-					} <span class="comment">// reduce thread count so exit this one
-					</span><span class="prelude-val">Err</span>(e) =&gt; <span class="kw">match </span>on_panic.as_mut() {
-						<span class="prelude-val">Some</span>(on_panic) =&gt; {
-							<span class="macro">debug!</span>(<span class="string">"found an onpanic"</span>)<span class="question-mark">?</span>;
-							<span class="kw">let </span>id = id_clone.rlock()<span class="question-mark">?</span>;
-							<span class="kw">let </span>guard = id.guard();
-							<span class="kw">match </span>on_panic(<span class="kw-2">**</span>guard, e) {
-								<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
-								<span class="prelude-val">Err</span>(e) =&gt; <span class="macro">warn!</span>(<span class="string">"on_panic handler generated error: {}"</span>, e)<span class="question-mark">?</span>,
-							}
+				<span class="kw">let </span>res = jh.join();
+				<span class="kw">if </span>res.is_ok() {
+					<span class="kw">let </span><span class="kw-2">mut </span>state = state.wlock()<span class="question-mark">?</span>;
+					<span class="kw">let </span>guard = <span class="kw-2">&amp;mut **</span>state.guard();
+					guard.cur_size = guard.cur_size.saturating_sub(<span class="number">1</span>);
+					<span class="macro">debug!</span>(<span class="string">"exiting a thread, ncur={}"</span>, guard.cur_size)<span class="question-mark">?</span>;
+					<span class="macro">cbreak!</span>(<span class="bool-val">true</span>);
+				} <span class="kw">else </span>{
+					<span class="kw">let </span>e = res.unwrap_err();
+					<span class="kw">if </span>on_panic.is_some() {
+						<span class="kw">let </span>on_panic = on_panic.as_mut().unwrap();
+						<span class="macro">debug!</span>(<span class="string">"found an onpanic"</span>)<span class="question-mark">?</span>;
+						<span class="kw">let </span>id = id_clone.rlock()<span class="question-mark">?</span>;
+						<span class="kw">let </span>guard = id.guard();
+						<span class="kw">let </span>res = on_panic(<span class="kw-2">**</span>guard, e);
+						<span class="kw">if </span>res.is_err() {
+							<span class="kw">let </span>e = res.unwrap_err();
+							<span class="macro">warn!</span>(<span class="string">"on_panic handler generated error: {}"</span>, e)<span class="question-mark">?</span>;
 						}
-						<span class="prelude-val">None </span>=&gt; {
-							<span class="macro">debug!</span>(<span class="string">"no onpanic"</span>)<span class="question-mark">?</span>;
-						}
-					},
+					}
 				}
 			}
 			<span class="prelude-val">Ok</span>(())
@@ -575,19 +562,20 @@
 		<span class="kw">let </span>rx = Arc::new(Mutex::new(rx));
 		<span class="self">self</span>.rx = <span class="prelude-val">Some</span>(rx.clone());
 		<span class="self">self</span>.tx = <span class="prelude-val">Some</span>(tx.clone());
+
 		<span class="kw">for _ in </span><span class="number">0</span>..<span class="self">self</span>.config.min_size {
 			<span class="self">Self</span>::run_thread(rx.clone(), <span class="self">self</span>.state.clone(), <span class="self">self</span>.on_panic.clone())<span class="question-mark">?</span>;
 		}
 
+		<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
 		<span class="kw">loop </span>{
-			sleep(Duration::from_millis(<span class="number">1</span>));
-			{
+			<span class="kw">if </span>count &gt; <span class="number">0 </span>{
 				<span class="kw">let </span>state = <span class="self">self</span>.state.rlock()<span class="question-mark">?</span>;
 				<span class="kw">let </span>guard = <span class="kw-2">&amp;**</span>state.guard();
-				<span class="kw">if </span>guard.waiting == <span class="self">self</span>.config.min_size {
-					<span class="kw">break</span>;
-				}
+				<span class="macro">cbreak!</span>(guard.waiting == <span class="self">self</span>.config.min_size);
 			}
+			sleep(Duration::from_millis(<span class="number">1</span>));
+			count += <span class="number">1</span>;
 		}
 
 		<span class="prelude-val">Ok</span>(())
