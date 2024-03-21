@@ -936,7 +936,7 @@
 			<span class="prelude-val">None </span>=&gt; <span class="number">0</span>,
 		};
 		<span class="kw">let </span>is_termination_pattern = <span class="self">Self</span>::get_option(CN::IsTerminationPattern, <span class="kw-2">&amp;</span>config, <span class="bool-val">false</span>);
-		<span class="kw">let </span>is_case_sensitive = <span class="self">Self</span>::get_option(CN::IsCaseSensitive, <span class="kw-2">&amp;</span>config, <span class="bool-val">true</span>);
+		<span class="kw">let </span>is_case_sensitive = <span class="self">Self</span>::get_option(CN::IsCaseSensitive, <span class="kw-2">&amp;</span>config, <span class="bool-val">false</span>);
 		<span class="kw">let </span>is_multi_line = <span class="self">Self</span>::get_option(CN::IsMultiLine, <span class="kw-2">&amp;</span>config, <span class="bool-val">true</span>);
 
 		<span class="kw">if </span>is_termination_pattern &amp;&amp; is_case_sensitive {
