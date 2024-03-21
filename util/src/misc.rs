@@ -17,10 +17,15 @@
 
 use bmw_err::*;
 use bmw_log::*;
+use std::cell::RefCell;
 use std::path::PathBuf;
 use std::str::from_utf8;
 
 info!();
+
+thread_local! {
+	pub(crate) static DEBUG_INVALID_PATH: RefCell<bool> = RefCell::new(false);
+}
 
 /// Utility to canonicalize a path relative to a base directory (used in http and rustlet)
 pub fn canonicalize_base_path(base_dir: &String, path: &String) -> Result<String, Error> {
@@ -40,12 +45,18 @@ pub fn canonicalize_base_path(base_dir: &String, path: &String) -> Result<String
 			"canonicalized version is above the base_dir"
 		))
 	} else {
-		match ret.to_str() {
-			Some(s) => Ok(s.to_string()),
-			None => Err(err!(
+		let ret_str = ret.to_str();
+
+		let debug_invalid_str =
+			DEBUG_INVALID_PATH.with(|f| -> Result<bool, Error> { Ok(*f.borrow()) })?;
+
+		if ret_str.is_some() && !debug_invalid_str {
+			Ok(ret_str.unwrap().to_string())
+		} else {
+			Err(err!(
 				ErrKind::IO,
 				"could not generate string from the path specfied"
-			)),
+			))
 		}
 	}
 }

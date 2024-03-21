@@ -19,6 +19,7 @@
 mod test {
 	use crate as bmw_util;
 	use crate::constants::*;
+	use crate::misc::DEBUG_INVALID_PATH;
 	use crate::types::{HashImpl, HashImplSync, ThreadPoolImpl};
 	use bmw_deps::dyn_clone::clone_box;
 	use bmw_deps::rand;
@@ -31,6 +32,9 @@ mod test {
 	use bmw_util::*;
 	use std::collections::HashMap;
 	use std::fmt::Debug;
+	use std::fs::{create_dir_all, File};
+	use std::io::Write;
+	use std::path::PathBuf;
 	use std::sync::mpsc::Receiver;
 	use std::sync::{Arc, RwLock};
 
@@ -4796,6 +4800,43 @@ mod test {
 			debug_err: false,
 		};
 		assert_eq!(**(x.guard()), (y_guard));
+		Ok(())
+	}
+
+	#[test]
+	fn test_canonicalize_path() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let directory = test_info.directory();
+		let mut path_buf = PathBuf::new();
+		path_buf.push(directory);
+		path_buf.push("test.txt");
+		let mut file = File::create(path_buf)?;
+		file.write_all(b"Hello, world!")?;
+		assert!(canonicalize_base_path(&"".to_string(), &"".to_string()).is_err());
+		assert!(canonicalize_base_path(&directory, &"/test.txt".to_string()).is_ok());
+
+		let mut path_buf = PathBuf::new();
+		path_buf.push(directory);
+		path_buf.push("test");
+		create_dir_all(path_buf.clone())?;
+
+		assert!(canonicalize_base_path(
+			&path_buf.to_str().unwrap().to_string(),
+			&"/../test.txt".to_string(),
+		)
+		.is_err());
+
+		DEBUG_INVALID_PATH.with(|f| -> Result<(), Error> {
+			(*f.borrow_mut()) = true;
+			Ok(())
+		})?;
+
+		assert!(canonicalize_base_path(&directory, &"/test.txt".to_string()).is_err());
+
+		DEBUG_INVALID_PATH.with(|f| -> Result<(), Error> {
+			(*f.borrow_mut()) = false;
+			Ok(())
+		})?;
 		Ok(())
 	}
 }
