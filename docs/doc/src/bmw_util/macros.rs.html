@@ -1501,6 +1501,7 @@
 <a href="#1500" id="1500">1500</a>
 <a href="#1501" id="1501">1501</a>
 <a href="#1502" id="1502">1502</a>
+<a href="#1503" id="1503">1503</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1653,7 +1654,8 @@
 </span><span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>global_slab_allocator {
 ( $( <span class="macro-nonterminal">$config</span>:expr ),* ) =&gt; {{
-            <span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
+            <span class="attr">#[allow(unused_imports)]
+            </span><span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
             <span class="kw">let </span><span class="kw-2">mut </span>config = bmw_util::SlabAllocatorConfig::default();
             <span class="kw">let </span><span class="kw-2">mut </span>error: <span class="prelude-ty">Option</span>&lt;String&gt; = <span class="prelude-val">None</span>;
             <span class="kw">let </span><span class="kw-2">mut </span>slab_size_specified = <span class="bool-val">false</span>;
