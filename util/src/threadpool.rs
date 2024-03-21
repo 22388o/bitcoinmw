@@ -61,12 +61,8 @@ where
 {
 	/*
 	#[cfg(test)]
-	pub(crate) fn new_with_on_panic_and_t(
-		config: ThreadPoolConfig,
-		_on_panic: OnPanic,
-		_t: T,
-	) -> Result<Self, Error> {
-		Self::new(config)
+	pub(crate) fn new_with_on_panic_and_t(configs: Vec<ConfigOption>) -> Result<Self, Error> {
+		Self::new(configs)
 	}
 	*/
 

@@ -19,7 +19,7 @@
 mod test {
 	use crate as bmw_util;
 	use crate::constants::*;
-	use crate::types::{HashImpl, HashImplSync};
+	use crate::types::{HashImpl, HashImplSync, ThreadPoolImpl};
 	use bmw_deps::dyn_clone::clone_box;
 	use bmw_deps::rand;
 	use bmw_deps::rand::random;
@@ -2727,7 +2727,11 @@ mod test {
 		let mut matches = [tmatch!()?; 10];
 
 		// test pattern
-		let pattern = pattern!(Regex("abc".to_string()), PatternId(0))?;
+		let pattern = pattern!(
+			Regex("abc".to_string()),
+			PatternId(0),
+			IsCaseSensitive(true)
+		)?;
 		assert_eq!(
 			pattern,
 			UtilBuilder::build_pattern(vec![
@@ -3527,6 +3531,1001 @@ mod test {
 		serialize(&mut v, &ser_out)?;
 		let ser_in: Result<&u32, Error> = deserialize(&mut &v[..]);
 		assert!(ser_in.is_err());
+		Ok(())
+	}
+
+	#[test]
+	fn test_simple() -> Result<(), Error> {
+		let mut slabs = UtilBuilder::build_slabs();
+
+		assert!(slabs.slab_count().is_err());
+		assert!(slabs.slab_size().is_err());
+
+		slabs.init(SlabAllocatorConfig::default())?;
+
+		let (id1, id2);
+		{
+			let mut slab = slabs.allocate()?;
+			id1 = slab.id();
+			slab.get_mut()[0] = 111;
+		}
+
+		{
+			let mut slab = slabs.allocate()?;
+			id2 = slab.id();
+			slab.get_mut()[0] = 112;
+		}
+
+		assert_eq!(slabs.get(id1)?.get()[0], 111);
+		assert_eq!(slabs.get(id2)?.get()[0], 112);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_static_slaballoc() -> Result<(), Error> {
+		crate::slabs::GLOBAL_SLAB_ALLOCATOR.with(|f| -> Result<(), Error> {
+			unsafe {
+				f.get()
+					.as_mut()
+					.unwrap()
+					.init(SlabAllocatorConfig::default())?;
+				Ok(())
+			}
+		})?;
+		let slab = crate::slabs::GLOBAL_SLAB_ALLOCATOR.with(|f| -> Result<SlabMut<'_>, Error> {
+			Ok(unsafe { f.get().as_mut().unwrap().allocate()? })
+		})?;
+		info!("slab={:?}", slab.get())?;
+		Ok(())
+	}
+
+	#[test]
+	fn test_capacity() -> Result<(), Error> {
+		let mut slabs = UtilBuilder::build_slabs();
+		slabs.init(SlabAllocatorConfig {
+			slab_count: 10,
+			..SlabAllocatorConfig::default()
+		})?;
+		for _ in 0..10 {
+			slabs.allocate()?;
+		}
+		assert!(slabs.allocate().is_err());
+
+		slabs.free(0)?;
+		assert!(slabs.allocate().is_ok());
+		assert!(slabs.allocate().is_err());
+		Ok(())
+	}
+
+	#[test]
+	fn test_error_conditions() -> Result<(), Error> {
+		let mut slabs = UtilBuilder::build_slabs();
+		assert!(slabs.allocate().is_err());
+		assert!(slabs.free(0).is_err());
+		assert!(slabs.get(0).is_err());
+		assert!(slabs.get_mut(0).is_err());
+		assert!(slabs.free_count().is_err());
+		slabs.init(SlabAllocatorConfig::default())?;
+		assert!(slabs.allocate().is_ok());
+		assert!(slabs.free_count().is_ok());
+		assert!(slabs.free(usize::MAX).is_err());
+		assert!(slabs.get(usize::MAX).is_err());
+		assert!(slabs.get_mut(usize::MAX).is_err());
+		assert!(slabs.init(SlabAllocatorConfig::default()).is_err());
+		Ok(())
+	}
+
+	#[test]
+	fn test_double_free() -> Result<(), Error> {
+		let mut slabs = UtilBuilder::build_slabs();
+		slabs.init(SlabAllocatorConfig::default())?;
+		let id = {
+			let slab = slabs.allocate()?;
+			slab.id()
+		};
+		let slab = slabs.get(id)?;
+		assert_eq!(slab.id(), id);
+		slabs.free(id)?;
+		assert!(slabs.free(id).is_err());
+		let id2 = {
+			let slab = slabs.allocate()?;
+			slab.id()
+		};
+		slabs.free(id2)?;
+		assert!(slabs.free(id2).is_err());
+		// we know id and id2 are equal because when you free a slab it's added to the
+		// front of the list
+		assert_eq!(id, id2);
+		Ok(())
+	}
+
+	#[test]
+	fn test_other_slabs_configs() -> Result<(), Error> {
+		assert!(UtilBuilder::build_slabs()
+			.init(SlabAllocatorConfig::default())
+			.is_ok());
+
+		assert!(UtilBuilder::build_slabs()
+			.init(SlabAllocatorConfig {
+				slab_size: 100,
+				..SlabAllocatorConfig::default()
+			})
+			.is_ok());
+
+		assert!(UtilBuilder::build_slabs()
+			.init(SlabAllocatorConfig {
+				slab_size: 48,
+				..SlabAllocatorConfig::default()
+			})
+			.is_ok());
+
+		assert!(UtilBuilder::build_slabs()
+			.init(SlabAllocatorConfig {
+				slab_size: 7,
+				..SlabAllocatorConfig::default()
+			})
+			.is_err());
+		assert!(UtilBuilder::build_slabs()
+			.init(SlabAllocatorConfig {
+				slab_count: 0,
+				..SlabAllocatorConfig::default()
+			})
+			.is_err());
+
+		let mut sh = UtilBuilder::build_slabs();
+		sh.init(SlabAllocatorConfig {
+			slab_count: 1,
+			..SlabAllocatorConfig::default()
+		})?;
+
+		let slab = sh.allocate();
+		assert!(slab.is_ok());
+		let id = slab.unwrap().id();
+		assert!(sh.allocate().is_err());
+		sh.free(id)?;
+		assert!(sh.allocate().is_ok());
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_pattern() -> Result<(), Error> {
+		let pattern = Pattern::new(vec![
+			Regex("abc".to_string()),
+			IsCaseSensitive(true),
+			IsTerminationPattern(true),
+			IsMultiLine(true),
+			PatternId(0),
+		]);
+		assert!(pattern.is_err());
+		let pattern = Pattern::new(vec![
+			Regex("abc".to_string()),
+			IsCaseSensitive(false),
+			IsTerminationPattern(true),
+			IsMultiLine(true),
+			PatternId(0),
+		])?;
+		assert_eq!(pattern.regex(), "abc");
+		assert_eq!(pattern.is_case_sensitive(), false);
+		assert_eq!(pattern.is_termination_pattern(), true);
+		assert_eq!(pattern.id(), 0);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_search_trie1() -> Result<(), Error> {
+		let mut search_trie = UtilBuilder::build_search_trie(
+			vec![
+				UtilBuilder::build_pattern(vec![
+					Regex("p1".to_string()),
+					IsCaseSensitive(false),
+					IsTerminationPattern(false),
+					IsMultiLine(false),
+					PatternId(0),
+				])?,
+				UtilBuilder::build_pattern(vec![
+					Regex("p2".to_string()),
+					IsCaseSensitive(false),
+					IsTerminationPattern(false),
+					IsMultiLine(false),
+					PatternId(1),
+				])?,
+				UtilBuilder::build_pattern(vec![
+					Regex("p3".to_string()),
+					IsCaseSensitive(true),
+					IsTerminationPattern(false),
+					IsMultiLine(false),
+					PatternId(2),
+				])?,
+			],
+			1_000,
+			100,
+		)?;
+
+		let mut matches = [tmatch!()?; 10];
+		let count = search_trie.tmatch(b"p1p2", &mut matches)?;
+		info!("count={}", count)?;
+		assert_eq!(count, 2);
+		assert_eq!(matches[0].id(), 0);
+		assert_eq!(matches[0].start(), 0);
+		assert_eq!(matches[0].end(), 2);
+		assert_eq!(matches[1].id(), 1);
+		assert_eq!(matches[1].start(), 2);
+		assert_eq!(matches[1].end(), 4);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_search_trie_wildcard() -> Result<(), Error> {
+		let mut search_trie = UtilBuilder::build_search_trie(
+			vec![
+				UtilBuilder::build_pattern(vec![
+					Regex("p1.*abc".to_string()),
+					IsCaseSensitive(false),
+					IsTerminationPattern(false),
+					IsMultiLine(false),
+					PatternId(0),
+				])?,
+				UtilBuilder::build_pattern(vec![
+					Regex("p2".to_string()),
+					IsCaseSensitive(false),
+					IsTerminationPattern(false),
+					IsMultiLine(false),
+					PatternId(1),
+				])?,
+				UtilBuilder::build_pattern(vec![
+					Regex("p3".to_string()),
+					IsCaseSensitive(true),
+					IsTerminationPattern(false),
+					IsMultiLine(false),
+					PatternId(2),
+				])?,
+			],
+			37,
+			10,
+		)?;
+
+		let mut matches = [tmatch!()?; 10];
+		let count = search_trie.tmatch(b"p1xyz123abcp2", &mut matches)?;
+		assert_eq!(count, 2);
+		assert_eq!(matches[0].id(), 0);
+		assert_eq!(matches[0].start(), 0);
+		assert_eq!(matches[0].end(), 11);
+		assert_eq!(matches[1].id(), 1);
+		assert_eq!(matches[1].start(), 11);
+		assert_eq!(matches[1].end(), 13);
+		for i in 0..count {
+			info!("match[{}]={:?}", i, matches[i])?;
+		}
+
+		// try a wildcard that is too long
+		let count = search_trie.tmatch(b"p1xyzxxxxxxxxxxxxxxxxxxxxxxxx123abcp2", &mut matches)?;
+		assert_eq!(count, 1);
+		assert_eq!(matches[0].id(), 1);
+		assert_eq!(matches[0].start(), 35);
+		assert_eq!(matches[0].end(), 37);
+		for i in 0..count {
+			info!("match[{}]={:?}", i, matches[i])?;
+		}
+
+		// test termination
+		let count =
+			search_trie.tmatch(b"p1xyzxxxxxxxxxxxxxxxxxxxxxxxxxxx123abcp2", &mut matches)?;
+		assert_eq!(count, 0);
+
+		// non-repeating wildcard
+		let mut search_trie = UtilBuilder::build_search_trie(
+			vec![
+				UtilBuilder::build_pattern(vec![
+					Regex("p1.abc".to_string()),
+					IsCaseSensitive(false),
+					IsTerminationPattern(false),
+					IsMultiLine(false),
+					PatternId(0),
+				])?,
+				UtilBuilder::build_pattern(vec![
+					Regex("p2".to_string()),
+					IsCaseSensitive(false),
+					IsTerminationPattern(false),
+					IsMultiLine(false),
+					PatternId(1),
+				])?,
+				UtilBuilder::build_pattern(vec![
+					Regex("p3".to_string()),
+					IsCaseSensitive(true),
+					IsTerminationPattern(false),
+					IsMultiLine(false),
+					PatternId(2),
+				])?,
+				UtilBuilder::build_pattern(vec![
+					Regex("p4.".to_string()),
+					IsCaseSensitive(true),
+					IsTerminationPattern(false),
+					IsMultiLine(false),
+					PatternId(3),
+				])?,
+				UtilBuilder::build_pattern(vec![
+					Regex("p5\\\\x".to_string()),
+					IsCaseSensitive(true),
+					IsTerminationPattern(false),
+					IsMultiLine(false),
+					PatternId(4),
+				])?,
+				UtilBuilder::build_pattern(vec![
+					Regex("p6\\.x".to_string()),
+					IsCaseSensitive(true),
+					IsTerminationPattern(false),
+					IsMultiLine(false),
+					PatternId(5),
+				])?,
+			],
+			37,
+			10,
+		)?;
+		// 2 wildcard chars so no match
+		let count = search_trie.tmatch(b"p1xxabc", &mut matches)?;
+		assert_eq!(count, 0);
+
+		// 1 wildcard char so it's a match
+		let count = search_trie.tmatch(b"p1xabc", &mut matches)?;
+		assert_eq!(count, 1);
+
+		// no char after p4 so no match
+		let count = search_trie.tmatch(b"p4", &mut matches)?;
+		assert_eq!(count, 0);
+
+		// char after p4 so match
+		let count = search_trie.tmatch(b"p4a", &mut matches)?;
+		assert_eq!(count, 1);
+
+		// char after p4 so match
+		let count = search_trie.tmatch(b"p4aaa", &mut matches)?;
+		assert_eq!(count, 1);
+
+		// '\' matches
+		let count = search_trie.tmatch(b"p5\\x", &mut matches)?;
+		assert_eq!(count, 1);
+
+		// escaped dot match
+		let count = search_trie.tmatch(b"p6.x", &mut matches)?;
+		assert_eq!(count, 1);
+
+		// escaped dot is not a wildcard
+		let count = search_trie.tmatch(b"p6ax", &mut matches)?;
+		assert_eq!(count, 0);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_case_sensitivity() -> Result<(), Error> {
+		let mut matches = [tmatch!()?; 10];
+		let pattern1 = UtilBuilder::build_pattern(vec![
+			Regex("AaAaA".to_string()),
+			IsCaseSensitive(true),
+			IsTerminationPattern(false),
+			IsMultiLine(false),
+			PatternId(0),
+		])?;
+		let pattern2 = UtilBuilder::build_pattern(vec![
+			Regex("AaAaA".to_string()),
+			IsCaseSensitive(false),
+			IsTerminationPattern(false),
+			IsMultiLine(false),
+			PatternId(0),
+		])?;
+
+		let mut search_trie = UtilBuilder::build_search_trie(vec![pattern1], 100, 100)?;
+
+		assert_eq!(search_trie.tmatch(b"AAAAA", &mut matches)?, 0);
+
+		let mut search_trie = UtilBuilder::build_search_trie(vec![pattern2], 100, 100)?;
+
+		assert_eq!(search_trie.tmatch(b"AAAAA", &mut matches)?, 1);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_multi_line() -> Result<(), Error> {
+		let mut matches = [tmatch!()?; 10];
+		let mut search_trie = search_trie!(vec![
+			pattern!(
+				Regex("abc.*123".to_string()),
+				PatternId(0),
+				IsMultiLine(false)
+			)?,
+			pattern!(
+				Regex("def.*123".to_string()),
+				PatternId(1),
+				IsMultiLine(true)
+			)?
+		],)?;
+
+		// this will not match because of the newline
+		let count = search_trie.tmatch(b"abcxxx\n123", &mut matches)?;
+		assert_eq!(count, 0);
+
+		// this will match because IsMulti is true
+		let count = search_trie.tmatch(b"defxxx\n123", &mut matches)?;
+		assert_eq!(count, 1);
+		Ok(())
+	}
+
+	#[test]
+	fn test_termination_pattern() -> Result<(), Error> {
+		let mut matches = [tmatch!()?; 10];
+		let mut search_trie = search_trie!(vec![
+			pattern!(
+				Regex("abc".to_string()),
+				IsCaseSensitive(false),
+				PatternId(0),
+				IsTerminationPattern(false)
+			)?,
+			pattern!(
+				Regex("def".to_string()),
+				IsCaseSensitive(false),
+				PatternId(1),
+				IsTerminationPattern(true)
+			)?
+		],)?;
+
+		// both matches will be found
+		let count = search_trie.tmatch(b"abcdef", &mut matches)?;
+		assert_eq!(count, 2);
+
+		// only the first match will be found because it is a termination pattern
+		let count = search_trie.tmatch(b"defabc", &mut matches)?;
+		assert_eq!(count, 1);
+		Ok(())
+	}
+
+	#[test]
+	fn test_match_list_too_big() -> Result<(), Error> {
+		let mut matches1 = [tmatch!()?; 1];
+		let mut matches10 = [tmatch!()?; 10];
+		let mut search_trie = search_trie!(vec![
+			pattern!(
+				Regex("abc".to_string()),
+				IsCaseSensitive(false),
+				PatternId(0),
+				IsTerminationPattern(false)
+			)?,
+			pattern!(
+				Regex("def".to_string()),
+				IsCaseSensitive(false),
+				PatternId(1),
+				IsTerminationPattern(true)
+			)?
+		],)?;
+
+		// only one match returned because match list length is 1
+		let count = search_trie.tmatch(b"abcdef", &mut matches1)?;
+		assert_eq!(count, 1);
+
+		// both matches returned with long enough list
+		let count = search_trie.tmatch(b"abcdef", &mut matches10)?;
+		assert_eq!(count, 2);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_search_trie_overlap() -> Result<(), Error> {
+		let mut matches = [tmatch!()?; 10];
+		let mut search_trie = search_trie!(vec![
+			pattern!(Regex("abc".to_string()), PatternId(0))?,
+			pattern!(Regex("abcdef".to_string()), PatternId(1))?
+		],)?;
+
+		let count = search_trie.tmatch(b"abcdef", &mut matches)?;
+		assert_eq!(count, 2);
+		assert_eq!(matches[0].start(), 0);
+		assert_eq!(matches[1].start(), 0);
+
+		let mut count = 0;
+		for i in 0..2 {
+			if matches[i].id() == 1 {
+				assert_eq!(matches[i].end(), 6);
+				count += 1;
+			} else if matches[i].id() == 0 {
+				assert_eq!(matches[i].end(), 3);
+				count += 1;
+			}
+		}
+		assert_eq!(count, 2);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_search_trie_caret() -> Result<(), Error> {
+		let mut matches = [tmatch!()?; 10];
+		let mut search_trie = search_trie!(vec![
+			pattern!(Regex("abc".to_string()), PatternId(0))?,
+			pattern!(Regex("^def".to_string()), PatternId(1))?
+		],)?;
+
+		// only abc is found because def is not at the start
+		let count = search_trie.tmatch(b"abcdef", &mut matches)?;
+		assert_eq!(count, 1);
+
+		// both found
+		let count = search_trie.tmatch(b"defabc", &mut matches)?;
+		assert_eq!(count, 2);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_search_trie_error_conditions() -> Result<(), Error> {
+		assert!(UtilBuilder::build_search_trie(
+			vec![UtilBuilder::build_pattern(vec![
+				Regex("".to_string()),
+				IsCaseSensitive(false),
+				IsTerminationPattern(false),
+				IsMultiLine(false),
+				PatternId(0)
+			])?],
+			36,
+			36
+		)
+		.is_err());
+
+		assert!(UtilBuilder::build_search_trie(
+			vec![UtilBuilder::build_pattern(vec![
+				Regex("^".to_string()),
+				IsCaseSensitive(false),
+				IsTerminationPattern(false),
+				IsMultiLine(false),
+				PatternId(0)
+			])?],
+			100,
+			100
+		)
+		.is_err());
+
+		assert!(UtilBuilder::build_search_trie(
+			vec![UtilBuilder::build_pattern(vec![
+				Regex("x\\y".to_string()),
+				IsCaseSensitive(false),
+				IsTerminationPattern(false),
+				IsMultiLine(false),
+				PatternId(0)
+			])?],
+			100,
+			100
+		)
+		.is_err());
+
+		assert!(UtilBuilder::build_search_trie(
+			vec![UtilBuilder::build_pattern(vec![
+				Regex("x\\".to_string()),
+				IsCaseSensitive(false),
+				IsTerminationPattern(false),
+				IsMultiLine(false),
+				PatternId(0)
+			])?],
+			100,
+			100
+		)
+		.is_err());
+
+		assert!(UtilBuilder::build_search_trie(vec![], 100, 100).is_err());
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_search_trie_branches() -> Result<(), Error> {
+		let mut matches = [tmatch!()?; 10];
+		let mut search_trie = search_trie!(vec![
+			pattern!(Regex("abc".to_string()), PatternId(0))?,
+			pattern!(Regex("ab.*x".to_string()), PatternId(1))?
+		],)?;
+
+		let count = search_trie.tmatch(b"abc", &mut matches)?;
+		assert_eq!(count, 1);
+		assert_eq!(matches[0].id(), 0);
+		assert_eq!(matches[0].start(), 0);
+
+		let count = search_trie.tmatch(b"abcx", &mut matches)?;
+		assert_eq!(count, 2);
+		assert_eq!(matches[0].id(), 0);
+		assert_eq!(matches[0].start(), 0);
+		assert_eq!(matches[1].id(), 1);
+		assert_eq!(matches[1].start(), 0);
+
+		let text = b"abxx";
+		let count = search_trie.tmatch(text, &mut matches)?;
+		assert_eq!(count, 1);
+		assert_eq!(matches[0].id(), 1);
+		assert_eq!(matches[0].start(), 0);
+		assert_eq!(&text[matches[0].start()..matches[0].end()], text);
+
+		let mut search_trie = search_trie!(vec![
+			pattern!(Regex("header: 1234\r\n".to_string()), PatternId(1))?,
+			pattern!(Regex("header: .*\r\n".to_string()), PatternId(0))?
+		],)?;
+
+		let text = b"yyyheader: 1299\r\n";
+		let count = search_trie.tmatch(text, &mut matches)?;
+		info!("count1={}", count)?;
+		assert_eq!(count, 1);
+		assert_eq!(matches[0].id(), 0);
+		assert_eq!(matches[0].start(), 3);
+		assert_eq!(matches[0].end(), text.len());
+
+		let text = b"yyyheader: 1234\r\n";
+		let count = search_trie.tmatch(text, &mut matches)?;
+		info!("count2={}", count)?;
+		assert_eq!(count, 2);
+		assert_eq!(matches[0].id(), 1);
+		assert_eq!(matches[0].start(), 3);
+		assert_eq!(matches[0].end(), text.len());
+		assert_eq!(matches[1].id(), 0);
+		assert_eq!(matches[1].start(), 3);
+		assert_eq!(matches[1].end(), text.len());
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_threadpool1() -> Result<(), Error> {
+		let mut tp = UtilBuilder::build_thread_pool(vec![MinSize(10), MaxSize(10)])?;
+		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
+		tp.start()?;
+
+		// simple execution, return value
+		let res = tp.execute(async move { Ok(1) }, 0)?;
+		assert_eq!(res.recv()?, PoolResult::Ok(1));
+
+		// increment value using locks
+		let mut x = lock!(1)?;
+		let x_clone = x.clone();
+		tp.execute(
+			async move {
+				**x.wlock()?.guard() = 2;
+				Ok(1)
+			},
+			0,
+		)?;
+
+		let mut count = 0;
+		loop {
+			count += 1;
+			assert!(count < 500);
+			sleep(Duration::from_millis(10));
+			if **x_clone.rlock()?.guard() == 2 {
+				break;
+			}
+		}
+
+		// return an error
+		let res = tp.execute(async move { Err(err!(ErrKind::Test, "test")) }, 0)?;
+
+		assert_eq!(res.recv()?, PoolResult::Err(err!(ErrKind::Test, "test")));
+
+		// handle panic
+		let res = tp.execute(
+			async move {
+				let x: Option<u32> = None;
+				Ok(x.unwrap())
+			},
+			0,
+		)?;
+
+		assert!(res.recv().is_err());
+
+		// 10 more panics to ensure pool keeps running
+		for _ in 0..10 {
+			let res = tp.execute(
+				async move {
+					let x: Option<u32> = None;
+					Ok(x.unwrap())
+				},
+				0,
+			)?;
+
+			assert!(res.recv().is_err());
+		}
+
+		// now do a regular request
+		let res = tp.execute(async move { Ok(5) }, 0)?;
+		assert_eq!(res.recv()?, PoolResult::Ok(5));
+
+		sleep(Duration::from_millis(1000));
+		info!("test sending errors")?;
+
+		// send an error and ignore the response
+		{
+			let res = tp.execute(async move { Err(err!(ErrKind::Test, "")) }, 0)?;
+			drop(res);
+			sleep(Duration::from_millis(1000));
+		}
+		{
+			let res = tp.execute(async move { Err(err!(ErrKind::Test, "test")) }, 0)?;
+			assert_eq!(res.recv()?, PoolResult::Err(err!(ErrKind::Test, "test")));
+		}
+		sleep(Duration::from_millis(1_000));
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_sizing() -> Result<(), Error> {
+		let mut tp = ThreadPoolImpl::new(vec![MinSize(2), MaxSize(4)])?;
+		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
+		tp.start()?;
+		let mut v = vec![];
+
+		let x = lock!(0)?;
+
+		loop {
+			sleep(Duration::from_millis(10));
+			{
+				let state = tp.state.rlock()?;
+				if (**state.guard()).waiting == 2 {
+					break;
+				}
+			}
+		}
+		assert_eq!(tp.size()?, 2);
+		// first use up all the min_size threads
+		let y = lock!(0)?;
+		for _ in 0..2 {
+			let mut y_clone = y.clone();
+			let x_clone = x.clone();
+			let res = tp.execute(
+				async move {
+					**(y_clone.wlock()?.guard()) += 1;
+					loop {
+						if **(x_clone.rlock()?.guard()) != 0 {
+							break;
+						}
+						sleep(Duration::from_millis(50));
+					}
+					Ok(1)
+				},
+				0,
+			)?;
+			v.push(res);
+		}
+		loop {
+			sleep(Duration::from_millis(100));
+			{
+				let y = y.rlock()?;
+				if (**y.guard()) == 2 {
+					break;
+				}
+			}
+		}
+		assert_eq!(tp.size()?, 3);
+
+		// confirm we can still process
+		for _ in 0..10 {
+			let mut x_clone = x.clone();
+			let res = tp.execute(
+				async move {
+					**(x_clone.wlock()?.guard()) = 1;
+
+					Ok(2)
+				},
+				0,
+			)?;
+			assert_eq!(res.recv()?, PoolResult::Ok(2));
+		}
+
+		sleep(Duration::from_millis(2_000));
+		assert_eq!(tp.size()?, 2);
+
+		let mut i = 0;
+		for res in v {
+			assert_eq!(res.recv()?, PoolResult::Ok(1));
+			info!("res complete {}", i)?;
+			i += 1;
+		}
+
+		sleep(Duration::from_millis(1000));
+
+		let mut x2 = lock!(0)?;
+
+		// confirm that the maximum is in place
+
+		// block all 4 threads waiting on x2
+		for _ in 0..4 {
+			let mut x2_clone = x2.clone();
+			tp.execute(
+				async move {
+					info!("x0a")?;
+					loop {
+						if **(x2_clone.rlock()?.guard()) != 0 {
+							break;
+						}
+						sleep(Duration::from_millis(50));
+					}
+					info!("x2")?;
+					**(x2_clone.wlock()?.guard()) += 1;
+
+					Ok(0)
+				},
+				0,
+			)?;
+		}
+
+		sleep(Duration::from_millis(2_000));
+		assert_eq!(tp.size()?, 4);
+
+		// confirm that the next thread cannot be processed
+		let mut x2_clone = x2.clone();
+		tp.execute(
+			async move {
+				info!("x0")?;
+				**(x2_clone.wlock()?.guard()) += 1;
+				info!("x1")?;
+				Ok(0)
+			},
+			0,
+		)?;
+
+		// wait
+		sleep(Duration::from_millis(2_000));
+
+		// confirm situation hasn't changed
+		assert_eq!(**(x2.rlock()?.guard()), 0);
+
+		// unlock the threads by setting x2 to 1
+		**(x2.wlock()?.guard()) = 1;
+
+		// wait
+		sleep(Duration::from_millis(4_000));
+		assert_eq!(**(x2.rlock()?.guard()), 6);
+		info!("exit all")?;
+
+		sleep(Duration::from_millis(2_000));
+		assert_eq!(tp.size()?, 2);
+
+		tp.stop()?;
+		sleep(Duration::from_millis(2_000));
+		assert_eq!(tp.size()?, 0);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_stop() -> Result<(), Error> {
+		let mut tp = UtilBuilder::build_thread_pool(vec![MinSize(2), MaxSize(4)])?;
+		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
+		tp.start()?;
+
+		sleep(Duration::from_millis(1000));
+		assert_eq!(tp.size()?, 2);
+		tp.execute(async move { Ok(()) }, 0)?;
+
+		sleep(Duration::from_millis(1000));
+		info!("stopping pool")?;
+		assert_eq!(tp.size()?, 2);
+		tp.stop()?;
+
+		sleep(Duration::from_millis(1000));
+		assert_eq!(tp.size()?, 0);
+		Ok(())
+	}
+
+	#[test]
+	fn pass_to_threads() -> Result<(), Error> {
+		let mut tp = UtilBuilder::build_thread_pool(vec![MinSize(2), MaxSize(4)])?;
+		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
+		tp.start()?;
+
+		let tp = lock!(tp)?;
+		for _ in 0..6 {
+			let tp = tp.clone();
+			std::thread::spawn(move || -> Result<(), Error> {
+				let tp = tp.rlock()?;
+				execute!((**tp.guard()), {
+					info!("executing in thread pool")?;
+					Ok(1)
+				})?;
+				Ok(())
+			});
+		}
+		Ok(())
+	}
+
+	#[test]
+	fn test_bad_configs() -> Result<(), Error> {
+		/*
+		assert!(load_config(6, 5).is_err());
+		assert!(load_config(0, 4).is_err());
+			*/
+
+		let mut tp = UtilBuilder::build_thread_pool(vec![MinSize(5), MaxSize(6)])?;
+		tp.set_on_panic(move |_, _| -> Result<(), Error> { Ok(()) })?;
+
+		assert_eq!(
+			tp.execute(async move { Ok(()) }, 0).unwrap_err(),
+			err!(
+				ErrKind::IllegalState,
+				"Thread pool has not been initialized"
+			)
+		);
+		Ok(())
+	}
+
+	#[test]
+	fn test_no_on_panic_handler() -> Result<(), Error> {
+		let mut tp = UtilBuilder::build_thread_pool(vec![MinSize(1), MaxSize(1)])?;
+
+		tp.set_on_panic(move |_, _| -> Result<(), Error> { Ok(()) })?;
+		tp.set_on_panic_none()?;
+		tp.start()?;
+		tp.execute(
+			async move {
+				if true {
+					panic!("2");
+				}
+				Ok(())
+			},
+			0,
+		)?;
+
+		sleep(Duration::from_millis(1_000));
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_on_panic_error() -> Result<(), Error> {
+		let mut tp = UtilBuilder::build_thread_pool(vec![MinSize(1), MaxSize(1)])?;
+
+		let mut count = lock_box!(0)?;
+		let count_clone = count.clone();
+		tp.set_on_panic(move |_, _| -> Result<(), Error> {
+			let mut count = count.wlock()?;
+			**count.guard() += 1;
+			return Err(err!(ErrKind::Test, "panic errored"));
+		})?;
+
+		// test that unstarted pool returns err
+		let executor = tp.executor()?;
+		assert!(executor.execute(async move { Ok(0) }, 0,).is_err());
+
+		tp.start()?;
+
+		tp.execute(
+			async move {
+				panic!("err");
+			},
+			0,
+		)?;
+
+		let mut count = 0;
+		loop {
+			count += 1;
+			sleep(Duration::from_millis(1));
+			if **(count_clone.rlock()?.guard()) != 1 && count < 5_000 {
+				continue;
+			}
+			assert_eq!(**(count_clone.rlock()?.guard()), 1);
+			break;
+		}
+
+		// ensure processing can still occur (1 thread means that thread recovered after
+		// panic)
+		let res = tp.execute(
+			async move {
+				info!("execute")?;
+				Ok(1)
+			},
+			0,
+		)?;
+
+		assert_eq!(res.recv()?, PoolResult::Ok(1));
+
 		Ok(())
 	}
 }

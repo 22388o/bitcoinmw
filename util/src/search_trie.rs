@@ -423,7 +423,7 @@ impl Pattern {
 			None => 0,
 		};
 		let is_termination_pattern = Self::get_option(CN::IsTerminationPattern, &config, false);
-		let is_case_sensitive = Self::get_option(CN::IsCaseSensitive, &config, true);
+		let is_case_sensitive = Self::get_option(CN::IsCaseSensitive, &config, false);
 		let is_multi_line = Self::get_option(CN::IsMultiLine, &config, true);
 
 		if is_termination_pattern && is_case_sensitive {
