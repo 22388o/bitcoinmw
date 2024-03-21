@@ -877,7 +877,7 @@ mod test {
 			threads,
 			housekeeping_frequency_millis: 10_000,
 			read_slab_count: 2,
-			max_handles_per_thread: 3,
+			max_handles_per_thread: 200,
 			..Default::default()
 		};
 		let mut evh = bmw_evh::Builder::build_evh(config)?;
@@ -935,7 +935,6 @@ mod test {
 			is_reuse_port: false,
 		};
 		evh.add_server(sc, Box::new(""))?;
-		sleep(Duration::from_millis(5_000));
 
 		{
 			let mut connection = TcpStream::connect(addr)?;

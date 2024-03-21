@@ -409,12 +409,12 @@ impl EventHandlerContext {
 
 		let handle_hashtable = hashtable_sync_box!(
 			SlabSize(HANDLE_SLAB_SIZE),
-			SlabCount(max_handles_per_thread),
+			SlabCount(max_handles_per_thread + 1),
 			GlobalSlabAllocator(false)
 		)?;
 		let connection_hashtable = hashtable_sync_box!(
 			SlabSize(CONNECTION_SLAB_SIZE),
-			SlabCount(max_handles_per_thread),
+			SlabCount(max_handles_per_thread + 1),
 			GlobalSlabAllocator(false)
 		)?;
 
