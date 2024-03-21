@@ -22,7 +22,7 @@ use crate::{
 	UtilBuilder,
 };
 use bmw_conf::ConfigOptionName as CN;
-use bmw_conf::{Config, ConfigBuilder, ConfigOption};
+use bmw_conf::{ConfigBuilder, ConfigOption};
 use bmw_deps::futures::executor::block_on;
 use bmw_err::{err, Error};
 use bmw_log::*;
@@ -39,16 +39,6 @@ info!();
 unsafe impl<T, E> Send for PoolResult<T, E> {}
 unsafe impl<T, E> Sync for PoolResult<T, E> {}
 
-impl Default for ThreadPoolConfig {
-	fn default() -> Self {
-		Self {
-			min_size: 3,
-			max_size: 7,
-			sync_channel_size: 7,
-		}
-	}
-}
-
 impl<T, OnPanic> ThreadPoolImpl<T, OnPanic>
 where
 	OnPanic: FnMut(u128, Box<dyn Any + Send>) -> Result<(), Error>
@@ -59,33 +49,14 @@ where
 		+ Unpin,
 	T: 'static + Send + Sync,
 {
-	/*
-	#[cfg(test)]
-	pub(crate) fn new_with_on_panic_and_t(configs: Vec<ConfigOption>) -> Result<Self, Error> {
-		Self::new(configs)
-	}
-	*/
-
-	fn get_option(option: CN, config: &Box<dyn Config>, default: usize) -> usize {
-		match config.get(&option) {
-			Some(v) => match v {
-				ConfigOption::MaxSize(v) => v,
-				ConfigOption::MinSize(v) => v,
-				ConfigOption::SyncChannelSize(v) => v,
-				_ => default,
-			},
-			None => default,
-		}
-	}
-
 	pub(crate) fn new(configs: Vec<ConfigOption>) -> Result<Self, Error> {
 		let config = ConfigBuilder::build_config(configs);
 		config.check_config(vec![CN::SyncChannelSize, CN::MinSize, CN::MaxSize], vec![])?;
 		let min_size = THREAD_POOL_DEFAULT_MIN_SIZE;
-		let min_size = Self::get_option(CN::MinSize, &config, min_size);
-		let max_size = Self::get_option(CN::MaxSize, &config, min_size);
+		let min_size = config.get_or_usize(&CN::MinSize, min_size);
+		let max_size = config.get_or_usize(&CN::MaxSize, min_size);
 		let sync_channel_size = THREAD_POOL_DEFAULT_SYNC_CHANNEL_SIZE;
-		let sync_channel_size = Self::get_option(CN::SyncChannelSize, &config, sync_channel_size);
+		let sync_channel_size = config.get_or_usize(&CN::SyncChannelSize, sync_channel_size);
 
 		if min_size == 0 || min_size > max_size {
 			let fmt = "min_size must be > 0 and <= max_size";
