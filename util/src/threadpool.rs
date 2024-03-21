@@ -240,10 +240,10 @@ where
 
 		let mut count = 0;
 		loop {
-			{
+			if count > 0 {
 				let state = self.state.rlock()?;
 				let guard = &**state.guard();
-				cbreak!(count > 0 && (guard.waiting == self.config.min_size));
+				cbreak!(guard.waiting == self.config.min_size);
 			}
 			sleep(Duration::from_millis(1));
 			count += 1;
