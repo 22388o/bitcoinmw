@@ -36,8 +36,9 @@ where
 	}
 }
 
+#[cfg(not(tarpaulin_include))]
 thread_local! {
-		pub static LOCKS: RefCell<HashSet<u128>> = RefCell::new(HashSet::new());
+	pub static LOCKS: RefCell<HashSet<u128>> = RefCell::new(HashSet::new());
 }
 
 /// Rebuild a [`crate::LockBox`] from te usize which is returned from the
@@ -55,6 +56,7 @@ where
 	T: Send + Sync,
 {
 	/// Return the RwLockReadGuard associated with this lock.
+	#[cfg(not(tarpaulin_include))]
 	pub fn guard(&self) -> &RwLockReadGuard<'a, T> {
 		&self.guard
 	}

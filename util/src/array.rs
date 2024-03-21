@@ -213,24 +213,20 @@ where
 	where
 		T: Serializable,
 	{
-		let ret = ArrayListIterator {
-			array_list_ref: &self,
-			cur: 0,
-			direction: Direction::Forward,
-		};
-		Box::new(ret)
+		let arr = &self;
+		let c = 0;
+		let dir = Direction::Forward;
+		Box::new(ArrayListIterator { arr, c, dir })
 	}
 
 	fn iter_rev<'a>(&'a self) -> Box<dyn Iterator<Item = T> + 'a>
 	where
 		T: Serializable,
 	{
-		let ret = ArrayListIterator {
-			array_list_ref: &self,
-			cur: self.size.saturating_sub(1),
-			direction: Direction::Backward,
-		};
-		Box::new(ret)
+		let arr = &self;
+		let c = self.size.saturating_sub(1);
+		let dir = Direction::Backward;
+		Box::new(ArrayListIterator { arr, c, dir })
 	}
 	fn delete_head(&mut self) -> Result<(), Error> {
 		let fmt = "arraylist doesn't support delete_head";
@@ -329,18 +325,18 @@ where
 {
 	type Item = T;
 	fn next(&mut self) -> Option<<Self as Iterator>::Item> {
-		if self.array_list_ref.size == 0 {
+		if self.arr.size == 0 {
 			None
-		} else if self.direction == Direction::Forward && self.cur >= self.array_list_ref.size {
+		} else if self.dir == Direction::Forward && self.c >= self.arr.size {
 			None
-		} else if self.direction == Direction::Backward && self.cur <= 0 {
+		} else if self.dir == Direction::Backward && self.c <= 0 {
 			None
 		} else {
-			let ret = Some(self.array_list_ref.inner[self.cur].clone());
-			if self.direction == Direction::Forward {
-				self.cur += 1;
+			let ret = Some(self.arr.inner[self.c].clone());
+			if self.dir == Direction::Forward {
+				self.c += 1;
 			} else {
-				self.cur = self.cur.saturating_sub(1);
+				self.c = self.c.saturating_sub(1);
 			}
 			ret
 		}

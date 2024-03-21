@@ -42,9 +42,9 @@ pub struct ArrayList<T> {
 
 /// An iterator for the [`crate::ArrayList`].
 pub struct ArrayListIterator<'a, T> {
-	pub(crate) array_list_ref: &'a ArrayList<T>,
-	pub(crate) direction: Direction,
-	pub(crate) cur: usize,
+	pub(crate) arr: &'a ArrayList<T>,
+	pub(crate) dir: Direction,
+	pub(crate) c: usize,
 }
 
 /// An iterator for the [`crate::Array`].

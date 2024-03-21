@@ -4784,4 +4784,18 @@ mod test {
 		assert!(build_tp(2, 1, 1).is_err());
 		Ok(())
 	}
+
+	#[test]
+	fn test_lock_guard() -> Result<(), Error> {
+		let y = Arc::new(RwLock::new(0));
+		let y_guard = y.read()?.clone();
+		let guard = y.read()?;
+		let x = RwLockReadGuardWrapper {
+			guard,
+			id: 0,
+			debug_err: false,
+		};
+		assert_eq!(**(x.guard()), (y_guard));
+		Ok(())
+	}
 }
