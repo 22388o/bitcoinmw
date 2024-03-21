@@ -150,6 +150,7 @@ macro_rules! rlock {
 #[macro_export]
 macro_rules! global_slab_allocator {
 ( $( $config:expr ),* ) => {{
+            #[allow(unused_imports)]
             use bmw_conf::ConfigOption::*;
             let mut config = bmw_util::SlabAllocatorConfig::default();
             let mut error: Option<String> = None;

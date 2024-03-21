@@ -18,13 +18,15 @@
 use crate::misc::set_max;
 use crate::misc::{slice_to_usize, usize_to_slice};
 use crate::{
-	Array, ArrayList, List, LockBox, SlabAllocator, SlabAllocatorConfig, SlabReader, SlabWriter,
-	UtilBuilder, GLOBAL_SLAB_ALLOCATOR,
+	Array, ArrayList, Hashset, Hashtable, List, LockBox, SlabAllocator, SlabAllocatorConfig,
+	SlabReader, SlabWriter, SortableList, UtilBuilder, GLOBAL_SLAB_ALLOCATOR,
 };
+use bmw_conf::ConfigOption::*;
 use bmw_err::{err, Error};
 use bmw_log::*;
 use bmw_ser::{Reader, Serializable, Writer};
 use std::fmt::Debug;
+use std::hash::Hash;
 use std::thread;
 
 info!();
@@ -115,6 +117,90 @@ impl<S: Serializable + Clone> Serializable for Array<S> {
 		}
 
 		Ok(a.unwrap())
+	}
+}
+
+impl<S: Serializable + PartialEq + Debug + Clone + 'static> Serializable
+	for Box<dyn SortableList<S>>
+{
+	fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
+		let len = self.size();
+		writer.write_usize(len)?;
+		for x in self.iter() {
+			Serializable::write(&x, writer)?;
+		}
+		Ok(())
+	}
+	fn read<R: Reader>(reader: &mut R) -> Result<Self, Error> {
+		let len = reader.read_usize()?;
+		let mut list = UtilBuilder::build_list_box(vec![])?;
+		for _ in 0..len {
+			list.push(Serializable::read(reader)?)?;
+		}
+		Ok(list)
+	}
+}
+
+impl<K, V> Serializable for Box<dyn Hashtable<K, V>>
+where
+	K: Serializable + Clone + Debug + PartialEq + Hash + 'static,
+	V: Serializable + Clone,
+{
+	fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
+		writer.write_usize(self.max_entries())?;
+		self.max_load_factor().write(writer)?;
+		let len = self.size();
+		writer.write_usize(len)?;
+		for (k, v) in self.iter() {
+			Serializable::write(&k, writer)?;
+			Serializable::write(&v, writer)?;
+		}
+		Ok(())
+	}
+	fn read<R: Reader>(reader: &mut R) -> Result<Self, Error> {
+		let max_entries = reader.read_usize()?;
+		let max_load_factor = f64::read(reader)?;
+		let len = reader.read_usize()?;
+		let mut hashtable = UtilBuilder::build_hashtable_box(vec![
+			MaxEntries(max_entries),
+			MaxLoadFactor(max_load_factor),
+		])?;
+		for _ in 0..len {
+			let k: K = Serializable::read(reader)?;
+			let v: V = Serializable::read(reader)?;
+			hashtable.insert(&k, &v)?;
+		}
+		Ok(hashtable)
+	}
+}
+
+impl<K> Serializable for Box<dyn Hashset<K>>
+where
+	K: Serializable + Clone + Debug + PartialEq + Hash + 'static,
+{
+	fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
+		writer.write_usize(self.max_entries())?;
+		self.max_load_factor().write(writer)?;
+		let len = self.size();
+		writer.write_usize(len)?;
+		for k in self.iter() {
+			Serializable::write(&k, writer)?;
+		}
+		Ok(())
+	}
+	fn read<R: Reader>(reader: &mut R) -> Result<Self, Error> {
+		let max_entries = reader.read_usize()?;
+		let max_load_factor = f64::read(reader)?;
+		let len = reader.read_usize()?;
+		let mut hashset = UtilBuilder::build_hashset_box(vec![
+			MaxEntries(max_entries),
+			MaxLoadFactor(max_load_factor),
+		])?;
+		for _ in 0..len {
+			let k: K = Serializable::read(reader)?;
+			hashset.insert(&k)?;
+		}
+		Ok(hashset)
 	}
 }
 
