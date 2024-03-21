@@ -230,3 +230,13 @@ macro_rules! map_err {
 		})
 	}};
 }
+
+/// Macro to do a conditional break
+#[macro_export]
+macro_rules! cbreak {
+	($cond:expr) => {{
+		if $cond {
+			break;
+		}
+	}};
+}

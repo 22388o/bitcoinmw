@@ -24,7 +24,7 @@ use crate::{
 use bmw_conf::ConfigOptionName as CN;
 use bmw_conf::{ConfigBuilder, ConfigOption};
 use bmw_deps::futures::executor::block_on;
-use bmw_err::{err, Error};
+use bmw_err::{cbreak, err, Error};
 use bmw_log::*;
 use std::any::Any;
 use std::future::Future;
@@ -60,44 +60,39 @@ where
 
 		if min_size == 0 || min_size > max_size {
 			let fmt = "min_size must be > 0 and <= max_size";
-			return Err(err!(ErrKind::Configuration, fmt));
-		}
-
-		if sync_channel_size == 0 {
+			Err(err!(ErrKind::Configuration, fmt))
+		} else if sync_channel_size == 0 {
 			let fmt = "sync_channel_size must be greater than 0";
-			return Err(err!(ErrKind::Configuration, fmt));
+			Err(err!(ErrKind::Configuration, fmt))
+		} else {
+			let config = ThreadPoolConfig {
+				min_size,
+				max_size,
+				sync_channel_size,
+			};
+
+			let waiting = 0;
+			let stop = false;
+			let tps = ThreadPoolState {
+				waiting,
+				cur_size: min_size,
+				config: config.clone(),
+				stop,
+			};
+			let state = UtilBuilder::build_lock_box(tps)?;
+
+			let rx = None;
+			let tx = None;
+
+			let ret = Self {
+				config,
+				tx,
+				rx,
+				state,
+				on_panic: None,
+			};
+			Ok(ret)
 		}
-
-		let config = ThreadPoolConfig {
-			min_size,
-			max_size,
-			sync_channel_size,
-		};
-
-		let waiting = 0;
-		let cur_size = min_size;
-		let config_clone = config.clone();
-		let stop = false;
-		let tps = ThreadPoolState {
-			waiting,
-			cur_size,
-			config,
-			stop,
-		};
-		let state = UtilBuilder::build_lock_box(tps)?;
-
-		let config = config_clone;
-		let rx = None;
-		let tx = None;
-
-		let ret = Self {
-			config,
-			tx,
-			rx,
-			state,
-			on_panic: None,
-		};
-		Ok(ret)
 	}
 
 	fn run_thread<R: 'static>(
@@ -176,28 +171,26 @@ where
 					}
 				});
 
-				match jh.join() {
-					Ok(_) => {
-						let mut state = state.wlock()?;
-						let guard = &mut **state.guard();
-						guard.cur_size = guard.cur_size.saturating_sub(1);
-						debug!("exiting a thread, ncur={}", guard.cur_size)?;
-						break;
-					} // reduce thread count so exit this one
-					Err(e) => match on_panic.as_mut() {
-						Some(on_panic) => {
-							debug!("found an onpanic")?;
-							let id = id_clone.rlock()?;
-							let guard = id.guard();
-							match on_panic(**guard, e) {
-								Ok(_) => {}
-								Err(e) => warn!("on_panic handler generated error: {}", e)?,
-							}
+				let res = jh.join();
+				if res.is_ok() {
+					let mut state = state.wlock()?;
+					let guard = &mut **state.guard();
+					guard.cur_size = guard.cur_size.saturating_sub(1);
+					debug!("exiting a thread, ncur={}", guard.cur_size)?;
+					cbreak!(true);
+				} else {
+					let e = res.unwrap_err();
+					if on_panic.is_some() {
+						let mut on_panic = on_panic.as_mut().unwrap();
+						debug!("found an onpanic")?;
+						let id = id_clone.rlock()?;
+						let guard = id.guard();
+						let res = on_panic(**guard, e);
+						if res.is_err() {
+							let e = res.unwrap_err();
+							warn!("on_panic handler generated error: {}", e)?;
 						}
-						None => {
-							debug!("no onpanic")?;
-						}
-					},
+					}
 				}
 			}
 			Ok(())
@@ -240,19 +233,20 @@ where
 		let rx = Arc::new(Mutex::new(rx));
 		self.rx = Some(rx.clone());
 		self.tx = Some(tx.clone());
+
 		for _ in 0..self.config.min_size {
 			Self::run_thread(rx.clone(), self.state.clone(), self.on_panic.clone())?;
 		}
 
+		let mut count = 0;
 		loop {
-			sleep(Duration::from_millis(1));
 			{
 				let state = self.state.rlock()?;
 				let guard = &**state.guard();
-				if guard.waiting == self.config.min_size {
-					break;
-				}
+				cbreak!(count > 0 && (guard.waiting == self.config.min_size));
 			}
+			sleep(Duration::from_millis(1));
+			count += 1;
 		}
 
 		Ok(())

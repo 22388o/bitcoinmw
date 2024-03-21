@@ -4724,6 +4724,34 @@ mod test {
 		assert_eq!(rlock!(panic_count_clone), 5);
 		assert_eq!(tp.size()?, 2);
 
+		tp.executor()?.execute(async move { Ok(()) }, 0)?;
+
+		Ok(())
+	}
+
+	fn build_tp(min: usize, max: usize, sync: usize) -> Result<(), Error> {
+		let mut tp = thread_pool!(MinSize(min), MaxSize(max), SyncChannelSize(sync))?;
+		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
+		tp.start()?;
+
+		execute!(tp, {
+			info!("in execute")?;
+			Ok(())
+		})?;
+
+		assert!(tp.stopper().is_ok());
+		assert!(tp.stopper()?.stop().is_ok());
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_threadpool_bad_configs() -> Result<(), Error> {
+		assert!(build_tp(1, 1, 1).is_ok());
+		assert!(build_tp(1, 1, 0).is_err());
+		assert!(build_tp(0, 1, 1).is_err());
+		assert!(build_tp(1, 0, 1).is_err());
+		assert!(build_tp(2, 1, 1).is_err());
 		Ok(())
 	}
 }
