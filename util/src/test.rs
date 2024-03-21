@@ -4729,6 +4729,36 @@ mod test {
 		Ok(())
 	}
 
+	#[test]
+	fn test_panic_id() -> Result<(), Error> {
+		let (tx, rx) = sync_channel(1);
+		let mut tp = thread_pool!()?;
+		tp.set_on_panic(move |id, e| -> Result<(), Error> {
+			let e_as_str = e.downcast_ref::<&str>().unwrap();
+			assert_eq!(e_as_str, &"67890");
+			assert_eq!(id, 12345);
+			info!("id={},e={}", id, e_as_str)?;
+
+			tx.send(())?;
+
+			Ok(())
+		})?;
+		tp.start()?;
+
+		tp.executor()?.execute(
+			async move {
+				if true {
+					panic!("67890");
+				}
+				Ok(())
+			},
+			12345,
+		)?;
+
+		rx.recv()?;
+		Ok(())
+	}
+
 	fn build_tp(min: usize, max: usize, sync: usize) -> Result<(), Error> {
 		let mut tp = thread_pool!(MinSize(min), MaxSize(max), SyncChannelSize(sync))?;
 		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
