@@ -766,6 +766,7 @@ where
 		Ok(())
 	}
 
+	#[allow(while_true)]
 	fn clear_impl(&mut self) -> Result<(), Error> {
 		let mut cur = self.tail;
 
