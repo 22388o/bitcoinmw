@@ -1502,6 +1502,36 @@
 <a href="#1501" id="1501">1501</a>
 <a href="#1502" id="1502">1502</a>
 <a href="#1503" id="1503">1503</a>
+<a href="#1504" id="1504">1504</a>
+<a href="#1505" id="1505">1505</a>
+<a href="#1506" id="1506">1506</a>
+<a href="#1507" id="1507">1507</a>
+<a href="#1508" id="1508">1508</a>
+<a href="#1509" id="1509">1509</a>
+<a href="#1510" id="1510">1510</a>
+<a href="#1511" id="1511">1511</a>
+<a href="#1512" id="1512">1512</a>
+<a href="#1513" id="1513">1513</a>
+<a href="#1514" id="1514">1514</a>
+<a href="#1515" id="1515">1515</a>
+<a href="#1516" id="1516">1516</a>
+<a href="#1517" id="1517">1517</a>
+<a href="#1518" id="1518">1518</a>
+<a href="#1519" id="1519">1519</a>
+<a href="#1520" id="1520">1520</a>
+<a href="#1521" id="1521">1521</a>
+<a href="#1522" id="1522">1522</a>
+<a href="#1523" id="1523">1523</a>
+<a href="#1524" id="1524">1524</a>
+<a href="#1525" id="1525">1525</a>
+<a href="#1526" id="1526">1526</a>
+<a href="#1527" id="1527">1527</a>
+<a href="#1528" id="1528">1528</a>
+<a href="#1529" id="1529">1529</a>
+<a href="#1530" id="1530">1530</a>
+<a href="#1531" id="1531">1531</a>
+<a href="#1532" id="1532">1532</a>
+<a href="#1533" id="1533">1533</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2970,6 +3000,36 @@
 }
 
 <span class="doccomment">/// Macro used to configure/build a thread pool. See [`crate::ThreadPool`] for working examples.
+///
+/// # Examples
+///
+///```
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_test::*;
+/// use bmw_util::*;
+///
+/// info!();
+///
+/// fn test_thread_pool_macro() -&gt; Result&lt;(), Error&gt; {
+///     info!("testing thread_pool macro")?;
+///
+///     let mut tp = thread_pool!(MinSize(4))?;
+///     tp.set_on_panic(move |id, e| -&gt; Result&lt;(), Error&gt; {
+///         info!("PANIC: id={},e={:?}", id, e)?;
+///         Ok(())
+///     })?;
+///
+///     tp.start()?;
+///
+///     execute!(tp, {
+///          info!("executing a thread")?;
+///          Ok(())
+///     })?;
+///
+///     Ok(())
+/// }
+///```
 </span><span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>thread_pool {
         ( $( <span class="macro-nonterminal">$match_items</span>:tt)* ) =&gt; {{
