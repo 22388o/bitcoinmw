@@ -4839,4 +4839,45 @@ mod test {
 		})?;
 		Ok(())
 	}
+
+	#[test]
+	fn test_patterns() -> Result<(), Error> {
+		assert!(Pattern::new(vec![
+			Regex("test".to_string()),
+			PatternId(0),
+			IsCaseSensitive(true),
+			IsTerminationPattern(true)
+		])
+		.is_err());
+
+		let pattern1 = pattern!(
+			Regex("test1".to_string()),
+			PatternId(random()),
+			IsCaseSensitive(false),
+			IsTerminationPattern(false),
+			IsMultiLine(false)
+		)?;
+		let pattern2 = pattern!(
+			Regex("test2".to_string()),
+			PatternId(random()),
+			IsCaseSensitive(true)
+		)?;
+		let pattern3 = pattern!(
+			Regex("test3".to_string()),
+			PatternId(random()),
+			IsMultiLine(true)
+		)?;
+		let pattern4 = pattern!(
+			Regex("test4".to_string()),
+			PatternId(random()),
+			IsTerminationPattern(true)
+		)?;
+
+		ser_helper(pattern1)?;
+		ser_helper(pattern2)?;
+		ser_helper(pattern3)?;
+		ser_helper(pattern4)?;
+
+		Ok(())
+	}
 }

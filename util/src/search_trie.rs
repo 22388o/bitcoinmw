@@ -358,9 +358,9 @@ impl Match {
 	pub(crate) fn new(configs: Vec<ConfigOption>) -> Result<Self, Error> {
 		let config = ConfigBuilder::build_config(configs);
 		config.check_config(vec![CN::Start, CN::End, CN::MatchId], vec![])?;
-		let start = Self::get_option(CN::Start, &config, 0);
-		let end = Self::get_option(CN::End, &config, 0);
-		let id = Self::get_option(CN::MatchId, &config, 0);
+		let start = config.get_or_usize(&CN::Start, 0);
+		let end = config.get_or_usize(&CN::End, 0);
+		let id = config.get_or_usize(&CN::MatchId, 0);
 		Ok(Self { start, end, id })
 	}
 	pub fn start(&self) -> usize {
@@ -381,18 +381,6 @@ impl Match {
 	pub(crate) fn set_id(&mut self, id: usize) {
 		self.id = id;
 	}
-
-	fn get_option(option: CN, config: &Box<dyn Config>, default: usize) -> usize {
-		match config.get(&option) {
-			Some(v) => match v {
-				ConfigOption::Start(v) => v,
-				ConfigOption::End(v) => v,
-				ConfigOption::MatchId(v) => v,
-				_ => default,
-			},
-			None => default,
-		}
-	}
 }
 
 impl Pattern {
@@ -408,29 +396,16 @@ impl Pattern {
 			],
 			vec![CN::Regex, CN::PatternId],
 		)?;
-		let regex = match config.get(&CN::Regex) {
-			Some(v) => match v {
-				ConfigOption::Regex(v) => v,
-				_ => "".to_string(),
-			},
-			None => "".to_string(),
-		};
-		let id = match config.get(&CN::PatternId) {
-			Some(v) => match v {
-				ConfigOption::PatternId(v) => v,
-				_ => 0,
-			},
-			None => 0,
-		};
-		let is_termination_pattern = Self::get_option(CN::IsTerminationPattern, &config, false);
-		let is_case_sensitive = Self::get_option(CN::IsCaseSensitive, &config, false);
-		let is_multi_line = Self::get_option(CN::IsMultiLine, &config, true);
+
+		let regex = config.get_or_string(&CN::Regex, "".to_string());
+		let id = config.get_or_usize(&CN::PatternId, 0);
+		let is_termination_pattern = config.get_or_bool(&CN::IsTerminationPattern, false);
+		let is_case_sensitive = config.get_or_bool(&CN::IsCaseSensitive, false);
+		let is_multi_line = config.get_or_bool(&CN::IsMultiLine, true);
 
 		if is_termination_pattern && is_case_sensitive {
-			return Err(err!(
-				ErrKind::IllegalArgument,
-				"Patterns may not be both a termination pattern and case sensitive"
-			));
+			let tx = "Patterns may not be both a termination pattern and case sensitive";
+			return Err(err!(ErrKind::IllegalArgument, tx));
 		}
 		Ok(Self {
 			regex,
@@ -452,35 +427,14 @@ impl Pattern {
 	pub fn id(&self) -> usize {
 		self.id
 	}
-
-	fn get_option(option: CN, config: &Box<dyn Config>, default: bool) -> bool {
-		match config.get(&option) {
-			Some(v) => match v {
-				ConfigOption::IsCaseSensitive(v) => v,
-				ConfigOption::IsMultiLine(v) => v,
-				ConfigOption::IsTerminationPattern(v) => v,
-				_ => default,
-			},
-			None => default,
-		}
-	}
 }
 
 impl Serializable for Pattern {
 	fn read<R: Reader>(reader: &mut R) -> Result<Self, Error> {
 		let regex = String::read(reader)?;
-		let is_case_sensitive = match reader.read_u8()? {
-			0 => false,
-			_ => true,
-		};
-		let is_termination_pattern = match reader.read_u8()? {
-			0 => false,
-			_ => true,
-		};
-		let is_multi_line = match reader.read_u8()? {
-			0 => false,
-			_ => true,
-		};
+		let is_case_sensitive = if reader.read_u8()? == 0 { false } else { true };
+		let is_termination_pattern = if reader.read_u8()? == 0 { false } else { true };
+		let is_multi_line = if reader.read_u8()? == 0 { false } else { true };
 		let id = reader.read_usize()?;
 
 		let ret = Self {
