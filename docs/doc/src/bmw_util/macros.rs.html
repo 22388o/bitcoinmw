@@ -1496,6 +1496,11 @@
 <a href="#1495" id="1495">1495</a>
 <a href="#1496" id="1496">1496</a>
 <a href="#1497" id="1497">1497</a>
+<a href="#1498" id="1498">1498</a>
+<a href="#1499" id="1499">1499</a>
+<a href="#1500" id="1500">1500</a>
+<a href="#1501" id="1501">1501</a>
+<a href="#1502" id="1502">1502</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1757,7 +1762,8 @@
 </span><span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>slab_allocator {
 ( $( <span class="macro-nonterminal">$config</span>:expr ),* ) =&gt; {{
-            <span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
+            <span class="attr">#[allow(unused_imports)]
+            </span><span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
             <span class="kw">let </span><span class="kw-2">mut </span>slabs = bmw_util::UtilBuilder::build_sync_slabs();
             <span class="kw">let </span><span class="kw-2">mut </span>config = bmw_util::SlabAllocatorConfig::default();
             <span class="kw">let </span><span class="kw-2">mut </span>error: <span class="prelude-ty">Option</span>&lt;String&gt; = <span class="prelude-val">None</span>;
@@ -2642,7 +2648,8 @@
     ( $( <span class="macro-nonterminal">$x</span>:expr ),* ) =&gt; {
         {
             <span class="kw">use </span>bmw_util::List;
-            <span class="kw">let </span><span class="kw-2">mut </span>temp_list = bmw_util::UtilBuilder::build_list(<span class="macro">vec!</span>[])<span class="question-mark">?</span>;
+            <span class="attr">#[allow(unused_mut)]
+            </span><span class="kw">let </span><span class="kw-2">mut </span>temp_list = bmw_util::UtilBuilder::build_list(<span class="macro">vec!</span>[])<span class="question-mark">?</span>;
             $(
                 temp_list.push(<span class="macro-nonterminal">$x</span>)<span class="question-mark">?</span>;
             )*
@@ -2657,7 +2664,8 @@
 </span><span class="macro">macro_rules! </span>list_box {
     ( $( <span class="macro-nonterminal">$x</span>:expr ),* ) =&gt; {
         {
-            <span class="kw">let </span><span class="kw-2">mut </span>temp_list = bmw_util::UtilBuilder::build_list_box(<span class="macro">vec!</span>[])<span class="question-mark">?</span>;
+            <span class="attr">#[allow(unused_mut)]
+            </span><span class="kw">let </span><span class="kw-2">mut </span>temp_list = bmw_util::UtilBuilder::build_list_box(<span class="macro">vec!</span>[])<span class="question-mark">?</span>;
             $(
                 temp_list.push(<span class="macro-nonterminal">$x</span>)<span class="question-mark">?</span>;
             )*
@@ -2674,7 +2682,8 @@
 </span><span class="macro">macro_rules! </span>list_sync {
     ( $( <span class="macro-nonterminal">$x</span>:expr ),* ) =&gt; {
         {
-            <span class="kw">let </span><span class="kw-2">mut </span>temp_list = bmw_util::UtilBuilder::build_list_sync(<span class="macro">vec!</span>[])<span class="question-mark">?</span>;
+            <span class="attr">#[allow(unused_mut)]
+            </span><span class="kw">let </span><span class="kw-2">mut </span>temp_list = bmw_util::UtilBuilder::build_list_sync(<span class="macro">vec!</span>[])<span class="question-mark">?</span>;
             $(
                 temp_list.push(<span class="macro-nonterminal">$x</span>)<span class="question-mark">?</span>;
             )*
@@ -2688,7 +2697,8 @@
 </span><span class="macro">macro_rules! </span>list_sync_box {
     ( $( <span class="macro-nonterminal">$x</span>:expr ),* ) =&gt; {
         {
-            <span class="kw">let </span><span class="kw-2">mut </span>temp_list = bmw_util::UtilBuilder::build_list_sync_box(<span class="macro">vec!</span>[])<span class="question-mark">?</span>;
+            <span class="attr">#[allow(unused_mut)]
+            </span><span class="kw">let </span><span class="kw-2">mut </span>temp_list = bmw_util::UtilBuilder::build_list_sync_box(<span class="macro">vec!</span>[])<span class="question-mark">?</span>;
             $(
                 temp_list.push(<span class="macro-nonterminal">$x</span>)<span class="question-mark">?</span>;
             )*
