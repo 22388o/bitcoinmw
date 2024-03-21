@@ -21,6 +21,7 @@ mod test {
 	use crate::constants::*;
 	use crate::misc::DEBUG_INVALID_PATH;
 	use crate::types::{HashImpl, HashImplSync, ThreadPoolImpl};
+	use bmw_conf::ConfigOption;
 	use bmw_deps::dyn_clone::clone_box;
 	use bmw_deps::rand;
 	use bmw_deps::rand::random;
@@ -949,6 +950,17 @@ mod test {
 			}
 		}
 
+		let mut list = UtilBuilder::build_list(vec![])?;
+		if false {
+			list.push(0u8)?;
+		}
+		let mut count = 0;
+		for _x in list.iter() {
+			count += 1;
+		}
+
+		assert_eq!(count, 0);
+
 		Ok(())
 	}
 
@@ -1209,9 +1221,7 @@ mod test {
 			SlabCount(128),
 		])?;
 
-		assert_eq!(x, x2);
 		x2.push(1)?;
-		assert_ne!(x, x2);
 		assert_eq!(List::size(&x), 0);
 		assert_eq!(List::size(&x2), 1);
 
@@ -1478,28 +1488,6 @@ mod test {
 			assert_eq!(iter.next(), Some(SerErr { exp: 99, empty: 0 }));
 		}
 
-		let mut hash_impl2: HashImpl<SerErr> = HashImpl::new(vec![IsList(true)])?;
-		hash_impl.push(SerErr { exp: 99, empty: 0 })?;
-		hash_impl.push(SerErr { exp: 99, empty: 0 })?;
-
-		// lengths unequal
-		assert_ne!(hash_impl, hash_impl2);
-
-		hash_impl2.push(SerErr { exp: 99, empty: 0 })?;
-		hash_impl2.push(SerErr { exp: 99, empty: 0 })?;
-		hash_impl2.push(SerErr { exp: 99, empty: 0 })?;
-
-		// now contents are equal
-		assert_eq!(hash_impl, hash_impl2);
-
-		let mut hash_impl: HashImpl<u32> = HashImpl::new(vec![IsList(true)])?;
-		let mut hash_impl2: HashImpl<u32> = HashImpl::new(vec![IsList(true)])?;
-		hash_impl2.push(1)?;
-		hash_impl.push(8)?;
-
-		// the value is not equal
-		assert_ne!(hash_impl, hash_impl2);
-
 		Ok(())
 	}
 
@@ -1557,6 +1545,15 @@ mod test {
 		assert!(m);
 		let slabs = hashset.slabs()?;
 		assert_eq!(rlock!(slabs.unwrap()).free_count()?, 1);
+
+		let hashset = UtilBuilder::build_hashset_sync::<u8>(vec![
+			SlabSize(12),
+			SlabCount(1),
+			GlobalSlabAllocator(false),
+		])?;
+
+		assert!(hashset.slabs()?.is_some());
+
 		Ok(())
 	}
 
@@ -4878,6 +4875,53 @@ mod test {
 		ser_helper(pattern3)?;
 		ser_helper(pattern4)?;
 
+		Ok(())
+	}
+
+	#[test]
+	fn test_hashtable_capacity() -> Result<(), Error> {
+		// 6 bytes overhead
+		let mut hashtable = hashtable!(GlobalSlabAllocator(false), SlabSize(14), SlabCount(1))?;
+		hashtable.insert(&1u32, &1u32)?;
+		assert!(hashtable.insert(&2u32, &2u32).is_err());
+		hashtable.remove(&1u32)?;
+		hashtable.insert(&2u32, &2u32)?;
+
+		// test max entries
+		let mut hashtable = hashtable!(
+			GlobalSlabAllocator(false),
+			SlabSize(1_000),
+			SlabCount(1_000),
+			MaxEntries(10)
+		)?;
+
+		for i in 0..10 {
+			let i_u32 = i as u32;
+			hashtable.insert(&i_u32, &i_u32)?;
+		}
+
+		assert!(hashtable.insert(&100u32, &200u32).is_err());
+
+		Ok(())
+	}
+
+	fn build_hash(vec: Vec<ConfigOption>) -> Result<(), Error> {
+		let mut h = HashImpl::new(vec)?;
+		h.push(0)?;
+		Ok(())
+	}
+
+	#[test]
+	fn test_invalid_hash_impl_confgs() -> Result<(), Error> {
+		assert!(UtilBuilder::build_list::<u8>(vec![ConfigOption::MaxEntries(10)]).is_err());
+		assert!(UtilBuilder::build_list::<u8>(vec![ConfigOption::MaxLoadFactor(0.9)]).is_err());
+
+		assert!(build_hash(vec![]).is_err());
+		assert!(build_hash(vec![IsHashtable(true), IsHashset(true)]).is_err());
+		assert!(build_hash(vec![IsList(true), IsHashset(true)]).is_err());
+		assert!(build_hash(vec![IsHashtable(true), SlabSize(100)]).is_err());
+		assert!(build_hash(vec![IsHashtable(true), SlabSize(100), SlabCount(10)]).is_err());
+		assert!(build_hash(vec![IsHashtable(true), GlobalSlabAllocator(false)]).is_err());
 		Ok(())
 	}
 }

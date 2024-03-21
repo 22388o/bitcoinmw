@@ -23,7 +23,8 @@ use crate::{
 	ListConfig, ListIterator, LockBox, SlabAllocator, SlabAllocatorConfig, SlabReader, SlabWriter,
 	SortableList, UtilBuilder, GLOBAL_SLAB_ALLOCATOR,
 };
-use bmw_conf::*;
+use bmw_conf::ConfigOptionName as CN;
+use bmw_conf::{ConfigBuilder, ConfigOption};
 use bmw_err::*;
 use bmw_log::*;
 use bmw_ser::{Reader, Serializable, Writer};
@@ -88,55 +89,31 @@ where
 	type Item = V;
 
 	fn next(&mut self) -> Option<<Self as Iterator>::Item> {
-		match self.linked_list_ref {
-			Some(list) => {
-				let mut slab_reader = self.slab_reader.as_mut().unwrap();
-				// linked list
-				if list.size == 0 {
-					return None;
-				}
-				let slot = self.cur;
-				match list.get_next_slot(&mut self.cur, self.direction, &mut slab_reader) {
-					Ok(ret) => {
-						if ret {
-							// seek the location in the list for this
-							// slot
-							slab_reader.seek(slot, list.ptr_size * 2);
-							match V::read(slab_reader) {
-								Ok(v) => Some(v),
-								Err(e) => {
-									let _ = warn!("deserialization generated error: {}", e);
-									None
-								}
-							}
-						} else {
+		let list = self.linked_list_ref;
+		if list.size == 0 {
+			return None;
+		}
+		let slot = self.cur;
+		match list.get_next_slot(&mut self.cur, self.direction, &mut self.slab_reader) {
+			Ok(ret) => {
+				if ret {
+					// seek the location in the list for this
+					// slot
+					self.slab_reader.seek(slot, list.ptr_size * 2);
+					match V::read(&mut self.slab_reader) {
+						Ok(v) => Some(v),
+						Err(e) => {
+							let _ = warn!("deserialization generated error: {}", e);
 							None
 						}
 					}
-					Err(e) => {
-						let _ = warn!("get_next_slot generated error: {}", e);
-						None
-					}
+				} else {
+					None
 				}
 			}
-			None => {
-				// array list
-				let array_list_ref = self.array_list_ref.unwrap();
-				if array_list_ref.size == 0 {
-					None
-				} else if self.direction == Direction::Forward && self.cur >= array_list_ref.size {
-					None
-				} else if self.direction == Direction::Backward && self.cur <= 0 {
-					None
-				} else {
-					let ret = Some(array_list_ref.inner[self.cur].clone());
-					if self.direction == Direction::Forward {
-						self.cur += 1;
-					} else {
-						self.cur = self.cur.saturating_sub(1);
-					}
-					ret
-				}
+			Err(e) => {
+				let _ = warn!("get_next_slot generated error: {}", e);
+				None
 			}
 		}
 	}
@@ -173,15 +150,14 @@ impl<'a, V> ListIterator<'a, V>
 where
 	V: Serializable + Clone,
 {
-	fn new(list: &'a HashImpl<V>, cur: usize, direction: Direction) -> Self {
+	fn new(linked_list_ref: &'a HashImpl<V>, cur: usize, direction: Direction) -> Self {
 		let _ = debug!("new list iter");
 		Self {
-			linked_list_ref: Some(list),
+			linked_list_ref,
 			cur,
 			direction,
 			_phantom_data: PhantomData,
-			slab_reader: Some(list.slab_reader.clone()),
-			array_list_ref: None,
+			slab_reader: linked_list_ref.slab_reader.clone(),
 		}
 	}
 }
@@ -207,32 +183,6 @@ impl Default for HashsetConfig {
 impl Default for ListConfig {
 	fn default() -> Self {
 		Self {}
-	}
-}
-
-impl<K> PartialEq for HashImpl<K>
-where
-	K: Serializable + PartialEq + Clone + Debug,
-{
-	fn eq(&self, rhs: &Self) -> bool {
-		if self.size != rhs.size {
-			false
-		} else {
-			let mut itt1 = ListIterator::new(self, self.head, Direction::Forward);
-			let mut itt2 = ListIterator::new(rhs, rhs.head, Direction::Forward);
-			loop {
-				let next1 = itt1.next();
-				let next2 = itt2.next();
-				if next1 != next2 {
-					return false;
-				}
-				if next1 == None {
-					break;
-				}
-			}
-
-			true
-		}
 	}
 }
 
@@ -334,15 +284,6 @@ where
 		V: Ord,
 	{
 		self.static_impl.sort_unstable()
-	}
-}
-
-impl<K> PartialEq for HashImplSync<K>
-where
-	K: Serializable + PartialEq + Clone + Debug,
-{
-	fn eq(&self, rhs: &Self) -> bool {
-		self.static_impl == rhs.static_impl
 	}
 }
 
@@ -542,6 +483,26 @@ where
 	}
 }
 
+struct SaInfo {
+	slab_size: usize,
+	slab_count: usize,
+	slabs: Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>,
+}
+
+impl SaInfo {
+	fn new(
+		slab_size: usize,
+		slab_count: usize,
+		slabs: Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>,
+	) -> Self {
+		Self {
+			slab_size,
+			slab_count,
+			slabs,
+		}
+	}
+}
+
 impl<K> HashImpl<K>
 where
 	K: Serializable + Clone,
@@ -551,137 +512,109 @@ where
 		let config = ConfigBuilder::build_config(configs);
 		config.check_config(
 			vec![
-				ConfigOptionName::IsHashtable,
-				ConfigOptionName::IsHashset,
-				ConfigOptionName::IsList,
-				ConfigOptionName::SlabSize,
-				ConfigOptionName::SlabCount,
-				ConfigOptionName::MaxEntries,
-				ConfigOptionName::MaxLoadFactor,
-				ConfigOptionName::DebugLargeSlabCount,
-				ConfigOptionName::GlobalSlabAllocator,
+				CN::IsHashtable,
+				CN::IsHashset,
+				CN::IsList,
+				CN::SlabSize,
+				CN::SlabCount,
+				CN::MaxEntries,
+				CN::MaxLoadFactor,
+				CN::DebugLargeSlabCount,
+				CN::GlobalSlabAllocator,
 			],
 			vec![],
 		)?;
 
-		let is_hashtable = config.get_or_bool(&ConfigOptionName::IsHashtable, false);
-		let is_hashset = config.get_or_bool(&ConfigOptionName::IsHashset, false);
-		let is_list = config.get_or_bool(&ConfigOptionName::IsList, false);
-		let is_global_slab_allocator =
-			config.get_or_bool(&ConfigOptionName::GlobalSlabAllocator, true);
-		let debug_large_slab_count =
-			config.get_or_bool(&ConfigOptionName::DebugLargeSlabCount, false);
+		let is_hashtable = config.get_or_bool(&CN::IsHashtable, false);
+		let is_hashset = config.get_or_bool(&CN::IsHashset, false);
+		let is_list = config.get_or_bool(&CN::IsList, false);
+		let is_global_slab_allocator = config.get_or_bool(&CN::GlobalSlabAllocator, true);
+		let debug_large_slab_count = config.get_or_bool(&CN::DebugLargeSlabCount, false);
 
-		let max_entries =
-			config.get_or_usize(&ConfigOptionName::MaxEntries, HASH_DEFAULT_MAX_ENTRIES);
-		let max_load_factor = config.get_or_f64(
-			&ConfigOptionName::MaxLoadFactor,
-			HASH_DEFAULT_MAX_LOAD_FACTOR,
-		);
+		let max_entries = config.get_or_usize(&CN::MaxEntries, HASH_DEFAULT_MAX_ENTRIES);
+		let max_load_factor = config.get_or_f64(&CN::MaxLoadFactor, HASH_DEFAULT_MAX_LOAD_FACTOR);
 
-		let slab_size = config.get_or_usize(&ConfigOptionName::SlabSize, HASH_DEFAULT_SLAB_SIZE);
-		let slab_count = config.get_or_usize(&ConfigOptionName::SlabCount, HASH_DEFAULT_SLAB_COUNT);
+		let slab_size = config.get_or_usize(&CN::SlabSize, HASH_DEFAULT_SLAB_SIZE);
+		let slab_count = config.get_or_usize(&CN::SlabCount, HASH_DEFAULT_SLAB_COUNT);
 
-		let max_entries_specified = config.get(&ConfigOptionName::MaxEntries).is_some();
-		let max_load_factor_specified = config.get(&ConfigOptionName::MaxLoadFactor).is_some();
-		let slab_size_specified = config.get(&ConfigOptionName::SlabSize).is_some();
-		let slab_count_specified = config.get(&ConfigOptionName::SlabCount).is_some();
+		let max_entries_specified = config.get(&CN::MaxEntries).is_some();
+		let max_load_factor_specified = config.get(&CN::MaxLoadFactor).is_some();
+		let slab_size_specified = config.get(&CN::SlabSize).is_some();
+		let slab_count_specified = config.get(&CN::SlabCount).is_some();
 
 		if is_list && max_entries_specified {
-			return Err(err!(
-				ErrKind::Configuration,
-				"MaxEntries not valid for a list",
-			));
+			let text = "MaxEntries not valid for a list";
+			return Err(err!(ErrKind::Configuration, text));
 		}
 
 		if is_list && max_load_factor_specified {
-			return Err(err!(
-				ErrKind::Configuration,
-				"MaxLoadFactor not valid for a list",
-			));
+			let text = "MaxLoadFactor not valid for a list";
+			return Err(err!(ErrKind::Configuration, text));
 		}
 
 		if !is_hashtable && !is_hashset && !is_list {
-			return Err(err!(
-				ErrKind::Configuration,
-				"exactly one of IsHashtable, IsHashset, and IsList must be specified"
-			));
+			let text = "exactly one of IsHashtable, IsHashset, and IsList must be specified";
+			return Err(err!(ErrKind::Configuration, text));
 		}
 
 		if is_hashtable && (is_hashset || is_list) {
-			return Err(err!(
-				ErrKind::Configuration,
-				"exactly one of IsHashtable, IsHashset, and IsList must be specified"
-			));
+			let text = "exactly one of IsHashtable, IsHashset, and IsList must be specified";
+			return Err(err!(ErrKind::Configuration, text));
 		}
 
 		if is_hashset && (is_hashtable || is_list) {
-			return Err(err!(
-				ErrKind::Configuration,
-				"exactly one of IsHashtable, IsHashset, and IsList must be specified"
-			));
+			let text = "exactly one of IsHashtable, IsHashset, and IsList must be specified";
+			return Err(err!(ErrKind::Configuration, text));
 		}
 
 		if (slab_count_specified && !slab_size_specified)
 			|| (slab_size_specified && !slab_count_specified)
 		{
-			return Err(err!(
-				ErrKind::Configuration,
-				"Either both or neither SlabSize and SlabCount must be specified"
-			));
+			let text = "Either both or neither SlabSize/SlabCount must be specified";
+			return Err(err!(ErrKind::Configuration, text));
 		}
 
 		if is_global_slab_allocator && slab_size_specified {
-			return Err(err!(
-				ErrKind::Configuration,
-				"If GlobalSlabAllocator is true, SlabSize and SlabCount must not be specified"
-			));
+			let text = "If GlobalSlabAllocator is true, SlabSize/SlabCount must not be specified";
+			return Err(err!(ErrKind::Configuration, text));
 		}
 
 		if !is_global_slab_allocator && !slab_size_specified {
-			return Err(err!(
-				ErrKind::Configuration,
-				"If GlobalSlabAllocator is false, SlabSize and SlabCount must be specified"
-			));
+			let text = "If GlobalSlabAllocator is false, SlabSize/SlabCount must be specified";
+			return Err(err!(ErrKind::Configuration, text));
 		}
 
-		let (slab_size, slab_count, slabs) = match slab_size_specified {
-			true => {
-				let mut slabs = UtilBuilder::build_sync_slabs();
-				slabs.init(SlabAllocatorConfig {
-					slab_size,
-					slab_count,
-				})?;
-				let slabs_ret = UtilBuilder::build_lock_box(slabs)?;
-				(slab_size, slab_count, Some(slabs_ret))
-			}
-			false => GLOBAL_SLAB_ALLOCATOR.with(
-				|f| -> Result<
-					(
-						usize,
-						usize,
-						Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>,
-					),
-					Error,
-				> {
-					let slabs = unsafe { f.get().as_mut().unwrap() };
-					let slab_size = match slabs.is_init() {
-						true => slabs.slab_size()?,
-						false => {
-							let th = thread::current();
-							let n = th.name().unwrap_or("unknown");
-							let m1 = "Slab allocator was not initialized for thread";
-							let m2 = "Initializing with default values.";
-							warn!("WARN: {} '{}'. {}", m1, n, m2)?;
-							slabs.init(SlabAllocatorConfig::default())?;
-							slabs.slab_size()?
-						}
-					};
-					let slab_count = slabs.slab_count()?;
-					Ok((slab_size, slab_count, None))
-				},
-			)?,
+		let sa = if slab_size_specified {
+			let mut slabs = UtilBuilder::build_sync_slabs();
+			let sc = SlabAllocatorConfig {
+				slab_size,
+				slab_count,
+			};
+			slabs.init(sc)?;
+			let slabs_ret = UtilBuilder::build_lock_box(slabs)?;
+			SaInfo::new(slab_size, slab_count, Some(slabs_ret))
+		} else {
+			GLOBAL_SLAB_ALLOCATOR.with(|f| -> Result<SaInfo, Error> {
+				let slabs = unsafe { f.get().as_mut().unwrap() };
+				let slab_size = if slabs.is_init() {
+					slabs.slab_size()?
+				} else {
+					let th = thread::current();
+					let n = th.name().unwrap_or("unknown");
+					let m1 = "Slab allocator was not initialized for thread";
+					let m2 = "Initializing with default values.";
+					warn!("WARN: {} '{}'. {}", m1, n, m2)?;
+					slabs.init(SlabAllocatorConfig::default())?;
+					slabs.slab_size()?
+				};
+				let slab_count = slabs.slab_count()?;
+				Ok(SaInfo::new(slab_size, slab_count, None))
+			})?
 		};
+
+		let slab_size = sa.slab_size;
+		let slab_count = sa.slab_count;
+		let slabs = sa.slabs;
 
 		if slab_size > 256 * 256 {
 			let fmt = "slab_size must be equal to or less than 65,536";
@@ -706,36 +639,29 @@ where
 			return Err(e);
 		}
 
-		let (entry_array, ptr_size) = match is_list {
-			true => {
-				let mut x = slab_count;
-				let mut ptr_size = 0;
-				loop {
-					if x == 0 {
-						break;
-					}
-					x >>= 8;
-					ptr_size += 1;
-				}
-				debug!("ptr_size={}", ptr_size)?;
-				(None, ptr_size)
+		let (entry_array, ptr_size) = if is_list {
+			let mut x = slab_count;
+			let mut ptr_size = 0;
+			loop {
+				cbreak!(x == 0);
+				x >>= 8;
+				ptr_size += 1;
 			}
-			false => {
-				let size: usize = (max_entries as f64 / max_load_factor).ceil() as usize;
-				let entry_array = UtilBuilder::build_array(size, &SLOT_EMPTY)?;
-				debug!("entry array init to size = {}", size)?;
-				let mut x = entry_array.size() + 2; // two more, one for deleted and one for empty
-				let mut ptr_size = 0;
-				loop {
-					if x == 0 {
-						break;
-					}
-					x >>= 8;
-					ptr_size += 1;
-				}
-				debug!("ptr_size={}", ptr_size)?;
-				(Some(entry_array), ptr_size)
+			debug!("ptr_size={}", ptr_size)?;
+			(None, ptr_size)
+		} else {
+			let size: usize = (max_entries as f64 / max_load_factor).ceil() as usize;
+			let entry_array = UtilBuilder::build_array(size, &SLOT_EMPTY)?;
+			debug!("entry array init to size = {}", size)?;
+			let mut x = entry_array.size() + 2; // two more, one for deleted and one for empty
+			let mut ptr_size = 0;
+			loop {
+				cbreak!(x == 0);
+				x >>= 8;
+				ptr_size += 1;
 			}
+			debug!("ptr_size={}", ptr_size)?;
+			(Some(entry_array), ptr_size)
 		};
 		let mut ptr = [0u8; 8];
 		set_max(&mut ptr[0..ptr_size]);
@@ -820,17 +746,14 @@ where
 		let mut ptrs = [0u8; 8];
 		let ptr_size = self.ptr_size;
 
-		*cur = match direction {
-			Direction::Backward => {
-				reader.seek(slot, ptr_size);
-				reader.read_fixed_bytes(&mut ptrs[0..ptr_size])?;
-				slice_to_usize(&ptrs[0..ptr_size])?
-			}
-			Direction::Forward => {
-				reader.seek(slot, 0);
-				reader.read_fixed_bytes(&mut ptrs[0..ptr_size])?;
-				slice_to_usize(&ptrs[0..ptr_size])?
-			}
+		*cur = if direction == Direction::Backward {
+			reader.seek(slot, ptr_size);
+			reader.read_fixed_bytes(&mut ptrs[0..ptr_size])?;
+			slice_to_usize(&ptrs[0..ptr_size])?
+		} else {
+			reader.seek(slot, 0);
+			reader.read_fixed_bytes(&mut ptrs[0..ptr_size])?;
+			slice_to_usize(&ptrs[0..ptr_size])?
 		};
 		debug!("read cur = {}", cur)?;
 		Ok(true)
@@ -845,33 +768,27 @@ where
 
 	fn clear_impl(&mut self) -> Result<(), Error> {
 		let mut cur = self.tail;
-		loop {
-			if cur == SLOT_EMPTY || cur == SLOT_DELETED {
-				break;
-			}
 
-			if self.entry_array.is_none() && cur >= self.max_value {
-				break;
-			}
+		while true {
+			cbreak!(cur == SLOT_EMPTY || cur == SLOT_DELETED);
+			cbreak!(self.entry_array.is_none() && cur >= self.max_value);
 			debug!("clear impl cur={}", cur)?;
 
 			if cur < self.max_value {
 				let entry = self.lookup_entry(cur);
 				debug!("free chain = {}", entry)?;
 				self.free_chain(entry)?;
-			} else {
-				break;
 			}
+
+			cbreak!(!(cur < self.max_value));
 
 			let last_cur = cur;
 			let dir = Direction::Backward;
 			self.get_next_slot(&mut cur, dir, &mut self.slab_reader.clone())?;
-			match self.entry_array.as_mut() {
-				Some(entry_array) => {
-					debug!("setting entry_array[{}]={}", last_cur, SLOT_EMPTY)?;
-					entry_array[last_cur] = SLOT_EMPTY
-				}
-				None => {}
+			if self.entry_array.is_some() {
+				let entry_array = self.entry_array.as_mut().unwrap();
+				debug!("setting entry_array[{}]={}", last_cur, SLOT_EMPTY)?;
+				entry_array[last_cur] = SLOT_EMPTY
 			}
 		}
 		debug!("set size to 0")?;
@@ -1000,13 +917,12 @@ where
 	where
 		K: Serializable + PartialEq + Clone,
 	{
-		let entry_array_len = match self.entry_array.as_ref() {
-			Some(e) => e.size(),
-			None => {
-				let fmt = "get_impl called with no entry array";
-				let e = err!(ErrKind::IllegalState, fmt);
-				return Err(e);
-			}
+		let entry_array_len = if self.entry_array.is_some() {
+			self.entry_array.as_ref().unwrap().size()
+		} else {
+			let fmt = "get_impl called with no entry array";
+			let e = err!(ErrKind::IllegalState, fmt);
+			return Err(e);
 		};
 		let mut entry = hash % entry_array_len;
 
@@ -1048,10 +964,6 @@ where
 		K: Serializable + PartialEq + Clone,
 		V: Serializable + Clone,
 	{
-		debug!(
-			"insert_hash_impl with cur head = {}, raw_chunk={:?}",
-			self.head, raw_chunk
-		)?;
 		let entry_array_len = self.entry_array.as_ref().unwrap().size();
 
 		let key_val = key.unwrap();
@@ -1074,10 +986,8 @@ where
 				return Err(err!(ErrKind::CapacityExceeded, msg));
 			}
 			let entry_value = self.lookup_entry(entry);
-			if entry_value == SLOT_EMPTY || entry_value == SLOT_DELETED {
-				debug!("break")?;
-				break;
-			}
+			cbreak!(entry_value == SLOT_EMPTY || entry_value == SLOT_DELETED);
+
 			// does the current key match ours?
 			let kr = self.read_key(entry_value)?;
 			if kr.is_some() {
@@ -1089,7 +999,7 @@ where
 						raw_exists = true;
 						slab_id = entry_value;
 					}
-					break;
+					cbreak!(true);
 				}
 			}
 
@@ -1098,22 +1008,12 @@ where
 		}
 
 		debug!("insert_impl")?;
-		self.insert_impl(
-			key,
-			value,
-			raw_chunk,
-			Some(entry),
-			match slab_id != self.max_value {
-				true => Some(slab_id),
-				false => None,
-			},
-			raw_exists,
-		)?;
-
-		debug!(
-			"---------------------------------insert_hash_impl complete slab_id={}",
-			slab_id
-		)?;
+		let slab_id = if slab_id != self.max_value {
+			Some(slab_id)
+		} else {
+			None
+		};
+		self.insert_impl(key, value, raw_chunk, Some(entry), slab_id, raw_exists)?;
 
 		Ok(())
 	}
@@ -1130,10 +1030,7 @@ where
 	where
 		V: Serializable + Clone,
 	{
-		debug!(
-			"in insert impl with raw value = {:?}, entry = {:?}, raw_exists = {}",
-			raw_value, entry, raw_exists
-		)?;
+		debug!("insimpl raw_value = {:?}", raw_value)?;
 		let ptr_size = self.ptr_size;
 		let max_value = self.max_value;
 		let tail = self.tail;
@@ -1164,28 +1061,26 @@ where
 		}
 
 		if key.is_some() {
-			match key.as_ref().unwrap().write(&mut self.slab_writer) {
-				Ok(_) => {}
-				Err(e) => {
-					warn!("writing key generated error: {}", e)?;
-					self.free_chain(slab_id)?;
-					let fmt = format!("writing key generated error: {}", e);
-					let e = err!(ErrKind::CapacityExceeded, fmt);
-					return Err(e);
-				}
+			let wval = key.as_ref().unwrap().write(&mut self.slab_writer);
+			if wval.is_err() {
+				let e = wval.unwrap_err();
+				warn!("writing key generated error: {}", e)?;
+				self.free_chain(slab_id)?;
+				let fmt = format!("writing key generated error: {}", e);
+				let e = err!(ErrKind::CapacityExceeded, fmt);
+				return Err(e);
 			}
 		}
 		debug!("value write")?;
 		if value.is_some() {
-			match value.as_ref().unwrap().write(&mut self.slab_writer) {
-				Ok(_) => {}
-				Err(e) => {
-					warn!("writing value generated error: {}", e)?;
-					self.free_chain(slab_id)?;
-					let fmt = format!("writing value generated error: {}", e);
-					let e = err!(ErrKind::CapacityExceeded, fmt);
-					return Err(e);
-				}
+			let wval = value.as_ref().unwrap().write(&mut self.slab_writer);
+			if wval.is_err() {
+				let e = wval.unwrap_err();
+				warn!("writing value generated error: {}", e)?;
+				self.free_chain(slab_id)?;
+				let fmt = format!("writing value generated error: {}", e);
+				let e = err!(ErrKind::CapacityExceeded, fmt);
+				return Err(e);
 			}
 		}
 
@@ -1201,25 +1096,23 @@ where
 		debug!("array update")?;
 
 		if !raw_exists {
-			match self.entry_array.as_mut() {
-				Some(entry_array) => {
-					// for hash based structures we use the entry index
-					if self.tail < max_value {
-						if entry_array[self.tail] < max_value {
-							let entry_value = self.lookup_entry(self.tail);
-							self.slab_writer.seek(entry_value, 0);
-							usize_to_slice(entry, &mut ptrs[0..ptr_size])?;
-							self.slab_writer.write_fixed_bytes(&ptrs[0..ptr_size])?;
-						}
-					}
-				}
-				None => {
-					// for list based structures we use the slab_id directly
-					if self.tail < max_value {
-						self.slab_writer.seek(self.tail, 0);
+			if self.entry_array.is_some() {
+				let entry_array = self.entry_array.as_mut().unwrap();
+				// for hash based structures we use the entry index
+				if self.tail < max_value {
+					if entry_array[self.tail] < max_value {
+						let entry_value = self.lookup_entry(self.tail);
+						self.slab_writer.seek(entry_value, 0);
 						usize_to_slice(entry, &mut ptrs[0..ptr_size])?;
 						self.slab_writer.write_fixed_bytes(&ptrs[0..ptr_size])?;
 					}
+				}
+			} else {
+				// for list based structures we use the slab_id directly
+				if self.tail < max_value {
+					self.slab_writer.seek(self.tail, 0);
+					usize_to_slice(entry, &mut ptrs[0..ptr_size])?;
+					self.slab_writer.write_fixed_bytes(&ptrs[0..ptr_size])?;
 				}
 			}
 
@@ -1315,9 +1208,7 @@ where
 			debug!("free id = {}, next_bytes={}", id, next_bytes)?;
 			self.free(id)?;
 
-			if next_bytes >= self.max_value {
-				break;
-			}
+			cbreak!(next_bytes >= self.max_value);
 		}
 		Ok(())
 	}

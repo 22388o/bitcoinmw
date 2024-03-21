@@ -18,7 +18,7 @@
 use crate::types::{Dictionary, Node, SearchTrieImpl};
 use crate::{Match, Pattern, SearchTrie, Stack, UtilBuilder};
 use bmw_conf::ConfigOptionName as CN;
-use bmw_conf::{Config, ConfigBuilder, ConfigOption};
+use bmw_conf::{ConfigBuilder, ConfigOption};
 use bmw_err::{err, Error};
 use bmw_log::*;
 use bmw_ser::{Reader, Serializable, Writer};

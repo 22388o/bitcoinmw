@@ -77,12 +77,11 @@ pub struct ListIterator<'a, V>
 where
 	V: Serializable + Clone,
 {
-	pub(crate) linked_list_ref: Option<&'a HashImpl<V>>,
-	pub(crate) array_list_ref: Option<&'a ArrayList<V>>,
+	pub(crate) linked_list_ref: &'a HashImpl<V>,
 	pub(crate) cur: usize,
 	pub(crate) direction: Direction,
 	pub(crate) _phantom_data: PhantomData<V>,
-	pub(crate) slab_reader: Option<SlabReader>,
+	pub(crate) slab_reader: SlabReader,
 }
 
 pub trait SortableList<V>: List<V> + DynClone {
