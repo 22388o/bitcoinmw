@@ -185,6 +185,17 @@
 <a href="#183" id="183">183</a>
 <a href="#184" id="184">184</a>
 <a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -204,10 +215,15 @@
 
 </span><span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
+<span class="kw">use </span>std::cell::RefCell;
 <span class="kw">use </span>std::path::PathBuf;
 <span class="kw">use </span>std::str::from_utf8;
 
 <span class="macro">info!</span>();
+
+<span class="macro">thread_local! </span>{
+	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">static </span>DEBUG_INVALID_PATH: RefCell&lt;bool&gt; = RefCell::new(<span class="bool-val">false</span>);
+}
 
 <span class="doccomment">/// Utility to canonicalize a path relative to a base directory (used in http and rustlet)
 </span><span class="kw">pub fn </span>canonicalize_base_path(base_dir: <span class="kw-2">&amp;</span>String, path: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Result</span>&lt;String, Error&gt; {
@@ -227,12 +243,18 @@
 			<span class="string">"canonicalized version is above the base_dir"
 		</span>))
 	} <span class="kw">else </span>{
-		<span class="kw">match </span>ret.to_str() {
-			<span class="prelude-val">Some</span>(s) =&gt; <span class="prelude-val">Ok</span>(s.to_string()),
-			<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(
+		<span class="kw">let </span>ret_str = ret.to_str();
+
+		<span class="kw">let </span>debug_invalid_str =
+			DEBUG_INVALID_PATH.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; { <span class="prelude-val">Ok</span>(<span class="kw-2">*</span>f.borrow()) })<span class="question-mark">?</span>;
+
+		<span class="kw">if </span>ret_str.is_some() &amp;&amp; !debug_invalid_str {
+			<span class="prelude-val">Ok</span>(ret_str.unwrap().to_string())
+		} <span class="kw">else </span>{
+			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 				ErrKind::IO,
 				<span class="string">"could not generate string from the path specfied"
-			</span>)),
+			</span>))
 		}
 	}
 }
