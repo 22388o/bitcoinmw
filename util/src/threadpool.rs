@@ -16,11 +16,8 @@
 // limitations under the License.
 
 use crate::constants::*;
-use crate::types::{FutureWrapper, Lock, ThreadPoolImpl, ThreadPoolState};
-use crate::{
-	LockBox, PoolResult, ThreadPool, ThreadPoolConfig, ThreadPoolExecutor, ThreadPoolStopper,
-	UtilBuilder,
-};
+use crate::types::{FutureWrapper, Lock, ThreadPoolConfig, ThreadPoolImpl, ThreadPoolState};
+use crate::{LockBox, PoolResult, ThreadPool, ThreadPoolExecutor, ThreadPoolStopper, UtilBuilder};
 use bmw_conf::ConfigOptionName as CN;
 use bmw_conf::{ConfigBuilder, ConfigOption};
 use bmw_deps::futures::executor::block_on;

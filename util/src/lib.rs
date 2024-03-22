@@ -42,8 +42,8 @@ pub use crate::types::{
 	Array, ArrayList, Hashset, HashsetIterator, Hashtable, HashtableIterator, List, ListIterator,
 	Lock, LockBox, Match, Pattern, PoolResult, Queue, RwLockReadGuardWrapper,
 	RwLockWriteGuardWrapper, SearchTrie, Slab, SlabAllocator, SlabAllocatorConfig, SlabMut,
-	SlabReader, SlabWriter, SortableList, Stack, ThreadPool, ThreadPoolConfig, ThreadPoolExecutor,
-	ThreadPoolStopper, UtilBuilder,
+	SlabReader, SlabWriter, SortableList, Stack, ThreadPool, ThreadPoolExecutor, ThreadPoolStopper,
+	UtilBuilder,
 };
 
 #[doc(hidden)]

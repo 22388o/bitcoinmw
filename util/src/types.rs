@@ -342,21 +342,6 @@ pub enum PoolResult<T, E> {
 	Panic,
 }
 
-/// The configuration struct for a [`crate::ThreadPool`]. This struct is passed into the
-/// [`crate::UtilBuilder::build_thread_pool`] function or the [`crate::thread_pool`] macro. The
-/// [`std::default::Default`] trait is implemented for this trait. Also see ConfigOption
-/// for details on configuring via macro.
-#[derive(Debug, Clone, Serializable)]
-pub struct ThreadPoolConfig {
-	/// The minimum number of threads that this thread_pool will use. The default value is 3.
-	pub min_size: usize,
-	/// The maximum number of threads that this thread_pool will use. The default value is 7.
-	pub max_size: usize,
-	/// The size of the sync_channel buffer. See [`std::sync::mpsc::sync_channel`] for more
-	/// information. The default value is 7.
-	pub sync_channel_size: usize,
-}
-
 pub trait ThreadPool<T, OnPanic>
 where
 	OnPanic: FnMut(u128, Box<dyn Any + Send>) -> Result<(), Error>
@@ -566,4 +551,11 @@ where
 	pub(crate) _phantom_data: PhantomData<K>,
 	pub(crate) debug_get_next_slot_error: bool,
 	pub(crate) debug_entry_array_len: bool,
+}
+
+#[derive(Debug, Clone, Serializable)]
+pub(crate) struct ThreadPoolConfig {
+	pub min_size: usize,
+	pub max_size: usize,
+	pub sync_channel_size: usize,
 }
