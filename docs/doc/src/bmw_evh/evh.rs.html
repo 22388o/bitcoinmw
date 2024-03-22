@@ -3383,12 +3383,12 @@
 
 		<span class="kw">let </span>handle_hashtable = <span class="macro">hashtable_sync_box!</span>(
 			SlabSize(HANDLE_SLAB_SIZE),
-			SlabCount(max_handles_per_thread),
+			SlabCount(max_handles_per_thread + <span class="number">1</span>),
 			GlobalSlabAllocator(<span class="bool-val">false</span>)
 		)<span class="question-mark">?</span>;
 		<span class="kw">let </span>connection_hashtable = <span class="macro">hashtable_sync_box!</span>(
 			SlabSize(CONNECTION_SLAB_SIZE),
-			SlabCount(max_handles_per_thread),
+			SlabCount(max_handles_per_thread + <span class="number">1</span>),
 			GlobalSlabAllocator(<span class="bool-val">false</span>)
 		)<span class="question-mark">?</span>;
 

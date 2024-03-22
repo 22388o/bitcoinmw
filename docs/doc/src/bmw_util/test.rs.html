@@ -4883,6 +4883,50 @@
 <a href="#4881" id="4881">4881</a>
 <a href="#4882" id="4882">4882</a>
 <a href="#4883" id="4883">4883</a>
+<a href="#4884" id="4884">4884</a>
+<a href="#4885" id="4885">4885</a>
+<a href="#4886" id="4886">4886</a>
+<a href="#4887" id="4887">4887</a>
+<a href="#4888" id="4888">4888</a>
+<a href="#4889" id="4889">4889</a>
+<a href="#4890" id="4890">4890</a>
+<a href="#4891" id="4891">4891</a>
+<a href="#4892" id="4892">4892</a>
+<a href="#4893" id="4893">4893</a>
+<a href="#4894" id="4894">4894</a>
+<a href="#4895" id="4895">4895</a>
+<a href="#4896" id="4896">4896</a>
+<a href="#4897" id="4897">4897</a>
+<a href="#4898" id="4898">4898</a>
+<a href="#4899" id="4899">4899</a>
+<a href="#4900" id="4900">4900</a>
+<a href="#4901" id="4901">4901</a>
+<a href="#4902" id="4902">4902</a>
+<a href="#4903" id="4903">4903</a>
+<a href="#4904" id="4904">4904</a>
+<a href="#4905" id="4905">4905</a>
+<a href="#4906" id="4906">4906</a>
+<a href="#4907" id="4907">4907</a>
+<a href="#4908" id="4908">4908</a>
+<a href="#4909" id="4909">4909</a>
+<a href="#4910" id="4910">4910</a>
+<a href="#4911" id="4911">4911</a>
+<a href="#4912" id="4912">4912</a>
+<a href="#4913" id="4913">4913</a>
+<a href="#4914" id="4914">4914</a>
+<a href="#4915" id="4915">4915</a>
+<a href="#4916" id="4916">4916</a>
+<a href="#4917" id="4917">4917</a>
+<a href="#4918" id="4918">4918</a>
+<a href="#4919" id="4919">4919</a>
+<a href="#4920" id="4920">4920</a>
+<a href="#4921" id="4921">4921</a>
+<a href="#4922" id="4922">4922</a>
+<a href="#4923" id="4923">4923</a>
+<a href="#4924" id="4924">4924</a>
+<a href="#4925" id="4925">4925</a>
+<a href="#4926" id="4926">4926</a>
+<a href="#4927" id="4927">4927</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -4906,6 +4950,7 @@
 	<span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
 	<span class="kw">use </span><span class="kw">crate</span>::misc::DEBUG_INVALID_PATH;
 	<span class="kw">use </span><span class="kw">crate</span>::types::{HashImpl, HashImplSync, ThreadPoolImpl};
+	<span class="kw">use </span>bmw_conf::ConfigOption;
 	<span class="kw">use </span>bmw_deps::dyn_clone::clone_box;
 	<span class="kw">use </span>bmw_deps::rand;
 	<span class="kw">use </span>bmw_deps::rand::random;
@@ -5834,6 +5879,17 @@
 			}
 		}
 
+		<span class="kw">let </span><span class="kw-2">mut </span>list = UtilBuilder::build_list(<span class="macro">vec!</span>[])<span class="question-mark">?</span>;
+		<span class="kw">if </span><span class="bool-val">false </span>{
+			list.push(<span class="number">0u8</span>)<span class="question-mark">?</span>;
+		}
+		<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
+		<span class="kw">for </span>_x <span class="kw">in </span>list.iter() {
+			count += <span class="number">1</span>;
+		}
+
+		<span class="macro">assert_eq!</span>(count, <span class="number">0</span>);
+
 		<span class="prelude-val">Ok</span>(())
 	}
 
@@ -6094,9 +6150,7 @@
 			SlabCount(<span class="number">128</span>),
 		])<span class="question-mark">?</span>;
 
-		<span class="macro">assert_eq!</span>(x, x2);
 		x2.push(<span class="number">1</span>)<span class="question-mark">?</span>;
-		<span class="macro">assert_ne!</span>(x, x2);
 		<span class="macro">assert_eq!</span>(List::size(<span class="kw-2">&amp;</span>x), <span class="number">0</span>);
 		<span class="macro">assert_eq!</span>(List::size(<span class="kw-2">&amp;</span>x2), <span class="number">1</span>);
 
@@ -6363,28 +6417,6 @@
 			<span class="macro">assert_eq!</span>(iter.next(), <span class="prelude-val">Some</span>(SerErr { exp: <span class="number">99</span>, empty: <span class="number">0 </span>}));
 		}
 
-		<span class="kw">let </span><span class="kw-2">mut </span>hash_impl2: HashImpl&lt;SerErr&gt; = HashImpl::new(<span class="macro">vec!</span>[IsList(<span class="bool-val">true</span>)])<span class="question-mark">?</span>;
-		hash_impl.push(SerErr { exp: <span class="number">99</span>, empty: <span class="number">0 </span>})<span class="question-mark">?</span>;
-		hash_impl.push(SerErr { exp: <span class="number">99</span>, empty: <span class="number">0 </span>})<span class="question-mark">?</span>;
-
-		<span class="comment">// lengths unequal
-		</span><span class="macro">assert_ne!</span>(hash_impl, hash_impl2);
-
-		hash_impl2.push(SerErr { exp: <span class="number">99</span>, empty: <span class="number">0 </span>})<span class="question-mark">?</span>;
-		hash_impl2.push(SerErr { exp: <span class="number">99</span>, empty: <span class="number">0 </span>})<span class="question-mark">?</span>;
-		hash_impl2.push(SerErr { exp: <span class="number">99</span>, empty: <span class="number">0 </span>})<span class="question-mark">?</span>;
-
-		<span class="comment">// now contents are equal
-		</span><span class="macro">assert_eq!</span>(hash_impl, hash_impl2);
-
-		<span class="kw">let </span><span class="kw-2">mut </span>hash_impl: HashImpl&lt;u32&gt; = HashImpl::new(<span class="macro">vec!</span>[IsList(<span class="bool-val">true</span>)])<span class="question-mark">?</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>hash_impl2: HashImpl&lt;u32&gt; = HashImpl::new(<span class="macro">vec!</span>[IsList(<span class="bool-val">true</span>)])<span class="question-mark">?</span>;
-		hash_impl2.push(<span class="number">1</span>)<span class="question-mark">?</span>;
-		hash_impl.push(<span class="number">8</span>)<span class="question-mark">?</span>;
-
-		<span class="comment">// the value is not equal
-		</span><span class="macro">assert_ne!</span>(hash_impl, hash_impl2);
-
 		<span class="prelude-val">Ok</span>(())
 	}
 
@@ -6442,6 +6474,15 @@
 		<span class="macro">assert!</span>(m);
 		<span class="kw">let </span>slabs = hashset.slabs()<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(<span class="macro">rlock!</span>(slabs.unwrap()).free_count()<span class="question-mark">?</span>, <span class="number">1</span>);
+
+		<span class="kw">let </span>hashset = UtilBuilder::build_hashset_sync::&lt;u8&gt;(<span class="macro">vec!</span>[
+			SlabSize(<span class="number">12</span>),
+			SlabCount(<span class="number">1</span>),
+			GlobalSlabAllocator(<span class="bool-val">false</span>),
+		])<span class="question-mark">?</span>;
+
+		<span class="macro">assert!</span>(hashset.slabs()<span class="question-mark">?</span>.is_some());
+
 		<span class="prelude-val">Ok</span>(())
 	}
 
@@ -9763,6 +9804,53 @@
 		ser_helper(pattern3)<span class="question-mark">?</span>;
 		ser_helper(pattern4)<span class="question-mark">?</span>;
 
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="attr">#[test]
+	</span><span class="kw">fn </span>test_hashtable_capacity() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="comment">// 6 bytes overhead
+		</span><span class="kw">let </span><span class="kw-2">mut </span>hashtable = <span class="macro">hashtable!</span>(GlobalSlabAllocator(<span class="bool-val">false</span>), SlabSize(<span class="number">14</span>), SlabCount(<span class="number">1</span>))<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1u32</span>, <span class="kw-2">&amp;</span><span class="number">1u32</span>)<span class="question-mark">?</span>;
+		<span class="macro">assert!</span>(hashtable.insert(<span class="kw-2">&amp;</span><span class="number">2u32</span>, <span class="kw-2">&amp;</span><span class="number">2u32</span>).is_err());
+		hashtable.remove(<span class="kw-2">&amp;</span><span class="number">1u32</span>)<span class="question-mark">?</span>;
+		hashtable.insert(<span class="kw-2">&amp;</span><span class="number">2u32</span>, <span class="kw-2">&amp;</span><span class="number">2u32</span>)<span class="question-mark">?</span>;
+
+		<span class="comment">// test max entries
+		</span><span class="kw">let </span><span class="kw-2">mut </span>hashtable = <span class="macro">hashtable!</span>(
+			GlobalSlabAllocator(<span class="bool-val">false</span>),
+			SlabSize(<span class="number">1_000</span>),
+			SlabCount(<span class="number">1_000</span>),
+			MaxEntries(<span class="number">10</span>)
+		)<span class="question-mark">?</span>;
+
+		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="number">10 </span>{
+			<span class="kw">let </span>i_u32 = i <span class="kw">as </span>u32;
+			hashtable.insert(<span class="kw-2">&amp;</span>i_u32, <span class="kw-2">&amp;</span>i_u32)<span class="question-mark">?</span>;
+		}
+
+		<span class="macro">assert!</span>(hashtable.insert(<span class="kw-2">&amp;</span><span class="number">100u32</span>, <span class="kw-2">&amp;</span><span class="number">200u32</span>).is_err());
+
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="kw">fn </span>build_hash(vec: Vec&lt;ConfigOption&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>h = HashImpl::new(vec)<span class="question-mark">?</span>;
+		h.push(<span class="number">0</span>)<span class="question-mark">?</span>;
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="attr">#[test]
+	</span><span class="kw">fn </span>test_invalid_hash_impl_confgs() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="macro">assert!</span>(UtilBuilder::build_list::&lt;u8&gt;(<span class="macro">vec!</span>[ConfigOption::MaxEntries(<span class="number">10</span>)]).is_err());
+		<span class="macro">assert!</span>(UtilBuilder::build_list::&lt;u8&gt;(<span class="macro">vec!</span>[ConfigOption::MaxLoadFactor(<span class="number">0.9</span>)]).is_err());
+
+		<span class="macro">assert!</span>(build_hash(<span class="macro">vec!</span>[]).is_err());
+		<span class="macro">assert!</span>(build_hash(<span class="macro">vec!</span>[IsHashtable(<span class="bool-val">true</span>), IsHashset(<span class="bool-val">true</span>)]).is_err());
+		<span class="macro">assert!</span>(build_hash(<span class="macro">vec!</span>[IsList(<span class="bool-val">true</span>), IsHashset(<span class="bool-val">true</span>)]).is_err());
+		<span class="macro">assert!</span>(build_hash(<span class="macro">vec!</span>[IsHashtable(<span class="bool-val">true</span>), SlabSize(<span class="number">100</span>)]).is_err());
+		<span class="macro">assert!</span>(build_hash(<span class="macro">vec!</span>[IsHashtable(<span class="bool-val">true</span>), SlabSize(<span class="number">100</span>), SlabCount(<span class="number">10</span>)]).is_err());
+		<span class="macro">assert!</span>(build_hash(<span class="macro">vec!</span>[IsHashtable(<span class="bool-val">true</span>), GlobalSlabAllocator(<span class="bool-val">false</span>)]).is_err());
 		<span class="prelude-val">Ok</span>(())
 	}
 }
