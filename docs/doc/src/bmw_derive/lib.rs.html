@@ -72,6 +72,10 @@
 <a href="#70" id="70">70</a>
 <a href="#71" id="71">71</a>
 <a href="#72" id="72">72</a>
+<a href="#73" id="73">73</a>
+<a href="#74" id="74">74</a>
+<a href="#75" id="75">75</a>
+<a href="#76" id="76">76</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -129,6 +133,10 @@
 //!```
 //!
 //! This macro is used in the bmw_util and other crates within BMW. For additional examples, see the bmw_util documentation.
+//!
+//! # Generics
+//! It's important to note that generics are not currently supported and will result in an error. If you need
+//! generics, currenly you must build your own Serializable implementation.
 
 </span><span class="kw">extern crate </span>proc_macro;
 <span class="kw">use </span><span class="kw">crate</span>::derive::do_derive_serialize;
