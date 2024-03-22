@@ -1461,30 +1461,6 @@
 <a href="#1459" id="1459">1459</a>
 <a href="#1460" id="1460">1460</a>
 <a href="#1461" id="1461">1461</a>
-<a href="#1462" id="1462">1462</a>
-<a href="#1463" id="1463">1463</a>
-<a href="#1464" id="1464">1464</a>
-<a href="#1465" id="1465">1465</a>
-<a href="#1466" id="1466">1466</a>
-<a href="#1467" id="1467">1467</a>
-<a href="#1468" id="1468">1468</a>
-<a href="#1469" id="1469">1469</a>
-<a href="#1470" id="1470">1470</a>
-<a href="#1471" id="1471">1471</a>
-<a href="#1472" id="1472">1472</a>
-<a href="#1473" id="1473">1473</a>
-<a href="#1474" id="1474">1474</a>
-<a href="#1475" id="1475">1475</a>
-<a href="#1476" id="1476">1476</a>
-<a href="#1477" id="1477">1477</a>
-<a href="#1478" id="1478">1478</a>
-<a href="#1479" id="1479">1479</a>
-<a href="#1480" id="1480">1480</a>
-<a href="#1481" id="1481">1481</a>
-<a href="#1482" id="1482">1482</a>
-<a href="#1483" id="1483">1483</a>
-<a href="#1484" id="1484">1484</a>
-<a href="#1485" id="1485">1485</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1506,9 +1482,9 @@
 <span class="kw">use </span><span class="kw">crate</span>::misc::{set_max, slice_to_usize, usize_to_slice};
 <span class="kw">use </span><span class="kw">crate</span>::types::{Direction, HashImpl, HashImplSync};
 <span class="kw">use crate</span>::{
-	Hashset, HashsetConfig, HashsetIterator, Hashtable, HashtableConfig, HashtableIterator, List,
-	ListConfig, ListIterator, LockBox, SlabAllocator, SlabAllocatorConfig, SlabReader, SlabWriter,
-	SortableList, UtilBuilder, GLOBAL_SLAB_ALLOCATOR,
+	Hashset, HashsetIterator, Hashtable, HashtableIterator, List, ListIterator, LockBox,
+	SlabAllocator, SlabAllocatorConfig, SlabReader, SlabWriter, SortableList, UtilBuilder,
+	GLOBAL_SLAB_ALLOCATOR,
 };
 <span class="kw">use </span>bmw_conf::ConfigOptionName <span class="kw">as </span>CN;
 <span class="kw">use </span>bmw_conf::{ConfigBuilder, ConfigOption};
@@ -1646,30 +1622,6 @@
 			_phantom_data: PhantomData,
 			slab_reader: linked_list_ref.slab_reader.clone(),
 		}
-	}
-}
-
-<span class="kw">impl </span>Default <span class="kw">for </span>HashtableConfig {
-	<span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
-		<span class="self">Self </span>{
-			max_entries: <span class="number">100_000</span>,
-			max_load_factor: <span class="number">0.8</span>,
-		}
-	}
-}
-
-<span class="kw">impl </span>Default <span class="kw">for </span>HashsetConfig {
-	<span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
-		<span class="self">Self </span>{
-			max_entries: <span class="number">100_000</span>,
-			max_load_factor: <span class="number">0.8</span>,
-		}
-	}
-}
-
-<span class="kw">impl </span>Default <span class="kw">for </span>ListConfig {
-	<span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
-		<span class="self">Self </span>{}
 	}
 }
 

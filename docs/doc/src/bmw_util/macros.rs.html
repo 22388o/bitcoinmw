@@ -1518,21 +1518,6 @@
 <a href="#1516" id="1516">1516</a>
 <a href="#1517" id="1517">1517</a>
 <a href="#1518" id="1518">1518</a>
-<a href="#1519" id="1519">1519</a>
-<a href="#1520" id="1520">1520</a>
-<a href="#1521" id="1521">1521</a>
-<a href="#1522" id="1522">1522</a>
-<a href="#1523" id="1523">1523</a>
-<a href="#1524" id="1524">1524</a>
-<a href="#1525" id="1525">1525</a>
-<a href="#1526" id="1526">1526</a>
-<a href="#1527" id="1527">1527</a>
-<a href="#1528" id="1528">1528</a>
-<a href="#1529" id="1529">1529</a>
-<a href="#1530" id="1530">1530</a>
-<a href="#1531" id="1531">1531</a>
-<a href="#1532" id="1532">1532</a>
-<a href="#1533" id="1533">1533</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1907,7 +1892,7 @@
 /// * `List&lt;Pattern&gt;`            (required) - The list of [`crate::Pattern`]s that this [`crate::SearchTrie`]
 ///                                         will use to match.
 /// * TerminationLength(usize) (optional) - The length in bytes at which matching will terminate.
-/// * MaxWildcardLength(usize) (optional) - The maximum length in bytes of a wild card match.
+/// * MaxWildCardLength(usize) (optional) - The maximum length in bytes of a wild card match.
 ///
 /// # Return
 /// Returns `Ok(SuffixTre)` on success and on error a [`bmw_err::Error`] is returned.
@@ -1934,7 +1919,7 @@
 ///                         pattern!(Regex("p3".to_string()), PatternId(2))?
 ///                 ],
 ///                 TerminationLength(1_000),
-///                 MaxWildcardLength(100)
+///                 MaxWildCardLength(100)
 ///         )?;
 ///
 ///         // create a matches array for the suffix tree to return matches in
@@ -1976,7 +1961,7 @@
 ///                         pattern!(Regex("p3".to_string()), PatternId(2))?
 ///                 ],
 ///                 TerminationLength(1_000),
-///                 MaxWildcardLength(100)
+///                 MaxWildCardLength(100)
 ///         )?;
 ///
 ///         // create a matches array for the suffix tree to return matches in
@@ -2013,7 +1998,7 @@
 ///                         pattern!(Regex("p3".to_string()), PatternId(2))?
 ///                 ],
 ///                 TerminationLength(1_000),
-///                 MaxWildcardLength(100)
+///                 MaxWildCardLength(100)
 ///         )?;
 ///
 ///         // create a matches array for the suffix tree to return matches in
@@ -2053,7 +2038,7 @@
 ///                         pattern!(Regex("^p2".to_string()), PatternId(2))?
 ///                 ],
 ///                 TerminationLength(1_000),
-///                 MaxWildcardLength(100)
+///                 MaxWildCardLength(100)
 ///         )?;
 ///
 ///         // create a matches array for the suffix tree to return matches in
@@ -2073,27 +2058,12 @@
 ///```
 </span><span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>search_trie {
-	( <span class="macro-nonterminal">$patterns</span>:expr, $( <span class="macro-nonterminal">$suffix_items</span>:expr ),* ) =&gt; {{
-                <span class="kw">let </span><span class="kw-2">mut </span>termination_length = usize::MAX;
-                <span class="kw">let </span><span class="kw-2">mut </span>max_wildcard_length = usize::MAX;
-
-                <span class="comment">// compiler reports these as not needing to be mut so
-                // add these lines to satisfy the comipler
-                </span><span class="kw">if </span>termination_length != usize::MAX {
-                        termination_length = usize::MAX;
-                }
-                <span class="kw">if </span>max_wildcard_length != usize::MAX {
-                        max_wildcard_length = usize::MAX;
-                }
-
-                $(
-                        <span class="kw">match </span><span class="macro-nonterminal">$suffix_items </span>{
-                                bmw_util::SearchParam::TerminationLength(t) =&gt; { termination_length = t; },
-                                bmw_util::SearchParam::MaxWildcardLength(m) =&gt; { max_wildcard_length = m; },
-                        }
-                )*
-
-                bmw_util::UtilBuilder::build_search_trie(<span class="macro-nonterminal">$patterns</span>, termination_length, max_wildcard_length)
+	( <span class="macro-nonterminal">$patterns</span>:expr, $(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; {{
+                <span class="attr">#[allow(unused_imports)]
+                </span><span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
+                <span class="kw">use </span>bmw_conf::ConfigOption;
+                <span class="kw">let </span>v: Vec&lt;ConfigOption&gt; = <span class="macro">vec!</span>[$(<span class="macro-nonterminal">$config</span>)<span class="kw-2">*</span>];
+                bmw_util::UtilBuilder::build_search_trie(<span class="macro-nonterminal">$patterns</span>, v)
         }};
 }
 

@@ -885,7 +885,7 @@
 		<span class="kw">let </span>search_trie = Box::new(<span class="macro">search_trie!</span>(
 			list,
 			TerminationLength(<span class="number">1_000_000_000</span>),
-			MaxWildcardLength(<span class="number">1_000</span>)
+			MaxWildCardLength(<span class="number">1_000</span>)
 		)<span class="question-mark">?</span>);
 		<span class="kw">let </span>matches = [<span class="macro">tmatch!</span>()<span class="question-mark">?</span>; <span class="number">1_000</span>];
 		<span class="prelude-val">Ok</span>(RustletContext {
