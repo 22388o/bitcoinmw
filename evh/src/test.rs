@@ -307,7 +307,7 @@ mod test {
 			threads,
 			housekeeping_frequency_millis: 1_000_000,
 			read_slab_count: 30,
-			max_handles_per_thread: 600,
+			max_handles_per_thread: 30,
 			..Default::default()
 		};
 		let mut evh = EventHandlerImpl::new(config)?;
@@ -3779,14 +3779,12 @@ mod test {
 			port
 		)?;
 		let addr = &format!("127.0.0.1:{}", port)[..];
-		let port2 = free_port!()?;
-		let addr2 = &format!("127.0.0.1:{}", port2)[..];
 		let threads = 1;
 		let config = EventHandlerConfig {
 			threads,
 			housekeeping_frequency_millis: 100_000,
 			read_slab_count: 100,
-			max_handles_per_thread: 1,
+			max_handles_per_thread: 2,
 			..Default::default()
 		};
 		let mut evh = EventHandlerImpl::new(config)?;
@@ -3811,8 +3809,10 @@ mod test {
 			is_reuse_port: true,
 		};
 		evh.add_server(sc, Box::new(""))?;
-		sleep(Duration::from_millis(5_000));
 
+		sleep(Duration::from_millis(1000));
+
+		info!("connection 1")?;
 		let connection = TcpStream::connect(addr)?;
 		connection.set_nonblocking(true)?;
 		#[cfg(unix)]
@@ -3828,22 +3828,88 @@ mod test {
 			}),
 		};
 
-		evh.add_client(client, Box::new(""))?;
-		let handles = create_listeners(threads, addr2, 10, false)?;
-		info!("handles.size={},handles={:?}", handles.size(), handles)?;
-		let sc = ServerConnection {
-			tls_config: Some(TlsServerConfig {
-				certificates_file: "./resources/cert.pem".to_string(),
-				private_key_file: "./resources/key.pem".to_string(),
-			}),
-			handles,
-			is_reuse_port: true,
-		};
-		evh.add_server(sc, Box::new(""))?;
-		sleep(Duration::from_millis(5_000));
+		// max handles per thread = 2, server is one and we're second so we are ok
+		let mut wh1 = evh.add_client(client, Box::new(""))?;
+		sleep(Duration::from_millis(1000));
+		wh1.write(b"test")?;
+		info!("connection 1 wrote")?;
 
-		// connection 2 closed so this will fail
-		assert!(TcpStream::connect(addr2).is_err());
+		info!("connection 2")?;
+		let connection = TcpStream::connect(addr)?;
+		connection.set_nonblocking(true)?;
+		#[cfg(unix)]
+		let connection_handle = connection.into_raw_fd();
+		#[cfg(windows)]
+		let connection_handle = connection.into_raw_socket().try_into()?;
+
+		let client = ClientConnection {
+			handle: connection_handle,
+			tls_config: Some(TlsClientConfig {
+				sni_host: "localhost".to_string(),
+				trusted_cert_full_chain_file: Some("./resources/cert.pem".to_string()),
+			}),
+		};
+
+		let mut wh2 = evh.add_client(client, Box::new(""))?;
+		sleep(Duration::from_millis(1000));
+
+		// second connection will fail. It's closed due to capacity issue
+		assert!(wh2.write(b"test").is_err());
+		info!("connection 2 failed to write")?;
+		sleep(Duration::from_millis(1000));
+
+		info!("close connection1")?;
+		// close first connection
+		wh1.close()?;
+
+		sleep(Duration::from_millis(1000));
+		// now we can reconnect
+
+		info!("connection 3")?;
+		let connection = TcpStream::connect(addr)?;
+		connection.set_nonblocking(true)?;
+		#[cfg(unix)]
+		let connection_handle = connection.into_raw_fd();
+		#[cfg(windows)]
+		let connection_handle = connection.into_raw_socket().try_into()?;
+
+		let client = ClientConnection {
+			handle: connection_handle,
+			tls_config: Some(TlsClientConfig {
+				sni_host: "localhost".to_string(),
+				trusted_cert_full_chain_file: Some("./resources/cert.pem".to_string()),
+			}),
+		};
+
+		// max handles per thread = 2, server is one and we're second so we are ok
+		let mut wh1 = evh.add_client(client, Box::new(""))?;
+		sleep(Duration::from_millis(1000));
+		info!("about to write conn 3")?;
+		wh1.write(b"test")?;
+		info!("connection 3 wrote")?;
+
+		info!("connection 4")?;
+		let connection = TcpStream::connect(addr)?;
+		connection.set_nonblocking(true)?;
+		#[cfg(unix)]
+		let connection_handle = connection.into_raw_fd();
+		#[cfg(windows)]
+		let connection_handle = connection.into_raw_socket().try_into()?;
+
+		let client = ClientConnection {
+			handle: connection_handle,
+			tls_config: Some(TlsClientConfig {
+				sni_host: "localhost".to_string(),
+				trusted_cert_full_chain_file: Some("./resources/cert.pem".to_string()),
+			}),
+		};
+
+		let mut wh2 = evh.add_client(client, Box::new(""))?;
+		sleep(Duration::from_millis(1000));
+
+		// second connection will fail. It's closed due to capacity issue
+		assert!(wh2.write(b"test").is_err());
+		info!("connection 4 failed to write")?;
 
 		Ok(())
 	}

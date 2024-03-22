@@ -592,7 +592,14 @@ impl WriteHandle {
 
 	/// Close the connection associated with this [`crate::WriteHandle`].
 	pub fn close(&mut self) -> Result<(), Error> {
-		handle_close(&mut self.write_state, self.id, &mut self.event_handler_data)
+		handle_close(&mut self.write_state, self.id, &mut self.event_handler_data)?;
+
+		let mut event_handler_data = self.event_handler_data.wlock()?;
+		let guard = event_handler_data.guard();
+		(**guard).write_queue.enqueue(self.id)?;
+		(**guard).wakeup.wakeup()?;
+
+		Ok(())
 	}
 
 	/// Write data to the connection associated with this [`crate::WriteHandle`].
