@@ -363,7 +363,7 @@ where
 	/// on the first available thread in the pool. The return value is a receiver
 	/// which will be sent a [`crate::PoolResult`] on completion of the task. If
 	/// an error occurs, [`bmw_err::Error`] will be returned.
-	fn execute<F>(&self, f: F, id: u128) -> Result<Receiver<PoolResult<T, Error>>, Error>
+	fn execute<F>(&self, f: F, id: u128) -> Result<ThreadPoolHandle<T>, Error>
 	where
 		F: Future<Output = Result<T, Error>> + Send + 'static;
 
@@ -393,6 +393,12 @@ where
 
 	#[cfg(test)]
 	fn set_on_panic_none(&mut self) -> Result<(), Error>;
+}
+
+#[derive(Debug)]
+pub struct ThreadPoolHandle<T> {
+	pub(crate) id: u128,
+	pub(crate) recv_handle: Receiver<PoolResult<T, Error>>,
 }
 
 /// Internally used struct that stores the state of the thread pool.

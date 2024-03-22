@@ -1546,12 +1546,6 @@ macro_rules! execute {
 #[macro_export]
 macro_rules! block_on {
 	($res:expr) => {{
-		match $res.recv() {
-			Ok(res) => res,
-			Err(e) => bmw_util::PoolResult::Err(bmw_err::err!(
-				bmw_err::ErrKind::ThreadPanic,
-				format!("thread pool panic: {}", e)
-			)),
-		}
+		$res.block_on()
 	}};
 }

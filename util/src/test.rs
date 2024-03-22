@@ -36,7 +36,6 @@ mod test {
 	use std::fs::{create_dir_all, File};
 	use std::io::Write;
 	use std::path::PathBuf;
-	use std::sync::mpsc::Receiver;
 	use std::sync::{Arc, RwLock};
 
 	info!();
@@ -2599,7 +2598,7 @@ mod test {
 		let mut tp = thread_pool!(MinSize(3))?;
 		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
 		tp.start()?;
-		let resp: Receiver<PoolResult<u32, Error>> = execute!(tp, {
+		let resp: ThreadPoolHandle<u32> = execute!(tp, {
 			info!("thread pool2")?;
 			Err(err!(ErrKind::Test, "test err"))
 		})?;
@@ -2612,7 +2611,7 @@ mod test {
 		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
 		tp.start()?;
 
-		let resp: Receiver<PoolResult<u32, Error>> = execute!(tp, {
+		let resp: ThreadPoolHandle<u32> = execute!(tp, {
 			info!("thread pool panic")?;
 			let x: Option<u32> = None;
 			Ok(x.unwrap())
@@ -4184,7 +4183,7 @@ mod test {
 
 		// simple execution, return value
 		let res = tp.execute(async move { Ok(1) }, 0)?;
-		assert_eq!(res.recv()?, PoolResult::Ok(1));
+		assert_eq!(res.block_on(), PoolResult::Ok(1));
 
 		// increment value using locks
 		let mut x = lock!(1)?;
@@ -4210,7 +4209,7 @@ mod test {
 		// return an error
 		let res = tp.execute(async move { Err(err!(ErrKind::Test, "test")) }, 0)?;
 
-		assert_eq!(res.recv()?, PoolResult::Err(err!(ErrKind::Test, "test")));
+		assert_eq!(res.block_on(), PoolResult::Err(err!(ErrKind::Test, "test")));
 
 		// handle panic
 		let res = tp.execute(
@@ -4221,7 +4220,7 @@ mod test {
 			0,
 		)?;
 
-		assert!(res.recv().is_err());
+		assert!(res.block_on().is_err());
 
 		// 10 more panics to ensure pool keeps running
 		for _ in 0..10 {
@@ -4233,12 +4232,12 @@ mod test {
 				0,
 			)?;
 
-			assert!(res.recv().is_err());
+			assert!(res.block_on().is_err());
 		}
 
 		// now do a regular request
 		let res = tp.execute(async move { Ok(5) }, 0)?;
-		assert_eq!(res.recv()?, PoolResult::Ok(5));
+		assert_eq!(res.block_on(), PoolResult::Ok(5));
 
 		sleep(Duration::from_millis(1000));
 		info!("test sending errors")?;
@@ -4251,7 +4250,7 @@ mod test {
 		}
 		{
 			let res = tp.execute(async move { Err(err!(ErrKind::Test, "test")) }, 0)?;
-			assert_eq!(res.recv()?, PoolResult::Err(err!(ErrKind::Test, "test")));
+			assert_eq!(res.block_on(), PoolResult::Err(err!(ErrKind::Test, "test")));
 		}
 		sleep(Duration::from_millis(1_000));
 
@@ -4319,7 +4318,7 @@ mod test {
 				},
 				0,
 			)?;
-			assert_eq!(res.recv()?, PoolResult::Ok(2));
+			assert_eq!(res.block_on(), PoolResult::Ok(2));
 		}
 
 		sleep(Duration::from_millis(2_000));
@@ -4327,7 +4326,7 @@ mod test {
 
 		let mut i = 0;
 		for res in v {
-			assert_eq!(res.recv()?, PoolResult::Ok(1));
+			assert_eq!(res.block_on(), PoolResult::Ok(1));
 			info!("res complete {}", i)?;
 			i += 1;
 		}
@@ -4527,7 +4526,7 @@ mod test {
 			0,
 		)?;
 
-		assert_eq!(res.recv()?, PoolResult::Ok(1));
+		assert_eq!(res.block_on(), PoolResult::Ok(1));
 
 		Ok(())
 	}
@@ -4536,6 +4535,8 @@ mod test {
 	fn test_thread_pool_macro_panic() -> Result<(), Error> {
 		let (tx, rx) = sync_channel(1);
 		let mut v = lock_box!(0)?;
+		let mut id_box = lock_box!(1)?;
+		let id_box_clone = id_box.clone();
 		let v_clone = v.clone();
 		info!("testing thread_pool macro")?;
 
@@ -4552,6 +4553,7 @@ mod test {
 					info!("Unknown panic type")?;
 				}
 			}
+			wlock!(id_box) = id;
 
 			info!("PANIC: id={},e={:?}", id, e)?;
 			Ok(())
@@ -4559,7 +4561,7 @@ mod test {
 
 		tp.start()?;
 
-		execute!(tp, {
+		let handle = execute!(tp, {
 			info!("executing a thread")?;
 			if true {
 				// avoid compiler warning
@@ -4571,6 +4573,7 @@ mod test {
 
 		rx.recv()?;
 		assert_eq!(rlock!(v_clone), 1);
+		assert_eq!(rlock!(id_box_clone), handle.id());
 
 		Ok(())
 	}

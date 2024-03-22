@@ -16,7 +16,9 @@
 // limitations under the License.
 
 use crate::constants::*;
-use crate::types::{FutureWrapper, Lock, ThreadPoolConfig, ThreadPoolImpl, ThreadPoolState};
+use crate::types::{
+	FutureWrapper, Lock, ThreadPoolConfig, ThreadPoolHandle, ThreadPoolImpl, ThreadPoolState,
+};
 use crate::{LockBox, PoolResult, ThreadPool, ThreadPoolExecutor, ThreadPoolStopper, UtilBuilder};
 use bmw_conf::ConfigOptionName as CN;
 use bmw_conf::{ConfigBuilder, ConfigOption};
@@ -32,6 +34,35 @@ use std::thread::{sleep, spawn};
 use std::time::Duration;
 
 info!();
+
+impl<T, E> PoolResult<T, E> {
+	pub fn is_err(&self) -> bool {
+		match self {
+			PoolResult::Err(_) => true,
+			_ => false,
+		}
+	}
+}
+
+impl<T> ThreadPoolHandle<T> {
+	fn new(id: u128, recv_handle: Receiver<PoolResult<T, Error>>) -> Self {
+		Self { id, recv_handle }
+	}
+
+	pub fn id(&self) -> u128 {
+		self.id
+	}
+
+	pub fn block_on(&self) -> PoolResult<T, Error> {
+		match self.recv_handle.recv() {
+			Ok(res) => res,
+			Err(e) => PoolResult::Err(err!(
+				ErrKind::ThreadPanic,
+				format!("thread pool panic: {}", e)
+			)),
+		}
+	}
+}
 
 unsafe impl<T, E> Send for PoolResult<T, E> {}
 unsafe impl<T, E> Sync for PoolResult<T, E> {}
@@ -206,7 +237,7 @@ where
 		+ Sync
 		+ Unpin,
 {
-	fn execute<F>(&self, f: F, id: u128) -> Result<Receiver<PoolResult<T, Error>>, Error>
+	fn execute<F>(&self, f: F, id: u128) -> Result<ThreadPoolHandle<T>, Error>
 	where
 		F: Future<Output = Result<T, Error>> + Send + 'static,
 	{
@@ -222,7 +253,7 @@ where
 			id,
 		};
 		self.tx.as_ref().unwrap().send(fw)?;
-		Ok(rx)
+		Ok(ThreadPoolHandle::new(id, rx))
 	}
 
 	fn start(&mut self) -> Result<(), Error> {
