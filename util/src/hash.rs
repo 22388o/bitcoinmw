@@ -17,11 +17,11 @@
 
 use crate::constants::*;
 use crate::misc::{set_max, slice_to_usize, usize_to_slice};
-use crate::types::{Direction, HashImpl, HashImplSync};
+use crate::types::{Direction, HashImpl, HashImplSync, HashsetConfig, HashtableConfig, ListConfig};
 use crate::{
-	Hashset, HashsetConfig, HashsetIterator, Hashtable, HashtableConfig, HashtableIterator, List,
-	ListConfig, ListIterator, LockBox, SlabAllocator, SlabAllocatorConfig, SlabReader, SlabWriter,
-	SortableList, UtilBuilder, GLOBAL_SLAB_ALLOCATOR,
+	Hashset, HashsetIterator, Hashtable, HashtableIterator, List, ListIterator, LockBox,
+	SlabAllocator, SlabAllocatorConfig, SlabReader, SlabWriter, SortableList, UtilBuilder,
+	GLOBAL_SLAB_ALLOCATOR,
 };
 use bmw_conf::ConfigOptionName as CN;
 use bmw_conf::{ConfigBuilder, ConfigOption};

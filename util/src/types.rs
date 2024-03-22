@@ -121,44 +121,6 @@ pub trait Stack<V>: DynClone {
 	fn length(&self) -> usize;
 }
 
-/// The configuration struct for a [`Hashtable`]. This struct is passed
-/// into the [`crate::UtilBuilder::build_hashtable`] function. The [`std::default::Default`]
-/// trait is implemented for this trait.
-#[derive(Debug, Clone, Copy, PartialEq, Serializable)]
-pub struct HashtableConfig {
-	/// The maximum number of entries that can exist in this [`Hashtable`].
-	/// The default is 100_000. Note that the overhead for this value is 8 bytes
-	/// per entry. The [`crate::HashtableConfig::max_load_factor`] setting will
-	/// also affect how much memory is used by the entry array.
-	pub max_entries: usize,
-	/// The maximum load factor for this [`crate::Hashtable`]. This number
-	/// indicates how full the hashtable can be. This is an array based hashtable
-	/// and it is not possible to resize it after it is instantiated. The default value
-	/// is 0.75.
-	pub max_load_factor: f64,
-}
-
-/// The configuration struct for a [`Hashset`]. This struct is passed
-/// into the [`crate::UtilBuilder::build_hashset`] function. The [`std::default::Default`]
-/// trait is implemented for this trait.
-#[derive(Debug, Clone, Copy, PartialEq, Serializable)]
-pub struct HashsetConfig {
-	/// The maximum number of entries that can exist in this [`Hashset`].
-	/// The default is 100_000. Note that the overhead for this value is 8 bytes
-	/// per entry. So, by default 8 mb are allocated with this configuration.
-	pub max_entries: usize,
-	/// The maximum load factor for this [`crate::Hashset`]. This number
-	/// indicates how full the hashset can be. This is an array based hashset
-	/// and it is not possible to resize it after it is instantiated. The default value
-	/// is 0.75.
-	pub max_load_factor: f64,
-}
-
-/// Configuration for Lists currently there are no parameters, but it is still used
-/// to stay consistent with [`crate::Hashtable`] and [`crate::Hashset`].
-#[derive(Debug, Clone, Serializable)]
-pub struct ListConfig {}
-
 pub trait Hashtable<K, V>: Debug + DynClone
 where
 	K: Serializable + Clone,
@@ -483,19 +445,6 @@ pub struct Match {
 	pub(crate) id: usize,
 }
 
-pub enum PatternParam<'a> {
-	/// The regular expression for this pattern.
-	Regex(&'a str),
-	/// Whether or not this is a termination pattern.
-	IsTerm(bool),
-	/// Whether or not this is a multi-line pattern. (allowing multi-line wildcard matches).
-	IsMulti(bool),
-	/// Whether or not this pattern is case sensitive.
-	IsCaseSensitive(bool),
-	/// The id of this pattern.
-	Id(usize),
-}
-
 pub enum SearchParam {
 	/// The termination length of this search trie (length at which matching stops).
 	TerminationLength(usize),
@@ -625,3 +574,20 @@ where
 	pub(crate) debug_get_next_slot_error: bool,
 	pub(crate) debug_entry_array_len: bool,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Serializable)]
+pub(crate) struct HashtableConfig {
+	pub(crate) max_entries: usize,
+	pub(crate) max_load_factor: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serializable)]
+pub(crate) struct HashsetConfig {
+	pub(crate) max_entries: usize,
+	pub(crate) max_load_factor: f64,
+}
+
+/// Configuration for Lists currently there are no parameters, but it is still used
+/// to stay consistent with [`crate::Hashtable`] and [`crate::Hashset`].
+#[derive(Debug, Clone, Serializable)]
+pub(crate) struct ListConfig {}
