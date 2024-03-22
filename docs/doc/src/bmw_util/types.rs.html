@@ -561,14 +561,6 @@
 <a href="#559" id="559">559</a>
 <a href="#560" id="560">560</a>
 <a href="#561" id="561">561</a>
-<a href="#562" id="562">562</a>
-<a href="#563" id="563">563</a>
-<a href="#564" id="564">564</a>
-<a href="#565" id="565">565</a>
-<a href="#566" id="566">566</a>
-<a href="#567" id="567">567</a>
-<a href="#568" id="568">568</a>
-<a href="#569" id="569">569</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -913,21 +905,6 @@
 	Panic,
 }
 
-<span class="doccomment">/// The configuration struct for a [`crate::ThreadPool`]. This struct is passed into the
-/// [`crate::UtilBuilder::build_thread_pool`] function or the [`crate::thread_pool`] macro. The
-/// [`std::default::Default`] trait is implemented for this trait. Also see ConfigOption
-/// for details on configuring via macro.
-</span><span class="attr">#[derive(Debug, Clone, Serializable)]
-</span><span class="kw">pub struct </span>ThreadPoolConfig {
-	<span class="doccomment">/// The minimum number of threads that this thread_pool will use. The default value is 3.
-	</span><span class="kw">pub </span>min_size: usize,
-	<span class="doccomment">/// The maximum number of threads that this thread_pool will use. The default value is 7.
-	</span><span class="kw">pub </span>max_size: usize,
-	<span class="doccomment">/// The size of the sync_channel buffer. See [`std::sync::mpsc::sync_channel`] for more
-	/// information. The default value is 7.
-	</span><span class="kw">pub </span>sync_channel_size: usize,
-}
-
 <span class="kw">pub trait </span>ThreadPool&lt;T, OnPanic&gt;
 <span class="kw">where
 	</span>OnPanic: FnMut(u128, Box&lt;<span class="kw">dyn </span>Any + Send&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
@@ -1137,5 +1114,12 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) _phantom_data: PhantomData&lt;K&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_get_next_slot_error: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_entry_array_len: bool,
+}
+
+<span class="attr">#[derive(Debug, Clone, Serializable)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>ThreadPoolConfig {
+	<span class="kw">pub </span>min_size: usize,
+	<span class="kw">pub </span>max_size: usize,
+	<span class="kw">pub </span>sync_channel_size: usize,
 }
 </code></pre></div></section></main></body></html>

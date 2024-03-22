@@ -325,9 +325,6 @@
 <a href="#323" id="323">323</a>
 <a href="#324" id="324">324</a>
 <a href="#325" id="325">325</a>
-<a href="#326" id="326">326</a>
-<a href="#327" id="327">327</a>
-<a href="#328" id="328">328</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -346,11 +343,8 @@
 // limitations under the License.
 
 </span><span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
-<span class="kw">use </span><span class="kw">crate</span>::types::{FutureWrapper, Lock, ThreadPoolImpl, ThreadPoolState};
-<span class="kw">use crate</span>::{
-	LockBox, PoolResult, ThreadPool, ThreadPoolConfig, ThreadPoolExecutor, ThreadPoolStopper,
-	UtilBuilder,
-};
+<span class="kw">use </span><span class="kw">crate</span>::types::{FutureWrapper, Lock, ThreadPoolConfig, ThreadPoolImpl, ThreadPoolState};
+<span class="kw">use crate</span>::{LockBox, PoolResult, ThreadPool, ThreadPoolExecutor, ThreadPoolStopper, UtilBuilder};
 <span class="kw">use </span>bmw_conf::ConfigOptionName <span class="kw">as </span>CN;
 <span class="kw">use </span>bmw_conf::{ConfigBuilder, ConfigOption};
 <span class="kw">use </span>bmw_deps::futures::executor::block_on;
