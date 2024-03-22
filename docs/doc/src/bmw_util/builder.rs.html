@@ -520,7 +520,7 @@
 <span class="kw">use </span>std::hash::Hash;
 
 <span class="kw">impl </span>UtilBuilder {
-	<span class="doccomment">/// Build a [`crate::ThreadPool`] based on the specified [`crate::ThreadPoolConfig`].
+	<span class="doccomment">/// Build a [`crate::ThreadPool`] based on the specified ConfigOptions.
 	/// The [`crate::ThreadPool::start`] function must be called before executing tasks.
 	</span><span class="kw">pub fn </span>build_thread_pool&lt;T, OnPanic&gt;(
 		config: Vec&lt;ConfigOption&gt;,

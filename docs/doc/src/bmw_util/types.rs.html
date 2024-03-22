@@ -561,6 +561,14 @@
 <a href="#559" id="559">559</a>
 <a href="#560" id="560">560</a>
 <a href="#561" id="561">561</a>
+<a href="#562" id="562">562</a>
+<a href="#563" id="563">563</a>
+<a href="#564" id="564">564</a>
+<a href="#565" id="565">565</a>
+<a href="#566" id="566">566</a>
+<a href="#567" id="567">567</a>
+<a href="#568" id="568">568</a>
+<a href="#569" id="569">569</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -591,11 +599,15 @@
 <span class="kw">use </span>std::sync::mpsc::{Receiver, SyncSender};
 <span class="kw">use </span>std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-<span class="kw">pub struct </span>Array&lt;T&gt; {
+<span class="doccomment">/// Arrays for use with other functions in this library. An array can be contructed with the macro
+/// [`crate::array!`].
+</span><span class="kw">pub struct </span>Array&lt;T&gt; {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) data: Vec&lt;T&gt;,
 }
 
-<span class="attr">#[derive(Clone)]
+<span class="doccomment">/// ArrayList data structure. Arraylist implements List and Sortable list. A [`crate::ArrayList`]
+/// can be constructed with the macro [`crate::array_list`].
+</span><span class="attr">#[derive(Clone)]
 </span><span class="kw">pub struct </span>ArrayList&lt;T&gt; {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) inner: Array&lt;T&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) size: usize,
@@ -603,27 +615,29 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) tail: usize,
 }
 
-<span class="doccomment">/// An iterator for the [`crate::ArrayList`].
+<span class="doccomment">/// An iterator for the [`crate::ArrayList`]. See [`crate::array_list`] for examples.
 </span><span class="kw">pub struct </span>ArrayListIterator&lt;<span class="lifetime">'a</span>, T&gt; {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) arr: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>ArrayList&lt;T&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) dir: Direction,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) c: usize,
 }
 
-<span class="doccomment">/// An iterator for the [`crate::Array`].
+<span class="doccomment">/// An iterator for the [`crate::Array`]. See [`crate::array`] for examples.
 </span><span class="kw">pub struct </span>ArrayIterator&lt;<span class="lifetime">'a</span>, T&gt; {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) array_ref: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Array&lt;T&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) cur: usize,
 }
 
-<span class="kw">pub trait </span>List&lt;V&gt;: DynClone + Debug {
+<span class="doccomment">/// The list trait is implemented by both [`crate::list`] and [`crate::array_list`]. See these
+/// macros for detailed examples.
+</span><span class="kw">pub trait </span>List&lt;V&gt;: DynClone + Debug {
 	<span class="doccomment">/// push a value onto the end of the list
 	</span><span class="kw">fn </span>push(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: V) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
-	<span class="doccomment">/// iterate through the list
+	<span class="doccomment">/// return an iterator that can iterate through the list
 	</span><span class="kw">fn </span>iter&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = V&gt; + <span class="lifetime">'a</span>&gt;
 	<span class="kw">where
 		</span>V: Serializable + Clone;
-	<span class="doccomment">/// iterate through the list in reverse order
+	<span class="doccomment">/// return an iterator that can iterate through the list in reverse order
 	</span><span class="kw">fn </span>iter_rev&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = V&gt; + <span class="lifetime">'a</span>&gt;
 	<span class="kw">where
 		</span>V: Serializable + Clone;
@@ -635,7 +649,7 @@
 	</span><span class="kw">fn </span>clear(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 }
 
-<span class="doccomment">/// An iterator for the [`crate::List`].
+<span class="doccomment">/// An iterator for [`crate::list`].
 </span><span class="kw">pub struct </span>ListIterator&lt;<span class="lifetime">'a</span>, V&gt;
 <span class="kw">where
 	</span>V: Serializable + Clone,
@@ -647,7 +661,9 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) slab_reader: SlabReader,
 }
 
-<span class="kw">pub trait </span>SortableList&lt;V&gt;: List&lt;V&gt; + DynClone {
+<span class="doccomment">/// The sortable list allows for efficient sorting of both the [`crate::array_list`] and
+/// [`crate::list`].
+</span><span class="kw">pub trait </span>SortableList&lt;V&gt;: List&lt;V&gt; + DynClone {
 	<span class="doccomment">/// sort with a stable sorting algorithm
 	</span><span class="kw">fn </span>sort(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 	<span class="kw">where
@@ -932,7 +948,7 @@
 	</span><span class="kw">fn </span>stop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 
 	<span class="doccomment">/// Returns the current size of the thread pool which will be between
-	/// [`crate::ThreadPoolConfig::min_size`] and [`crate::ThreadPoolConfig::max_size`].
+	/// the configured maximum and minimum size.
 	</span><span class="kw">fn </span>size(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt;;
 
 	<span class="doccomment">/// Get the [`crate::ThreadPoolStopper`] for this thread pool.
