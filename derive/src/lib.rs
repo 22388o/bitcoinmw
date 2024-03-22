@@ -55,6 +55,10 @@
 //!```
 //!
 //! This macro is used in the bmw_util and other crates within BMW. For additional examples, see the bmw_util documentation.
+//!
+//! # Generics
+//! It's important to note that generics are not currently supported and will result in an error. If you need
+//! generics, currenly you must build your own Serializable implementation.
 
 extern crate proc_macro;
 use crate::derive::do_derive_serialize;
