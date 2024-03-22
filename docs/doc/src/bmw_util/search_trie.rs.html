@@ -466,6 +466,19 @@
 <a href="#464" id="464">464</a>
 <a href="#465" id="465">465</a>
 <a href="#466" id="466">466</a>
+<a href="#467" id="467">467</a>
+<a href="#468" id="468">468</a>
+<a href="#469" id="469">469</a>
+<a href="#470" id="470">470</a>
+<a href="#471" id="471">471</a>
+<a href="#472" id="472">472</a>
+<a href="#473" id="473">473</a>
+<a href="#474" id="474">474</a>
+<a href="#475" id="475">475</a>
+<a href="#476" id="476">476</a>
+<a href="#477" id="477">477</a>
+<a href="#478" id="478">478</a>
+<a href="#479" id="479">479</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -659,13 +672,26 @@
 }
 
 <span class="kw">impl </span>SearchTrieImpl {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(
-		patterns: Vec&lt;Pattern&gt;,
-		termination_length: usize,
-		max_wildcard_length: usize,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(patterns: Vec&lt;Pattern&gt;, configs: Vec&lt;ConfigOption&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
 		<span class="kw">if </span>patterns.len() == <span class="number">0 </span>{
 			<span class="kw">let </span>text = <span class="string">"search trie must have at least one pattern"</span>;
+			<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::Configuration, text);
+			<span class="kw">return </span><span class="prelude-val">Err</span>(e);
+		}
+
+		<span class="kw">let </span>config = ConfigBuilder::build_config(configs);
+		config.check_config(<span class="macro">vec!</span>[CN::TerminationLength, CN::MaxWildCardLength], <span class="macro">vec!</span>[])<span class="question-mark">?</span>;
+		<span class="kw">let </span>termination_length = config.get_or_usize(<span class="kw-2">&amp;</span>CN::TerminationLength, usize::MAX);
+		<span class="kw">let </span>max_wildcard_length = config.get_or_usize(<span class="kw-2">&amp;</span>CN::MaxWildCardLength, usize::MAX);
+
+		<span class="kw">if </span>max_wildcard_length == <span class="number">0 </span>{
+			<span class="kw">let </span>text = <span class="string">"search trie max_wildcard_length may not be 0"</span>;
+			<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::Configuration, text);
+			<span class="kw">return </span><span class="prelude-val">Err</span>(e);
+		}
+
+		<span class="kw">if </span>termination_length == <span class="number">0 </span>{
+			<span class="kw">let </span>text = <span class="string">"search trie termination_length may not be 0"</span>;
 			<span class="kw">let </span>e = <span class="macro">err!</span>(ErrKind::Configuration, text);
 			<span class="kw">return </span><span class="prelude-val">Err</span>(e);
 		}

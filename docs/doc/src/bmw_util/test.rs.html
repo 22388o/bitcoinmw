@@ -4927,6 +4927,8 @@
 <a href="#4925" id="4925">4925</a>
 <a href="#4926" id="4926">4926</a>
 <a href="#4927" id="4927">4927</a>
+<a href="#4928" id="4928">4928</a>
+<a href="#4929" id="4929">4929</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -4979,7 +4981,7 @@
 				<span class="macro">pattern!</span>(Regex(<span class="string">"^p2"</span>.to_string()), PatternId(<span class="number">2</span>))<span class="question-mark">?
 			</span>],
 			TerminationLength(<span class="number">1_000</span>),
-			MaxWildcardLength(<span class="number">100</span>)
+			MaxWildCardLength(<span class="number">100</span>)
 		)<span class="question-mark">?</span>;
 
 		<span class="comment">// create a matches array for the suffix tree to return matches in
@@ -5528,8 +5530,7 @@
 			])<span class="question-mark">?</span>,
 			search_trie: UtilBuilder::build_search_trie_box(
 				<span class="macro">vec!</span>[<span class="macro">pattern!</span>(Regex(<span class="string">"abc"</span>.to_string()), PatternId(<span class="number">0</span>))<span class="question-mark">?</span>],
-				<span class="number">100</span>,
-				<span class="number">50</span>,
+				<span class="macro">vec!</span>[TerminationLength(<span class="number">100</span>), MaxWildCardLength(<span class="number">50</span>)],
 			)<span class="question-mark">?</span>,
 		};
 		<span class="kw">let </span>array_list_sync = UtilBuilder::build_array_list_sync(<span class="number">10</span>, <span class="kw-2">&amp;</span><span class="number">0</span>)<span class="question-mark">?</span>;
@@ -7680,7 +7681,7 @@
 				<span class="macro">pattern!</span>(Regex(<span class="string">"def"</span>.to_string()), PatternId(<span class="number">1</span>))<span class="question-mark">?
 			</span>],
 			TerminationLength(<span class="number">100</span>),
-			MaxWildcardLength(<span class="number">50</span>)
+			MaxWildCardLength(<span class="number">50</span>)
 		)<span class="question-mark">?</span>;
 		<span class="kw">let </span>match_count = search_trie.tmatch(<span class="string">b"abc"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(match_count, <span class="number">1</span>);
@@ -8670,8 +8671,7 @@
 					PatternId(<span class="number">2</span>),
 				])<span class="question-mark">?</span>,
 			],
-			<span class="number">1_000</span>,
-			<span class="number">100</span>,
+			<span class="macro">vec!</span>[TerminationLength(<span class="number">1_000</span>), MaxWildCardLength(<span class="number">100</span>)],
 		)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>matches = [<span class="macro">tmatch!</span>()<span class="question-mark">?</span>; <span class="number">10</span>];
@@ -8714,8 +8714,7 @@
 					PatternId(<span class="number">2</span>),
 				])<span class="question-mark">?</span>,
 			],
-			<span class="number">37</span>,
-			<span class="number">10</span>,
+			<span class="macro">vec!</span>[TerminationLength(<span class="number">37</span>), MaxWildCardLength(<span class="number">10</span>)],
 		)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>matches = [<span class="macro">tmatch!</span>()<span class="question-mark">?</span>; <span class="number">10</span>];
@@ -8792,8 +8791,7 @@
 					PatternId(<span class="number">5</span>),
 				])<span class="question-mark">?</span>,
 			],
-			<span class="number">37</span>,
-			<span class="number">10</span>,
+			<span class="macro">vec!</span>[TerminationLength(<span class="number">37</span>), MaxWildCardLength(<span class="number">10</span>)],
 		)<span class="question-mark">?</span>;
 		<span class="comment">// 2 wildcard chars so no match
 		</span><span class="kw">let </span>count = search_trie.tmatch(<span class="string">b"p1xxabc"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
@@ -8848,11 +8846,17 @@
 			PatternId(<span class="number">0</span>),
 		])<span class="question-mark">?</span>;
 
-		<span class="kw">let </span><span class="kw-2">mut </span>search_trie = UtilBuilder::build_search_trie(<span class="macro">vec!</span>[pattern1], <span class="number">100</span>, <span class="number">100</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>search_trie = UtilBuilder::build_search_trie(
+			<span class="macro">vec!</span>[pattern1],
+			<span class="macro">vec!</span>[TerminationLength(<span class="number">100</span>), MaxWildCardLength(<span class="number">100</span>)],
+		)<span class="question-mark">?</span>;
 
 		<span class="macro">assert_eq!</span>(search_trie.tmatch(<span class="string">b"AAAAA"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>, <span class="number">0</span>);
 
-		<span class="kw">let </span><span class="kw-2">mut </span>search_trie = UtilBuilder::build_search_trie(<span class="macro">vec!</span>[pattern2], <span class="number">100</span>, <span class="number">100</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>search_trie = UtilBuilder::build_search_trie(
+			<span class="macro">vec!</span>[pattern2],
+			<span class="macro">vec!</span>[TerminationLength(<span class="number">100</span>), MaxWildCardLength(<span class="number">100</span>)],
+		)<span class="question-mark">?</span>;
 
 		<span class="macro">assert_eq!</span>(search_trie.tmatch(<span class="string">b"AAAAA"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>, <span class="number">1</span>);
 
@@ -9000,9 +9004,8 @@
 				IsMultiLine(<span class="bool-val">false</span>),
 				PatternId(<span class="number">0</span>)
 			])<span class="question-mark">?</span>],
-			<span class="number">36</span>,
-			<span class="number">36
-		</span>)
+			<span class="macro">vec!</span>[TerminationLength(<span class="number">36</span>), MaxWildCardLength(<span class="number">36</span>)]
+		)
 		.is_err());
 
 		<span class="macro">assert!</span>(UtilBuilder::build_search_trie(
@@ -9013,9 +9016,8 @@
 				IsMultiLine(<span class="bool-val">false</span>),
 				PatternId(<span class="number">0</span>)
 			])<span class="question-mark">?</span>],
-			<span class="number">100</span>,
-			<span class="number">100
-		</span>)
+			<span class="macro">vec!</span>[TerminationLength(<span class="number">100</span>), MaxWildCardLength(<span class="number">100</span>)]
+		)
 		.is_err());
 
 		<span class="macro">assert!</span>(UtilBuilder::build_search_trie(
@@ -9026,9 +9028,8 @@
 				IsMultiLine(<span class="bool-val">false</span>),
 				PatternId(<span class="number">0</span>)
 			])<span class="question-mark">?</span>],
-			<span class="number">100</span>,
-			<span class="number">100
-		</span>)
+			<span class="macro">vec!</span>[TerminationLength(<span class="number">100</span>), MaxWildCardLength(<span class="number">100</span>)]
+		)
 		.is_err());
 
 		<span class="macro">assert!</span>(UtilBuilder::build_search_trie(
@@ -9039,12 +9040,15 @@
 				IsMultiLine(<span class="bool-val">false</span>),
 				PatternId(<span class="number">0</span>)
 			])<span class="question-mark">?</span>],
-			<span class="number">100</span>,
-			<span class="number">100
-		</span>)
+			<span class="macro">vec!</span>[TerminationLength(<span class="number">100</span>), MaxWildCardLength(<span class="number">100</span>)]
+		)
 		.is_err());
 
-		<span class="macro">assert!</span>(UtilBuilder::build_search_trie(<span class="macro">vec!</span>[], <span class="number">100</span>, <span class="number">100</span>).is_err());
+		<span class="macro">assert!</span>(UtilBuilder::build_search_trie(
+			<span class="macro">vec!</span>[],
+			<span class="macro">vec!</span>[TerminationLength(<span class="number">100</span>), MaxWildCardLength(<span class="number">100</span>)]
+		)
+		.is_err());
 
 		<span class="prelude-val">Ok</span>(())
 	}
