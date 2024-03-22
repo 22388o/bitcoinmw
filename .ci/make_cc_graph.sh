@@ -20,7 +20,7 @@ do
 	then
 		echo "format_date($entry * 1000 )," >> /tmp/timestamps
 	else
-		last_value = $entry;
+		last_value=`echo $entry`;
 		echo "$entry," >> /tmp/values
 	fi
 	let i=i+1;
@@ -29,8 +29,8 @@ done
 # update our template with real values
 export coverage=`cat /tmp/values`;
 export last_entry="$last_value";
-perl -pi -e 's/REPLACECOVERAGE/$ENV{coverage}/g' docs/code_coverage.html
 perl -pi -e 's/REPLACECOVERAGE_SINGLE/$ENV{last_entry}/g' docs/code_coverage.html
+perl -pi -e 's/REPLACECOVERAGE/$ENV{coverage}/g' docs/code_coverage.html
 perl -pi -e 's/REPLACECOVERAGE_SINGLE/$ENV{last_entry}/g' src/lib.rs
 export timestampsv=`cat /tmp/timestamps`;
 perl -pi -e 's/REPLACETIMESTAMP/$ENV{timestampsv}/g' docs/code_coverage.html
