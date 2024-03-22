@@ -189,19 +189,19 @@ mod test {
 				})?;
 				conn_data.clear_through(first_slab)?;
 				let client_handle = client_handle_clone.rlock()?;
-				let guard = client_handle.guard();
+				let guard = client_handle.guard()?;
 				if conn_data.get_handle() != **guard {
 					info!("client res = {:?}", res)?;
 					if res[0] == 't' as u8 {
 						conn_data.write_handle().write(&res)?;
 						if res == b"test1".to_vec() {
 							let mut server_received_test1 = server_received_test1.wlock()?;
-							(**server_received_test1.guard()) = true;
+							(**server_received_test1.guard()?) = true;
 						}
 					}
 					if res == b"abc".to_vec() {
 						let mut server_received_abc = server_received_abc.wlock()?;
-						(**server_received_abc.guard()) = true;
+						(**server_received_abc.guard()?) = true;
 					}
 				} else {
 					info!("server res = {:?})", res)?;
@@ -210,7 +210,7 @@ mod test {
 					conn_data.write_handle().write(&x)?;
 					if res == b"test1".to_vec() {
 						let mut client_received_test1 = client_received_test1.wlock()?;
-						(**client_received_test1.guard()) = true;
+						(**client_received_test1.guard()?) = true;
 					}
 				}
 				info!("res={:?}", res)?;
@@ -249,7 +249,7 @@ mod test {
 			let connection_handle = connection.into_raw_socket().try_into()?;
 			{
 				let mut client_handle = client_handle.wlock()?;
-				(**client_handle.guard()) = connection_handle;
+				(**client_handle.guard()?) = connection_handle;
 			}
 
 			let client = ClientConnection {
@@ -265,18 +265,18 @@ mod test {
 			let mut count = 0;
 			loop {
 				sleep(Duration::from_millis(1));
-				if !(**(client_received_test1_clone.rlock()?.guard())
-					&& **(server_received_test1_clone.rlock()?.guard())
-					&& **(server_received_abc_clone.rlock()?.guard()))
+				if !(**(client_received_test1_clone.rlock()?.guard()?)
+					&& **(server_received_test1_clone.rlock()?.guard()?)
+					&& **(server_received_abc_clone.rlock()?.guard()?))
 				{
 					count += 1;
 					if count < 2_000 {
 						continue;
 					}
 				}
-				assert!(**(client_received_test1_clone.rlock()?.guard()));
-				assert!(**(server_received_test1_clone.rlock()?.guard()));
-				assert!(**(server_received_abc_clone.rlock()?.guard()));
+				assert!(**(client_received_test1_clone.rlock()?.guard()?));
+				assert!(**(server_received_test1_clone.rlock()?.guard()?));
+				assert!(**(server_received_abc_clone.rlock()?.guard()?));
 				break;
 			}
 
@@ -471,7 +471,7 @@ mod test {
 				conn_data.get_connection_id()
 			)?;
 			let mut close_count = close_count.wlock()?;
-			(**close_count.guard()) += 1;
+			(**close_count.guard()?) += 1;
 			Ok(())
 		})?;
 		evh.set_on_panic(move |_thread_context, _e| Ok(()))?;
@@ -534,7 +534,7 @@ mod test {
 		loop {
 			count_count += 1;
 			sleep(Duration::from_millis(1));
-			let count = **((close_count_clone.rlock()?).guard());
+			let count = **((close_count_clone.rlock()?).guard()?);
 			if count != total && count_count < 60_000 {
 				info!(
 					"count = {}, total = {}, will try again in a millisecond",
@@ -542,7 +542,7 @@ mod test {
 				)?;
 				continue;
 			}
-			assert_eq!((**((close_count_clone.rlock()?).guard())), total);
+			assert_eq!((**((close_count_clone.rlock()?).guard()?)), total);
 			break;
 		}
 
@@ -610,7 +610,7 @@ mod test {
 				conn_data.get_connection_id()
 			)?;
 			let mut close_count = close_count.wlock()?;
-			(**close_count.guard()) += 1;
+			(**close_count.guard()?) += 1;
 			Ok(())
 		})?;
 		evh.set_on_panic(move |_thread_context, _e| Ok(()))?;
@@ -646,10 +646,10 @@ mod test {
 			loop {
 				count += 1;
 				sleep(Duration::from_millis(1));
-				if **((close_count_clone.rlock()?).guard()) == 0 && count < 2_000 {
+				if **((close_count_clone.rlock()?).guard()?) == 0 && count < 2_000 {
 					continue;
 				}
-				assert_eq!(**((close_count_clone.rlock()?).guard()), 1);
+				assert_eq!(**((close_count_clone.rlock()?).guard()?), 1);
 				break;
 			}
 		}
@@ -784,18 +784,18 @@ mod test {
 			})?;
 			conn_data.clear_through(first_slab)?;
 			let client_handle = client_handle_clone.rlock()?;
-			let guard = client_handle.guard();
+			let guard = client_handle.guard()?;
 			if conn_data.get_handle() != **guard {
 				if res[0] == 't' as u8 {
 					conn_data.write_handle().write(&res)?;
 					if res == b"test1" {
 						let mut server_received_test1 = server_received_test1.wlock()?;
-						(**server_received_test1.guard()) = true;
+						(**server_received_test1.guard()?) = true;
 					}
 				}
 				if res == b"abc".to_vec() {
 					let mut server_received_abc = server_received_abc.wlock()?;
-					(**server_received_abc.guard()) = true;
+					(**server_received_abc.guard()?) = true;
 				}
 			} else {
 				let mut x = vec![];
@@ -803,7 +803,7 @@ mod test {
 				conn_data.write_handle().write(&x)?;
 				if res == b"test1".to_vec() {
 					let mut client_received_test1 = client_received_test1.wlock()?;
-					(**client_received_test1.guard()) = true;
+					(**client_received_test1.guard()?) = true;
 				}
 			}
 			info!("res={:?}", res)?;
@@ -834,7 +834,7 @@ mod test {
 		let connection_handle = connection.into_raw_socket().try_into()?;
 		{
 			let mut client_handle = client_handle.wlock()?;
-			(**client_handle.guard()) = connection_handle;
+			(**client_handle.guard()?) = connection_handle;
 		}
 
 		let client = ClientConnection {
@@ -847,18 +847,18 @@ mod test {
 		let mut count = 0;
 		loop {
 			sleep(Duration::from_millis(1));
-			if !(**(client_received_test1_clone.rlock()?.guard())
-				&& **(server_received_test1_clone.rlock()?.guard())
-				&& **(server_received_abc_clone.rlock()?.guard()))
+			if !(**(client_received_test1_clone.rlock()?.guard()?)
+				&& **(server_received_test1_clone.rlock()?.guard()?)
+				&& **(server_received_abc_clone.rlock()?.guard()?))
 			{
 				count += 1;
 				if count < 25_000 {
 					continue;
 				}
 			}
-			assert!(**(client_received_test1_clone.rlock()?.guard()));
-			assert!(**(server_received_test1_clone.rlock()?.guard()));
-			assert!(**(server_received_abc_clone.rlock()?.guard()));
+			assert!(**(client_received_test1_clone.rlock()?.guard()?));
+			assert!(**(server_received_test1_clone.rlock()?.guard()?));
+			assert!(**(server_received_abc_clone.rlock()?.guard()?));
 			break;
 		}
 
@@ -909,18 +909,18 @@ mod test {
 		evh.set_on_accept(move |conn_data, _thread_context| {
 			if conn_data.tid() == 0 {
 				let mut tid0count = tid0count.wlock()?;
-				let guard = tid0count.guard();
+				let guard = tid0count.guard()?;
 				(**guard) += 1;
 			} else if conn_data.tid() == 1 {
 				let mut tid1count = tid1count.wlock()?;
-				let guard = tid1count.guard();
+				let guard = tid1count.guard()?;
 				(**guard) += 1;
 			}
 			Ok(())
 		})?;
 		evh.set_on_close(move |_conn_data, _thread_context| {
 			let mut close_count = close_count.wlock()?;
-			(**close_count.guard()) += 1;
+			(**close_count.guard()?) += 1;
 			Ok(())
 		})?;
 		evh.set_on_panic(move |_thread_context, _e| Ok(()))?;
@@ -965,16 +965,16 @@ mod test {
 		loop {
 			count_count += 1;
 			sleep(Duration::from_millis(1));
-			let count = **((close_count_clone.rlock()?).guard());
+			let count = **((close_count_clone.rlock()?).guard()?);
 			if count != total + 1 && count_count < 1_000 {
 				continue;
 			}
-			assert_eq!((**((close_count_clone.rlock()?).guard())), total + 1);
+			assert_eq!((**((close_count_clone.rlock()?).guard()?)), total + 1);
 			break;
 		}
 
-		let tid0count = **(tid0count_clone.rlock()?.guard());
-		let tid1count = **(tid1count_clone.rlock()?.guard());
+		let tid0count = **(tid0count_clone.rlock()?.guard()?);
+		let tid1count = **(tid1count_clone.rlock()?.guard()?);
 		info!("tid0count={},tid1count={}", tid0count, tid1count)?;
 		#[cfg(target_os = "linux")]
 		{

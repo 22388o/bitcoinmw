@@ -1147,7 +1147,7 @@ where
 		match &mut self.slabs {
 			Some(slabs) => {
 				let mut slabs = slabs.wlock()?;
-				let guard = slabs.guard();
+				let guard = slabs.guard()?;
 				let mut slab = (**guard).allocate()?;
 				let slab_mut = slab.get_mut();
 				// set next pointer to none
@@ -1175,7 +1175,7 @@ where
 		match &mut self.slabs {
 			Some(slabs) => {
 				let mut slabs = slabs.wlock()?;
-				let guard = slabs.guard();
+				let guard = slabs.guard()?;
 				(**guard).free(slab_id)
 			}
 			None => GLOBAL_SLAB_ALLOCATOR.with(|f| -> Result<(), Error> {
@@ -1195,7 +1195,7 @@ where
 			let n = match &self.slabs {
 				Some(slabs) => {
 					let slabs = slabs.rlock()?;
-					let guard = slabs.guard();
+					let guard = slabs.guard()?;
 					let slab = (**guard).get(next_bytes)?;
 					slice_to_usize(&slab.get()[bytes_per_slab..slab_size])
 				}

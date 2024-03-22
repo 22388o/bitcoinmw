@@ -609,7 +609,7 @@ impl WebSocketClientImpl {
 		match attachment {
 			Some(mut attachment) => {
 				let mut state = attachment.attachment.wlock()?;
-				let guard = state.guard();
+				let guard = state.guard()?;
 				match (**guard).downcast_mut::<WebSocketConnectionState>() {
 					Some(state) => Self::process_on_read_w_state(config, conn_data, ctx, state),
 					None => Err(err!(

@@ -36,7 +36,6 @@ where
 	}
 }
 
-#[cfg(not(tarpaulin_include))]
 thread_local! {
 	pub static LOCKS: RefCell<HashSet<u128>> = RefCell::new(HashSet::new());
 }
@@ -56,9 +55,8 @@ where
 	T: Send + Sync,
 {
 	/// Return the RwLockReadGuard associated with this lock.
-	#[cfg(not(tarpaulin_include))]
-	pub fn guard(&self) -> &RwLockReadGuard<'a, T> {
-		&self.guard
+	pub fn guard(&self) -> Result<&RwLockReadGuard<'a, T>, Error> {
+		Ok(&self.guard)
 	}
 }
 
@@ -78,8 +76,8 @@ impl<T> Drop for RwLockReadGuardWrapper<'_, T> {
 
 impl<'a, T> RwLockWriteGuardWrapper<'a, T> {
 	/// Return the RwLockWriteGuard associated with this lock.
-	pub fn guard(&mut self) -> &mut RwLockWriteGuard<'a, T> {
-		&mut self.guard
+	pub fn guard(&mut self) -> Result<&mut RwLockWriteGuard<'a, T>, Error> {
+		Ok(&mut self.guard)
 	}
 }
 

@@ -250,7 +250,7 @@ impl HttpCache for HttpCacheImpl {
 		(free_count, slab_count) = {
 			let slabs = self.hashtable.slabs()?.unwrap();
 			let slabs = slabs.rlock()?;
-			let guard = slabs.guard();
+			let guard = slabs.guard()?;
 			((**guard).free_count()?, (**guard).slab_count()?)
 		};
 		let bytes_needed = len + path.len() + CACHE_OVERHEAD_BYTES;

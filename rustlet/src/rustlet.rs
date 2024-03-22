@@ -663,7 +663,7 @@ impl RustletResponseImpl {
 
 		let bytes_len = bytes.len();
 		let mut state = self.state.wlock()?;
-		let guard = state.guard();
+		let guard = state.guard()?;
 
 		let (close_text, content_type_text, sent_headers) = {
 			let close_text = if (**guard).close {
@@ -735,7 +735,7 @@ impl RustletResponseImpl {
 		self.send_headers(&[])?;
 		let close = {
 			let mut state = self.state.wlock()?;
-			let guard = state.guard();
+			let guard = state.guard()?;
 			let completed = (**guard).completed;
 			let close = (**guard).close;
 			debug!("in complete")?;
@@ -760,7 +760,7 @@ impl RustletResponseImpl {
 
 	fn flush_impl(&mut self, shrink: bool) -> Result<(), Error> {
 		let mut state = self.state.wlock()?;
-		let guard = state.guard();
+		let guard = state.guard()?;
 		self.wh.write(&(**guard).buffer)?;
 		(**guard).buffer.clear();
 		if shrink {

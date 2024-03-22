@@ -476,11 +476,11 @@ impl HttpClientImpl {
 		match attachment {
 			Some(mut attachment) => {
 				let mut attachment = attachment.attachment.wlock()?;
-				let attachment = attachment.guard();
+				let attachment = attachment.guard()?;
 				match (**attachment).downcast_mut::<HttpClientAttachment>() {
 					Some(ref mut attachment) => {
 						let mut attachment = attachment.http_client_data.wlock()?;
-						let guard = attachment.guard();
+						let guard = attachment.guard()?;
 						loop {
 							let pop_count = match (**guard).front_mut() {
 								Some(ref mut attachment) => Self::process_on_read_data(
@@ -943,7 +943,7 @@ impl HttpConnection for HttpConnectionImpl {
 
 				{
 					let mut http_client_data = self.http_client_data.wlock()?;
-					let guard = http_client_data.guard();
+					let guard = http_client_data.guard()?;
 					(**guard).push_back(HttpClientAttachmentData {
 						request: request.clone(),
 						close_on_complete: false,
@@ -964,7 +964,7 @@ impl HttpConnection for HttpConnectionImpl {
 		}
 
 		let mut http_client_data = self.http_client_data.wlock()?;
-		let http_client_data = http_client_data.guard();
+		let http_client_data = http_client_data.guard()?;
 		(**http_client_data).clear();
 		(**http_client_data).shrink_to_fit();
 
@@ -1229,7 +1229,7 @@ mod test {
 					assert_eq!(response.version()?, &HttpVersion::HTTP11);
 
 					let mut found_count = found_count.wlock()?;
-					let guard = found_count.guard();
+					let guard = found_count.guard()?;
 					(**guard) += 1;
 				}
 				Ok(())
@@ -1251,7 +1251,7 @@ mod test {
 				info!("got response should be 404!")?;
 				assert_eq!(response.code()?, 404);
 				let mut found404 = found404.wlock()?;
-				let guard = found404.guard();
+				let guard = found404.guard()?;
 				(**guard) = true;
 
 				Ok(())
@@ -1274,10 +1274,10 @@ mod test {
 				break;
 			}
 			let found_count = found_count_clone.rlock()?;
-			let guard = found_count.guard();
+			let guard = found_count.guard()?;
 
 			let found404 = found404_clone.rlock()?;
-			let guard2 = found404.guard();
+			let guard2 = found404.guard()?;
 
 			if (**guard) != 1 || !(**guard2) {
 				info!("guard={},count={} of 10,000", (**guard), count)?;
@@ -1290,13 +1290,13 @@ mod test {
 
 		{
 			let found_count = found_count_clone.rlock()?;
-			let guard = found_count.guard();
+			let guard = found_count.guard()?;
 			assert_eq!((**guard), 1);
 		}
 
 		{
 			let found404 = found404_clone.rlock()?;
-			let guard = found404.guard();
+			let guard = found404.guard()?;
 			assert_eq!((**guard), true);
 		}
 
@@ -1397,7 +1397,7 @@ mod test {
 					assert_eq!(response.version()?, &HttpVersion::HTTP11);
 
 					let mut found_count = found_count.wlock()?;
-					let guard = found_count.guard();
+					let guard = found_count.guard()?;
 					(**guard) += 1;
 				}
 				Ok(())
@@ -1434,7 +1434,7 @@ mod test {
 					info!("got response should be 404!")?;
 					assert_eq!(response.code()?, 404);
 					let mut found404 = found404.wlock()?;
-					let guard = found404.guard();
+					let guard = found404.guard()?;
 					assert_eq!(**guard, false);
 					(**guard) = true;
 				} else if request == &http_client_request2_clone {
@@ -1466,7 +1466,7 @@ mod test {
 					assert_eq!(response.version()?, &HttpVersion::HTTP11);
 
 					let mut found_another_file = found_another_file.wlock()?;
-					let guard = found_another_file.guard();
+					let guard = found_another_file.guard()?;
 					assert_eq!(**guard, false);
 					(**guard) = true;
 				}
@@ -1487,9 +1487,9 @@ mod test {
 			let found404 = found404_clone.rlock()?;
 			let found_count = found_count_clone.rlock()?;
 			let found_another_file = found_another_file_clone.rlock()?;
-			let guard = found_count.guard();
-			let guard2 = found404.guard();
-			let guard3 = found_another_file.guard();
+			let guard = found_count.guard()?;
+			let guard2 = found404.guard()?;
+			let guard3 = found_another_file.guard()?;
 
 			if (**guard) != 1 {
 				info!("guard={},count={} of 10,000", (**guard), count)?;
@@ -1518,19 +1518,19 @@ mod test {
 
 		{
 			let found_count = found_count_clone.rlock()?;
-			let guard = found_count.guard();
+			let guard = found_count.guard()?;
 			assert_eq!((**guard), 1);
 		}
 
 		{
 			let found404 = found404_clone.rlock()?;
-			let guard = found404.guard();
+			let guard = found404.guard()?;
 			assert_eq!((**guard), true);
 		}
 
 		{
 			let found_another_file = found_another_file_clone.rlock()?;
-			let guard = found_another_file.guard();
+			let guard = found_another_file.guard()?;
 			assert_eq!((**guard), true);
 		}
 

@@ -50,15 +50,15 @@ info!();
 ///
 ///     spawn(move || -> Result<(), Error> {
 ///         let mut x = vlock.wlock()?;
-///         assert_eq!((**(x.guard())).id, 1234);
+///         assert_eq!((**(x.guard()?)).id, 1234);
 ///         sleep(Duration::from_millis(3000));
-///         (**(x.guard())).id = 4321;
+///         (**(x.guard()?)).id = 4321;
 ///         Ok(())
 ///     });
 ///
 ///     sleep(Duration::from_millis(1000));
 ///     let x = vlock_clone.rlock()?;
-///     assert_eq!((**(x.guard())).id, 4321);
+///     assert_eq!((**(x.guard()?)).id, 4321);
 ///
 ///     Ok(())
 /// }
@@ -85,7 +85,7 @@ macro_rules! lock_box {
 #[macro_export]
 macro_rules! wlock {
 	($value:expr) => {
-		**($value.wlock()?.guard())
+		**($value.wlock()?.guard()?)
 	};
 }
 
@@ -95,7 +95,7 @@ macro_rules! wlock {
 #[macro_export]
 macro_rules! rlock {
 	($value:expr) => {
-		**($value.rlock()?.guard())
+		**($value.rlock()?.guard()?)
 	};
 }
 

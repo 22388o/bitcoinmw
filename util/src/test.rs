@@ -425,9 +425,9 @@ mod test {
 
 		let handle = execute!(tp, {
 			let mut array = lock.wlock()?;
-			assert_eq!((**array.guard())[0], 1);
-			(**array.guard())[0] = 2;
-			(**array.guard())[1] = 20;
+			assert_eq!((**array.guard()?)[0], 1);
+			(**array.guard()?)[0] = 2;
+			(**array.guard()?)[1] = 20;
 
 			Ok(())
 		})?;
@@ -435,8 +435,8 @@ mod test {
 		block_on!(handle);
 
 		let array_processed = lock_clone.rlock()?;
-		assert_eq!((**array_processed.guard())[0], 2);
-		assert_eq!((**array_processed.guard())[1], 20);
+		assert_eq!((**array_processed.guard()?)[0], 2);
+		assert_eq!((**array_processed.guard()?)[1], 20);
 
 		Ok(())
 	}
@@ -628,7 +628,7 @@ mod test {
 		execute!(tp, {
 			{
 				let mut test_obj = test_obj.wlock()?;
-				let guard = test_obj.guard();
+				let guard = test_obj.guard()?;
 				(**guard).array[0] = 1;
 				(**guard).array_list.push(1)?;
 				(**guard).queue.enqueue(1)?;
@@ -641,19 +641,19 @@ mod test {
 			}
 			{
 				let mut array_list_sync = array_list_sync.wlock()?;
-				let guard = array_list_sync.guard();
+				let guard = array_list_sync.guard()?;
 				(**guard).push(0)?;
 			}
 
 			{
 				let mut queue_sync = queue_sync.wlock()?;
-				let guard = queue_sync.guard();
+				let guard = queue_sync.guard()?;
 				(**guard).enqueue(0)?;
 			}
 
 			{
 				let mut stack_sync = stack_sync.wlock()?;
-				let guard = stack_sync.guard();
+				let guard = stack_sync.guard()?;
 				(**guard).push(0)?;
 			}
 
@@ -665,7 +665,7 @@ mod test {
 			count += 1;
 			sleep(Duration::from_millis(1));
 			let test_obj = test_obj_clone.rlock()?;
-			let guard = test_obj.guard();
+			let guard = test_obj.guard()?;
 			if (**guard).array[0] != 1 && count < 2_000 {
 				continue;
 			}
@@ -1030,19 +1030,19 @@ mod test {
 
 		{
 			let h2 = h_clone.rlock()?;
-			assert_eq!((**h2.guard()).get(&2u64)?, None);
-			assert_eq!((**h2.guard()).size(), 0);
+			assert_eq!((**h2.guard()?).get(&2u64)?, None);
+			assert_eq!((**h2.guard()?).size(), 0);
 			assert_eq!(
-				(**h2.guard()).max_load_factor(),
+				(**h2.guard()?).max_load_factor(),
 				HASH_DEFAULT_MAX_LOAD_FACTOR
 			);
-			assert_eq!((**h2.guard()).max_entries(), 1024);
+			assert_eq!((**h2.guard()?).max_entries(), 1024);
 		}
 
 		let handle = execute!(tp, {
 			let mut h = h.wlock()?;
-			(**h.guard()).insert(&2u64, &6u64)?;
-			(**h.guard()).insert(&3u64, &6u64)?;
+			(**h.guard()?).insert(&2u64, &6u64)?;
+			(**h.guard()?).insert(&3u64, &6u64)?;
 			Ok(())
 		})?;
 
@@ -1050,28 +1050,28 @@ mod test {
 
 		{
 			let h = h_clone.rlock()?;
-			assert_eq!((**h.guard()).get(&2u64)?, Some(6u64));
+			assert_eq!((**h.guard()?).get(&2u64)?, Some(6u64));
 		}
 
 		{
 			let mut h = h_clone.wlock()?;
-			(**h.guard()).remove(&2u64)?;
-			assert_eq!((**h.guard()).get(&2u64)?, None);
-			assert_eq!((**h.guard()).remove(&2u64)?, None);
+			(**h.guard()?).remove(&2u64)?;
+			assert_eq!((**h.guard()?).get(&2u64)?, None);
+			assert_eq!((**h.guard()?).remove(&2u64)?, None);
 		}
 
 		{
 			let mut h = h_clone.wlock()?;
-			let mut iter = (**h.guard()).iter();
+			let mut iter = (**h.guard()?).iter();
 			assert_eq!(iter.next(), Some((3u64, 6u64)));
 			assert_eq!(iter.next(), None);
 		}
 
 		{
 			let mut h = h_clone.wlock()?;
-			assert_eq!((**h.guard()).size(), 1);
-			(**h.guard()).clear()?;
-			assert_eq!((**h.guard()).size(), 0);
+			assert_eq!((**h.guard()?).size(), 1);
+			(**h.guard()?).clear()?;
+			assert_eq!((**h.guard()?).size(), 0);
 		}
 
 		Ok(())
@@ -1095,21 +1095,21 @@ mod test {
 
 		{
 			let h2 = h_clone.rlock()?;
-			assert_eq!((**h2.guard()).contains(&2u64)?, false);
+			assert_eq!((**h2.guard()?).contains(&2u64)?, false);
 		}
 
 		let handle = execute!(tp, {
 			let mut h = h.wlock()?;
-			(**h.guard()).insert(&2u64)?;
+			(**h.guard()?).insert(&2u64)?;
 			Ok(())
 		})?;
 
 		block_on!(handle);
 
 		let h = h_clone.rlock()?;
-		assert_eq!((**h.guard()).contains(&2u64)?, true);
+		assert_eq!((**h.guard()?).contains(&2u64)?, true);
 
-		let mut iter = (**h.guard()).iter();
+		let mut iter = (**h.guard()?).iter();
 		assert_eq!(iter.next(), Some(2u64));
 		assert_eq!(iter.next(), None);
 
@@ -1135,12 +1135,12 @@ mod test {
 
 		{
 			let h = h_clone.rlock()?;
-			assert_eq!((**h.guard()).size(), 0);
+			assert_eq!((**h.guard()?).size(), 0);
 		}
 
 		let handle = execute!(tp, {
 			let mut h = h.wlock()?;
-			(**h.guard()).push(2u64)?;
+			(**h.guard()?).push(2u64)?;
 			Ok(())
 		})?;
 
@@ -1148,40 +1148,40 @@ mod test {
 
 		{
 			let h = h_clone.rlock()?;
-			assert_eq!((**h.guard()).size(), 1);
+			assert_eq!((**h.guard()?).size(), 1);
 		}
 
 		{
 			let h = h_clone.rlock()?;
-			let mut iter = (**h.guard()).iter();
+			let mut iter = (**h.guard()?).iter();
 			assert_eq!(iter.next(), Some(2u64));
 			assert_eq!(iter.next(), None);
 
-			let mut iter = (**h.guard()).iter_rev();
+			let mut iter = (**h.guard()?).iter_rev();
 			assert_eq!(iter.next(), Some(2u64));
 			assert_eq!(iter.next(), None);
 		}
 
 		{
 			let mut h = h_clone2.wlock()?;
-			(**h.guard()).push(3u64)?;
-			(**h.guard()).push(1u64)?;
+			(**h.guard()?).push(3u64)?;
+			(**h.guard()?).push(1u64)?;
 		}
 
 		{
 			let mut h = h_clone3.wlock()?;
-			assert!(list_eq!((**h.guard()), list![2u64, 3, 1]));
-			(**h.guard()).sort()?;
-			assert!(list_eq!((**h.guard()), list![1u64, 2, 3]));
-			(**h.guard()).push(7u64)?;
-			(**h.guard()).push(4u64)?;
+			assert!(list_eq!((**h.guard()?), list![2u64, 3, 1]));
+			(**h.guard()?).sort()?;
+			assert!(list_eq!((**h.guard()?), list![1u64, 2, 3]));
+			(**h.guard()?).push(7u64)?;
+			(**h.guard()?).push(4u64)?;
 		}
 
 		{
 			let mut h = h_clone3.wlock()?;
-			assert!(list_eq!((**h.guard()), list![1u64, 2, 3, 7, 4]));
-			(**h.guard()).sort_unstable()?;
-			assert!(list_eq!((**h.guard()), list![1u64, 2, 3, 4, 7]));
+			assert!(list_eq!((**h.guard()?), list![1u64, 2, 3, 7, 4]));
+			(**h.guard()?).sort_unstable()?;
+			assert!(list_eq!((**h.guard()?), list![1u64, 2, 3, 4, 7]));
 		}
 
 		let h2 = UtilBuilder::build_list_sync(vec![
@@ -1193,18 +1193,18 @@ mod test {
 		let mut h2_clone = h2.clone();
 		{
 			let mut h = h2_clone.wlock()?;
-			(**h.guard()).push(1u64)?;
-			(**h.guard()).push(2u64)?;
-			(**h.guard()).push(3u64)?;
-			(**h.guard()).push(4u64)?;
-			(**h.guard()).push(7u64)?;
+			(**h.guard()?).push(1u64)?;
+			(**h.guard()?).push(2u64)?;
+			(**h.guard()?).push(3u64)?;
+			(**h.guard()?).push(4u64)?;
+			(**h.guard()?).push(7u64)?;
 		}
 
 		{
 			let h = h_clone3.rlock()?;
 			let h2 = h2_clone.rlock()?;
-			info!("h={:?},h2={:?}", **h.guard(), **h2.guard())?;
-			assert!(list_eq!(**h.guard(), **h2.guard()));
+			info!("h={:?},h2={:?}", **h.guard()?, **h2.guard()?)?;
+			assert!(list_eq!(**h.guard()?, **h2.guard()?));
 		}
 
 		let x: HashImplSync<u32> = HashImplSync::new(vec![
@@ -2072,18 +2072,18 @@ mod test {
 		let mut lock2 = lock.clone();
 		{
 			let x = lock.rlock()?;
-			println!("x={}", *x.guard());
+			println!("x={}", *x.guard()?);
 		}
 		{
 			let mut y = lock.wlock()?;
-			**(y.guard()) = 2;
+			**(y.guard()?) = 2;
 
 			assert!(lock2.wlock().is_err());
 		}
 
 		{
 			let mut z = lock.wlock()?;
-			assert_eq!(**(z.guard()), 2);
+			assert_eq!(**(z.guard()?), 2);
 		}
 
 		Ok(())
@@ -2095,30 +2095,30 @@ mod test {
 		let lock2 = lock.clone();
 		{
 			let x = lock.rlock()?;
-			println!("x={}", *x.guard());
+			println!("x={}", *x.guard()?);
 		}
 		{
 			let mut y = lock.wlock()?;
-			**(y.guard()) = 2;
+			**(y.guard()?) = 2;
 
 			assert!(lock2.rlock().is_err());
 		}
 
 		{
 			let mut z = lock.wlock()?;
-			assert_eq!(**(z.guard()), 2);
+			assert_eq!(**(z.guard()?), 2);
 		}
 
 		let mut lock = UtilBuilder::build_lock_box(1)?;
 		let lock2 = lock.clone();
 		{
 			let x = lock.rlock_ignore_poison()?;
-			println!("x={}", *x.guard());
+			println!("x={}", *x.guard()?);
 			assert!(lock.rlock_ignore_poison().is_err());
 		}
 		{
 			let mut y = lock.wlock()?;
-			**(y.guard()) = 2;
+			**(y.guard()?) = 2;
 
 			assert!(lock2.rlock_ignore_poison().is_err());
 			assert!(lock2.rlock_ignore_poison().is_err());
@@ -2126,7 +2126,7 @@ mod test {
 
 		{
 			let mut z = lock.wlock()?;
-			assert_eq!(**(z.guard()), 2);
+			assert_eq!(**(z.guard()?), 2);
 		}
 
 		Ok(())
@@ -2140,13 +2140,13 @@ mod test {
 		spawn(move || -> Result<(), Error> {
 			let mut x = lock.wlock()?;
 			sleep(Duration::from_millis(3000));
-			**(x.guard()) = 2;
+			**(x.guard()?) = 2;
 			Ok(())
 		});
 
 		sleep(Duration::from_millis(1000));
 		let mut x = lock_clone.wlock()?;
-		assert_eq!(**(x.guard()), 2);
+		assert_eq!(**(x.guard()?), 2);
 
 		Ok(())
 	}
@@ -2159,15 +2159,15 @@ mod test {
 
 		spawn(move || -> Result<(), Error> {
 			let mut x = lock.wlock()?;
-			assert_eq!(**(x.guard()), 1);
+			assert_eq!(**(x.guard()?), 1);
 			sleep(Duration::from_millis(3000));
-			**(x.guard()) = 2;
+			**(x.guard()?) = 2;
 			Ok(())
 		});
 
 		sleep(Duration::from_millis(1000));
 		let x = lock_clone.rlock()?;
-		assert_eq!(**(x.guard()), 2);
+		assert_eq!(**(x.guard()?), 2);
 
 		Ok(())
 	}
@@ -2183,30 +2183,30 @@ mod test {
 		let mut tlb = TestLockBox { lock_box };
 		{
 			let mut tlb = tlb.lock_box.wlock()?;
-			(**tlb.guard()) = 2u32;
+			(**tlb.guard()?) = 2u32;
 		}
 
 		{
 			let tlb = tlb.lock_box.rlock()?;
-			assert_eq!((**tlb.guard()), 2u32);
+			assert_eq!((**tlb.guard()?), 2u32);
 		}
 
 		{
 			let mut tlb = lock_box2.wlock()?;
-			assert_eq!((**tlb.guard()), 2u32);
-			(**tlb.guard()) = 3u32;
+			assert_eq!((**tlb.guard()?), 2u32);
+			(**tlb.guard()?) = 3u32;
 		}
 
 		{
 			let clone = tlb.lock_box.clone();
 			let tlb2 = tlb.lock_box.rlock_ignore_poison()?;
-			assert_eq!((**tlb2.guard()), 3u32);
+			assert_eq!((**tlb2.guard()?), 3u32);
 			assert!(clone.rlock_ignore_poison().is_err());
 		}
 
 		{
 			let mut tlb = lock_box2.wlock_ignore_poison()?;
-			assert_eq!((**tlb.guard()), 3u32);
+			assert_eq!((**tlb.guard()?), 3u32);
 		}
 
 		Ok(())
@@ -2222,7 +2222,7 @@ mod test {
 				id: 0,
 				debug_err: true,
 			};
-			let guard = x.guard();
+			let guard = x.guard()?;
 			assert_eq!(**guard, 1);
 		}
 		{
@@ -2233,7 +2233,7 @@ mod test {
 				id: 0,
 				debug_err: true,
 			};
-			let guard = x.guard();
+			let guard = x.guard()?;
 			assert_eq!(**guard, 1);
 		}
 		Ok(())
@@ -2273,8 +2273,8 @@ mod test {
 		let mut lbox = lock_box!(1_100)?;
 		let v = lbox.danger_to_usize();
 		let lbox_new: Box<dyn LockBox<u32>> = crate::lock_box_from_usize(v);
-		(**(lbox.wlock()?.guard())) = 1_200;
-		assert_eq!((**(lbox_new.rlock()?.guard())), 1_200);
+		(**(lbox.wlock()?.guard()?)) = 1_200;
+		assert_eq!((**(lbox_new.rlock()?.guard()?)), 1_200);
 
 		Ok(())
 	}
@@ -2329,10 +2329,10 @@ mod test {
 
 			{
 				let mut hashset = hashset.wlock()?;
-				(**hashset.guard()).insert(&1)?;
-				assert!((**hashset.guard()).contains(&1)?);
-				assert!(!(**hashset.guard()).contains(&2)?);
-				assert!((**hashset.guard()).insert(&2).is_err());
+				(**hashset.guard()?).insert(&1)?;
+				assert!((**hashset.guard()?).contains(&1)?);
+				assert!(!(**hashset.guard()?).contains(&2)?);
+				assert!((**hashset.guard()?).insert(&2).is_err());
 			}
 
 			let mut thh = TestHashsetHolder {
@@ -2342,7 +2342,7 @@ mod test {
 
 			{
 				let mut hashset = thh.h2.as_mut().unwrap().wlock()?;
-				assert_eq!((**hashset.guard()).size(), 1);
+				assert_eq!((**hashset.guard()?).size(), 1);
 			}
 		}
 
@@ -2386,17 +2386,17 @@ mod test {
 
 		{
 			let mut hashtable = hashtable.wlock()?;
-			(**hashtable.guard()).insert(&1, &2)?;
-			assert_eq!((**hashtable.guard()).get(&1).unwrap(), Some(2));
-			assert!((**hashtable.guard()).insert(&2, &3).is_err());
+			(**hashtable.guard()?).insert(&1, &2)?;
+			assert_eq!((**hashtable.guard()?).get(&1).unwrap(), Some(2));
+			assert!((**hashtable.guard()?).insert(&2, &3).is_err());
 		}
 
 		let thsb = TestHashtableSyncBox { h: hashtable };
 
 		{
 			let h = thsb.h.rlock()?;
-			assert!((**h.guard()).get(&1)?.is_some());
-			assert!((**h.guard()).get(&2)?.is_none());
+			assert!((**h.guard()?).get(&1)?.is_some());
+			assert!((**h.guard()?).get(&2)?.is_none());
 		}
 
 		Ok(())
@@ -2410,9 +2410,9 @@ mod test {
 
 		{
 			let mut hashtable = hashtable.wlock()?;
-			(**hashtable.guard()).insert(&1, &2)?;
-			assert_eq!((**hashtable.guard()).get(&1).unwrap(), Some(2));
-			assert!((**hashtable.guard()).insert(&2, &3).is_err());
+			(**hashtable.guard()?).insert(&1, &2)?;
+			assert_eq!((**hashtable.guard()?).get(&1).unwrap(), Some(2));
+			assert!((**hashtable.guard()?).insert(&2, &3).is_err());
 		}
 
 		Ok(())
@@ -3088,7 +3088,7 @@ mod test {
 
 		let slab_id = {
 			let mut slabs = slabs.wlock()?;
-			let guard = slabs.guard();
+			let guard = slabs.guard()?;
 			let slab = (**guard).allocate()?;
 			slab.id()
 		};
@@ -3217,7 +3217,7 @@ mod test {
 
 		{
 			let mut slabs = slabs.wlock()?;
-			let guard = slabs.guard();
+			let guard = slabs.guard()?;
 			(**guard).init(config)?;
 		}
 
@@ -3230,7 +3230,7 @@ mod test {
 
 		let slab_id = {
 			let mut slabs = slabs.wlock()?;
-			let guard = slabs.guard();
+			let guard = slabs.guard()?;
 			let slab = (**guard).allocate()?;
 			slab.id()
 		};
@@ -3251,7 +3251,7 @@ mod test {
 		let mut slabs = slab_allocator(1024, 10_240)?;
 		let slab_id = {
 			let mut slabs = slabs.wlock()?;
-			let guard = slabs.guard();
+			let guard = slabs.guard()?;
 			let mut slab = (**guard).allocate()?;
 			let slab_mut = slab.get_mut();
 			for j in 0..1024 {
@@ -3315,7 +3315,7 @@ mod test {
 
 			let slab_id = {
 				let mut slabs = slabs.wlock()?;
-				let guard = slabs.guard();
+				let guard = slabs.guard()?;
 				let mut slab = (**guard).allocate()?;
 				let slab_mut = slab.get_mut();
 				for j in 0..slab_mut.len() {
@@ -3343,7 +3343,7 @@ mod test {
 		let mut slabs = slab_allocator(48, 10)?;
 		let slab_id = {
 			let mut slabs = slabs.wlock()?;
-			let guard = slabs.guard();
+			let guard = slabs.guard()?;
 			let slab = (**guard).allocate()?;
 			slab.id()
 		};
@@ -3358,7 +3358,7 @@ mod test {
 		let mut slabs = slab_allocator(48, 10)?;
 		let _slab_id = {
 			let mut slabs = slabs.wlock()?;
-			let guard = slabs.guard();
+			let guard = slabs.guard()?;
 			let slab = (**guard).allocate()?;
 			slab.id()
 		};
@@ -3421,7 +3421,7 @@ mod test {
 
 			let slab_id = {
 				let mut slabs = slabs.wlock()?;
-				let guard = slabs.guard();
+				let guard = slabs.guard()?;
 				let mut slab = (**guard).allocate()?;
 				let slab_mut = slab.get_mut();
 				for j in 0..48 + i {
@@ -4189,7 +4189,7 @@ mod test {
 		let x_clone = x.clone();
 		tp.execute(
 			async move {
-				**x.wlock()?.guard() = 2;
+				**x.wlock()?.guard()? = 2;
 				Ok(1)
 			},
 			0,
@@ -4200,7 +4200,7 @@ mod test {
 			count += 1;
 			assert!(count < 500);
 			sleep(Duration::from_millis(10));
-			if **x_clone.rlock()?.guard() == 2 {
+			if **x_clone.rlock()?.guard()? == 2 {
 				break;
 			}
 		}
@@ -4269,7 +4269,7 @@ mod test {
 			sleep(Duration::from_millis(10));
 			{
 				let state = tp.state.rlock()?;
-				if (**state.guard()).waiting == 2 {
+				if (**state.guard()?).waiting == 2 {
 					break;
 				}
 			}
@@ -4282,9 +4282,9 @@ mod test {
 			let x_clone = x.clone();
 			let res = tp.execute(
 				async move {
-					**(y_clone.wlock()?.guard()) += 1;
+					**(y_clone.wlock()?.guard()?) += 1;
 					loop {
-						if **(x_clone.rlock()?.guard()) != 0 {
+						if **(x_clone.rlock()?.guard()?) != 0 {
 							break;
 						}
 						sleep(Duration::from_millis(50));
@@ -4299,7 +4299,7 @@ mod test {
 			sleep(Duration::from_millis(100));
 			{
 				let y = y.rlock()?;
-				if (**y.guard()) == 2 {
+				if (**y.guard()?) == 2 {
 					break;
 				}
 			}
@@ -4311,7 +4311,7 @@ mod test {
 			let mut x_clone = x.clone();
 			let res = tp.execute(
 				async move {
-					**(x_clone.wlock()?.guard()) = 1;
+					**(x_clone.wlock()?.guard()?) = 1;
 
 					Ok(2)
 				},
@@ -4343,13 +4343,13 @@ mod test {
 				async move {
 					info!("x0a")?;
 					loop {
-						if **(x2_clone.rlock()?.guard()) != 0 {
+						if **(x2_clone.rlock()?.guard()?) != 0 {
 							break;
 						}
 						sleep(Duration::from_millis(50));
 					}
 					info!("x2")?;
-					**(x2_clone.wlock()?.guard()) += 1;
+					**(x2_clone.wlock()?.guard()?) += 1;
 
 					Ok(0)
 				},
@@ -4365,7 +4365,7 @@ mod test {
 		tp.execute(
 			async move {
 				info!("x0")?;
-				**(x2_clone.wlock()?.guard()) += 1;
+				**(x2_clone.wlock()?.guard()?) += 1;
 				info!("x1")?;
 				Ok(0)
 			},
@@ -4376,14 +4376,14 @@ mod test {
 		sleep(Duration::from_millis(2_000));
 
 		// confirm situation hasn't changed
-		assert_eq!(**(x2.rlock()?.guard()), 0);
+		assert_eq!(**(x2.rlock()?.guard()?), 0);
 
 		// unlock the threads by setting x2 to 1
-		**(x2.wlock()?.guard()) = 1;
+		**(x2.wlock()?.guard()?) = 1;
 
 		// wait
 		sleep(Duration::from_millis(4_000));
-		assert_eq!(**(x2.rlock()?.guard()), 6);
+		assert_eq!(**(x2.rlock()?.guard()?), 6);
 		info!("exit all")?;
 
 		sleep(Duration::from_millis(2_000));
@@ -4427,7 +4427,7 @@ mod test {
 			let tp = tp.clone();
 			std::thread::spawn(move || -> Result<(), Error> {
 				let tp = tp.rlock()?;
-				execute!((**tp.guard()), {
+				execute!((**tp.guard()?), {
 					info!("executing in thread pool")?;
 					Ok(1)
 				})?;
@@ -4487,7 +4487,7 @@ mod test {
 		let count_clone = count.clone();
 		tp.set_on_panic(move |_, _| -> Result<(), Error> {
 			let mut count = count.wlock()?;
-			**count.guard() += 1;
+			**count.guard()? += 1;
 			return Err(err!(ErrKind::Test, "panic errored"));
 		})?;
 
@@ -4508,10 +4508,10 @@ mod test {
 		loop {
 			count += 1;
 			sleep(Duration::from_millis(1));
-			if **(count_clone.rlock()?.guard()) != 1 && count < 5_000 {
+			if **(count_clone.rlock()?.guard()?) != 1 && count < 5_000 {
 				continue;
 			}
-			assert_eq!(**(count_clone.rlock()?.guard()), 1);
+			assert_eq!(**(count_clone.rlock()?.guard()?), 1);
 			break;
 		}
 
@@ -4598,7 +4598,7 @@ mod test {
 				let localcount;
 				{
 					let mut count = count.wlock()?;
-					let guard = count.guard();
+					let guard = count.guard()?;
 					localcount = **guard;
 					(**guard) += 1;
 				}
@@ -4615,7 +4615,7 @@ mod test {
 
 				{
 					let mut count = complete_count.wlock()?;
-					let guard = count.guard();
+					let guard = count.guard()?;
 					(**guard) += 1;
 
 					if **guard == 5 {
@@ -4675,7 +4675,7 @@ mod test {
 				let localcount;
 				{
 					let mut count = count.wlock()?;
-					let guard = count.guard();
+					let guard = count.guard()?;
 					localcount = **guard;
 					(**guard) += 1;
 				}
@@ -4692,7 +4692,7 @@ mod test {
 
 				{
 					let mut count = complete_count.wlock()?;
-					let guard = count.guard();
+					let guard = count.guard()?;
 					(**guard) += 1;
 
 					if **guard == 5 {
@@ -4796,7 +4796,7 @@ mod test {
 			id: 0,
 			debug_err: false,
 		};
-		assert_eq!(**(x.guard()), (y_guard));
+		assert_eq!(**(x.guard()?), (y_guard));
 		Ok(())
 	}
 

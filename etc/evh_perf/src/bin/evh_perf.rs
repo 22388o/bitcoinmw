@@ -428,7 +428,7 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 
 			let (messages, lat_sum) = {
 				let state = state_clone.rlock()?;
-				let guard = state.guard();
+				let guard = state.guard()?;
 				let messages = (**guard).messages;
 				let lat_sum = (**guard).lat_sum;
 
@@ -496,7 +496,7 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 
 	let (messages, lat_sum) = {
 		let state = state.rlock()?;
-		let guard = state.guard();
+		let guard = state.guard()?;
 		let messages = (**guard).messages;
 		let lat_sum = (**guard).lat_sum;
 
@@ -542,7 +542,7 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 	}
 
 	let state = state.rlock()?;
-	let guard = state.guard();
+	let guard = state.guard()?;
 	if histo {
 		print_histo((**guard).histo_data.clone(), histo_delta_micros)?;
 	}
@@ -666,7 +666,7 @@ fn run_thread(
 			let mut data_extended = false;
 
 			let partial_data = partial_data.rlock()?;
-			let guard = partial_data.guard();
+			let guard = partial_data.guard()?;
 			match (**guard).get(&id) {
 				Some(data) => {
 					if debug {
@@ -725,7 +725,7 @@ fn run_thread(
 
 			if itt + 28 > res_len {
 				let mut partial_data = partial_data_clone.wlock()?;
-				let guard = partial_data.guard();
+				let guard = partial_data.guard()?;
 				(**guard).insert(id, (&res[itt..]).to_vec());
 				inserted = true;
 				if debug {
@@ -743,7 +743,7 @@ fn run_thread(
 
 			if len + itt + 28 > res_len {
 				let mut partial_data = partial_data_clone.wlock()?;
-				let guard = partial_data.guard();
+				let guard = partial_data.guard()?;
 				(**guard).insert(id, (&res[itt..]).to_vec());
 				inserted = true;
 				if debug {
@@ -768,7 +768,7 @@ fn run_thread(
 
 			if id != id_read {
 				let mut state = state_clone.wlock()?;
-				let guard = state.guard();
+				let guard = state.guard()?;
 				info!(
 					"messages={},lat_sum={}",
 					(**guard).messages,
@@ -788,7 +788,7 @@ fn run_thread(
 
 			{
 				let mut state = state_clone.wlock()?;
-				let guard = state.guard();
+				let guard = state.guard()?;
 				(**guard).messages += 1;
 				(**guard).lat_sum += diff as u128;
 				update_histo_vec(
@@ -800,12 +800,12 @@ fn run_thread(
 
 			{
 				let mut recv_count = recv_count_clone.wlock()?;
-				let guard = recv_count.guard();
+				let guard = recv_count.guard()?;
 				**guard += 1;
 
 				if **guard == clients * count {
 					let mut sender = sender.wlock()?;
-					let guard = sender.guard();
+					let guard = sender.guard()?;
 					(**guard).send(1)?;
 				}
 			}
@@ -815,7 +815,7 @@ fn run_thread(
 
 		if !inserted {
 			let mut partial_data = partial_data_clone.wlock()?;
-			let guard = partial_data.guard();
+			let guard = partial_data.guard()?;
 			(**guard).remove(&id);
 		}
 
@@ -869,7 +869,7 @@ fn run_thread(
 		for _ in 0..itt {
 			{
 				let mut recv_count = recv_count.wlock()?;
-				let guard = recv_count.guard();
+				let guard = recv_count.guard()?;
 				(**guard) = 0;
 			}
 

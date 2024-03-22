@@ -113,7 +113,7 @@ where
 							let mut do_run_thread = false;
 							{
 								let mut state = state_clone.wlock()?;
-								let guard = &mut **state.guard();
+								let guard = &mut **state.guard()?;
 
 								debug!("state = {:?}", guard)?;
 								// we have too many threads or stop
@@ -126,7 +126,7 @@ where
 							let rx = rx.lock()?;
 							let ret = rx.recv()?;
 							let mut state = state_clone.wlock()?;
-							let guard = &mut **state.guard();
+							let guard = &mut **state.guard()?;
 							guard.waiting = guard.waiting.saturating_sub(1);
 							if guard.waiting == 0 {
 								if guard.cur_size < guard.config.max_size {
@@ -149,7 +149,7 @@ where
 
 						{
 							let mut id = id.wlock()?;
-							let guard = id.guard();
+							let guard = id.guard()?;
 							(**guard) = next.id;
 						}
 						match block_on(next.f) {
@@ -174,7 +174,7 @@ where
 				let res = jh.join();
 				if res.is_ok() {
 					let mut state = state.wlock()?;
-					let guard = &mut **state.guard();
+					let guard = &mut **state.guard()?;
 					guard.cur_size = guard.cur_size.saturating_sub(1);
 					debug!("exiting a thread, ncur={}", guard.cur_size)?;
 					cbreak!(true);
@@ -184,7 +184,7 @@ where
 						let on_panic = on_panic.as_mut().unwrap();
 						debug!("found an onpanic")?;
 						let id = id_clone.rlock()?;
-						let guard = id.guard();
+						let guard = id.guard()?;
 						let res = on_panic(**guard, e);
 						if res.is_err() {
 							let e = res.unwrap_err();
@@ -242,7 +242,7 @@ where
 		loop {
 			if count > 0 {
 				let state = self.state.rlock()?;
-				let guard = &**state.guard();
+				let guard = &**state.guard()?;
 				cbreak!(guard.waiting == self.config.min_size);
 			}
 			sleep(Duration::from_millis(1));
@@ -254,14 +254,14 @@ where
 
 	fn stop(&mut self) -> Result<(), Error> {
 		let mut state = self.state.wlock()?;
-		(**state.guard()).stop = true;
+		(**state.guard()?).stop = true;
 		self.tx = None;
 		Ok(())
 	}
 
 	fn size(&self) -> Result<usize, Error> {
 		let state = self.state.rlock()?;
-		Ok((**state.guard()).cur_size)
+		Ok((**state.guard()?).cur_size)
 	}
 
 	fn stopper(&self) -> Result<ThreadPoolStopper, Error> {
@@ -322,7 +322,7 @@ impl ThreadPoolStopper {
 	/// This is not the case with [`crate::ThreadPool::stop`] and that function
 	/// should be used where possible.
 	pub fn stop(&mut self) -> Result<(), Error> {
-		(**self.state.wlock()?.guard()).stop = true;
+		(**self.state.wlock()?.guard()?).stop = true;
 		Ok(())
 	}
 }

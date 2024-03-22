@@ -101,7 +101,7 @@ mod test {
 			wakeup.post_block()?;
 
 			let mut check = check_clone.wlock()?;
-			**check.guard() = 1;
+			**check.guard()? = 1;
 
 			Ok(())
 		});
@@ -117,7 +117,7 @@ mod test {
 			}
 			sleep(Duration::from_millis(1));
 			let check = check.rlock()?;
-			if **(check).guard() == 1 {
+			if **(check).guard()? == 1 {
 				break;
 			}
 		}
@@ -346,7 +346,7 @@ mod test {
 				conn_data.get_connection_id()
 			)?;
 			let mut close_count = close_count.wlock()?;
-			(**close_count.guard()) += 1;
+			(**close_count.guard()?) += 1;
 			Ok(())
 		})?;
 		evh.set_on_panic(move |_thread_context, _e| Ok(()))?;
@@ -409,7 +409,7 @@ mod test {
 		loop {
 			count_count += 1;
 			sleep(Duration::from_millis(1));
-			let count = **((close_count_clone.rlock()?).guard());
+			let count = **((close_count_clone.rlock()?).guard()?);
 			if count != total && count_count < 60_000 {
 				info!(
 					"count = {}, total = {}, will try again in a millisecond",
@@ -417,7 +417,7 @@ mod test {
 				)?;
 				continue;
 			}
-			assert_eq!((**((close_count_clone.rlock()?).guard())), total);
+			assert_eq!((**((close_count_clone.rlock()?).guard()?)), total);
 			break;
 		}
 
@@ -757,7 +757,7 @@ mod test {
 			})?;
 
 			let expected = expected.rlock()?;
-			let guard = expected.guard();
+			let guard = expected.guard()?;
 
 			if value.len() == (**guard).len() {
 				assert_eq!(std::str::from_utf8(&value)?, (**guard));
@@ -798,7 +798,7 @@ mod test {
 			let s = std::str::from_utf8(&bytes[rand..i + rand])?.to_string();
 			{
 				let mut expected = expected_clone.wlock()?;
-				let guard = expected.guard();
+				let guard = expected.guard()?;
 				**guard = s;
 				for j in 0..i {
 					let mut b = [0u8; 1];
@@ -1156,8 +1156,8 @@ mod test {
 		evh.set_on_accept(move |_conn_data, _thread_context| {
 			let count = {
 				let mut acc_count = acc_count.wlock()?;
-				let count = **acc_count.guard();
-				**acc_count.guard() += 1;
+				let count = **acc_count.guard()?;
+				**acc_count.guard()? += 1;
 				count
 			};
 			if count == 0 {
@@ -1251,8 +1251,8 @@ mod test {
 			let e = e.downcast_ref::<&str>().unwrap();
 			info!("on panic callback: '{}'", e)?;
 			let mut on_panic_callback = on_panic_callback.wlock()?;
-			**(on_panic_callback.guard()) += 1;
-			if **(on_panic_callback.guard()) > 1 {
+			**(on_panic_callback.guard()?) += 1;
+			if **(on_panic_callback.guard()?) > 1 {
 				return Err(err!(ErrKind::Test, "test on_panic err"));
 			}
 			Ok(())
@@ -1292,7 +1292,7 @@ mod test {
 		assert_eq!(&buf[0..len], b"test");
 
 		// assert that the on_panic callback was called
-		assert_eq!(**on_panic_callback_clone.rlock()?.guard(), 1);
+		assert_eq!(**on_panic_callback_clone.rlock()?.guard()?, 1);
 		// create a thread panic
 		stream.write(b"aaa")?;
 		evh.stop()?;
@@ -1430,7 +1430,7 @@ mod test {
 			} else if res[0] == 'b' as u8 {
 				loop {
 					sleep(Duration::from_millis(10));
-					if **(x.rlock()?.guard()) != 0 {
+					if **(x.rlock()?.guard()?) != 0 {
 						break;
 					}
 				}
@@ -1509,7 +1509,7 @@ mod test {
 		sleep(Duration::from_millis(100));
 
 		// unblock with guard
-		**(x_clone.wlock()?.guard()) = 1;
+		**(x_clone.wlock()?.guard()?) = 1;
 
 		// read responses
 
@@ -1585,7 +1585,7 @@ mod test {
 		let close_count_clone = close_count.clone();
 		evh.set_on_close(move |_conn_data, _thread_context| {
 			let mut close_count = close_count.wlock()?;
-			**close_count.guard() += 1;
+			**close_count.guard()? += 1;
 			Ok(())
 		})?;
 		evh.set_on_panic(move |_thread_context, _e| Ok(()))?;
@@ -1623,10 +1623,10 @@ mod test {
 		loop {
 			count += 1;
 			sleep(Duration::from_millis(1));
-			if **(close_count_clone.rlock()?.guard()) == 0 && count < 2_000 {
+			if **(close_count_clone.rlock()?.guard()?) == 0 && count < 2_000 {
 				continue;
 			}
-			assert_eq!(**(close_count_clone.rlock()?.guard()), 1);
+			assert_eq!(**(close_count_clone.rlock()?.guard()?), 1);
 			break;
 		}
 		info!("sleep complete")?;
@@ -1680,7 +1680,7 @@ mod test {
 				conn_data.write_handle().write(&res)?;
 			}
 			let mut count = count.wlock()?;
-			let g = count.guard();
+			let g = count.guard()?;
 			**g += 1;
 			info!("res={:?}", res)?;
 			Ok(())
@@ -1710,7 +1710,7 @@ mod test {
 		stream.write(b"0000")?;
 
 		sleep(Duration::from_millis(10_000));
-		assert_eq!(**(count_clone.rlock()?.guard()), 1);
+		assert_eq!(**(count_clone.rlock()?.guard()?), 1);
 
 		Ok(())
 	}
@@ -1748,7 +1748,7 @@ mod test {
 			conn_data.clear_through(first_slab)?;
 			assert!(conn_data.write_handle().write(&res).is_err());
 			info!("res={:?}", res)?;
-			**(success.wlock()?.guard()) = true;
+			**(success.wlock()?.guard()?) = true;
 			Ok(())
 		})?;
 
@@ -1776,10 +1776,10 @@ mod test {
 		loop {
 			sleep(Duration::from_millis(1));
 			count += 1;
-			if !**(success_clone.rlock()?.guard()) && count < 25_000 {
+			if !**(success_clone.rlock()?.guard()?) && count < 25_000 {
 				continue;
 			}
-			assert!(**(success_clone.rlock()?.guard()));
+			assert!(**(success_clone.rlock()?.guard()?));
 
 			break;
 		}
@@ -1987,7 +1987,7 @@ mod test {
 				Some(value) => {
 					*value += 1;
 					let mut x = x.wlock()?;
-					(**x.guard()) = *value;
+					(**x.guard()?) = *value;
 					info!("value={}", *value)?;
 				}
 				None => {
@@ -2008,7 +2008,7 @@ mod test {
 		sleep(Duration::from_millis(5_000));
 
 		{
-			let v = **(x_clone.rlock()?.guard());
+			let v = **(x_clone.rlock()?.guard()?);
 			info!("v={}", v)?;
 		}
 
@@ -2017,14 +2017,14 @@ mod test {
 			count += 1;
 			sleep(Duration::from_millis(100));
 			{
-				let v = **(x_clone.rlock()?.guard());
+				let v = **(x_clone.rlock()?.guard()?);
 				info!("v={}", v)?;
 				if v < 10 && count < 10_000 {
 					continue;
 				}
 			}
 
-			assert!((**(x_clone.rlock()?.guard())) >= 10);
+			assert!((**(x_clone.rlock()?.guard()?)) >= 10);
 			break;
 		}
 
@@ -2106,7 +2106,7 @@ mod test {
 					strm.into_raw_socket();
 
 					let mut complete = complete_clone.wlock()?;
-					**complete.guard() = 1;
+					**complete.guard()? = 1;
 
 					Ok(())
 				});
@@ -2161,11 +2161,11 @@ mod test {
 			loop {
 				count += 1;
 				sleep(Duration::from_millis(1));
-				if **(complete.rlock()?.guard()) != 1 && count < 2_000 {
+				if **(complete.rlock()?.guard()?) != 1 && count < 2_000 {
 					continue;
 				}
 
-				assert_eq!(**(complete.rlock()?.guard()), 1);
+				assert_eq!(**(complete.rlock()?.guard()?), 1);
 				break;
 			}
 		}
@@ -2353,32 +2353,32 @@ mod test {
 			)?;
 			conn_data.clear_through(last_slab)?;
 			let client_handle = client_handle_clone.rlock()?;
-			let guard = client_handle.guard();
+			let guard = client_handle.guard()?;
 			if conn_data.get_handle() != **guard {
 				info!("server res.len= = {}", res.len())?;
 				if res == b"abc".to_vec() {
 					info!("found abc")?;
 					let mut server_received_abc = server_received_abc.wlock()?;
-					(**server_received_abc.guard()) = true;
+					(**server_received_abc.guard()?) = true;
 
 					// write a big message to test the server side big messages
 					conn_data.write_handle().write(&big_msg)?;
 				} else {
 					conn_data.write_handle().write(&res)?;
 					let mut server_accumulator = server_accumulator.wlock()?;
-					let guard = server_accumulator.guard();
+					let guard = server_accumulator.guard()?;
 					(**guard).extend(res.clone());
 
 					if **guard == big_msg {
 						let mut server_received_test1 = server_received_test1.wlock()?;
-						(**server_received_test1.guard()) = true;
+						(**server_received_test1.guard()?) = true;
 					}
 				}
 			} else {
 				info!("client res.len = {}", res.len())?;
 
 				let mut client_accumulator = client_accumulator.wlock()?;
-				let guard = client_accumulator.guard();
+				let guard = client_accumulator.guard()?;
 				(**guard).extend(res.clone());
 
 				if **guard == big_msg {
@@ -2388,7 +2388,7 @@ mod test {
 					conn_data.write_handle().write(&x)?;
 					**guard = vec![];
 					let mut client_received_test1 = client_received_test1.wlock()?;
-					(**client_received_test1.guard()) += 1;
+					(**client_received_test1.guard()?) += 1;
 				}
 			}
 			info!("res[0]={}, res.len()={}", res[0], res.len())?;
@@ -2422,7 +2422,7 @@ mod test {
 		let connection_handle = connection.into_raw_socket().try_into()?;
 		{
 			let mut client_handle = client_handle.wlock()?;
-			(**client_handle.guard()) = connection_handle;
+			(**client_handle.guard()?) = connection_handle;
 		}
 
 		let client = ClientConnection {
@@ -2440,9 +2440,9 @@ mod test {
 		let mut count = 0;
 		loop {
 			sleep(Duration::from_millis(1));
-			if !(**(client_received_test1_clone.rlock()?.guard()) >= 2
-				&& **(server_received_test1_clone.rlock()?.guard())
-				&& **(server_received_abc_clone.rlock()?.guard()))
+			if !(**(client_received_test1_clone.rlock()?.guard()?) >= 2
+				&& **(server_received_test1_clone.rlock()?.guard()?)
+				&& **(server_received_abc_clone.rlock()?.guard()?))
 			{
 				count += 1;
 				if count < 20_000 {
@@ -2450,11 +2450,11 @@ mod test {
 				}
 			}
 
-			let v = **(client_received_test1_clone.rlock()?.guard());
+			let v = **(client_received_test1_clone.rlock()?.guard()?);
 			info!("client recieved = {}", v)?;
-			assert!(**(server_received_test1_clone.rlock()?.guard()));
-			assert!(**(client_received_test1_clone.rlock()?.guard()) >= 2);
-			assert!(**(server_received_abc_clone.rlock()?.guard()));
+			assert!(**(server_received_test1_clone.rlock()?.guard()?));
+			assert!(**(client_received_test1_clone.rlock()?.guard()?) >= 2);
+			assert!(**(server_received_abc_clone.rlock()?.guard()?));
 			break;
 		}
 
@@ -2497,7 +2497,7 @@ mod test {
 		evh.set_on_read(move |conn_data, _thread_context, attachment| {
 			let attachment = attachment.unwrap();
 			let val = attachment.attachment.rlock()?;
-			let guard = val.guard();
+			let guard = val.guard()?;
 			let v = (**guard).downcast_ref::<bool>().unwrap();
 			let first_slab = conn_data.first_slab();
 			let last_slab = conn_data.last_slab();
@@ -2663,32 +2663,32 @@ mod test {
 			)?;
 			conn_data.clear_through(last_slab)?;
 			let client_handle = client_handle_clone.rlock()?;
-			let guard = client_handle.guard();
+			let guard = client_handle.guard()?;
 			if conn_data.get_handle() != **guard {
 				info!("server res.len= = {}", res.len())?;
 				if res == b"abc".to_vec() {
 					info!("found abc")?;
 					let mut server_received_abc = server_received_abc.wlock()?;
-					(**server_received_abc.guard()) = true;
+					(**server_received_abc.guard()?) = true;
 
 					// write a big message to test the server side big messages
 					conn_data.write_handle().write(&big_msg)?;
 				} else {
 					conn_data.write_handle().write(&res)?;
 					let mut server_accumulator = server_accumulator.wlock()?;
-					let guard = server_accumulator.guard();
+					let guard = server_accumulator.guard()?;
 					(**guard).extend(res.clone());
 
 					if **guard == big_msg {
 						let mut server_received_test1 = server_received_test1.wlock()?;
-						(**server_received_test1.guard()) = true;
+						(**server_received_test1.guard()?) = true;
 					}
 				}
 			} else {
 				info!("client res.len = {}", res.len())?;
 
 				let mut client_accumulator = client_accumulator.wlock()?;
-				let guard = client_accumulator.guard();
+				let guard = client_accumulator.guard()?;
 				(**guard).extend(res.clone());
 
 				if **guard == big_msg {
@@ -2698,7 +2698,7 @@ mod test {
 					conn_data.write_handle().write(&x)?;
 					**guard = vec![];
 					let mut client_received_test1 = client_received_test1.wlock()?;
-					(**client_received_test1.guard()) += 1;
+					(**client_received_test1.guard()?) += 1;
 				}
 			}
 			info!("res[0]={}, res.len()={}", res[0], res.len())?;
@@ -2733,7 +2733,7 @@ mod test {
 		let connection_handle = connection.into_raw_socket().try_into()?;
 		{
 			let mut client_handle = client_handle.wlock()?;
-			(**client_handle.guard()) = connection_handle;
+			(**client_handle.guard()?) = connection_handle;
 		}
 
 		let client = ClientConnection {
@@ -2751,9 +2751,9 @@ mod test {
 		let mut count = 0;
 		loop {
 			sleep(Duration::from_millis(1));
-			if !(**(client_received_test1_clone.rlock()?.guard()) >= 2
-				&& **(server_received_test1_clone.rlock()?.guard())
-				&& **(server_received_abc_clone.rlock()?.guard()))
+			if !(**(client_received_test1_clone.rlock()?.guard()?) >= 2
+				&& **(server_received_test1_clone.rlock()?.guard()?)
+				&& **(server_received_abc_clone.rlock()?.guard()?))
 			{
 				count += 1;
 				if count < 20_000 {
@@ -2761,11 +2761,11 @@ mod test {
 				}
 			}
 
-			let v = **(client_received_test1_clone.rlock()?.guard());
+			let v = **(client_received_test1_clone.rlock()?.guard()?);
 			info!("client recieved = {}", v)?;
-			assert!(**(server_received_test1_clone.rlock()?.guard()));
-			assert!(**(client_received_test1_clone.rlock()?.guard()) >= 2);
-			assert!(**(server_received_abc_clone.rlock()?.guard()));
+			assert!(**(server_received_test1_clone.rlock()?.guard()?));
+			assert!(**(client_received_test1_clone.rlock()?.guard()?) >= 2);
+			assert!(**(server_received_abc_clone.rlock()?.guard()?));
 			break;
 		}
 
@@ -2837,32 +2837,32 @@ mod test {
 			)?;
 			conn_data.clear_through(last_slab)?;
 			let client_handle = client_handle_clone.rlock()?;
-			let guard = client_handle.guard();
+			let guard = client_handle.guard()?;
 			if conn_data.get_handle() != **guard {
 				info!("server res.len= = {}", res.len())?;
 				if res == b"abc".to_vec() {
 					info!("found abc")?;
 					let mut server_received_abc = server_received_abc.wlock()?;
-					(**server_received_abc.guard()) = true;
+					(**server_received_abc.guard()?) = true;
 
 					// write a big message to test the server side big messages
 					conn_data.write_handle().write(&big_msg)?;
 				} else {
 					conn_data.write_handle().write(&res)?;
 					let mut server_accumulator = server_accumulator.wlock()?;
-					let guard = server_accumulator.guard();
+					let guard = server_accumulator.guard()?;
 					(**guard).extend(res.clone());
 
 					if **guard == big_msg {
 						let mut server_received_test1 = server_received_test1.wlock()?;
-						(**server_received_test1.guard()) = true;
+						(**server_received_test1.guard()?) = true;
 					}
 				}
 			} else {
 				info!("client res.len = {}", res.len())?;
 
 				let mut client_accumulator = client_accumulator.wlock()?;
-				let guard = client_accumulator.guard();
+				let guard = client_accumulator.guard()?;
 				(**guard).extend(res.clone());
 
 				if **guard == big_msg {
@@ -2872,7 +2872,7 @@ mod test {
 					conn_data.write_handle().write(&x)?;
 					**guard = vec![];
 					let mut client_received_test1 = client_received_test1.wlock()?;
-					(**client_received_test1.guard()) += 1;
+					(**client_received_test1.guard()?) += 1;
 				}
 			}
 			info!("res[0]={}, res.len()={}", res[0], res.len())?;
@@ -2908,7 +2908,7 @@ mod test {
 		let connection_handle = connection.into_raw_socket().try_into()?;
 		{
 			let mut client_handle = client_handle.wlock()?;
-			(**client_handle.guard()) = connection_handle;
+			(**client_handle.guard()?) = connection_handle;
 		}
 
 		let client = ClientConnection {
@@ -2926,9 +2926,9 @@ mod test {
 		let mut count = 0;
 		loop {
 			sleep(Duration::from_millis(1));
-			if !(**(client_received_test1_clone.rlock()?.guard()) >= 2
-				&& **(server_received_test1_clone.rlock()?.guard())
-				&& **(server_received_abc_clone.rlock()?.guard()))
+			if !(**(client_received_test1_clone.rlock()?.guard()?) >= 2
+				&& **(server_received_test1_clone.rlock()?.guard()?)
+				&& **(server_received_abc_clone.rlock()?.guard()?))
 			{
 				count += 1;
 				if count < 20_000 {
@@ -2936,11 +2936,11 @@ mod test {
 				}
 			}
 
-			let v = **(client_received_test1_clone.rlock()?.guard());
+			let v = **(client_received_test1_clone.rlock()?.guard()?);
 			info!("client recieved = {}", v)?;
-			assert!(**(server_received_test1_clone.rlock()?.guard()));
-			assert!(**(client_received_test1_clone.rlock()?.guard()) >= 2);
-			assert!(**(server_received_abc_clone.rlock()?.guard()));
+			assert!(**(server_received_test1_clone.rlock()?.guard()?));
+			assert!(**(client_received_test1_clone.rlock()?.guard()?) >= 2);
+			assert!(**(server_received_abc_clone.rlock()?.guard()?));
 			break;
 		}
 
@@ -3287,8 +3287,8 @@ mod test {
 		evh.set_on_accept(move |_conn_data, _thread_context| {
 			let count = {
 				let mut acc_count = acc_count.wlock()?;
-				let count = **acc_count.guard();
-				**acc_count.guard() += 1;
+				let count = **acc_count.guard()?;
+				**acc_count.guard()? += 1;
 				count
 			};
 			if count == 0 {
@@ -3299,8 +3299,8 @@ mod test {
 		evh.set_on_close(move |_conn_data, _thread_context| {
 			let count = {
 				let mut close_count = close_count.wlock()?;
-				let count = **close_count.guard();
-				**close_count.guard() += 1;
+				let count = **close_count.guard()?;
+				**close_count.guard()? += 1;
 				count
 			};
 			if count == 0 {
@@ -3312,8 +3312,8 @@ mod test {
 		evh.set_housekeeper(move |_thread_context| {
 			let count = {
 				let mut housekeeper_count = housekeeper_count.wlock()?;
-				let count = **housekeeper_count.guard();
-				**housekeeper_count.guard() += 1;
+				let count = **housekeeper_count.guard()?;
+				**housekeeper_count.guard()? += 1;
 				count
 			};
 			if count == 0 {
@@ -3422,8 +3422,8 @@ mod test {
 		evh.set_on_accept(move |_conn_data, _thread_context| {
 			let count = {
 				let mut acc_count = acc_count.wlock()?;
-				let count = **acc_count.guard();
-				**acc_count.guard() += 1;
+				let count = **acc_count.guard()?;
+				**acc_count.guard()? += 1;
 				count
 			};
 			if count == 0 {
@@ -3434,8 +3434,8 @@ mod test {
 		evh.set_on_close(move |_conn_data, _thread_context| {
 			let count = {
 				let mut close_count = close_count.wlock()?;
-				let count = **close_count.guard();
-				**close_count.guard() += 1;
+				let count = **close_count.guard()?;
+				**close_count.guard()? += 1;
 				count
 			};
 			if count == 0 {
@@ -3447,8 +3447,8 @@ mod test {
 		evh.set_housekeeper(move |_thread_context| {
 			let count = {
 				let mut housekeeper_count = housekeeper_count.wlock()?;
-				let count = **housekeeper_count.guard();
-				**housekeeper_count.guard() += 1;
+				let count = **housekeeper_count.guard()?;
+				**housekeeper_count.guard()? += 1;
 				count
 			};
 			if count == 0 {
@@ -3563,7 +3563,7 @@ mod test {
 		// succeed
 		{
 			let mut data = evh.data[0].wlock_ignore_poison()?;
-			let guard = data.guard();
+			let guard = data.guard()?;
 			(**guard).write_queue.enqueue(100)?;
 		}
 		evh.process_write_queue(&mut ctx)?;
@@ -3581,7 +3581,7 @@ mod test {
 		ctx.connection_hashtable.insert(&1_000, &ci)?;
 		{
 			let mut data = evh.data[0].wlock_ignore_poison()?;
-			let guard = data.guard();
+			let guard = data.guard()?;
 			(**guard).write_queue.enqueue(1_000)?;
 		}
 		evh.process_write_queue(&mut ctx)?;
@@ -3978,7 +3978,7 @@ mod test {
 			let mut wh = conn_data.write_handle();
 			assert!(wh.write_state().is_ok());
 			let mut on_read_count = on_read_count.wlock()?;
-			let guard = on_read_count.guard();
+			let guard = on_read_count.guard()?;
 			**guard += 1;
 
 			// only trigger on on read for the first request
@@ -4020,7 +4020,7 @@ mod test {
 		loop {
 			{
 				let on_read_count_clone = on_read_count_clone.rlock()?;
-				let guard = on_read_count_clone.guard();
+				let guard = on_read_count_clone.guard()?;
 				if **guard == 2 || count > 10_000 {
 					break;
 				} else {
@@ -4034,7 +4034,7 @@ mod test {
 		sleep(Duration::from_millis(1_000));
 
 		let on_read_count_clone = on_read_count_clone.rlock()?;
-		let guard = on_read_count_clone.guard();
+		let guard = on_read_count_clone.guard()?;
 		assert_eq!(**guard, 2);
 
 		Ok(())
@@ -4065,7 +4065,7 @@ mod test {
 			let mut wh = conn_data.write_handle();
 			assert!(wh.write_state().is_ok());
 			let mut on_read_count = on_read_count.wlock()?;
-			let guard = on_read_count.guard();
+			let guard = on_read_count.guard()?;
 			**guard += 1;
 
 			// only trigger on on read for the first request

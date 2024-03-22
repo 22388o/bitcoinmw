@@ -530,7 +530,7 @@ impl WriteHandle {
 	/// Return true if the [`crate::WriteHandle`] is closed. Otherwise return false.
 	pub fn is_closed(&self) -> Result<bool, Error> {
 		let write_state = self.write_state.rlock()?;
-		let guard = write_state.guard();
+		let guard = write_state.guard()?;
 		Ok((**guard).is_set(WRITE_STATE_FLAG_CLOSE))
 	}
 
@@ -547,7 +547,7 @@ impl WriteHandle {
 		{
 			debug!("wlock for {}", self.id)?;
 			let mut write_state = self.write_state.wlock()?;
-			let guard = write_state.guard();
+			let guard = write_state.guard()?;
 			if (**guard).is_set(WRITE_STATE_FLAG_CLOSE) {
 				// it's already closed no need to do anything
 				return Ok(());
@@ -558,7 +558,7 @@ impl WriteHandle {
 		}
 		{
 			let mut event_handler_data = self.event_handler_data.wlock()?;
-			let guard = event_handler_data.guard();
+			let guard = event_handler_data.guard()?;
 			(**guard).write_queue.enqueue(self.id)?;
 			(**guard).wakeup.wakeup()?;
 		}
@@ -572,7 +572,7 @@ impl WriteHandle {
 		{
 			debug!("wlock for {}", self.id)?;
 			let mut write_state = self.write_state.wlock()?;
-			let guard = write_state.guard();
+			let guard = write_state.guard()?;
 			if (**guard).is_set(WRITE_STATE_FLAG_CLOSE) {
 				// it's already closed no need to do anything
 				return Ok(());
@@ -583,7 +583,7 @@ impl WriteHandle {
 		}
 		{
 			let mut event_handler_data = self.event_handler_data.wlock()?;
-			let guard = event_handler_data.guard();
+			let guard = event_handler_data.guard()?;
 			(**guard).write_queue.enqueue(self.id)?;
 			(**guard).wakeup.wakeup()?;
 		}
@@ -595,7 +595,7 @@ impl WriteHandle {
 		handle_close(&mut self.write_state, self.id, &mut self.event_handler_data)?;
 
 		let mut event_handler_data = self.event_handler_data.wlock()?;
-		let guard = event_handler_data.guard();
+		let guard = event_handler_data.guard()?;
 		(**guard).write_queue.enqueue(self.id)?;
 		(**guard).wakeup.wakeup()?;
 
@@ -607,7 +607,7 @@ impl WriteHandle {
 		match &mut self.tls_client.clone() {
 			Some(ref mut tls_conn) => {
 				let mut tls_conn = tls_conn.wlock()?;
-				let tls_conn = tls_conn.guard();
+				let tls_conn = tls_conn.guard()?;
 				let mut start = 0;
 				loop {
 					let mut wbuf = vec![];
@@ -629,7 +629,7 @@ impl WriteHandle {
 			None => match &mut self.tls_server.clone() {
 				Some(ref mut tls_conn) => {
 					let mut tls_conn = tls_conn.wlock()?;
-					let tls_conn = tls_conn.guard();
+					let tls_conn = tls_conn.guard()?;
 					let mut start = 0;
 					loop {
 						let mut wbuf = vec![];
@@ -657,13 +657,13 @@ impl WriteHandle {
 		let data_len = data.len();
 		let len = {
 			let write_state = self.write_state.rlock()?;
-			if (**write_state.guard()).is_set(WRITE_STATE_FLAG_CLOSE) {
+			if (**write_state.guard()?).is_set(WRITE_STATE_FLAG_CLOSE) {
 				return Err(err!(ErrKind::IO, "write handle closed"));
 			}
-			if (**write_state.guard()).is_set(WRITE_STATE_FLAG_SUSPEND) || self.debug_suspended {
+			if (**write_state.guard()?).is_set(WRITE_STATE_FLAG_SUSPEND) || self.debug_suspended {
 				return Err(err!(ErrKind::IO, "write handle suspended"));
 			}
-			if (**write_state.guard()).is_set(WRITE_STATE_FLAG_PENDING)
+			if (**write_state.guard()?).is_set(WRITE_STATE_FLAG_PENDING)
 				|| self.debug_pending
 				|| self.debug_write_error
 			{
@@ -712,13 +712,13 @@ impl WriteHandle {
 		{
 			debug!("wlock for {}", self.id)?;
 			let mut write_state = self.write_state.wlock()?;
-			let guard = write_state.guard();
+			let guard = write_state.guard()?;
 			(**guard).set_flag(WRITE_STATE_FLAG_TRIGGER_ON_READ);
 			debug!("unlockwlock for {}", self.id)?;
 		}
 		{
 			let mut event_handler_data = self.event_handler_data.wlock()?;
-			let guard = event_handler_data.guard();
+			let guard = event_handler_data.guard()?;
 			(**guard).write_queue.enqueue(self.id)?;
 			(**guard).wakeup.wakeup()?;
 		}
@@ -739,7 +739,7 @@ impl WriteHandle {
 		let was_pending = {
 			debug!("wlock for {}", self.id)?;
 			let mut write_state = self.write_state.wlock()?;
-			let guard = write_state.guard();
+			let guard = write_state.guard()?;
 			let ret = (**guard).is_set(WRITE_STATE_FLAG_PENDING);
 			(**guard).set_flag(WRITE_STATE_FLAG_PENDING);
 			(**guard).write_buffer.extend(data);
@@ -748,7 +748,7 @@ impl WriteHandle {
 		};
 		if !was_pending {
 			let mut event_handler_data = self.event_handler_data.wlock()?;
-			let guard = event_handler_data.guard();
+			let guard = event_handler_data.guard()?;
 			(**guard).write_queue.enqueue(self.id)?;
 			(**guard).wakeup.wakeup()?;
 		}
@@ -980,7 +980,7 @@ where
 		for i in 0..self.data.size() {
 			// unwrap ok in tests
 			let mut data = self.data[i].wlock_ignore_poison().unwrap();
-			let guard = data.guard();
+			let guard = data.guard().unwrap();
 			(**guard).debug_write_queue = value;
 		}
 	}
@@ -991,7 +991,7 @@ where
 		for i in 0..self.data.size() {
 			// unwrap ok in tests
 			let mut data = self.data[i].wlock_ignore_poison().unwrap();
-			let guard = data.guard();
+			let guard = data.guard().unwrap();
 			(**guard).debug_pending = value;
 		}
 	}
@@ -1002,7 +1002,7 @@ where
 		for i in 0..self.data.size() {
 			// unwrap ok in tests
 			let mut data = self.data[i].wlock_ignore_poison().unwrap();
-			let guard = data.guard();
+			let guard = data.guard().unwrap();
 			(**guard).debug_write_error = value;
 		}
 	}
@@ -1013,7 +1013,7 @@ where
 		for i in 0..self.data.size() {
 			// unwrap ok in tests
 			let mut data = self.data[i].wlock_ignore_poison().unwrap();
-			let guard = data.guard();
+			let guard = data.guard().unwrap();
 			(**guard).debug_suspended = value;
 		}
 	}
@@ -1182,7 +1182,7 @@ where
 		self.close_handles(ctx)?;
 		{
 			let mut data = self.data[ctx.tid].wlock_ignore_poison()?;
-			let guard = data.guard();
+			let guard = data.guard()?;
 			(**guard).stopped = true;
 		}
 		Ok(())
@@ -1227,7 +1227,7 @@ where
 						let lock = rw.write_state.wlock();
 						if lock.is_ok() && !self.debug_close_handle {
 							let mut state = lock.unwrap();
-							let guard = state.guard();
+							let guard = state.guard()?;
 							(**guard).set_flag(WRITE_STATE_FLAG_CLOSE);
 						} else {
 							let _ = warn!("rw.write_state.wlock generated error");
@@ -1261,7 +1261,7 @@ where
 		debug!("process write queue")?;
 		let mut data = self.data[ctx.tid].wlock_ignore_poison()?;
 		loop {
-			let guard = data.guard();
+			let guard = data.guard()?;
 			match (**guard).write_queue.dequeue() {
 				Some(next) => {
 					debug!("write q hashtable.get({})", next)?;
@@ -1270,7 +1270,7 @@ where
 							ConnectionInfo::StreamInfo(ref mut rwi) => {
 								{
 									let mut write_state = rwi.write_state.wlock()?;
-									let guard = write_state.guard();
+									let guard = write_state.guard()?;
 									if (**guard).is_set(WRITE_STATE_FLAG_SUSPEND) {
 										let ev = EventIn {
 											handle: rwi.handle,
@@ -1348,7 +1348,7 @@ where
 	) -> Result<bool, Error> {
 		let data2 = self.data.clone();
 		let mut data = self.data[ctx.tid].wlock_ignore_poison()?;
-		let guard = data.guard();
+		let guard = data.guard()?;
 		if (**guard).stop {
 			return Ok(true);
 		}
@@ -1565,7 +1565,7 @@ where
 		{
 			debug!("wlock for {}", rw.id)?;
 			let mut write_state = rw.write_state.wlock()?;
-			let guard = write_state.guard();
+			let guard = write_state.guard()?;
 			loop {
 				let len = (**guard).write_buffer.len();
 				if len == 0 {
@@ -1712,7 +1712,7 @@ where
 		let mut wbuf = vec![];
 		if len > 0 {
 			let mut tls_conn = rw.tls_server.as_mut().unwrap().wlock()?;
-			let tls_conn = tls_conn.guard();
+			let tls_conn = tls_conn.guard()?;
 			let end = len.try_into().unwrap_or(0);
 			(**tls_conn).read_tls(&mut &ctx.buffer[0..end])?;
 
@@ -1757,7 +1757,7 @@ where
 				wbuf.shrink_to_fit();
 				{
 					let mut tls_conn = rw.tls_server.as_mut().unwrap().wlock()?;
-					let tls_conn = tls_conn.guard();
+					let tls_conn = tls_conn.guard()?;
 					(**tls_conn).write_tls(&mut wbuf)?;
 				}
 			} else {
@@ -1788,7 +1788,7 @@ where
 		let mut wbuf = vec![];
 		if len > 0 {
 			let mut tls_conn = rw.tls_client.as_mut().unwrap().wlock()?;
-			let tls_conn = tls_conn.guard();
+			let tls_conn = tls_conn.guard()?;
 			(**tls_conn).read_tls(&mut &ctx.buffer[0..len.try_into().unwrap_or(0)])?;
 
 			match (**tls_conn).process_new_packets() {
@@ -1831,7 +1831,7 @@ where
 				wbuf.shrink_to_fit();
 				{
 					let mut tls_conn = rw.tls_client.as_mut().unwrap().wlock()?;
-					let tls_conn = tls_conn.guard();
+					let tls_conn = tls_conn.guard()?;
 					(**tls_conn).write_tls(&mut wbuf)?;
 				}
 			} else {
@@ -2204,7 +2204,7 @@ where
 		// write there will be an error
 		{
 			let mut state = rw.write_state.wlock()?;
-			let guard = state.guard();
+			let guard = state.guard()?;
 			(**guard).set_flag(WRITE_STATE_FLAG_CLOSE);
 			(**guard).write_buffer.clear();
 			(**guard).write_buffer.shrink_to_fit();
@@ -2364,7 +2364,7 @@ where
 			ctx.last_process_type = LastProcessType::OnAccept;
 			{
 				let mut data = self.data[tid].wlock_ignore_poison()?;
-				let guard = data.guard();
+				let guard = data.guard()?;
 
 				// unwrap is ok because accept_id is always set above
 				let acc_id = rwi.accept_id.unwrap();
@@ -2552,20 +2552,20 @@ where
 			let mut evh = v_panic[id].0.clone();
 			let mut wakeup = {
 				let mut data = v_panic[id].1.wlock_ignore_poison()?;
-				let guard = data.guard();
+				let guard = data.guard()?;
 				(**guard).wakeup.clone()
 			};
 			let mut ctx = v_panic[id].2.clone();
 			let mut thread_context = v_panic[id].3.clone();
 			let mut thread_context_clone = thread_context.clone();
 			let mut executor = executor.wlock()?;
-			let executor = executor.guard();
+			let executor = executor.guard()?;
 			let mut on_panic = on_panic.clone();
 			(**executor).execute(
 				async move {
 					debug!("calling on panic handler: {:?}", e)?;
 					let mut thread_context = thread_context_clone.wlock_ignore_poison()?;
-					let thread_context = thread_context.guard();
+					let thread_context = thread_context.guard()?;
 					match &mut on_panic {
 						Some(on_panic) => match on_panic(thread_context, e) {
 							Ok(_) => {}
@@ -2583,10 +2583,10 @@ where
 			(**executor).execute(
 				async move {
 					let mut ctx = ctx.wlock_ignore_poison()?;
-					let ctx = ctx.guard();
+					let ctx = ctx.guard()?;
 
 					let mut thread_context = thread_context.wlock_ignore_poison()?;
-					let thread_context = thread_context.guard();
+					let thread_context = thread_context.guard()?;
 
 					let evh = &mut evh;
 					let ctx = &mut *ctx;
@@ -2604,7 +2604,7 @@ where
 
 		{
 			let mut executor = executor_clone.wlock()?;
-			let guard = executor.guard();
+			let guard = executor.guard()?;
 			(**guard) = tp.executor()?;
 		}
 
@@ -2613,7 +2613,7 @@ where
 			//let mut wakeup = v[i].1.clone();
 			let mut wakeup = {
 				let mut data = v[i].1.wlock_ignore_poison()?;
-				let guard = data.guard();
+				let guard = data.guard()?;
 				(**guard).wakeup.clone()
 			};
 			let mut ctx = v[i].2.clone();
@@ -2621,10 +2621,10 @@ where
 
 			execute!(tp, i.try_into()?, {
 				let mut ctx = ctx.wlock_ignore_poison()?;
-				let ctx = ctx.guard();
+				let ctx = ctx.guard()?;
 
 				let mut thread_context = thread_context.wlock_ignore_poison()?;
-				let thread_context = thread_context.guard();
+				let thread_context = thread_context.guard()?;
 
 				let evh = &mut evh;
 				let ctx = &mut *ctx;
@@ -2635,7 +2635,7 @@ where
 		}
 
 		let mut thread_pool_stopper = self.thread_pool_stopper.wlock()?;
-		let thread_pool_stopper = thread_pool_stopper.guard();
+		let thread_pool_stopper = thread_pool_stopper.guard()?;
 		(**thread_pool_stopper) = Some(tp.stopper()?);
 
 		Ok(())
@@ -2690,7 +2690,7 @@ where
 				let (tx, rx) = sync_channel::<()>(1);
 				{
 					let mut data = self.data[i].wlock_ignore_poison()?;
-					let guard = data.guard();
+					let guard = data.guard()?;
 					let id = random();
 					let li = ListenerInfo {
 						id,
@@ -2737,14 +2737,14 @@ impl EventHandlerController {
 	#[cfg(not(tarpaulin_include))] // assert full coverage for this function
 	pub fn stop(&mut self) -> Result<(), Error> {
 		let mut thread_pool_stopper = self.thread_pool_stopper.wlock()?;
-		let thread_pool_stopper = thread_pool_stopper.guard();
+		let thread_pool_stopper = thread_pool_stopper.guard()?;
 		if (**thread_pool_stopper).is_none() {
 			let err = err!(ErrKind::IllegalState, "start must be called before stop");
 			return Err(err);
 		}
 		for i in 0..self.data.size() {
 			let mut data = self.data[i].wlock_ignore_poison()?;
-			let guard = data.guard();
+			let guard = data.guard()?;
 			(**guard).stop = true;
 			(**guard).wakeup.wakeup()?;
 		}
@@ -2754,7 +2754,7 @@ impl EventHandlerController {
 			for i in 0..self.data.size() {
 				{
 					let mut data = self.data[i].wlock_ignore_poison()?;
-					let guard = data.guard();
+					let guard = data.guard()?;
 					if !(**guard).stopped {
 						stopped = false;
 					}
@@ -2803,7 +2803,7 @@ impl EventHandlerController {
 		let wh = {
 			let data_clone = self.data[tid].clone();
 			let mut data = self.data[tid].wlock_ignore_poison()?;
-			let guard = data.guard();
+			let guard = data.guard()?;
 
 			let wh = WriteHandle::new(
 				handle,
@@ -2871,8 +2871,8 @@ impl Wakeup {
 	pub(crate) fn wakeup(&mut self) -> Result<(), Error> {
 		let mut requested = self.requested.wlock()?;
 		let needed = self.needed.rlock()?;
-		let need_wakeup = **needed.guard() && !(**requested.guard());
-		**requested.guard() = true;
+		let need_wakeup = **needed.guard()? && !(**requested.guard()?);
+		**requested.guard()? = true;
 		if need_wakeup {
 			debug!("wakeup writing to {}", self.writer)?;
 			let len = write_bytes(self.writer, &[0u8; 1]);
@@ -2885,10 +2885,10 @@ impl Wakeup {
 		let requested = self.requested.rlock()?;
 		{
 			let mut needed = self.needed.wlock()?;
-			**needed.guard() = true;
+			**needed.guard()? = true;
 		}
 		let lock_guard = self.needed.rlock()?;
-		let is_requested = **requested.guard();
+		let is_requested = **requested.guard()?;
 		Ok((is_requested, lock_guard))
 	}
 
@@ -2896,8 +2896,8 @@ impl Wakeup {
 		let mut requested = self.requested.wlock()?;
 		let mut needed = self.needed.wlock()?;
 
-		**requested.guard() = false;
-		**needed.guard() = false;
+		**requested.guard()? = false;
+		**needed.guard()? = false;
 		Ok(())
 	}
 }
@@ -2962,7 +2962,7 @@ pub(crate) fn handle_close(
 	{
 		debug!("wlock for {}", id)?;
 		let mut write_state = write_state.wlock()?;
-		let guard = write_state.guard();
+		let guard = write_state.guard()?;
 		if (**guard).is_set(WRITE_STATE_FLAG_CLOSE) {
 			// it's already closed no double closes
 			return Ok(());
@@ -2972,7 +2972,7 @@ pub(crate) fn handle_close(
 	}
 	{
 		let mut event_handler_data = event_handler_data.wlock()?;
-		let guard = event_handler_data.guard();
+		let guard = event_handler_data.guard()?;
 		(**guard).write_queue.enqueue(id)?;
 	}
 	Ok(())

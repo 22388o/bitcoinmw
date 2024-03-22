@@ -364,7 +364,7 @@ impl HttpContentReaderData {
 		let mut ptr = self.head_slab;
 		match content_allocator.wlock() {
 			Ok(mut content_allocator) => {
-				let content_allocator = content_allocator.guard();
+				let content_allocator = content_allocator.guard()?;
 
 				loop {
 					if ptr >= u32::MAX as usize {
@@ -423,7 +423,7 @@ impl HttpContentReaderData {
 
 		match content_allocator.wlock() {
 			Ok(mut content_allocator) => {
-				let content_allocator = content_allocator.guard();
+				let content_allocator = content_allocator.guard()?;
 				loop {
 					if self.file_id.is_some() {
 						break;
@@ -589,7 +589,18 @@ impl Read for HttpContentReader {
 							));
 						}
 					};
-					let guard = content_allocator.guard();
+					let guard = match content_allocator.guard() {
+						Ok(guard) => guard,
+						Err(e) => {
+							return Err(std::io::Error::new(
+								std::io::ErrorKind::NotFound,
+								format!(
+									"Could not access content allocator guard: {}",
+									e.to_string()
+								),
+							));
+						}
+					};
 					let slab = match (**guard).get(hcrd.read_slab) {
 						Ok(slab) => slab,
 						Err(e) => {
@@ -1404,7 +1415,7 @@ impl HttpServerImpl {
 		let hit: CacheStreamResult;
 		{
 			let mut cache = cache.wlock()?;
-			hit = (**cache.guard()).stream_file(
+			hit = (**cache.guard()?).stream_file(
 				path,
 				conn_data,
 				200,
@@ -1424,19 +1435,19 @@ impl HttpServerImpl {
 			|| hit == CacheStreamResult::NotModified && r < threshold as u64
 		{
 			let mut cache = cache.wlock()?;
-			(**cache.guard()).bring_to_front(&path, headers.accept_gzip()?)?;
+			(**cache.guard()?).bring_to_front(&path, headers.accept_gzip()?)?;
 		}
 
 		if hit == CacheStreamResult::Modified {
 			// the file has been modified. Delete it.
 			let mut cache = cache.wlock()?;
-			(**cache.guard()).remove(&path, headers.accept_gzip()?)?;
+			(**cache.guard()?).remove(&path, headers.accept_gzip()?)?;
 		}
 
 		if hit == CacheStreamResult::NotModified {
 			// the file is not modified, but we need to update the last checked timestamp.
 			let mut cache = cache.wlock()?;
-			(**cache.guard()).update_last_checked_if_needed(
+			(**cache.guard()?).update_last_checked_if_needed(
 				&path,
 				ctx,
 				config,
@@ -1586,7 +1597,7 @@ impl HttpServerImpl {
 				if blen > 0 {
 					let mut cache = cache.wlock()?;
 					if i == 0 {
-						write_to_cache = (**cache.guard()).write_metadata(
+						write_to_cache = (**cache.guard()?).write_metadata(
 							&fpath,
 							0,
 							last_modified,
@@ -1597,7 +1608,7 @@ impl HttpServerImpl {
 					}
 
 					if write_to_cache {
-						match (**cache.guard()).write_block(
+						match (**cache.guard()?).write_block(
 							&fpath,
 							i,
 							&try_into!(buf[0..CACHE_BUFFER_SIZE])?,
@@ -1611,7 +1622,7 @@ impl HttpServerImpl {
 								// false. Things continue on but
 								// the data is not written to
 								// cache.
-								(**cache.guard()).remove(&fpath, accept_gzip)?;
+								(**cache.guard()?).remove(&fpath, accept_gzip)?;
 								write_to_cache = false;
 							}
 						}
@@ -1627,7 +1638,7 @@ impl HttpServerImpl {
 
 			if write_to_cache {
 				let mut cache = cache.wlock()?;
-				(**cache.guard()).write_metadata(
+				(**cache.guard()?).write_metadata(
 					&fpath,
 					try_into!(len_sum)?,
 					last_modified,
@@ -2214,7 +2225,7 @@ impl HttpServerImpl {
 		match attachment {
 			Some(attachment) => {
 				let attachment = attachment.attachment.rlock()?;
-				let attachment = attachment.guard();
+				let attachment = attachment.guard()?;
 				match (**attachment).downcast_ref::<HttpInstance>() {
 					Some(ref attachment) => {
 						let ctx = Self::build_ctx(ctx, config)?;

@@ -177,7 +177,7 @@ impl SlabWriter {
 		let (slab_size, slab_count) = match slabs {
 			Some(ref slabs) => {
 				let slabs = slabs.rlock()?;
-				let guard = slabs.guard();
+				let guard = slabs.guard()?;
 				((**guard).slab_size()?, (**guard).slab_count()?)
 			}
 			None => GLOBAL_SLAB_ALLOCATOR.with(|f| -> Result<(usize, usize), Error> {
@@ -257,7 +257,7 @@ impl SlabWriter {
 			match self.slabs.as_mut() {
 				Some(slabs) => {
 					let mut slabs = slabs.wlock()?;
-					let guard = slabs.guard();
+					let guard = slabs.guard()?;
 					let mut slab_mut = (**guard).get_mut(self.slab_id)?;
 
 					debug!(
@@ -338,7 +338,7 @@ impl SlabWriter {
 		let next = match self.slabs.as_mut() {
 			Some(slabs) => {
 				let mut slabs = slabs.wlock()?;
-				let guard = slabs.guard();
+				let guard = slabs.guard()?;
 				let cur_slab = (**guard).get_mut(self.slab_id)?;
 				slice_to_usize(&cur_slab.get()[self.bytes_per_slab..self.slab_size])?
 			}
@@ -361,7 +361,7 @@ impl SlabWriter {
 			let new_id = match self.slabs.as_mut() {
 				Some(slabs) => {
 					let mut slabs = slabs.wlock()?;
-					let guard = slabs.guard();
+					let guard = slabs.guard()?;
 					let mut nslab = (**guard).allocate()?;
 					let nslab_mut = nslab.get_mut();
 					for i in self.bytes_per_slab..self.slab_size {
@@ -384,7 +384,7 @@ impl SlabWriter {
 			match self.slabs.as_mut() {
 				Some(slabs) => {
 					let mut slabs = slabs.wlock()?;
-					let guard = slabs.guard();
+					let guard = slabs.guard()?;
 					let mut slab = (**guard).get_mut(self.slab_id)?;
 					let prev = &mut slab.get_mut()[self.bytes_per_slab..self.slab_size];
 					debug!("writing pointer to {} -> {}", self.slab_id, new_id)?;
@@ -424,7 +424,7 @@ impl<'a> SlabReader {
 		let (slab_size, slab_count) = match slabs.as_ref() {
 			Some(slabs) => {
 				let slabs = slabs.rlock()?;
-				let guard = slabs.guard();
+				let guard = slabs.guard()?;
 				(guard.slab_size()?, guard.slab_count()?)
 			}
 			None => GLOBAL_SLAB_ALLOCATOR.with(|f| -> Result<(usize, usize), Error> {
@@ -487,7 +487,7 @@ impl<'a> SlabReader {
 		match &self.slabs {
 			Some(slabs) => {
 				let slabs = slabs.rlock()?;
-				let guard = slabs.guard();
+				let guard = slabs.guard()?;
 				let slab = (**guard).get(id)?;
 				Ok(slice_to_usize(&slab.get()[bytes_per_slab..slab_size])?)
 			}
@@ -510,7 +510,7 @@ impl<'a> SlabReader {
 		match &self.slabs {
 			Some(slabs) => {
 				let slabs = slabs.rlock()?;
-				let guard = slabs.guard();
+				let guard = slabs.guard()?;
 				let slab = (**guard).get(id)?;
 				if !skip {
 					buf.clone_from_slice(&slab.get()[offset..(offset + rlen)]);
