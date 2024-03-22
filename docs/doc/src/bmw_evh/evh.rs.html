@@ -2972,6 +2972,13 @@
 <a href="#2970" id="2970">2970</a>
 <a href="#2971" id="2971">2971</a>
 <a href="#2972" id="2972">2972</a>
+<a href="#2973" id="2973">2973</a>
+<a href="#2974" id="2974">2974</a>
+<a href="#2975" id="2975">2975</a>
+<a href="#2976" id="2976">2976</a>
+<a href="#2977" id="2977">2977</a>
+<a href="#2978" id="2978">2978</a>
+<a href="#2979" id="2979">2979</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -3566,7 +3573,14 @@
 
 	<span class="doccomment">/// Close the connection associated with this [`crate::WriteHandle`].
 	</span><span class="kw">pub fn </span>close(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		handle_close(<span class="kw-2">&amp;mut </span><span class="self">self</span>.write_state, <span class="self">self</span>.id, <span class="kw-2">&amp;mut </span><span class="self">self</span>.event_handler_data)
+		handle_close(<span class="kw-2">&amp;mut </span><span class="self">self</span>.write_state, <span class="self">self</span>.id, <span class="kw-2">&amp;mut </span><span class="self">self</span>.event_handler_data)<span class="question-mark">?</span>;
+
+		<span class="kw">let </span><span class="kw-2">mut </span>event_handler_data = <span class="self">self</span>.event_handler_data.wlock()<span class="question-mark">?</span>;
+		<span class="kw">let </span>guard = event_handler_data.guard();
+		(<span class="kw-2">**</span>guard).write_queue.enqueue(<span class="self">self</span>.id)<span class="question-mark">?</span>;
+		(<span class="kw-2">**</span>guard).wakeup.wakeup()<span class="question-mark">?</span>;
+
+		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="doccomment">/// Write data to the connection associated with this [`crate::WriteHandle`].

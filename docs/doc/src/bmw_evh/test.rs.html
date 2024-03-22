@@ -4450,83 +4450,6 @@
 <a href="#4448" id="4448">4448</a>
 <a href="#4449" id="4449">4449</a>
 <a href="#4450" id="4450">4450</a>
-<a href="#4451" id="4451">4451</a>
-<a href="#4452" id="4452">4452</a>
-<a href="#4453" id="4453">4453</a>
-<a href="#4454" id="4454">4454</a>
-<a href="#4455" id="4455">4455</a>
-<a href="#4456" id="4456">4456</a>
-<a href="#4457" id="4457">4457</a>
-<a href="#4458" id="4458">4458</a>
-<a href="#4459" id="4459">4459</a>
-<a href="#4460" id="4460">4460</a>
-<a href="#4461" id="4461">4461</a>
-<a href="#4462" id="4462">4462</a>
-<a href="#4463" id="4463">4463</a>
-<a href="#4464" id="4464">4464</a>
-<a href="#4465" id="4465">4465</a>
-<a href="#4466" id="4466">4466</a>
-<a href="#4467" id="4467">4467</a>
-<a href="#4468" id="4468">4468</a>
-<a href="#4469" id="4469">4469</a>
-<a href="#4470" id="4470">4470</a>
-<a href="#4471" id="4471">4471</a>
-<a href="#4472" id="4472">4472</a>
-<a href="#4473" id="4473">4473</a>
-<a href="#4474" id="4474">4474</a>
-<a href="#4475" id="4475">4475</a>
-<a href="#4476" id="4476">4476</a>
-<a href="#4477" id="4477">4477</a>
-<a href="#4478" id="4478">4478</a>
-<a href="#4479" id="4479">4479</a>
-<a href="#4480" id="4480">4480</a>
-<a href="#4481" id="4481">4481</a>
-<a href="#4482" id="4482">4482</a>
-<a href="#4483" id="4483">4483</a>
-<a href="#4484" id="4484">4484</a>
-<a href="#4485" id="4485">4485</a>
-<a href="#4486" id="4486">4486</a>
-<a href="#4487" id="4487">4487</a>
-<a href="#4488" id="4488">4488</a>
-<a href="#4489" id="4489">4489</a>
-<a href="#4490" id="4490">4490</a>
-<a href="#4491" id="4491">4491</a>
-<a href="#4492" id="4492">4492</a>
-<a href="#4493" id="4493">4493</a>
-<a href="#4494" id="4494">4494</a>
-<a href="#4495" id="4495">4495</a>
-<a href="#4496" id="4496">4496</a>
-<a href="#4497" id="4497">4497</a>
-<a href="#4498" id="4498">4498</a>
-<a href="#4499" id="4499">4499</a>
-<a href="#4500" id="4500">4500</a>
-<a href="#4501" id="4501">4501</a>
-<a href="#4502" id="4502">4502</a>
-<a href="#4503" id="4503">4503</a>
-<a href="#4504" id="4504">4504</a>
-<a href="#4505" id="4505">4505</a>
-<a href="#4506" id="4506">4506</a>
-<a href="#4507" id="4507">4507</a>
-<a href="#4508" id="4508">4508</a>
-<a href="#4509" id="4509">4509</a>
-<a href="#4510" id="4510">4510</a>
-<a href="#4511" id="4511">4511</a>
-<a href="#4512" id="4512">4512</a>
-<a href="#4513" id="4513">4513</a>
-<a href="#4514" id="4514">4514</a>
-<a href="#4515" id="4515">4515</a>
-<a href="#4516" id="4516">4516</a>
-<a href="#4517" id="4517">4517</a>
-<a href="#4518" id="4518">4518</a>
-<a href="#4519" id="4519">4519</a>
-<a href="#4520" id="4520">4520</a>
-<a href="#4521" id="4521">4521</a>
-<a href="#4522" id="4522">4522</a>
-<a href="#4523" id="4523">4523</a>
-<a href="#4524" id="4524">4524</a>
-<a href="#4525" id="4525">4525</a>
-<a href="#4526" id="4526">4526</a>
-<a href="#4527" id="4527">4527</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -4836,7 +4759,7 @@
 			threads,
 			housekeeping_frequency_millis: <span class="number">1_000_000</span>,
 			read_slab_count: <span class="number">30</span>,
-			max_handles_per_thread: <span class="number">600</span>,
+			max_handles_per_thread: <span class="number">30</span>,
 			..Default::default()
 		};
 		<span class="kw">let </span><span class="kw-2">mut </span>evh = EventHandlerImpl::new(config)<span class="question-mark">?</span>;
@@ -6084,7 +6007,7 @@
 			threads,
 			housekeeping_frequency_millis: <span class="number">10_000</span>,
 			read_slab_count: <span class="number">30</span>,
-			max_handles_per_thread: <span class="number">2</span>,
+			max_handles_per_thread: <span class="number">1</span>,
 			..Default::default()
 		};
 		<span class="kw">let </span><span class="kw-2">mut </span>evh = EventHandlerImpl::new(config)<span class="question-mark">?</span>;
@@ -8296,83 +8219,6 @@
 		evh.process_write(<span class="kw-2">&amp;mut </span>rwi, <span class="kw-2">&amp;mut </span>ctx, <span class="kw-2">&amp;mut </span>ThreadContext::new())<span class="question-mark">?</span>;
 
 		sleep(Duration::from_millis(<span class="number">1_000</span>));
-
-		<span class="prelude-val">Ok</span>(())
-	}
-
-	<span class="attr">#[test]
-	</span><span class="kw">fn </span>test_evh_ins_hashtable_err() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>port = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(
-			<span class="string">"eventhandler test_evh_ins_hashtable_err Using port: {}"</span>,
-			port
-		)<span class="question-mark">?</span>;
-		<span class="kw">let </span>addr = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port)[..];
-		<span class="kw">let </span>port2 = <span class="macro">free_port!</span>()<span class="question-mark">?</span>;
-		<span class="kw">let </span>addr2 = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"127.0.0.1:{}"</span>, port2)[..];
-		<span class="kw">let </span>threads = <span class="number">1</span>;
-		<span class="kw">let </span>config = EventHandlerConfig {
-			threads,
-			housekeeping_frequency_millis: <span class="number">100_000</span>,
-			read_slab_count: <span class="number">100</span>,
-			max_handles_per_thread: <span class="number">1</span>,
-			..Default::default()
-		};
-		<span class="kw">let </span><span class="kw-2">mut </span>evh = EventHandlerImpl::new(config)<span class="question-mark">?</span>;
-
-		evh.set_on_read(<span class="kw">move </span>|_conn_data, _thread_context, _attachment| <span class="prelude-val">Ok</span>(()))<span class="question-mark">?</span>;
-
-		evh.set_on_accept(<span class="kw">move </span>|_conn_data, _thread_context| <span class="prelude-val">Ok</span>(()))<span class="question-mark">?</span>;
-
-		evh.set_on_close(<span class="kw">move </span>|_conn_data, _thread_context| <span class="prelude-val">Ok</span>(()))<span class="question-mark">?</span>;
-		evh.set_on_panic(<span class="kw">move </span>|_thread_context, _e| <span class="prelude-val">Ok</span>(()))<span class="question-mark">?</span>;
-		evh.set_housekeeper(<span class="kw">move </span>|_thread_context| <span class="prelude-val">Ok</span>(()))<span class="question-mark">?</span>;
-		evh.start()<span class="question-mark">?</span>;
-
-		<span class="kw">let </span>handles = create_listeners(threads, addr, <span class="number">10</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">"handles.size={},handles={:?}"</span>, handles.size(), handles)<span class="question-mark">?</span>;
-		<span class="kw">let </span>sc = ServerConnection {
-			tls_config: <span class="prelude-val">Some</span>(TlsServerConfig {
-				certificates_file: <span class="string">"./resources/cert.pem"</span>.to_string(),
-				private_key_file: <span class="string">"./resources/key.pem"</span>.to_string(),
-			}),
-			handles,
-			is_reuse_port: <span class="bool-val">true</span>,
-		};
-		evh.add_server(sc, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
-		sleep(Duration::from_millis(<span class="number">5_000</span>));
-
-		<span class="kw">let </span>connection = TcpStream::connect(addr)<span class="question-mark">?</span>;
-		connection.set_nonblocking(<span class="bool-val">true</span>)<span class="question-mark">?</span>;
-		<span class="attr">#[cfg(unix)]
-		</span><span class="kw">let </span>connection_handle = connection.into_raw_fd();
-		<span class="attr">#[cfg(windows)]
-		</span><span class="kw">let </span>connection_handle = connection.into_raw_socket().try_into()<span class="question-mark">?</span>;
-
-		<span class="kw">let </span>client = ClientConnection {
-			handle: connection_handle,
-			tls_config: <span class="prelude-val">Some</span>(TlsClientConfig {
-				sni_host: <span class="string">"localhost"</span>.to_string(),
-				trusted_cert_full_chain_file: <span class="prelude-val">Some</span>(<span class="string">"./resources/cert.pem"</span>.to_string()),
-			}),
-		};
-
-		evh.add_client(client, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
-		<span class="kw">let </span>handles = create_listeners(threads, addr2, <span class="number">10</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
-		<span class="macro">info!</span>(<span class="string">"handles.size={},handles={:?}"</span>, handles.size(), handles)<span class="question-mark">?</span>;
-		<span class="kw">let </span>sc = ServerConnection {
-			tls_config: <span class="prelude-val">Some</span>(TlsServerConfig {
-				certificates_file: <span class="string">"./resources/cert.pem"</span>.to_string(),
-				private_key_file: <span class="string">"./resources/key.pem"</span>.to_string(),
-			}),
-			handles,
-			is_reuse_port: <span class="bool-val">true</span>,
-		};
-		evh.add_server(sc, Box::new(<span class="string">""</span>))<span class="question-mark">?</span>;
-		sleep(Duration::from_millis(<span class="number">5_000</span>));
-
-		<span class="comment">// connection 2 closed so this will fail
-		</span><span class="macro">assert!</span>(TcpStream::connect(addr2).is_err());
 
 		<span class="prelude-val">Ok</span>(())
 	}
