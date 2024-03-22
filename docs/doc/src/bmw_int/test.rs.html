@@ -1229,19 +1229,19 @@
 				})<span class="question-mark">?</span>;
 				conn_data.clear_through(first_slab)<span class="question-mark">?</span>;
 				<span class="kw">let </span>client_handle = client_handle_clone.rlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = client_handle.guard();
+				<span class="kw">let </span>guard = client_handle.guard()<span class="question-mark">?</span>;
 				<span class="kw">if </span>conn_data.get_handle() != <span class="kw-2">**</span>guard {
 					<span class="macro">info!</span>(<span class="string">"client res = {:?}"</span>, res)<span class="question-mark">?</span>;
 					<span class="kw">if </span>res[<span class="number">0</span>] == <span class="string">'t' </span><span class="kw">as </span>u8 {
 						conn_data.write_handle().write(<span class="kw-2">&amp;</span>res)<span class="question-mark">?</span>;
 						<span class="kw">if </span>res == <span class="string">b"test1"</span>.to_vec() {
 							<span class="kw">let </span><span class="kw-2">mut </span>server_received_test1 = server_received_test1.wlock()<span class="question-mark">?</span>;
-							(<span class="kw-2">**</span>server_received_test1.guard()) = <span class="bool-val">true</span>;
+							(<span class="kw-2">**</span>server_received_test1.guard()<span class="question-mark">?</span>) = <span class="bool-val">true</span>;
 						}
 					}
 					<span class="kw">if </span>res == <span class="string">b"abc"</span>.to_vec() {
 						<span class="kw">let </span><span class="kw-2">mut </span>server_received_abc = server_received_abc.wlock()<span class="question-mark">?</span>;
-						(<span class="kw-2">**</span>server_received_abc.guard()) = <span class="bool-val">true</span>;
+						(<span class="kw-2">**</span>server_received_abc.guard()<span class="question-mark">?</span>) = <span class="bool-val">true</span>;
 					}
 				} <span class="kw">else </span>{
 					<span class="macro">info!</span>(<span class="string">"server res = {:?})"</span>, res)<span class="question-mark">?</span>;
@@ -1250,7 +1250,7 @@
 					conn_data.write_handle().write(<span class="kw-2">&amp;</span>x)<span class="question-mark">?</span>;
 					<span class="kw">if </span>res == <span class="string">b"test1"</span>.to_vec() {
 						<span class="kw">let </span><span class="kw-2">mut </span>client_received_test1 = client_received_test1.wlock()<span class="question-mark">?</span>;
-						(<span class="kw-2">**</span>client_received_test1.guard()) = <span class="bool-val">true</span>;
+						(<span class="kw-2">**</span>client_received_test1.guard()<span class="question-mark">?</span>) = <span class="bool-val">true</span>;
 					}
 				}
 				<span class="macro">info!</span>(<span class="string">"res={:?}"</span>, res)<span class="question-mark">?</span>;
@@ -1289,7 +1289,7 @@
 			</span><span class="kw">let </span>connection_handle = connection.into_raw_socket().try_into()<span class="question-mark">?</span>;
 			{
 				<span class="kw">let </span><span class="kw-2">mut </span>client_handle = client_handle.wlock()<span class="question-mark">?</span>;
-				(<span class="kw-2">**</span>client_handle.guard()) = connection_handle;
+				(<span class="kw-2">**</span>client_handle.guard()<span class="question-mark">?</span>) = connection_handle;
 			}
 
 			<span class="kw">let </span>client = ClientConnection {
@@ -1305,18 +1305,18 @@
 			<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
 			<span class="kw">loop </span>{
 				sleep(Duration::from_millis(<span class="number">1</span>));
-				<span class="kw">if </span>!(<span class="kw-2">**</span>(client_received_test1_clone.rlock()<span class="question-mark">?</span>.guard())
-					&amp;&amp; <span class="kw-2">**</span>(server_received_test1_clone.rlock()<span class="question-mark">?</span>.guard())
-					&amp;&amp; <span class="kw-2">**</span>(server_received_abc_clone.rlock()<span class="question-mark">?</span>.guard()))
+				<span class="kw">if </span>!(<span class="kw-2">**</span>(client_received_test1_clone.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>)
+					&amp;&amp; <span class="kw-2">**</span>(server_received_test1_clone.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>)
+					&amp;&amp; <span class="kw-2">**</span>(server_received_abc_clone.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>))
 				{
 					count += <span class="number">1</span>;
 					<span class="kw">if </span>count &lt; <span class="number">2_000 </span>{
 						<span class="kw">continue</span>;
 					}
 				}
-				<span class="macro">assert!</span>(<span class="kw-2">**</span>(client_received_test1_clone.rlock()<span class="question-mark">?</span>.guard()));
-				<span class="macro">assert!</span>(<span class="kw-2">**</span>(server_received_test1_clone.rlock()<span class="question-mark">?</span>.guard()));
-				<span class="macro">assert!</span>(<span class="kw-2">**</span>(server_received_abc_clone.rlock()<span class="question-mark">?</span>.guard()));
+				<span class="macro">assert!</span>(<span class="kw-2">**</span>(client_received_test1_clone.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>));
+				<span class="macro">assert!</span>(<span class="kw-2">**</span>(server_received_test1_clone.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>));
+				<span class="macro">assert!</span>(<span class="kw-2">**</span>(server_received_abc_clone.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>));
 				<span class="kw">break</span>;
 			}
 
@@ -1511,7 +1511,7 @@
 				conn_data.get_connection_id()
 			)<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>close_count = close_count.wlock()<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>close_count.guard()) += <span class="number">1</span>;
+			(<span class="kw-2">**</span>close_count.guard()<span class="question-mark">?</span>) += <span class="number">1</span>;
 			<span class="prelude-val">Ok</span>(())
 		})<span class="question-mark">?</span>;
 		evh.set_on_panic(<span class="kw">move </span>|_thread_context, _e| <span class="prelude-val">Ok</span>(()))<span class="question-mark">?</span>;
@@ -1574,7 +1574,7 @@
 		<span class="kw">loop </span>{
 			count_count += <span class="number">1</span>;
 			sleep(Duration::from_millis(<span class="number">1</span>));
-			<span class="kw">let </span>count = <span class="kw-2">**</span>((close_count_clone.rlock()<span class="question-mark">?</span>).guard());
+			<span class="kw">let </span>count = <span class="kw-2">**</span>((close_count_clone.rlock()<span class="question-mark">?</span>).guard()<span class="question-mark">?</span>);
 			<span class="kw">if </span>count != total &amp;&amp; count_count &lt; <span class="number">60_000 </span>{
 				<span class="macro">info!</span>(
 					<span class="string">"count = {}, total = {}, will try again in a millisecond"</span>,
@@ -1582,7 +1582,7 @@
 				)<span class="question-mark">?</span>;
 				<span class="kw">continue</span>;
 			}
-			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>((close_count_clone.rlock()<span class="question-mark">?</span>).guard())), total);
+			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>((close_count_clone.rlock()<span class="question-mark">?</span>).guard()<span class="question-mark">?</span>)), total);
 			<span class="kw">break</span>;
 		}
 
@@ -1650,7 +1650,7 @@
 				conn_data.get_connection_id()
 			)<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>close_count = close_count.wlock()<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>close_count.guard()) += <span class="number">1</span>;
+			(<span class="kw-2">**</span>close_count.guard()<span class="question-mark">?</span>) += <span class="number">1</span>;
 			<span class="prelude-val">Ok</span>(())
 		})<span class="question-mark">?</span>;
 		evh.set_on_panic(<span class="kw">move </span>|_thread_context, _e| <span class="prelude-val">Ok</span>(()))<span class="question-mark">?</span>;
@@ -1686,10 +1686,10 @@
 			<span class="kw">loop </span>{
 				count += <span class="number">1</span>;
 				sleep(Duration::from_millis(<span class="number">1</span>));
-				<span class="kw">if </span><span class="kw-2">**</span>((close_count_clone.rlock()<span class="question-mark">?</span>).guard()) == <span class="number">0 </span>&amp;&amp; count &lt; <span class="number">2_000 </span>{
+				<span class="kw">if </span><span class="kw-2">**</span>((close_count_clone.rlock()<span class="question-mark">?</span>).guard()<span class="question-mark">?</span>) == <span class="number">0 </span>&amp;&amp; count &lt; <span class="number">2_000 </span>{
 					<span class="kw">continue</span>;
 				}
-				<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>((close_count_clone.rlock()<span class="question-mark">?</span>).guard()), <span class="number">1</span>);
+				<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>((close_count_clone.rlock()<span class="question-mark">?</span>).guard()<span class="question-mark">?</span>), <span class="number">1</span>);
 				<span class="kw">break</span>;
 			}
 		}
@@ -1824,18 +1824,18 @@
 			})<span class="question-mark">?</span>;
 			conn_data.clear_through(first_slab)<span class="question-mark">?</span>;
 			<span class="kw">let </span>client_handle = client_handle_clone.rlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = client_handle.guard();
+			<span class="kw">let </span>guard = client_handle.guard()<span class="question-mark">?</span>;
 			<span class="kw">if </span>conn_data.get_handle() != <span class="kw-2">**</span>guard {
 				<span class="kw">if </span>res[<span class="number">0</span>] == <span class="string">'t' </span><span class="kw">as </span>u8 {
 					conn_data.write_handle().write(<span class="kw-2">&amp;</span>res)<span class="question-mark">?</span>;
 					<span class="kw">if </span>res == <span class="string">b"test1" </span>{
 						<span class="kw">let </span><span class="kw-2">mut </span>server_received_test1 = server_received_test1.wlock()<span class="question-mark">?</span>;
-						(<span class="kw-2">**</span>server_received_test1.guard()) = <span class="bool-val">true</span>;
+						(<span class="kw-2">**</span>server_received_test1.guard()<span class="question-mark">?</span>) = <span class="bool-val">true</span>;
 					}
 				}
 				<span class="kw">if </span>res == <span class="string">b"abc"</span>.to_vec() {
 					<span class="kw">let </span><span class="kw-2">mut </span>server_received_abc = server_received_abc.wlock()<span class="question-mark">?</span>;
-					(<span class="kw-2">**</span>server_received_abc.guard()) = <span class="bool-val">true</span>;
+					(<span class="kw-2">**</span>server_received_abc.guard()<span class="question-mark">?</span>) = <span class="bool-val">true</span>;
 				}
 			} <span class="kw">else </span>{
 				<span class="kw">let </span><span class="kw-2">mut </span>x = <span class="macro">vec!</span>[];
@@ -1843,7 +1843,7 @@
 				conn_data.write_handle().write(<span class="kw-2">&amp;</span>x)<span class="question-mark">?</span>;
 				<span class="kw">if </span>res == <span class="string">b"test1"</span>.to_vec() {
 					<span class="kw">let </span><span class="kw-2">mut </span>client_received_test1 = client_received_test1.wlock()<span class="question-mark">?</span>;
-					(<span class="kw-2">**</span>client_received_test1.guard()) = <span class="bool-val">true</span>;
+					(<span class="kw-2">**</span>client_received_test1.guard()<span class="question-mark">?</span>) = <span class="bool-val">true</span>;
 				}
 			}
 			<span class="macro">info!</span>(<span class="string">"res={:?}"</span>, res)<span class="question-mark">?</span>;
@@ -1874,7 +1874,7 @@
 		</span><span class="kw">let </span>connection_handle = connection.into_raw_socket().try_into()<span class="question-mark">?</span>;
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>client_handle = client_handle.wlock()<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>client_handle.guard()) = connection_handle;
+			(<span class="kw-2">**</span>client_handle.guard()<span class="question-mark">?</span>) = connection_handle;
 		}
 
 		<span class="kw">let </span>client = ClientConnection {
@@ -1887,18 +1887,18 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>count = <span class="number">0</span>;
 		<span class="kw">loop </span>{
 			sleep(Duration::from_millis(<span class="number">1</span>));
-			<span class="kw">if </span>!(<span class="kw-2">**</span>(client_received_test1_clone.rlock()<span class="question-mark">?</span>.guard())
-				&amp;&amp; <span class="kw-2">**</span>(server_received_test1_clone.rlock()<span class="question-mark">?</span>.guard())
-				&amp;&amp; <span class="kw-2">**</span>(server_received_abc_clone.rlock()<span class="question-mark">?</span>.guard()))
+			<span class="kw">if </span>!(<span class="kw-2">**</span>(client_received_test1_clone.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>)
+				&amp;&amp; <span class="kw-2">**</span>(server_received_test1_clone.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>)
+				&amp;&amp; <span class="kw-2">**</span>(server_received_abc_clone.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>))
 			{
 				count += <span class="number">1</span>;
 				<span class="kw">if </span>count &lt; <span class="number">25_000 </span>{
 					<span class="kw">continue</span>;
 				}
 			}
-			<span class="macro">assert!</span>(<span class="kw-2">**</span>(client_received_test1_clone.rlock()<span class="question-mark">?</span>.guard()));
-			<span class="macro">assert!</span>(<span class="kw-2">**</span>(server_received_test1_clone.rlock()<span class="question-mark">?</span>.guard()));
-			<span class="macro">assert!</span>(<span class="kw-2">**</span>(server_received_abc_clone.rlock()<span class="question-mark">?</span>.guard()));
+			<span class="macro">assert!</span>(<span class="kw-2">**</span>(client_received_test1_clone.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>));
+			<span class="macro">assert!</span>(<span class="kw-2">**</span>(server_received_test1_clone.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>));
+			<span class="macro">assert!</span>(<span class="kw-2">**</span>(server_received_abc_clone.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>));
 			<span class="kw">break</span>;
 		}
 
@@ -1949,18 +1949,18 @@
 		evh.set_on_accept(<span class="kw">move </span>|conn_data, _thread_context| {
 			<span class="kw">if </span>conn_data.tid() == <span class="number">0 </span>{
 				<span class="kw">let </span><span class="kw-2">mut </span>tid0count = tid0count.wlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = tid0count.guard();
+				<span class="kw">let </span>guard = tid0count.guard()<span class="question-mark">?</span>;
 				(<span class="kw-2">**</span>guard) += <span class="number">1</span>;
 			} <span class="kw">else if </span>conn_data.tid() == <span class="number">1 </span>{
 				<span class="kw">let </span><span class="kw-2">mut </span>tid1count = tid1count.wlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = tid1count.guard();
+				<span class="kw">let </span>guard = tid1count.guard()<span class="question-mark">?</span>;
 				(<span class="kw-2">**</span>guard) += <span class="number">1</span>;
 			}
 			<span class="prelude-val">Ok</span>(())
 		})<span class="question-mark">?</span>;
 		evh.set_on_close(<span class="kw">move </span>|_conn_data, _thread_context| {
 			<span class="kw">let </span><span class="kw-2">mut </span>close_count = close_count.wlock()<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>close_count.guard()) += <span class="number">1</span>;
+			(<span class="kw-2">**</span>close_count.guard()<span class="question-mark">?</span>) += <span class="number">1</span>;
 			<span class="prelude-val">Ok</span>(())
 		})<span class="question-mark">?</span>;
 		evh.set_on_panic(<span class="kw">move </span>|_thread_context, _e| <span class="prelude-val">Ok</span>(()))<span class="question-mark">?</span>;
@@ -2005,16 +2005,16 @@
 		<span class="kw">loop </span>{
 			count_count += <span class="number">1</span>;
 			sleep(Duration::from_millis(<span class="number">1</span>));
-			<span class="kw">let </span>count = <span class="kw-2">**</span>((close_count_clone.rlock()<span class="question-mark">?</span>).guard());
+			<span class="kw">let </span>count = <span class="kw-2">**</span>((close_count_clone.rlock()<span class="question-mark">?</span>).guard()<span class="question-mark">?</span>);
 			<span class="kw">if </span>count != total + <span class="number">1 </span>&amp;&amp; count_count &lt; <span class="number">1_000 </span>{
 				<span class="kw">continue</span>;
 			}
-			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>((close_count_clone.rlock()<span class="question-mark">?</span>).guard())), total + <span class="number">1</span>);
+			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>((close_count_clone.rlock()<span class="question-mark">?</span>).guard()<span class="question-mark">?</span>)), total + <span class="number">1</span>);
 			<span class="kw">break</span>;
 		}
 
-		<span class="kw">let </span>tid0count = <span class="kw-2">**</span>(tid0count_clone.rlock()<span class="question-mark">?</span>.guard());
-		<span class="kw">let </span>tid1count = <span class="kw-2">**</span>(tid1count_clone.rlock()<span class="question-mark">?</span>.guard());
+		<span class="kw">let </span>tid0count = <span class="kw-2">**</span>(tid0count_clone.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>);
+		<span class="kw">let </span>tid1count = <span class="kw-2">**</span>(tid1count_clone.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>);
 		<span class="macro">info!</span>(<span class="string">"tid0count={},tid1count={}"</span>, tid0count, tid1count)<span class="question-mark">?</span>;
 		<span class="attr">#[cfg(target_os = <span class="string">"linux"</span>)]
 		</span>{

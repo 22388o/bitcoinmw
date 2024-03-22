@@ -3511,7 +3511,7 @@
 	<span class="doccomment">/// Return true if the [`crate::WriteHandle`] is closed. Otherwise return false.
 	</span><span class="kw">pub fn </span>is_closed(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="kw">let </span>write_state = <span class="self">self</span>.write_state.rlock()<span class="question-mark">?</span>;
-		<span class="kw">let </span>guard = write_state.guard();
+		<span class="kw">let </span>guard = write_state.guard()<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>((<span class="kw-2">**</span>guard).is_set(WRITE_STATE_FLAG_CLOSE))
 	}
 
@@ -3528,7 +3528,7 @@
 		{
 			<span class="macro">debug!</span>(<span class="string">"wlock for {}"</span>, <span class="self">self</span>.id)<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>write_state = <span class="self">self</span>.write_state.wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = write_state.guard();
+			<span class="kw">let </span>guard = write_state.guard()<span class="question-mark">?</span>;
 			<span class="kw">if </span>(<span class="kw-2">**</span>guard).is_set(WRITE_STATE_FLAG_CLOSE) {
 				<span class="comment">// it's already closed no need to do anything
 				</span><span class="kw">return </span><span class="prelude-val">Ok</span>(());
@@ -3539,7 +3539,7 @@
 		}
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>event_handler_data = <span class="self">self</span>.event_handler_data.wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = event_handler_data.guard();
+			<span class="kw">let </span>guard = event_handler_data.guard()<span class="question-mark">?</span>;
 			(<span class="kw-2">**</span>guard).write_queue.enqueue(<span class="self">self</span>.id)<span class="question-mark">?</span>;
 			(<span class="kw-2">**</span>guard).wakeup.wakeup()<span class="question-mark">?</span>;
 		}
@@ -3553,7 +3553,7 @@
 		{
 			<span class="macro">debug!</span>(<span class="string">"wlock for {}"</span>, <span class="self">self</span>.id)<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>write_state = <span class="self">self</span>.write_state.wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = write_state.guard();
+			<span class="kw">let </span>guard = write_state.guard()<span class="question-mark">?</span>;
 			<span class="kw">if </span>(<span class="kw-2">**</span>guard).is_set(WRITE_STATE_FLAG_CLOSE) {
 				<span class="comment">// it's already closed no need to do anything
 				</span><span class="kw">return </span><span class="prelude-val">Ok</span>(());
@@ -3564,7 +3564,7 @@
 		}
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>event_handler_data = <span class="self">self</span>.event_handler_data.wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = event_handler_data.guard();
+			<span class="kw">let </span>guard = event_handler_data.guard()<span class="question-mark">?</span>;
 			(<span class="kw-2">**</span>guard).write_queue.enqueue(<span class="self">self</span>.id)<span class="question-mark">?</span>;
 			(<span class="kw-2">**</span>guard).wakeup.wakeup()<span class="question-mark">?</span>;
 		}
@@ -3576,7 +3576,7 @@
 		handle_close(<span class="kw-2">&amp;mut </span><span class="self">self</span>.write_state, <span class="self">self</span>.id, <span class="kw-2">&amp;mut </span><span class="self">self</span>.event_handler_data)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>event_handler_data = <span class="self">self</span>.event_handler_data.wlock()<span class="question-mark">?</span>;
-		<span class="kw">let </span>guard = event_handler_data.guard();
+		<span class="kw">let </span>guard = event_handler_data.guard()<span class="question-mark">?</span>;
 		(<span class="kw-2">**</span>guard).write_queue.enqueue(<span class="self">self</span>.id)<span class="question-mark">?</span>;
 		(<span class="kw-2">**</span>guard).wakeup.wakeup()<span class="question-mark">?</span>;
 
@@ -3588,7 +3588,7 @@
 		<span class="kw">match </span><span class="kw-2">&amp;mut </span><span class="self">self</span>.tls_client.clone() {
 			<span class="prelude-val">Some</span>(<span class="kw-2">ref mut </span>tls_conn) =&gt; {
 				<span class="kw">let </span><span class="kw-2">mut </span>tls_conn = tls_conn.wlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>tls_conn = tls_conn.guard();
+				<span class="kw">let </span>tls_conn = tls_conn.guard()<span class="question-mark">?</span>;
 				<span class="kw">let </span><span class="kw-2">mut </span>start = <span class="number">0</span>;
 				<span class="kw">loop </span>{
 					<span class="kw">let </span><span class="kw-2">mut </span>wbuf = <span class="macro">vec!</span>[];
@@ -3610,7 +3610,7 @@
 			<span class="prelude-val">None </span>=&gt; <span class="kw">match </span><span class="kw-2">&amp;mut </span><span class="self">self</span>.tls_server.clone() {
 				<span class="prelude-val">Some</span>(<span class="kw-2">ref mut </span>tls_conn) =&gt; {
 					<span class="kw">let </span><span class="kw-2">mut </span>tls_conn = tls_conn.wlock()<span class="question-mark">?</span>;
-					<span class="kw">let </span>tls_conn = tls_conn.guard();
+					<span class="kw">let </span>tls_conn = tls_conn.guard()<span class="question-mark">?</span>;
 					<span class="kw">let </span><span class="kw-2">mut </span>start = <span class="number">0</span>;
 					<span class="kw">loop </span>{
 						<span class="kw">let </span><span class="kw-2">mut </span>wbuf = <span class="macro">vec!</span>[];
@@ -3638,13 +3638,13 @@
 		<span class="kw">let </span>data_len = data.len();
 		<span class="kw">let </span>len = {
 			<span class="kw">let </span>write_state = <span class="self">self</span>.write_state.rlock()<span class="question-mark">?</span>;
-			<span class="kw">if </span>(<span class="kw-2">**</span>write_state.guard()).is_set(WRITE_STATE_FLAG_CLOSE) {
+			<span class="kw">if </span>(<span class="kw-2">**</span>write_state.guard()<span class="question-mark">?</span>).is_set(WRITE_STATE_FLAG_CLOSE) {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IO, <span class="string">"write handle closed"</span>));
 			}
-			<span class="kw">if </span>(<span class="kw-2">**</span>write_state.guard()).is_set(WRITE_STATE_FLAG_SUSPEND) || <span class="self">self</span>.debug_suspended {
+			<span class="kw">if </span>(<span class="kw-2">**</span>write_state.guard()<span class="question-mark">?</span>).is_set(WRITE_STATE_FLAG_SUSPEND) || <span class="self">self</span>.debug_suspended {
 				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IO, <span class="string">"write handle suspended"</span>));
 			}
-			<span class="kw">if </span>(<span class="kw-2">**</span>write_state.guard()).is_set(WRITE_STATE_FLAG_PENDING)
+			<span class="kw">if </span>(<span class="kw-2">**</span>write_state.guard()<span class="question-mark">?</span>).is_set(WRITE_STATE_FLAG_PENDING)
 				|| <span class="self">self</span>.debug_pending
 				|| <span class="self">self</span>.debug_write_error
 			{
@@ -3693,13 +3693,13 @@
 		{
 			<span class="macro">debug!</span>(<span class="string">"wlock for {}"</span>, <span class="self">self</span>.id)<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>write_state = <span class="self">self</span>.write_state.wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = write_state.guard();
+			<span class="kw">let </span>guard = write_state.guard()<span class="question-mark">?</span>;
 			(<span class="kw-2">**</span>guard).set_flag(WRITE_STATE_FLAG_TRIGGER_ON_READ);
 			<span class="macro">debug!</span>(<span class="string">"unlockwlock for {}"</span>, <span class="self">self</span>.id)<span class="question-mark">?</span>;
 		}
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>event_handler_data = <span class="self">self</span>.event_handler_data.wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = event_handler_data.guard();
+			<span class="kw">let </span>guard = event_handler_data.guard()<span class="question-mark">?</span>;
 			(<span class="kw-2">**</span>guard).write_queue.enqueue(<span class="self">self</span>.id)<span class="question-mark">?</span>;
 			(<span class="kw-2">**</span>guard).wakeup.wakeup()<span class="question-mark">?</span>;
 		}
@@ -3720,7 +3720,7 @@
 		<span class="kw">let </span>was_pending = {
 			<span class="macro">debug!</span>(<span class="string">"wlock for {}"</span>, <span class="self">self</span>.id)<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>write_state = <span class="self">self</span>.write_state.wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = write_state.guard();
+			<span class="kw">let </span>guard = write_state.guard()<span class="question-mark">?</span>;
 			<span class="kw">let </span>ret = (<span class="kw-2">**</span>guard).is_set(WRITE_STATE_FLAG_PENDING);
 			(<span class="kw-2">**</span>guard).set_flag(WRITE_STATE_FLAG_PENDING);
 			(<span class="kw-2">**</span>guard).write_buffer.extend(data);
@@ -3729,7 +3729,7 @@
 		};
 		<span class="kw">if </span>!was_pending {
 			<span class="kw">let </span><span class="kw-2">mut </span>event_handler_data = <span class="self">self</span>.event_handler_data.wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = event_handler_data.guard();
+			<span class="kw">let </span>guard = event_handler_data.guard()<span class="question-mark">?</span>;
 			(<span class="kw-2">**</span>guard).write_queue.enqueue(<span class="self">self</span>.id)<span class="question-mark">?</span>;
 			(<span class="kw-2">**</span>guard).wakeup.wakeup()<span class="question-mark">?</span>;
 		}
@@ -3961,7 +3961,7 @@
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.data.size() {
 			<span class="comment">// unwrap ok in tests
 			</span><span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[i].wlock_ignore_poison().unwrap();
-			<span class="kw">let </span>guard = data.guard();
+			<span class="kw">let </span>guard = data.guard().unwrap();
 			(<span class="kw-2">**</span>guard).debug_write_queue = value;
 		}
 	}
@@ -3972,7 +3972,7 @@
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.data.size() {
 			<span class="comment">// unwrap ok in tests
 			</span><span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[i].wlock_ignore_poison().unwrap();
-			<span class="kw">let </span>guard = data.guard();
+			<span class="kw">let </span>guard = data.guard().unwrap();
 			(<span class="kw-2">**</span>guard).debug_pending = value;
 		}
 	}
@@ -3983,7 +3983,7 @@
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.data.size() {
 			<span class="comment">// unwrap ok in tests
 			</span><span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[i].wlock_ignore_poison().unwrap();
-			<span class="kw">let </span>guard = data.guard();
+			<span class="kw">let </span>guard = data.guard().unwrap();
 			(<span class="kw-2">**</span>guard).debug_write_error = value;
 		}
 	}
@@ -3994,7 +3994,7 @@
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.data.size() {
 			<span class="comment">// unwrap ok in tests
 			</span><span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[i].wlock_ignore_poison().unwrap();
-			<span class="kw">let </span>guard = data.guard();
+			<span class="kw">let </span>guard = data.guard().unwrap();
 			(<span class="kw-2">**</span>guard).debug_suspended = value;
 		}
 	}
@@ -4163,7 +4163,7 @@
 		<span class="self">self</span>.close_handles(ctx)<span class="question-mark">?</span>;
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[ctx.tid].wlock_ignore_poison()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = data.guard();
+			<span class="kw">let </span>guard = data.guard()<span class="question-mark">?</span>;
 			(<span class="kw-2">**</span>guard).stopped = <span class="bool-val">true</span>;
 		}
 		<span class="prelude-val">Ok</span>(())
@@ -4208,7 +4208,7 @@
 						<span class="kw">let </span>lock = rw.write_state.wlock();
 						<span class="kw">if </span>lock.is_ok() &amp;&amp; !<span class="self">self</span>.debug_close_handle {
 							<span class="kw">let </span><span class="kw-2">mut </span>state = lock.unwrap();
-							<span class="kw">let </span>guard = state.guard();
+							<span class="kw">let </span>guard = state.guard()<span class="question-mark">?</span>;
 							(<span class="kw-2">**</span>guard).set_flag(WRITE_STATE_FLAG_CLOSE);
 						} <span class="kw">else </span>{
 							<span class="kw">let _ </span>= <span class="macro">warn!</span>(<span class="string">"rw.write_state.wlock generated error"</span>);
@@ -4242,7 +4242,7 @@
 		<span class="macro">debug!</span>(<span class="string">"process write queue"</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[ctx.tid].wlock_ignore_poison()<span class="question-mark">?</span>;
 		<span class="kw">loop </span>{
-			<span class="kw">let </span>guard = data.guard();
+			<span class="kw">let </span>guard = data.guard()<span class="question-mark">?</span>;
 			<span class="kw">match </span>(<span class="kw-2">**</span>guard).write_queue.dequeue() {
 				<span class="prelude-val">Some</span>(next) =&gt; {
 					<span class="macro">debug!</span>(<span class="string">"write q hashtable.get({})"</span>, next)<span class="question-mark">?</span>;
@@ -4251,7 +4251,7 @@
 							ConnectionInfo::StreamInfo(<span class="kw-2">ref mut </span>rwi) =&gt; {
 								{
 									<span class="kw">let </span><span class="kw-2">mut </span>write_state = rwi.write_state.wlock()<span class="question-mark">?</span>;
-									<span class="kw">let </span>guard = write_state.guard();
+									<span class="kw">let </span>guard = write_state.guard()<span class="question-mark">?</span>;
 									<span class="kw">if </span>(<span class="kw-2">**</span>guard).is_set(WRITE_STATE_FLAG_SUSPEND) {
 										<span class="kw">let </span>ev = EventIn {
 											handle: rwi.handle,
@@ -4329,7 +4329,7 @@
 	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="kw">let </span>data2 = <span class="self">self</span>.data.clone();
 		<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[ctx.tid].wlock_ignore_poison()<span class="question-mark">?</span>;
-		<span class="kw">let </span>guard = data.guard();
+		<span class="kw">let </span>guard = data.guard()<span class="question-mark">?</span>;
 		<span class="kw">if </span>(<span class="kw-2">**</span>guard).stop {
 			<span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">true</span>);
 		}
@@ -4546,7 +4546,7 @@
 		{
 			<span class="macro">debug!</span>(<span class="string">"wlock for {}"</span>, rw.id)<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>write_state = rw.write_state.wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = write_state.guard();
+			<span class="kw">let </span>guard = write_state.guard()<span class="question-mark">?</span>;
 			<span class="kw">loop </span>{
 				<span class="kw">let </span>len = (<span class="kw-2">**</span>guard).write_buffer.len();
 				<span class="kw">if </span>len == <span class="number">0 </span>{
@@ -4693,7 +4693,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>wbuf = <span class="macro">vec!</span>[];
 		<span class="kw">if </span>len &gt; <span class="number">0 </span>{
 			<span class="kw">let </span><span class="kw-2">mut </span>tls_conn = rw.tls_server.as_mut().unwrap().wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>tls_conn = tls_conn.guard();
+			<span class="kw">let </span>tls_conn = tls_conn.guard()<span class="question-mark">?</span>;
 			<span class="kw">let </span>end = len.try_into().unwrap_or(<span class="number">0</span>);
 			(<span class="kw-2">**</span>tls_conn).read_tls(<span class="kw-2">&amp;mut &amp;</span>ctx.buffer[<span class="number">0</span>..end])<span class="question-mark">?</span>;
 
@@ -4738,7 +4738,7 @@
 				wbuf.shrink_to_fit();
 				{
 					<span class="kw">let </span><span class="kw-2">mut </span>tls_conn = rw.tls_server.as_mut().unwrap().wlock()<span class="question-mark">?</span>;
-					<span class="kw">let </span>tls_conn = tls_conn.guard();
+					<span class="kw">let </span>tls_conn = tls_conn.guard()<span class="question-mark">?</span>;
 					(<span class="kw-2">**</span>tls_conn).write_tls(<span class="kw-2">&amp;mut </span>wbuf)<span class="question-mark">?</span>;
 				}
 			} <span class="kw">else </span>{
@@ -4769,7 +4769,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>wbuf = <span class="macro">vec!</span>[];
 		<span class="kw">if </span>len &gt; <span class="number">0 </span>{
 			<span class="kw">let </span><span class="kw-2">mut </span>tls_conn = rw.tls_client.as_mut().unwrap().wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>tls_conn = tls_conn.guard();
+			<span class="kw">let </span>tls_conn = tls_conn.guard()<span class="question-mark">?</span>;
 			(<span class="kw-2">**</span>tls_conn).read_tls(<span class="kw-2">&amp;mut &amp;</span>ctx.buffer[<span class="number">0</span>..len.try_into().unwrap_or(<span class="number">0</span>)])<span class="question-mark">?</span>;
 
 			<span class="kw">match </span>(<span class="kw-2">**</span>tls_conn).process_new_packets() {
@@ -4812,7 +4812,7 @@
 				wbuf.shrink_to_fit();
 				{
 					<span class="kw">let </span><span class="kw-2">mut </span>tls_conn = rw.tls_client.as_mut().unwrap().wlock()<span class="question-mark">?</span>;
-					<span class="kw">let </span>tls_conn = tls_conn.guard();
+					<span class="kw">let </span>tls_conn = tls_conn.guard()<span class="question-mark">?</span>;
 					(<span class="kw-2">**</span>tls_conn).write_tls(<span class="kw-2">&amp;mut </span>wbuf)<span class="question-mark">?</span>;
 				}
 			} <span class="kw">else </span>{
@@ -5185,7 +5185,7 @@
 		// write there will be an error
 		</span>{
 			<span class="kw">let </span><span class="kw-2">mut </span>state = rw.write_state.wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = state.guard();
+			<span class="kw">let </span>guard = state.guard()<span class="question-mark">?</span>;
 			(<span class="kw-2">**</span>guard).set_flag(WRITE_STATE_FLAG_CLOSE);
 			(<span class="kw-2">**</span>guard).write_buffer.clear();
 			(<span class="kw-2">**</span>guard).write_buffer.shrink_to_fit();
@@ -5345,7 +5345,7 @@
 			ctx.last_process_type = LastProcessType::OnAccept;
 			{
 				<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[tid].wlock_ignore_poison()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = data.guard();
+				<span class="kw">let </span>guard = data.guard()<span class="question-mark">?</span>;
 
 				<span class="comment">// unwrap is ok because accept_id is always set above
 				</span><span class="kw">let </span>acc_id = rwi.accept_id.unwrap();
@@ -5533,20 +5533,20 @@
 			<span class="kw">let </span><span class="kw-2">mut </span>evh = v_panic[id].<span class="number">0</span>.clone();
 			<span class="kw">let </span><span class="kw-2">mut </span>wakeup = {
 				<span class="kw">let </span><span class="kw-2">mut </span>data = v_panic[id].<span class="number">1</span>.wlock_ignore_poison()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = data.guard();
+				<span class="kw">let </span>guard = data.guard()<span class="question-mark">?</span>;
 				(<span class="kw-2">**</span>guard).wakeup.clone()
 			};
 			<span class="kw">let </span><span class="kw-2">mut </span>ctx = v_panic[id].<span class="number">2</span>.clone();
 			<span class="kw">let </span><span class="kw-2">mut </span>thread_context = v_panic[id].<span class="number">3</span>.clone();
 			<span class="kw">let </span><span class="kw-2">mut </span>thread_context_clone = thread_context.clone();
 			<span class="kw">let </span><span class="kw-2">mut </span>executor = executor.wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>executor = executor.guard();
+			<span class="kw">let </span>executor = executor.guard()<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>on_panic = on_panic.clone();
 			(<span class="kw-2">**</span>executor).execute(
 				<span class="kw">async move </span>{
 					<span class="macro">debug!</span>(<span class="string">"calling on panic handler: {:?}"</span>, e)<span class="question-mark">?</span>;
 					<span class="kw">let </span><span class="kw-2">mut </span>thread_context = thread_context_clone.wlock_ignore_poison()<span class="question-mark">?</span>;
-					<span class="kw">let </span>thread_context = thread_context.guard();
+					<span class="kw">let </span>thread_context = thread_context.guard()<span class="question-mark">?</span>;
 					<span class="kw">match </span><span class="kw-2">&amp;mut </span>on_panic {
 						<span class="prelude-val">Some</span>(on_panic) =&gt; <span class="kw">match </span>on_panic(thread_context, e) {
 							<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
@@ -5564,10 +5564,10 @@
 			(<span class="kw-2">**</span>executor).execute(
 				<span class="kw">async move </span>{
 					<span class="kw">let </span><span class="kw-2">mut </span>ctx = ctx.wlock_ignore_poison()<span class="question-mark">?</span>;
-					<span class="kw">let </span>ctx = ctx.guard();
+					<span class="kw">let </span>ctx = ctx.guard()<span class="question-mark">?</span>;
 
 					<span class="kw">let </span><span class="kw-2">mut </span>thread_context = thread_context.wlock_ignore_poison()<span class="question-mark">?</span>;
-					<span class="kw">let </span>thread_context = thread_context.guard();
+					<span class="kw">let </span>thread_context = thread_context.guard()<span class="question-mark">?</span>;
 
 					<span class="kw">let </span>evh = <span class="kw-2">&amp;mut </span>evh;
 					<span class="kw">let </span>ctx = <span class="kw-2">&amp;mut *</span>ctx;
@@ -5585,7 +5585,7 @@
 
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>executor = executor_clone.wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = executor.guard();
+			<span class="kw">let </span>guard = executor.guard()<span class="question-mark">?</span>;
 			(<span class="kw-2">**</span>guard) = tp.executor()<span class="question-mark">?</span>;
 		}
 
@@ -5594,7 +5594,7 @@
 			<span class="comment">//let mut wakeup = v[i].1.clone();
 			</span><span class="kw">let </span><span class="kw-2">mut </span>wakeup = {
 				<span class="kw">let </span><span class="kw-2">mut </span>data = v[i].<span class="number">1</span>.wlock_ignore_poison()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = data.guard();
+				<span class="kw">let </span>guard = data.guard()<span class="question-mark">?</span>;
 				(<span class="kw-2">**</span>guard).wakeup.clone()
 			};
 			<span class="kw">let </span><span class="kw-2">mut </span>ctx = v[i].<span class="number">2</span>.clone();
@@ -5602,10 +5602,10 @@
 
 			<span class="macro">execute!</span>(tp, i.try_into()<span class="question-mark">?</span>, {
 				<span class="kw">let </span><span class="kw-2">mut </span>ctx = ctx.wlock_ignore_poison()<span class="question-mark">?</span>;
-				<span class="kw">let </span>ctx = ctx.guard();
+				<span class="kw">let </span>ctx = ctx.guard()<span class="question-mark">?</span>;
 
 				<span class="kw">let </span><span class="kw-2">mut </span>thread_context = thread_context.wlock_ignore_poison()<span class="question-mark">?</span>;
-				<span class="kw">let </span>thread_context = thread_context.guard();
+				<span class="kw">let </span>thread_context = thread_context.guard()<span class="question-mark">?</span>;
 
 				<span class="kw">let </span>evh = <span class="kw-2">&amp;mut </span>evh;
 				<span class="kw">let </span>ctx = <span class="kw-2">&amp;mut *</span>ctx;
@@ -5616,7 +5616,7 @@
 		}
 
 		<span class="kw">let </span><span class="kw-2">mut </span>thread_pool_stopper = <span class="self">self</span>.thread_pool_stopper.wlock()<span class="question-mark">?</span>;
-		<span class="kw">let </span>thread_pool_stopper = thread_pool_stopper.guard();
+		<span class="kw">let </span>thread_pool_stopper = thread_pool_stopper.guard()<span class="question-mark">?</span>;
 		(<span class="kw-2">**</span>thread_pool_stopper) = <span class="prelude-val">Some</span>(tp.stopper()<span class="question-mark">?</span>);
 
 		<span class="prelude-val">Ok</span>(())
@@ -5671,7 +5671,7 @@
 				<span class="kw">let </span>(tx, rx) = sync_channel::&lt;()&gt;(<span class="number">1</span>);
 				{
 					<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[i].wlock_ignore_poison()<span class="question-mark">?</span>;
-					<span class="kw">let </span>guard = data.guard();
+					<span class="kw">let </span>guard = data.guard()<span class="question-mark">?</span>;
 					<span class="kw">let </span>id = random();
 					<span class="kw">let </span>li = ListenerInfo {
 						id,
@@ -5718,14 +5718,14 @@
 	<span class="attr">#[cfg(not(tarpaulin_include))] </span><span class="comment">// assert full coverage for this function
 	</span><span class="kw">pub fn </span>stop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>thread_pool_stopper = <span class="self">self</span>.thread_pool_stopper.wlock()<span class="question-mark">?</span>;
-		<span class="kw">let </span>thread_pool_stopper = thread_pool_stopper.guard();
+		<span class="kw">let </span>thread_pool_stopper = thread_pool_stopper.guard()<span class="question-mark">?</span>;
 		<span class="kw">if </span>(<span class="kw-2">**</span>thread_pool_stopper).is_none() {
 			<span class="kw">let </span>err = <span class="macro">err!</span>(ErrKind::IllegalState, <span class="string">"start must be called before stop"</span>);
 			<span class="kw">return </span><span class="prelude-val">Err</span>(err);
 		}
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.data.size() {
 			<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[i].wlock_ignore_poison()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = data.guard();
+			<span class="kw">let </span>guard = data.guard()<span class="question-mark">?</span>;
 			(<span class="kw-2">**</span>guard).stop = <span class="bool-val">true</span>;
 			(<span class="kw-2">**</span>guard).wakeup.wakeup()<span class="question-mark">?</span>;
 		}
@@ -5735,7 +5735,7 @@
 			<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.data.size() {
 				{
 					<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[i].wlock_ignore_poison()<span class="question-mark">?</span>;
-					<span class="kw">let </span>guard = data.guard();
+					<span class="kw">let </span>guard = data.guard()<span class="question-mark">?</span>;
 					<span class="kw">if </span>!(<span class="kw-2">**</span>guard).stopped {
 						stopped = <span class="bool-val">false</span>;
 					}
@@ -5784,7 +5784,7 @@
 		<span class="kw">let </span>wh = {
 			<span class="kw">let </span>data_clone = <span class="self">self</span>.data[tid].clone();
 			<span class="kw">let </span><span class="kw-2">mut </span>data = <span class="self">self</span>.data[tid].wlock_ignore_poison()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = data.guard();
+			<span class="kw">let </span>guard = data.guard()<span class="question-mark">?</span>;
 
 			<span class="kw">let </span>wh = WriteHandle::new(
 				handle,
@@ -5852,8 +5852,8 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>wakeup(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>requested = <span class="self">self</span>.requested.wlock()<span class="question-mark">?</span>;
 		<span class="kw">let </span>needed = <span class="self">self</span>.needed.rlock()<span class="question-mark">?</span>;
-		<span class="kw">let </span>need_wakeup = <span class="kw-2">**</span>needed.guard() &amp;&amp; !(<span class="kw-2">**</span>requested.guard());
-		<span class="kw-2">**</span>requested.guard() = <span class="bool-val">true</span>;
+		<span class="kw">let </span>need_wakeup = <span class="kw-2">**</span>needed.guard()<span class="question-mark">? </span>&amp;&amp; !(<span class="kw-2">**</span>requested.guard()<span class="question-mark">?</span>);
+		<span class="kw-2">**</span>requested.guard()<span class="question-mark">? </span>= <span class="bool-val">true</span>;
 		<span class="kw">if </span>need_wakeup {
 			<span class="macro">debug!</span>(<span class="string">"wakeup writing to {}"</span>, <span class="self">self</span>.writer)<span class="question-mark">?</span>;
 			<span class="kw">let </span>len = write_bytes(<span class="self">self</span>.writer, <span class="kw-2">&amp;</span>[<span class="number">0u8</span>; <span class="number">1</span>]);
@@ -5866,10 +5866,10 @@
 		<span class="kw">let </span>requested = <span class="self">self</span>.requested.rlock()<span class="question-mark">?</span>;
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>needed = <span class="self">self</span>.needed.wlock()<span class="question-mark">?</span>;
-			<span class="kw-2">**</span>needed.guard() = <span class="bool-val">true</span>;
+			<span class="kw-2">**</span>needed.guard()<span class="question-mark">? </span>= <span class="bool-val">true</span>;
 		}
 		<span class="kw">let </span>lock_guard = <span class="self">self</span>.needed.rlock()<span class="question-mark">?</span>;
-		<span class="kw">let </span>is_requested = <span class="kw-2">**</span>requested.guard();
+		<span class="kw">let </span>is_requested = <span class="kw-2">**</span>requested.guard()<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>((is_requested, lock_guard))
 	}
 
@@ -5877,8 +5877,8 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>requested = <span class="self">self</span>.requested.wlock()<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>needed = <span class="self">self</span>.needed.wlock()<span class="question-mark">?</span>;
 
-		<span class="kw-2">**</span>requested.guard() = <span class="bool-val">false</span>;
-		<span class="kw-2">**</span>needed.guard() = <span class="bool-val">false</span>;
+		<span class="kw-2">**</span>requested.guard()<span class="question-mark">? </span>= <span class="bool-val">false</span>;
+		<span class="kw-2">**</span>needed.guard()<span class="question-mark">? </span>= <span class="bool-val">false</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 }
@@ -5943,7 +5943,7 @@
 	{
 		<span class="macro">debug!</span>(<span class="string">"wlock for {}"</span>, id)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>write_state = write_state.wlock()<span class="question-mark">?</span>;
-		<span class="kw">let </span>guard = write_state.guard();
+		<span class="kw">let </span>guard = write_state.guard()<span class="question-mark">?</span>;
 		<span class="kw">if </span>(<span class="kw-2">**</span>guard).is_set(WRITE_STATE_FLAG_CLOSE) {
 			<span class="comment">// it's already closed no double closes
 			</span><span class="kw">return </span><span class="prelude-val">Ok</span>(());
@@ -5953,7 +5953,7 @@
 	}
 	{
 		<span class="kw">let </span><span class="kw-2">mut </span>event_handler_data = event_handler_data.wlock()<span class="question-mark">?</span>;
-		<span class="kw">let </span>guard = event_handler_data.guard();
+		<span class="kw">let </span>guard = event_handler_data.guard()<span class="question-mark">?</span>;
 		(<span class="kw-2">**</span>guard).write_queue.enqueue(id)<span class="question-mark">?</span>;
 	}
 	<span class="prelude-val">Ok</span>(())

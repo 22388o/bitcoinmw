@@ -836,7 +836,7 @@
 		<span class="kw">let </span>(slab_size, slab_count) = <span class="kw">match </span>slabs {
 			<span class="prelude-val">Some</span>(<span class="kw-2">ref </span>slabs) =&gt; {
 				<span class="kw">let </span>slabs = slabs.rlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = slabs.guard();
+				<span class="kw">let </span>guard = slabs.guard()<span class="question-mark">?</span>;
 				((<span class="kw-2">**</span>guard).slab_size()<span class="question-mark">?</span>, (<span class="kw-2">**</span>guard).slab_count()<span class="question-mark">?</span>)
 			}
 			<span class="prelude-val">None </span>=&gt; GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;(usize, usize), Error&gt; {
@@ -916,7 +916,7 @@
 			<span class="kw">match </span><span class="self">self</span>.slabs.as_mut() {
 				<span class="prelude-val">Some</span>(slabs) =&gt; {
 					<span class="kw">let </span><span class="kw-2">mut </span>slabs = slabs.wlock()<span class="question-mark">?</span>;
-					<span class="kw">let </span>guard = slabs.guard();
+					<span class="kw">let </span>guard = slabs.guard()<span class="question-mark">?</span>;
 					<span class="kw">let </span><span class="kw-2">mut </span>slab_mut = (<span class="kw-2">**</span>guard).get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>;
 
 					<span class="macro">debug!</span>(
@@ -997,7 +997,7 @@
 		<span class="kw">let </span>next = <span class="kw">match </span><span class="self">self</span>.slabs.as_mut() {
 			<span class="prelude-val">Some</span>(slabs) =&gt; {
 				<span class="kw">let </span><span class="kw-2">mut </span>slabs = slabs.wlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = slabs.guard();
+				<span class="kw">let </span>guard = slabs.guard()<span class="question-mark">?</span>;
 				<span class="kw">let </span>cur_slab = (<span class="kw-2">**</span>guard).get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>;
 				slice_to_usize(<span class="kw-2">&amp;</span>cur_slab.get()[<span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size])<span class="question-mark">?
 			</span>}
@@ -1020,7 +1020,7 @@
 			<span class="kw">let </span>new_id = <span class="kw">match </span><span class="self">self</span>.slabs.as_mut() {
 				<span class="prelude-val">Some</span>(slabs) =&gt; {
 					<span class="kw">let </span><span class="kw-2">mut </span>slabs = slabs.wlock()<span class="question-mark">?</span>;
-					<span class="kw">let </span>guard = slabs.guard();
+					<span class="kw">let </span>guard = slabs.guard()<span class="question-mark">?</span>;
 					<span class="kw">let </span><span class="kw-2">mut </span>nslab = (<span class="kw-2">**</span>guard).allocate()<span class="question-mark">?</span>;
 					<span class="kw">let </span>nslab_mut = nslab.get_mut();
 					<span class="kw">for </span>i <span class="kw">in </span><span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size {
@@ -1043,7 +1043,7 @@
 			<span class="kw">match </span><span class="self">self</span>.slabs.as_mut() {
 				<span class="prelude-val">Some</span>(slabs) =&gt; {
 					<span class="kw">let </span><span class="kw-2">mut </span>slabs = slabs.wlock()<span class="question-mark">?</span>;
-					<span class="kw">let </span>guard = slabs.guard();
+					<span class="kw">let </span>guard = slabs.guard()<span class="question-mark">?</span>;
 					<span class="kw">let </span><span class="kw-2">mut </span>slab = (<span class="kw-2">**</span>guard).get_mut(<span class="self">self</span>.slab_id)<span class="question-mark">?</span>;
 					<span class="kw">let </span>prev = <span class="kw-2">&amp;mut </span>slab.get_mut()[<span class="self">self</span>.bytes_per_slab..<span class="self">self</span>.slab_size];
 					<span class="macro">debug!</span>(<span class="string">"writing pointer to {} -&gt; {}"</span>, <span class="self">self</span>.slab_id, new_id)<span class="question-mark">?</span>;
@@ -1083,7 +1083,7 @@
 		<span class="kw">let </span>(slab_size, slab_count) = <span class="kw">match </span>slabs.as_ref() {
 			<span class="prelude-val">Some</span>(slabs) =&gt; {
 				<span class="kw">let </span>slabs = slabs.rlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = slabs.guard();
+				<span class="kw">let </span>guard = slabs.guard()<span class="question-mark">?</span>;
 				(guard.slab_size()<span class="question-mark">?</span>, guard.slab_count()<span class="question-mark">?</span>)
 			}
 			<span class="prelude-val">None </span>=&gt; GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;(usize, usize), Error&gt; {
@@ -1146,7 +1146,7 @@
 		<span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.slabs {
 			<span class="prelude-val">Some</span>(slabs) =&gt; {
 				<span class="kw">let </span>slabs = slabs.rlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = slabs.guard();
+				<span class="kw">let </span>guard = slabs.guard()<span class="question-mark">?</span>;
 				<span class="kw">let </span>slab = (<span class="kw-2">**</span>guard).get(id)<span class="question-mark">?</span>;
 				<span class="prelude-val">Ok</span>(slice_to_usize(<span class="kw-2">&amp;</span>slab.get()[bytes_per_slab..slab_size])<span class="question-mark">?</span>)
 			}
@@ -1169,7 +1169,7 @@
 		<span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.slabs {
 			<span class="prelude-val">Some</span>(slabs) =&gt; {
 				<span class="kw">let </span>slabs = slabs.rlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = slabs.guard();
+				<span class="kw">let </span>guard = slabs.guard()<span class="question-mark">?</span>;
 				<span class="kw">let </span>slab = (<span class="kw-2">**</span>guard).get(id)<span class="question-mark">?</span>;
 				<span class="kw">if </span>!skip {
 					buf.clone_from_slice(<span class="kw-2">&amp;</span>slab.get()[offset..(offset + rlen)]);

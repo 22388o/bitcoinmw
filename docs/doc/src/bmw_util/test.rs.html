@@ -5354,9 +5354,9 @@
 
 		<span class="kw">let </span>handle = <span class="macro">execute!</span>(tp, {
 			<span class="kw">let </span><span class="kw-2">mut </span>array = lock.wlock()<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>array.guard())[<span class="number">0</span>], <span class="number">1</span>);
-			(<span class="kw-2">**</span>array.guard())[<span class="number">0</span>] = <span class="number">2</span>;
-			(<span class="kw-2">**</span>array.guard())[<span class="number">1</span>] = <span class="number">20</span>;
+			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>array.guard()<span class="question-mark">?</span>)[<span class="number">0</span>], <span class="number">1</span>);
+			(<span class="kw-2">**</span>array.guard()<span class="question-mark">?</span>)[<span class="number">0</span>] = <span class="number">2</span>;
+			(<span class="kw-2">**</span>array.guard()<span class="question-mark">?</span>)[<span class="number">1</span>] = <span class="number">20</span>;
 
 			<span class="prelude-val">Ok</span>(())
 		})<span class="question-mark">?</span>;
@@ -5364,8 +5364,8 @@
 		<span class="macro">block_on!</span>(handle);
 
 		<span class="kw">let </span>array_processed = lock_clone.rlock()<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>array_processed.guard())[<span class="number">0</span>], <span class="number">2</span>);
-		<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>array_processed.guard())[<span class="number">1</span>], <span class="number">20</span>);
+		<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>array_processed.guard()<span class="question-mark">?</span>)[<span class="number">0</span>], <span class="number">2</span>);
+		<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>array_processed.guard()<span class="question-mark">?</span>)[<span class="number">1</span>], <span class="number">20</span>);
 
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -5557,7 +5557,7 @@
 		<span class="macro">execute!</span>(tp, {
 			{
 				<span class="kw">let </span><span class="kw-2">mut </span>test_obj = test_obj.wlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = test_obj.guard();
+				<span class="kw">let </span>guard = test_obj.guard()<span class="question-mark">?</span>;
 				(<span class="kw-2">**</span>guard).array[<span class="number">0</span>] = <span class="number">1</span>;
 				(<span class="kw-2">**</span>guard).array_list.push(<span class="number">1</span>)<span class="question-mark">?</span>;
 				(<span class="kw-2">**</span>guard).queue.enqueue(<span class="number">1</span>)<span class="question-mark">?</span>;
@@ -5570,19 +5570,19 @@
 			}
 			{
 				<span class="kw">let </span><span class="kw-2">mut </span>array_list_sync = array_list_sync.wlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = array_list_sync.guard();
+				<span class="kw">let </span>guard = array_list_sync.guard()<span class="question-mark">?</span>;
 				(<span class="kw-2">**</span>guard).push(<span class="number">0</span>)<span class="question-mark">?</span>;
 			}
 
 			{
 				<span class="kw">let </span><span class="kw-2">mut </span>queue_sync = queue_sync.wlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = queue_sync.guard();
+				<span class="kw">let </span>guard = queue_sync.guard()<span class="question-mark">?</span>;
 				(<span class="kw-2">**</span>guard).enqueue(<span class="number">0</span>)<span class="question-mark">?</span>;
 			}
 
 			{
 				<span class="kw">let </span><span class="kw-2">mut </span>stack_sync = stack_sync.wlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = stack_sync.guard();
+				<span class="kw">let </span>guard = stack_sync.guard()<span class="question-mark">?</span>;
 				(<span class="kw-2">**</span>guard).push(<span class="number">0</span>)<span class="question-mark">?</span>;
 			}
 
@@ -5594,7 +5594,7 @@
 			count += <span class="number">1</span>;
 			sleep(Duration::from_millis(<span class="number">1</span>));
 			<span class="kw">let </span>test_obj = test_obj_clone.rlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = test_obj.guard();
+			<span class="kw">let </span>guard = test_obj.guard()<span class="question-mark">?</span>;
 			<span class="kw">if </span>(<span class="kw-2">**</span>guard).array[<span class="number">0</span>] != <span class="number">1 </span>&amp;&amp; count &lt; <span class="number">2_000 </span>{
 				<span class="kw">continue</span>;
 			}
@@ -5959,19 +5959,19 @@
 
 		{
 			<span class="kw">let </span>h2 = h_clone.rlock()<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h2.guard()).get(<span class="kw-2">&amp;</span><span class="number">2u64</span>)<span class="question-mark">?</span>, <span class="prelude-val">None</span>);
-			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h2.guard()).size(), <span class="number">0</span>);
+			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h2.guard()<span class="question-mark">?</span>).get(<span class="kw-2">&amp;</span><span class="number">2u64</span>)<span class="question-mark">?</span>, <span class="prelude-val">None</span>);
+			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h2.guard()<span class="question-mark">?</span>).size(), <span class="number">0</span>);
 			<span class="macro">assert_eq!</span>(
-				(<span class="kw-2">**</span>h2.guard()).max_load_factor(),
+				(<span class="kw-2">**</span>h2.guard()<span class="question-mark">?</span>).max_load_factor(),
 				HASH_DEFAULT_MAX_LOAD_FACTOR
 			);
-			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h2.guard()).max_entries(), <span class="number">1024</span>);
+			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h2.guard()<span class="question-mark">?</span>).max_entries(), <span class="number">1024</span>);
 		}
 
 		<span class="kw">let </span>handle = <span class="macro">execute!</span>(tp, {
 			<span class="kw">let </span><span class="kw-2">mut </span>h = h.wlock()<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>h.guard()).insert(<span class="kw-2">&amp;</span><span class="number">2u64</span>, <span class="kw-2">&amp;</span><span class="number">6u64</span>)<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>h.guard()).insert(<span class="kw-2">&amp;</span><span class="number">3u64</span>, <span class="kw-2">&amp;</span><span class="number">6u64</span>)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).insert(<span class="kw-2">&amp;</span><span class="number">2u64</span>, <span class="kw-2">&amp;</span><span class="number">6u64</span>)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).insert(<span class="kw-2">&amp;</span><span class="number">3u64</span>, <span class="kw-2">&amp;</span><span class="number">6u64</span>)<span class="question-mark">?</span>;
 			<span class="prelude-val">Ok</span>(())
 		})<span class="question-mark">?</span>;
 
@@ -5979,28 +5979,28 @@
 
 		{
 			<span class="kw">let </span>h = h_clone.rlock()<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h.guard()).get(<span class="kw-2">&amp;</span><span class="number">2u64</span>)<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="number">6u64</span>));
+			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).get(<span class="kw-2">&amp;</span><span class="number">2u64</span>)<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="number">6u64</span>));
 		}
 
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>h = h_clone.wlock()<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>h.guard()).remove(<span class="kw-2">&amp;</span><span class="number">2u64</span>)<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h.guard()).get(<span class="kw-2">&amp;</span><span class="number">2u64</span>)<span class="question-mark">?</span>, <span class="prelude-val">None</span>);
-			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h.guard()).remove(<span class="kw-2">&amp;</span><span class="number">2u64</span>)<span class="question-mark">?</span>, <span class="prelude-val">None</span>);
+			(<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).remove(<span class="kw-2">&amp;</span><span class="number">2u64</span>)<span class="question-mark">?</span>;
+			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).get(<span class="kw-2">&amp;</span><span class="number">2u64</span>)<span class="question-mark">?</span>, <span class="prelude-val">None</span>);
+			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).remove(<span class="kw-2">&amp;</span><span class="number">2u64</span>)<span class="question-mark">?</span>, <span class="prelude-val">None</span>);
 		}
 
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>h = h_clone.wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span><span class="kw-2">mut </span>iter = (<span class="kw-2">**</span>h.guard()).iter();
+			<span class="kw">let </span><span class="kw-2">mut </span>iter = (<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).iter();
 			<span class="macro">assert_eq!</span>(iter.next(), <span class="prelude-val">Some</span>((<span class="number">3u64</span>, <span class="number">6u64</span>)));
 			<span class="macro">assert_eq!</span>(iter.next(), <span class="prelude-val">None</span>);
 		}
 
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>h = h_clone.wlock()<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h.guard()).size(), <span class="number">1</span>);
-			(<span class="kw-2">**</span>h.guard()).clear()<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h.guard()).size(), <span class="number">0</span>);
+			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).size(), <span class="number">1</span>);
+			(<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).clear()<span class="question-mark">?</span>;
+			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).size(), <span class="number">0</span>);
 		}
 
 		<span class="prelude-val">Ok</span>(())
@@ -6024,21 +6024,21 @@
 
 		{
 			<span class="kw">let </span>h2 = h_clone.rlock()<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h2.guard()).contains(<span class="kw-2">&amp;</span><span class="number">2u64</span>)<span class="question-mark">?</span>, <span class="bool-val">false</span>);
+			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h2.guard()<span class="question-mark">?</span>).contains(<span class="kw-2">&amp;</span><span class="number">2u64</span>)<span class="question-mark">?</span>, <span class="bool-val">false</span>);
 		}
 
 		<span class="kw">let </span>handle = <span class="macro">execute!</span>(tp, {
 			<span class="kw">let </span><span class="kw-2">mut </span>h = h.wlock()<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>h.guard()).insert(<span class="kw-2">&amp;</span><span class="number">2u64</span>)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).insert(<span class="kw-2">&amp;</span><span class="number">2u64</span>)<span class="question-mark">?</span>;
 			<span class="prelude-val">Ok</span>(())
 		})<span class="question-mark">?</span>;
 
 		<span class="macro">block_on!</span>(handle);
 
 		<span class="kw">let </span>h = h_clone.rlock()<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h.guard()).contains(<span class="kw-2">&amp;</span><span class="number">2u64</span>)<span class="question-mark">?</span>, <span class="bool-val">true</span>);
+		<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).contains(<span class="kw-2">&amp;</span><span class="number">2u64</span>)<span class="question-mark">?</span>, <span class="bool-val">true</span>);
 
-		<span class="kw">let </span><span class="kw-2">mut </span>iter = (<span class="kw-2">**</span>h.guard()).iter();
+		<span class="kw">let </span><span class="kw-2">mut </span>iter = (<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).iter();
 		<span class="macro">assert_eq!</span>(iter.next(), <span class="prelude-val">Some</span>(<span class="number">2u64</span>));
 		<span class="macro">assert_eq!</span>(iter.next(), <span class="prelude-val">None</span>);
 
@@ -6064,12 +6064,12 @@
 
 		{
 			<span class="kw">let </span>h = h_clone.rlock()<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h.guard()).size(), <span class="number">0</span>);
+			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).size(), <span class="number">0</span>);
 		}
 
 		<span class="kw">let </span>handle = <span class="macro">execute!</span>(tp, {
 			<span class="kw">let </span><span class="kw-2">mut </span>h = h.wlock()<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>h.guard()).push(<span class="number">2u64</span>)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).push(<span class="number">2u64</span>)<span class="question-mark">?</span>;
 			<span class="prelude-val">Ok</span>(())
 		})<span class="question-mark">?</span>;
 
@@ -6077,40 +6077,40 @@
 
 		{
 			<span class="kw">let </span>h = h_clone.rlock()<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h.guard()).size(), <span class="number">1</span>);
+			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).size(), <span class="number">1</span>);
 		}
 
 		{
 			<span class="kw">let </span>h = h_clone.rlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span><span class="kw-2">mut </span>iter = (<span class="kw-2">**</span>h.guard()).iter();
+			<span class="kw">let </span><span class="kw-2">mut </span>iter = (<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).iter();
 			<span class="macro">assert_eq!</span>(iter.next(), <span class="prelude-val">Some</span>(<span class="number">2u64</span>));
 			<span class="macro">assert_eq!</span>(iter.next(), <span class="prelude-val">None</span>);
 
-			<span class="kw">let </span><span class="kw-2">mut </span>iter = (<span class="kw-2">**</span>h.guard()).iter_rev();
+			<span class="kw">let </span><span class="kw-2">mut </span>iter = (<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).iter_rev();
 			<span class="macro">assert_eq!</span>(iter.next(), <span class="prelude-val">Some</span>(<span class="number">2u64</span>));
 			<span class="macro">assert_eq!</span>(iter.next(), <span class="prelude-val">None</span>);
 		}
 
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>h = h_clone2.wlock()<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>h.guard()).push(<span class="number">3u64</span>)<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>h.guard()).push(<span class="number">1u64</span>)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).push(<span class="number">3u64</span>)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).push(<span class="number">1u64</span>)<span class="question-mark">?</span>;
 		}
 
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>h = h_clone3.wlock()<span class="question-mark">?</span>;
-			<span class="macro">assert!</span>(<span class="macro">list_eq!</span>((<span class="kw-2">**</span>h.guard()), <span class="macro">list!</span>[<span class="number">2u64</span>, <span class="number">3</span>, <span class="number">1</span>]));
-			(<span class="kw-2">**</span>h.guard()).sort()<span class="question-mark">?</span>;
-			<span class="macro">assert!</span>(<span class="macro">list_eq!</span>((<span class="kw-2">**</span>h.guard()), <span class="macro">list!</span>[<span class="number">1u64</span>, <span class="number">2</span>, <span class="number">3</span>]));
-			(<span class="kw-2">**</span>h.guard()).push(<span class="number">7u64</span>)<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>h.guard()).push(<span class="number">4u64</span>)<span class="question-mark">?</span>;
+			<span class="macro">assert!</span>(<span class="macro">list_eq!</span>((<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>), <span class="macro">list!</span>[<span class="number">2u64</span>, <span class="number">3</span>, <span class="number">1</span>]));
+			(<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).sort()<span class="question-mark">?</span>;
+			<span class="macro">assert!</span>(<span class="macro">list_eq!</span>((<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>), <span class="macro">list!</span>[<span class="number">1u64</span>, <span class="number">2</span>, <span class="number">3</span>]));
+			(<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).push(<span class="number">7u64</span>)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).push(<span class="number">4u64</span>)<span class="question-mark">?</span>;
 		}
 
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>h = h_clone3.wlock()<span class="question-mark">?</span>;
-			<span class="macro">assert!</span>(<span class="macro">list_eq!</span>((<span class="kw-2">**</span>h.guard()), <span class="macro">list!</span>[<span class="number">1u64</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">7</span>, <span class="number">4</span>]));
-			(<span class="kw-2">**</span>h.guard()).sort_unstable()<span class="question-mark">?</span>;
-			<span class="macro">assert!</span>(<span class="macro">list_eq!</span>((<span class="kw-2">**</span>h.guard()), <span class="macro">list!</span>[<span class="number">1u64</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">7</span>]));
+			<span class="macro">assert!</span>(<span class="macro">list_eq!</span>((<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>), <span class="macro">list!</span>[<span class="number">1u64</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">7</span>, <span class="number">4</span>]));
+			(<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).sort_unstable()<span class="question-mark">?</span>;
+			<span class="macro">assert!</span>(<span class="macro">list_eq!</span>((<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>), <span class="macro">list!</span>[<span class="number">1u64</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">7</span>]));
 		}
 
 		<span class="kw">let </span>h2 = UtilBuilder::build_list_sync(<span class="macro">vec!</span>[
@@ -6122,18 +6122,18 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>h2_clone = h2.clone();
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>h = h2_clone.wlock()<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>h.guard()).push(<span class="number">1u64</span>)<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>h.guard()).push(<span class="number">2u64</span>)<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>h.guard()).push(<span class="number">3u64</span>)<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>h.guard()).push(<span class="number">4u64</span>)<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>h.guard()).push(<span class="number">7u64</span>)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).push(<span class="number">1u64</span>)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).push(<span class="number">2u64</span>)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).push(<span class="number">3u64</span>)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).push(<span class="number">4u64</span>)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).push(<span class="number">7u64</span>)<span class="question-mark">?</span>;
 		}
 
 		{
 			<span class="kw">let </span>h = h_clone3.rlock()<span class="question-mark">?</span>;
 			<span class="kw">let </span>h2 = h2_clone.rlock()<span class="question-mark">?</span>;
-			<span class="macro">info!</span>(<span class="string">"h={:?},h2={:?}"</span>, <span class="kw-2">**</span>h.guard(), <span class="kw-2">**</span>h2.guard())<span class="question-mark">?</span>;
-			<span class="macro">assert!</span>(<span class="macro">list_eq!</span>(<span class="kw-2">**</span>h.guard(), <span class="kw-2">**</span>h2.guard()));
+			<span class="macro">info!</span>(<span class="string">"h={:?},h2={:?}"</span>, <span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>, <span class="kw-2">**</span>h2.guard()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+			<span class="macro">assert!</span>(<span class="macro">list_eq!</span>(<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>, <span class="kw-2">**</span>h2.guard()<span class="question-mark">?</span>));
 		}
 
 		<span class="kw">let </span>x: HashImplSync&lt;u32&gt; = HashImplSync::new(<span class="macro">vec!</span>[
@@ -7001,18 +7001,18 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>lock2 = lock.clone();
 		{
 			<span class="kw">let </span>x = lock.rlock()<span class="question-mark">?</span>;
-			<span class="macro">println!</span>(<span class="string">"x={}"</span>, <span class="kw-2">*</span>x.guard());
+			<span class="macro">println!</span>(<span class="string">"x={}"</span>, <span class="kw-2">*</span>x.guard()<span class="question-mark">?</span>);
 		}
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>y = lock.wlock()<span class="question-mark">?</span>;
-			<span class="kw-2">**</span>(y.guard()) = <span class="number">2</span>;
+			<span class="kw-2">**</span>(y.guard()<span class="question-mark">?</span>) = <span class="number">2</span>;
 
 			<span class="macro">assert!</span>(lock2.wlock().is_err());
 		}
 
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>z = lock.wlock()<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(z.guard()), <span class="number">2</span>);
+			<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(z.guard()<span class="question-mark">?</span>), <span class="number">2</span>);
 		}
 
 		<span class="prelude-val">Ok</span>(())
@@ -7024,30 +7024,30 @@
 		<span class="kw">let </span>lock2 = lock.clone();
 		{
 			<span class="kw">let </span>x = lock.rlock()<span class="question-mark">?</span>;
-			<span class="macro">println!</span>(<span class="string">"x={}"</span>, <span class="kw-2">*</span>x.guard());
+			<span class="macro">println!</span>(<span class="string">"x={}"</span>, <span class="kw-2">*</span>x.guard()<span class="question-mark">?</span>);
 		}
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>y = lock.wlock()<span class="question-mark">?</span>;
-			<span class="kw-2">**</span>(y.guard()) = <span class="number">2</span>;
+			<span class="kw-2">**</span>(y.guard()<span class="question-mark">?</span>) = <span class="number">2</span>;
 
 			<span class="macro">assert!</span>(lock2.rlock().is_err());
 		}
 
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>z = lock.wlock()<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(z.guard()), <span class="number">2</span>);
+			<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(z.guard()<span class="question-mark">?</span>), <span class="number">2</span>);
 		}
 
 		<span class="kw">let </span><span class="kw-2">mut </span>lock = UtilBuilder::build_lock_box(<span class="number">1</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>lock2 = lock.clone();
 		{
 			<span class="kw">let </span>x = lock.rlock_ignore_poison()<span class="question-mark">?</span>;
-			<span class="macro">println!</span>(<span class="string">"x={}"</span>, <span class="kw-2">*</span>x.guard());
+			<span class="macro">println!</span>(<span class="string">"x={}"</span>, <span class="kw-2">*</span>x.guard()<span class="question-mark">?</span>);
 			<span class="macro">assert!</span>(lock.rlock_ignore_poison().is_err());
 		}
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>y = lock.wlock()<span class="question-mark">?</span>;
-			<span class="kw-2">**</span>(y.guard()) = <span class="number">2</span>;
+			<span class="kw-2">**</span>(y.guard()<span class="question-mark">?</span>) = <span class="number">2</span>;
 
 			<span class="macro">assert!</span>(lock2.rlock_ignore_poison().is_err());
 			<span class="macro">assert!</span>(lock2.rlock_ignore_poison().is_err());
@@ -7055,7 +7055,7 @@
 
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>z = lock.wlock()<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(z.guard()), <span class="number">2</span>);
+			<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(z.guard()<span class="question-mark">?</span>), <span class="number">2</span>);
 		}
 
 		<span class="prelude-val">Ok</span>(())
@@ -7069,13 +7069,13 @@
 		spawn(<span class="kw">move </span>|| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 			<span class="kw">let </span><span class="kw-2">mut </span>x = lock.wlock()<span class="question-mark">?</span>;
 			sleep(Duration::from_millis(<span class="number">3000</span>));
-			<span class="kw-2">**</span>(x.guard()) = <span class="number">2</span>;
+			<span class="kw-2">**</span>(x.guard()<span class="question-mark">?</span>) = <span class="number">2</span>;
 			<span class="prelude-val">Ok</span>(())
 		});
 
 		sleep(Duration::from_millis(<span class="number">1000</span>));
 		<span class="kw">let </span><span class="kw-2">mut </span>x = lock_clone.wlock()<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(x.guard()), <span class="number">2</span>);
+		<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(x.guard()<span class="question-mark">?</span>), <span class="number">2</span>);
 
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -7088,15 +7088,15 @@
 
 		spawn(<span class="kw">move </span>|| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 			<span class="kw">let </span><span class="kw-2">mut </span>x = lock.wlock()<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(x.guard()), <span class="number">1</span>);
+			<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(x.guard()<span class="question-mark">?</span>), <span class="number">1</span>);
 			sleep(Duration::from_millis(<span class="number">3000</span>));
-			<span class="kw-2">**</span>(x.guard()) = <span class="number">2</span>;
+			<span class="kw-2">**</span>(x.guard()<span class="question-mark">?</span>) = <span class="number">2</span>;
 			<span class="prelude-val">Ok</span>(())
 		});
 
 		sleep(Duration::from_millis(<span class="number">1000</span>));
 		<span class="kw">let </span>x = lock_clone.rlock()<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(x.guard()), <span class="number">2</span>);
+		<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(x.guard()<span class="question-mark">?</span>), <span class="number">2</span>);
 
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -7112,30 +7112,30 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>tlb = TestLockBox { lock_box };
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>tlb = tlb.lock_box.wlock()<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>tlb.guard()) = <span class="number">2u32</span>;
+			(<span class="kw-2">**</span>tlb.guard()<span class="question-mark">?</span>) = <span class="number">2u32</span>;
 		}
 
 		{
 			<span class="kw">let </span>tlb = tlb.lock_box.rlock()<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>tlb.guard()), <span class="number">2u32</span>);
+			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>tlb.guard()<span class="question-mark">?</span>), <span class="number">2u32</span>);
 		}
 
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>tlb = lock_box2.wlock()<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>tlb.guard()), <span class="number">2u32</span>);
-			(<span class="kw-2">**</span>tlb.guard()) = <span class="number">3u32</span>;
+			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>tlb.guard()<span class="question-mark">?</span>), <span class="number">2u32</span>);
+			(<span class="kw-2">**</span>tlb.guard()<span class="question-mark">?</span>) = <span class="number">3u32</span>;
 		}
 
 		{
 			<span class="kw">let </span>clone = tlb.lock_box.clone();
 			<span class="kw">let </span>tlb2 = tlb.lock_box.rlock_ignore_poison()<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>tlb2.guard()), <span class="number">3u32</span>);
+			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>tlb2.guard()<span class="question-mark">?</span>), <span class="number">3u32</span>);
 			<span class="macro">assert!</span>(clone.rlock_ignore_poison().is_err());
 		}
 
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>tlb = lock_box2.wlock_ignore_poison()<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>tlb.guard()), <span class="number">3u32</span>);
+			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>tlb.guard()<span class="question-mark">?</span>), <span class="number">3u32</span>);
 		}
 
 		<span class="prelude-val">Ok</span>(())
@@ -7151,7 +7151,7 @@
 				id: <span class="number">0</span>,
 				debug_err: <span class="bool-val">true</span>,
 			};
-			<span class="kw">let </span>guard = x.guard();
+			<span class="kw">let </span>guard = x.guard()<span class="question-mark">?</span>;
 			<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>guard, <span class="number">1</span>);
 		}
 		{
@@ -7162,7 +7162,7 @@
 				id: <span class="number">0</span>,
 				debug_err: <span class="bool-val">true</span>,
 			};
-			<span class="kw">let </span>guard = x.guard();
+			<span class="kw">let </span>guard = x.guard()<span class="question-mark">?</span>;
 			<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>guard, <span class="number">1</span>);
 		}
 		<span class="prelude-val">Ok</span>(())
@@ -7202,8 +7202,8 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>lbox = <span class="macro">lock_box!</span>(<span class="number">1_100</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>v = lbox.danger_to_usize();
 		<span class="kw">let </span>lbox_new: Box&lt;<span class="kw">dyn </span>LockBox&lt;u32&gt;&gt; = <span class="kw">crate</span>::lock_box_from_usize(v);
-		(<span class="kw-2">**</span>(lbox.wlock()<span class="question-mark">?</span>.guard())) = <span class="number">1_200</span>;
-		<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>(lbox_new.rlock()<span class="question-mark">?</span>.guard())), <span class="number">1_200</span>);
+		(<span class="kw-2">**</span>(lbox.wlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>)) = <span class="number">1_200</span>;
+		<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>(lbox_new.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>)), <span class="number">1_200</span>);
 
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -7258,10 +7258,10 @@
 
 			{
 				<span class="kw">let </span><span class="kw-2">mut </span>hashset = hashset.wlock()<span class="question-mark">?</span>;
-				(<span class="kw-2">**</span>hashset.guard()).insert(<span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>;
-				<span class="macro">assert!</span>((<span class="kw-2">**</span>hashset.guard()).contains(<span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>);
-				<span class="macro">assert!</span>(!(<span class="kw-2">**</span>hashset.guard()).contains(<span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>);
-				<span class="macro">assert!</span>((<span class="kw-2">**</span>hashset.guard()).insert(<span class="kw-2">&amp;</span><span class="number">2</span>).is_err());
+				(<span class="kw-2">**</span>hashset.guard()<span class="question-mark">?</span>).insert(<span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>;
+				<span class="macro">assert!</span>((<span class="kw-2">**</span>hashset.guard()<span class="question-mark">?</span>).contains(<span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>);
+				<span class="macro">assert!</span>(!(<span class="kw-2">**</span>hashset.guard()<span class="question-mark">?</span>).contains(<span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>);
+				<span class="macro">assert!</span>((<span class="kw-2">**</span>hashset.guard()<span class="question-mark">?</span>).insert(<span class="kw-2">&amp;</span><span class="number">2</span>).is_err());
 			}
 
 			<span class="kw">let </span><span class="kw-2">mut </span>thh = TestHashsetHolder {
@@ -7271,7 +7271,7 @@
 
 			{
 				<span class="kw">let </span><span class="kw-2">mut </span>hashset = thh.h2.as_mut().unwrap().wlock()<span class="question-mark">?</span>;
-				<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>hashset.guard()).size(), <span class="number">1</span>);
+				<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>hashset.guard()<span class="question-mark">?</span>).size(), <span class="number">1</span>);
 			}
 		}
 
@@ -7315,17 +7315,17 @@
 
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>hashtable = hashtable.wlock()<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>hashtable.guard()).insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>hashtable.guard()).get(<span class="kw-2">&amp;</span><span class="number">1</span>).unwrap(), <span class="prelude-val">Some</span>(<span class="number">2</span>));
-			<span class="macro">assert!</span>((<span class="kw-2">**</span>hashtable.guard()).insert(<span class="kw-2">&amp;</span><span class="number">2</span>, <span class="kw-2">&amp;</span><span class="number">3</span>).is_err());
+			(<span class="kw-2">**</span>hashtable.guard()<span class="question-mark">?</span>).insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>;
+			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>hashtable.guard()<span class="question-mark">?</span>).get(<span class="kw-2">&amp;</span><span class="number">1</span>).unwrap(), <span class="prelude-val">Some</span>(<span class="number">2</span>));
+			<span class="macro">assert!</span>((<span class="kw-2">**</span>hashtable.guard()<span class="question-mark">?</span>).insert(<span class="kw-2">&amp;</span><span class="number">2</span>, <span class="kw-2">&amp;</span><span class="number">3</span>).is_err());
 		}
 
 		<span class="kw">let </span>thsb = TestHashtableSyncBox { h: hashtable };
 
 		{
 			<span class="kw">let </span>h = thsb.h.rlock()<span class="question-mark">?</span>;
-			<span class="macro">assert!</span>((<span class="kw-2">**</span>h.guard()).get(<span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>.is_some());
-			<span class="macro">assert!</span>((<span class="kw-2">**</span>h.guard()).get(<span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>.is_none());
+			<span class="macro">assert!</span>((<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).get(<span class="kw-2">&amp;</span><span class="number">1</span>)<span class="question-mark">?</span>.is_some());
+			<span class="macro">assert!</span>((<span class="kw-2">**</span>h.guard()<span class="question-mark">?</span>).get(<span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>.is_none());
 		}
 
 		<span class="prelude-val">Ok</span>(())
@@ -7339,9 +7339,9 @@
 
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>hashtable = hashtable.wlock()<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>hashtable.guard()).insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>hashtable.guard()).get(<span class="kw-2">&amp;</span><span class="number">1</span>).unwrap(), <span class="prelude-val">Some</span>(<span class="number">2</span>));
-			<span class="macro">assert!</span>((<span class="kw-2">**</span>hashtable.guard()).insert(<span class="kw-2">&amp;</span><span class="number">2</span>, <span class="kw-2">&amp;</span><span class="number">3</span>).is_err());
+			(<span class="kw-2">**</span>hashtable.guard()<span class="question-mark">?</span>).insert(<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="number">2</span>)<span class="question-mark">?</span>;
+			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>hashtable.guard()<span class="question-mark">?</span>).get(<span class="kw-2">&amp;</span><span class="number">1</span>).unwrap(), <span class="prelude-val">Some</span>(<span class="number">2</span>));
+			<span class="macro">assert!</span>((<span class="kw-2">**</span>hashtable.guard()<span class="question-mark">?</span>).insert(<span class="kw-2">&amp;</span><span class="number">2</span>, <span class="kw-2">&amp;</span><span class="number">3</span>).is_err());
 		}
 
 		<span class="prelude-val">Ok</span>(())
@@ -8017,7 +8017,7 @@
 
 		<span class="kw">let </span>slab_id = {
 			<span class="kw">let </span><span class="kw-2">mut </span>slabs = slabs.wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = slabs.guard();
+			<span class="kw">let </span>guard = slabs.guard()<span class="question-mark">?</span>;
 			<span class="kw">let </span>slab = (<span class="kw-2">**</span>guard).allocate()<span class="question-mark">?</span>;
 			slab.id()
 		};
@@ -8146,7 +8146,7 @@
 
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>slabs = slabs.wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = slabs.guard();
+			<span class="kw">let </span>guard = slabs.guard()<span class="question-mark">?</span>;
 			(<span class="kw-2">**</span>guard).init(config)<span class="question-mark">?</span>;
 		}
 
@@ -8159,7 +8159,7 @@
 
 		<span class="kw">let </span>slab_id = {
 			<span class="kw">let </span><span class="kw-2">mut </span>slabs = slabs.wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = slabs.guard();
+			<span class="kw">let </span>guard = slabs.guard()<span class="question-mark">?</span>;
 			<span class="kw">let </span>slab = (<span class="kw-2">**</span>guard).allocate()<span class="question-mark">?</span>;
 			slab.id()
 		};
@@ -8180,7 +8180,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>slabs = slab_allocator(<span class="number">1024</span>, <span class="number">10_240</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>slab_id = {
 			<span class="kw">let </span><span class="kw-2">mut </span>slabs = slabs.wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = slabs.guard();
+			<span class="kw">let </span>guard = slabs.guard()<span class="question-mark">?</span>;
 			<span class="kw">let </span><span class="kw-2">mut </span>slab = (<span class="kw-2">**</span>guard).allocate()<span class="question-mark">?</span>;
 			<span class="kw">let </span>slab_mut = slab.get_mut();
 			<span class="kw">for </span>j <span class="kw">in </span><span class="number">0</span>..<span class="number">1024 </span>{
@@ -8244,7 +8244,7 @@
 
 			<span class="kw">let </span>slab_id = {
 				<span class="kw">let </span><span class="kw-2">mut </span>slabs = slabs.wlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = slabs.guard();
+				<span class="kw">let </span>guard = slabs.guard()<span class="question-mark">?</span>;
 				<span class="kw">let </span><span class="kw-2">mut </span>slab = (<span class="kw-2">**</span>guard).allocate()<span class="question-mark">?</span>;
 				<span class="kw">let </span>slab_mut = slab.get_mut();
 				<span class="kw">for </span>j <span class="kw">in </span><span class="number">0</span>..slab_mut.len() {
@@ -8272,7 +8272,7 @@
 		</span><span class="kw">let </span><span class="kw-2">mut </span>slabs = slab_allocator(<span class="number">48</span>, <span class="number">10</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>slab_id = {
 			<span class="kw">let </span><span class="kw-2">mut </span>slabs = slabs.wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = slabs.guard();
+			<span class="kw">let </span>guard = slabs.guard()<span class="question-mark">?</span>;
 			<span class="kw">let </span>slab = (<span class="kw-2">**</span>guard).allocate()<span class="question-mark">?</span>;
 			slab.id()
 		};
@@ -8287,7 +8287,7 @@
 		</span><span class="kw">let </span><span class="kw-2">mut </span>slabs = slab_allocator(<span class="number">48</span>, <span class="number">10</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>_slab_id = {
 			<span class="kw">let </span><span class="kw-2">mut </span>slabs = slabs.wlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = slabs.guard();
+			<span class="kw">let </span>guard = slabs.guard()<span class="question-mark">?</span>;
 			<span class="kw">let </span>slab = (<span class="kw-2">**</span>guard).allocate()<span class="question-mark">?</span>;
 			slab.id()
 		};
@@ -8350,7 +8350,7 @@
 
 			<span class="kw">let </span>slab_id = {
 				<span class="kw">let </span><span class="kw-2">mut </span>slabs = slabs.wlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = slabs.guard();
+				<span class="kw">let </span>guard = slabs.guard()<span class="question-mark">?</span>;
 				<span class="kw">let </span><span class="kw-2">mut </span>slab = (<span class="kw-2">**</span>guard).allocate()<span class="question-mark">?</span>;
 				<span class="kw">let </span>slab_mut = slab.get_mut();
 				<span class="kw">for </span>j <span class="kw">in </span><span class="number">0</span>..<span class="number">48 </span>+ i {
@@ -9118,7 +9118,7 @@
 		<span class="kw">let </span>x_clone = x.clone();
 		tp.execute(
 			<span class="kw">async move </span>{
-				<span class="kw-2">**</span>x.wlock()<span class="question-mark">?</span>.guard() = <span class="number">2</span>;
+				<span class="kw-2">**</span>x.wlock()<span class="question-mark">?</span>.guard()<span class="question-mark">? </span>= <span class="number">2</span>;
 				<span class="prelude-val">Ok</span>(<span class="number">1</span>)
 			},
 			<span class="number">0</span>,
@@ -9129,7 +9129,7 @@
 			count += <span class="number">1</span>;
 			<span class="macro">assert!</span>(count &lt; <span class="number">500</span>);
 			sleep(Duration::from_millis(<span class="number">10</span>));
-			<span class="kw">if </span><span class="kw-2">**</span>x_clone.rlock()<span class="question-mark">?</span>.guard() == <span class="number">2 </span>{
+			<span class="kw">if </span><span class="kw-2">**</span>x_clone.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">? </span>== <span class="number">2 </span>{
 				<span class="kw">break</span>;
 			}
 		}
@@ -9198,7 +9198,7 @@
 			sleep(Duration::from_millis(<span class="number">10</span>));
 			{
 				<span class="kw">let </span>state = tp.state.rlock()<span class="question-mark">?</span>;
-				<span class="kw">if </span>(<span class="kw-2">**</span>state.guard()).waiting == <span class="number">2 </span>{
+				<span class="kw">if </span>(<span class="kw-2">**</span>state.guard()<span class="question-mark">?</span>).waiting == <span class="number">2 </span>{
 					<span class="kw">break</span>;
 				}
 			}
@@ -9211,9 +9211,9 @@
 			<span class="kw">let </span>x_clone = x.clone();
 			<span class="kw">let </span>res = tp.execute(
 				<span class="kw">async move </span>{
-					<span class="kw-2">**</span>(y_clone.wlock()<span class="question-mark">?</span>.guard()) += <span class="number">1</span>;
+					<span class="kw-2">**</span>(y_clone.wlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>) += <span class="number">1</span>;
 					<span class="kw">loop </span>{
-						<span class="kw">if </span><span class="kw-2">**</span>(x_clone.rlock()<span class="question-mark">?</span>.guard()) != <span class="number">0 </span>{
+						<span class="kw">if </span><span class="kw-2">**</span>(x_clone.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>) != <span class="number">0 </span>{
 							<span class="kw">break</span>;
 						}
 						sleep(Duration::from_millis(<span class="number">50</span>));
@@ -9228,7 +9228,7 @@
 			sleep(Duration::from_millis(<span class="number">100</span>));
 			{
 				<span class="kw">let </span>y = y.rlock()<span class="question-mark">?</span>;
-				<span class="kw">if </span>(<span class="kw-2">**</span>y.guard()) == <span class="number">2 </span>{
+				<span class="kw">if </span>(<span class="kw-2">**</span>y.guard()<span class="question-mark">?</span>) == <span class="number">2 </span>{
 					<span class="kw">break</span>;
 				}
 			}
@@ -9240,7 +9240,7 @@
 			<span class="kw">let </span><span class="kw-2">mut </span>x_clone = x.clone();
 			<span class="kw">let </span>res = tp.execute(
 				<span class="kw">async move </span>{
-					<span class="kw-2">**</span>(x_clone.wlock()<span class="question-mark">?</span>.guard()) = <span class="number">1</span>;
+					<span class="kw-2">**</span>(x_clone.wlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>) = <span class="number">1</span>;
 
 					<span class="prelude-val">Ok</span>(<span class="number">2</span>)
 				},
@@ -9272,13 +9272,13 @@
 				<span class="kw">async move </span>{
 					<span class="macro">info!</span>(<span class="string">"x0a"</span>)<span class="question-mark">?</span>;
 					<span class="kw">loop </span>{
-						<span class="kw">if </span><span class="kw-2">**</span>(x2_clone.rlock()<span class="question-mark">?</span>.guard()) != <span class="number">0 </span>{
+						<span class="kw">if </span><span class="kw-2">**</span>(x2_clone.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>) != <span class="number">0 </span>{
 							<span class="kw">break</span>;
 						}
 						sleep(Duration::from_millis(<span class="number">50</span>));
 					}
 					<span class="macro">info!</span>(<span class="string">"x2"</span>)<span class="question-mark">?</span>;
-					<span class="kw-2">**</span>(x2_clone.wlock()<span class="question-mark">?</span>.guard()) += <span class="number">1</span>;
+					<span class="kw-2">**</span>(x2_clone.wlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>) += <span class="number">1</span>;
 
 					<span class="prelude-val">Ok</span>(<span class="number">0</span>)
 				},
@@ -9294,7 +9294,7 @@
 		tp.execute(
 			<span class="kw">async move </span>{
 				<span class="macro">info!</span>(<span class="string">"x0"</span>)<span class="question-mark">?</span>;
-				<span class="kw-2">**</span>(x2_clone.wlock()<span class="question-mark">?</span>.guard()) += <span class="number">1</span>;
+				<span class="kw-2">**</span>(x2_clone.wlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>) += <span class="number">1</span>;
 				<span class="macro">info!</span>(<span class="string">"x1"</span>)<span class="question-mark">?</span>;
 				<span class="prelude-val">Ok</span>(<span class="number">0</span>)
 			},
@@ -9305,14 +9305,14 @@
 		</span>sleep(Duration::from_millis(<span class="number">2_000</span>));
 
 		<span class="comment">// confirm situation hasn't changed
-		</span><span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(x2.rlock()<span class="question-mark">?</span>.guard()), <span class="number">0</span>);
+		</span><span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(x2.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>), <span class="number">0</span>);
 
 		<span class="comment">// unlock the threads by setting x2 to 1
-		</span><span class="kw-2">**</span>(x2.wlock()<span class="question-mark">?</span>.guard()) = <span class="number">1</span>;
+		</span><span class="kw-2">**</span>(x2.wlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>) = <span class="number">1</span>;
 
 		<span class="comment">// wait
 		</span>sleep(Duration::from_millis(<span class="number">4_000</span>));
-		<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(x2.rlock()<span class="question-mark">?</span>.guard()), <span class="number">6</span>);
+		<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(x2.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>), <span class="number">6</span>);
 		<span class="macro">info!</span>(<span class="string">"exit all"</span>)<span class="question-mark">?</span>;
 
 		sleep(Duration::from_millis(<span class="number">2_000</span>));
@@ -9356,7 +9356,7 @@
 			<span class="kw">let </span>tp = tp.clone();
 			std::thread::spawn(<span class="kw">move </span>|| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 				<span class="kw">let </span>tp = tp.rlock()<span class="question-mark">?</span>;
-				<span class="macro">execute!</span>((<span class="kw-2">**</span>tp.guard()), {
+				<span class="macro">execute!</span>((<span class="kw-2">**</span>tp.guard()<span class="question-mark">?</span>), {
 					<span class="macro">info!</span>(<span class="string">"executing in thread pool"</span>)<span class="question-mark">?</span>;
 					<span class="prelude-val">Ok</span>(<span class="number">1</span>)
 				})<span class="question-mark">?</span>;
@@ -9416,7 +9416,7 @@
 		<span class="kw">let </span>count_clone = count.clone();
 		tp.set_on_panic(<span class="kw">move </span>|<span class="kw">_</span>, <span class="kw">_</span>| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 			<span class="kw">let </span><span class="kw-2">mut </span>count = count.wlock()<span class="question-mark">?</span>;
-			<span class="kw-2">**</span>count.guard() += <span class="number">1</span>;
+			<span class="kw-2">**</span>count.guard()<span class="question-mark">? </span>+= <span class="number">1</span>;
 			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Test, <span class="string">"panic errored"</span>));
 		})<span class="question-mark">?</span>;
 
@@ -9437,10 +9437,10 @@
 		<span class="kw">loop </span>{
 			count += <span class="number">1</span>;
 			sleep(Duration::from_millis(<span class="number">1</span>));
-			<span class="kw">if </span><span class="kw-2">**</span>(count_clone.rlock()<span class="question-mark">?</span>.guard()) != <span class="number">1 </span>&amp;&amp; count &lt; <span class="number">5_000 </span>{
+			<span class="kw">if </span><span class="kw-2">**</span>(count_clone.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>) != <span class="number">1 </span>&amp;&amp; count &lt; <span class="number">5_000 </span>{
 				<span class="kw">continue</span>;
 			}
-			<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(count_clone.rlock()<span class="question-mark">?</span>.guard()), <span class="number">1</span>);
+			<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(count_clone.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>), <span class="number">1</span>);
 			<span class="kw">break</span>;
 		}
 
@@ -9527,7 +9527,7 @@
 				<span class="kw">let </span>localcount;
 				{
 					<span class="kw">let </span><span class="kw-2">mut </span>count = count.wlock()<span class="question-mark">?</span>;
-					<span class="kw">let </span>guard = count.guard();
+					<span class="kw">let </span>guard = count.guard()<span class="question-mark">?</span>;
 					localcount = <span class="kw-2">**</span>guard;
 					(<span class="kw-2">**</span>guard) += <span class="number">1</span>;
 				}
@@ -9544,7 +9544,7 @@
 
 				{
 					<span class="kw">let </span><span class="kw-2">mut </span>count = complete_count.wlock()<span class="question-mark">?</span>;
-					<span class="kw">let </span>guard = count.guard();
+					<span class="kw">let </span>guard = count.guard()<span class="question-mark">?</span>;
 					(<span class="kw-2">**</span>guard) += <span class="number">1</span>;
 
 					<span class="kw">if </span><span class="kw-2">**</span>guard == <span class="number">5 </span>{
@@ -9604,7 +9604,7 @@
 				<span class="kw">let </span>localcount;
 				{
 					<span class="kw">let </span><span class="kw-2">mut </span>count = count.wlock()<span class="question-mark">?</span>;
-					<span class="kw">let </span>guard = count.guard();
+					<span class="kw">let </span>guard = count.guard()<span class="question-mark">?</span>;
 					localcount = <span class="kw-2">**</span>guard;
 					(<span class="kw-2">**</span>guard) += <span class="number">1</span>;
 				}
@@ -9621,7 +9621,7 @@
 
 				{
 					<span class="kw">let </span><span class="kw-2">mut </span>count = complete_count.wlock()<span class="question-mark">?</span>;
-					<span class="kw">let </span>guard = count.guard();
+					<span class="kw">let </span>guard = count.guard()<span class="question-mark">?</span>;
 					(<span class="kw-2">**</span>guard) += <span class="number">1</span>;
 
 					<span class="kw">if </span><span class="kw-2">**</span>guard == <span class="number">5 </span>{
@@ -9725,7 +9725,7 @@
 			id: <span class="number">0</span>,
 			debug_err: <span class="bool-val">false</span>,
 		};
-		<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(x.guard()), (y_guard));
+		<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>(x.guard()<span class="question-mark">?</span>), (y_guard));
 		<span class="prelude-val">Ok</span>(())
 	}
 

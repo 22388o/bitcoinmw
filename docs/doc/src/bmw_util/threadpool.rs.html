@@ -443,7 +443,7 @@
 							<span class="kw">let </span><span class="kw-2">mut </span>do_run_thread = <span class="bool-val">false</span>;
 							{
 								<span class="kw">let </span><span class="kw-2">mut </span>state = state_clone.wlock()<span class="question-mark">?</span>;
-								<span class="kw">let </span>guard = <span class="kw-2">&amp;mut **</span>state.guard();
+								<span class="kw">let </span>guard = <span class="kw-2">&amp;mut **</span>state.guard()<span class="question-mark">?</span>;
 
 								<span class="macro">debug!</span>(<span class="string">"state = {:?}"</span>, guard)<span class="question-mark">?</span>;
 								<span class="comment">// we have too many threads or stop
@@ -456,7 +456,7 @@
 							<span class="kw">let </span>rx = rx.lock()<span class="question-mark">?</span>;
 							<span class="kw">let </span>ret = rx.recv()<span class="question-mark">?</span>;
 							<span class="kw">let </span><span class="kw-2">mut </span>state = state_clone.wlock()<span class="question-mark">?</span>;
-							<span class="kw">let </span>guard = <span class="kw-2">&amp;mut **</span>state.guard();
+							<span class="kw">let </span>guard = <span class="kw-2">&amp;mut **</span>state.guard()<span class="question-mark">?</span>;
 							guard.waiting = guard.waiting.saturating_sub(<span class="number">1</span>);
 							<span class="kw">if </span>guard.waiting == <span class="number">0 </span>{
 								<span class="kw">if </span>guard.cur_size &lt; guard.config.max_size {
@@ -479,7 +479,7 @@
 
 						{
 							<span class="kw">let </span><span class="kw-2">mut </span>id = id.wlock()<span class="question-mark">?</span>;
-							<span class="kw">let </span>guard = id.guard();
+							<span class="kw">let </span>guard = id.guard()<span class="question-mark">?</span>;
 							(<span class="kw-2">**</span>guard) = next.id;
 						}
 						<span class="kw">match </span>block_on(next.f) {
@@ -504,7 +504,7 @@
 				<span class="kw">let </span>res = jh.join();
 				<span class="kw">if </span>res.is_ok() {
 					<span class="kw">let </span><span class="kw-2">mut </span>state = state.wlock()<span class="question-mark">?</span>;
-					<span class="kw">let </span>guard = <span class="kw-2">&amp;mut **</span>state.guard();
+					<span class="kw">let </span>guard = <span class="kw-2">&amp;mut **</span>state.guard()<span class="question-mark">?</span>;
 					guard.cur_size = guard.cur_size.saturating_sub(<span class="number">1</span>);
 					<span class="macro">debug!</span>(<span class="string">"exiting a thread, ncur={}"</span>, guard.cur_size)<span class="question-mark">?</span>;
 					<span class="macro">cbreak!</span>(<span class="bool-val">true</span>);
@@ -514,7 +514,7 @@
 						<span class="kw">let </span>on_panic = on_panic.as_mut().unwrap();
 						<span class="macro">debug!</span>(<span class="string">"found an onpanic"</span>)<span class="question-mark">?</span>;
 						<span class="kw">let </span>id = id_clone.rlock()<span class="question-mark">?</span>;
-						<span class="kw">let </span>guard = id.guard();
+						<span class="kw">let </span>guard = id.guard()<span class="question-mark">?</span>;
 						<span class="kw">let </span>res = on_panic(<span class="kw-2">**</span>guard, e);
 						<span class="kw">if </span>res.is_err() {
 							<span class="kw">let </span>e = res.unwrap_err();
@@ -572,7 +572,7 @@
 		<span class="kw">loop </span>{
 			<span class="kw">if </span>count &gt; <span class="number">0 </span>{
 				<span class="kw">let </span>state = <span class="self">self</span>.state.rlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = <span class="kw-2">&amp;**</span>state.guard();
+				<span class="kw">let </span>guard = <span class="kw-2">&amp;**</span>state.guard()<span class="question-mark">?</span>;
 				<span class="macro">cbreak!</span>(guard.waiting == <span class="self">self</span>.config.min_size);
 			}
 			sleep(Duration::from_millis(<span class="number">1</span>));
@@ -584,14 +584,14 @@
 
 	<span class="kw">fn </span>stop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>state = <span class="self">self</span>.state.wlock()<span class="question-mark">?</span>;
-		(<span class="kw-2">**</span>state.guard()).stop = <span class="bool-val">true</span>;
+		(<span class="kw-2">**</span>state.guard()<span class="question-mark">?</span>).stop = <span class="bool-val">true</span>;
 		<span class="self">self</span>.tx = <span class="prelude-val">None</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="kw">fn </span>size(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
 		<span class="kw">let </span>state = <span class="self">self</span>.state.rlock()<span class="question-mark">?</span>;
-		<span class="prelude-val">Ok</span>((<span class="kw-2">**</span>state.guard()).cur_size)
+		<span class="prelude-val">Ok</span>((<span class="kw-2">**</span>state.guard()<span class="question-mark">?</span>).cur_size)
 	}
 
 	<span class="kw">fn </span>stopper(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;ThreadPoolStopper, Error&gt; {
@@ -652,7 +652,7 @@
 	/// This is not the case with [`crate::ThreadPool::stop`] and that function
 	/// should be used where possible.
 	</span><span class="kw">pub fn </span>stop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		(<span class="kw-2">**</span><span class="self">self</span>.state.wlock()<span class="question-mark">?</span>.guard()).stop = <span class="bool-val">true</span>;
+		(<span class="kw-2">**</span><span class="self">self</span>.state.wlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>).stop = <span class="bool-val">true</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
 }

@@ -3642,6 +3642,17 @@
 <a href="#3640" id="3640">3640</a>
 <a href="#3641" id="3641">3641</a>
 <a href="#3642" id="3642">3642</a>
+<a href="#3643" id="3643">3643</a>
+<a href="#3644" id="3644">3644</a>
+<a href="#3645" id="3645">3645</a>
+<a href="#3646" id="3646">3646</a>
+<a href="#3647" id="3647">3647</a>
+<a href="#3648" id="3648">3648</a>
+<a href="#3649" id="3649">3649</a>
+<a href="#3650" id="3650">3650</a>
+<a href="#3651" id="3651">3651</a>
+<a href="#3652" id="3652">3652</a>
+<a href="#3653" id="3653">3653</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -4008,7 +4019,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>ptr = <span class="self">self</span>.head_slab;
 		<span class="kw">match </span>content_allocator.wlock() {
 			<span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>content_allocator) =&gt; {
-				<span class="kw">let </span>content_allocator = content_allocator.guard();
+				<span class="kw">let </span>content_allocator = content_allocator.guard()<span class="question-mark">?</span>;
 
 				<span class="kw">loop </span>{
 					<span class="kw">if </span>ptr &gt;= u32::MAX <span class="kw">as </span>usize {
@@ -4067,7 +4078,7 @@
 
 		<span class="kw">match </span>content_allocator.wlock() {
 			<span class="prelude-val">Ok</span>(<span class="kw-2">mut </span>content_allocator) =&gt; {
-				<span class="kw">let </span>content_allocator = content_allocator.guard();
+				<span class="kw">let </span>content_allocator = content_allocator.guard()<span class="question-mark">?</span>;
 				<span class="kw">loop </span>{
 					<span class="kw">if </span><span class="self">self</span>.file_id.is_some() {
 						<span class="kw">break</span>;
@@ -4233,7 +4244,18 @@
 							));
 						}
 					};
-					<span class="kw">let </span>guard = content_allocator.guard();
+					<span class="kw">let </span>guard = <span class="kw">match </span>content_allocator.guard() {
+						<span class="prelude-val">Ok</span>(guard) =&gt; guard,
+						<span class="prelude-val">Err</span>(e) =&gt; {
+							<span class="kw">return </span><span class="prelude-val">Err</span>(std::io::Error::new(
+								std::io::ErrorKind::NotFound,
+								<span class="macro">format!</span>(
+									<span class="string">"Could not access content allocator guard: {}"</span>,
+									e.to_string()
+								),
+							));
+						}
+					};
 					<span class="kw">let </span>slab = <span class="kw">match </span>(<span class="kw-2">**</span>guard).get(hcrd.read_slab) {
 						<span class="prelude-val">Ok</span>(slab) =&gt; slab,
 						<span class="prelude-val">Err</span>(e) =&gt; {
@@ -5048,7 +5070,7 @@
 		<span class="kw">let </span>hit: CacheStreamResult;
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
-			hit = (<span class="kw-2">**</span>cache.guard()).stream_file(
+			hit = (<span class="kw-2">**</span>cache.guard()<span class="question-mark">?</span>).stream_file(
 				path,
 				conn_data,
 				<span class="number">200</span>,
@@ -5068,19 +5090,19 @@
 			|| hit == CacheStreamResult::NotModified &amp;&amp; r &lt; threshold <span class="kw">as </span>u64
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>cache.guard()).bring_to_front(<span class="kw-2">&amp;</span>path, headers.accept_gzip()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>cache.guard()<span class="question-mark">?</span>).bring_to_front(<span class="kw-2">&amp;</span>path, headers.accept_gzip()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 		}
 
 		<span class="kw">if </span>hit == CacheStreamResult::Modified {
 			<span class="comment">// the file has been modified. Delete it.
 			</span><span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>cache.guard()).remove(<span class="kw-2">&amp;</span>path, headers.accept_gzip()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>cache.guard()<span class="question-mark">?</span>).remove(<span class="kw-2">&amp;</span>path, headers.accept_gzip()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 		}
 
 		<span class="kw">if </span>hit == CacheStreamResult::NotModified {
 			<span class="comment">// the file is not modified, but we need to update the last checked timestamp.
 			</span><span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
-			(<span class="kw-2">**</span>cache.guard()).update_last_checked_if_needed(
+			(<span class="kw-2">**</span>cache.guard()<span class="question-mark">?</span>).update_last_checked_if_needed(
 				<span class="kw-2">&amp;</span>path,
 				ctx,
 				config,
@@ -5230,7 +5252,7 @@
 				<span class="kw">if </span>blen &gt; <span class="number">0 </span>{
 					<span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
 					<span class="kw">if </span>i == <span class="number">0 </span>{
-						write_to_cache = (<span class="kw-2">**</span>cache.guard()).write_metadata(
+						write_to_cache = (<span class="kw-2">**</span>cache.guard()<span class="question-mark">?</span>).write_metadata(
 							<span class="kw-2">&amp;</span>fpath,
 							<span class="number">0</span>,
 							last_modified,
@@ -5241,7 +5263,7 @@
 					}
 
 					<span class="kw">if </span>write_to_cache {
-						<span class="kw">match </span>(<span class="kw-2">**</span>cache.guard()).write_block(
+						<span class="kw">match </span>(<span class="kw-2">**</span>cache.guard()<span class="question-mark">?</span>).write_block(
 							<span class="kw-2">&amp;</span>fpath,
 							i,
 							<span class="kw-2">&amp;</span><span class="macro">try_into!</span>(buf[<span class="number">0</span>..CACHE_BUFFER_SIZE])<span class="question-mark">?</span>,
@@ -5255,7 +5277,7 @@
 								// false. Things continue on but
 								// the data is not written to
 								// cache.
-								</span>(<span class="kw-2">**</span>cache.guard()).remove(<span class="kw-2">&amp;</span>fpath, accept_gzip)<span class="question-mark">?</span>;
+								</span>(<span class="kw-2">**</span>cache.guard()<span class="question-mark">?</span>).remove(<span class="kw-2">&amp;</span>fpath, accept_gzip)<span class="question-mark">?</span>;
 								write_to_cache = <span class="bool-val">false</span>;
 							}
 						}
@@ -5271,7 +5293,7 @@
 
 			<span class="kw">if </span>write_to_cache {
 				<span class="kw">let </span><span class="kw-2">mut </span>cache = cache.wlock()<span class="question-mark">?</span>;
-				(<span class="kw-2">**</span>cache.guard()).write_metadata(
+				(<span class="kw-2">**</span>cache.guard()<span class="question-mark">?</span>).write_metadata(
 					<span class="kw-2">&amp;</span>fpath,
 					<span class="macro">try_into!</span>(len_sum)<span class="question-mark">?</span>,
 					last_modified,
@@ -5858,7 +5880,7 @@
 		<span class="kw">match </span>attachment {
 			<span class="prelude-val">Some</span>(attachment) =&gt; {
 				<span class="kw">let </span>attachment = attachment.attachment.rlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>attachment = attachment.guard();
+				<span class="kw">let </span>attachment = attachment.guard()<span class="question-mark">?</span>;
 				<span class="kw">match </span>(<span class="kw-2">**</span>attachment).downcast_ref::&lt;HttpInstance&gt;() {
 					<span class="prelude-val">Some</span>(<span class="kw-2">ref </span>attachment) =&gt; {
 						<span class="kw">let </span>ctx = <span class="self">Self</span>::build_ctx(ctx, config)<span class="question-mark">?</span>;
