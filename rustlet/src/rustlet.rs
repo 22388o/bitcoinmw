@@ -80,7 +80,7 @@ impl RustletContext {
 		let search_trie = Box::new(search_trie!(
 			list,
 			TerminationLength(1_000_000_000),
-			MaxWildcardLength(1_000)
+			MaxWildCardLength(1_000)
 		)?);
 		let matches = [tmatch!()?; 1_000];
 		Ok(RustletContext {

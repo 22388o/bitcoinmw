@@ -17,7 +17,7 @@
 
 use crate::constants::*;
 use crate::misc::{set_max, slice_to_usize, usize_to_slice};
-use crate::types::{Direction, HashImpl, HashImplSync, HashsetConfig, HashtableConfig, ListConfig};
+use crate::types::{Direction, HashImpl, HashImplSync};
 use crate::{
 	Hashset, HashsetIterator, Hashtable, HashtableIterator, List, ListIterator, LockBox,
 	SlabAllocator, SlabAllocatorConfig, SlabReader, SlabWriter, SortableList, UtilBuilder,
@@ -159,30 +159,6 @@ where
 			_phantom_data: PhantomData,
 			slab_reader: linked_list_ref.slab_reader.clone(),
 		}
-	}
-}
-
-impl Default for HashtableConfig {
-	fn default() -> Self {
-		Self {
-			max_entries: 100_000,
-			max_load_factor: 0.8,
-		}
-	}
-}
-
-impl Default for HashsetConfig {
-	fn default() -> Self {
-		Self {
-			max_entries: 100_000,
-			max_load_factor: 0.8,
-		}
-	}
-}
-
-impl Default for ListConfig {
-	fn default() -> Self {
-		Self {}
 	}
 }
 

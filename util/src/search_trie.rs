@@ -191,13 +191,26 @@ impl SearchTrie for SearchTrieImpl {
 }
 
 impl SearchTrieImpl {
-	pub(crate) fn new(
-		patterns: Vec<Pattern>,
-		termination_length: usize,
-		max_wildcard_length: usize,
-	) -> Result<Self, Error> {
+	pub(crate) fn new(patterns: Vec<Pattern>, configs: Vec<ConfigOption>) -> Result<Self, Error> {
 		if patterns.len() == 0 {
 			let text = "search trie must have at least one pattern";
+			let e = err!(ErrKind::Configuration, text);
+			return Err(e);
+		}
+
+		let config = ConfigBuilder::build_config(configs);
+		config.check_config(vec![CN::TerminationLength, CN::MaxWildCardLength], vec![])?;
+		let termination_length = config.get_or_usize(&CN::TerminationLength, usize::MAX);
+		let max_wildcard_length = config.get_or_usize(&CN::MaxWildCardLength, usize::MAX);
+
+		if max_wildcard_length == 0 {
+			let text = "search trie max_wildcard_length may not be 0";
+			let e = err!(ErrKind::Configuration, text);
+			return Err(e);
+		}
+
+		if termination_length == 0 {
+			let text = "search trie termination_length may not be 0";
 			let e = err!(ErrKind::Configuration, text);
 			return Err(e);
 		}

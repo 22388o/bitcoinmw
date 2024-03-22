@@ -445,13 +445,6 @@ pub struct Match {
 	pub(crate) id: usize,
 }
 
-pub enum SearchParam {
-	/// The termination length of this search trie (length at which matching stops).
-	TerminationLength(usize),
-	/// The maximum length to look for wildcards.
-	MaxWildcardLength(usize),
-}
-
 pub trait SearchTrie: DynClone {
 	/// return matches associated with the supplied `text` for this
 	/// [`crate::SearchTrie`]. Matches are returned in the `matches`
@@ -574,20 +567,3 @@ where
 	pub(crate) debug_get_next_slot_error: bool,
 	pub(crate) debug_entry_array_len: bool,
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Serializable)]
-pub(crate) struct HashtableConfig {
-	pub(crate) max_entries: usize,
-	pub(crate) max_load_factor: f64,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Serializable)]
-pub(crate) struct HashsetConfig {
-	pub(crate) max_entries: usize,
-	pub(crate) max_load_factor: f64,
-}
-
-/// Configuration for Lists currently there are no parameters, but it is still used
-/// to stay consistent with [`crate::Hashtable`] and [`crate::Hashset`].
-#[derive(Debug, Clone, Serializable)]
-pub(crate) struct ListConfig {}

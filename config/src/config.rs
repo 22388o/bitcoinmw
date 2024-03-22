@@ -77,6 +77,8 @@ impl Config for ConfigImpl {
 				ConfigOption::End(v) => *v,
 				ConfigOption::MatchId(v) => *v,
 				ConfigOption::PatternId(v) => *v,
+				ConfigOption::TerminationLength(v) => *v,
+				ConfigOption::MaxWildCardLength(v) => *v,
 				_ => default,
 			},
 			None => default,
@@ -161,6 +163,8 @@ impl ConfigImpl {
 				IsHashtable(_) => hash.insert(CN::IsHashtable, config.clone()),
 				IsHashset(_) => hash.insert(CN::IsHashset, config.clone()),
 				IsList(_) => hash.insert(CN::IsList, config.clone()),
+				TerminationLength(_) => hash.insert(CN::TerminationLength, config.clone()),
+				MaxWildCardLength(_) => hash.insert(CN::MaxWildCardLength, config.clone()),
 				Debug(_) => hash.insert(CN::Debug, config.clone()),
 				DebugLargeSlabCount(_) => hash.insert(CN::DebugLargeSlabCount, config.clone()),
 			};
@@ -212,6 +216,8 @@ impl ConfigImpl {
 				IsHashtable(_) => cc!(self, t, &mut s, CN::IsHashtable),
 				IsHashset(_) => cc!(self, t, &mut s, CN::IsHashset),
 				IsList(_) => cc!(self, t, &mut s, CN::IsList),
+				TerminationLength(_) => cc!(self, t, &mut s, CN::TerminationLength),
+				MaxWildCardLength(_) => cc!(self, t, &mut s, CN::MaxWildCardLength),
 				Debug(_) => cc!(self, t, &mut s, CN::Debug),
 				DebugLargeSlabCount(_) => cc!(self, t, &mut s, CN::DebugLargeSlabCount),
 			}

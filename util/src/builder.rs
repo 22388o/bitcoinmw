@@ -271,24 +271,18 @@ impl UtilBuilder {
 	/// maximum length of any wild card matches.
 	pub fn build_search_trie(
 		patterns: Vec<Pattern>,
-		termination_length: usize,
-		max_wildcard_length: usize,
+		configs: Vec<ConfigOption>,
 	) -> Result<impl SearchTrie + Send + Sync, Error> {
-		SearchTrieImpl::new(patterns, termination_length, max_wildcard_length)
+		SearchTrieImpl::new(patterns, configs)
 	}
 
 	/// Same as [`crate::UtilBuilder::build_search_trie`] except that the tree is returned
 	/// as a `Box<dyn SearchTrie>>`.
 	pub fn build_search_trie_box(
 		patterns: Vec<Pattern>,
-		termination_length: usize,
-		max_wildcard_length: usize,
+		configs: Vec<ConfigOption>,
 	) -> Result<Box<dyn SearchTrie + Send + Sync>, Error> {
-		Ok(Box::new(SearchTrieImpl::new(
-			patterns,
-			termination_length,
-			max_wildcard_length,
-		)?))
+		Ok(Box::new(SearchTrieImpl::new(patterns, configs)?))
 	}
 
 	pub fn build_hashtable_sync<K, V>(

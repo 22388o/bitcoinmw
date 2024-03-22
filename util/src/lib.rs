@@ -38,14 +38,12 @@ pub use crate::rand::*;
 #[doc(hidden)]
 pub use crate::slabs::GLOBAL_SLAB_ALLOCATOR;
 
-#[doc(hidden)]
-pub use crate::types::SearchParam::*;
 pub use crate::types::{
 	Array, ArrayList, Hashset, HashsetIterator, Hashtable, HashtableIterator, List, ListIterator,
 	Lock, LockBox, Match, Pattern, PoolResult, Queue, RwLockReadGuardWrapper,
-	RwLockWriteGuardWrapper, SearchParam, SearchTrie, Slab, SlabAllocator, SlabAllocatorConfig,
-	SlabMut, SlabReader, SlabWriter, SortableList, Stack, ThreadPool, ThreadPoolConfig,
-	ThreadPoolExecutor, ThreadPoolStopper, UtilBuilder,
+	RwLockWriteGuardWrapper, SearchTrie, Slab, SlabAllocator, SlabAllocatorConfig, SlabMut,
+	SlabReader, SlabWriter, SortableList, Stack, ThreadPool, ThreadPoolConfig, ThreadPoolExecutor,
+	ThreadPoolStopper, UtilBuilder,
 };
 
 #[doc(hidden)]

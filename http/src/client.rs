@@ -456,7 +456,7 @@ impl HttpClientImpl {
 		let search_trie = Box::new(search_trie!(
 			list,
 			TerminationLength(termination_length),
-			MaxWildcardLength(max_wildcard)
+			MaxWildCardLength(max_wildcard)
 		)?);
 
 		Ok(HttpClientContext {

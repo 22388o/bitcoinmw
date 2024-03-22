@@ -50,7 +50,7 @@ mod test {
 				pattern!(Regex("^p2".to_string()), PatternId(2))?
 			],
 			TerminationLength(1_000),
-			MaxWildcardLength(100)
+			MaxWildCardLength(100)
 		)?;
 
 		// create a matches array for the suffix tree to return matches in
@@ -599,8 +599,7 @@ mod test {
 			])?,
 			search_trie: UtilBuilder::build_search_trie_box(
 				vec![pattern!(Regex("abc".to_string()), PatternId(0))?],
-				100,
-				50,
+				vec![TerminationLength(100), MaxWildCardLength(50)],
 			)?,
 		};
 		let array_list_sync = UtilBuilder::build_array_list_sync(10, &0)?;
@@ -2751,7 +2750,7 @@ mod test {
 				pattern!(Regex("def".to_string()), PatternId(1))?
 			],
 			TerminationLength(100),
-			MaxWildcardLength(50)
+			MaxWildCardLength(50)
 		)?;
 		let match_count = search_trie.tmatch(b"abc", &mut matches)?;
 		assert_eq!(match_count, 1);
@@ -3741,8 +3740,7 @@ mod test {
 					PatternId(2),
 				])?,
 			],
-			1_000,
-			100,
+			vec![TerminationLength(1_000), MaxWildCardLength(100)],
 		)?;
 
 		let mut matches = [tmatch!()?; 10];
@@ -3785,8 +3783,7 @@ mod test {
 					PatternId(2),
 				])?,
 			],
-			37,
-			10,
+			vec![TerminationLength(37), MaxWildCardLength(10)],
 		)?;
 
 		let mut matches = [tmatch!()?; 10];
@@ -3863,8 +3860,7 @@ mod test {
 					PatternId(5),
 				])?,
 			],
-			37,
-			10,
+			vec![TerminationLength(37), MaxWildCardLength(10)],
 		)?;
 		// 2 wildcard chars so no match
 		let count = search_trie.tmatch(b"p1xxabc", &mut matches)?;
@@ -3919,11 +3915,17 @@ mod test {
 			PatternId(0),
 		])?;
 
-		let mut search_trie = UtilBuilder::build_search_trie(vec![pattern1], 100, 100)?;
+		let mut search_trie = UtilBuilder::build_search_trie(
+			vec![pattern1],
+			vec![TerminationLength(100), MaxWildCardLength(100)],
+		)?;
 
 		assert_eq!(search_trie.tmatch(b"AAAAA", &mut matches)?, 0);
 
-		let mut search_trie = UtilBuilder::build_search_trie(vec![pattern2], 100, 100)?;
+		let mut search_trie = UtilBuilder::build_search_trie(
+			vec![pattern2],
+			vec![TerminationLength(100), MaxWildCardLength(100)],
+		)?;
 
 		assert_eq!(search_trie.tmatch(b"AAAAA", &mut matches)?, 1);
 
@@ -4071,8 +4073,7 @@ mod test {
 				IsMultiLine(false),
 				PatternId(0)
 			])?],
-			36,
-			36
+			vec![TerminationLength(36), MaxWildCardLength(36)]
 		)
 		.is_err());
 
@@ -4084,8 +4085,7 @@ mod test {
 				IsMultiLine(false),
 				PatternId(0)
 			])?],
-			100,
-			100
+			vec![TerminationLength(100), MaxWildCardLength(100)]
 		)
 		.is_err());
 
@@ -4097,8 +4097,7 @@ mod test {
 				IsMultiLine(false),
 				PatternId(0)
 			])?],
-			100,
-			100
+			vec![TerminationLength(100), MaxWildCardLength(100)]
 		)
 		.is_err());
 
@@ -4110,12 +4109,15 @@ mod test {
 				IsMultiLine(false),
 				PatternId(0)
 			])?],
-			100,
-			100
+			vec![TerminationLength(100), MaxWildCardLength(100)]
 		)
 		.is_err());
 
-		assert!(UtilBuilder::build_search_trie(vec![], 100, 100).is_err());
+		assert!(UtilBuilder::build_search_trie(
+			vec![],
+			vec![TerminationLength(100), MaxWildCardLength(100)]
+		)
+		.is_err());
 
 		Ok(())
 	}

@@ -1020,7 +1020,7 @@ impl HttpServerImpl {
 		let search_trie = Box::new(search_trie!(
 			list,
 			TerminationLength(termination_length),
-			MaxWildcardLength(max_wildcard)
+			MaxWildCardLength(max_wildcard)
 		)?);
 		let matches = [tmatch!()?; MATCH_ARRAY_SIZE];
 		let connections = HashMap::new();

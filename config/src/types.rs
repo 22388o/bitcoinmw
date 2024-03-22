@@ -369,6 +369,8 @@ pub enum ConfigOptionName {
 	IsHashtable,
 	IsHashset,
 	IsList,
+	TerminationLength,
+	MaxWildCardLength,
 	Debug,
 	DebugLargeSlabCount,
 }
@@ -409,6 +411,8 @@ pub enum ConfigOption {
 	IsHashtable(bool),
 	IsHashset(bool),
 	IsList(bool),
+	TerminationLength(usize),
+	MaxWildCardLength(usize),
 	Debug(bool),
 	DebugLargeSlabCount(bool),
 }

@@ -372,7 +372,7 @@ macro_rules! tmatch {
 /// * `List<Pattern>`            (required) - The list of [`crate::Pattern`]s that this [`crate::SearchTrie`]
 ///                                         will use to match.
 /// * TerminationLength(usize) (optional) - The length in bytes at which matching will terminate.
-/// * MaxWildcardLength(usize) (optional) - The maximum length in bytes of a wild card match.
+/// * MaxWildCardLength(usize) (optional) - The maximum length in bytes of a wild card match.
 ///
 /// # Return
 /// Returns `Ok(SuffixTre)` on success and on error a [`bmw_err::Error`] is returned.
@@ -399,7 +399,7 @@ macro_rules! tmatch {
 ///                         pattern!(Regex("p3".to_string()), PatternId(2))?
 ///                 ],
 ///                 TerminationLength(1_000),
-///                 MaxWildcardLength(100)
+///                 MaxWildCardLength(100)
 ///         )?;
 ///
 ///         // create a matches array for the suffix tree to return matches in
@@ -441,7 +441,7 @@ macro_rules! tmatch {
 ///                         pattern!(Regex("p3".to_string()), PatternId(2))?
 ///                 ],
 ///                 TerminationLength(1_000),
-///                 MaxWildcardLength(100)
+///                 MaxWildCardLength(100)
 ///         )?;
 ///
 ///         // create a matches array for the suffix tree to return matches in
@@ -478,7 +478,7 @@ macro_rules! tmatch {
 ///                         pattern!(Regex("p3".to_string()), PatternId(2))?
 ///                 ],
 ///                 TerminationLength(1_000),
-///                 MaxWildcardLength(100)
+///                 MaxWildCardLength(100)
 ///         )?;
 ///
 ///         // create a matches array for the suffix tree to return matches in
@@ -518,7 +518,7 @@ macro_rules! tmatch {
 ///                         pattern!(Regex("^p2".to_string()), PatternId(2))?
 ///                 ],
 ///                 TerminationLength(1_000),
-///                 MaxWildcardLength(100)
+///                 MaxWildCardLength(100)
 ///         )?;
 ///
 ///         // create a matches array for the suffix tree to return matches in
@@ -538,27 +538,12 @@ macro_rules! tmatch {
 ///```
 #[macro_export]
 macro_rules! search_trie {
-	( $patterns:expr, $( $suffix_items:expr ),* ) => {{
-                let mut termination_length = usize::MAX;
-                let mut max_wildcard_length = usize::MAX;
-
-                // compiler reports these as not needing to be mut so
-                // add these lines to satisfy the comipler
-                if termination_length != usize::MAX {
-                        termination_length = usize::MAX;
-                }
-                if max_wildcard_length != usize::MAX {
-                        max_wildcard_length = usize::MAX;
-                }
-
-                $(
-                        match $suffix_items {
-                                bmw_util::SearchParam::TerminationLength(t) => { termination_length = t; },
-                                bmw_util::SearchParam::MaxWildcardLength(m) => { max_wildcard_length = m; },
-                        }
-                )*
-
-                bmw_util::UtilBuilder::build_search_trie($patterns, termination_length, max_wildcard_length)
+	( $patterns:expr, $($config:tt)*) => {{
+                #[allow(unused_imports)]
+                use bmw_conf::ConfigOption::*;
+                use bmw_conf::ConfigOption;
+                let v: Vec<ConfigOption> = vec![$($config)*];
+                bmw_util::UtilBuilder::build_search_trie($patterns, v)
         }};
 }
 
