@@ -14,6 +14,9 @@
 		</style>
 	</head>
 	<body>
+		 <p align="center">
+                        Code Coverage is currently REPLACECOVERAGE_SINGLE%.
+                </p>
 		<center>
 			<div class="chart">
 				<canvas id="chart"></canvas>
