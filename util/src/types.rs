@@ -122,7 +122,7 @@ pub trait Stack<V>: DynClone {
 }
 
 /// The configuration struct for a [`Hashtable`]. This struct is passed
-/// into the [`crate::Builder::build_hashtable`] function. The [`std::default::Default`]
+/// into the [`crate::UtilBuilder::build_hashtable`] function. The [`std::default::Default`]
 /// trait is implemented for this trait.
 #[derive(Debug, Clone, Copy, PartialEq, Serializable)]
 pub struct HashtableConfig {
@@ -139,7 +139,7 @@ pub struct HashtableConfig {
 }
 
 /// The configuration struct for a [`Hashset`]. This struct is passed
-/// into the [`crate::Builder::build_hashset`] function. The [`std::default::Default`]
+/// into the [`crate::UtilBuilder::build_hashset`] function. The [`std::default::Default`]
 /// trait is implemented for this trait.
 #[derive(Debug, Clone, Copy, PartialEq, Serializable)]
 pub struct HashsetConfig {
@@ -381,8 +381,8 @@ pub enum PoolResult<T, E> {
 }
 
 /// The configuration struct for a [`crate::ThreadPool`]. This struct is passed into the
-/// [`crate::Builder::build_thread_pool`] function or the [`crate::thread_pool`] macro. The
-/// [`std::default::Default`] trait is implemented for this trait. Also see [`crate::ConfigOption`]
+/// [`crate::UtilBuilder::build_thread_pool`] function or the [`crate::thread_pool`] macro. The
+/// [`std::default::Default`] trait is implemented for this trait. Also see ConfigOption
 /// for details on configuring via macro.
 #[derive(Debug, Clone, Serializable)]
 pub struct ThreadPoolConfig {

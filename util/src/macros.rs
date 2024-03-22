@@ -115,9 +115,9 @@ macro_rules! rlock {
 /// # Errors
 ///
 /// * [`bmw_err::ErrorKind::Configuration`] - Is returned if a
-///                                           [`crate::ConfigOption`] other than
-///                                           [`crate::ConfigOption::SlabSize`] or
-///                                           [`crate::ConfigOption::SlabCount`] is
+///                                           ConfigOption other than
+///                                           ConfigOption::SlabSize or
+///                                           ConfigOption::SlabCount is
 ///                                           specified.
 ///
 /// * [`bmw_err::ErrorKind::IllegalState`] - Is returned if the global thread local
@@ -225,9 +225,9 @@ macro_rules! global_slab_allocator {
 /// # Errors
 ///
 /// * [`bmw_err::ErrorKind::Configuration`] - Is returned if a
-///                                           [`crate::ConfigOption`] other than
-///                                           [`crate::ConfigOption::SlabSize`] or
-///                                           [`crate::ConfigOption::SlabCount`] is
+///                                           ConfigOption other than
+///                                           ConfigOption::SlabSize or
+///                                           ConfigOption::SlabCount is
 ///                                           specified.
 ///
 /// * [`bmw_err::ErrorKind::IllegalArgument`] - Is returned if the SlabSize is 0 or the SlabCount
@@ -314,7 +314,7 @@ macro_rules! slab_allocator {
      }};
 }
 
-/// The pattern macro builds a [`crate::Pattern`] which is used by the [`crate::SuffixTree`].
+/// The pattern macro builds a [`crate::Pattern`] which is used by the [`crate::SearchTrie`].
 /// The pattern macro takes the following parameters:
 ///
 /// * Regex(String)         (required) - The regular expression to use for matching (note this is not a
@@ -323,12 +323,12 @@ macro_rules! slab_allocator {
 ///                                      for full details.
 /// * Id(usize)             (required) - The id for this pattern. This id is returned in the
 ///                                      [`crate::Match`] array if this match occurs when the
-///                                      [`crate::SuffixTree::match`] function is called.
+///                                      [`crate::SearchTrie::tmatch`] function is called.
 /// * IsMulti(bool)         (optional) - If true is specified this pattern is a multi-line pattern meaning
 ///                                      that wildcards can cross newlines. Otherwise newlines are not
 ///                                      allowed in wildcard matches.
 /// * IsTerm(bool)          (optional) - If true, this is a termination pattern meaning that if it is
-///                                      found, when the [`crate::SuffixTree::match`] function is called,
+///                                      found, when the [`crate::SearchTrie::tmatch`] function is called,
 ///                                      matching will terminate and the matches found up to that point in
 ///                                      the text will be returned.
 /// * IsCaseSensitive(bool) (optional) - If true only case sensitive matches are returned for this
@@ -365,11 +365,11 @@ macro_rules! tmatch {
         }};
 }
 
-/// The `search_trie` macro builds a [`crate::SuffixTree`] which can be used to match multiple
+/// The `search_trie` macro builds a [`crate::SearchTrie`] which can be used to match multiple
 /// patterns for a given text in a performant way.
 /// The search_trie macro takes the following parameters:
 ///
-/// * `List<Pattern>`            (required) - The list of [`crate::Pattern`]s that this [`crate::SuffixTree`]
+/// * `List<Pattern>`            (required) - The list of [`crate::Pattern`]s that this [`crate::SearchTrie`]
 ///                                         will use to match.
 /// * TerminationLength(usize) (optional) - The length in bytes at which matching will terminate.
 /// * MaxWildcardLength(usize) (optional) - The maximum length in bytes of a wild card match.
@@ -875,9 +875,9 @@ macro_rules! hashset_sync_config {
 ///
 /// # Errors
 ///
-/// * [`bmw_err::ErrorKind::Configuration`] if anything other than [`crate::ConfigOption::Slabs`],
-///                                     [`crate::ConfigOption::MaxEntries`] or
-///                                     [`crate::ConfigOption::MaxLoadFactor`] is specified,
+/// * [`bmw_err::ErrorKind::Configuration`] if anything other than ConfigOption::Slabs,
+///                                     ConfigOption::MaxEntries or
+///                                     ConfigOption::MaxLoadFactor is specified,
 ///                                     if the slab_allocator's slab_size is greater than 65,536,
 ///                                     or slab_count is greater than 281_474_976_710_655,
 ///                                     max_entries is 0 or max_load_factor is not greater than 0
@@ -950,7 +950,7 @@ macro_rules! hashtable_box {
 /// [`crate::Hashtable`] implements the Send and Sync traits and is thread safe. With this
 /// hashtable you cannot specify a [`crate::SlabAllocator`] because they use [`std::cell::RefCell`]
 /// which is not thread safe. That is also why this macro returns an error if
-/// [`crate::ConfigOption::Slabs`] is specified. The parameters for this macro are:
+/// ConfigOption::Slabs is specified. The parameters for this macro are:
 ///
 /// * MaxEntries(usize) (optional) - The maximum number of entries that can be in this hashtable
 ///                                  at any given time. If not specified, the default value of
@@ -1022,9 +1022,9 @@ macro_rules! hashtable_sync_box {
 ///
 /// # Errors
 ///
-/// * [`bmw_err::ErrorKind::Configuration`] if anything other than [`crate::ConfigOption::Slabs`],
-///                                     [`crate::ConfigOption::MaxEntries`] or
-///                                     [`crate::ConfigOption::MaxLoadFactor`] is specified,
+/// * [`bmw_err::ErrorKind::Configuration`] if anything other than ConfigOption::Slabs,
+///                                     ConfigOption::MaxEntries or
+///                                     ConfigOption::MaxLoadFactor is specified,
 ///                                     if the slab_allocator's slab_size is greater than 65,536,
 ///                                     or slab_count is greater than 281_474_976_710_655,
 ///                                     max_entries is 0 or max_load_factor is not greater than 0

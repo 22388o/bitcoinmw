@@ -34,7 +34,11 @@ mod types;
 pub use crate::lock::lock_box_from_usize;
 pub use crate::misc::*;
 pub use crate::rand::*;
+
+#[doc(hidden)]
 pub use crate::slabs::GLOBAL_SLAB_ALLOCATOR;
+
+#[doc(hidden)]
 pub use crate::types::SearchParam::*;
 pub use crate::types::{
 	Array, ArrayList, Hashset, HashsetConfig, HashsetIterator, Hashtable, HashtableConfig,
@@ -43,4 +47,6 @@ pub use crate::types::{
 	Slab, SlabAllocator, SlabAllocatorConfig, SlabMut, SlabReader, SlabWriter, SortableList, Stack,
 	ThreadPool, ThreadPoolConfig, ThreadPoolExecutor, ThreadPoolStopper, UtilBuilder,
 };
+
+#[doc(hidden)]
 pub use bmw_conf::ConfigOption::*;

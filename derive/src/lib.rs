@@ -18,7 +18,7 @@
 
 //! # The BMW Derive crate
 //! This crate is a proc_macro crate and it includes the Serializable macro.
-//! This macro implements the [`bmw_ser::Serializable`] trait for any struct or enum.
+//! This macro implements the bmw_ser::Serializable trait for any struct or enum.
 //!
 //! # Examples
 //!
@@ -58,13 +58,13 @@
 //!
 //! # Generics
 //! It's important to note that generics are not currently supported and will result in an error. If you need
-//! generics, currenly you must build your own Serializable implementation.
+//! generics, currenly you must build your own bmw_ser::Serializable implementation.
 
 extern crate proc_macro;
 use crate::derive::do_derive_serialize;
 use proc_macro::TokenStream;
 
-/// This is a proc macro for implementing the [`bmw_ser::Serializable`] trait. See the [`crate`]
+/// This is a proc macro for implementing the bmw_ser::Serializable trait. See the [`crate`]
 /// documentation for examples.
 #[proc_macro_derive(Serializable)]
 #[cfg(not(tarpaulin_include))]

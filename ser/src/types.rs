@@ -138,6 +138,58 @@ pub trait Reader {
 /// Anything stored in them must implement this trait. Commonly needed implementations
 /// are built in the ser module in this crate. These include Vec, String, integer types among
 /// other things.
+///
+/// # Examples
+///
+///```
+/// use bmw_err::*;
+/// use bmw_ser::*;
+/// use std::fmt::Debug;
+///
+/// #[derive(Debug, PartialEq)]
+/// struct SerEx {
+///     a: u8,
+///     b: u128,
+/// }
+///
+/// impl Serializable for SerEx {
+///     fn read<R: Reader>(reader: &mut R) -> Result<Self, Error> {
+///         let a = reader.read_u8()?;
+///         let b = reader.read_u128()?;
+///
+///         let ret = Self {
+///             a: a,
+///             b,
+///         };
+///
+///         Ok(ret)
+///     }
+///     fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
+///         writer.write_u8(self.a)?;
+///         writer.write_u128(self.b)?;
+///         Ok(())
+///     }
+/// }
+///
+/// // helper function that serializes and deserializes a Serializable and tests them for
+/// // equality
+/// fn ser_helper<S: Serializable + Debug + PartialEq>(ser_out: S) -> Result<(), Error> {
+///     let mut v: Vec<u8> = vec![];
+///     serialize(&mut v, &ser_out)?;
+///     let ser_in: S = deserialize(&mut &v[..])?;
+///     assert_eq!(ser_in, ser_out);
+///     Ok(())
+/// }
+///
+/// fn main() -> Result<(), Error> {
+///     let v = SerEx {
+///         a: 100,
+///         b: 1_000,
+///     };
+///     ser_helper(v)?;
+///     Ok(())
+/// }
+///```
 pub trait Serializable {
 	/// read data from the reader and build the underlying type represented by that
 	/// data.

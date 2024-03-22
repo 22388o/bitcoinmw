@@ -193,7 +193,7 @@ impl UtilBuilder {
 		Ok(Box::new(ArrayList::new(size, default)?))
 	}
 
-	/// sync version of [`crate::Builder::build_stack`].
+	/// sync version of [`crate::UtilBuilder::build_stack`].
 	pub fn build_stack_sync<T>(
 		size: usize,
 		default: &T,
@@ -204,7 +204,7 @@ impl UtilBuilder {
 		ArrayList::new(size, default)
 	}
 
-	/// sync box version of [`crate::Builder::build_stack`].
+	/// sync box version of [`crate::UtilBuilder::build_stack`].
 	pub fn build_stack_sync_box<T>(
 		size: usize,
 		default: &T,
@@ -229,7 +229,7 @@ impl UtilBuilder {
 		Box::new(SlabAllocatorImpl::new())
 	}
 
-	/// sync version of [`crate::Builder::build_slabs`].
+	/// sync version of [`crate::UtilBuilder::build_slabs`].
 	pub fn build_sync_slabs() -> Box<dyn SlabAllocator + Send + Sync> {
 		Box::new(SlabAllocatorImpl::new())
 	}
@@ -277,7 +277,7 @@ impl UtilBuilder {
 		SearchTrieImpl::new(patterns, termination_length, max_wildcard_length)
 	}
 
-	/// Same as [`crate::Builder::build_search_trie`] except that the tree is returned
+	/// Same as [`crate::UtilBuilder::build_search_trie`] except that the tree is returned
 	/// as a `Box<dyn SearchTrie>>`.
 	pub fn build_search_trie_box(
 		patterns: Vec<Pattern>,

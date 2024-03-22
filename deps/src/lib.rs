@@ -17,7 +17,7 @@
 // limitations under the License.
 
 //! # The BMW Dependency crate
-//! This is the dependency crate. All bmw dependencies are included in this crate as re-exports and
+//! This is the dependency crate. All BMW dependencies are included in this crate as re-exports and
 //! used by the other crates within the repo.
 
 #[cfg(target_os = "windows")]
