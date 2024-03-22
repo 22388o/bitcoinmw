@@ -1466,7 +1466,7 @@ Sec-WebSocket-Accept: {}\r\n\r\n"</span>,
 		<span class="kw">match </span>attachment {
 			<span class="prelude-val">Some</span>(<span class="kw-2">mut </span>attachment) =&gt; {
 				<span class="kw">let </span><span class="kw-2">mut </span>state = attachment.attachment.wlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = state.guard();
+				<span class="kw">let </span>guard = state.guard()<span class="question-mark">?</span>;
 				<span class="kw">match </span>(<span class="kw-2">**</span>guard).downcast_mut::&lt;WebSocketConnectionState&gt;() {
 					<span class="prelude-val">Some</span>(state) =&gt; <span class="self">Self</span>::process_on_read_w_state(config, conn_data, ctx, state),
 					<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">err!</span>(

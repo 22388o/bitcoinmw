@@ -29,15 +29,15 @@ data structure.</p>
 
      spawn(<span class="kw">move </span>|| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
          <span class="kw">let </span><span class="kw-2">mut </span>x = vlock.wlock()<span class="question-mark">?</span>;
-         <span class="macro">assert_eq!</span>((<span class="kw-2">**</span>(x.guard())).id, <span class="number">1234</span>);
+         <span class="macro">assert_eq!</span>((<span class="kw-2">**</span>(x.guard()<span class="question-mark">?</span>)).id, <span class="number">1234</span>);
          sleep(Duration::from_millis(<span class="number">3000</span>));
-         (<span class="kw-2">**</span>(x.guard())).id = <span class="number">4321</span>;
+         (<span class="kw-2">**</span>(x.guard()<span class="question-mark">?</span>)).id = <span class="number">4321</span>;
          <span class="prelude-val">Ok</span>(())
      });
 
      sleep(Duration::from_millis(<span class="number">1000</span>));
      <span class="kw">let </span>x = vlock_clone.rlock()<span class="question-mark">?</span>;
-     <span class="macro">assert_eq!</span>((<span class="kw-2">**</span>(x.guard())).id, <span class="number">4321</span>);
+     <span class="macro">assert_eq!</span>((<span class="kw-2">**</span>(x.guard()<span class="question-mark">?</span>)).id, <span class="number">4321</span>);
 
      <span class="prelude-val">Ok</span>(())
  }</code></pre></div>

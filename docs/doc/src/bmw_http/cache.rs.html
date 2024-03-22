@@ -583,7 +583,7 @@
 		(free_count, slab_count) = {
 			<span class="kw">let </span>slabs = <span class="self">self</span>.hashtable.slabs()<span class="question-mark">?</span>.unwrap();
 			<span class="kw">let </span>slabs = slabs.rlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = slabs.guard();
+			<span class="kw">let </span>guard = slabs.guard()<span class="question-mark">?</span>;
 			((<span class="kw-2">**</span>guard).free_count()<span class="question-mark">?</span>, (<span class="kw-2">**</span>guard).slab_count()<span class="question-mark">?</span>)
 		};
 		<span class="kw">let </span>bytes_needed = len + path.len() + CACHE_OVERHEAD_BYTES;

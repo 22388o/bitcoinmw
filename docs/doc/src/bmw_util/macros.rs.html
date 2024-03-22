@@ -1585,15 +1585,15 @@
 ///
 ///     spawn(move || -&gt; Result&lt;(), Error&gt; {
 ///         let mut x = vlock.wlock()?;
-///         assert_eq!((**(x.guard())).id, 1234);
+///         assert_eq!((**(x.guard()?)).id, 1234);
 ///         sleep(Duration::from_millis(3000));
-///         (**(x.guard())).id = 4321;
+///         (**(x.guard()?)).id = 4321;
 ///         Ok(())
 ///     });
 ///
 ///     sleep(Duration::from_millis(1000));
 ///     let x = vlock_clone.rlock()?;
-///     assert_eq!((**(x.guard())).id, 4321);
+///     assert_eq!((**(x.guard()?)).id, 4321);
 ///
 ///     Ok(())
 /// }
@@ -1620,7 +1620,7 @@
 </span><span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>wlock {
 	(<span class="macro-nonterminal">$value</span>:expr) =&gt; {
-		<span class="kw-2">**</span>(<span class="macro-nonterminal">$value</span>.wlock()<span class="question-mark">?</span>.guard())
+		<span class="kw-2">**</span>(<span class="macro-nonterminal">$value</span>.wlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>)
 	};
 }
 
@@ -1630,7 +1630,7 @@
 </span><span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>rlock {
 	(<span class="macro-nonterminal">$value</span>:expr) =&gt; {
-		<span class="kw-2">**</span>(<span class="macro-nonterminal">$value</span>.rlock()<span class="question-mark">?</span>.guard())
+		<span class="kw-2">**</span>(<span class="macro-nonterminal">$value</span>.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>)
 	};
 }
 

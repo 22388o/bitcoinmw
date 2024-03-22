@@ -2634,7 +2634,7 @@
 		<span class="kw">match </span><span class="kw-2">&amp;mut </span><span class="self">self</span>.slabs {
 			<span class="prelude-val">Some</span>(slabs) =&gt; {
 				<span class="kw">let </span><span class="kw-2">mut </span>slabs = slabs.wlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = slabs.guard();
+				<span class="kw">let </span>guard = slabs.guard()<span class="question-mark">?</span>;
 				<span class="kw">let </span><span class="kw-2">mut </span>slab = (<span class="kw-2">**</span>guard).allocate()<span class="question-mark">?</span>;
 				<span class="kw">let </span>slab_mut = slab.get_mut();
 				<span class="comment">// set next pointer to none
@@ -2662,7 +2662,7 @@
 		<span class="kw">match </span><span class="kw-2">&amp;mut </span><span class="self">self</span>.slabs {
 			<span class="prelude-val">Some</span>(slabs) =&gt; {
 				<span class="kw">let </span><span class="kw-2">mut </span>slabs = slabs.wlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = slabs.guard();
+				<span class="kw">let </span>guard = slabs.guard()<span class="question-mark">?</span>;
 				(<span class="kw-2">**</span>guard).free(slab_id)
 			}
 			<span class="prelude-val">None </span>=&gt; GLOBAL_SLAB_ALLOCATOR.with(|f| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
@@ -2682,7 +2682,7 @@
 			<span class="kw">let </span>n = <span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.slabs {
 				<span class="prelude-val">Some</span>(slabs) =&gt; {
 					<span class="kw">let </span>slabs = slabs.rlock()<span class="question-mark">?</span>;
-					<span class="kw">let </span>guard = slabs.guard();
+					<span class="kw">let </span>guard = slabs.guard()<span class="question-mark">?</span>;
 					<span class="kw">let </span>slab = (<span class="kw-2">**</span>guard).get(next_bytes)<span class="question-mark">?</span>;
 					slice_to_usize(<span class="kw-2">&amp;</span>slab.get()[bytes_per_slab..slab_size])
 				}

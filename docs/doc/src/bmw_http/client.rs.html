@@ -2017,11 +2017,11 @@
 		<span class="kw">match </span>attachment {
 			<span class="prelude-val">Some</span>(<span class="kw-2">mut </span>attachment) =&gt; {
 				<span class="kw">let </span><span class="kw-2">mut </span>attachment = attachment.attachment.wlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>attachment = attachment.guard();
+				<span class="kw">let </span>attachment = attachment.guard()<span class="question-mark">?</span>;
 				<span class="kw">match </span>(<span class="kw-2">**</span>attachment).downcast_mut::&lt;HttpClientAttachment&gt;() {
 					<span class="prelude-val">Some</span>(<span class="kw-2">ref mut </span>attachment) =&gt; {
 						<span class="kw">let </span><span class="kw-2">mut </span>attachment = attachment.http_client_data.wlock()<span class="question-mark">?</span>;
-						<span class="kw">let </span>guard = attachment.guard();
+						<span class="kw">let </span>guard = attachment.guard()<span class="question-mark">?</span>;
 						<span class="kw">loop </span>{
 							<span class="kw">let </span>pop_count = <span class="kw">match </span>(<span class="kw-2">**</span>guard).front_mut() {
 								<span class="prelude-val">Some</span>(<span class="kw-2">ref mut </span>attachment) =&gt; <span class="self">Self</span>::process_on_read_data(
@@ -2484,7 +2484,7 @@
 
 				{
 					<span class="kw">let </span><span class="kw-2">mut </span>http_client_data = <span class="self">self</span>.http_client_data.wlock()<span class="question-mark">?</span>;
-					<span class="kw">let </span>guard = http_client_data.guard();
+					<span class="kw">let </span>guard = http_client_data.guard()<span class="question-mark">?</span>;
 					(<span class="kw-2">**</span>guard).push_back(HttpClientAttachmentData {
 						request: request.clone(),
 						close_on_complete: <span class="bool-val">false</span>,
@@ -2505,7 +2505,7 @@
 		}
 
 		<span class="kw">let </span><span class="kw-2">mut </span>http_client_data = <span class="self">self</span>.http_client_data.wlock()<span class="question-mark">?</span>;
-		<span class="kw">let </span>http_client_data = http_client_data.guard();
+		<span class="kw">let </span>http_client_data = http_client_data.guard()<span class="question-mark">?</span>;
 		(<span class="kw-2">**</span>http_client_data).clear();
 		(<span class="kw-2">**</span>http_client_data).shrink_to_fit();
 
@@ -2770,7 +2770,7 @@
 					<span class="macro">assert_eq!</span>(response.version()<span class="question-mark">?</span>, <span class="kw-2">&amp;</span>HttpVersion::HTTP11);
 
 					<span class="kw">let </span><span class="kw-2">mut </span>found_count = found_count.wlock()<span class="question-mark">?</span>;
-					<span class="kw">let </span>guard = found_count.guard();
+					<span class="kw">let </span>guard = found_count.guard()<span class="question-mark">?</span>;
 					(<span class="kw-2">**</span>guard) += <span class="number">1</span>;
 				}
 				<span class="prelude-val">Ok</span>(())
@@ -2792,7 +2792,7 @@
 				<span class="macro">info!</span>(<span class="string">"got response should be 404!"</span>)<span class="question-mark">?</span>;
 				<span class="macro">assert_eq!</span>(response.code()<span class="question-mark">?</span>, <span class="number">404</span>);
 				<span class="kw">let </span><span class="kw-2">mut </span>found404 = found404.wlock()<span class="question-mark">?</span>;
-				<span class="kw">let </span>guard = found404.guard();
+				<span class="kw">let </span>guard = found404.guard()<span class="question-mark">?</span>;
 				(<span class="kw-2">**</span>guard) = <span class="bool-val">true</span>;
 
 				<span class="prelude-val">Ok</span>(())
@@ -2815,10 +2815,10 @@
 				<span class="kw">break</span>;
 			}
 			<span class="kw">let </span>found_count = found_count_clone.rlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = found_count.guard();
+			<span class="kw">let </span>guard = found_count.guard()<span class="question-mark">?</span>;
 
 			<span class="kw">let </span>found404 = found404_clone.rlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard2 = found404.guard();
+			<span class="kw">let </span>guard2 = found404.guard()<span class="question-mark">?</span>;
 
 			<span class="kw">if </span>(<span class="kw-2">**</span>guard) != <span class="number">1 </span>|| !(<span class="kw-2">**</span>guard2) {
 				<span class="macro">info!</span>(<span class="string">"guard={},count={} of 10,000"</span>, (<span class="kw-2">**</span>guard), count)<span class="question-mark">?</span>;
@@ -2831,13 +2831,13 @@
 
 		{
 			<span class="kw">let </span>found_count = found_count_clone.rlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = found_count.guard();
+			<span class="kw">let </span>guard = found_count.guard()<span class="question-mark">?</span>;
 			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>guard), <span class="number">1</span>);
 		}
 
 		{
 			<span class="kw">let </span>found404 = found404_clone.rlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = found404.guard();
+			<span class="kw">let </span>guard = found404.guard()<span class="question-mark">?</span>;
 			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>guard), <span class="bool-val">true</span>);
 		}
 
@@ -2938,7 +2938,7 @@
 					<span class="macro">assert_eq!</span>(response.version()<span class="question-mark">?</span>, <span class="kw-2">&amp;</span>HttpVersion::HTTP11);
 
 					<span class="kw">let </span><span class="kw-2">mut </span>found_count = found_count.wlock()<span class="question-mark">?</span>;
-					<span class="kw">let </span>guard = found_count.guard();
+					<span class="kw">let </span>guard = found_count.guard()<span class="question-mark">?</span>;
 					(<span class="kw-2">**</span>guard) += <span class="number">1</span>;
 				}
 				<span class="prelude-val">Ok</span>(())
@@ -2975,7 +2975,7 @@
 					<span class="macro">info!</span>(<span class="string">"got response should be 404!"</span>)<span class="question-mark">?</span>;
 					<span class="macro">assert_eq!</span>(response.code()<span class="question-mark">?</span>, <span class="number">404</span>);
 					<span class="kw">let </span><span class="kw-2">mut </span>found404 = found404.wlock()<span class="question-mark">?</span>;
-					<span class="kw">let </span>guard = found404.guard();
+					<span class="kw">let </span>guard = found404.guard()<span class="question-mark">?</span>;
 					<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>guard, <span class="bool-val">false</span>);
 					(<span class="kw-2">**</span>guard) = <span class="bool-val">true</span>;
 				} <span class="kw">else if </span>request == <span class="kw-2">&amp;</span>http_client_request2_clone {
@@ -3007,7 +3007,7 @@
 					<span class="macro">assert_eq!</span>(response.version()<span class="question-mark">?</span>, <span class="kw-2">&amp;</span>HttpVersion::HTTP11);
 
 					<span class="kw">let </span><span class="kw-2">mut </span>found_another_file = found_another_file.wlock()<span class="question-mark">?</span>;
-					<span class="kw">let </span>guard = found_another_file.guard();
+					<span class="kw">let </span>guard = found_another_file.guard()<span class="question-mark">?</span>;
 					<span class="macro">assert_eq!</span>(<span class="kw-2">**</span>guard, <span class="bool-val">false</span>);
 					(<span class="kw-2">**</span>guard) = <span class="bool-val">true</span>;
 				}
@@ -3028,9 +3028,9 @@
 			<span class="kw">let </span>found404 = found404_clone.rlock()<span class="question-mark">?</span>;
 			<span class="kw">let </span>found_count = found_count_clone.rlock()<span class="question-mark">?</span>;
 			<span class="kw">let </span>found_another_file = found_another_file_clone.rlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = found_count.guard();
-			<span class="kw">let </span>guard2 = found404.guard();
-			<span class="kw">let </span>guard3 = found_another_file.guard();
+			<span class="kw">let </span>guard = found_count.guard()<span class="question-mark">?</span>;
+			<span class="kw">let </span>guard2 = found404.guard()<span class="question-mark">?</span>;
+			<span class="kw">let </span>guard3 = found_another_file.guard()<span class="question-mark">?</span>;
 
 			<span class="kw">if </span>(<span class="kw-2">**</span>guard) != <span class="number">1 </span>{
 				<span class="macro">info!</span>(<span class="string">"guard={},count={} of 10,000"</span>, (<span class="kw-2">**</span>guard), count)<span class="question-mark">?</span>;
@@ -3059,19 +3059,19 @@
 
 		{
 			<span class="kw">let </span>found_count = found_count_clone.rlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = found_count.guard();
+			<span class="kw">let </span>guard = found_count.guard()<span class="question-mark">?</span>;
 			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>guard), <span class="number">1</span>);
 		}
 
 		{
 			<span class="kw">let </span>found404 = found404_clone.rlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = found404.guard();
+			<span class="kw">let </span>guard = found404.guard()<span class="question-mark">?</span>;
 			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>guard), <span class="bool-val">true</span>);
 		}
 
 		{
 			<span class="kw">let </span>found_another_file = found_another_file_clone.rlock()<span class="question-mark">?</span>;
-			<span class="kw">let </span>guard = found_another_file.guard();
+			<span class="kw">let </span>guard = found_another_file.guard()<span class="question-mark">?</span>;
 			<span class="macro">assert_eq!</span>((<span class="kw-2">**</span>guard), <span class="bool-val">true</span>);
 		}
 
