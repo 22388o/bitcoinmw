@@ -1,6 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/macros.rs`."><title>macros.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.0 (aedd173a2 2024-03-17)" data-channel="1.77.0" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
-            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
-    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../bmw_util/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/macros.rs`."><title>macros.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1650,9 +1649,9 @@
 /// # Errors
 ///
 /// * [`bmw_err::ErrorKind::Configuration`] - Is returned if a
-///                                           [`crate::ConfigOption`] other than
-///                                           [`crate::ConfigOption::SlabSize`] or
-///                                           [`crate::ConfigOption::SlabCount`] is
+///                                           ConfigOption other than
+///                                           ConfigOption::SlabSize or
+///                                           ConfigOption::SlabCount is
 ///                                           specified.
 ///
 /// * [`bmw_err::ErrorKind::IllegalState`] - Is returned if the global thread local
@@ -1760,9 +1759,9 @@
 /// # Errors
 ///
 /// * [`bmw_err::ErrorKind::Configuration`] - Is returned if a
-///                                           [`crate::ConfigOption`] other than
-///                                           [`crate::ConfigOption::SlabSize`] or
-///                                           [`crate::ConfigOption::SlabCount`] is
+///                                           ConfigOption other than
+///                                           ConfigOption::SlabSize or
+///                                           ConfigOption::SlabCount is
 ///                                           specified.
 ///
 /// * [`bmw_err::ErrorKind::IllegalArgument`] - Is returned if the SlabSize is 0 or the SlabCount
@@ -1849,7 +1848,7 @@
      }};
 }
 
-<span class="doccomment">/// The pattern macro builds a [`crate::Pattern`] which is used by the [`crate::SuffixTree`].
+<span class="doccomment">/// The pattern macro builds a [`crate::Pattern`] which is used by the [`crate::SearchTrie`].
 /// The pattern macro takes the following parameters:
 ///
 /// * Regex(String)         (required) - The regular expression to use for matching (note this is not a
@@ -1858,12 +1857,12 @@
 ///                                      for full details.
 /// * Id(usize)             (required) - The id for this pattern. This id is returned in the
 ///                                      [`crate::Match`] array if this match occurs when the
-///                                      [`crate::SuffixTree::match`] function is called.
+///                                      [`crate::SearchTrie::tmatch`] function is called.
 /// * IsMulti(bool)         (optional) - If true is specified this pattern is a multi-line pattern meaning
 ///                                      that wildcards can cross newlines. Otherwise newlines are not
 ///                                      allowed in wildcard matches.
 /// * IsTerm(bool)          (optional) - If true, this is a termination pattern meaning that if it is
-///                                      found, when the [`crate::SuffixTree::match`] function is called,
+///                                      found, when the [`crate::SearchTrie::tmatch`] function is called,
 ///                                      matching will terminate and the matches found up to that point in
 ///                                      the text will be returned.
 /// * IsCaseSensitive(bool) (optional) - If true only case sensitive matches are returned for this
@@ -1900,11 +1899,11 @@
         }};
 }
 
-<span class="doccomment">/// The `search_trie` macro builds a [`crate::SuffixTree`] which can be used to match multiple
+<span class="doccomment">/// The `search_trie` macro builds a [`crate::SearchTrie`] which can be used to match multiple
 /// patterns for a given text in a performant way.
 /// The search_trie macro takes the following parameters:
 ///
-/// * `List&lt;Pattern&gt;`            (required) - The list of [`crate::Pattern`]s that this [`crate::SuffixTree`]
+/// * `List&lt;Pattern&gt;`            (required) - The list of [`crate::Pattern`]s that this [`crate::SearchTrie`]
 ///                                         will use to match.
 /// * TerminationLength(usize) (optional) - The length in bytes at which matching will terminate.
 /// * MaxWildcardLength(usize) (optional) - The maximum length in bytes of a wild card match.
@@ -2410,9 +2409,9 @@
 ///
 /// # Errors
 ///
-/// * [`bmw_err::ErrorKind::Configuration`] if anything other than [`crate::ConfigOption::Slabs`],
-///                                     [`crate::ConfigOption::MaxEntries`] or
-///                                     [`crate::ConfigOption::MaxLoadFactor`] is specified,
+/// * [`bmw_err::ErrorKind::Configuration`] if anything other than ConfigOption::Slabs,
+///                                     ConfigOption::MaxEntries or
+///                                     ConfigOption::MaxLoadFactor is specified,
 ///                                     if the slab_allocator's slab_size is greater than 65,536,
 ///                                     or slab_count is greater than 281_474_976_710_655,
 ///                                     max_entries is 0 or max_load_factor is not greater than 0
@@ -2485,7 +2484,7 @@
 /// [`crate::Hashtable`] implements the Send and Sync traits and is thread safe. With this
 /// hashtable you cannot specify a [`crate::SlabAllocator`] because they use [`std::cell::RefCell`]
 /// which is not thread safe. That is also why this macro returns an error if
-/// [`crate::ConfigOption::Slabs`] is specified. The parameters for this macro are:
+/// ConfigOption::Slabs is specified. The parameters for this macro are:
 ///
 /// * MaxEntries(usize) (optional) - The maximum number of entries that can be in this hashtable
 ///                                  at any given time. If not specified, the default value of
@@ -2557,9 +2556,9 @@
 ///
 /// # Errors
 ///
-/// * [`bmw_err::ErrorKind::Configuration`] if anything other than [`crate::ConfigOption::Slabs`],
-///                                     [`crate::ConfigOption::MaxEntries`] or
-///                                     [`crate::ConfigOption::MaxLoadFactor`] is specified,
+/// * [`bmw_err::ErrorKind::Configuration`] if anything other than ConfigOption::Slabs,
+///                                     ConfigOption::MaxEntries or
+///                                     ConfigOption::MaxLoadFactor is specified,
 ///                                     if the slab_allocator's slab_size is greater than 65,536,
 ///                                     or slab_count is greater than 281_474_976_710_655,
 ///                                     max_entries is 0 or max_load_factor is not greater than 0
