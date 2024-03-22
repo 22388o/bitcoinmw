@@ -113,7 +113,7 @@
 //!
 //! Most log configuration options may be set after the log has been initialized. See the example
 //! below. For all configuration options, see [`crate::log_init`]. Only the
-//! [`bmw_conf::ConfigOption::LogFilePath`] may not be changed after [`crate::Log::init`] is called.
+//! [`bmw_conf::ConfigOption::LogFilePath`] may NOT be changed after [`crate::Log::init`] is called.
 //!
 //!```
 //! use bmw_err::*;
