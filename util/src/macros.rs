@@ -259,59 +259,35 @@ macro_rules! global_slab_allocator {
 ///```
 #[macro_export]
 macro_rules! slab_allocator {
-( $( $config:expr ),* ) => {{
-            #[allow(unused_imports)]
-            use bmw_conf::ConfigOption::*;
-            let mut slabs = bmw_util::UtilBuilder::build_sync_slabs();
-            let mut config = bmw_util::SlabAllocatorConfig::default();
-            let mut error: Option<String> = None;
-            let mut slab_size_specified = false;
-            let mut slab_count_specified = false;
+	($($config:tt)*) => {{
+		use bmw_conf::config;
+		#[allow(unused_imports)]
+		use bmw_conf::ConfigOptionName as CN;
+		use bmw_err::*;
+		use bmw_util::{SlabAllocatorConfig, UtilBuilder};
+		let mut slab_config = SlabAllocatorConfig::default();
+		let config = config!($($config)*);
+	        match config.check_config(vec![CN::SlabSize, CN::SlabCount], vec![]) {
+                        Ok(_) => {
 
-            // compiler sees macro as not used if it's not used in one part of the code
-            // these lines make the warnings go away
-            if config.slab_size == 0 { config.slab_size = 0; }
-            if slab_count_specified { slab_count_specified = false; }
-            if slab_size_specified { slab_size_specified = false; }
-            if slab_count_specified {}
-            if slab_size_specified {}
-            if error.is_some() { error = None; }
+		                slab_config.slab_size = config.get_or_usize(&CN::SlabSize, slab_config.slab_size);
+		                slab_config.slab_count = config.get_or_usize(&CN::SlabCount, slab_config.slab_count);
 
-            $(
-                match $config {
-                    bmw_conf::ConfigOption::SlabSize(slab_size) => {
-                        config.slab_size = slab_size;
-
-                        if slab_size_specified {
-                            error = Some("SlabSize was specified more than once!".to_string());
+		                let mut slabs = UtilBuilder::build_sync_slabs();
+		                match slabs.init(slab_config) {
+			                Ok(_) => Ok(slabs),
+			                Err(e) => {
+				                        let text = format!("Could not init slabs due to: {}", e.to_string());
+					                Err(err!(ErrKind::IllegalState, text))
+			                }
+		                }
                         }
-                        slab_size_specified = true;
-                        if slab_size_specified {}
-
-                    },
-                    bmw_conf::ConfigOption::SlabCount(slab_count) => {
-                        config.slab_count = slab_count;
-
-                        if slab_count_specified {
-                            error = Some("SlabCount was specified more than once!".to_string());
+                        Err(e) => {
+                                let text = format!("Could not configure slabs due to: {}", e.to_string());
+                                Err(err!(ErrKind::Configuration, text))
                         }
-
-                        slab_count_specified = true;
-                        if slab_count_specified {}
-                    },
-                    _ => {
-                        error = Some(format!("'{:?}' is not allowed for slab_allocator", $config));
-                    }
                 }
-            )*
-            match error {
-                Some(error) => Err(bmw_err::err!(bmw_err::ErrKind::Configuration, error)),
-                None => {
-                        slabs.init(config)?;
-                        Ok(slabs)
-                },
-            }
-     }};
+	}};
 }
 
 /// The pattern macro builds a [`crate::Pattern`] which is used by the [`crate::SearchTrie`].
