@@ -241,7 +241,6 @@
 <a href="#239" id="239">239</a>
 <a href="#240" id="240">240</a>
 <a href="#241" id="241">241</a>
-<a href="#242" id="242">242</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -429,8 +428,8 @@
 	}};
 	(<span class="macro-nonterminal">$in_err</span>:expr, <span class="macro-nonterminal">$kind</span>:expr, <span class="macro-nonterminal">$msg</span>:expr) =&gt; {{
 		<span class="kw">use </span>bmw_err::{ErrKind, Error, ErrorKind};
-		<span class="macro-nonterminal">$in_err</span>.map_err(|e| {
-			<span class="kw">let </span>error: Error = <span class="kw">match </span><span class="macro-nonterminal">$kind </span>{
+		<span class="macro-nonterminal">$in_err</span>.map_err(|e| -&gt; Error {
+			<span class="kw">match </span><span class="macro-nonterminal">$kind </span>{
 				ErrKind::Configuration =&gt; {
 					ErrorKind::Configuration(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into()
 				}
@@ -469,8 +468,7 @@
 				ErrKind::Crypt =&gt; ErrorKind::Crypt(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
 				ErrKind::Http =&gt; ErrorKind::Http(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
 				ErrKind::Rustlet =&gt; ErrorKind::Rustlet(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
-			};
-			error
+			}
 		})
 	}};
 }
