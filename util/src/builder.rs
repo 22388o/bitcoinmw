@@ -31,7 +31,7 @@ use std::fmt::Debug;
 use std::hash::Hash;
 
 impl UtilBuilder {
-	/// Build a [`crate::ThreadPool`] based on the specified [`crate::ThreadPoolConfig`].
+	/// Build a [`crate::ThreadPool`] based on the specified ConfigOptions.
 	/// The [`crate::ThreadPool::start`] function must be called before executing tasks.
 	pub fn build_thread_pool<T, OnPanic>(
 		config: Vec<ConfigOption>,

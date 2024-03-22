@@ -19,9 +19,8 @@ use bmw_deps::ring::rand::{SecureRandom, SystemRandom};
 use std::cell::RefCell;
 
 thread_local!(
-	pub static RAND_CONTEXT: RefCell<
-		SystemRandom
-	> = RefCell::new(SystemRandom::new())
+	#[doc(hidden)]
+	pub static RAND_CONTEXT: RefCell<SystemRandom> = RefCell::new(SystemRandom::new())
 
 );
 

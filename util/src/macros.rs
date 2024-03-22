@@ -793,11 +793,13 @@ macro_rules! hashset_sync_box {
 /// The list macro is used to create lists. This macro uses the global slab allocator. To use a
 /// specified slab allocator, see [`crate::UtilBuilder::build_list`]. It has the same syntax as the
 /// [`std::vec!`] macro. Note that this macro and the builder function both
-/// return an implementation of the [`crate::SortableList`] trait.
+/// return an implementation of the [`crate::SortableList`] trait that uses a linked-list like
+/// implementation.
 ///
 /// # Examples
 ///
 ///```
+/// // create a list and iterate through it
 /// use bmw_util::*;
 /// use bmw_err::*;
 /// use bmw_log::*;
@@ -809,7 +811,46 @@ macro_rules! hashset_sync_box {
 ///
 ///     info!("list={:?}", list)?;
 ///
+///     let mut i = 1;
+///
+///     for x in list.iter() {
+///         assert_eq!(x, i);
+///         i += 1;
+///     }
+///
 ///     assert!(list_eq!(list, list![1, 2, 3, 4]));
+///
+///     Ok(())
+/// }
+///```
+///
+///```
+/// // sort a list
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_util::*;
+///
+/// fn main() -> Result<(), Error> {
+///     // create two lists
+///     let mut list1 = list![];
+///     let mut list2 = list![];
+///
+///     // add 0..10 to the list
+///     for i in 0..10 {
+///         list1.push(i)?;
+///     }
+///
+///     // add 10..0 to the list
+///     for i in (0..10).rev() {
+///         list2.push(i)?;
+///     }
+///
+///     // sort the lists using the unstable and stable sort functions (underlying rust fns used)
+///     list1.sort_unstable()?;
+///     list2.sort()?;
+///
+///     // ensure they are equal after the sorting takes place
+///     assert!(list_eq!(list1, list2));
 ///
 ///     Ok(())
 /// }
@@ -878,12 +919,14 @@ macro_rules! list_sync_box {
     };
 }
 
-/// The [`crate::array!`] macro builds an [`crate::Array`]. The macro takes the following
-/// parameters:
+/// The [`crate::array!`] macro builds an [`crate::Array`].
+///
+/// # Input Paramters
 /// * size (required) - the size of the array
 /// * default (required) - a reference to the value to initialize the array with
+///
 /// # Return
-/// Returns `Ok(impl Array<T>)` on success and a [`bmw_err::Error`] on failure.
+/// Returns [`crate::Array`] on success and a [`bmw_err::Error`] on failure.
 ///
 /// # Errors
 /// * [`bmw_err::ErrorKind::IllegalArgument`] - if the size is 0.
@@ -911,21 +954,27 @@ macro_rules! array {
 	}};
 }
 
-/// The [`crate::array_list`] macro builds an [`crate::ArrayList`] in the form of a impl
-/// SortableList. The macro takes the following parameters:
+/// The [`crate::array_list`] macro builds an [`crate::ArrayList`] in the form of an impl
+/// SortableList.
+///
+/// # Input Parameters
 /// * size (required) - the size of the array
 /// * default (required) - a reference to the value to initialize the array with
+///
 /// # Return
-/// Returns `Ok(impl SortableList<T>)` on success and a [`bmw_err::Error`] on failure.
+/// Returns [`crate::SortableList`] on success and a [`bmw_err::Error`] on failure.
 ///
 /// # Errors
 /// * [`bmw_err::ErrorKind::IllegalArgument`] - if the size is 0.
 ///
 /// # Examples
 ///```
+/// // create an array_list and iterate through it
 /// use bmw_err::*;
 /// use bmw_log::*;
 /// use bmw_util::*;
+///
+/// info!();
 ///
 /// fn main() -> Result<(), Error> {
 ///         let mut arr = array_list!(10, &0)?;
@@ -933,11 +982,50 @@ macro_rules! array {
 ///                 arr.push(0)?;
 ///         }
 ///
+///         info!("arr = {:?}", arr)?;
+///
 ///         for x in arr.iter() {
 ///                 assert_eq!(x, 0);
 ///         }
 ///
 ///         Ok(())
+/// }
+///
+///```
+///
+///```
+/// // sort an array list
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_util::*;
+///
+/// fn main() -> Result<(), Error> {
+///     // create two array lists
+///     let mut arr1 = array_list!(10, &0)?;
+///     let mut arr2 = array_list!(10, &0)?;
+///
+///     // add 0..10 to the list
+///     for i in 0..10 {
+///         arr1.push(i)?;
+///     }
+///
+///     assert!(arr1.push(0).is_err()); // it's full
+///
+///     // add 10..0 to the list
+///     for i in (0..10).rev() {
+///         arr2.push(i)?;
+///     }
+///
+///     assert!(arr2.push(0).is_err()); // it's full
+///
+///     // sort the arrays using the unstable and stable sort functions (underlying rust fns used)
+///     arr1.sort_unstable()?;
+///     arr2.sort()?;
+///
+///     // ensure they are equal after the sorting takes place
+///     assert!(list_eq!(arr1, arr2));
+///
+///     Ok(())
 /// }
 ///```
 #[macro_export]
@@ -947,9 +1035,80 @@ macro_rules! array_list {
 	}};
 }
 
-/// This macro is identical to [`crate::array_list`] except that the value is returned in a box.
-/// To be exact, the return value is `Box<dyn SortableList>`. The boxed version can then be used to
-/// store in structs and enums. See [`crate::array_list`] for more details and an example.
+/// The `boxed` form of [`crate::array_list`]. This macro builds an [`crate::ArrayList`] in the form of a
+/// `Box<dyn SortableList<T>>`.
+///
+/// # Input Parameters
+/// * size (required) - the size of the array
+/// * default (required) - a reference to the value to initialize the array with
+///
+/// # Return
+/// Returns [`crate::SortableList`] on success and a [`bmw_err::Error`] on failure.
+///
+/// # Errors
+/// * [`bmw_err::ErrorKind::IllegalArgument`] - if the size is 0.
+///
+/// # Examples
+///```
+/// // create an array_list and iterate through it
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_util::*;
+///
+/// info!();
+///
+/// fn main() -> Result<(), Error> {
+///         let mut arr = array_list_box!(10, &0)?;
+///         for _ in 0..10 {
+///                 arr.push(0)?;
+///         }
+///
+///         info!("arr = {:?}", arr)?;
+///
+///         for x in arr.iter() {
+///                 assert_eq!(x, 0);
+///         }
+///
+///         Ok(())
+/// }
+///
+///```
+///
+///```
+/// // sort an array list
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_util::*;
+///
+/// fn main() -> Result<(), Error> {
+///     // create two array lists
+///     let mut arr1 = array_list_box!(10, &0)?;
+///     let mut arr2 = array_list_box!(10, &0)?;
+///
+///     // add 0..10 to the list
+///     for i in 0..10 {
+///         arr1.push(i)?;
+///     }
+///
+///     assert!(arr1.push(0).is_err()); // it's full
+///
+///     // add 10..0 to the list
+///     for i in (0..10).rev() {
+///         arr2.push(i)?;
+///     }
+///
+///     assert!(arr2.push(0).is_err()); // it's full
+///
+///     // sort the arrays using the unstable and stable sort functions (underlying rust fns used)
+///     arr1.sort_unstable()?;
+///     arr2.sort()?;
+///
+///     // ensure they are equal after the sorting takes place
+///     assert!(list_eq!(arr1, arr2));
+///
+///     Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! array_list_box {
 	( $size:expr, $default:expr ) => {{
@@ -957,7 +1116,80 @@ macro_rules! array_list_box {
 	}};
 }
 
-/// sync version of [`crate::array_list`].
+/// The `sync` form of [`crate::array_list`]. This macro builds an [`crate::ArrayList`] in the form of a
+/// `<impl SortableList<T> + Send + Sync`
+///
+/// # Input Parameters
+/// * size (required) - the size of the array
+/// * default (required) - a reference to the value to initialize the array with
+///
+/// # Return
+/// Returns [`crate::SortableList`] on success and a [`bmw_err::Error`] on failure.
+///
+/// # Errors
+/// * [`bmw_err::ErrorKind::IllegalArgument`] - if the size is 0.
+///
+/// # Examples
+///```
+/// // create an array_list and iterate through it
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_util::*;
+///
+/// info!();
+///
+/// fn main() -> Result<(), Error> {
+///         let mut arr = array_list_sync!(10, &0)?;
+///         for _ in 0..10 {
+///                 arr.push(0)?;
+///         }
+///
+///         info!("arr = {:?}", arr)?;
+///
+///         for x in arr.iter() {
+///                 assert_eq!(x, 0);
+///         }
+///
+///         Ok(())
+/// }
+///
+///```
+///
+///```
+/// // sort an array list
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_util::*;
+///
+/// fn main() -> Result<(), Error> {
+///     // create two array lists
+///     let mut arr1 = array_list_sync!(10, &0)?;
+///     let mut arr2 = array_list_sync!(10, &0)?;
+///
+///     // add 0..10 to the list
+///     for i in 0..10 {
+///         arr1.push(i)?;
+///     }
+///
+///     assert!(arr1.push(0).is_err()); // it's full
+///
+///     // add 10..0 to the list
+///     for i in (0..10).rev() {
+///         arr2.push(i)?;
+///     }
+///
+///     assert!(arr2.push(0).is_err()); // it's full
+///
+///     // sort the arrays using the unstable and stable sort functions (underlying rust fns used)
+///     arr1.sort_unstable()?;
+///     arr2.sort()?;
+///
+///     // ensure they are equal after the sorting takes place
+///     assert!(list_eq!(arr1, arr2));
+///
+///     Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! array_list_sync {
 	( $size:expr, $default:expr ) => {{
@@ -965,7 +1197,80 @@ macro_rules! array_list_sync {
 	}};
 }
 
-/// sync box version of [`crate::array_list`].
+/// The `sync_boxed` form of [`crate::array_list`]. This macro builds an [`crate::ArrayList`] in the form of a
+/// `Box<dyn SortableList<T> + Send + Sync>`.
+///
+/// # Input Parameters
+/// * size (required) - the size of the array
+/// * default (required) - a reference to the value to initialize the array with
+///
+/// # Return
+/// Returns [`crate::SortableList`] on success and a [`bmw_err::Error`] on failure.
+///
+/// # Errors
+/// * [`bmw_err::ErrorKind::IllegalArgument`] - if the size is 0.
+///
+/// # Examples
+///```
+/// // create an array_list and iterate through it
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_util::*;
+///
+/// info!();
+///
+/// fn main() -> Result<(), Error> {
+///         let mut arr = array_list_sync_box!(10, &0)?;
+///         for _ in 0..10 {
+///                 arr.push(0)?;
+///         }
+///
+///         info!("arr = {:?}", arr)?;
+///
+///         for x in arr.iter() {
+///                 assert_eq!(x, 0);
+///         }
+///
+///         Ok(())
+/// }
+///
+///```
+///
+///```
+/// // sort an array list
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_util::*;
+///
+/// fn main() -> Result<(), Error> {
+///     // create two array lists
+///     let mut arr1 = array_list_sync_box!(10, &0)?;
+///     let mut arr2 = array_list_sync_box!(10, &0)?;
+///
+///     // add 0..10 to the list
+///     for i in 0..10 {
+///         arr1.push(i)?;
+///     }
+///
+///     assert!(arr1.push(0).is_err()); // it's full
+///
+///     // add 10..0 to the list
+///     for i in (0..10).rev() {
+///         arr2.push(i)?;
+///     }
+///
+///     assert!(arr2.push(0).is_err()); // it's full
+///
+///     // sort the arrays using the unstable and stable sort functions (underlying rust fns used)
+///     arr1.sort_unstable()?;
+///     arr2.sort()?;
+///
+///     // ensure they are equal after the sorting takes place
+///     assert!(list_eq!(arr1, arr2));
+///
+///     Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! array_list_sync_box {
 	( $size:expr, $default:expr ) => {{
@@ -1191,7 +1496,53 @@ macro_rules! execute {
 	}};
 }
 
-/// Macro used to block until a thread pool has completed the task. See [`crate::ThreadPool`] for working examples.
+/// This macro causes the current thread to block until the specified thread execution completes. Upon
+/// completion, the [`crate::PoolResult`] is returned.
+///
+/// # Input Parameters
+/// * thread_receiver (required) - the [`std::sync::mpsc::Receiver`] for the desired thread to
+/// block on. This parameeter is returned by the [`crate::execute`] macro as seen in the example
+/// below.
+///
+/// # Return
+/// Returns [`crate::PoolResult`].
+///
+/// # Errors
+/// * [`bmw_err::ErrorKind::ThreadPanic`] - if the underlying task results in a thread panic. This
+/// error is returned in the [`crate::PoolResult::Err`] variant.
+///
+/// # Examples
+///```
+/// // create an array_list and iterate through it
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_util::*;
+///
+/// info!();
+///
+/// fn main() -> Result<(), Error> {
+///         let mut tp = thread_pool!()?;
+///
+///         tp.set_on_panic(move |id, e| -> Result<(), Error> {
+///             let e = e.downcast_ref::<&str>().unwrap_or(&"unknown panic type");
+///             info!("PANIC: id={},e={}", id, e)?;
+///             Ok(())
+///         })?;
+///
+///         tp.start()?;
+///
+///         let t_recv = execute!(tp, {
+///             info!("executing a task in another thread!")?;
+///             Ok(101)
+///         })?;
+///
+///         let res = block_on!(t_recv);
+///         assert_eq!(res, PoolResult::Ok(101));
+///
+///         Ok(())
+/// }
+///
+///```
 #[macro_export]
 macro_rules! block_on {
 	($res:expr) => {{

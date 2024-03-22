@@ -28,10 +28,14 @@ use std::pin::Pin;
 use std::sync::mpsc::{Receiver, SyncSender};
 use std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
+/// Arrays for use with other functions in this library. An array can be contructed with the macro
+/// [`crate::array!`].
 pub struct Array<T> {
 	pub(crate) data: Vec<T>,
 }
 
+/// ArrayList data structure. Arraylist implements List and Sortable list. A [`crate::ArrayList`]
+/// can be constructed with the macro [`crate::array_list`].
 #[derive(Clone)]
 pub struct ArrayList<T> {
 	pub(crate) inner: Array<T>,
@@ -40,27 +44,29 @@ pub struct ArrayList<T> {
 	pub(crate) tail: usize,
 }
 
-/// An iterator for the [`crate::ArrayList`].
+/// An iterator for the [`crate::ArrayList`]. See [`crate::array_list`] for examples.
 pub struct ArrayListIterator<'a, T> {
 	pub(crate) arr: &'a ArrayList<T>,
 	pub(crate) dir: Direction,
 	pub(crate) c: usize,
 }
 
-/// An iterator for the [`crate::Array`].
+/// An iterator for the [`crate::Array`]. See [`crate::array`] for examples.
 pub struct ArrayIterator<'a, T> {
 	pub(crate) array_ref: &'a Array<T>,
 	pub(crate) cur: usize,
 }
 
+/// The list trait is implemented by both [`crate::list`] and [`crate::array_list`]. See these
+/// macros for detailed examples.
 pub trait List<V>: DynClone + Debug {
 	/// push a value onto the end of the list
 	fn push(&mut self, value: V) -> Result<(), Error>;
-	/// iterate through the list
+	/// return an iterator that can iterate through the list
 	fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = V> + 'a>
 	where
 		V: Serializable + Clone;
-	/// iterate through the list in reverse order
+	/// return an iterator that can iterate through the list in reverse order
 	fn iter_rev<'a>(&'a self) -> Box<dyn Iterator<Item = V> + 'a>
 	where
 		V: Serializable + Clone;
@@ -72,7 +78,7 @@ pub trait List<V>: DynClone + Debug {
 	fn clear(&mut self) -> Result<(), Error>;
 }
 
-/// An iterator for the [`crate::List`].
+/// An iterator for [`crate::list`].
 pub struct ListIterator<'a, V>
 where
 	V: Serializable + Clone,
@@ -84,6 +90,8 @@ where
 	pub(crate) slab_reader: SlabReader,
 }
 
+/// The sortable list allows for efficient sorting of both the [`crate::array_list`] and
+/// [`crate::list`].
 pub trait SortableList<V>: List<V> + DynClone {
 	/// sort with a stable sorting algorithm
 	fn sort(&mut self) -> Result<(), Error>
@@ -369,7 +377,7 @@ where
 	fn stop(&mut self) -> Result<(), Error>;
 
 	/// Returns the current size of the thread pool which will be between
-	/// [`crate::ThreadPoolConfig::min_size`] and [`crate::ThreadPoolConfig::max_size`].
+	/// the configured maximum and minimum size.
 	fn size(&self) -> Result<usize, Error>;
 
 	/// Get the [`crate::ThreadPoolStopper`] for this thread pool.
