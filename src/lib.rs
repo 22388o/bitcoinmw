@@ -15,23 +15,67 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # The BMW Logging Crate
-//! The BMW Logging crate handles logging for all crates within BMW. There is a global static
-//! logger which is used as a main log and for debugging tests and independant loggers which may be
-//! used for things like request and statistical logging. The interface should be fairly
-//! straightforward to understand it the logger is largely compatible with the Rust
-//! [log](https://docs.rs/log/latest/log/) crate with some minor adjustments. Most notably, the
-//! logging macros return errors in the case of i/o and other configuration related errors.
-//! In addition to the [`trace`], [`debug`], [`info`], [`warn`], [`error`]
-//! and [`fatal`] macros, this crate provides an 'all' version and 'plain'
-//! version of each macro. For example: [`info_all`] and [`info_plain`].
-//! These macros allow for logging to standard out no matter how the log is
-//! configured and for logging without the timestamp respectively.
+//! # Bitcoin Mimblewimble (BMW)
 //!
-//! # Examples
+//! [![Build Status](https://dev.azure.com/mwc-project/bitcoinmw/_apis/build/status/cgilliard.bitcoinmw?branchName=main)](https://dev.azure.com/mwc-project/bitcoinmw/_build?definitionId=13)
+//! [![Release Version](https://img.shields.io/github/v/release/cgilliard/bitcoinmw.svg)](https://github.com/cgilliard/bitcoinmw/releases)
+//! [![Code Coverage](https://img.shields.io/static/v1?label=Code%20Coverage&message=90.31%&color=purple)](https://cgilliard.github.io/bitcoinmw/code_coverage.html)
+//! [![Docmentation](https://img.shields.io/static/v1?label=Documentation&message=Rustdoc%2bSource+Code&color=red)](https://cgilliard.github.io/bitcoinmw/doc/bmw/index.html)
+//! [![License](https://img.shields.io/github/license/cgilliard/bitcoinmw.svg)](https://github.com/cgilliard/bitcoinmw/blob/master/LICENSE)
+//!
+//! <p align="center">
+//! <img src="https://user-images.githubusercontent.com/7232183/183282880-e3fac338-7ea6-44ab-b7f2-40c605d297c2.jpeg"/>
+//! </p>
+//! <p align="center"> Core libraries for Bitcoin Mimblewimble (BMW).</p>
+//!
+//! # Development Status
+//!
+//! Bitcoin Mimblewimble (BMW) will eventually be a cryptocurrency. It will be based on these core libraries. As they are
+//! available, we will document them here.
+//!
+//! # BMW Configuration crate
+//!
+//! The BMW Configuration library is used to configure other crates within the BMW project. An
+//! example of how it may be used can be found below:
 //!
 //!```
-//! // example of using the global static logger
+//! // use all from bmw_conf
+//! use bmw_conf::*;
+//! // use all from bmw_err
+//! use bmw_err::*;
+//!
+//! fn main() -> Result<(), Error> {
+//!     // build a config using the bmw_conf::config macro.
+//!     let config = config!(MaxLoadFactor(0.4), SlabSize(100), SlabCount(200));
+//!     // check the config based on allowed and required configuration options.
+//!     config.check_config(
+//!         vec![
+//!             ConfigOptionName::MaxLoadFactor,
+//!             ConfigOptionName::SlabSize,
+//!             ConfigOptionName::SlabCount,
+//!             ConfigOptionName::AutoRotate
+//!         ],
+//!         vec![
+//!             ConfigOptionName::SlabCount
+//!         ]
+//!     )?;
+//!
+//!     // retrieve specified values or use defaults.
+//!     assert_eq!(config.get_or_f64(&ConfigOptionName::MaxLoadFactor, 0.5), 0.4);
+//!     assert_eq!(config.get_or_usize(&ConfigOptionName::SlabSize, 12), 100);
+//!     assert_eq!(config.get_or_usize(&ConfigOptionName::SlabCount, 100), 200);
+//!     Ok(())
+//! }
+//!```
+//!
+//! Full details of the BMW configuration crate can be found here: [`bmw_conf`].
+//!
+//! # BMW Logging crate
+//!
+//! The BMW Logging library is used to log data in other crates within the BMW project. An example
+//! of how it may be used can be found below:
+//!
+//!```
 //! use bmw_err::*;
 //! use bmw_log::*;
 //! use bmw_test::*;
@@ -91,65 +135,24 @@
 //! }
 //!```
 //!
-//! # Sample output
-//!
 //! The default output will look something like this:
 //!
-//! ```text
+//!```text
 //! [2022-02-24 13:52:24.123]: (FATAL) [..ibconcord/src/main.rs:116]: fatal
 //! [2022-02-24 13:52:24.123]: (ERROR) [..ibconcord/src/main.rs:120]: error
 //! [2022-02-24 13:52:24.123]: (WARN) [..ibconcord/src/main.rs:124]: warn
 //! [2022-02-24 13:52:24.123]: (INFO) [..ibconcord/src/main.rs:128]: info
 //! [2022-02-24 13:52:24.123]: (DEBUG) [..ibconcord/src/main.rs:132]: debug
 //! [2022-02-24 13:52:24.123]: (TRACE) [..ibconcord/src/main.rs:136]: trace
-//! ```
+//!```
 //!
 //! If enabled, color coding is included as well.
 //!
-//! Logging may be configured in many ways. The [`crate::log_init`] macro
-//! allows for convenient configuration of logging.
+//! Full details of the BMW logging crate can be found here: [`bmw_log`].
 //!
-//! # Post initialization configuration
+//! # BMW Error crate
 //!
-//! Most log configuration options may be set after the log has been initialized. See the example
-//! below. For all configuration options, see [`crate::log_init`]. Only the
-//! [`bmw_conf::ConfigOption::LogFilePath`] may not be changed after [`crate::Log::init`] is called.
+//! The BMW Error crate is used to handle errors in the other BMW crates. The two main useful
+//! macros from this crate are the [`bmw_err::err!`] macro and the [`bmw_err::map_err`] macro.
 //!
-//!```
-//! use bmw_err::*;
-//! use bmw_log::*;
-//!
-//! info!();
-//!
-//! fn set_log_options_after_startup() -> Result<(), Error> {
-//!     // Init log first
-//!     log_init!(
-//!         DisplayColors(false),
-//!         DisplayStdout(true),
-//!     )?;
-//!
-//!     info!("show this!")?;
-//!
-//!     set_log_option!(DisplayColors(true))?;
-//!
-//!     info!("show this with colors!")?;
-//!
-//!     Ok(())
-//! }
-//!
-//!```
-
-mod builder;
-mod constants;
-mod log;
-mod macros;
-mod test;
-mod types;
-
-pub use crate::types::{Log, LogBuilder, LogLevel, LoggingType};
-
-#[doc(hidden)]
-pub use crate::types::{GlobalLogContainer, BMW_GLOBAL_LOG};
-
-#[doc(hidden)]
-pub use bmw_conf;
+//! Full details of the BMW logging crate can be found here: [`bmw_err`].

@@ -35,6 +35,7 @@ use std::thread::park;
 info!();
 
 // include build information
+#[doc(hidden)]
 pub mod built_info {
 	include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }

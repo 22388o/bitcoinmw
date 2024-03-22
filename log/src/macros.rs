@@ -65,6 +65,7 @@ macro_rules! u64 {
 #[macro_export]
 macro_rules! trace {
 	() => {
+                #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Trace;
 	};
 	($line:expr) => {{
@@ -82,6 +83,7 @@ macro_rules! trace {
 #[macro_export]
 macro_rules! trace_plain {
         () => {
+                #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Trace;
         };
         ($line:expr) => {{
@@ -99,7 +101,8 @@ macro_rules! trace_plain {
 #[macro_export]
 macro_rules! trace_all {
         () => {
-                const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Trace;
+                 #[doc(hidden)]
+                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Trace;
         };
         ($line:expr) => {{
                 use bmw_log::*;
@@ -140,6 +143,7 @@ macro_rules! trace_all {
 #[macro_export]
 macro_rules! debug {
         () => {
+                #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Debug;
         };
         ($line:expr) => {{
@@ -157,6 +161,7 @@ macro_rules! debug {
 #[macro_export]
 macro_rules! debug_plain {
         () => {
+                #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Debug;
         };
         ($line:expr) => {{
@@ -174,6 +179,7 @@ macro_rules! debug_plain {
 #[macro_export]
 macro_rules! debug_all {
         () => {
+                #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Debug;
         };
         ($line:expr) => {{
@@ -215,6 +221,7 @@ macro_rules! debug_all {
 #[macro_export]
 macro_rules! info {
         () => {
+                #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Info;
         };
         ($line:expr) => {{
@@ -232,6 +239,7 @@ macro_rules! info {
 #[macro_export]
 macro_rules! info_plain {
         () => {
+                #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Info;
         };
         ($line:expr) => {{
@@ -249,6 +257,7 @@ macro_rules! info_plain {
 #[macro_export]
 macro_rules! info_all {
         () => {
+                #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Info;
         };
         ($line:expr) => {{
@@ -290,6 +299,7 @@ macro_rules! info_all {
 #[macro_export]
 macro_rules! warn {
         () => {
+                #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Warn;
         };
         ($line:expr) => {{
@@ -307,6 +317,7 @@ macro_rules! warn {
 #[macro_export]
 macro_rules! warn_plain {
         () => {
+                #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Warn;
         };
         ($line:expr) => {{
@@ -324,6 +335,7 @@ macro_rules! warn_plain {
 #[macro_export]
 macro_rules! warn_all {
         () => {
+                #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Warn;
         };
         ($line:expr) => {{
@@ -365,6 +377,7 @@ macro_rules! warn_all {
 #[macro_export]
 macro_rules! error {
         () => {
+                #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Error;
         };
         ($line:expr) => {{
@@ -382,6 +395,7 @@ macro_rules! error {
 #[macro_export]
 macro_rules! error_plain {
         () => {
+                #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Error;
         };
         ($line:expr) => {{
@@ -399,6 +413,7 @@ macro_rules! error_plain {
 #[macro_export]
 macro_rules! error_all {
         () => {
+                #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Error;
         };
         ($line:expr) => {{
@@ -440,6 +455,7 @@ macro_rules! error_all {
 #[macro_export]
 macro_rules! fatal {
         () => {
+                #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Fatal;
         };
         ($line:expr) => {{
@@ -457,6 +473,7 @@ macro_rules! fatal {
 #[macro_export]
 macro_rules! fatal_plain {
         () => {
+                #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Fatal;
         };
         ($line:expr) => {{
@@ -474,6 +491,7 @@ macro_rules! fatal_plain {
 #[macro_export]
 macro_rules! fatal_all {
         () => {
+                #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Fatal;
         };
         ($line:expr) => {{
