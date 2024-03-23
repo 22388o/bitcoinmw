@@ -545,7 +545,11 @@ mod test {
 		}
 		assert_eq!(i, 1);
 
-		let mut list = UtilBuilder::build_list_sync_box(vec![])?;
+		let mut list = UtilBuilder::build_list_sync_box(vec![
+			GlobalSlabAllocator(false),
+			SlabSize(100),
+			SlabCount(200),
+		])?;
 		list.push(0)?;
 		assert_eq!(list.size(), 1);
 
@@ -1838,7 +1842,11 @@ mod test {
 
 	#[test]
 	fn test_hashtable_sync_raw() -> Result<(), Error> {
-		let mut hashtable = UtilBuilder::build_hashtable_sync::<u32, u32>(vec![])?;
+		let mut hashtable = UtilBuilder::build_hashtable_sync::<u32, u32>(vec![
+			SlabSize(25),
+			SlabCount(1_000),
+			GlobalSlabAllocator(false),
+		])?;
 
 		let mut data2 = [0u8; BUFFER_SIZE];
 		let data = [8u8; BUFFER_SIZE];
@@ -2449,7 +2457,8 @@ mod test {
 		hashtable.insert(&"something".to_string(), &2)?;
 		info!("hashtable={:?}", hashtable)?;
 
-		let mut hashtable = hashtable_sync!()?;
+		let mut hashtable =
+			hashtable_sync!(GlobalSlabAllocator(false), SlabSize(100), SlabCount(100))?;
 		hashtable.insert(&1, &2)?;
 		assert_eq!(hashtable.get(&1).unwrap().unwrap(), 2);
 		let mut hashtable = hashtable_sync!(
@@ -2473,7 +2482,8 @@ mod test {
 		hashtable.insert(&"something".to_string(), &2)?;
 		info!("hashtable={:?}", hashtable)?;
 
-		let mut hashtable = hashtable_sync_box!()?;
+		let mut hashtable =
+			hashtable_sync_box!(GlobalSlabAllocator(false), SlabSize(100), SlabCount(100))?;
 		hashtable.insert(&1, &2)?;
 		assert_eq!(hashtable.get(&1).unwrap().unwrap(), 2);
 		let mut hashtable = hashtable_sync_box!(
@@ -2506,7 +2516,7 @@ mod test {
 		hashset.insert(&"third item".to_string())?;
 		info!("hashset={:?}", hashset)?;
 
-		let mut hashset = hashset_sync!()?;
+		let mut hashset = hashset_sync!(GlobalSlabAllocator(false), SlabSize(100), SlabCount(200))?;
 		hashset.insert(&1)?;
 		assert_eq!(hashset.contains(&1).unwrap(), true);
 		assert_eq!(hashset.contains(&2).unwrap(), false);
@@ -2538,7 +2548,8 @@ mod test {
 		hashset.insert(&"third item".to_string())?;
 		info!("hashset={:?}", hashset)?;
 
-		let mut hashset = hashset_sync_box!()?;
+		let mut hashset =
+			hashset_sync_box!(GlobalSlabAllocator(false), SlabSize(100), SlabCount(200))?;
 		hashset.insert(&1)?;
 		assert_eq!(hashset.contains(&1).unwrap(), true);
 		assert_eq!(hashset.contains(&2).unwrap(), false);
@@ -2573,8 +2584,8 @@ mod test {
 		info!("list={:?}", list3)?;
 
 		let list4 = list_box![1, 2, 3, 4, 5];
-		let mut list5 = list_sync!();
-		let mut list6 = list_sync_box!();
+		let mut list5 = list_sync![];
+		let mut list6 = list_sync_box![];
 		list_append!(list5, list4);
 		list_append!(list6, list4);
 		assert!(list_eq!(list4, list3));

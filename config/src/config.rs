@@ -57,6 +57,7 @@ impl Config for ConfigImpl {
 				ConfigOption::IsHashset(v) => *v,
 				ConfigOption::IsList(v) => *v,
 				ConfigOption::Debug(v) => *v,
+				ConfigOption::IsSync(v) => *v,
 				ConfigOption::DebugLargeSlabCount(v) => *v,
 				_ => default,
 			},
@@ -165,6 +166,7 @@ impl ConfigImpl {
 				IsList(_) => hash.insert(CN::IsList, config.clone()),
 				TerminationLength(_) => hash.insert(CN::TerminationLength, config.clone()),
 				MaxWildCardLength(_) => hash.insert(CN::MaxWildCardLength, config.clone()),
+				IsSync(_) => hash.insert(CN::IsSync, config.clone()),
 				Debug(_) => hash.insert(CN::Debug, config.clone()),
 				DebugLargeSlabCount(_) => hash.insert(CN::DebugLargeSlabCount, config.clone()),
 			};
@@ -218,6 +220,7 @@ impl ConfigImpl {
 				IsList(_) => cc!(self, t, &mut s, CN::IsList),
 				TerminationLength(_) => cc!(self, t, &mut s, CN::TerminationLength),
 				MaxWildCardLength(_) => cc!(self, t, &mut s, CN::MaxWildCardLength),
+				IsSync(_) => cc!(self, t, &mut s, CN::IsSync),
 				Debug(_) => cc!(self, t, &mut s, CN::Debug),
 				DebugLargeSlabCount(_) => cc!(self, t, &mut s, CN::DebugLargeSlabCount),
 			}

@@ -371,6 +371,7 @@ pub enum ConfigOptionName {
 	IsList,
 	TerminationLength,
 	MaxWildCardLength,
+	IsSync,
 	Debug,
 	DebugLargeSlabCount,
 }
@@ -413,6 +414,7 @@ pub enum ConfigOption {
 	IsList(bool),
 	TerminationLength(usize),
 	MaxWildCardLength(usize),
+	IsSync(bool),
 	Debug(bool),
 	DebugLargeSlabCount(bool),
 }

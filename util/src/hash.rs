@@ -497,6 +497,7 @@ where
 				CN::MaxLoadFactor,
 				CN::DebugLargeSlabCount,
 				CN::GlobalSlabAllocator,
+				CN::IsSync,
 			],
 			vec![],
 		)?;
@@ -504,6 +505,7 @@ where
 		let is_hashtable = config.get_or_bool(&CN::IsHashtable, false);
 		let is_hashset = config.get_or_bool(&CN::IsHashset, false);
 		let is_list = config.get_or_bool(&CN::IsList, false);
+		let is_sync = config.get_or_bool(&CN::IsSync, false);
 		let is_global_slab_allocator = config.get_or_bool(&CN::GlobalSlabAllocator, true);
 		let debug_large_slab_count = config.get_or_bool(&CN::DebugLargeSlabCount, false);
 
@@ -517,6 +519,11 @@ where
 		let max_load_factor_specified = config.get(&CN::MaxLoadFactor).is_some();
 		let slab_size_specified = config.get(&CN::SlabSize).is_some();
 		let slab_count_specified = config.get(&CN::SlabCount).is_some();
+
+		if is_sync && is_global_slab_allocator {
+			let text = "IsSync is not allowed with GlobalSlabAllocator";
+			return Err(err!(ErrKind::Configuration, text));
+		}
 
 		if is_list && max_entries_specified {
 			let text = "MaxEntries not valid for a list";

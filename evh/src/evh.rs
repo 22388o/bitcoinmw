@@ -2610,7 +2610,6 @@ where
 
 		for i in 0..self.config.threads {
 			let mut evh = v[i].0.clone();
-			//let mut wakeup = v[i].1.clone();
 			let mut wakeup = {
 				let mut data = v[i].1.wlock_ignore_poison()?;
 				let guard = data.guard()?;

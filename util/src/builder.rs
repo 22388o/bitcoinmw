@@ -293,6 +293,7 @@ impl UtilBuilder {
 		V: Serializable + Clone,
 	{
 		configs.push(ConfigOption::IsHashtable(true));
+		configs.push(ConfigOption::IsSync(true));
 		HashImplSync::new(configs)
 	}
 
@@ -317,6 +318,7 @@ impl UtilBuilder {
 		V: Serializable + Clone,
 	{
 		configs.push(ConfigOption::IsHashtable(true));
+		configs.push(ConfigOption::IsSync(true));
 		Ok(Box::new(HashImplSync::new(configs)?))
 	}
 
@@ -361,6 +363,7 @@ impl UtilBuilder {
 	where
 		K: Serializable + Hash + PartialEq + Debug + Clone,
 	{
+		configs.push(ConfigOption::IsSync(true));
 		configs.push(ConfigOption::IsHashset(true));
 		HashImplSync::new(configs)
 	}
@@ -385,6 +388,7 @@ impl UtilBuilder {
 		K: Serializable + Hash + PartialEq + Debug + 'static + Clone,
 	{
 		configs.push(ConfigOption::IsHashset(true));
+		configs.push(ConfigOption::IsSync(true));
 		let ret = HashImplSync::new(configs)?;
 		let ret = Box::new(ret);
 		Ok(ret)
@@ -426,6 +430,7 @@ impl UtilBuilder {
 		V: Serializable + Debug + PartialEq + Clone,
 	{
 		configs.push(ConfigOption::IsList(true));
+		configs.push(ConfigOption::IsSync(true));
 		HashImplSync::new(configs)
 	}
 
@@ -449,6 +454,7 @@ impl UtilBuilder {
 		V: Serializable + Debug + PartialEq + Clone + 'static,
 	{
 		configs.push(ConfigOption::IsList(true));
+		configs.push(ConfigOption::IsSync(true));
 		let ret = HashImplSync::new(configs)?;
 		let ret = Box::new(ret);
 		Ok(ret)

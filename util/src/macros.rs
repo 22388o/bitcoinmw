@@ -99,13 +99,14 @@ macro_rules! rlock {
 	};
 }
 
-/// The `global_slab_allocator` macro initializes the global thread local slab allocator
-/// for the thread that it is executed in. It takes the following parameters:
+/// The [`crate::global_slab_allocator`] macro initializes the global thread local slab allocator
+/// for the thread that it is executed in.
 ///
-/// * SlabSize(usize) (optional) - the size in bytes of the slabs for this slab allocator.
+/// # Input Parameters
+/// * SlabSize([`prim@usize`]) (optional) - the size in bytes of the slabs for this slab allocator.
 ///                                if not specified, the default value of 256 is used.
 ///
-/// * SlabCount(usize) (optional) - the number of slabs to allocate to the global slab
+/// * SlabCount([`prim@usize`]) (optional) - the number of slabs to allocate to the global slab
 ///                                 allocator. If not specified, the default value of
 ///                                 40,960 is used.
 ///
@@ -114,13 +115,13 @@ macro_rules! rlock {
 ///
 /// # Errors
 ///
-/// * [`bmw_err::ErrorKind::Configuration`] - Is returned if a
+/// * [`bmw_err::ErrKind::Configuration`] - Is returned if a
 ///                                           ConfigOption other than
 ///                                           ConfigOption::SlabSize or
 ///                                           ConfigOption::SlabCount is
 ///                                           specified.
 ///
-/// * [`bmw_err::ErrorKind::IllegalState`] - Is returned if the global thread local
+/// * [`bmw_err::ErrKind::IllegalState`] - Is returned if the global thread local
 ///                                          slab allocator has already been initialized
 ///                                          for the thread that executes the macro. This
 ///                                          can happen if the macro is called more than once
@@ -128,7 +129,7 @@ macro_rules! rlock {
 ///                                          slab allocator is initialized and in turn initializes
 ///                                          the global slab allocator with default values.
 ///
-/// * [`bmw_err::ErrorKind::IllegalArgument`] - Is returned if the SlabSize is 0 or the SlabCount
+/// * [`bmw_err::ErrKind::IllegalArgument`] - Is returned if the SlabSize is 0 or the SlabCount
 ///                                             is 0.
 ///
 /// # Examples
@@ -139,7 +140,7 @@ macro_rules! rlock {
 /// fn main() -> Result<(), Error> {
 ///     global_slab_allocator!(SlabSize(128), SlabCount(1_000))?;
 ///
-///     // this will use the global slab allocator since we don't specify one
+///     // this will use the global slab allocator since we don't specify SlabSize or SlabCount.
 ///     let hashtable: Box<dyn Hashtable<u32, u32>> = hashtable_box!()?;
 ///
 ///     // ...
@@ -224,13 +225,13 @@ macro_rules! global_slab_allocator {
 ///
 /// # Errors
 ///
-/// * [`bmw_err::ErrorKind::Configuration`] - Is returned if a
+/// * [`bmw_err::ErrKind::Configuration`] - Is returned if a
 ///                                           ConfigOption other than
 ///                                           ConfigOption::SlabSize or
 ///                                           ConfigOption::SlabCount is
 ///                                           specified.
 ///
-/// * [`bmw_err::ErrorKind::IllegalArgument`] - Is returned if the SlabSize is 0 or the SlabCount
+/// * [`bmw_err::ErrKind::IllegalArgument`] - Is returned if the SlabSize is 0 or the SlabCount
 ///                                             is 0.
 ///
 /// # Examples
@@ -314,7 +315,7 @@ macro_rules! slab_allocator {
 /// Returns `Ok(Pattern)` on success and on error a [`bmw_err::Error`] is returned.
 ///
 /// # Errors
-/// * [`bmw_err::ErrorKind::Configuration`] - If a Regex or Id is not specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If a Regex or Id is not specified.
 ///
 /// # Examples
 ///
@@ -354,7 +355,7 @@ macro_rules! tmatch {
 /// Returns `Ok(SuffixTre)` on success and on error a [`bmw_err::Error`] is returned.
 ///
 /// # Errors
-/// * [`bmw_err::ErrorKind::IllegalArgument`] - If one of the regular expressions is invalid.
+/// * [`bmw_err::ErrKind::IllegalArgument`] - If one of the regular expressions is invalid.
 ///                                             or the length of the patterns list is 0.
 ///
 /// # Examples
@@ -548,7 +549,7 @@ macro_rules! search_trie {
 ///
 /// # Errors
 ///
-/// * [`bmw_err::ErrorKind::Configuration`] if anything other than ConfigOption::Slabs,
+/// * [`bmw_err::ErrKind::Configuration`] if anything other than ConfigOption::Slabs,
 ///                                     ConfigOption::MaxEntries or
 ///                                     ConfigOption::MaxLoadFactor is specified,
 ///                                     if the slab_allocator's slab_size is greater than 65,536,
@@ -670,24 +671,26 @@ macro_rules! hashtable_sync_box {
         }};
 }
 
-/// The [`crate::hashset`] macro builds a [`crate::Hashset`] with the specified configuration and
-/// optionally the specified [`crate::SlabAllocator`]. The macro accepts the following parameters:
+/// The [`crate::hashset`] macro builds a [`crate::Hashset`] with the specified configuration.
 ///
-/// * MaxEntries(usize) (optional) - The maximum number of entries that can be in this hashset
-///                                  at any given time. If not specified, the default value of
-///                                  100_000 will be used.
-/// * MaxLoadFactor(usize) (optional) - The maximum load factor of the hashset. The hashset is
-///                                     array based hashset and it has a fixed size. Once the
-///                                     load factor is reach, insertions will return an error. The
-///                                     hashset uses linear probing to handle collisions. The
-///                                     max_load_factor makes sure no additional insertions occur
-///                                     at a given ratio of entries to capacity in the array. Note
-///                                     that MaxEntries can always be inserted, it's the capacity
-///                                     of the array that becomes larger as this ratio goes down.
-///                                     If not specified, the default value is 0.8.
-/// * Slabs(`Option<&Rc<RefCell<dyn SlabAllocator>>>`) (optional) - An optional reference to a slab
-///                                     allocator to use with this [`crate::Hashset`]. If not
-///                                     specified, the global slab allocator is used.
+/// # Input Parameters
+/// * MaxEntries ([`prim@usize`]) (optional) - The maximum number of entries that can be in this hashset
+/// at any given time. The default value is 1_000.
+/// * MaxLoadFactor ([`prim@usize`]) (optional) - The maximum load factor of the hashset. The hashset is an
+/// array based hashset and it has a fixed size. Once the load factor is reached, insertions will return an
+/// error. The hashset uses linear probing to handle collisions. The max_load_factor makes sure no
+/// additional insertions occur at a given ratio of entries to capacity in the array. Note that
+/// MaxEntries can always be inserted, it's the capacity of the array that becomes larger as this ratio
+/// goes down. So if 100 MaxEntries are specified and the MaxLoadFactor is 0.5, a 200 slot array
+/// will be used and 100 entries will be allowed. The default MaxLoadFactor is 0.7.
+/// * GlobalSlabAllocator ([`bool`]) (optional) - If true, the [`crate::global_slab_allocator`] is
+/// used instead of using an internally built slab allocator. The Global Slab allocator is
+/// thread_local and the returned value cannot be passed to other threads. The default value is
+/// true.
+/// * SlabSize ([`prim@usize`]) (optional) - The size of slabs for the [`crate::SlabAllocator`] associated
+/// with this [`crate::Hashset`]. This option is only allowed if GlobalSlabAllocator is false.
+/// * SlabCount ([`prim@usize`]) (optional) - The count of slabs. This option is only allowed if
+/// GlobalSlabAllocator is false.
 ///
 /// # Returns
 ///
@@ -695,13 +698,15 @@ macro_rules! hashtable_sync_box {
 ///
 /// # Errors
 ///
-/// * [`bmw_err::ErrorKind::Configuration`] if anything other than ConfigOption::Slabs,
-///                                     ConfigOption::MaxEntries or
-///                                     ConfigOption::MaxLoadFactor is specified,
-///                                     if the slab_allocator's slab_size is greater than 65,536,
-///                                     or slab_count is greater than 281_474_976_710_655,
-///                                     max_entries is 0 or max_load_factor is not greater than 0
-///                                     and less than or equal to 1.
+/// * [`bmw_err::ErrKind::Configuration`] - If any values are specified other than the allowed
+/// values mentioned above or if there are any duplicate parameters specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If only one of SlabSize and SlabCount are specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If GlobalSlabAllocator is true and SlabSize or
+/// SlabCount are specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If GlobalSlabAllocator is false and SlabSize or
+/// SlabCount are not specified.
+/// * [`bmw_err::ErrKind::IllegalArgument`] - If the parameters specified for the SlabSize or
+/// SlabCount are not valid. See [`crate::SlabAllocator`].
 ///
 /// # Examples
 ///```
@@ -895,7 +900,11 @@ macro_rules! list_sync {
     ( $( $x:expr ),* ) => {
         {
             #[allow(unused_mut)]
-            let mut temp_list = bmw_util::UtilBuilder::build_list_sync(vec![])?;
+            let mut temp_list = bmw_util::UtilBuilder::build_list_sync(vec![
+                bmw_conf::ConfigOption::GlobalSlabAllocator(false),
+                bmw_conf::ConfigOption::SlabSize(256),
+                bmw_conf::ConfigOption::SlabCount(10_000),
+            ])?;
             $(
                 temp_list.push($x)?;
             )*
@@ -910,7 +919,11 @@ macro_rules! list_sync_box {
     ( $( $x:expr ),* ) => {
         {
             #[allow(unused_mut)]
-            let mut temp_list = bmw_util::UtilBuilder::build_list_sync_box(vec![])?;
+            let mut temp_list = bmw_util::UtilBuilder::build_list_sync_box(vec![
+                bmw_conf::ConfigOption::GlobalSlabAllocator(false),
+                bmw_conf::ConfigOption::SlabSize(256),
+                bmw_conf::ConfigOption::SlabCount(10_000),
+            ])?;
             $(
                 temp_list.push($x)?;
             )*
@@ -922,14 +935,14 @@ macro_rules! list_sync_box {
 /// The [`crate::array!`] macro builds an [`crate::Array`].
 ///
 /// # Input Paramters
-/// * size (required) - the size of the array
-/// * default (required) - a reference to the value to initialize the array with
+/// * size ([`prim@usize`]) (required) - the size of the array
+/// * default ([`bmw_ser::Serializable`]) (required) - a reference to the value to initialize the array with
 ///
 /// # Return
 /// Returns [`crate::Array`] on success and a [`bmw_err::Error`] on failure.
 ///
 /// # Errors
-/// * [`bmw_err::ErrorKind::IllegalArgument`] - if the size is 0.
+/// * [`bmw_err::ErrKind::IllegalArgument`] - if the size is 0.
 ///
 /// # Examples
 ///```
@@ -943,6 +956,8 @@ macro_rules! list_sync_box {
 ///         for x in arr.iter() {
 ///                 assert_eq!(x, &0);
 ///         }
+///
+///         assert_eq!(arr[3], 0);
 ///
 ///         Ok(())
 /// }
@@ -958,14 +973,14 @@ macro_rules! array {
 /// SortableList.
 ///
 /// # Input Parameters
-/// * size (required) - the size of the array
-/// * default (required) - a reference to the value to initialize the array with
+/// * size ([`prim@usize`]) (required) - the size of the array
+/// * default ([`bmw_ser::Serializable`]) (required) - a reference to the value to initialize the array with
 ///
 /// # Return
 /// Returns [`crate::SortableList`] on success and a [`bmw_err::Error`] on failure.
 ///
 /// # Errors
-/// * [`bmw_err::ErrorKind::IllegalArgument`] - if the size is 0.
+/// * [`bmw_err::ErrKind::IllegalArgument`] - if the size is 0.
 ///
 /// # Examples
 ///```
@@ -1039,14 +1054,14 @@ macro_rules! array_list {
 /// `Box<dyn SortableList<T>>`.
 ///
 /// # Input Parameters
-/// * size (required) - the size of the array
-/// * default (required) - a reference to the value to initialize the array with
+/// * size ([`prim@usize`]) (required) - the size of the array
+/// * default ([`bmw_ser::Serializable`]) (required) - a reference to the value to initialize the array with
 ///
 /// # Return
 /// Returns [`crate::SortableList`] on success and a [`bmw_err::Error`] on failure.
 ///
 /// # Errors
-/// * [`bmw_err::ErrorKind::IllegalArgument`] - if the size is 0.
+/// * [`bmw_err::ErrKind::IllegalArgument`] - if the size is 0.
 ///
 /// # Examples
 ///```
@@ -1120,14 +1135,14 @@ macro_rules! array_list_box {
 /// `<impl SortableList<T> + Send + Sync`
 ///
 /// # Input Parameters
-/// * size (required) - the size of the array
-/// * default (required) - a reference to the value to initialize the array with
+/// * size ([`prim@usize`]) (required) - the size of the array
+/// * default ([`bmw_ser::Serializable`]) (required) - a reference to the value to initialize the array with
 ///
 /// # Return
 /// Returns [`crate::SortableList`] on success and a [`bmw_err::Error`] on failure.
 ///
 /// # Errors
-/// * [`bmw_err::ErrorKind::IllegalArgument`] - if the size is 0.
+/// * [`bmw_err::ErrKind::IllegalArgument`] - if the size is 0.
 ///
 /// # Examples
 ///```
@@ -1201,14 +1216,14 @@ macro_rules! array_list_sync {
 /// `Box<dyn SortableList<T> + Send + Sync>`.
 ///
 /// # Input Parameters
-/// * size (required) - the size of the array
-/// * default (required) - a reference to the value to initialize the array with
+/// * size ([`prim@usize`]) (required) - the size of the array
+/// * default ([`bmw_ser::Serializable`]) (required) - a reference to the value to initialize the array with
 ///
 /// # Return
 /// Returns [`crate::SortableList`] on success and a [`bmw_err::Error`] on failure.
 ///
 /// # Errors
-/// * [`bmw_err::ErrorKind::IllegalArgument`] - if the size is 0.
+/// * [`bmw_err::ErrKind::IllegalArgument`] - if the size is 0.
 ///
 /// # Examples
 ///```
@@ -1287,7 +1302,7 @@ macro_rules! array_list_sync_box {
 /// Returns `Ok(impl Queue<T>)` on success and a [`bmw_err::Error`] on failure.
 ///
 /// # Errors
-/// * [`bmw_err::ErrorKind::IllegalArgument`] - if the size is 0.
+/// * [`bmw_err::ErrKind::IllegalArgument`] - if the size is 0.
 ///
 /// # Examples
 ///```
@@ -1353,7 +1368,7 @@ macro_rules! queue_sync_box {
 /// Returns `Ok(impl Stack<T>)` on success and a [`bmw_err::Error`] on failure.
 ///
 /// # Errors
-/// * [`bmw_err::ErrorKind::IllegalArgument`] - if the size is 0.
+/// * [`bmw_err::ErrKind::IllegalArgument`] - if the size is 0.
 ///
 /// # Examples
 ///```
@@ -1447,13 +1462,27 @@ macro_rules! list_eq {
 /// of threads that is configurable.
 ///
 /// # Input Parameters
-/// * MaxSize([`prim@usize`]) - the maximum size that the thread pool, in terms of number of threads, may grow to.
+/// * MaxSize([`prim@usize`]) (optional) - the maximum size that the thread pool, in terms of number of threads, may grow to.
 /// The default value is MinSize.
-/// * MinSize([`prim@usize`]) - the minumum size, in threads, that the thread pool will maintain. The
+/// * MinSize([`prim@usize`]) (optional) - the minumum size, in threads, that the thread pool will maintain. The
 /// thread pool will add threads up until MaxSize, but never go below MinSize threads. The default
 /// value is 1.
-/// * SyncChannelSize([`prim@usize`]) - the size of the internal sync_channel used to send tasks to the
+/// * SyncChannelSize([`prim@usize`]) (optional) - the size of the internal sync_channel used to send tasks to the
 /// thread pool threads for execution. The default is 10.
+///
+/// # Return value
+///
+/// Upon success, this macro will return a [`crate::ThreadPoolHandle`].
+///
+/// # Errors
+///
+/// [`bmw_err::ErrKind::Configuration`] - If the configuration contained parameters other than
+/// MaxSize, MinSize, or SyncChannelSize.
+///
+/// [`bmw_err::ErrKind::Configuration`] - If the configuration contained duplicate parameters.
+///
+/// [`bmw_err::ErrKind::Configuration`] - If the configuration of MinSize is 0 or if MaxSize is
+/// less than MinSize.
 ///
 /// # Examples
 ///
@@ -1588,35 +1617,21 @@ macro_rules! thread_pool {
         }};
 }
 
-/// Macro used to execute tasks in a thread pool. See [`crate::ThreadPool`] for working examples.
-#[macro_export]
-macro_rules! execute {
-	($thread_pool:expr, $program:expr) => {{
-		$thread_pool.execute(async move { $program }, bmw_deps::rand::random())
-	}};
-	($thread_pool:expr, $id:expr, $program:expr) => {{
-		$thread_pool.execute(async move { $program }, $id)
-	}};
-}
-
-/// This macro causes the current thread to block until the specified thread execution completes. Upon
-/// completion, the [`crate::PoolResult`] is returned.
+/// This macro executes a task in the specified [`crate::ThreadPool`].
 ///
 /// # Input Parameters
-/// * thread_receiver (required) - the [`std::sync::mpsc::Receiver`] for the desired thread to
-/// block on. This parameeter is returned by the [`crate::execute`] macro as seen in the example
-/// below.
+/// * thread_pool (required) - the [`crate::ThreadPool`] to execute this task in.
+/// * id (optional) - id to assign to this task. If not specified, a random id is assigned.
+/// * task (required) - the task to execute in the thread pool.
 ///
 /// # Return
-/// Returns [`crate::PoolResult`].
+/// The [`crate::ThreadPoolHandle`] associated with this task.
 ///
 /// # Errors
-/// * [`bmw_err::ErrorKind::ThreadPanic`] - if the underlying task results in a thread panic. This
-/// error is returned in the [`crate::PoolResult::Err`] variant.
+/// * [`bmw_err::ErrKind::IllegalState`] - If the thread pool has not been started.
 ///
 /// # Examples
 ///```
-/// // create an array_list and iterate through it
 /// use bmw_err::*;
 /// use bmw_log::*;
 /// use bmw_util::*;
@@ -1634,12 +1649,67 @@ macro_rules! execute {
 ///
 ///         tp.start()?;
 ///
-///         let t_recv = execute!(tp, {
+///         let tph = execute!(tp, {
 ///             info!("executing a task in another thread!")?;
 ///             Ok(101)
 ///         })?;
 ///
-///         let res = block_on!(t_recv);
+///         let res = block_on!(tph);
+///         assert_eq!(res, PoolResult::Ok(101));
+///
+///         Ok(())
+/// }
+///
+///```
+#[macro_export]
+macro_rules! execute {
+	($thread_pool:expr, $program:expr) => {{
+		$thread_pool.execute(async move { $program }, bmw_deps::rand::random())
+	}};
+	($thread_pool:expr, $id:expr, $program:expr) => {{
+		$thread_pool.execute(async move { $program }, $id)
+	}};
+}
+
+/// This macro causes the current thread to block until the specified thread execution completes. Upon
+/// completion, the [`crate::PoolResult`] is returned.
+///
+/// # Input Parameters
+/// thread_pool_handle ([`crate::ThreadPoolHandle`]) (required) - The [`crate::ThreadPoolHandle`]
+/// to block on.
+///
+/// # Return
+/// Returns [`crate::PoolResult`] which contains the Ok or Err value returned by this task.
+///
+/// # Errors
+/// * [`bmw_err::ErrKind::ThreadPanic`] - if the underlying task results in a thread panic. This
+/// error is returned in the [`crate::PoolResult::Err`] variant.
+///
+/// # Examples
+///```
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_util::*;
+///
+/// info!();
+///
+/// fn main() -> Result<(), Error> {
+///         let mut tp = thread_pool!()?;
+///
+///         tp.set_on_panic(move |id, e| -> Result<(), Error> {
+///             let e = e.downcast_ref::<&str>().unwrap_or(&"unknown panic type");
+///             info!("PANIC: id={},e={}", id, e)?;
+///             Ok(())
+///         })?;
+///
+///         tp.start()?;
+///
+///         let tph = execute!(tp, {
+///             info!("executing a task in another thread!")?;
+///             Ok(101)
+///         })?;
+///
+///         let res = block_on!(tph);
 ///         assert_eq!(res, PoolResult::Ok(101));
 ///
 ///         Ok(())
