@@ -372,6 +372,7 @@ pub enum ConfigOptionName {
 	TerminationLength,
 	MaxWildCardLength,
 	IsSync,
+	EvhThreads,
 	Debug,
 	DebugLargeSlabCount,
 }
@@ -415,6 +416,7 @@ pub enum ConfigOption {
 	TerminationLength(usize),
 	MaxWildCardLength(usize),
 	IsSync(bool),
+	EvhThreads(usize),
 	Debug(bool),
 	DebugLargeSlabCount(bool),
 }

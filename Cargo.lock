@@ -171,6 +171,7 @@ dependencies = [
  "bmw_derive",
  "bmw_err",
  "bmw_evh",
+ "bmw_evh2",
  "bmw_http",
  "bmw_int",
  "bmw_log",
@@ -255,6 +256,20 @@ dependencies = [
 name = "bmw_evh"
 version = "0.0.3-beta.1"
 dependencies = [
+ "bmw_deps",
+ "bmw_derive",
+ "bmw_err",
+ "bmw_log",
+ "bmw_ser",
+ "bmw_test",
+ "bmw_util",
+]
+
+[[package]]
+name = "bmw_evh2"
+version = "0.0.3-beta.1"
+dependencies = [
+ "bmw_conf",
  "bmw_deps",
  "bmw_derive",
  "bmw_err",

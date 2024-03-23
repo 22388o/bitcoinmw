@@ -80,6 +80,7 @@ impl Config for ConfigImpl {
 				ConfigOption::PatternId(v) => *v,
 				ConfigOption::TerminationLength(v) => *v,
 				ConfigOption::MaxWildCardLength(v) => *v,
+				ConfigOption::EvhThreads(v) => *v,
 				_ => default,
 			},
 			None => default,
@@ -167,6 +168,7 @@ impl ConfigImpl {
 				TerminationLength(_) => hash.insert(CN::TerminationLength, config.clone()),
 				MaxWildCardLength(_) => hash.insert(CN::MaxWildCardLength, config.clone()),
 				IsSync(_) => hash.insert(CN::IsSync, config.clone()),
+				EvhThreads(_) => hash.insert(CN::EvhThreads, config.clone()),
 				Debug(_) => hash.insert(CN::Debug, config.clone()),
 				DebugLargeSlabCount(_) => hash.insert(CN::DebugLargeSlabCount, config.clone()),
 			};
@@ -221,6 +223,7 @@ impl ConfigImpl {
 				TerminationLength(_) => cc!(self, t, &mut s, CN::TerminationLength),
 				MaxWildCardLength(_) => cc!(self, t, &mut s, CN::MaxWildCardLength),
 				IsSync(_) => cc!(self, t, &mut s, CN::IsSync),
+				EvhThreads(_) => cc!(self, t, &mut s, CN::EvhThreads),
 				Debug(_) => cc!(self, t, &mut s, CN::Debug),
 				DebugLargeSlabCount(_) => cc!(self, t, &mut s, CN::DebugLargeSlabCount),
 			}
