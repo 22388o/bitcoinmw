@@ -1,32 +1,88 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="The pattern macro builds a `crate::Pattern` which is used by the `crate::SearchTrie`. The pattern macro takes the following parameters:"><title>pattern in bmw_util - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.0 (aedd173a2 2024-03-17)" data-channel="1.77.0" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../static.files/storage-4c98445ec4002617.js"></script><script defer src="sidebar-items.js"></script><script defer src="../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc macro"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../bmw_util/index.html">bmw_util</a><span class="version">0.0.3-beta.1</span></h2></div><div class="sidebar-elems"></div></nav><div class="sidebar-resizer"></div>
-    <main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../bmw_util/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Macro <a href="index.html">bmw_util</a>::<wbr><a class="macro" href="#">pattern</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="src" href="../src/bmw_util/macros.rs.html#362-370">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><pre class="rust item-decl"><span class="macro">macro_rules! </span>pattern {
+    <main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../bmw_util/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Macro <a href="index.html">bmw_util</a>::<wbr><a class="macro" href="#">pattern</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="src" href="../src/bmw_util/macros.rs.html#419-427">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><pre class="rust item-decl"><span class="macro">macro_rules! </span>pattern {
     ( $( <span class="macro-nonterminal">$pattern_items</span>:tt)* ) =&gt; { ... };
 }</pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>The pattern macro builds a <a href="struct.Pattern.html" title="struct bmw_util::Pattern"><code>crate::Pattern</code></a> which is used by the <a href="trait.SearchTrie.html" title="trait bmw_util::SearchTrie"><code>crate::SearchTrie</code></a>.
 The pattern macro takes the following parameters:</p>
 <ul>
-<li>Regex(String)         (required) - The regular expression to use for matching (note this is not a
+<li>Regex(<a href="https://doc.rust-lang.org/1.77.0/alloc/string/struct.String.html" title="struct alloc::string::String"><code>std::string::String</code></a>) (required) - The regular expression to use for matching (note this is not a
 full regular expression. Only some parts of regular expressions
 are implemented like wildcards and carets). See <a href="struct.Pattern.html" title="struct bmw_util::Pattern"><code>crate::Pattern</code></a>
 for full details.</li>
-<li>Id(usize)             (required) - The id for this pattern. This id is returned in the
+<li>PatternId(<a href="https://doc.rust-lang.org/1.77.0/std/primitive.usize.html" title="primitive usize"><code>usize</code></a>) (required) - The id for this pattern. This id is returned in the
 <a href="struct.Match.html" title="struct bmw_util::Match"><code>crate::Match</code></a> array if this match occurs when the
 <a href="trait.SearchTrie.html#tymethod.tmatch" title="method bmw_util::SearchTrie::tmatch"><code>crate::SearchTrie::tmatch</code></a> function is called.</li>
-<li>IsMulti(bool)         (optional) - If true is specified this pattern is a multi-line pattern meaning
+<li>IsMultiLine(<a href="https://doc.rust-lang.org/1.77.0/std/primitive.bool.html" title="primitive bool"><code>bool</code></a>) (optional) - If true is specified this pattern is a multi-line pattern meaning
 that wildcards can cross newlines. Otherwise newlines are not
-allowed in wildcard matches.</li>
-<li>IsTerm(bool)          (optional) - If true, this is a termination pattern meaning that if it is
+allowed in wildcard matches. If not specified this is
+true.</li>
+<li>IsTerminationPattern(<a href="https://doc.rust-lang.org/1.77.0/std/primitive.bool.html" title="primitive bool"><code>bool</code></a>) (optional) - If true, this is a termination pattern meaning that if it is
 found, when the <a href="trait.SearchTrie.html#tymethod.tmatch" title="method bmw_util::SearchTrie::tmatch"><code>crate::SearchTrie::tmatch</code></a> function is called,
 matching will terminate and the matches found up to that point in
-the text will be returned.</li>
-<li>IsCaseSensitive(bool) (optional) - If true only case sensitive matches are returned for this
-pattern. Otherwise, case-insensitive matches are also returned.</li>
+the text will be returned. If not specified this is false.</li>
+<li>IsCaseSensitive(<a href="https://doc.rust-lang.org/1.77.0/std/primitive.bool.html" title="primitive bool"><code>bool</code></a>) (optional) - If true only case sensitive matches are returned for this
+pattern. Otherwise, case-insensitive matches are also returned.
+If not specified, this is false.</li>
 </ul>
 <h2 id="return"><a class="doc-anchor" href="#return">§</a>Return</h2>
 <p>Returns <code>Ok(Pattern)</code> on success and on error a [<code>bmw_err::Error</code>] is returned.</p>
 <h2 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h2>
 <ul>
-<li>[<code>bmw_err::ErrKind::Configuration</code>] - If a Regex or Id is not specified.</li>
+<li>[<code>bmw_err::ErrKind::Configuration</code>] - If any other options are specified or if there are
+duplicates.</li>
+<li>[<code>bmw_err::ErrKind::Configuration</code>] - If a Regex or PatternId is not specified.</li>
+<li>[<code>bmw_err::ErrKind::Configuration</code>] - If both IsCaseSensitive and IsTerminationPattern are
+specified. (not currently supported)</li>
 </ul>
 <h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2>
-<p>See <a href="macro.search_trie.html" title="macro bmw_util::search_trie"><code>crate::search_trie!</code></a> for examples.</p>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code> <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
+ <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
+ <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
+
+ <span class="macro">info!</span>();
+
+ <span class="kw">fn </span>main() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+         <span class="comment">// build a suffix tree with three patterns
+         </span><span class="kw">let </span><span class="kw-2">mut </span>search_trie = <span class="macro">search_trie!</span>(
+                 <span class="macro">vec!</span>[
+                         <span class="comment">// create a pattern that's multi-line and case sensitive
+                         </span><span class="macro">pattern!</span>(
+                             Regex(<span class="string">"p1"</span>.to_string()),
+                             PatternId(<span class="number">0</span>),
+                             IsTerminationPattern(<span class="bool-val">false</span>),
+                             IsMultiLine(<span class="bool-val">true</span>),
+                             IsCaseSensitive(<span class="bool-val">true</span>)
+                         )<span class="question-mark">?</span>,
+                         <span class="comment">// create a pattern that is a termination pattern
+                         </span><span class="macro">pattern!</span>(
+                             Regex(<span class="string">"p2"</span>.to_string()),
+                             PatternId(<span class="number">1</span>),
+                             IsTerminationPattern(<span class="bool-val">true</span>),
+                             IsCaseSensitive(<span class="bool-val">false</span>)
+                         )<span class="question-mark">?</span>,
+                         <span class="comment">// use defaults (case insensitive, not termination and multiline true)
+                         </span><span class="macro">pattern!</span>(Regex(<span class="string">"p3"</span>.to_string()), PatternId(<span class="number">2</span>))<span class="question-mark">?
+                 </span>],
+                 TerminationLength(<span class="number">1_000</span>),
+                 MaxWildCardLength(<span class="number">100</span>)
+         )<span class="question-mark">?</span>;
+
+         <span class="comment">// create a matches array for the suffix tree to return matches in
+         </span><span class="kw">let </span><span class="kw-2">mut </span>matches = [<span class="macro">tmatch!</span>()<span class="question-mark">?</span>; <span class="number">10</span>];
+
+         <span class="comment">// run the match for the input text b"p1p2".
+         </span><span class="kw">let </span>count = search_trie.tmatch(<span class="string">b"p1p2"</span>, <span class="kw-2">&amp;mut </span>matches)<span class="question-mark">?</span>;
+
+         <span class="comment">// assert that two matches were returned "p1" and "p2"
+         // and that their start/end/id is correct.
+         </span><span class="macro">info!</span>(<span class="string">"count={}"</span>, count)<span class="question-mark">?</span>;
+         <span class="macro">assert_eq!</span>(count, <span class="number">2</span>);
+         <span class="macro">assert_eq!</span>(matches[<span class="number">1</span>].id(), <span class="number">0</span>);
+         <span class="macro">assert_eq!</span>(matches[<span class="number">1</span>].start(), <span class="number">0</span>);
+         <span class="macro">assert_eq!</span>(matches[<span class="number">1</span>].end(), <span class="number">2</span>);
+         <span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].id(), <span class="number">1</span>);
+         <span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].start(), <span class="number">2</span>);
+         <span class="macro">assert_eq!</span>(matches[<span class="number">0</span>].end(), <span class="number">4</span>);
+
+         <span class="prelude-val">Ok</span>(())
+ }</code></pre></div>
 </div></details></section></div></main></body></html>
