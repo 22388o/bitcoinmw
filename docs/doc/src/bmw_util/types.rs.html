@@ -569,6 +569,13 @@
 <a href="#567" id="567">567</a>
 <a href="#568" id="568">568</a>
 <a href="#569" id="569">569</a>
+<a href="#570" id="570">570</a>
+<a href="#571" id="571">571</a>
+<a href="#572" id="572">572</a>
+<a href="#573" id="573">573</a>
+<a href="#574" id="574">574</a>
+<a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -931,10 +938,9 @@
 		+ Unpin,
 {
 	<span class="doccomment">/// Execute a task in the thread pool. This task will run to completion
-	/// on the first available thread in the pool. The return value is a receiver
-	/// which will be sent a [`crate::PoolResult`] on completion of the task. If
-	/// an error occurs, [`bmw_err::Error`] will be returned.
-	</span><span class="kw">fn </span>execute&lt;F&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, f: F, id: u128) -&gt; <span class="prelude-ty">Result</span>&lt;Receiver&lt;PoolResult&lt;T, Error&gt;&gt;, Error&gt;
+	/// on the first available thread in the pool. The return value [`crate::ThreadPoolHandle`]
+	/// which can be used to get the id of the task sent to the thread pool or to block on.
+	</span><span class="kw">fn </span>execute&lt;F&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, f: F, id: u128) -&gt; <span class="prelude-ty">Result</span>&lt;ThreadPoolHandle&lt;T&gt;, Error&gt;
 	<span class="kw">where
 		</span>F: Future&lt;Output = <span class="prelude-ty">Result</span>&lt;T, Error&gt;&gt; + Send + <span class="lifetime">'static</span>;
 
@@ -964,6 +970,14 @@
 
 	<span class="attr">#[cfg(test)]
 	</span><span class="kw">fn </span>set_on_panic_none(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+}
+
+<span class="doccomment">/// This handle is returned by [`crate::ThreadPool::execute`]. It can be used to retreive the task
+/// id or to block on the task.
+</span><span class="attr">#[derive(Debug)]
+</span><span class="kw">pub struct </span>ThreadPoolHandle&lt;T&gt; {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) id: u128,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) recv_handle: Receiver&lt;PoolResult&lt;T, Error&gt;&gt;,
 }
 
 <span class="doccomment">/// Internally used struct that stores the state of the thread pool.

@@ -4929,6 +4929,9 @@
 <a href="#4927" id="4927">4927</a>
 <a href="#4928" id="4928">4928</a>
 <a href="#4929" id="4929">4929</a>
+<a href="#4930" id="4930">4930</a>
+<a href="#4931" id="4931">4931</a>
+<a href="#4932" id="4932">4932</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -4967,7 +4970,6 @@
 	<span class="kw">use </span>std::fs::{create_dir_all, File};
 	<span class="kw">use </span>std::io::Write;
 	<span class="kw">use </span>std::path::PathBuf;
-	<span class="kw">use </span>std::sync::mpsc::Receiver;
 	<span class="kw">use </span>std::sync::{Arc, RwLock};
 
 	<span class="macro">info!</span>();
@@ -7530,7 +7532,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>tp = <span class="macro">thread_pool!</span>(MinSize(<span class="number">3</span>))<span class="question-mark">?</span>;
 		tp.set_on_panic(<span class="kw">move </span>|_id, _e| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; { <span class="prelude-val">Ok</span>(()) })<span class="question-mark">?</span>;
 		tp.start()<span class="question-mark">?</span>;
-		<span class="kw">let </span>resp: Receiver&lt;PoolResult&lt;u32, Error&gt;&gt; = <span class="macro">execute!</span>(tp, {
+		<span class="kw">let </span>resp: ThreadPoolHandle&lt;u32&gt; = <span class="macro">execute!</span>(tp, {
 			<span class="macro">info!</span>(<span class="string">"thread pool2"</span>)<span class="question-mark">?</span>;
 			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Test, <span class="string">"test err"</span>))
 		})<span class="question-mark">?</span>;
@@ -7543,7 +7545,7 @@
 		tp.set_on_panic(<span class="kw">move </span>|_id, _e| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; { <span class="prelude-val">Ok</span>(()) })<span class="question-mark">?</span>;
 		tp.start()<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>resp: Receiver&lt;PoolResult&lt;u32, Error&gt;&gt; = <span class="macro">execute!</span>(tp, {
+		<span class="kw">let </span>resp: ThreadPoolHandle&lt;u32&gt; = <span class="macro">execute!</span>(tp, {
 			<span class="macro">info!</span>(<span class="string">"thread pool panic"</span>)<span class="question-mark">?</span>;
 			<span class="kw">let </span>x: <span class="prelude-ty">Option</span>&lt;u32&gt; = <span class="prelude-val">None</span>;
 			<span class="prelude-val">Ok</span>(x.unwrap())
@@ -9115,7 +9117,7 @@
 
 		<span class="comment">// simple execution, return value
 		</span><span class="kw">let </span>res = tp.execute(<span class="kw">async move </span>{ <span class="prelude-val">Ok</span>(<span class="number">1</span>) }, <span class="number">0</span>)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(res.recv()<span class="question-mark">?</span>, PoolResult::Ok(<span class="number">1</span>));
+		<span class="macro">assert_eq!</span>(res.block_on(), PoolResult::Ok(<span class="number">1</span>));
 
 		<span class="comment">// increment value using locks
 		</span><span class="kw">let </span><span class="kw-2">mut </span>x = <span class="macro">lock!</span>(<span class="number">1</span>)<span class="question-mark">?</span>;
@@ -9141,7 +9143,7 @@
 		<span class="comment">// return an error
 		</span><span class="kw">let </span>res = tp.execute(<span class="kw">async move </span>{ <span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Test, <span class="string">"test"</span>)) }, <span class="number">0</span>)<span class="question-mark">?</span>;
 
-		<span class="macro">assert_eq!</span>(res.recv()<span class="question-mark">?</span>, PoolResult::Err(<span class="macro">err!</span>(ErrKind::Test, <span class="string">"test"</span>)));
+		<span class="macro">assert_eq!</span>(res.block_on(), PoolResult::Err(<span class="macro">err!</span>(ErrKind::Test, <span class="string">"test"</span>)));
 
 		<span class="comment">// handle panic
 		</span><span class="kw">let </span>res = tp.execute(
@@ -9152,7 +9154,7 @@
 			<span class="number">0</span>,
 		)<span class="question-mark">?</span>;
 
-		<span class="macro">assert!</span>(res.recv().is_err());
+		<span class="macro">assert!</span>(res.block_on().is_err());
 
 		<span class="comment">// 10 more panics to ensure pool keeps running
 		</span><span class="kw">for _ in </span><span class="number">0</span>..<span class="number">10 </span>{
@@ -9164,12 +9166,12 @@
 				<span class="number">0</span>,
 			)<span class="question-mark">?</span>;
 
-			<span class="macro">assert!</span>(res.recv().is_err());
+			<span class="macro">assert!</span>(res.block_on().is_err());
 		}
 
 		<span class="comment">// now do a regular request
 		</span><span class="kw">let </span>res = tp.execute(<span class="kw">async move </span>{ <span class="prelude-val">Ok</span>(<span class="number">5</span>) }, <span class="number">0</span>)<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(res.recv()<span class="question-mark">?</span>, PoolResult::Ok(<span class="number">5</span>));
+		<span class="macro">assert_eq!</span>(res.block_on(), PoolResult::Ok(<span class="number">5</span>));
 
 		sleep(Duration::from_millis(<span class="number">1000</span>));
 		<span class="macro">info!</span>(<span class="string">"test sending errors"</span>)<span class="question-mark">?</span>;
@@ -9182,7 +9184,7 @@
 		}
 		{
 			<span class="kw">let </span>res = tp.execute(<span class="kw">async move </span>{ <span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Test, <span class="string">"test"</span>)) }, <span class="number">0</span>)<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>(res.recv()<span class="question-mark">?</span>, PoolResult::Err(<span class="macro">err!</span>(ErrKind::Test, <span class="string">"test"</span>)));
+			<span class="macro">assert_eq!</span>(res.block_on(), PoolResult::Err(<span class="macro">err!</span>(ErrKind::Test, <span class="string">"test"</span>)));
 		}
 		sleep(Duration::from_millis(<span class="number">1_000</span>));
 
@@ -9250,7 +9252,7 @@
 				},
 				<span class="number">0</span>,
 			)<span class="question-mark">?</span>;
-			<span class="macro">assert_eq!</span>(res.recv()<span class="question-mark">?</span>, PoolResult::Ok(<span class="number">2</span>));
+			<span class="macro">assert_eq!</span>(res.block_on(), PoolResult::Ok(<span class="number">2</span>));
 		}
 
 		sleep(Duration::from_millis(<span class="number">2_000</span>));
@@ -9258,7 +9260,7 @@
 
 		<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
 		<span class="kw">for </span>res <span class="kw">in </span>v {
-			<span class="macro">assert_eq!</span>(res.recv()<span class="question-mark">?</span>, PoolResult::Ok(<span class="number">1</span>));
+			<span class="macro">assert_eq!</span>(res.block_on(), PoolResult::Ok(<span class="number">1</span>));
 			<span class="macro">info!</span>(<span class="string">"res complete {}"</span>, i)<span class="question-mark">?</span>;
 			i += <span class="number">1</span>;
 		}
@@ -9458,7 +9460,7 @@
 			<span class="number">0</span>,
 		)<span class="question-mark">?</span>;
 
-		<span class="macro">assert_eq!</span>(res.recv()<span class="question-mark">?</span>, PoolResult::Ok(<span class="number">1</span>));
+		<span class="macro">assert_eq!</span>(res.block_on(), PoolResult::Ok(<span class="number">1</span>));
 
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -9467,11 +9469,14 @@
 	</span><span class="kw">fn </span>test_thread_pool_macro_panic() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>(tx, rx) = sync_channel(<span class="number">1</span>);
 		<span class="kw">let </span><span class="kw-2">mut </span>v = <span class="macro">lock_box!</span>(<span class="number">0</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>id_box = <span class="macro">lock_box!</span>(<span class="number">1</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span>id_box_clone = id_box.clone();
 		<span class="kw">let </span>v_clone = v.clone();
 		<span class="macro">info!</span>(<span class="string">"testing thread_pool macro"</span>)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>tp = <span class="macro">thread_pool!</span>(MinSize(<span class="number">4</span>))<span class="question-mark">?</span>;
 		tp.set_on_panic(<span class="kw">move </span>|id, e| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+			<span class="macro">wlock!</span>(id_box) = id;
 			<span class="kw">match </span>e.downcast_ref::&lt;<span class="kw-2">&amp;</span>str&gt;() {
 				<span class="prelude-val">Some</span>(as_str) =&gt; {
 					<span class="macro">info!</span>(<span class="string">"Error: {:?}"</span>, as_str)<span class="question-mark">?</span>;
@@ -9490,7 +9495,7 @@
 
 		tp.start()<span class="question-mark">?</span>;
 
-		<span class="macro">execute!</span>(tp, {
+		<span class="kw">let </span>handle = <span class="macro">execute!</span>(tp, {
 			<span class="macro">info!</span>(<span class="string">"executing a thread"</span>)<span class="question-mark">?</span>;
 			<span class="kw">if </span><span class="bool-val">true </span>{
 				<span class="comment">// avoid compiler warning
@@ -9502,6 +9507,7 @@
 
 		rx.recv()<span class="question-mark">?</span>;
 		<span class="macro">assert_eq!</span>(<span class="macro">rlock!</span>(v_clone), <span class="number">1</span>);
+		<span class="macro">assert_eq!</span>(<span class="macro">rlock!</span>(id_box_clone), handle.id());
 
 		<span class="prelude-val">Ok</span>(())
 	}
