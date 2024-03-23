@@ -402,15 +402,6 @@ pub struct ThreadPoolHandle<T> {
 	pub(crate) recv_handle: Receiver<PoolResult<T, Error>>,
 }
 
-/// Internally used struct that stores the state of the thread pool.
-#[derive(Debug, Clone, Serializable)]
-pub struct ThreadPoolState {
-	pub(crate) waiting: usize,
-	pub(crate) cur_size: usize,
-	pub(crate) config: ThreadPoolConfig,
-	pub(crate) stop: bool,
-}
-
 /// Struct that can be used to execute tasks in the thread pool. Mainly needed
 /// for passing the execution functionality to structs/threads.
 #[derive(Debug, Clone)]
@@ -418,7 +409,6 @@ pub struct ThreadPoolExecutor<T>
 where
 	T: 'static + Send + Sync,
 {
-	pub(crate) config: ThreadPoolConfig,
 	pub(crate) tx: Option<SyncSender<FutureWrapper<T>>>,
 }
 
@@ -573,4 +563,12 @@ pub(crate) struct ThreadPoolConfig {
 	pub min_size: usize,
 	pub max_size: usize,
 	pub sync_channel_size: usize,
+}
+
+#[derive(Debug, Clone, Serializable)]
+pub(crate) struct ThreadPoolState {
+	pub(crate) waiting: usize,
+	pub(crate) cur_size: usize,
+	pub(crate) config: ThreadPoolConfig,
+	pub(crate) stop: bool,
 }

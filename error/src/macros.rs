@@ -34,6 +34,11 @@ macro_rules! try_into {
 ///```
 /// use bmw_err::{Error, ErrorKind, ErrKind, err};
 ///
+/// fn main() -> Result<(), Error> {
+///     show_err_kind(false)?;
+///     Ok(())
+/// }
+///
 /// fn show_err_kind(do_error: bool) -> Result<(), Error> {
 ///     let e = err!(ErrKind::Configuration, "invalid parameter name");
 ///
@@ -167,7 +172,12 @@ macro_rules! err {
 /// use std::fs::File;
 /// use std::io::Write;
 ///
-/// fn show_map_err(do_error: bool) -> Result<(), Error> {
+/// fn main() -> Result<(), Error> {
+///     assert!(show_map_err().is_err());
+///     Ok(())
+/// }
+///
+/// fn show_map_err() -> Result<(), Error> {
 ///     let file = map_err!(File::open("/path/to/something"), ErrKind::IO, "file open failed")?;
 ///     println!("file_type={:?}", file.metadata()?.file_type());
 ///

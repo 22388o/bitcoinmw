@@ -71,7 +71,7 @@ pub enum LogLevel {
 /// use bmw_test::*;
 /// use std::path::PathBuf;
 ///     
-/// fn my_log() -> Result<(), Error> {
+/// fn main() -> Result<(), Error> {
 ///     let test_info = test_info!()?;
 ///     let mut buf = PathBuf::new();
 ///     buf.push(test_info.directory());

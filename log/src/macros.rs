@@ -598,7 +598,7 @@ macro_rules! set_log_option {
 ///
 /// debug!();
 ///
-/// fn test() -> Result<(), Error> {
+/// fn main() -> Result<(), Error> {
 ///
 ///     // first init the logger
 ///     log_init!(DisplayColors(true))?;
@@ -652,7 +652,7 @@ macro_rules! need_rotate {
 /// use bmw_test::*;
 /// use std::path::PathBuf;
 ///
-/// fn logger() -> Result<(), Error> {
+/// fn main() -> Result<(), Error> {
 ///     let test_info = test_info!()?;
 ///     let mut buf = PathBuf::new();
 ///     buf.push(test_info.directory());
@@ -681,6 +681,7 @@ macro_rules! need_rotate {
 ///         FileHeader("my_header".to_string()), // header to place at the top of each file
 ///     )?;
 ///
+///     logger.init()?;
 ///     logger.set_log_level(LogLevel::Debug);
 ///
 ///     logger.log(LogLevel::Debug, "This is a test!")?;

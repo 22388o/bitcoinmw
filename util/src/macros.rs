@@ -1443,7 +1443,17 @@ macro_rules! list_eq {
 	}};
 }
 
-/// Macro used to configure/build a thread pool. See [`crate::ThreadPool`] for working examples.
+/// Macro used to configure/build a thread pool. Threadpools can be used to execute tasks in a set
+/// of threads that is configurable.
+///
+/// # Input Parameters
+/// * MaxSize([`prim@usize`]) - the maximum size that the thread pool, in terms of number of threads, may grow to.
+/// The default value is MinSize.
+/// * MinSize([`prim@usize`]) - the minumum size, in threads, that the thread pool will maintain. The
+/// thread pool will add threads up until MaxSize, but never go below MinSize threads. The default
+/// value is 1.
+/// * SyncChannelSize([`prim@usize`]) - the size of the internal sync_channel used to send tasks to the
+/// thread pool threads for execution. The default is 10.
 ///
 /// # Examples
 ///
@@ -1455,9 +1465,11 @@ macro_rules! list_eq {
 ///
 /// info!();
 ///
-/// fn test_thread_pool_macro() -> Result<(), Error> {
+/// fn main() -> Result<(), Error> {
 ///     info!("testing thread_pool macro")?;
 ///
+///     // if only MinSize is specified, the thread pool maintains
+///     // MinSize threads (in this case 4) at all times.
 ///     let mut tp = thread_pool!(MinSize(4))?;
 ///     tp.set_on_panic(move |id, e| -> Result<(), Error> {
 ///         info!("PANIC: id={},e={:?}", id, e)?;
@@ -1471,6 +1483,97 @@ macro_rules! list_eq {
 ///          Ok(())
 ///     })?;
 ///
+///     Ok(())
+/// }
+///```
+/// Here's an example with other values configured. This also demonstrates how to block on a task
+/// in another thread.
+///```
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_test::*;
+/// use bmw_util::*;
+///
+/// info!();
+///
+/// fn main() -> Result<(), Error> {
+///     info!("testing thread_pool macro")?;
+///
+///     let mut tp = thread_pool!(MinSize(4), MaxSize(5), SyncChannelSize(15))?;
+///     tp.set_on_panic(move |id, e| -> Result<(), Error> {
+///         info!("PANIC: id={},e={:?}", id, e)?;
+///         Ok(())
+///     })?;
+///     
+///     tp.start()?;
+///     
+///     let mut tph = execute!(tp, {
+///          info!("executing a thread")?;
+///          Ok(1)
+///     })?;
+///
+///     let result = tph.block_on();
+///
+///     info!("Thread {} resulted in a value of {:?}", tph.id(), result)?;
+///
+///     assert_eq!(result, PoolResult::Ok(1));
+///         
+///     Ok(())
+/// }
+///```
+/// Here's an example handling a thread panic.
+///```
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_test::*;
+/// use bmw_util::*;
+/// use bmw_deps::rand::random;
+/// use std::sync::mpsc::sync_channel;
+///
+/// info!();
+///
+/// fn main() -> Result<(), Error> {
+///     info!("testing thread_pool macro with panic")?;
+///     let mut id_box = lock_box!(random())?;
+///     let id_box_clone = id_box.clone();
+///     let (tx, rx) = sync_channel(1);
+///
+///     let mut tp = thread_pool!(MinSize(4), MaxSize(5), SyncChannelSize(15))?;
+///     tp.set_on_panic(move |id, e| -> Result<(), Error> {
+///         info!("PANIC: id={},e={:?}", id, e)?;
+///
+///         wlock!(id_box) = id;
+///         tx.send(());
+///
+///         Ok(())
+///     })?;
+///  
+///     tp.start()?;
+///
+///     let mut tph = execute!(tp, {
+///          info!("executing a thread")?;
+///          if true {
+///                 panic!("12345");
+///          }
+///          Ok(1)
+///     })?;
+///     
+///     let result = tph.block_on();
+///     
+///     info!("Thread {} resulted in a value of {:?}", tph.id(), result)?;
+///     
+///     assert_eq!(
+///         result,
+///         PoolResult::Err(
+///             err!(
+///                 ErrKind::ThreadPanic,
+///                 "thread pool panic: receiving on a closed channel"
+///             )
+///         )
+///     );
+///     rx.recv()?;
+///     assert_eq!(rlock!(id_box_clone), tph.id());
+///         
 ///     Ok(())
 /// }
 ///```

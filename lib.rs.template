@@ -133,6 +133,11 @@
 //!
 //!     Ok(())
 //! }
+//! fn main() -> Result<(), Error> {
+//!     global_logger()?;
+//!     independent_logger()?;
+//!     Ok(())
+//! }
 //!```
 //!
 //! The default output will look something like this:

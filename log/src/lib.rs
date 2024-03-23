@@ -89,6 +89,12 @@
 //!
 //!     Ok(())
 //! }
+//!
+//! fn main() -> Result<(), Error> {
+//!     global_logger()?;
+//!     independent_logger()?;
+//!     Ok(())
+//! }
 //!```
 //!
 //! # Sample output
@@ -121,7 +127,7 @@
 //!
 //! info!();
 //!
-//! fn set_log_options_after_startup() -> Result<(), Error> {
+//! fn main() -> Result<(), Error> {
 //!     // Init log first
 //!     log_init!(
 //!         DisplayColors(false),

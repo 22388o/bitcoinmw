@@ -246,7 +246,7 @@ where
 			return Err(err!(ErrKind::IllegalState, fmt));
 		}
 
-		let (tx, rx) = sync_channel::<PoolResult<T, Error>>(self.config.max_size);
+		let (tx, rx) = sync_channel::<PoolResult<T, Error>>(1);
 		let fw = FutureWrapper {
 			f: Box::pin(f),
 			tx,
@@ -257,6 +257,9 @@ where
 	}
 
 	fn start(&mut self) -> Result<(), Error> {
+		if self.tx.is_some() {
+			return Err(err!(ErrKind::IllegalState, "thread pool already started"));
+		}
 		let (tx, rx) = sync_channel(self.config.sync_channel_size);
 		let rx = Arc::new(Mutex::new(rx));
 		self.rx = Some(rx.clone());
@@ -301,7 +304,6 @@ where
 	fn executor(&self) -> Result<ThreadPoolExecutor<T>, Error> {
 		Ok(ThreadPoolExecutor {
 			tx: self.tx.clone(),
-			config: self.config.clone(),
 		})
 	}
 
@@ -330,7 +332,7 @@ where
 			return Err(err!(ErrKind::IllegalState, fmt));
 		}
 
-		let (tx, rx) = sync_channel::<PoolResult<T, Error>>(self.config.max_size);
+		let (tx, rx) = sync_channel::<PoolResult<T, Error>>(1);
 		let fw = FutureWrapper {
 			f: Box::pin(f),
 			tx,

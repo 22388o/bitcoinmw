@@ -122,6 +122,7 @@ mod test {
 		let mut tp = thread_pool!()?;
 		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;
 		tp.start()?;
+		assert!(tp.start().is_err()); // double start is an err
 
 		let handle = execute!(tp, {
 			let mut x = UtilBuilder::build_array(10, &0)?;

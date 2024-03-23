@@ -44,7 +44,7 @@
 //! }
 //!
 //! // Example of the map_err macro
-//! fn show_map_err(do_error: bool) -> Result<(), Error> {
+//! fn show_map_err() -> Result<(), Error> {
 //!     // map the file open error to a 'Log' Error. The text of the original error will be
 //!     // included in the mapped error.
 //!     let mut x = map_err!(File::open("/invalid/log/path.log"), ErrKind::Log)?;
@@ -76,6 +76,16 @@
 //!     Ok(())
 //! }
 //!
+//! fn main() -> Result<(), Error> {
+//!     try_into_ex()?;
+//!     assert!(return_err().is_err());
+//!     assert!(show_map_err().is_err());
+//!     let mut buf = PathBuf::new();
+//!     buf.push("/path/to/err");
+//!     assert!(process_file(buf.to_str().unwrap()).is_err());
+//!     Ok(())
+//! }
+//!
 //!```
 //!
 //! # Formatting
@@ -87,10 +97,15 @@
 //! use bmw_err::{Error, ErrKind, err};
 //!
 //! // The error macro can be used like the format macro to format output
-//! fn show_formatting() -> Result<(), Error> {
+//! fn test() -> Result<(), Error> {
 //!     let  code = 404;
 //!     // return an error with formatting
 //!     Err(err!(ErrKind::Http, "The webserver returned the error code: {}", code))
+//! }
+//!
+//! fn main() -> Result<(), Error> {
+//!     assert!(test().is_err());
+//!     Ok(())
 //! }
 //!```
 
