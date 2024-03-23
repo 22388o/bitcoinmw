@@ -360,9 +360,8 @@ where
 		+ Unpin,
 {
 	/// Execute a task in the thread pool. This task will run to completion
-	/// on the first available thread in the pool. The return value is a receiver
-	/// which will be sent a [`crate::PoolResult`] on completion of the task. If
-	/// an error occurs, [`bmw_err::Error`] will be returned.
+	/// on the first available thread in the pool. The return value [`crate::ThreadPoolHandle`]
+	/// which can be used to get the id of the task sent to the thread pool or to block on.
 	fn execute<F>(&self, f: F, id: u128) -> Result<ThreadPoolHandle<T>, Error>
 	where
 		F: Future<Output = Result<T, Error>> + Send + 'static;
@@ -395,6 +394,8 @@ where
 	fn set_on_panic_none(&mut self) -> Result<(), Error>;
 }
 
+/// This handle is returned by [`crate::ThreadPool::execute`]. It can be used to retreive the task
+/// id or to block on the task.
 #[derive(Debug)]
 pub struct ThreadPoolHandle<T> {
 	pub(crate) id: u128,

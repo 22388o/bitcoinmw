@@ -4542,6 +4542,7 @@ mod test {
 
 		let mut tp = thread_pool!(MinSize(4))?;
 		tp.set_on_panic(move |id, e| -> Result<(), Error> {
+			wlock!(id_box) = id;
 			match e.downcast_ref::<&str>() {
 				Some(as_str) => {
 					info!("Error: {:?}", as_str)?;
@@ -4553,7 +4554,6 @@ mod test {
 					info!("Unknown panic type")?;
 				}
 			}
-			wlock!(id_box) = id;
 
 			info!("PANIC: id={},e={:?}", id, e)?;
 			Ok(())
