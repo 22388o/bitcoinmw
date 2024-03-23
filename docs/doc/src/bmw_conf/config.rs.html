@@ -271,6 +271,9 @@
 <a href="#269" id="269">269</a>
 <a href="#270" id="270">270</a>
 <a href="#271" id="271">271</a>
+<a href="#272" id="272">272</a>
+<a href="#273" id="273">273</a>
+<a href="#274" id="274">274</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -353,6 +356,7 @@
 				ConfigOption::PatternId(v) =&gt; <span class="kw-2">*</span>v,
 				ConfigOption::TerminationLength(v) =&gt; <span class="kw-2">*</span>v,
 				ConfigOption::MaxWildCardLength(v) =&gt; <span class="kw-2">*</span>v,
+				ConfigOption::EvhThreads(v) =&gt; <span class="kw-2">*</span>v,
 				<span class="kw">_ </span>=&gt; default,
 			},
 			<span class="prelude-val">None </span>=&gt; default,
@@ -440,6 +444,7 @@
 				TerminationLength(<span class="kw">_</span>) =&gt; hash.insert(CN::TerminationLength, config.clone()),
 				MaxWildCardLength(<span class="kw">_</span>) =&gt; hash.insert(CN::MaxWildCardLength, config.clone()),
 				IsSync(<span class="kw">_</span>) =&gt; hash.insert(CN::IsSync, config.clone()),
+				EvhThreads(<span class="kw">_</span>) =&gt; hash.insert(CN::EvhThreads, config.clone()),
 				Debug(<span class="kw">_</span>) =&gt; hash.insert(CN::Debug, config.clone()),
 				DebugLargeSlabCount(<span class="kw">_</span>) =&gt; hash.insert(CN::DebugLargeSlabCount, config.clone()),
 			};
@@ -494,6 +499,7 @@
 				TerminationLength(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::TerminationLength),
 				MaxWildCardLength(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::MaxWildCardLength),
 				IsSync(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::IsSync),
+				EvhThreads(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhThreads),
 				Debug(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::Debug),
 				DebugLargeSlabCount(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::DebugLargeSlabCount),
 			}

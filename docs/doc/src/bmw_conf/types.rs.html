@@ -432,6 +432,8 @@
 <a href="#430" id="430">430</a>
 <a href="#431" id="431">431</a>
 <a href="#432" id="432">432</a>
+<a href="#433" id="433">433</a>
+<a href="#434" id="434">434</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -806,6 +808,7 @@
 	TerminationLength,
 	MaxWildCardLength,
 	IsSync,
+	EvhThreads,
 	Debug,
 	DebugLargeSlabCount,
 }
@@ -849,6 +852,7 @@
 	TerminationLength(usize),
 	MaxWildCardLength(usize),
 	IsSync(bool),
+	EvhThreads(usize),
 	Debug(bool),
 	DebugLargeSlabCount(bool),
 }
