@@ -70,7 +70,7 @@ macro_rules! lock {
 	}};
 }
 
-/// The same as [`crate::lock`] except that the value returned is in a `Box<dyn LockBox<T>>` structure.
+/// The same as [`crate::lock!`] except that the value returned is in a `Box<dyn LockBox<T>>` structure.
 /// # Examples
 ///```
 /// use bmw_err::*;
@@ -332,32 +332,89 @@ macro_rules! slab_allocator {
 /// The pattern macro builds a [`crate::Pattern`] which is used by the [`crate::SearchTrie`].
 /// The pattern macro takes the following parameters:
 ///
-/// * Regex(String)         (required) - The regular expression to use for matching (note this is not a
+/// * Regex([`std::string::String`]) (required) - The regular expression to use for matching (note this is not a
 ///                                      full regular expression. Only some parts of regular expressions
 ///                                      are implemented like wildcards and carets). See [`crate::Pattern`]
 ///                                      for full details.
-/// * Id(usize)             (required) - The id for this pattern. This id is returned in the
+/// * PatternId([`prim@usize`]) (required) - The id for this pattern. This id is returned in the
 ///                                      [`crate::Match`] array if this match occurs when the
 ///                                      [`crate::SearchTrie::tmatch`] function is called.
-/// * IsMulti(bool)         (optional) - If true is specified this pattern is a multi-line pattern meaning
+/// * IsMultiLine([`bool`]) (optional) - If true is specified this pattern is a multi-line pattern meaning
 ///                                      that wildcards can cross newlines. Otherwise newlines are not
-///                                      allowed in wildcard matches.
-/// * IsTerm(bool)          (optional) - If true, this is a termination pattern meaning that if it is
+///                                      allowed in wildcard matches. If not specified this is
+///                                      true.
+/// * IsTerminationPattern([`bool`]) (optional) - If true, this is a termination pattern meaning that if it is
 ///                                      found, when the [`crate::SearchTrie::tmatch`] function is called,
 ///                                      matching will terminate and the matches found up to that point in
-///                                      the text will be returned.
-/// * IsCaseSensitive(bool) (optional) - If true only case sensitive matches are returned for this
+///                                      the text will be returned. If not specified this is false.
+/// * IsCaseSensitive([`bool`]) (optional) - If true only case sensitive matches are returned for this
 ///                                      pattern. Otherwise, case-insensitive matches are also returned.
+///                                      If not specified, this is false.
 ///
 /// # Return
 /// Returns `Ok(Pattern)` on success and on error a [`bmw_err::Error`] is returned.
 ///
 /// # Errors
-/// * [`bmw_err::ErrKind::Configuration`] - If a Regex or Id is not specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If any other options are specified or if there are
+/// duplicates.
+/// * [`bmw_err::ErrKind::Configuration`] - If a Regex or PatternId is not specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If both IsCaseSensitive and IsTerminationPattern are
+/// specified. (not currently supported)
 ///
 /// # Examples
+///```
+/// use bmw_util::*;
+/// use bmw_err::*;
+/// use bmw_log::*;
 ///
-/// See [`crate::search_trie!`] for examples.
+/// info!();
+///
+/// fn main() -> Result<(), Error> {
+///         // build a suffix tree with three patterns
+///         let mut search_trie = search_trie!(
+///                 vec![
+///                         // create a pattern that's multi-line and case sensitive
+///                         pattern!(
+///                             Regex("p1".to_string()),
+///                             PatternId(0),
+///                             IsTerminationPattern(false),
+///                             IsMultiLine(true),
+///                             IsCaseSensitive(true)
+///                         )?,
+///                         // create a pattern that is a termination pattern
+///                         pattern!(
+///                             Regex("p2".to_string()),
+///                             PatternId(1),
+///                             IsTerminationPattern(true),
+///                             IsCaseSensitive(false)
+///                         )?,
+///                         // use defaults (case insensitive, not termination and multiline true)
+///                         pattern!(Regex("p3".to_string()), PatternId(2))?
+///                 ],
+///                 TerminationLength(1_000),
+///                 MaxWildCardLength(100)
+///         )?;
+///
+///         // create a matches array for the suffix tree to return matches in
+///         let mut matches = [tmatch!()?; 10];
+///
+///         // run the match for the input text b"p1p2".
+///         let count = search_trie.tmatch(b"p1p2", &mut matches)?;
+///
+///         // assert that two matches were returned "p1" and "p2"
+///         // and that their start/end/id is correct.
+///         info!("count={}", count)?;
+///         assert_eq!(count, 2);
+///         assert_eq!(matches[1].id(), 0);
+///         assert_eq!(matches[1].start(), 0);
+///         assert_eq!(matches[1].end(), 2);
+///         assert_eq!(matches[0].id(), 1);
+///         assert_eq!(matches[0].start(), 2);
+///         assert_eq!(matches[0].end(), 4);
+///
+///         Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! pattern {
 	( $( $pattern_items:tt)* ) => {{
@@ -369,6 +426,7 @@ macro_rules! pattern {
 	}};
 }
 
+/// Create a default instance of [`crate::Match`].
 #[macro_export]
 macro_rules! tmatch {
         ( $( $match_items:tt)* ) => {{
@@ -1932,9 +1990,12 @@ macro_rules! array_list_sync_box {
 	}};
 }
 
-/// This macro creates a [`crate::Queue`]. The parameters are
-/// * size (required) - the size of the underlying array
-/// * default (required) - a reference to the value to initialize the array with
+/// The [`crate::queue`] macro creates a [`crate::Queue`] implementation with the specified
+/// parameters. The queue is returned as an `impl Queue<T>`.
+///
+/// # Input Parameters
+/// * size ([`prim@usize`]) (required) - the size of the underlying array
+/// * default ([`bmw_ser::Serializable`]) (required) - a reference to the value to initialize the array with
 /// for the queue, these values are never used, but a default is needed to initialize the
 /// underlying array.
 /// # Return
@@ -1971,8 +2032,41 @@ macro_rules! queue {
 	}};
 }
 
-/// This is the box version of [`crate::queue`]. It is identical other than the returned value is
-/// in a box `(Box<dyn Queue>)`.
+/// The [`crate::queue_box`] macro is the `boxed` version of [`crate::queue`]. This macro creates a [`crate::Queue`]
+/// with the specified parameters. The queue is returned as a `Box<dyn Queue<T>>`.
+///
+/// # Input Parameters
+/// * size ([`prim@usize`]) (required) - the size of the underlying array
+/// * default ([`bmw_ser::Serializable`]) (required) - a reference to the value to initialize the array with
+/// for the queue, these values are never used, but a default is needed to initialize the
+/// underlying array.
+/// # Return
+/// Returns `Ok(Box<dyn Queue<T>>)` on success and a [`bmw_err::Error`] on failure.
+///
+/// # Errors
+/// * [`bmw_err::ErrKind::IllegalArgument`] - if the size is 0.
+///
+/// # Examples
+///```
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_util::*;
+///
+/// fn main() -> Result<(), Error> {
+///         let mut queue = queue_box!(10, &0)?;
+///
+///         for i in 0..10 {
+///                 queue.enqueue(i)?;
+///         }
+///
+///         for i in 0..10 {
+///                 let v = queue.dequeue().unwrap();
+///                 assert_eq!(v, &i);
+///         }
+///
+///         Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! queue_box {
 	( $size:expr, $default:expr ) => {{
@@ -1980,8 +2074,41 @@ macro_rules! queue_box {
 	}};
 }
 
-/// This is the sync version of [`crate::queue`]. It is identical other than the returned value is
-/// with Sync/Send traits implemented.
+/// The [`crate::queue_sync`] macro is the `sync` version of [`crate::queue`]. This macro creates a [`crate::Queue`]
+/// with the specified parameters. The queue is returned as a `impl Queue<T> + Send + Sync`.
+///
+/// # Input Parameters
+/// * size ([`prim@usize`]) (required) - the size of the underlying array
+/// * default ([`bmw_ser::Serializable`]) (required) - a reference to the value to initialize the array with
+/// for the queue, these values are never used, but a default is needed to initialize the
+/// underlying array.
+/// # Return
+/// Returns `Ok(impl Queue<T> + Send + Sync)` on success and a [`bmw_err::Error`] on failure.
+///
+/// # Errors
+/// * [`bmw_err::ErrKind::IllegalArgument`] - if the size is 0.
+///
+/// # Examples
+///```
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_util::*;
+///
+/// fn main() -> Result<(), Error> {
+///         let mut queue = queue_sync!(10, &0)?;
+///
+///         for i in 0..10 {
+///                 queue.enqueue(i)?;
+///         }
+///
+///         for i in 0..10 {
+///                 let v = queue.dequeue().unwrap();
+///                 assert_eq!(v, &i);
+///         }
+///
+///         Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! queue_sync {
 	( $size:expr, $default:expr ) => {{
@@ -1989,8 +2116,42 @@ macro_rules! queue_sync {
 	}};
 }
 
-/// This is the box version of [`crate::queue`]. It is identical other than the returned value is
-/// in a box `(Box<dyn Queue>)` and Send/Sync traits implemented.
+/// The [`crate::queue_sync_box`] macro is the `sync` and `boxed` version of [`crate::queue`].
+/// This macro creates a [`crate::Queue`] with the specified parameters. The queue is returned
+/// as a `Box<dyn Queue<T> + Send + Sync>`.
+///
+/// # Input Parameters
+/// * size ([`prim@usize`]) (required) - the size of the underlying array
+/// * default ([`bmw_ser::Serializable`]) (required) - a reference to the value to initialize the array with
+/// for the queue, these values are never used, but a default is needed to initialize the
+/// underlying array.
+/// # Return
+/// Returns `Ok(Box<dyn Queue<T> + Send + Sync>)` on success and a [`bmw_err::Error`] on failure.
+///
+/// # Errors
+/// * [`bmw_err::ErrKind::IllegalArgument`] - if the size is 0.
+///
+/// # Examples
+///```
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_util::*;
+///
+/// fn main() -> Result<(), Error> {
+///         let mut queue = queue_sync_box!(10, &0)?;
+///
+///         for i in 0..10 {
+///                 queue.enqueue(i)?;
+///         }
+///
+///         for i in 0..10 {
+///                 let v = queue.dequeue().unwrap();
+///                 assert_eq!(v, &i);
+///         }
+///
+///         Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! queue_sync_box {
 	( $size:expr, $default:expr ) => {{
