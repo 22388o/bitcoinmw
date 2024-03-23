@@ -754,8 +754,77 @@ macro_rules! hashset {
         }};
 }
 
-/// The [`crate::hashset_box`] macro is the same as the [`crate::hashset`] macro except that the
-/// hashset is returned in a box. See [`crate::hashset`].
+/// The [`crate::hashset_box`] macro is the `boxed` version of the [`crate::hashset`] macro. It returns a
+/// [`crate::Hashset`] within a [`std::boxed::Box`] (`Box<dyn HashSet<K>>`) with the specified configuration.
+///
+/// # Input Parameters
+/// * MaxEntries ([`prim@usize`]) (optional) - The maximum number of entries that can be in this hashset
+/// at any given time. The default value is 1_000.
+/// * MaxLoadFactor ([`prim@usize`]) (optional) - The maximum load factor of the hashset. The hashset is an
+/// array based hashset and it has a fixed size. Once the load factor is reached, insertions will return an
+/// error. The hashset uses linear probing to handle collisions. The max_load_factor makes sure no
+/// additional insertions occur at a given ratio of entries to capacity in the array. Note that
+/// MaxEntries can always be inserted, it's the capacity of the array that becomes larger as this ratio
+/// goes down. So if 100 MaxEntries are specified and the MaxLoadFactor is 0.5, a 200 slot array
+/// will be used and 100 entries will be allowed. The default MaxLoadFactor is 0.7.
+/// * GlobalSlabAllocator ([`bool`]) (optional) - If true, the [`crate::global_slab_allocator`] is
+/// used instead of using an internally built slab allocator. The Global Slab allocator is
+/// thread_local and the returned value cannot be passed to other threads. The default value is
+/// true.
+/// * SlabSize ([`prim@usize`]) (optional) - The size of slabs for the [`crate::SlabAllocator`] associated
+/// with this [`crate::Hashset`]. This option is only allowed if GlobalSlabAllocator is false.
+/// * SlabCount ([`prim@usize`]) (optional) - The count of slabs. This option is only allowed if
+/// GlobalSlabAllocator is false.
+///
+/// # Returns
+///
+/// A Ok(`Box<dyn Hashset<K>>`) on success or a [`bmw_err::Error`] on failure.
+///
+/// # Errors
+///
+/// * [`bmw_err::ErrKind::Configuration`] - If any values are specified other than the allowed
+/// values mentioned above or if there are any duplicate parameters specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If only one of SlabSize and SlabCount are specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If GlobalSlabAllocator is true and SlabSize or
+/// SlabCount are specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If GlobalSlabAllocator is false and SlabSize or
+/// SlabCount are not specified.
+/// * [`bmw_err::ErrKind::IllegalArgument`] - If the parameters specified for the SlabSize or
+/// SlabCount are not valid. See [`crate::SlabAllocator`].
+///
+/// # Examples
+///```
+/// use bmw_util::*;
+/// use bmw_log::*;
+/// use bmw_err::*;
+///
+/// fn main() -> Result<(), Error> {
+///         // create a hashset with the specified parameters
+///         let mut hashset = hashset_box!(
+///                 MaxEntries(1_000),
+///                 MaxLoadFactor(0.9),
+///                 GlobalSlabAllocator(false),
+///                 SlabSize(100),
+///                 SlabCount(100)
+///         )?;
+///
+///         // do an insert, rust will figure out what type is being inserted
+///         hashset.insert(&1u64)?;
+///
+///         // assert that the entry was inserted
+///         assert_eq!(hashset.contains(&1u64)?, true);
+///
+///         // create a hashset with the global slab allocator
+///         let mut hashset = hashset_box!()?;
+///
+///         hashset.insert(&1u8)?;
+///
+///         // assert that the entry was inserted
+///         assert_eq!(hashset.contains(&1u8)?, true);
+///
+///         Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! hashset_box {
         ($($config:tt)*) => {{
@@ -767,9 +836,81 @@ macro_rules! hashset_box {
         }};
 }
 
-/// The hashset_sync macro is the same as [`crate::hashset`] except that the returned Hashset
-/// implements Send and Sync and can be safely passed through threads. See
-/// [`crate::hashtable_sync`] for further details.
+/// The [`crate::hashset_sync`] macro is the `sync` version of the [`crate::hashset`] macro.
+/// It returns an impl of a [`crate::Hashset`] + Send + Sync (`impl HashSet<K> + Send + Sync`)
+/// with the specified configuration.
+///
+/// # Input Parameters
+/// * MaxEntries ([`prim@usize`]) (optional) - The maximum number of entries that can be in this hashset
+/// at any given time. The default value is 1_000.
+/// * MaxLoadFactor ([`prim@usize`]) (optional) - The maximum load factor of the hashset. The hashset is an
+/// array based hashset and it has a fixed size. Once the load factor is reached, insertions will return an
+/// error. The hashset uses linear probing to handle collisions. The max_load_factor makes sure no
+/// additional insertions occur at a given ratio of entries to capacity in the array. Note that
+/// MaxEntries can always be inserted, it's the capacity of the array that becomes larger as this ratio
+/// goes down. So if 100 MaxEntries are specified and the MaxLoadFactor is 0.5, a 200 slot array
+/// will be used and 100 entries will be allowed. The default MaxLoadFactor is 0.7.
+/// * GlobalSlabAllocator ([`bool`]) (optional) - If true, the [`crate::global_slab_allocator`] is
+/// used instead of using an internally built slab allocator. The Global Slab allocator is
+/// thread_local and the returned value cannot be passed to other threads. The default value is
+/// true.
+/// * SlabSize ([`prim@usize`]) (optional) - The size of slabs for the [`crate::SlabAllocator`] associated
+/// with this [`crate::Hashset`]. This option is only allowed if GlobalSlabAllocator is false.
+/// * SlabCount ([`prim@usize`]) (optional) - The count of slabs. This option is only allowed if
+/// GlobalSlabAllocator is false.
+///
+/// # Returns
+///
+/// A Ok(`impl Hashset<K> + Send + Sync`) on success or a [`bmw_err::Error`] on failure.
+///
+/// # Errors
+///
+/// * [`bmw_err::ErrKind::Configuration`] - If any values are specified other than the allowed
+/// values mentioned above or if there are any duplicate parameters specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If SlabSize or SlabCount are not specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If GlobalSlabAllocator is true (not allowed for IsSync)
+/// * [`bmw_err::ErrKind::IllegalArgument`] - If the parameters specified for the SlabSize or
+/// SlabCount are not valid. See [`crate::SlabAllocator`].
+///
+/// # Examples
+///```
+/// use bmw_util::*;
+/// use bmw_log::*;
+/// use bmw_err::*;
+///
+/// fn main() -> Result<(), Error> {
+///         // create a hashset with the specified parameters
+///         let mut hashset = hashset_sync!(
+///                 MaxEntries(1_000),
+///                 MaxLoadFactor(0.9),
+///                 GlobalSlabAllocator(false),
+///                 SlabSize(100),
+///                 SlabCount(100)
+///         )?;
+///
+///         // do an insert, rust will figure out what type is being inserted
+///         hashset.insert(&1u64)?;
+///
+///         // assert that the entry was inserted
+///         assert_eq!(hashset.contains(&1u64)?, true);
+///
+///         // a hashset_sync cannot be created with the global slab allocator
+///         // at a minimum GlobalSlabAllocator must be false and SlabSize/SlabCount must
+///         // be specified
+///         let mut hashset = hashset_sync!(
+///             GlobalSlabAllocator(false),
+///             SlabSize(100),
+///             SlabCount(200),
+///         )?;
+///
+///         hashset.insert(&1u8)?;
+///
+///         // assert that the entry was inserted
+///         assert_eq!(hashset.contains(&1u8)?, true);
+///
+///         Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! hashset_sync {
         ($($config:tt)*) => {{
@@ -781,9 +922,81 @@ macro_rules! hashset_sync {
         }};
 }
 
-/// The hashset_sync_box macro is the boxed version of the [`crate::hashset_sync`] macro. It is the
-/// same except that the returned [`crate::Hashset`] is in a Box so it can be added to structs and
-/// enums.
+/// The [`crate::hashset_sync_box`] macro is the `sync` and `boxed` version of the [`crate::hashset`]
+/// macro. It returns an [`std::boxed::Box`] of a [`crate::Hashset`] + Send + Sync
+/// (`Box<dyn HashSet<K> + Send + Sync>`) with the specified configuration.
+///
+/// # Input Parameters
+/// * MaxEntries ([`prim@usize`]) (optional) - The maximum number of entries that can be in this hashset
+/// at any given time. The default value is 1_000.
+/// * MaxLoadFactor ([`prim@usize`]) (optional) - The maximum load factor of the hashset. The hashset is an
+/// array based hashset and it has a fixed size. Once the load factor is reached, insertions will return an
+/// error. The hashset uses linear probing to handle collisions. The max_load_factor makes sure no
+/// additional insertions occur at a given ratio of entries to capacity in the array. Note that
+/// MaxEntries can always be inserted, it's the capacity of the array that becomes larger as this ratio
+/// goes down. So if 100 MaxEntries are specified and the MaxLoadFactor is 0.5, a 200 slot array
+/// will be used and 100 entries will be allowed. The default MaxLoadFactor is 0.7.
+/// * GlobalSlabAllocator ([`bool`]) (optional) - If true, the [`crate::global_slab_allocator`] is
+/// used instead of using an internally built slab allocator. The Global Slab allocator is
+/// thread_local and the returned value cannot be passed to other threads. The default value is
+/// true.
+/// * SlabSize ([`prim@usize`]) (optional) - The size of slabs for the [`crate::SlabAllocator`] associated
+/// with this [`crate::Hashset`]. This option is only allowed if GlobalSlabAllocator is false.
+/// * SlabCount ([`prim@usize`]) (optional) - The count of slabs. This option is only allowed if
+/// GlobalSlabAllocator is false.
+///
+/// # Returns
+///
+/// A Ok(`Box<dyn HashSet<K> + Send + Sync>`) on success or a [`bmw_err::Error`] on failure.
+///
+/// # Errors
+///
+/// * [`bmw_err::ErrKind::Configuration`] - If any values are specified other than the allowed
+/// values mentioned above or if there are any duplicate parameters specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If SlabSize or SlabCount are not specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If GlobalSlabAllocator is true (not allowed for IsSync)
+/// * [`bmw_err::ErrKind::IllegalArgument`] - If the parameters specified for the SlabSize or
+/// SlabCount are not valid. See [`crate::SlabAllocator`].
+///
+/// # Examples
+///```
+/// use bmw_util::*;
+/// use bmw_log::*;
+/// use bmw_err::*;
+///
+/// fn main() -> Result<(), Error> {
+///         // create a hashset with the specified parameters
+///         let mut hashset = hashset_sync_box!(
+///                 MaxEntries(1_000),
+///                 MaxLoadFactor(0.9),
+///                 GlobalSlabAllocator(false),
+///                 SlabSize(100),
+///                 SlabCount(100)
+///         )?;
+///
+///         // do an insert, rust will figure out what type is being inserted
+///         hashset.insert(&1u64)?;
+///
+///         // assert that the entry was inserted
+///         assert_eq!(hashset.contains(&1u64)?, true);
+///
+///         // a hashset_sync_box cannot be created with the global slab allocator
+///         // at a minimum GlobalSlabAllocator must be false and SlabSize/SlabCount must
+///         // be specified
+///         let mut hashset = hashset_sync_box!(
+///             GlobalSlabAllocator(false),
+///             SlabSize(100),
+///             SlabCount(200),
+///         )?;
+///
+///         hashset.insert(&1u8)?;
+///
+///         // assert that the entry was inserted
+///         assert_eq!(hashset.contains(&1u8)?, true);
+///
+///         Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! hashset_sync_box {
         ($($config:tt)*) => {{
