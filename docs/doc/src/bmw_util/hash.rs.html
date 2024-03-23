@@ -1461,6 +1461,13 @@
 <a href="#1459" id="1459">1459</a>
 <a href="#1460" id="1460">1460</a>
 <a href="#1461" id="1461">1461</a>
+<a href="#1462" id="1462">1462</a>
+<a href="#1463" id="1463">1463</a>
+<a href="#1464" id="1464">1464</a>
+<a href="#1465" id="1465">1465</a>
+<a href="#1466" id="1466">1466</a>
+<a href="#1467" id="1467">1467</a>
+<a href="#1468" id="1468">1468</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1960,6 +1967,7 @@
 				CN::MaxLoadFactor,
 				CN::DebugLargeSlabCount,
 				CN::GlobalSlabAllocator,
+				CN::IsSync,
 			],
 			<span class="macro">vec!</span>[],
 		)<span class="question-mark">?</span>;
@@ -1967,6 +1975,7 @@
 		<span class="kw">let </span>is_hashtable = config.get_or_bool(<span class="kw-2">&amp;</span>CN::IsHashtable, <span class="bool-val">false</span>);
 		<span class="kw">let </span>is_hashset = config.get_or_bool(<span class="kw-2">&amp;</span>CN::IsHashset, <span class="bool-val">false</span>);
 		<span class="kw">let </span>is_list = config.get_or_bool(<span class="kw-2">&amp;</span>CN::IsList, <span class="bool-val">false</span>);
+		<span class="kw">let </span>is_sync = config.get_or_bool(<span class="kw-2">&amp;</span>CN::IsSync, <span class="bool-val">false</span>);
 		<span class="kw">let </span>is_global_slab_allocator = config.get_or_bool(<span class="kw-2">&amp;</span>CN::GlobalSlabAllocator, <span class="bool-val">true</span>);
 		<span class="kw">let </span>debug_large_slab_count = config.get_or_bool(<span class="kw-2">&amp;</span>CN::DebugLargeSlabCount, <span class="bool-val">false</span>);
 
@@ -1980,6 +1989,11 @@
 		<span class="kw">let </span>max_load_factor_specified = config.get(<span class="kw-2">&amp;</span>CN::MaxLoadFactor).is_some();
 		<span class="kw">let </span>slab_size_specified = config.get(<span class="kw-2">&amp;</span>CN::SlabSize).is_some();
 		<span class="kw">let </span>slab_count_specified = config.get(<span class="kw-2">&amp;</span>CN::SlabCount).is_some();
+
+		<span class="kw">if </span>is_sync &amp;&amp; is_global_slab_allocator {
+			<span class="kw">let </span>text = <span class="string">"IsSync is not allowed with GlobalSlabAllocator"</span>;
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Configuration, text));
+		}
 
 		<span class="kw">if </span>is_list &amp;&amp; max_entries_specified {
 			<span class="kw">let </span>text = <span class="string">"MaxEntries not valid for a list"</span>;

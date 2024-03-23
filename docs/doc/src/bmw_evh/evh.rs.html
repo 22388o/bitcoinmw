@@ -2978,7 +2978,6 @@
 <a href="#2976" id="2976">2976</a>
 <a href="#2977" id="2977">2977</a>
 <a href="#2978" id="2978">2978</a>
-<a href="#2979" id="2979">2979</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -5591,8 +5590,7 @@
 
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.config.threads {
 			<span class="kw">let </span><span class="kw-2">mut </span>evh = v[i].<span class="number">0</span>.clone();
-			<span class="comment">//let mut wakeup = v[i].1.clone();
-			</span><span class="kw">let </span><span class="kw-2">mut </span>wakeup = {
+			<span class="kw">let </span><span class="kw-2">mut </span>wakeup = {
 				<span class="kw">let </span><span class="kw-2">mut </span>data = v[i].<span class="number">1</span>.wlock_ignore_poison()<span class="question-mark">?</span>;
 				<span class="kw">let </span>guard = data.guard()<span class="question-mark">?</span>;
 				(<span class="kw-2">**</span>guard).wakeup.clone()

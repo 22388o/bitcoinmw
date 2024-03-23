@@ -487,6 +487,12 @@
 <a href="#485" id="485">485</a>
 <a href="#486" id="486">486</a>
 <a href="#487" id="487">487</a>
+<a href="#488" id="488">488</a>
+<a href="#489" id="489">489</a>
+<a href="#490" id="490">490</a>
+<a href="#491" id="491">491</a>
+<a href="#492" id="492">492</a>
+<a href="#493" id="493">493</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -782,6 +788,7 @@
 		V: Serializable + Clone,
 	{
 		configs.push(ConfigOption::IsHashtable(<span class="bool-val">true</span>));
+		configs.push(ConfigOption::IsSync(<span class="bool-val">true</span>));
 		HashImplSync::new(configs)
 	}
 
@@ -806,6 +813,7 @@
 		V: Serializable + Clone,
 	{
 		configs.push(ConfigOption::IsHashtable(<span class="bool-val">true</span>));
+		configs.push(ConfigOption::IsSync(<span class="bool-val">true</span>));
 		<span class="prelude-val">Ok</span>(Box::new(HashImplSync::new(configs)<span class="question-mark">?</span>))
 	}
 
@@ -850,6 +858,7 @@
 	<span class="kw">where
 		</span>K: Serializable + Hash + PartialEq + Debug + Clone,
 	{
+		configs.push(ConfigOption::IsSync(<span class="bool-val">true</span>));
 		configs.push(ConfigOption::IsHashset(<span class="bool-val">true</span>));
 		HashImplSync::new(configs)
 	}
@@ -874,6 +883,7 @@
 		</span>K: Serializable + Hash + PartialEq + Debug + <span class="lifetime">'static </span>+ Clone,
 	{
 		configs.push(ConfigOption::IsHashset(<span class="bool-val">true</span>));
+		configs.push(ConfigOption::IsSync(<span class="bool-val">true</span>));
 		<span class="kw">let </span>ret = HashImplSync::new(configs)<span class="question-mark">?</span>;
 		<span class="kw">let </span>ret = Box::new(ret);
 		<span class="prelude-val">Ok</span>(ret)
@@ -915,6 +925,7 @@
 		</span>V: Serializable + Debug + PartialEq + Clone,
 	{
 		configs.push(ConfigOption::IsList(<span class="bool-val">true</span>));
+		configs.push(ConfigOption::IsSync(<span class="bool-val">true</span>));
 		HashImplSync::new(configs)
 	}
 
@@ -938,6 +949,7 @@
 		</span>V: Serializable + Debug + PartialEq + Clone + <span class="lifetime">'static</span>,
 	{
 		configs.push(ConfigOption::IsList(<span class="bool-val">true</span>));
+		configs.push(ConfigOption::IsSync(<span class="bool-val">true</span>));
 		<span class="kw">let </span>ret = HashImplSync::new(configs)<span class="question-mark">?</span>;
 		<span class="kw">let </span>ret = Box::new(ret);
 		<span class="prelude-val">Ok</span>(ret)
