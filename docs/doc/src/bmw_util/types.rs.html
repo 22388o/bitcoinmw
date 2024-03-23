@@ -574,8 +574,6 @@
 <a href="#572" id="572">572</a>
 <a href="#573" id="573">573</a>
 <a href="#574" id="574">574</a>
-<a href="#575" id="575">575</a>
-<a href="#576" id="576">576</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -980,15 +978,6 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) recv_handle: Receiver&lt;PoolResult&lt;T, Error&gt;&gt;,
 }
 
-<span class="doccomment">/// Internally used struct that stores the state of the thread pool.
-</span><span class="attr">#[derive(Debug, Clone, Serializable)]
-</span><span class="kw">pub struct </span>ThreadPoolState {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) waiting: usize,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) cur_size: usize,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) config: ThreadPoolConfig,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) stop: bool,
-}
-
 <span class="doccomment">/// Struct that can be used to execute tasks in the thread pool. Mainly needed
 /// for passing the execution functionality to structs/threads.
 </span><span class="attr">#[derive(Debug, Clone)]
@@ -996,7 +985,6 @@
 <span class="kw">where
 	</span>T: <span class="lifetime">'static </span>+ Send + Sync,
 {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) config: ThreadPoolConfig,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) tx: <span class="prelude-ty">Option</span>&lt;SyncSender&lt;FutureWrapper&lt;T&gt;&gt;&gt;,
 }
 
@@ -1151,5 +1139,13 @@
 	<span class="kw">pub </span>min_size: usize,
 	<span class="kw">pub </span>max_size: usize,
 	<span class="kw">pub </span>sync_channel_size: usize,
+}
+
+<span class="attr">#[derive(Debug, Clone, Serializable)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>ThreadPoolState {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) waiting: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) cur_size: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) config: ThreadPoolConfig,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) stop: bool,
 }
 </code></pre></div></section></main></body></html>

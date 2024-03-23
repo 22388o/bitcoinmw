@@ -707,6 +707,7 @@
 <a href="#705" id="705">705</a>
 <a href="#706" id="706">706</a>
 <a href="#707" id="707">707</a>
+<a href="#708" id="708">708</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1307,7 +1308,7 @@
 ///
 /// debug!();
 ///
-/// fn test() -&gt; Result&lt;(), Error&gt; {
+/// fn main() -&gt; Result&lt;(), Error&gt; {
 ///
 ///     // first init the logger
 ///     log_init!(DisplayColors(true))?;
@@ -1361,7 +1362,7 @@
 /// use bmw_test::*;
 /// use std::path::PathBuf;
 ///
-/// fn logger() -&gt; Result&lt;(), Error&gt; {
+/// fn main() -&gt; Result&lt;(), Error&gt; {
 ///     let test_info = test_info!()?;
 ///     let mut buf = PathBuf::new();
 ///     buf.push(test_info.directory());
@@ -1390,6 +1391,7 @@
 ///         FileHeader("my_header".to_string()), // header to place at the top of each file
 ///     )?;
 ///
+///     logger.init()?;
 ///     logger.set_log_level(LogLevel::Debug);
 ///
 ///     logger.log(LogLevel::Debug, "This is a test!")?;

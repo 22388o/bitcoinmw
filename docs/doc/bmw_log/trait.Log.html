@@ -25,7 +25,7 @@ of using the logger directly.</p>
  <span class="kw">use </span>bmw_test::<span class="kw-2">*</span>;
  <span class="kw">use </span>std::path::PathBuf;
      
- <span class="kw">fn </span>my_log() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+ <span class="kw">fn </span>main() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
      <span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
      <span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
      buf.push(test_info.directory());

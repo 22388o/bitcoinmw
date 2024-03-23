@@ -4932,6 +4932,7 @@
 <a href="#4930" id="4930">4930</a>
 <a href="#4931" id="4931">4931</a>
 <a href="#4932" id="4932">4932</a>
+<a href="#4933" id="4933">4933</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -5056,8 +5057,9 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>tp = <span class="macro">thread_pool!</span>()<span class="question-mark">?</span>;
 		tp.set_on_panic(<span class="kw">move </span>|_id, _e| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; { <span class="prelude-val">Ok</span>(()) })<span class="question-mark">?</span>;
 		tp.start()<span class="question-mark">?</span>;
+		<span class="macro">assert!</span>(tp.start().is_err()); <span class="comment">// double start is an err
 
-		<span class="kw">let </span>handle = <span class="macro">execute!</span>(tp, {
+		</span><span class="kw">let </span>handle = <span class="macro">execute!</span>(tp, {
 			<span class="kw">let </span><span class="kw-2">mut </span>x = UtilBuilder::build_array(<span class="number">10</span>, <span class="kw-2">&amp;</span><span class="number">0</span>)<span class="question-mark">?</span>;
 			<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="number">10 </span>{
 				x[i] = i;
