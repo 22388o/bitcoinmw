@@ -1,37 +1,79 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="The difference between this macro and the `crate::hashtable` macro is that the returned `crate::Hashtable` implements the Send and Sync traits and is thread safe. With this hashtable you cannot specify a `crate::SlabAllocator` because they use `std::cell::RefCell` which is not thread safe. That is also why this macro returns an error if ConfigOption::Slabs is specified. The parameters for this macro are:"><title>hashtable_sync in bmw_util - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.0 (aedd173a2 2024-03-17)" data-channel="1.77.0" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../static.files/storage-4c98445ec4002617.js"></script><script defer src="sidebar-items.js"></script><script defer src="../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc macro"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../bmw_util/index.html">bmw_util</a><span class="version">0.0.3-beta.1</span></h2></div><div class="sidebar-elems"></div></nav><div class="sidebar-resizer"></div>
-    <main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../bmw_util/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Macro <a href="index.html">bmw_util</a>::<wbr><a class="macro" href="#">hashtable_sync</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="src" href="../src/bmw_util/macros.rs.html#650-658">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><pre class="rust item-decl"><span class="macro">macro_rules! </span>hashtable_sync {
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="The `crate::hashtable_sync` macro is the `sync` version of `crate::hashtable`. It builds a `crate::Hashtable` with the specified configuration and returns it with the Send and Sync markers. (`impl Hashtable&lt;K, V&gt; + Send + Sync`)."><title>hashtable_sync in bmw_util - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.0 (aedd173a2 2024-03-17)" data-channel="1.77.0" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../static.files/storage-4c98445ec4002617.js"></script><script defer src="sidebar-items.js"></script><script defer src="../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc macro"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../bmw_util/index.html">bmw_util</a><span class="version">0.0.3-beta.1</span></h2></div><div class="sidebar-elems"></div></nav><div class="sidebar-resizer"></div>
+    <main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../bmw_util/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Macro <a href="index.html">bmw_util</a>::<wbr><a class="macro" href="#">hashtable_sync</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="src" href="../src/bmw_util/macros.rs.html#819-827">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><pre class="rust item-decl"><span class="macro">macro_rules! </span>hashtable_sync {
     ($(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; { ... };
-}</pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>The difference between this macro and the <a href="macro.hashtable.html" title="macro bmw_util::hashtable"><code>crate::hashtable</code></a> macro is that the returned
-<a href="trait.Hashtable.html" title="trait bmw_util::Hashtable"><code>crate::Hashtable</code></a> implements the Send and Sync traits and is thread safe. With this
-hashtable you cannot specify a <a href="trait.SlabAllocator.html" title="trait bmw_util::SlabAllocator"><code>crate::SlabAllocator</code></a> because they use <a href="https://doc.rust-lang.org/1.77.0/core/cell/struct.RefCell.html" title="struct core::cell::RefCell"><code>std::cell::RefCell</code></a>
-which is not thread safe. That is also why this macro returns an error if
-ConfigOption::Slabs is specified. The parameters for this macro are:</p>
+}</pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>The <a href="macro.hashtable_sync.html" title="macro bmw_util::hashtable_sync"><code>crate::hashtable_sync</code></a> macro is the <code>sync</code> version of <a href="macro.hashtable.html" title="macro bmw_util::hashtable"><code>crate::hashtable</code></a>. It builds a
+<a href="trait.Hashtable.html" title="trait bmw_util::Hashtable"><code>crate::Hashtable</code></a> with the specified configuration and returns it with the Send and Sync
+markers.
+(<code>impl Hashtable&lt;K, V&gt; + Send + Sync</code>).</p>
+<h2 id="input-parameters"><a class="doc-anchor" href="#input-parameters">§</a>Input Parameters</h2>
 <ul>
-<li>
-<p>MaxEntries(usize) (optional) - The maximum number of entries that can be in this hashtable
-at any given time. If not specified, the default value of
-100_000 will be used.</p>
-</li>
-<li>
-<p>MaxLoadFactor(usize) (optional) - The maximum load factor of the hashtable. The hashtable is
-array based hashtable and it has a fixed size. Once the
-load factor is reach, insertions will return an error. The
-hashtable uses linear probing to handle collisions. The
-max_load_factor makes sure no additional insertions occur
-at a given ratio of entries to capacity in the array. Note
-that MaxEntries can always be inserted, it’s the capacity
-of the array that becomes larger as this ratio goes down.
-If not specified, the default value is 0.8.</p>
-</li>
-<li>
-<p>SlabSize(usize) (optional) - the size in bytes of the slabs for this slab allocator.
-if not specified, the default value of 256 is used.</p>
-</li>
-<li>
-<p>SlabCount(usize) (optional) - the number of slabs to allocate to this slab
-allocator. If not specified, the default value of
-40,960 is used.</p>
-</li>
+<li>MaxEntries (<a href="https://doc.rust-lang.org/1.77.0/std/primitive.usize.html" title="primitive usize"><code>usize</code></a>) (optional) - The maximum number of entries that can be in this
+hashtable at any given time. The default value is 1_000.</li>
+<li>MaxLoadFactor (<a href="https://doc.rust-lang.org/1.77.0/std/primitive.usize.html" title="primitive usize"><code>usize</code></a>) (optional) - The maximum load factor of the hashtable. The hashtable
+is an array based hashtable and it has a fixed size. Once the load factor is reached, insertions will
+return an error. The hashtable uses linear probing to handle collisions. The max_load_factor makes sure
+no additional insertions occur at a given ratio of entries to capacity in the array. Note that
+MaxEntries can always be inserted, it’s the capacity of the array that becomes larger as this ratio
+goes down. So if 100 MaxEntries are specified and the MaxLoadFactor is 0.5, a 200 slot array
+will be used and 100 entries will be allowed. The default MaxLoadFactor is 0.7.</li>
+<li>GlobalSlabAllocator (<a href="https://doc.rust-lang.org/1.77.0/std/primitive.bool.html" title="primitive bool"><code>bool</code></a>) (optional) - If true, the <a href="macro.global_slab_allocator.html" title="macro bmw_util::global_slab_allocator"><code>crate::global_slab_allocator</code></a> is
+used instead of using an internally built slab allocator. The global slab allocator is
+thread_local and the returned value cannot be passed to other threads. The default value is
+true.</li>
+<li>SlabSize (<a href="https://doc.rust-lang.org/1.77.0/std/primitive.usize.html" title="primitive usize"><code>usize</code></a>) (optional) - The size of slabs for the <a href="trait.SlabAllocator.html" title="trait bmw_util::SlabAllocator"><code>crate::SlabAllocator</code></a> associated
+with this <a href="trait.Hashtable.html" title="trait bmw_util::Hashtable"><code>crate::Hashtable</code></a>. This option is only allowed if GlobalSlabAllocator is false.</li>
+<li>SlabCount (<a href="https://doc.rust-lang.org/1.77.0/std/primitive.usize.html" title="primitive usize"><code>usize</code></a>) (optional) - The count of slabs. This option is only allowed if
+GlobalSlabAllocator is false.</li>
 </ul>
-<p>See the <a href="index.html" title="mod bmw_util"><code>crate</code></a> for examples.</p>
+<h2 id="returns"><a class="doc-anchor" href="#returns">§</a>Returns</h2>
+<p>A Ok(<code>impl Hashtable&lt;K, V&gt; + Send + Sync</code>) on success or a [<code>bmw_err::Error</code>] on failure.</p>
+<h2 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h2>
+<ul>
+<li>[<code>bmw_err::ErrKind::Configuration</code>] - If any values are specified other than the allowed
+values mentioned above or if there are any duplicate parameters specified.</li>
+<li>[<code>bmw_err::ErrKind::Configuration</code>] - If SlabSize or SlabCount are not specified.</li>
+<li>[<code>bmw_err::ErrKind::Configuration</code>] - If GlobalSlabAllocator is true (not allowed for sync)</li>
+<li>[<code>bmw_err::ErrKind::IllegalArgument</code>] - If the parameters specified for the SlabSize or
+SlabCount are not valid. See <a href="trait.SlabAllocator.html" title="trait bmw_util::SlabAllocator"><code>crate::SlabAllocator</code></a>.</li>
+</ul>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code> <span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
+ <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
+ <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
+         
+ <span class="kw">fn </span>main() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+         <span class="comment">// create a hashtable with the specified parameters
+         </span><span class="kw">let </span><span class="kw-2">mut </span>hashtable = <span class="macro">hashtable_sync!</span>(
+                 MaxEntries(<span class="number">1_000</span>),
+                 MaxLoadFactor(<span class="number">0.9</span>),
+                 GlobalSlabAllocator(<span class="bool-val">false</span>),
+                 SlabSize(<span class="number">100</span>),
+                 SlabCount(<span class="number">100</span>)
+         )<span class="question-mark">?</span>;
+             
+         <span class="comment">// do an insert, rust will figure out what type is being inserted
+         </span>hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1u64</span>, <span class="kw-2">&amp;</span><span class="number">10u8</span>)<span class="question-mark">?</span>;
+
+         <span class="comment">// assert that the entry was inserted
+         </span><span class="macro">assert_eq!</span>(hashtable.get(<span class="kw-2">&amp;</span><span class="number">1u64</span>)<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="number">10u8</span>));
+
+         <span class="comment">// a hashtable_sync cannot be created with the global slab allocator
+         // at a minimum GlobalSlabAllocator must be false and SlabSize/SlabCount must
+         // be specified
+         </span><span class="kw">let </span><span class="kw-2">mut </span>hashtable = <span class="macro">hashtable_sync!</span>(
+             GlobalSlabAllocator(<span class="bool-val">false</span>),
+             SlabSize(<span class="number">100</span>),
+             SlabCount(<span class="number">200</span>),
+         )<span class="question-mark">?</span>;
+
+         hashtable.insert(<span class="kw-2">&amp;</span><span class="number">1i32</span>, <span class="kw-2">&amp;</span><span class="number">10i128</span>)<span class="question-mark">?</span>;
+
+         <span class="comment">// assert that the entry was inserted
+         </span><span class="macro">assert_eq!</span>(hashtable.get(<span class="kw-2">&amp;</span><span class="number">1i32</span>)<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="number">10i128</span>));
+
+         <span class="comment">// assert that this entry is not in the table
+         </span><span class="macro">assert_eq!</span>(hashtable.get(<span class="kw-2">&amp;</span><span class="number">2i32</span>)<span class="question-mark">?</span>, <span class="prelude-val">None</span>);
+
+         <span class="prelude-val">Ok</span>(())
+ }</code></pre></div>
 </div></details></section></div></main></body></html>
