@@ -70,8 +70,46 @@ macro_rules! lock {
 	}};
 }
 
-/// The same as lock except that the value returned is in a `Box<dyn LockBox<T>>` structure.
-/// See [`crate::LockBox`] for a working example.
+/// The same as [`crate::lock`] except that the value returned is in a `Box<dyn LockBox<T>>` structure.
+/// # Examples
+///```
+/// use bmw_err::*;
+/// use bmw_util::*;
+/// use std::time::Duration;
+/// use std::thread::{sleep, spawn};
+///
+/// #[derive(Debug, PartialEq)]
+/// struct MyStruct {
+///     id: u128,
+///     name: String,
+/// }   
+///
+/// impl MyStruct {
+///     fn new(id: u128, name: String) -> Self {
+///         Self { id, name }
+///     }
+/// }
+///
+/// fn main() -> Result<(), Error> {
+///     let v = MyStruct::new(1234, "joe".to_string());
+///     let mut vlock = lock_box!(v)?;
+///     let vlock_clone = vlock.clone();
+///         
+///     spawn(move || -> Result<(), Error> {
+///         let mut x = vlock.wlock()?;
+///         assert_eq!((**(x.guard()?)).id, 1234);
+///         sleep(Duration::from_millis(3000));
+///         (**(x.guard()?)).id = 4321;
+///         Ok(())
+///     });
+///
+///     sleep(Duration::from_millis(1000));
+///     let x = vlock_clone.rlock()?;
+///     assert_eq!((**(x.guard()?)).id, 4321);
+///     
+///     Ok(())  
+/// }   
+///```
 #[macro_export]
 macro_rules! lock_box {
 	($value:expr) => {{
@@ -524,24 +562,26 @@ macro_rules! search_trie {
         }};
 }
 
-/// The [`crate::hashtable`] macro builds a [`crate::Hashtable`] with the specified configuration and
-/// optionally the specified [`crate::SlabAllocator`]. The macro accepts the following parameters:
+/// The [`crate::hashtable`] macro builds a [`crate::Hashtable`] with the specified configuration.
 ///
-/// * MaxEntries(usize) (optional) - The maximum number of entries that can be in this hashtable
-///                                  at any given time. If not specified, the default value of
-///                                  100_000 will be used.
-/// * MaxLoadFactor(usize) (optional) - The maximum load factor of the hashtable. The hashtable is
-///                                     array based hashtable and it has a fixed size. Once the
-///                                     load factor is reach, insertions will return an error. The
-///                                     hashtable uses linear probing to handle collisions. The
-///                                     max_load_factor makes sure no additional insertions occur
-///                                     at a given ratio of entries to capacity in the array. Note
-///                                     that MaxEntries can always be inserted, it's the capacity
-///                                     of the array that becomes larger as this ratio goes down.
-///                                     If not specified, the default value is 0.8.
-/// * Slabs(`Option<&Rc<RefCell<dyn SlabAllocator>>>`) (optional) - An optional reference to a slab
-///                                     allocator to use with this [`crate::Hashtable`]. If not
-///                                     specified, the global slab allocator is used.
+/// # Input Parameters
+/// * MaxEntries ([`prim@usize`]) (optional) - The maximum number of entries that can be in this
+/// hashtable at any given time. The default value is 1_000.
+/// * MaxLoadFactor ([`prim@usize`]) (optional) - The maximum load factor of the hashtable. The hashtable
+/// is an array based hashtable and it has a fixed size. Once the load factor is reached, insertions will
+/// return an error. The hashtable uses linear probing to handle collisions. The max_load_factor makes sure
+/// no additional insertions occur at a given ratio of entries to capacity in the array. Note that
+/// MaxEntries can always be inserted, it's the capacity of the array that becomes larger as this ratio
+/// goes down. So if 100 MaxEntries are specified and the MaxLoadFactor is 0.5, a 200 slot array
+/// will be used and 100 entries will be allowed. The default MaxLoadFactor is 0.7.
+/// * GlobalSlabAllocator ([`bool`]) (optional) - If true, the [`crate::global_slab_allocator`] is
+/// used instead of using an internally built slab allocator. The global slab allocator is
+/// thread_local and the returned value cannot be passed to other threads. The default value is
+/// true.
+/// * SlabSize ([`prim@usize`]) (optional) - The size of slabs for the [`crate::SlabAllocator`] associated
+/// with this [`crate::Hashtable`]. This option is only allowed if GlobalSlabAllocator is false.
+/// * SlabCount ([`prim@usize`]) (optional) - The count of slabs. This option is only allowed if
+/// GlobalSlabAllocator is false.
 ///
 /// # Returns
 ///
@@ -549,46 +589,50 @@ macro_rules! search_trie {
 ///
 /// # Errors
 ///
-/// * [`bmw_err::ErrKind::Configuration`] if anything other than ConfigOption::Slabs,
-///                                     ConfigOption::MaxEntries or
-///                                     ConfigOption::MaxLoadFactor is specified,
-///                                     if the slab_allocator's slab_size is greater than 65,536,
-///                                     or slab_count is greater than 281_474_976_710_655,
-///                                     max_entries is 0 or max_load_factor is not greater than 0
-///                                     and less than or equal to 1.
+/// * [`bmw_err::ErrKind::Configuration`] - If any values are specified other than the allowed
+/// values mentioned above or if there are any duplicate parameters specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If only one of SlabSize and SlabCount are specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If GlobalSlabAllocator is true and SlabSize or
+/// SlabCount are specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If GlobalSlabAllocator is false and SlabSize or
+/// SlabCount are not specified.
+/// * [`bmw_err::ErrKind::IllegalArgument`] - If the parameters specified for the SlabSize or
+/// SlabCount are not valid. See [`crate::SlabAllocator`].
 ///
 /// # Examples
-///```
+///```                  
 /// use bmw_util::*;
-/// use bmw_log::*;
-/// use bmw_err::*;
+/// use bmw_log::*;             
+/// use bmw_err::*;             
 ///
 /// fn main() -> Result<(), Error> {
-///
 ///         // create a hashtable with the specified parameters
 ///         let mut hashtable = hashtable!(
-///                 MaxEntries(1_000),
-///                 MaxLoadFactor(0.9),
-///                 GlobalSlabAllocator(false),
-///                 SlabSize(100),
+///                 MaxEntries(1_000),  
+///                 MaxLoadFactor(0.9),                 
+///                 GlobalSlabAllocator(false),         
+///                 SlabSize(100),      
 ///                 SlabCount(100)
-///         )?;
-///
+///         )?;         
+///                     
 ///         // do an insert, rust will figure out what type is being inserted
-///         hashtable.insert(&1, &2)?;
-///
+///         hashtable.insert(&1u32, &10u128)?;
+///                     
 ///         // assert that the entry was inserted
-///         assert_eq!(hashtable.get(&1)?, Some(2));
+///         assert_eq!(hashtable.get(&1u32)?, Some(10u128));
 ///
 ///         // create another hashtable with defaults, this time the global slab allocator will be
 ///         // used. Since we did not initialize it default values will be used.
 ///         let mut hashtable = hashtable!()?;
 ///
 ///         // do an insert, rust will figure out what type is being inserted
-///         hashtable.insert(&1, &3)?;
+///         hashtable.insert(&1u8, &100u16)?;
 ///
 ///         // assert that the entry was inserted
-///         assert_eq!(hashtable.get(&1)?, Some(3));
+///         assert_eq!(hashtable.get(&1u8)?, Some(100u16));
+///
+///         // assert that this entry is not in the table
+///         assert_eq!(hashtable.get(&2u8)?, None);
 ///
 ///         Ok(())
 /// }
@@ -604,11 +648,83 @@ macro_rules! hashtable {
         }};
 }
 
-/// The [`crate::hashtable_box`] macro builds a [`crate::Hashtable`] with the specified configuration and
-/// optionally the specified [`crate::SlabAllocator`]. The only difference between this macro and
-/// the [`crate::hashtable`] macro is that the returned hashtable is inserted into a Box.
-/// Specifically, the return type is a `Box<dyn Hashtable>`. See [`crate::hashtable`] for further
-/// details.
+/// The [`crate::hashtable_box`] macro is the `boxed` version of [`crate::hashtable`]. It builds a
+/// [`crate::Hashtable`] with the specified configuration and stores it in a [`std::boxed::Box`]
+/// (`Box<dyn Hashtable<K, V>>`).
+///
+/// # Input Parameters
+/// * MaxEntries ([`prim@usize`]) (optional) - The maximum number of entries that can be in this
+/// hashtable at any given time. The default value is 1_000.
+/// * MaxLoadFactor ([`prim@usize`]) (optional) - The maximum load factor of the hashtable. The hashtable
+/// is an array based hashtable and it has a fixed size. Once the load factor is reached, insertions will
+/// return an error. The hashtable uses linear probing to handle collisions. The max_load_factor makes sure
+/// no additional insertions occur at a given ratio of entries to capacity in the array. Note that
+/// MaxEntries can always be inserted, it's the capacity of the array that becomes larger as this ratio
+/// goes down. So if 100 MaxEntries are specified and the MaxLoadFactor is 0.5, a 200 slot array
+/// will be used and 100 entries will be allowed. The default MaxLoadFactor is 0.7.
+/// * GlobalSlabAllocator ([`bool`]) (optional) - If true, the [`crate::global_slab_allocator`] is
+/// used instead of using an internally built slab allocator. The global slab allocator is
+/// thread_local and the returned value cannot be passed to other threads. The default value is
+/// true.
+/// * SlabSize ([`prim@usize`]) (optional) - The size of slabs for the [`crate::SlabAllocator`] associated
+/// with this [`crate::Hashtable`]. This option is only allowed if GlobalSlabAllocator is false.
+/// * SlabCount ([`prim@usize`]) (optional) - The count of slabs. This option is only allowed if
+/// GlobalSlabAllocator is false.
+///
+/// # Returns           
+///
+/// A Ok(`Box<dyn Hashtable<K, V>>`) on success or a [`bmw_err::Error`] on failure.
+///
+/// # Errors
+///
+/// * [`bmw_err::ErrKind::Configuration`] - If any values are specified other than the allowed
+/// values mentioned above or if there are any duplicate parameters specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If only one of SlabSize and SlabCount are specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If GlobalSlabAllocator is true and SlabSize or
+/// SlabCount are specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If GlobalSlabAllocator is false and SlabSize or
+/// SlabCount are not specified.
+/// * [`bmw_err::ErrKind::IllegalArgument`] - If the parameters specified for the SlabSize or
+/// SlabCount are not valid. See [`crate::SlabAllocator`].
+///
+/// # Examples
+///```                  
+/// use bmw_util::*;
+/// use bmw_log::*;
+/// use bmw_err::*;
+///
+/// fn main() -> Result<(), Error> {
+///         // create a hashtable with the specified parameters
+///         let mut hashtable = hashtable_box!(
+///                 MaxEntries(1_000),
+///                 MaxLoadFactor(0.9),
+///                 GlobalSlabAllocator(false),
+///                 SlabSize(100),
+///                 SlabCount(100)
+///         )?;   
+///
+///         // do an insert, rust will figure out what type is being inserted
+///         hashtable.insert(&1u32, &10u128)?;
+///
+///         // assert that the entry was inserted
+///         assert_eq!(hashtable.get(&1u32)?, Some(10u128));
+///
+///         // create another hashtable with defaults, this time the global slab allocator will be
+///         // used. Since we did not initialize it default values will be used.
+///         let mut hashtable = hashtable_box!()?;
+///
+///         // do an insert, rust will figure out what type is being inserted
+///         hashtable.insert(&1u8, &100u16)?;
+///
+///         // assert that the entry was inserted
+///         assert_eq!(hashtable.get(&1u8)?, Some(100u16));
+///
+///         // assert that this entry is not in the table
+///         assert_eq!(hashtable.get(&2u8)?, None);
+///
+///         Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! hashtable_box {
         ($($config:tt)*) => {{
@@ -620,32 +736,85 @@ macro_rules! hashtable_box {
         }};
 }
 
-/// The difference between this macro and the [`crate::hashtable`] macro is that the returned
-/// [`crate::Hashtable`] implements the Send and Sync traits and is thread safe. With this
-/// hashtable you cannot specify a [`crate::SlabAllocator`] because they use [`std::cell::RefCell`]
-/// which is not thread safe. That is also why this macro returns an error if
-/// ConfigOption::Slabs is specified. The parameters for this macro are:
+/// The [`crate::hashtable_sync`] macro is the `sync` version of [`crate::hashtable`]. It builds a
+/// [`crate::Hashtable`] with the specified configuration and returns it with the Send and Sync
+/// markers.
+/// (`impl Hashtable<K, V> + Send + Sync`).
 ///
-/// * MaxEntries(usize) (optional) - The maximum number of entries that can be in this hashtable
-///                                  at any given time. If not specified, the default value of
-///                                  100_000 will be used.
-/// * MaxLoadFactor(usize) (optional) - The maximum load factor of the hashtable. The hashtable is
-///                                     array based hashtable and it has a fixed size. Once the
-///                                     load factor is reach, insertions will return an error. The
-///                                     hashtable uses linear probing to handle collisions. The
-///                                     max_load_factor makes sure no additional insertions occur
-///                                     at a given ratio of entries to capacity in the array. Note
-///                                     that MaxEntries can always be inserted, it's the capacity
-///                                     of the array that becomes larger as this ratio goes down.
-///                                     If not specified, the default value is 0.8.
-/// * SlabSize(usize) (optional) - the size in bytes of the slabs for this slab allocator.
-///                                if not specified, the default value of 256 is used.
+/// # Input Parameters
+/// * MaxEntries ([`prim@usize`]) (optional) - The maximum number of entries that can be in this
+/// hashtable at any given time. The default value is 1_000.
+/// * MaxLoadFactor ([`prim@usize`]) (optional) - The maximum load factor of the hashtable. The hashtable
+/// is an array based hashtable and it has a fixed size. Once the load factor is reached, insertions will
+/// return an error. The hashtable uses linear probing to handle collisions. The max_load_factor makes sure
+/// no additional insertions occur at a given ratio of entries to capacity in the array. Note that
+/// MaxEntries can always be inserted, it's the capacity of the array that becomes larger as this ratio
+/// goes down. So if 100 MaxEntries are specified and the MaxLoadFactor is 0.5, a 200 slot array
+/// will be used and 100 entries will be allowed. The default MaxLoadFactor is 0.7.
+/// * GlobalSlabAllocator ([`bool`]) (optional) - If true, the [`crate::global_slab_allocator`] is
+/// used instead of using an internally built slab allocator. The global slab allocator is
+/// thread_local and the returned value cannot be passed to other threads. The default value is
+/// true.
+/// * SlabSize ([`prim@usize`]) (optional) - The size of slabs for the [`crate::SlabAllocator`] associated
+/// with this [`crate::Hashtable`]. This option is only allowed if GlobalSlabAllocator is false.
+/// * SlabCount ([`prim@usize`]) (optional) - The count of slabs. This option is only allowed if
+/// GlobalSlabAllocator is false.
 ///
-/// * SlabCount(usize) (optional) - the number of slabs to allocate to this slab
-///                                 allocator. If not specified, the default value of
-///                                 40,960 is used.
+/// # Returns
 ///
-/// See the [`crate`] for examples.
+/// A Ok(`impl Hashtable<K, V> + Send + Sync`) on success or a [`bmw_err::Error`] on failure.
+///
+/// # Errors
+///
+/// * [`bmw_err::ErrKind::Configuration`] - If any values are specified other than the allowed
+/// values mentioned above or if there are any duplicate parameters specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If SlabSize or SlabCount are not specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If GlobalSlabAllocator is true (not allowed for sync)
+/// * [`bmw_err::ErrKind::IllegalArgument`] - If the parameters specified for the SlabSize or
+/// SlabCount are not valid. See [`crate::SlabAllocator`].
+///
+/// # Examples
+///```      
+/// use bmw_util::*;
+/// use bmw_log::*;
+/// use bmw_err::*;
+///         
+/// fn main() -> Result<(), Error> {
+///         // create a hashtable with the specified parameters
+///         let mut hashtable = hashtable_sync!(
+///                 MaxEntries(1_000),
+///                 MaxLoadFactor(0.9),
+///                 GlobalSlabAllocator(false),
+///                 SlabSize(100),
+///                 SlabCount(100)
+///         )?;
+///             
+///         // do an insert, rust will figure out what type is being inserted
+///         hashtable.insert(&1u64, &10u8)?;
+///
+///         // assert that the entry was inserted
+///         assert_eq!(hashtable.get(&1u64)?, Some(10u8));
+///
+///         // a hashtable_sync cannot be created with the global slab allocator
+///         // at a minimum GlobalSlabAllocator must be false and SlabSize/SlabCount must
+///         // be specified
+///         let mut hashtable = hashtable_sync!(
+///             GlobalSlabAllocator(false),
+///             SlabSize(100),
+///             SlabCount(200),
+///         )?;
+///
+///         hashtable.insert(&1i32, &10i128)?;
+///
+///         // assert that the entry was inserted
+///         assert_eq!(hashtable.get(&1i32)?, Some(10i128));
+///
+///         // assert that this entry is not in the table
+///         assert_eq!(hashtable.get(&2i32)?, None);
+///
+///         Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! hashtable_sync {
         ($($config:tt)*) => {{
@@ -657,9 +826,84 @@ macro_rules! hashtable_sync {
         }};
 }
 
-/// This macro is the same as [`hashtable_sync`] except that the returned hashtable is in a Box.
-/// This macro can be used if the sync hashtable needs to be placed in a struct or an enum.
-/// See [`crate::hashtable`] and [`crate::hashtable_sync`] for further details.
+/// The [`crate::hashtable_sync_box`] macro is the `sync` and `boxed` version of [`crate::hashtable`].
+/// It builds a [`crate::Hashtable`] with the specified configuration and returns it with the Send and Sync
+/// markers in a [`std::boxed::Box`].  (`Box<dyn  Hashtable<K, V> + Send + Sync>`).
+///
+/// # Input Parameters
+/// * MaxEntries ([`prim@usize`]) (optional) - The maximum number of entries that can be in this
+/// hashtable at any given time. The default value is 1_000.
+/// * MaxLoadFactor ([`prim@usize`]) (optional) - The maximum load factor of the hashtable. The hashtable
+/// is an array based hashtable and it has a fixed size. Once the load factor is reached, insertions will
+/// return an error. The hashtable uses linear probing to handle collisions. The max_load_factor makes sure
+/// no additional insertions occur at a given ratio of entries to capacity in the array. Note that
+/// MaxEntries can always be inserted, it's the capacity of the array that becomes larger as this ratio
+/// goes down. So if 100 MaxEntries are specified and the MaxLoadFactor is 0.5, a 200 slot array
+/// will be used and 100 entries will be allowed. The default MaxLoadFactor is 0.7.
+/// * GlobalSlabAllocator ([`bool`]) (optional) - If true, the [`crate::global_slab_allocator`] is
+/// used instead of using an internally built slab allocator. The global slab allocator is
+/// thread_local and the returned value cannot be passed to other threads. The default value is
+/// true.
+/// * SlabSize ([`prim@usize`]) (optional) - The size of slabs for the [`crate::SlabAllocator`] associated
+/// with this [`crate::Hashtable`]. This option is only allowed if GlobalSlabAllocator is false.
+/// * SlabCount ([`prim@usize`]) (optional) - The count of slabs. This option is only allowed if
+/// GlobalSlabAllocator is false.
+///
+/// # Returns
+///
+/// A Ok(`Box<dyn Hashtable<K, V> + Send + Sync>`) on success or a [`bmw_err::Error`] on failure.
+///
+/// # Errors
+///
+/// * [`bmw_err::ErrKind::Configuration`] - If any values are specified other than the allowed
+/// values mentioned above or if there are any duplicate parameters specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If SlabSize or SlabCount are not specified.
+/// * [`bmw_err::ErrKind::Configuration`] - If GlobalSlabAllocator is true (not allowed for sync)
+/// * [`bmw_err::ErrKind::IllegalArgument`] - If the parameters specified for the SlabSize or
+/// SlabCount are not valid. See [`crate::SlabAllocator`].
+///
+/// # Examples
+///```      
+/// use bmw_util::*;
+/// use bmw_log::*;
+/// use bmw_err::*;
+///
+/// fn main() -> Result<(), Error> {
+///         // create a hashtable with the specified parameters
+///         let mut hashtable = hashtable_sync_box!(
+///                 MaxEntries(1_000),
+///                 MaxLoadFactor(0.9),
+///                 GlobalSlabAllocator(false),
+///                 SlabSize(100),
+///                 SlabCount(100)
+///         )?;
+///
+///         // do an insert, rust will figure out what type is being inserted
+///         hashtable.insert(&1u64, &10u8)?;
+///
+///         // assert that the entry was inserted
+///         assert_eq!(hashtable.get(&1u64)?, Some(10u8));
+///
+///         // a hashtable_sync_box cannot be created with the global slab allocator
+///         // at a minimum GlobalSlabAllocator must be false and SlabSize/SlabCount must
+///         // be specified
+///         let mut hashtable = hashtable_sync_box!(
+///             GlobalSlabAllocator(false),
+///             SlabSize(100),
+///             SlabCount(200),
+///         )?;
+///
+///         hashtable.insert(&1i32, &10i128)?;
+///
+///         // assert that the entry was inserted
+///         assert_eq!(hashtable.get(&1i32)?, Some(10i128));
+///
+///         // assert that this entry is not in the table
+///         assert_eq!(hashtable.get(&2i32)?, None);
+///
+///         Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! hashtable_sync_box {
         ($($config:tt)*) => {{
@@ -684,7 +928,7 @@ macro_rules! hashtable_sync_box {
 /// goes down. So if 100 MaxEntries are specified and the MaxLoadFactor is 0.5, a 200 slot array
 /// will be used and 100 entries will be allowed. The default MaxLoadFactor is 0.7.
 /// * GlobalSlabAllocator ([`bool`]) (optional) - If true, the [`crate::global_slab_allocator`] is
-/// used instead of using an internally built slab allocator. The Global Slab allocator is
+/// used instead of using an internally built slab allocator. The global slab allocator is
 /// thread_local and the returned value cannot be passed to other threads. The default value is
 /// true.
 /// * SlabSize ([`prim@usize`]) (optional) - The size of slabs for the [`crate::SlabAllocator`] associated
@@ -768,7 +1012,7 @@ macro_rules! hashset {
 /// goes down. So if 100 MaxEntries are specified and the MaxLoadFactor is 0.5, a 200 slot array
 /// will be used and 100 entries will be allowed. The default MaxLoadFactor is 0.7.
 /// * GlobalSlabAllocator ([`bool`]) (optional) - If true, the [`crate::global_slab_allocator`] is
-/// used instead of using an internally built slab allocator. The Global Slab allocator is
+/// used instead of using an internally built slab allocator. The global slab allocator is
 /// thread_local and the returned value cannot be passed to other threads. The default value is
 /// true.
 /// * SlabSize ([`prim@usize`]) (optional) - The size of slabs for the [`crate::SlabAllocator`] associated
@@ -851,7 +1095,7 @@ macro_rules! hashset_box {
 /// goes down. So if 100 MaxEntries are specified and the MaxLoadFactor is 0.5, a 200 slot array
 /// will be used and 100 entries will be allowed. The default MaxLoadFactor is 0.7.
 /// * GlobalSlabAllocator ([`bool`]) (optional) - If true, the [`crate::global_slab_allocator`] is
-/// used instead of using an internally built slab allocator. The Global Slab allocator is
+/// used instead of using an internally built slab allocator. The global slab allocator is
 /// thread_local and the returned value cannot be passed to other threads. The default value is
 /// true.
 /// * SlabSize ([`prim@usize`]) (optional) - The size of slabs for the [`crate::SlabAllocator`] associated
@@ -937,7 +1181,7 @@ macro_rules! hashset_sync {
 /// goes down. So if 100 MaxEntries are specified and the MaxLoadFactor is 0.5, a 200 slot array
 /// will be used and 100 entries will be allowed. The default MaxLoadFactor is 0.7.
 /// * GlobalSlabAllocator ([`bool`]) (optional) - If true, the [`crate::global_slab_allocator`] is
-/// used instead of using an internally built slab allocator. The Global Slab allocator is
+/// used instead of using an internally built slab allocator. The global slab allocator is
 /// thread_local and the returned value cannot be passed to other threads. The default value is
 /// true.
 /// * SlabSize ([`prim@usize`]) (optional) - The size of slabs for the [`crate::SlabAllocator`] associated
@@ -1008,14 +1252,13 @@ macro_rules! hashset_sync_box {
         }};
 }
 
-/// The list macro is used to create lists. This macro uses the global slab allocator. To use a
-/// specified slab allocator, see [`crate::UtilBuilder::build_list`]. It has the same syntax as the
-/// [`std::vec!`] macro. Note that this macro and the builder function both
+/// The [`crate::list`] macro is used to create implementations of [`crate::List`]. This macro uses the global slab
+/// allocator. To use an internal slab allocator, see [`crate::UtilBuilder::build_list`]. This macro has the same
+/// syntax as the [`std::vec!`] macro. Note that this macro and the builder function both
 /// return an implementation of the [`crate::SortableList`] trait that uses a linked-list like
 /// implementation.
 ///
 /// # Examples
-///
 ///```
 /// // create a list and iterate through it
 /// use bmw_util::*;
@@ -1088,8 +1331,70 @@ macro_rules! list {
     };
 }
 
-/// This is the boxed version of list. The returned value is `Box<dyn SortableList>`. Otherwise,
-/// this macro is identical to [`crate::list`].
+/// The [`crate::list_box`] macro is the `boxed` version of [`crate::list`]. This macro uses the global slab
+/// allocator. To use an internal slab allocator, see [`crate::UtilBuilder::build_list_box`]. This macro has the same
+/// syntax as the [`std::vec!`] macro. Note that this macro and the builder function both
+/// return an implementation of the [`crate::SortableList`] trait in the form of `Box<dyn
+/// SortableList<K>>` that uses a linked-list like implementation.
+///
+/// # Examples
+///```
+/// // create a list and iterate through it
+/// use bmw_util::*;
+/// use bmw_err::*;
+/// use bmw_log::*;
+///
+/// info!();
+///
+/// fn main() -> Result<(), Error> {
+///     let list = list_box![1, 2, 3, 4];
+///
+///     info!("list={:?}", list)?;
+///
+///     let mut i = 1;
+///
+///     for x in list.iter() {
+///         assert_eq!(x, i);
+///         i += 1;
+///     }       
+///             
+///     assert!(list_eq!(list, list_box![1, 2, 3, 4]));
+///             
+///     Ok(())  
+/// }   
+///```
+///
+///```
+/// // sort a list
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_util::*;
+///
+/// fn main() -> Result<(), Error> {
+///     // create two lists
+///     let mut list1 = list_box![];
+///     let mut list2 = list_box![];
+///
+///     // add 0..10 to the list
+///     for i in 0..10 {
+///         list1.push(i)?;
+///     }
+///
+///     // add 10..0 to the list
+///     for i in (0..10).rev() {
+///         list2.push(i)?;
+///     }
+///
+///     // sort the lists using the unstable and stable sort functions (underlying rust fns used)
+///     list1.sort_unstable()?;
+///     list2.sort()?;
+///
+///     // ensure they are equal after the sorting takes place
+///     assert!(list_eq!(list1, list2));
+///
+///     Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! list_box {
     ( $( $x:expr ),* ) => {
@@ -1104,10 +1409,69 @@ macro_rules! list_box {
     };
 }
 
-/// Like [`crate::hashtable_sync`] and [`crate::hashset_sync`] list has a 'sync' version. See those
-/// macros for more details and see the [`crate`] for an example of the sync version of a hashtable.
-/// Just as in that example the list can be put into a [`crate::lock!`] or [`crate::lock_box`]
-/// and passed between threads.
+/// The [`crate::list_sync`] macro is the `sync` version of [`crate::list`]. Since this macro
+/// cannot use the global_slab_allocator, it must use a default slab allocator coniguration. It
+/// uses a SlabSize of 256 and with a SlabCount of 10_000. If different parameters are desired, the
+/// [`crate::UtilBuilder::build_list_sync`] function should be used.
+///
+/// # Examples
+///```
+/// // create a list and iterate through it
+/// use bmw_util::*;
+/// use bmw_err::*;
+/// use bmw_log::*;
+///
+/// info!();
+///
+/// fn main() -> Result<(), Error> {
+///     let list = list_sync![1,2,3,4];
+///
+///     info!("list={:?}", list)?;
+///
+///     let mut i = 1;
+///
+///     for x in list.iter() {
+///         assert_eq!(x, i);
+///         i += 1;
+///     }
+///
+///     assert!(list_eq!(list, list_sync![1, 2, 3, 4]));
+///
+///     Ok(())
+/// }
+///```
+///
+///```
+/// // sort a list
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_util::*;
+///
+/// fn main() -> Result<(), Error> {
+///     // create two lists
+///     let mut list1 = list_sync![];
+///     let mut list2 = list_sync![];
+///
+///     // add 0..10 to the list
+///     for i in 0..10 {
+///         list1.push(i)?;
+///     }
+///
+///     // add 10..0 to the list
+///     for i in (0..10).rev() {
+///         list2.push(i)?;
+///     }
+///
+///     // sort the lists using the unstable and stable sort functions (underlying rust fns used)
+///     list1.sort_unstable()?;
+///     list2.sort()?;
+///
+///     // ensure they are equal after the sorting takes place
+///     assert!(list_eq!(list1, list2));
+///
+///     Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! list_sync {
     ( $( $x:expr ),* ) => {
@@ -1126,7 +1490,69 @@ macro_rules! list_sync {
     };
 }
 
-/// Box version of the [`crate::list_sync`] macro.
+/// The [`crate::list_sync_box`] macro is the `sync` and `boxed` version of [`crate::list`]. Since this macro
+/// cannot use the global_slab_allocator, it must use a default slab allocator coniguration. It
+/// uses a SlabSize of 256 and with a SlabCount of 10_000. If different parameters are desired, the
+/// [`crate::UtilBuilder::build_list_sync_box`] function should be used.
+///
+/// # Examples
+///```
+/// // create a list and iterate through it
+/// use bmw_util::*;
+/// use bmw_err::*;
+/// use bmw_log::*;
+///
+/// info!();
+///
+/// fn main() -> Result<(), Error> {
+///     let list = list_sync_box![1,2,3,4];
+///
+///     info!("list={:?}", list)?;
+///
+///     let mut i = 1;
+///
+///     for x in list.iter() {
+///         assert_eq!(x, i);
+///         i += 1;
+///     }
+///
+///     assert!(list_eq!(list, list_sync_box![1, 2, 3, 4]));
+///
+///     Ok(())
+/// }
+///```
+///
+///```
+/// // sort a list
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_util::*;
+///
+/// fn main() -> Result<(), Error> {
+///     // create two lists
+///     let mut list1 = list_sync_box![];
+///     let mut list2 = list_sync_box![];
+///
+///     // add 0..10 to the list
+///     for i in 0..10 {
+///         list1.push(i)?;
+///     }
+///
+///     // add 10..0 to the list
+///     for i in (0..10).rev() {
+///         list2.push(i)?;
+///     }
+///
+///     // sort the lists using the unstable and stable sort functions (underlying rust fns used)
+///     list1.sort_unstable()?;
+///     list2.sort()?;
+///
+///     // ensure they are equal after the sorting takes place
+///     assert!(list_eq!(list1, list2));
+///
+///     Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! list_sync_box {
     ( $( $x:expr ),* ) => {
