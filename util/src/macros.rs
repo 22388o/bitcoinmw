@@ -251,10 +251,10 @@ macro_rules! global_slab_allocator {
 /// The `slab_allocator` macro initializes a slab allocator with the specified parameters.
 /// It takes the following parameters:
 ///
-/// * SlabSize(usize) (optional) - the size in bytes of the slabs for this slab allocator.
+/// * SlabSize([`prim@usize`]) (optional) - the size in bytes of the slabs for this slab allocator.
 ///                                if not specified, the default value of 256 is used.
 ///
-/// * SlabCount(usize) (optional) - the number of slabs to allocate to this slab
+/// * SlabCount([`prim@usize`]) (optional) - the number of slabs to allocate to this slab
 ///                                 allocator. If not specified, the default value of
 ///                                 40,960 is used.
 ///
@@ -278,18 +278,58 @@ macro_rules! global_slab_allocator {
 /// use bmw_err::Error;
 ///
 /// fn main() -> Result<(), Error> {
-///     let slabs = slab_allocator!(SlabSize(128), SlabCount(5000))?;
+///     let mut slabs = slab_allocator!(SlabSize(128), SlabCount(5))?;
 ///
-///     // this will use the specified slab allocator
-///     //let hashtable: Box<dyn Hashtable<u32, u32>> = hashtable_box!(Slabs(&slabs))?;
+///     let id = {
+///         // allocate a slab
+///         let mut slab = slabs.allocate()?;
 ///
-///     // this will also use the specified slab allocator
-///     // (they may be shared within the thread)
-///     //let hashtable2: Box<dyn Hashtable<u32, u32>> = hashtable_box!(
-///     //        Slabs(&slabs),
-///     //        MaxEntries(1_000),
-///     //        MaxLoadFactor(0.9)
-///     //)?;
+///         // get an immutable reference to the slab
+///         let slab_ref = slab.get();
+///
+///         let mut count = 0;
+///         for v in slab_ref {
+///             count += 1;
+///         }
+///         // slab should be SlabSize (128)
+///         assert_eq!(count, 128);
+///
+///         // get a mutable reference to the slab
+///         let mut slab_ref = slab.get_mut();
+///
+///         let mut count = 0;
+///         for i in 0..slab_ref.len() {
+///             // we can write to this slab_ref
+///             slab_ref[i] = 10;
+///             count += 1;
+///         }
+///         // slab should be SlabSize (128)
+///         assert_eq!(count, 128);
+///
+///
+///         slab.id()
+///     };
+///
+///     
+///
+///     // free the slab
+///     slabs.free(id)?;
+///
+///     // allocate all 5 slabs in this slab allocator
+///     let mut slab_vec = vec![];
+///     for _ in 0..5 {
+///         let slab = slabs.allocate()?;
+///         slab_vec.push(slab.id());
+///     }
+///
+///     // no more slabs
+///     assert!(slabs.allocate().is_err());
+///
+///     // free the first slabs in our vec
+///     slabs.free(slab_vec[0]);
+///
+///     // now we can allocate again
+///     let slab = slabs.allocate()?;
 ///
 ///     // ...
 ///
@@ -440,15 +480,15 @@ macro_rules! tmatch {
 
 /// The `search_trie` macro builds a [`crate::SearchTrie`] which can be used to match multiple
 /// patterns for a given text in a performant way.
-/// The search_trie macro takes the following parameters:
+/// # Input Parameters
 ///
 /// * `List<Pattern>`            (required) - The list of [`crate::Pattern`]s that this [`crate::SearchTrie`]
 ///                                         will use to match.
-/// * TerminationLength(usize) (optional) - The length in bytes at which matching will terminate.
-/// * MaxWildCardLength(usize) (optional) - The maximum length in bytes of a wild card match.
+/// * TerminationLength ([`prim@usize`]) (optional) - The length in bytes at which matching will terminate.
+/// * MaxWildCardLength ([`prim@usize`]) (optional) - The maximum length in bytes of a wild card match.
 ///
 /// # Return
-/// Returns `Ok(SuffixTre)` on success and on error a [`bmw_err::Error`] is returned.
+/// Returns `Ok(impl SearchTrie + Send + Sync)` on success and on error a [`bmw_err::Error`] is returned.
 ///
 /// # Errors
 /// * [`bmw_err::ErrKind::IllegalArgument`] - If one of the regular expressions is invalid.
@@ -617,6 +657,74 @@ macro_rules! search_trie {
                 use bmw_conf::ConfigOption;
                 let v: Vec<ConfigOption> = vec![$($config)*];
                 bmw_util::UtilBuilder::build_search_trie($patterns, v)
+        }};
+}
+
+/// The `search_trie_box` macro is the `boxed` version of [`crate::search_trie!`]. This macro builds a
+/// [`crate::SearchTrie`] which can be used to match multiple patterns for a given text in a performant way.
+/// # Input Parameters
+///
+/// * `List<Pattern>` (required) - The list of [`crate::Pattern`]s that this [`crate::SearchTrie`]
+/// will use to match.
+/// * TerminationLength ([`prim@usize`]) (optional) - The length in bytes at which matching will terminate.
+/// * MaxWildCardLength ([`prim@usize`]) (optional) - The maximum length in bytes of a wild card match.
+///
+/// # Return
+/// Returns `Ok(Box<dyn SearchTrie + Send + Sync>)` on success and on error a [`bmw_err::Error`] is returned.
+///
+/// # Errors
+/// * [`bmw_err::ErrKind::IllegalArgument`] - If one of the regular expressions is invalid.
+///                                             or the length of the patterns list is 0.
+///
+/// # Examples
+///
+///```
+/// use bmw_util::*;
+/// use bmw_err::*;
+/// use bmw_log::*;
+///
+/// info!();
+///
+/// fn main() -> Result<(), Error> {
+///         // build a suffix tree with three patterns
+///         let mut search_trie = search_trie_box!(
+///                 vec![
+///                         pattern!(Regex("p1".to_string()), PatternId(0))?,
+///                         pattern!(Regex("p2".to_string()), PatternId(1))?,
+///                         pattern!(Regex("p3".to_string()), PatternId(2))?
+///                 ],
+///                 TerminationLength(1_000),
+///                 MaxWildCardLength(100)
+///         )?;
+///
+///         // create a matches array for the suffix tree to return matches in
+///         let mut matches = [tmatch!()?; 10];
+///
+///         // run the match for the input text b"p1p2".
+///         let count = search_trie.tmatch(b"p1p2", &mut matches)?;
+///
+///         // assert that two matches were returned "p1" and "p2"
+///         // and that their start/end/id is correct.
+///         info!("count={}", count)?;
+///         assert_eq!(count, 2);
+///         assert_eq!(matches[0].id(), 0);
+///         assert_eq!(matches[0].start(), 0);
+///         assert_eq!(matches[0].end(), 2);
+///         assert_eq!(matches[1].id(), 1);
+///         assert_eq!(matches[1].start(), 2);
+///         assert_eq!(matches[1].end(), 4);
+///
+///         Ok(())
+/// }
+///```
+#[macro_export]
+macro_rules! search_trie_box {
+        ( $patterns:expr, $($config:tt)*) => {{
+                #[allow(unused_imports)]
+                use bmw_conf::ConfigOption::*;
+                use bmw_conf::ConfigOption;
+                let v: Vec<ConfigOption> = vec![$($config)*];
+                bmw_util::UtilBuilder::build_search_trie_box($patterns, v)
         }};
 }
 
@@ -1991,7 +2099,8 @@ macro_rules! array_list_sync_box {
 }
 
 /// The [`crate::queue`] macro creates a [`crate::Queue`] implementation with the specified
-/// parameters. The queue is returned as an `impl Queue<T>`.
+/// parameters. Note that like [`crate::Stack`], this is a bounded queue. The queue is returned
+/// as an `impl Queue<T>`.
 ///
 /// # Input Parameters
 /// * size ([`prim@usize`]) (required) - the size of the underlying array
@@ -2159,8 +2268,12 @@ macro_rules! queue_sync_box {
 	}};
 }
 
-/// This macro creates a [`crate::Stack`]. The parameters are
-/// * size (required) - the size of the underlying array
+/// The [`crate::stack`] macro creates a [`crate::Stack`] implementation with the specified
+/// parameters. Note that like [`crate::Queue`], this is a bounded stack. The stack is returned
+/// as an `impl Stack<T>`.
+///
+/// # Input Parameters
+/// * size ([`prim@usize`]) (required) - the size of the underlying array
 /// * default (required) - a reference to the value to initialize the array with
 /// for the stack, these values are never used, but a default is needed to initialize the
 /// underlying array.
@@ -2198,8 +2311,42 @@ macro_rules! stack {
 	}};
 }
 
-/// This is the box version of [`crate::stack`]. It is identical other than the returned value is
-/// in a box `(Box<dyn Stack>)`.
+/// The [`crate::stack_box`] macro is the `boxed` version of [`crate::stack`] . This macro creates
+/// a [`crate::Stack`] implementation with the specified parameters. Note that like [`crate::Queue`],
+/// this is a bounded stack. The stack is returned as a `Box<dyn Stack<T>>`.
+///
+/// # Input Parameters
+/// * size ([`prim@usize`]) (required) - the size of the underlying array
+/// * default (required) - a reference to the value to initialize the array with
+/// for the stack, these values are never used, but a default is needed to initialize the
+/// underlying array.
+/// # Return
+/// Returns `Ok(Box<dyn Stack<T>>)` on success and a [`bmw_err::Error`] on failure.
+///
+/// # Errors
+/// * [`bmw_err::ErrKind::IllegalArgument`] - if the size is 0.
+///
+/// # Examples
+///```
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_util::*;
+///
+/// fn main() -> Result<(), Error> {
+///         let mut stack = stack_box!(10, &0)?;
+///
+///         for i in 0..10 {
+///                 stack.push(i)?;
+///         }
+///
+///         for i in (0..10).rev() {
+///                 let v = stack.pop().unwrap();
+///                 assert_eq!(v, &i);
+///         }
+///
+///         Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! stack_box {
 	( $size:expr, $default:expr ) => {{
@@ -2207,7 +2354,42 @@ macro_rules! stack_box {
 	}};
 }
 
-/// sync version of [`crate::stack`].
+/// The [`crate::stack_sync`] macro is the `sync` version of [`crate::stack`] . This macro creates
+/// a [`crate::Stack`] implementation with the specified parameters. Note that like [`crate::Queue`],
+/// this is a bounded stack. The stack is returned as a `impl Stack<T> + Send + Sync`.
+///
+/// # Input Parameters
+/// * size ([`prim@usize`]) (required) - the size of the underlying array
+/// * default (required) - a reference to the value to initialize the array with
+/// for the stack, these values are never used, but a default is needed to initialize the
+/// underlying array.
+/// # Return
+/// Returns `Ok(impl Stack<T>)` on success and a [`bmw_err::Error`] on failure.
+///
+/// # Errors
+/// * [`bmw_err::ErrKind::IllegalArgument`] - if the size is 0.
+///
+/// # Examples
+///```
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_util::*;
+///
+/// fn main() -> Result<(), Error> {
+///         let mut stack = stack_sync!(10, &0)?;
+///
+///         for i in 0..10 {
+///                 stack.push(i)?;
+///         }
+///
+///         for i in (0..10).rev() {
+///                 let v = stack.pop().unwrap();
+///                 assert_eq!(v, &i);
+///         }
+///
+///         Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! stack_sync {
 	( $size:expr, $default:expr ) => {{
@@ -2215,7 +2397,42 @@ macro_rules! stack_sync {
 	}};
 }
 
-/// box version of [`crate::stack`].
+/// The [`crate::stack_sync_box`] macro is the `sync` and `boxed` version of [`crate::stack`] . This macro creates
+/// a [`crate::Stack`] implementation with the specified parameters. Note that like [`crate::Queue`],
+/// this is a bounded stack. The stack is returned as a `Box<dyn Stack<T> + Send + Sync>`.
+///
+/// # Input Parameters
+/// * size ([`prim@usize`]) (required) - the size of the underlying array
+/// * default (required) - a reference to the value to initialize the array with
+/// for the stack, these values are never used, but a default is needed to initialize the
+/// underlying array.
+/// # Return
+/// Returns `Ok(Box<dyn Stack<T> + Send + Sync>)` on success and a [`bmw_err::Error`] on failure.
+///
+/// # Errors
+/// * [`bmw_err::ErrKind::IllegalArgument`] - if the size is 0.
+///
+/// # Examples
+///```
+/// use bmw_err::*;
+/// use bmw_log::*;
+/// use bmw_util::*;
+///
+/// fn main() -> Result<(), Error> {
+///         let mut stack = stack_sync_box!(10, &0)?;
+///
+///         for i in 0..10 {
+///                 stack.push(i)?;
+///         }
+///
+///         for i in (0..10).rev() {
+///                 let v = stack.pop().unwrap();
+///                 assert_eq!(v, &i);
+///         }
+///
+///         Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! stack_sync_box {
 	( $size:expr, $default:expr ) => {{
