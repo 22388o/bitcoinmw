@@ -5,6 +5,7 @@ var srcIndex = new Map(JSON.parse('[\
 ["bmw_derive",["",[],["derive.rs","lib.rs","types.rs"]]],\
 ["bmw_err",["",[],["error.rs","lib.rs","macros.rs","test.rs","types.rs"]]],\
 ["bmw_evh",["",[],["builder.rs","evh.rs","lib.rs","linux.rs","macros.rs","test.rs","types.rs"]]],\
+["bmw_evh2",["",[],["builder.rs","constants.rs","evh.rs","lib.rs","linux.rs","macros.rs","test.rs","types.rs"]]],\
 ["bmw_http",["",[],["builder.rs","cache.rs","client.rs","constants.rs","http.rs","lib.rs","macros.rs","test.rs","types.rs","ws.rs"]]],\
 ["bmw_int",["",[],["lib.rs","test.rs"]]],\
 ["bmw_log",["",[],["builder.rs","constants.rs","lib.rs","log.rs","macros.rs","test.rs","types.rs"]]],\
