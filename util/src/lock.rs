@@ -40,7 +40,7 @@ thread_local! {
 	pub static LOCKS: RefCell<HashSet<u128>> = RefCell::new(HashSet::new());
 }
 
-/// Rebuild a [`crate::LockBox`] from te usize which is returned from the
+/// Rebuild a [`crate::LockBox`] from the [`prim@usize`] which is returned from the
 /// [`crate::LockBox::danger_to_usize`] function.
 pub fn lock_box_from_usize<T>(value: usize) -> Box<dyn LockBox<T> + Send + Sync>
 where
