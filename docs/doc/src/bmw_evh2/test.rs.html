@@ -63,6 +63,22 @@
 <a href="#61" id="61">61</a>
 <a href="#62" id="62">62</a>
 <a href="#63" id="63">63</a>
+<a href="#64" id="64">64</a>
+<a href="#65" id="65">65</a>
+<a href="#66" id="66">66</a>
+<a href="#67" id="67">67</a>
+<a href="#68" id="68">68</a>
+<a href="#69" id="69">69</a>
+<a href="#70" id="70">70</a>
+<a href="#71" id="71">71</a>
+<a href="#72" id="72">72</a>
+<a href="#73" id="73">73</a>
+<a href="#74" id="74">74</a>
+<a href="#75" id="75">75</a>
+<a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -82,8 +98,8 @@
 
 </span><span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
-	<span class="kw">use </span><span class="kw">crate</span>::EvhBuilder;
-	<span class="kw">use </span>bmw_conf::ConfigOption;
+	<span class="kw">use crate as </span>bmw_evh2;
+	<span class="kw">use crate</span>::{evh, evh_oro};
 	<span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_test::<span class="kw-2">*</span>;
@@ -92,7 +108,7 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_evh_basic() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span><span class="kw-2">mut </span>evh = EvhBuilder::build_evh(<span class="macro">vec!</span>[ConfigOption::Debug(<span class="bool-val">true</span>)])<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>evh = <span class="macro">evh!</span>(Debug(<span class="bool-val">true</span>))<span class="question-mark">?</span>;
 
 		evh.set_on_read(<span class="kw">move </span>|_connection, _ctx| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 			<span class="macro">info!</span>(<span class="string">"onRead"</span>)<span class="question-mark">?</span>;
@@ -116,6 +132,22 @@
 
 		evh.set_on_panic(<span class="kw">move </span>|_ctx, _e| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 			<span class="macro">info!</span>(<span class="string">"onPanic"</span>)<span class="question-mark">?</span>;
+			<span class="prelude-val">Ok</span>(())
+		})<span class="question-mark">?</span>;
+
+		evh.start()<span class="question-mark">?</span>;
+
+		sleep(Duration::from_millis(<span class="number">3_000</span>));
+
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="attr">#[test]
+	</span><span class="kw">fn </span>test_evh_oro() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>evh = <span class="macro">evh_oro!</span>(Debug(<span class="bool-val">true</span>))<span class="question-mark">?</span>;
+
+		evh.set_on_read(<span class="kw">move </span>|_connection, _ctx| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+			<span class="macro">info!</span>(<span class="string">"onRead"</span>)<span class="question-mark">?</span>;
 			<span class="prelude-val">Ok</span>(())
 		})<span class="question-mark">?</span>;
 

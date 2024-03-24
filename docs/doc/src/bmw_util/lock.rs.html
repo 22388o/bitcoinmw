@@ -264,7 +264,7 @@
 	<span class="kw">pub static </span>LOCKS: RefCell&lt;HashSet&lt;u128&gt;&gt; = RefCell::new(HashSet::new());
 }
 
-<span class="doccomment">/// Rebuild a [`crate::LockBox`] from te usize which is returned from the
+<span class="doccomment">/// Rebuild a [`crate::LockBox`] from the [`prim@usize`] which is returned from the
 /// [`crate::LockBox::danger_to_usize`] function.
 </span><span class="kw">pub fn </span>lock_box_from_usize&lt;T&gt;(value: usize) -&gt; Box&lt;<span class="kw">dyn </span>LockBox&lt;T&gt; + Send + Sync&gt;
 <span class="kw">where
