@@ -14,3 +14,54 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+#[macro_export]
+macro_rules! evh {
+        ($($config:tt)*) => {{
+                #[allow(unused_imports)]
+                use bmw_conf::ConfigOption::*;
+                use bmw_conf::ConfigOption;
+                use bmw_evh2::EvhBuilder;
+
+                let v: Vec<ConfigOption> = vec![$($config)*];
+                EvhBuilder::build_evh(v)
+        }};
+}
+
+#[macro_export]
+macro_rules! evh_oro {
+        ($($config:tt)*) => {{
+                #[allow(unused_imports)]
+                use bmw_conf::ConfigOption::*;
+                use bmw_conf::ConfigOption;
+                use bmw_evh2::EvhBuilder;
+
+                let v: Vec<ConfigOption> = vec![$($config)*];
+                match EvhBuilder::build_evh(v) {
+                        Ok(mut evh) => {
+
+                                evh.set_on_accept(move |_connection, _ctx| -> Result<(), Error> {
+                                        Ok(())
+                                })?;
+
+                                evh.set_on_close(move |_connection, _ctx| -> Result<(), Error> {
+                                        Ok(())
+                                })?;
+
+                                evh.set_on_housekeeper(move |_ctx| -> Result<(), Error> {
+                                        Ok(())
+                                })?;
+
+                                evh.set_on_panic(move |_ctx, _e| -> Result<(), Error> {
+                                        Ok(())
+                                })?;
+
+                                Ok(evh)},
+                        Err(e) => {
+                                let text = format!("build_evh resulted in error: {}", e);
+                                Err(err!(ErrKind::Configuration, text))
+                        }
+                }
+
+        }};
+}

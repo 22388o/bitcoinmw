@@ -17,8 +17,8 @@
 
 #[cfg(test)]
 mod test {
-	use crate::EvhBuilder;
-	use bmw_conf::ConfigOption;
+	use crate as bmw_evh2;
+	use crate::{evh, evh_oro};
 	use bmw_err::*;
 	use bmw_log::*;
 	use bmw_test::*;
@@ -27,7 +27,7 @@ mod test {
 
 	#[test]
 	fn test_evh_basic() -> Result<(), Error> {
-		let mut evh = EvhBuilder::build_evh(vec![ConfigOption::Debug(true)])?;
+		let mut evh = evh!(Debug(true))?;
 
 		evh.set_on_read(move |_connection, _ctx| -> Result<(), Error> {
 			info!("onRead")?;
@@ -51,6 +51,22 @@ mod test {
 
 		evh.set_on_panic(move |_ctx, _e| -> Result<(), Error> {
 			info!("onPanic")?;
+			Ok(())
+		})?;
+
+		evh.start()?;
+
+		sleep(Duration::from_millis(3_000));
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_oro() -> Result<(), Error> {
+		let mut evh = evh_oro!(Debug(true))?;
+
+		evh.set_on_read(move |_connection, _ctx| -> Result<(), Error> {
+			info!("onRead")?;
 			Ok(())
 		})?;
 
