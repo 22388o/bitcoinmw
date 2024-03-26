@@ -23,9 +23,11 @@ mod test {
 	use bmw_log::*;
 	use bmw_test::*;
 	use bmw_util::*;
+	use std::collections::HashMap;
 	use std::io::{Read, Write};
 	use std::net::TcpStream;
 	use std::str::from_utf8;
+	use std::thread;
 
 	info!();
 
@@ -136,7 +138,7 @@ mod test {
 		let test_info = test_info!()?;
 		let mut evh = evh_oro!(
 			Debug(false),
-			EvhTimeout(1_000),
+			EvhTimeout(u16::MAX),
 			EvhThreads(1),
 			EvhReadSlabSize(100)
 		)?;
@@ -190,7 +192,7 @@ mod test {
 		let test_info = test_info!()?;
 		let mut strm;
 		{
-			let mut evh = evh_oro!(EvhThreads(2))?;
+			let mut evh = evh_oro!(EvhThreads(2), EvhTimeout(u16::MAX))?;
 			evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
 				let mut buf = [0u8; 1024];
 				let mut data: Vec<u8> = vec![];
@@ -226,6 +228,93 @@ mod test {
 		let mut buf = [0u8; 100];
 		let res = strm.read(&mut buf)?;
 		assert!(res == 0); // closed
+		Ok(())
+	}
+
+	#[test]
+	#[cfg(target_os = "linux")]
+	fn test_evh_housekeeping() -> Result<(), Error> {
+		let threads = 10;
+		let mut evh = evh!(
+			EvhThreads(threads),
+			EvhTimeout(1),
+			EvhHouseKeeperFrequencyMillis(1)
+		)?;
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			let mut buf = [0u8; 1024];
+			let mut data: Vec<u8> = vec![];
+			loop {
+				let len = ctx.clone_next_chunk(connection, &mut buf)?;
+
+				if len == 0 {
+					break;
+				}
+
+				data.extend(&buf[0..len]);
+			}
+
+			let dstring = from_utf8(&data)?;
+			info!("data[{}]='{}'", connection.id(), dstring,)?;
+			connection.write_handle()?.write(b"ok")?;
+			Ok(())
+		})?;
+
+		evh.set_on_accept(move |connection, _ctx| -> Result<(), Error> {
+			info!(
+				"onAccept: handle={},id={}",
+				connection.handle(),
+				connection.id()
+			)?;
+			Ok(())
+		})?;
+
+		evh.set_on_close(move |_connection, _ctx| -> Result<(), Error> {
+			info!("onClose")?;
+			Ok(())
+		})?;
+
+		let mut thread_hash = lock_box!(HashMap::new())?;
+		let mut complete_count = lock_box!(0)?;
+		let mut complete = lock_box!(false)?;
+		let complete_clone = complete.clone();
+		let test_info = test_info!()?;
+
+		let (tx, rx) = test_info.sync_channel();
+
+		evh.set_on_housekeeper(move |_ctx| -> Result<(), Error> {
+			info!("onHousekeeper")?;
+			let id = thread::current().id();
+			let mut thread_hash = thread_hash.wlock()?;
+			let guard = thread_hash.guard()?;
+			let count = match (**guard).get(&id) {
+				Some(count) => count + 1,
+				None => 0,
+			};
+
+			(**guard).insert(id, count);
+			info!("count = {}", count)?;
+			if count == 5 {
+				wlock!(complete_count) += 1;
+
+				if rlock!(complete_count) == threads {
+					wlock!(complete) = true;
+					tx.send(())?;
+				}
+			}
+
+			Ok(())
+		})?;
+
+		evh.set_on_panic(move |_ctx, _e| -> Result<(), Error> {
+			info!("onPanic")?;
+			Ok(())
+		})?;
+
+		evh.start()?;
+
+		rx.recv()?;
+		assert!(rlock!(complete_clone));
+
 		Ok(())
 	}
 }

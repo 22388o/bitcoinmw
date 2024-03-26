@@ -201,6 +201,7 @@ pub(crate) struct EventHandlerConfig {
 	pub(crate) timeout: u16,
 	pub(crate) read_slab_size: usize,
 	pub(crate) read_slab_count: usize,
+	pub(crate) housekeeping_frequency_millis: usize,
 }
 pub(crate) struct EventHandlerImpl<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>
 where
@@ -336,6 +337,7 @@ pub(crate) struct EventHandlerContext {
 	pub(crate) id_hash: HashMap<u128, ConnectionVariant>,
 	pub(crate) wakeups: Array<Wakeup>,
 	pub(crate) tid: usize,
+	pub(crate) last_housekeeping: usize,
 
 	#[cfg(target_os = "linux")]
 	pub(crate) linux_ctx: LinuxContext,

@@ -42,6 +42,7 @@ use std::any::Any;
 use std::collections::{HashMap, VecDeque};
 use std::pin::Pin;
 use std::sync::mpsc::{sync_channel, SyncSender};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 info!();
 
@@ -760,6 +761,7 @@ where
 				CN::EvhReadSlabCount,
 				CN::EvhTimeout,
 				CN::EvhThreads,
+				CN::EvhHouseKeeperFrequencyMillis,
 				CN::Debug,
 			],
 			vec![],
@@ -771,12 +773,17 @@ where
 		let read_slab_size = config.get_or_usize(&CN::EvhReadSlabSize, EVH_DEFAULT_READ_SLAB_SIZE);
 		let debug = config.get_or_bool(&CN::Debug, false);
 		let timeout = config.get_or_u16(&CN::EvhTimeout, EVH_DEFAULT_TIMEOUT);
+		let housekeeping_frequency_millis = config.get_or_usize(
+			&CN::EvhHouseKeeperFrequencyMillis,
+			EVH_DEFAULT_HOUSEKEEPING_FREQUENCY_MILLIS,
+		);
 		Ok(EventHandlerConfig {
 			threads,
 			debug,
 			timeout,
 			read_slab_size,
 			read_slab_count,
+			housekeeping_frequency_millis,
 		})
 	}
 
@@ -810,7 +817,13 @@ where
 		let evt = EventIn::new(wakeup_reader, EventTypeIn::Read);
 		ctx.in_events.push(evt);
 
-		match Self::process_state(&mut state[tid], &mut ctx, &mut callbacks, &mut user_context) {
+		match Self::process_state(
+			&mut state[tid],
+			&mut ctx,
+			&mut callbacks,
+			&mut user_context,
+			&config,
+		) {
 			Ok(_) => {}
 			Err(e) => fatal!("Process events generated an unexpected error: {}", e)?,
 		}
@@ -837,8 +850,13 @@ where
 				Ok(_) => {}
 				Err(e) => fatal!("Process events generated an unexpected error: {}", e)?,
 			}
-			match Self::process_state(&mut state[tid], &mut ctx, &mut callbacks, &mut user_context)
-			{
+			match Self::process_state(
+				&mut state[tid],
+				&mut ctx,
+				&mut callbacks,
+				&mut user_context,
+				&config,
+			) {
 				Ok(stop) => {
 					if stop {
 						break Ok(());
@@ -858,13 +876,30 @@ where
 		Ok(())
 	}
 
+	fn process_housekeeper(
+		ctx: &mut EventHandlerContext,
+		callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
+		user_context: &mut UserContextImpl,
+		config: &EventHandlerConfig,
+	) -> Result<(), Error> {
+		let now: usize = try_into!(SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis())?;
+		if now.saturating_sub(ctx.last_housekeeping) > config.housekeeping_frequency_millis {
+			Self::call_on_housekeeper(user_context, &mut callbacks.on_housekeeper)?;
+
+			ctx.last_housekeeping = now;
+		}
+		Ok(())
+	}
+
 	fn process_state(
 		state: &mut Box<dyn LockBox<EventHandlerState>>,
 		ctx: &mut EventHandlerContext,
 		callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
 		user_context: &mut UserContextImpl,
+		config: &EventHandlerConfig,
 	) -> Result<bool, Error> {
 		debug!("in process state tid={}", ctx.tid)?;
+
 		Self::process_write_pending(ctx, callbacks, user_context, state)?;
 
 		let mut state = state.wlock()?;
@@ -875,6 +910,7 @@ where
 			Self::close_handles(ctx)?;
 			Ok(true)
 		} else {
+			Self::process_housekeeper(ctx, callbacks, user_context, config)?;
 			debug!("nconnections.size={}", (**guard).nconnections.len())?;
 			loop {
 				let next = (**guard).nconnections.pop_front();
@@ -1256,6 +1292,26 @@ where
 		Ok(close)
 	}
 
+	fn call_on_housekeeper(
+		user_context: &mut UserContextImpl,
+		callback: &mut Option<Pin<Box<OnHousekeeper>>>,
+	) -> Result<(), Error> {
+		user_context.slab_cur = usize::MAX;
+		match callback {
+			Some(ref mut on_housekeeper) => {
+				let mut user_context: Box<dyn UserContext> = Box::new(user_context);
+				match on_housekeeper(&mut user_context) {
+					Ok(_) => {}
+					Err(e) => warn!("on_housekeeper callback generated error: {}", e)?,
+				}
+			}
+			None => {
+				warn!("no on housekeeper handler!")?;
+			}
+		}
+		Ok(())
+	}
+
 	fn call_on_read(
 		user_context: &mut UserContextImpl,
 		conn: &mut Box<dyn Connection + '_ + Send + Sync>,
@@ -1531,6 +1587,7 @@ impl EventHandlerContext {
 			handle_hash,
 			wakeups,
 			tid,
+			last_housekeeping: 0,
 		})
 	}
 }
