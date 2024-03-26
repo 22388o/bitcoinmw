@@ -19,7 +19,7 @@
 use crate::linux::*;
 #[cfg(target_os = "macos")]
 use crate::mac::*;
-#[cfg(target_os = "win")]
+#[cfg(target_os = "windows")]
 use crate::win::*;
 
 use crate::constants::*;

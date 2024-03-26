@@ -40,7 +40,7 @@ pub(crate) fn read_impl(handle: Handle, buf: &mut [u8]) -> Result<Option<usize>,
 	todo!()
 }
 
-pub(crate) fn accept_impl(fd: RawFd) -> Result<Option<Handle>, Error> {
+pub(crate) fn accept_impl(fd: Handle) -> Result<Option<Handle>, Error> {
 	todo!()
 }
 
