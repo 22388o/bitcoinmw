@@ -74,6 +74,7 @@ pub(crate) fn wakeup_impl() -> Result<(Handle, Handle), Error> {
 }
 
 pub(crate) fn close_impl(handle: Handle) -> Result<(), Error> {
+	debug!("closing {}", handle)?;
 	set_errno(Errno(0));
 	unsafe {
 		close(handle);

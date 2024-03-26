@@ -19,7 +19,7 @@
 use crate::linux::*;
 #[cfg(target_os = "macos")]
 use crate::mac::*;
-#[cfg(target_os = "windows")]
+#[cfg(target_os = "win")]
 use crate::win::*;
 
 use crate::constants::*;
@@ -458,7 +458,62 @@ impl EventHandlerState {
 		Ok(Self {
 			nconnections: VecDeque::new(),
 			write_queue: VecDeque::new(),
+			stop: false,
 		})
+	}
+}
+
+impl<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic> Drop
+	for EventHandlerImpl<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>
+where
+	OnRead: FnMut(
+			&mut Box<dyn Connection + '_ + Send + Sync>,
+			&mut Box<dyn UserContext + '_>,
+		) -> Result<(), Error>
+		+ Send
+		+ 'static
+		+ Clone
+		+ Sync
+		+ Unpin,
+	OnAccept: FnMut(
+			&mut Box<dyn Connection + '_ + Send + Sync>,
+			&mut Box<dyn UserContext + '_>,
+		) -> Result<(), Error>
+		+ Send
+		+ 'static
+		+ Clone
+		+ Sync
+		+ Unpin,
+	OnClose: FnMut(
+			&mut Box<dyn Connection + '_ + Send + Sync>,
+			&mut Box<dyn UserContext + '_>,
+		) -> Result<(), Error>
+		+ Send
+		+ 'static
+		+ Clone
+		+ Sync
+		+ Unpin,
+	OnHousekeeper: FnMut(&mut Box<dyn UserContext + '_>) -> Result<(), Error>
+		+ Send
+		+ 'static
+		+ Clone
+		+ Sync
+		+ Unpin,
+	OnPanic: FnMut(&mut Box<dyn UserContext + '_>, Box<dyn Any + Send>) -> Result<(), Error>
+		+ Send
+		+ 'static
+		+ Clone
+		+ Sync
+		+ Unpin,
+{
+	fn drop(&mut self) {
+		let _ = debug!("drop evh");
+		match self.stop() {
+			Ok(_) => {}
+			Err(e) => {
+				let _ = error!("Error occurred while dropping: {}", e);
+			}
+		}
 	}
 }
 
@@ -664,11 +719,13 @@ where
 			config,
 			state,
 			wakeups,
+			stopper: None,
 		})
 	}
 
 	fn start_impl(&mut self) -> Result<(), Error> {
 		let mut tp = thread_pool!(MinSize(self.config.threads))?;
+		self.stopper = Some(tp.stopper()?);
 
 		tp.set_on_panic(move |id, e| -> Result<(), Error> {
 			Self::process_thread_pool_panic(id, e)?;
@@ -782,11 +839,23 @@ where
 			}
 			match Self::process_state(&mut state[tid], &mut ctx, &mut callbacks, &mut user_context)
 			{
-				Ok(_) => {}
+				Ok(stop) => {
+					if stop {
+						break Ok(());
+					}
+				}
 				Err(e) => fatal!("Process events generated an unexpected error: {}", e)?,
 			}
 			count += 1;
 		}
+	}
+
+	fn close_handles(ctx: &mut EventHandlerContext) -> Result<(), Error> {
+		for (handle, id) in &ctx.handle_hash {
+			debug!("close handle = {}, id = {}", handle, id)?;
+			close_impl(*handle)?;
+		}
+		Ok(())
 	}
 
 	fn process_state(
@@ -794,57 +863,64 @@ where
 		ctx: &mut EventHandlerContext,
 		callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
 		user_context: &mut UserContextImpl,
-	) -> Result<(), Error> {
+	) -> Result<bool, Error> {
 		debug!("in process state tid={}", ctx.tid)?;
 		Self::process_write_pending(ctx, callbacks, user_context, state)?;
 
 		let mut state = state.wlock()?;
 		let guard = state.guard()?;
-		debug!("nconnections.size={}", (**guard).nconnections.len())?;
-		loop {
-			let next = (**guard).nconnections.pop_front();
-			if next.is_none() {
-				break;
+
+		if (**guard).stop {
+			debug!("stopping thread")?;
+			Self::close_handles(ctx)?;
+			Ok(true)
+		} else {
+			debug!("nconnections.size={}", (**guard).nconnections.len())?;
+			loop {
+				let next = (**guard).nconnections.pop_front();
+				if next.is_none() {
+					break;
+				}
+				let mut next = next.unwrap();
+				let (handle, id) = match &mut next {
+					ConnectionVariant::ServerConnection(conn) => {
+						debug!("server in process state")?;
+						match conn.get_tx() {
+							Some(tx) => {
+								// attempt to send notification
+								let _ = tx.send(());
+							}
+							None => {}
+						}
+						(conn.handle(), conn.id())
+					}
+					ConnectionVariant::ClientConnection(conn) => {
+						debug!("client in process state")?;
+						match conn.get_tx() {
+							Some(tx) => {
+								// attempt to send notification
+								let _ = tx.send(());
+							}
+							None => {}
+						}
+						(conn.handle(), conn.id())
+					}
+					ConnectionVariant::Connection(conn) => {
+						Self::call_on_accept(user_context, conn, &mut callbacks.on_accept)?;
+						(conn.handle(), conn.id())
+					}
+					ConnectionVariant::Wakeup(wakeup) => (wakeup.reader, wakeup.id),
+				};
+
+				debug!("found handle = {}, id = {}", handle, id)?;
+				ctx.id_hash.insert(id, next);
+				ctx.handle_hash.insert(handle, id);
+				let event_in = EventIn::new(handle, EventTypeIn::Read);
+				ctx.in_events.push(event_in);
 			}
-			let mut next = next.unwrap();
-			let (handle, id) = match &mut next {
-				ConnectionVariant::ServerConnection(conn) => {
-					debug!("server in process state")?;
-					match conn.get_tx() {
-						Some(tx) => {
-							// attempt to send notification
-							let _ = tx.send(());
-						}
-						None => {}
-					}
-					(conn.handle(), conn.id())
-				}
-				ConnectionVariant::ClientConnection(conn) => {
-					debug!("client in process state")?;
-					match conn.get_tx() {
-						Some(tx) => {
-							// attempt to send notification
-							let _ = tx.send(());
-						}
-						None => {}
-					}
-					(conn.handle(), conn.id())
-				}
-				ConnectionVariant::Connection(conn) => {
-					Self::call_on_accept(user_context, conn, &mut callbacks.on_accept)?;
-					(conn.handle(), conn.id())
-				}
-				ConnectionVariant::Wakeup(wakeup) => (wakeup.reader, wakeup.id),
-			};
 
-			debug!("found handle = {}, id = {}", handle, id)?;
-			ctx.id_hash.insert(id, next);
-			ctx.handle_hash.insert(handle, id);
-			let event_in = EventIn::new(handle, EventTypeIn::Read);
-			ctx.in_events.push(event_in);
+			Ok(false)
 		}
-
-		Ok(())
 	}
 
 	fn process_write_pending(
@@ -1401,6 +1477,20 @@ where
 	}
 
 	fn process_thread_pool_panic(_id: u128, _e: Box<dyn Any + Send>) -> Result<(), Error> {
+		Ok(())
+	}
+
+	fn stop(&mut self) -> Result<(), Error> {
+		// stop thread pool and all threads
+		match &mut self.stopper {
+			Some(ref mut stopper) => stopper.stop()?,
+			None => {}
+		}
+		for i in 0..self.config.threads {
+			wlock!(self.state[i]).stop = true;
+			self.wakeups[i].wakeup()?;
+		}
+
 		Ok(())
 	}
 }

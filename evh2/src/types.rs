@@ -150,6 +150,7 @@ pub struct EvhBuilder {}
 pub struct EventHandlerState {
 	pub(crate) nconnections: VecDeque<ConnectionVariant>,
 	pub(crate) write_queue: VecDeque<u128>,
+	pub(crate) stop: bool,
 }
 
 #[derive(Clone)]
@@ -247,6 +248,7 @@ where
 	pub(crate) config: EventHandlerConfig,
 	pub(crate) state: Array<Box<dyn LockBox<EventHandlerState>>>,
 	pub(crate) wakeups: Array<Wakeup>,
+	pub(crate) stopper: Option<ThreadPoolStopper>,
 }
 
 #[derive(Clone)]

@@ -23,6 +23,8 @@ mod test {
 	use bmw_log::*;
 	use bmw_test::*;
 	use bmw_util::*;
+	use std::io::{Read, Write};
+	use std::net::TcpStream;
 	use std::str::from_utf8;
 
 	info!();
@@ -179,6 +181,51 @@ mod test {
 		rx.recv()?;
 		assert!(rlock!(recv_msg_clone));
 
+		Ok(())
+	}
+
+	#[test]
+	#[cfg(target_os = "linux")]
+	fn test_evh_stop() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut strm;
+		{
+			let mut evh = evh_oro!(EvhThreads(2))?;
+			evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+				let mut buf = [0u8; 1024];
+				let mut data: Vec<u8> = vec![];
+				loop {
+					let len = ctx.clone_next_chunk(connection, &mut buf)?;
+
+					if len == 0 {
+						break;
+					}
+
+					data.extend(&buf[0..len]);
+				}
+
+				let dstring = from_utf8(&data)?;
+				info!("data[{}]='{}'", connection.id(), dstring,)?;
+				connection.write_handle()?.write(b"ok")?;
+				Ok(())
+			})?;
+			evh.start()?;
+			let port = test_info.port();
+			let addr = format!("127.0.0.1:{}", port);
+			let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+			info!("conn.handle = {}", conn.handle())?;
+			evh.add_server_connection(conn)?;
+
+			strm = TcpStream::connect(addr)?;
+			strm.write(b"test")?;
+			let mut buf = [0u8; 100];
+			let res = strm.read(&mut buf);
+			assert!(res.is_ok());
+		}
+
+		let mut buf = [0u8; 100];
+		let res = strm.read(&mut buf)?;
+		assert!(res == 0); // closed
 		Ok(())
 	}
 }
