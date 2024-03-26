@@ -24,6 +24,10 @@ use bmw_deps::rand::random;
 use bmw_err::Error;
 use std::fs::{create_dir_all, remove_dir_all};
 use std::sync::atomic::{AtomicU16, Ordering};
+use std::thread::{sleep, spawn};
+use std::time::Duration;
+
+use std::sync::mpsc::{sync_channel, Receiver, SyncSender};
 
 // global counter for getting a port number
 static GLOBAL_NEXT_PORT: AtomicU16 = AtomicU16::new(9000);
@@ -54,6 +58,22 @@ impl TestInfo for TestInfoImpl {
 
 	fn port(&self) -> u16 {
 		self.port
+	}
+	fn sync_channel(&self) -> (SyncSender<()>, Receiver<()>) {
+		let (tx, rx) = sync_channel(1);
+		let tx_clone = tx.clone();
+		spawn(move || -> Result<(), Error> {
+			sleep(Duration::from_millis(60_000));
+			match tx_clone.send(()) {
+				Ok(_) => {}
+				Err(e) => println!(
+					"an error occurred while trying to send timeout (TestInfoImpl): {}",
+					e
+				),
+			}
+			Ok(())
+		});
+		(tx, rx)
 	}
 }
 

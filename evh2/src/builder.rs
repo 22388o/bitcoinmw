@@ -15,11 +15,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::types::EventHandlerImpl;
-use crate::{Connection, EventHandler, EvhBuilder, UserContext};
+#[cfg(target_os = "linux")]
+use crate::linux::*;
+#[cfg(target_os = "macos")]
+use crate::mac::*;
+#[cfg(target_os = "win")]
+use crate::win::*;
+
+use crate::types::{ConnectionImpl, EventHandlerImpl};
+use crate::{
+	ClientConnection, Connection, EventHandler, EvhBuilder, ServerConnection, UserContext,
+};
 use bmw_conf::ConfigOption;
 use bmw_err::*;
+use bmw_log::*;
 use std::any::Any;
+
+info!();
 
 impl EvhBuilder {
 	pub fn build_evh<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>(
@@ -29,31 +41,40 @@ impl EvhBuilder {
 		Error,
 	>
 	where
-		OnRead: FnMut(&mut Box<dyn Connection>, &mut Box<dyn UserContext>) -> Result<(), Error>
+		OnRead: FnMut(
+				&mut Box<dyn Connection + '_ + Send + Sync>,
+				&mut Box<dyn UserContext + '_>,
+			) -> Result<(), Error>
 			+ Send
 			+ 'static
 			+ Clone
 			+ Sync
 			+ Unpin,
-		OnAccept: FnMut(&mut Box<dyn Connection>, &mut Box<dyn UserContext>) -> Result<(), Error>
+		OnAccept: FnMut(
+				&mut Box<dyn Connection + '_ + Send + Sync>,
+				&mut Box<dyn UserContext + '_>,
+			) -> Result<(), Error>
 			+ Send
 			+ 'static
 			+ Clone
 			+ Sync
 			+ Unpin,
-		OnClose: FnMut(&mut Box<dyn Connection>, &mut Box<dyn UserContext>) -> Result<(), Error>
+		OnClose: FnMut(
+				&mut Box<dyn Connection + '_ + Send + Sync>,
+				&mut Box<dyn UserContext + '_>,
+			) -> Result<(), Error>
 			+ Send
 			+ 'static
 			+ Clone
 			+ Sync
 			+ Unpin,
-		OnHousekeeper: FnMut(&mut Box<dyn UserContext>) -> Result<(), Error>
+		OnHousekeeper: FnMut(&mut Box<dyn UserContext + '_>) -> Result<(), Error>
 			+ Send
 			+ 'static
 			+ Clone
 			+ Sync
 			+ Unpin,
-		OnPanic: FnMut(&mut Box<dyn UserContext>, Box<dyn Any + Send>) -> Result<(), Error>
+		OnPanic: FnMut(&mut Box<dyn UserContext + '_>, Box<dyn Any + Send>) -> Result<(), Error>
 			+ Send
 			+ 'static
 			+ Clone
@@ -61,5 +82,22 @@ impl EvhBuilder {
 			+ Unpin,
 	{
 		Ok(Box::new(EventHandlerImpl::new(configs)?))
+	}
+
+	pub fn build_server_connection(
+		addr: &str,
+		size: usize,
+	) -> Result<Box<dyn ServerConnection + Send + Sync>, Error> {
+		let handle = create_listener(addr, size)?;
+		Ok(Box::new(ConnectionImpl::new(handle, None, None)?))
+	}
+
+	pub fn build_client_connection(
+		host: &str,
+		port: u16,
+	) -> Result<Box<dyn ClientConnection + Send + Sync>, Error> {
+		let handle = create_connection(host, port)?;
+		info!("handle={}", handle)?;
+		Ok(Box::new(ConnectionImpl::new(handle, None, None)?))
 	}
 }

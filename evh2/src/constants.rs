@@ -15,4 +15,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// configuration defaults
 pub(crate) const EVH_DEFAULT_THREADS: usize = 4;
+pub(crate) const EVH_DEFAULT_TIMEOUT: u16 = 1_000;
+pub(crate) const EVH_DEFAULT_IN_EVENTS_SIZE: usize = 1_000;
+pub(crate) const EVH_DEFAULT_READ_SLAB_COUNT: usize = 1_000;
+pub(crate) const EVH_DEFAULT_READ_SLAB_SIZE: usize = 512;
+
+// slice max size for ret handles
+pub(crate) const MAX_RET_HANDLES: usize = 100;
+
+// write state flags
+pub(crate) const WRITE_STATE_FLAG_PENDING: u8 = 0x1 << 0;
+pub(crate) const WRITE_STATE_FLAG_CLOSE: u8 = 0x1 << 1;
+pub(crate) const WRITE_STATE_FLAG_TRIGGER_ON_READ: u8 = 0x1 << 2;
+
+// errno().0 values
+pub(crate) const EAGAIN: i32 = 11;
+pub(crate) const ETEMPUNAVAILABLE: i32 = 35;
+pub(crate) const WINNONBLOCKING: i32 = 10035;

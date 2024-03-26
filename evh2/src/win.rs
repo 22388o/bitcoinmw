@@ -14,3 +14,47 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+use crate::types::{EventHandlerConfig, EventHandlerContext};
+use bmw_err::*;
+
+pub(crate) type Handle = usize;
+
+pub(crate) fn write_impl(handle: Handle, buf: &[u8]) -> Result<isize, Error> {
+	todo!()
+}
+
+pub(crate) fn wakeup_impl() -> Result<(Handle, Handle), Error> {
+	todo!()
+}
+
+pub(crate) fn close_impl(handle: Handle) -> Result<(), Error> {
+	todo!()
+}
+
+pub(crate) fn close_impl_ctx(handle: Handle, ctx: &mut EventHandlerContext) -> Result<(), Error> {
+	todo!()
+}
+
+pub(crate) fn read_impl(handle: Handle, buf: &mut [u8]) -> Result<Option<usize>, Error> {
+	todo!()
+}
+
+pub(crate) fn accept_impl(fd: RawFd) -> Result<Option<Handle>, Error> {
+	todo!()
+}
+
+pub(crate) fn create_connection(host: &str, port: u16) -> Result<Handle, Error> {
+	todo!()
+}
+
+pub(crate) fn create_listener(addr: &str, size: usize) -> Result<Handle, Error> {
+	todo!()
+}
+
+pub(crate) fn get_events(
+	config: &EventHandlerConfig,
+	ctx: &mut EventHandlerContext,
+) -> Result<(), Error> {
+	todo!()
+}

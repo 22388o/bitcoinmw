@@ -102,6 +102,46 @@ pub trait Config {
 	/// }
 	///```
 	fn get_or_bool(&self, name: &ConfigOptionName, default: bool) -> bool;
+	/// Gets a [`bool`] configuration option if it exists. If it doesn't exist, a default value
+	/// is returned.
+	///
+	/// # Input Parameters
+	/// * name ([`crate::ConfigOptionName`]) - The name of the configuration to retrieve.
+	/// * default [`bool`] - This value is returned if the specified
+	/// [`crate::ConfigOptionName`] was not found in the configuration.
+	///
+	/// # Returns
+	/// `bool` - If the specified [`crate::ConfigOptionName`] is found, return it's value.
+	/// Otherwise, return the `default` value.
+	///
+	/// # Examples
+	///
+	///```
+	/// use bmw_conf::*;
+	/// use bmw_err::*;
+	///
+	/// fn main() -> Result<(), Error> {
+	///     let config = config!(AutoRotate(true), Debug(false), EvhTimeout(10));
+	///
+	///     assert_eq!(
+	///         config.get_or_u16(&ConfigOptionName::AutoRotate, 0),
+	///        0
+	///     );
+	///
+	///     assert_eq!(
+	///         config.get_or_u16(&ConfigOptionName::Debug, 0),
+	///         0
+	///     );
+	///
+	///     assert_eq!(
+	///         config.get_or_u16(&ConfigOptionName::EvhTimeout, 0),
+	///         10
+	///     );
+	///
+	///     Ok(())
+	/// }
+	///```
+	fn get_or_u16(&self, name: &ConfigOptionName, default: u16) -> u16;
 	/// Gets a [`usize`] configuration option if it exists. If it doesn't exist, a default value
 	/// is returned.
 	///
@@ -373,6 +413,9 @@ pub enum ConfigOptionName {
 	MaxWildCardLength,
 	IsSync,
 	EvhThreads,
+	EvhTimeout,
+	EvhReadSlabSize,
+	EvhReadSlabCount,
 	Debug,
 	DebugLargeSlabCount,
 }
@@ -417,6 +460,9 @@ pub enum ConfigOption {
 	MaxWildCardLength(usize),
 	IsSync(bool),
 	EvhThreads(usize),
+	EvhTimeout(u16),
+	EvhReadSlabSize(usize),
+	EvhReadSlabCount(usize),
 	Debug(bool),
 	DebugLargeSlabCount(bool),
 }

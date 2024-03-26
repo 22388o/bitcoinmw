@@ -16,6 +16,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::sync::mpsc::{Receiver, SyncSender};
+
 /// This trait defines the data which a test can use. A test can obtain one of these by calling the
 /// [`crate::test_info`] macro.
 pub trait TestInfo {
@@ -24,6 +26,10 @@ pub trait TestInfo {
 	/// Return a directory that can be used by the test. It is automatically deleted when the
 	/// [`crate::TestInfo`] goes out of scope.
 	fn directory(&self) -> &String;
+	/// Return a (std::sync::mpsc::SyncSender<()>, std::sync::mpsc::Receiver<()>) in which the sender
+	/// will automatically send message after 60 seconds. This allows threads to timeout.
+	/// This is useful in eventhandler / http / rustlet testing.
+	fn sync_channel(&self) -> (SyncSender<()>, Receiver<()>);
 }
 
 /// A builder that is used to construct TestInfo implementations. This is typically called through

@@ -4941,4 +4941,25 @@ mod test {
 		assert!(build_hash(vec![IsHashtable(true), GlobalSlabAllocator(false)]).is_err());
 		Ok(())
 	}
+
+	#[test]
+	fn test_thread_pool_error() -> Result<(), Error> {
+		let mut tp = thread_pool!(MinSize(4))?;
+		tp.set_on_panic(move |_, _| -> Result<(), Error> { Ok(()) })?;
+		tp.start()?;
+
+		let h = execute!(tp, {
+			if false {
+				Ok(())
+			} else {
+				Err(err!(ErrKind::Test, "test err"))
+			}
+		})?;
+
+		let res = block_on!(h);
+		assert_eq!(res, PoolResult::Err(err!(ErrKind::Test, "test err")));
+		info!("res={:?}", res)?;
+
+		Ok(())
+	}
 }

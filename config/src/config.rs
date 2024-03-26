@@ -81,6 +81,18 @@ impl Config for ConfigImpl {
 				ConfigOption::TerminationLength(v) => *v,
 				ConfigOption::MaxWildCardLength(v) => *v,
 				ConfigOption::EvhThreads(v) => *v,
+				ConfigOption::EvhReadSlabSize(v) => *v,
+				ConfigOption::EvhReadSlabCount(v) => *v,
+				_ => default,
+			},
+			None => default,
+		}
+	}
+
+	fn get_or_u16(&self, name: &CN, default: u16) -> u16 {
+		match self.hash.get(name) {
+			Some(v) => match v {
+				ConfigOption::EvhTimeout(v) => *v,
 				_ => default,
 			},
 			None => default,
@@ -169,6 +181,9 @@ impl ConfigImpl {
 				MaxWildCardLength(_) => hash.insert(CN::MaxWildCardLength, config.clone()),
 				IsSync(_) => hash.insert(CN::IsSync, config.clone()),
 				EvhThreads(_) => hash.insert(CN::EvhThreads, config.clone()),
+				EvhTimeout(_) => hash.insert(CN::EvhTimeout, config.clone()),
+				EvhReadSlabSize(_) => hash.insert(CN::EvhReadSlabSize, config.clone()),
+				EvhReadSlabCount(_) => hash.insert(CN::EvhReadSlabCount, config.clone()),
 				Debug(_) => hash.insert(CN::Debug, config.clone()),
 				DebugLargeSlabCount(_) => hash.insert(CN::DebugLargeSlabCount, config.clone()),
 			};
@@ -224,6 +239,9 @@ impl ConfigImpl {
 				MaxWildCardLength(_) => cc!(self, t, &mut s, CN::MaxWildCardLength),
 				IsSync(_) => cc!(self, t, &mut s, CN::IsSync),
 				EvhThreads(_) => cc!(self, t, &mut s, CN::EvhThreads),
+				EvhTimeout(_) => cc!(self, t, &mut s, CN::EvhTimeout),
+				EvhReadSlabSize(_) => cc!(self, t, &mut s, CN::EvhReadSlabSize),
+				EvhReadSlabCount(_) => cc!(self, t, &mut s, CN::EvhReadSlabCount),
 				Debug(_) => cc!(self, t, &mut s, CN::Debug),
 				DebugLargeSlabCount(_) => cc!(self, t, &mut s, CN::DebugLargeSlabCount),
 			}
