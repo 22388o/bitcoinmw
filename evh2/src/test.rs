@@ -376,6 +376,149 @@ mod test {
 
 	#[test]
 	#[cfg(target_os = "linux")]
+	fn test_evh_panic_advanced() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let threads = 1;
+
+		let mut evh = evh_oro!(
+			EvhThreads(threads),
+			EvhTimeout(u16::MAX),
+			EvhHouseKeeperFrequencyMillis(usize::MAX)
+		)?;
+
+		let spin_lock1 = lock_box!(false)?;
+		let mut spin_lock1_clone = spin_lock1.clone();
+
+		let spin_lock2 = lock_box!(false)?;
+		let mut spin_lock2_clone = spin_lock2.clone();
+
+		let spin_lock3 = lock_box!(false)?;
+		let mut spin_lock3_clone = spin_lock3.clone();
+
+		let (tx, rx) = test_info.sync_channel();
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			let mut buf = [0u8; 1024];
+			let mut data: Vec<u8> = vec![];
+			loop {
+				let len = ctx.clone_next_chunk(connection, &mut buf)?;
+
+				if len == 0 {
+					break;
+				}
+
+				data.extend(&buf[0..len]);
+			}
+
+			let dstring = from_utf8(&data)?;
+			info!("data[{}]='{}'", connection.id(), dstring,)?;
+			if dstring == "crash\r\n" {
+				let x: Option<u32> = None;
+				let _y = x.unwrap();
+			} else if dstring == "pause1\r\n" {
+				tx.send(())?;
+				info!("pause1")?;
+				loop {
+					if rlock!(spin_lock1) {
+						break;
+					}
+					sleep(Duration::from_millis(10));
+				}
+				info!("pause1 complete")?;
+				let mut wh = connection.write_handle()?;
+				wh.write(b"p1complete")?;
+
+				// introduce a small pause to ensure all i/o data is sent into a
+				// single set of events. The test still works fine without this,
+				// but it's better to excersise it all at once
+				sleep(Duration::from_millis(10));
+			} else if dstring == "pause2\r\n" {
+				info!("pause2")?;
+				loop {
+					if rlock!(spin_lock2) {
+						break;
+					}
+					sleep(Duration::from_millis(10));
+				}
+				info!("pause2 complete")?;
+				let mut wh = connection.write_handle()?;
+				wh.write(b"p2complete")?;
+			} else if dstring == "pause3\r\n" {
+				info!("pause3")?;
+				loop {
+					if rlock!(spin_lock3) {
+						break;
+					}
+					sleep(Duration::from_millis(10));
+				}
+				info!("pause3 complete")?;
+				let mut wh = connection.write_handle()?;
+				wh.write(b"p3complete")?;
+			} else {
+				let mut wh = connection.write_handle()?;
+				wh.write(&data)?;
+			}
+
+			ctx.clear_all(connection)?;
+			Ok(())
+		})?;
+
+		evh.start()?;
+
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		info!("Host on {}", addr)?;
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+
+		info!("adding connection now")?;
+		evh.add_server_connection(conn)?;
+
+		// create 4 streams
+		let mut strm1 = TcpStream::connect(addr.clone())?;
+		let mut strm2 = TcpStream::connect(addr.clone())?;
+		let mut strm3 = TcpStream::connect(addr.clone())?;
+		let mut strm4 = TcpStream::connect(addr.clone())?;
+
+		// pause the thread so nothing else can be processed
+		strm1.write(b"pause1\r\n")?;
+
+		// wait to make sure that's the only event and it's in progress
+		rx.recv()?;
+
+		// now send crash
+		strm4.write(b"crash\r\n")?;
+
+		// now send two other pauses (these will all just queue up until we unlock the
+		// pauses
+		strm2.write(b"pause2\r\n")?;
+		strm3.write(b"pause3\r\n")?;
+
+		// unlock thread and let the test proceed
+		info!("unlocking")?;
+		wlock!(spin_lock3_clone) = true;
+		wlock!(spin_lock2_clone) = true;
+		wlock!(spin_lock1_clone) = true;
+
+		// now try to read from each stream and ensure expected result
+		let mut buf = [0u8; 1000];
+
+		let len = strm1.read(&mut buf)?;
+		assert_eq!(&buf[0..len], b"p1complete");
+
+		let len = strm2.read(&mut buf)?;
+		assert_eq!(&buf[0..len], b"p2complete");
+
+		let len = strm3.read(&mut buf)?;
+		assert_eq!(&buf[0..len], b"p3complete");
+
+		// strm 4 closed due to crash
+		assert_eq!(strm4.read(&mut buf)?, 0);
+
+		Ok(())
+	}
+
+	#[test]
+	#[cfg(target_os = "linux")]
 	fn test_evh_panic_trigger_on_read() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let mut evh = evh_oro!(
