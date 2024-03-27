@@ -915,6 +915,7 @@
 86.94,
 86.74,
 86.67,
+87.72,
 87.72,];
 			let labels = [format_date(1659895655 * 1000 ),
 format_date(1659896021 * 1000 ),
@@ -1778,7 +1779,8 @@ format_date(1711487042 * 1000 ),
 format_date(1711487904 * 1000 ),
 format_date(1711493190 * 1000 ),
 format_date(1711498132 * 1000 ),
-format_date(1711524009 * 1000 ),];
+format_date(1711524009 * 1000 ),
+format_date(1711559407 * 1000 ),];
 
 			const data = {
 				labels: labels,
@@ -1805,45 +1807,45 @@ format_date(1711524009 * 1000 ),];
 
 		<p align="center">
 			Raw tarpaulin output:<br/>
-			<textarea readonly class="textarea" rows="50" cols="100">[2m2024-03-27T07:24:59.031757Z[0m [32m INFO[0m [2mcargo_tarpaulin::config[0m[2m:[0m Creating config
-[2m2024-03-27T07:25:00.698809Z[0m [32m INFO[0m [2mcargo_tarpaulin[0m[2m:[0m Running Tarpaulin
-[2m2024-03-27T07:25:00.698858Z[0m [32m INFO[0m [2mcargo_tarpaulin[0m[2m:[0m Building project
-[2m2024-03-27T07:25:00.698875Z[0m [32m INFO[0m [2mcargo_tarpaulin::cargo[0m[2m:[0m Cleaning project
-[2m2024-03-27T07:28:55.433058Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
-[2m2024-03-27T07:28:55.433871Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw-dde6255e80a2d122
+			<textarea readonly class="textarea" rows="50" cols="100">[2m2024-03-27T17:14:55.346432Z[0m [32m INFO[0m [2mcargo_tarpaulin::config[0m[2m:[0m Creating config
+[2m2024-03-27T17:14:57.214170Z[0m [32m INFO[0m [2mcargo_tarpaulin[0m[2m:[0m Running Tarpaulin
+[2m2024-03-27T17:14:57.214196Z[0m [32m INFO[0m [2mcargo_tarpaulin[0m[2m:[0m Building project
+[2m2024-03-27T17:14:57.214202Z[0m [32m INFO[0m [2mcargo_tarpaulin::cargo[0m[2m:[0m Cleaning project
+[2m2024-03-27T17:18:52.234179Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2024-03-27T17:18:52.234274Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw-dde6255e80a2d122
 
 running 2 tests
 test test::test_debug_startup_32 ... ok
 test test::test_main ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.02s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.01s
 
-[2m2024-03-27T07:29:04.333053Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
-[2m2024-03-27T07:29:04.333121Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw-49685d5c1ccc1d18
+[2m2024-03-27T17:19:01.650192Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2024-03-27T17:19:01.650275Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw-49685d5c1ccc1d18
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-[2m2024-03-27T07:29:04.945064Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
-[2m2024-03-27T07:29:04.945125Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_rustlet-03fa190b8a1d4534
+[2m2024-03-27T17:19:02.266199Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2024-03-27T17:19:02.266255Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_rustlet-03fa190b8a1d4534
 
 running 10 tests
 test test::test::test_rustlet_additional_headers ... ok
 test test::test::test_rustlet_content_reader ... ok
 test test::test::test_rustlet_headers ... ok
 test test::test::test_rustlet_method ... ok
-test test::test::test_rustlet_redirect ... ok
 test test::test::test_rustlet_async ... ok
+test test::test::test_rustlet_redirect ... ok
 test test::test::test_rustlet_simple ... ok
 test test::test::test_rustlet_tls ... ok
 test test::test::test_rustlet_version ... ok
 test test::test::test_websocket_with_client ... ok
 
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.13s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.03s
 
-[2m2024-03-27T07:29:22.321054Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
-[2m2024-03-27T07:29:22.321120Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_int-3042227d5ef0d9c9
+[2m2024-03-27T17:19:19.578170Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2024-03-27T17:19:19.578230Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_int-3042227d5ef0d9c9
 
 running 10 tests
 test test::test::test_evh_client ... ok
@@ -1857,21 +1859,10 @@ test test::test::test_evh_stop ... ok
 test test::test::test_evh_tls_error ... ok
 test test::test::test_evh_tls_client_error ... ok
 
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 35.24s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 35.35s
 
-[2m2024-03-27T07:30:05.465060Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
-[2m2024-03-27T07:30:05.465116Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_conf-17cc33a55b7572ff
-
-running 4 tests
-test test::test::test_config_basic ... ok
-test test::test::test_config_macros ... ok
-test test::test::test_config_all_options ... ok
-test test::test::test_config_with_debug ... ok
-
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
-
-[2m2024-03-27T07:30:12.193057Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
-[2m2024-03-27T07:30:12.193112Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_http-b32dcff69c1d2f5e
+[2m2024-03-27T17:20:02.910179Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2024-03-27T17:20:02.910236Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_http-b32dcff69c1d2f5e
 
 running 21 tests
 test cache::test::test_cache_basic ... ok
@@ -1896,121 +1887,36 @@ test test::test::test_http_client_errors ... ok
 test test::test::test_websocket_macros ... ok
 test test::test::test_ws_client_basic ... ok
 
-test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 33.07s
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 32.96s
 
-[2m2024-03-27T07:30:53.797049Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
-[2m2024-03-27T07:30:53.797106Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_evh2-e93423da02975b95
+[2m2024-03-27T17:20:44.361823Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2024-03-27T17:20:44.361885Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_conf-17cc33a55b7572ff
 
-running 7 tests
+running 4 tests
+test test::test::test_config_basic ... ok
+test test::test::test_config_macros ... ok
+test test::test::test_config_all_options ... ok
+test test::test::test_config_with_debug ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+[2m2024-03-27T17:20:51.094223Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2024-03-27T17:20:51.094277Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_evh2-e93423da02975b95
+
+running 8 tests
 test test::test::test_evh_housekeeping ... ok
 test test::test::test_evh_basic ... ok
 test test::test::test_evh_oro ... ok
+test test::test::test_evh_panic_advanced ... ok
 test test::test::test_evh_panic1 ... ok
-test test::test::test_evh_panic_trigger_on_read ... ok
 test test::test::test_evh_stop ... ok
+test test::test::test_evh_panic_trigger_on_read ... ok
 test test::test::test_evh_trigger_on_read ... ok
 
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.73s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.82s
 
-[2m2024-03-27T07:31:03.249036Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
-[2m2024-03-27T07:31:03.249085Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_log-299a3c97ba2e625f
-
-running 22 tests
-test test::test::test_confirm_boundries ... ok
-test test::test::test_file_header ... ok
-test test::test::test_invalid_metadata ... ok
-test test::test::test_log_all_options ... ok
-test test::test::test_log_basic ... ok
-test test::test::test_log_cycle ... ok
-test test::test::test_log_auto_rotate ... ok
-test test::test::test_log_errors ... ok
-test test::test::test_log_invalid_configs ... ok
-test test::test::test_log_lineno_is_none ... ok
-test test::test::test_log_logger_macro ... ok
-test test::test::test_log_macros ... ok
-test test::test::test_log_delete_rotation ... ok
-test test::test::test_log_no_dot_name ... ok
-test test::test::test_log_prexisting_file ... ok
-test test::test::test_log_prexisting_file_w_data ... ok
-test test::test::test_log_set_get_options ... ok
-test test::test::test_log_show_millis ... ok
-test test::test::test_log_stdoutonly ... ok
-test test::test::test_log_unusual_config ... ok
-test test::test::test_process_resolve_frame_error ... ok
-test test::test::test_log_rotate ... ok
-
-test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 20.67s
-
-[2m2024-03-27T07:31:30.937040Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
-[2m2024-03-27T07:31:30.937127Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_ser-94b28bba1ae2d2b1
-
-running 1 test
-test test::test::test_ser ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
-
-[2m2024-03-27T07:31:37.661063Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
-[2m2024-03-27T07:31:37.661119Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_evh-e421f83c5305f71d
-
-running 53 tests
-test macros::test::test_evh_macros ... ok
-test test::test::test_arc_to_ptr ... ok
-test test::test::test_bad_keys ... ok
-test test::test::test_connection_info_serialization ... ok
-test test::test::test_debug_close_handle ... ok
-test test::test::test_debug_listener_info ... ok
-test test::test::test_evh_bad_configs ... ok
-test test::test::test_evh_close1 ... ok
-test test::test::test_evh_close_handle ... ok
-test test::test::test_evh_close_no_handler ... ok
-test linux::test::test_evh_linux ... ok
-test test::test::test_evh_debug_attachment_none ... ok
-test test::test::test_evh_debug_pending ... ok
-test test::test::test_evh_debug_read_error ... ok
-test test::test::test_evh_debug_rw_accept_id_none ... ok
-test test::test::test_evh_debug_suspend ... ok
-test test::test::test_evh_different_lengths1 ... ok
-test test::test::test_evh_housekeeper ... ok
-test test::test::test_evh_different_lengths_client ... ok
-test test::test::test_evh_invalid_write_queue ... ok
-test test::test::test_evh_make_config ... ok
-test test::test::test_evh_housekeeper_error ... ok
-test test::test::test_evh_no_panic_handler ... ok
-test test::test::test_evh_on_read_none ... ok
-test test::test::test_evh_other_panics_w_err ... ok
-test test::test::test_evh_oob_panic ... ok
-test test::test::test_evh_other_situations ... ok
-test test::test::test_evh_out_of_slabs ... ok
-test test::test::test_evh_other_panics_wo_err ... ok
-test test::test::test_evh_panic_backlog ... ok
-test test::test::test_evh_panic_fatal ... ok
-test test::test::test_evh_process_accept_no_attachment ... ok
-test test::test::test_evh_process_events_other_situations ... ok
-test test::test::test_evh_process_write_errors ... ok
-test test::test::test_evh_partial_clear ... ok
-test test::test::test_evh_thread_panic1 ... ok
-test test::test::test_evh_thread_panic_multi ... ok
-test test::test::test_evh_suspend_resume ... ok
-test test::test::test_evh_tls_basic_server_error ... ok
-test test::test::test_evh_tls_big_message ... ok
-test test::test::test_evh_tls_basic_read_error ... ok
-test test::test::test_evh_tls_multi_chunk_no_reuse_port ... ok
-test test::test::test_evh_tls_multi_chunk ... ok
-test test::test::test_evh_tls_multi_chunk_reuse_port_acc_err ... ok
-test test::test::test_evh_too_many_connections ... ok
-test test::test::test_evh_trigger_on_read ... ok
-test test::test::test_evh_trigger_on_read2 ... ok
-test test::test::test_evh_trigger_on_read_error ... ok
-test test::test::test_evh_trigger_on_read_none ... ok
-test test::test::test_evh_user_data ... ok
-test test::test::test_evh_write_error ... ok
-test test::test::test_wakeup ... ok
-test test::test::test_evh_write_queue ... ok
-
-test result: ok. 53 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 179.45s
-
-[2m2024-03-27T07:34:47.085051Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
-[2m2024-03-27T07:34:47.085108Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_util-a2533fa9ccd58d16
+[2m2024-03-27T17:21:00.686177Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2024-03-27T17:21:00.686234Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_util-a2533fa9ccd58d16
 
 running 140 tests
 test test::test::pass_to_threads ... ok
@@ -2058,12 +1964,12 @@ test test::test::test_hashset_macro ... ok
 test test::test::test_hashtable_drop ... ok
 test test::test::test_hashtable_raw ... ok
 test test::test::test_hashtable_raw_overwrite ... ok
-test test::test::test_hashtable_macro ... ok
-test test::test::test_hashtable_sync_macro ... ok
 test test::test::test_hashtable_sync_box_macro ... ok
-test test::test::test_hashtable_value_write_error ... ok
+test test::test::test_hashtable_macro ... ok
 test test::test::test_hashtable_sync_raw ... ok
+test test::test::test_hashtable_sync_macro ... ok
 test test::test::test_hashtable_value_write_error_multi_slab ... ok
+test test::test::test_hashtable_value_write_error ... ok
 test test::test::test_hashtable_writer_full_error ... ok
 test test::test::test_insert_with_big_small_big_rem_all ... ok
 test test::test::test_invalid_hash_impl_confgs ... ok
@@ -2154,17 +2060,63 @@ test test::test::test_u32_to_slice ... ok
 test test_serializable_derive::test::test_derive ... ok
 test test::test::test_usize_to_slice ... ok
 
-test result: ok. 140 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 39.59s
+test result: ok. 140 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 39.55s
 
-[2m2024-03-27T07:35:34.709049Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
-[2m2024-03-27T07:35:34.709107Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_derive-2da6bff2afe77a0d
+[2m2024-03-27T17:21:48.234177Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2024-03-27T17:21:48.234235Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_ser-94b28bba1ae2d2b1
+
+running 1 test
+test test::test::test_ser ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+[2m2024-03-27T17:21:54.939853Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2024-03-27T17:21:54.939911Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_log-299a3c97ba2e625f
+
+running 22 tests
+test test::test::test_confirm_boundries ... ok
+test test::test::test_file_header ... ok
+test test::test::test_invalid_metadata ... ok
+test test::test::test_log_all_options ... ok
+test test::test::test_log_basic ... ok
+test test::test::test_log_cycle ... ok
+test test::test::test_log_auto_rotate ... ok
+test test::test::test_log_errors ... ok
+test test::test::test_log_invalid_configs ... ok
+test test::test::test_log_lineno_is_none ... ok
+test test::test::test_log_logger_macro ... ok
+test test::test::test_log_macros ... ok
+test test::test::test_log_delete_rotation ... ok
+test test::test::test_log_no_dot_name ... ok
+test test::test::test_log_prexisting_file ... ok
+test test::test::test_log_prexisting_file_w_data ... ok
+test test::test::test_log_set_get_options ... ok
+test test::test::test_log_show_millis ... ok
+test test::test::test_log_stdoutonly ... ok
+test test::test::test_log_unusual_config ... ok
+test test::test::test_process_resolve_frame_error ... ok
+test test::test::test_log_rotate ... ok
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 20.66s
+
+[2m2024-03-27T17:22:22.678179Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2024-03-27T17:22:22.678257Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_derive-2da6bff2afe77a0d
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-[2m2024-03-27T07:35:41.409051Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
-[2m2024-03-27T07:35:41.409105Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_err-eccbee7d08728279
+[2m2024-03-27T17:22:29.362186Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2024-03-27T17:22:29.362240Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_test-80c8b07d45b8594d
+
+running 2 tests
+test test::test::test_test_info_macro ... ok
+test test::test::test_other_test ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+[2m2024-03-27T17:22:36.586183Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2024-03-27T17:22:36.586242Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_err-eccbee7d08728279
 
 running 6 tests
 test test::test::test_ekinds ... ok
@@ -2174,25 +2126,76 @@ test test::test::test_errors ... ok
 test test::test::test_param ... ok
 test test::test::test_other_errors ... ok
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s
 
-[2m2024-03-27T07:35:48.981037Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
-[2m2024-03-27T07:35:48.981096Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_deps-0341f033b2afdc9e
+[2m2024-03-27T17:22:44.146180Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2024-03-27T17:22:44.146237Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_deps-0341f033b2afdc9e
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-[2m2024-03-27T07:35:49.597049Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
-[2m2024-03-27T07:35:49.597104Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_test-80c8b07d45b8594d
+[2m2024-03-27T17:22:44.762220Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling::linux[0m[2m:[0m Launching test
+[2m2024-03-27T17:22:44.762286Z[0m [32m INFO[0m [2mcargo_tarpaulin::process_handling[0m[2m:[0m running /home/vsts/work/1/s/target/debug/deps/bmw_evh-e421f83c5305f71d
 
-running 2 tests
-test test::test::test_test_info_macro ... ok
-test test::test::test_other_test ... ok
+running 53 tests
+test macros::test::test_evh_macros ... ok
+test test::test::test_arc_to_ptr ... ok
+test test::test::test_bad_keys ... ok
+test test::test::test_connection_info_serialization ... ok
+test test::test::test_debug_close_handle ... ok
+test test::test::test_debug_listener_info ... ok
+test test::test::test_evh_bad_configs ... ok
+test test::test::test_evh_close1 ... ok
+test test::test::test_evh_close_handle ... ok
+test test::test::test_evh_close_no_handler ... ok
+test linux::test::test_evh_linux ... ok
+test test::test::test_evh_debug_attachment_none ... ok
+test test::test::test_evh_debug_pending ... ok
+test test::test::test_evh_debug_read_error ... ok
+test test::test::test_evh_debug_rw_accept_id_none ... ok
+test test::test::test_evh_debug_suspend ... ok
+test test::test::test_evh_different_lengths1 ... ok
+test test::test::test_evh_housekeeper ... ok
+test test::test::test_evh_different_lengths_client ... ok
+test test::test::test_evh_invalid_write_queue ... ok
+test test::test::test_evh_make_config ... ok
+test test::test::test_evh_housekeeper_error ... ok
+test test::test::test_evh_no_panic_handler ... ok
+test test::test::test_evh_on_read_none ... ok
+test test::test::test_evh_other_panics_w_err ... ok
+test test::test::test_evh_oob_panic ... ok
+test test::test::test_evh_other_situations ... ok
+test test::test::test_evh_out_of_slabs ... ok
+test test::test::test_evh_other_panics_wo_err ... ok
+test test::test::test_evh_panic_backlog ... ok
+test test::test::test_evh_panic_fatal ... ok
+test test::test::test_evh_process_accept_no_attachment ... ok
+test test::test::test_evh_process_events_other_situations ... ok
+test test::test::test_evh_process_write_errors ... ok
+test test::test::test_evh_partial_clear ... ok
+test test::test::test_evh_thread_panic1 ... ok
+test test::test::test_evh_thread_panic_multi ... ok
+test test::test::test_evh_suspend_resume ... ok
+test test::test::test_evh_tls_basic_server_error ... ok
+test test::test::test_evh_tls_big_message ... ok
+test test::test::test_evh_tls_basic_read_error ... ok
+test test::test::test_evh_tls_multi_chunk_no_reuse_port ... ok
+test test::test::test_evh_tls_multi_chunk ... ok
+test test::test::test_evh_tls_multi_chunk_reuse_port_acc_err ... ok
+test test::test::test_evh_too_many_connections ... ok
+test test::test::test_evh_trigger_on_read ... ok
+test test::test::test_evh_trigger_on_read2 ... ok
+test test::test::test_evh_trigger_on_read_error ... ok
+test test::test::test_evh_trigger_on_read_none ... ok
+test test::test::test_evh_user_data ... ok
+test test::test::test_evh_write_error ... ok
+test test::test::test_wakeup ... ok
+test test::test::test_evh_write_queue ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+test result: ok. 53 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 179.19s
 
-[2m2024-03-27T07:35:56.964288Z[0m [32m INFO[0m [2mcargo_tarpaulin::report[0m[2m:[0m Coverage Results:
+[2m2024-03-27T17:25:54.095801Z[0m [32m INFO[0m [2mcargo_tarpaulin::report[0m[2m:[0m Coverage Results:
 || Uncovered Lines:
 || config/src/config.rs: 86, 97, 99, 190, 251
 || error/src/macros.rs: 199
