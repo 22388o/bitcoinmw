@@ -29,6 +29,6 @@ mod types;
 mod win;
 
 pub use crate::types::{
-	ClientConnection, Connection, EventHandler, EvhBuilder, ServerConnection, UserContext,
-	WriteHandle,
+	ClientConnection, Connection, EventHandler, EvhBuilder, EvhStats, ServerConnection,
+	UserContext, WriteHandle,
 };

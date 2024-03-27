@@ -87,6 +87,7 @@ where
 		&mut self,
 		connection: Box<dyn ClientConnection + Send + Sync>,
 	) -> Result<Box<dyn WriteHandle + Send + Sync>, Error>;
+	fn wait_for_stats(&mut self) -> Result<EvhStats, Error>;
 }
 
 pub trait ClientConnection: Connection {
@@ -162,6 +163,14 @@ pub struct Wakeup {
 	pub(crate) id: u128,
 }
 
+pub struct EvhStats {
+	pub accepts: usize,
+	pub closes: usize,
+	pub reads: usize,
+	pub delay_writes: usize,
+	pub event_loops: usize,
+}
+
 // crate local structures
 
 pub(crate) struct WriteHandleImpl {
@@ -202,6 +211,7 @@ pub(crate) struct EventHandlerConfig {
 	pub(crate) read_slab_size: usize,
 	pub(crate) read_slab_count: usize,
 	pub(crate) housekeeping_frequency_millis: usize,
+	pub(crate) stats_update_frequency_millis: usize,
 }
 pub(crate) struct EventHandlerImpl<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>
 where
@@ -341,6 +351,8 @@ pub(crate) struct EventHandlerContext {
 	pub(crate) last_housekeeping: usize,
 	pub(crate) trigger_on_read_list: Vec<Handle>,
 	pub(crate) trigger_itt: usize,
+	pub(crate) thread_stats: EvhStats,
+	pub(crate) last_stats_update: usize,
 
 	#[cfg(target_os = "linux")]
 	pub(crate) linux_ctx: LinuxContext,

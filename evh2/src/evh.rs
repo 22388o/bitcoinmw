@@ -29,7 +29,8 @@ use crate::types::{
 	UserContextImpl, Wakeup, WriteHandleImpl, WriteState,
 };
 use crate::{
-	ClientConnection, Connection, EventHandler, ServerConnection, UserContext, WriteHandle,
+	ClientConnection, Connection, EventHandler, EvhStats, ServerConnection, UserContext,
+	WriteHandle,
 };
 use bmw_conf::ConfigOptionName as CN;
 use bmw_conf::{ConfigBuilder, ConfigOption};
@@ -652,6 +653,10 @@ where
 		rx.recv()?;
 		Ok(ret)
 	}
+
+	fn wait_for_stats(&mut self) -> Result<EvhStats, Error> {
+		self.wait_for_stats()
+	}
 }
 
 impl<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>
@@ -722,6 +727,10 @@ where
 			wakeups,
 			stopper: None,
 		})
+	}
+
+	fn wait_for_stats(&mut self) -> Result<EvhStats, Error> {
+		todo!()
 	}
 
 	fn start_impl(&mut self) -> Result<(), Error> {
@@ -852,6 +861,7 @@ where
 				CN::EvhTimeout,
 				CN::EvhThreads,
 				CN::EvhHouseKeeperFrequencyMillis,
+				CN::EvhStatsUpdateMillis,
 				CN::Debug,
 			],
 			vec![],
@@ -867,6 +877,8 @@ where
 			&CN::EvhHouseKeeperFrequencyMillis,
 			EVH_DEFAULT_HOUSEKEEPING_FREQUENCY_MILLIS,
 		);
+		let stats_update_frequency_millis =
+			config.get_or_usize(&CN::EvhStatsUpdateMillis, EVH_DEFAULT_STATS_UPDATE_MILLIS);
 		Ok(EventHandlerConfig {
 			threads,
 			debug,
@@ -874,6 +886,7 @@ where
 			read_slab_size,
 			read_slab_count,
 			housekeeping_frequency_millis,
+			stats_update_frequency_millis,
 		})
 	}
 
@@ -1028,6 +1041,17 @@ where
 
 			ctx.last_housekeeping = now;
 		}
+
+		if now.saturating_sub(ctx.last_stats_update) > config.stats_update_frequency_millis {
+			Self::update_stats(ctx)?;
+			ctx.last_stats_update = now;
+		}
+		Ok(())
+	}
+
+	fn update_stats(ctx: &mut EventHandlerContext) -> Result<(), Error> {
+		debug!("update stats")?;
+		ctx.thread_stats.reset();
 		Ok(())
 	}
 
@@ -1755,6 +1779,28 @@ impl EventHandlerContext {
 			trigger_on_read_list: vec![],
 			trigger_itt: 0,
 			ret_event_itt: 0,
+			thread_stats: EvhStats::new(),
+			last_stats_update: 0,
 		})
+	}
+}
+
+impl EvhStats {
+	fn new() -> Self {
+		Self {
+			accepts: 0,
+			closes: 0,
+			reads: 0,
+			delay_writes: 0,
+			event_loops: 0,
+		}
+	}
+
+	fn reset(&mut self) {
+		self.accepts = 0;
+		self.closes = 0;
+		self.reads = 0;
+		self.delay_writes = 0;
+		self.event_loops = 0;
 	}
 }

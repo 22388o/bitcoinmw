@@ -22,6 +22,7 @@ pub(crate) const EVH_DEFAULT_IN_EVENTS_SIZE: usize = 1_000;
 pub(crate) const EVH_DEFAULT_READ_SLAB_COUNT: usize = 1_000;
 pub(crate) const EVH_DEFAULT_READ_SLAB_SIZE: usize = 512;
 pub(crate) const EVH_DEFAULT_HOUSEKEEPING_FREQUENCY_MILLIS: usize = 10_000; // 10 seconds
+pub(crate) const EVH_DEFAULT_STATS_UPDATE_MILLIS: usize = 5_000; // 5 seconds
 
 // slice max size for ret handles
 pub(crate) const MAX_RET_HANDLES: usize = 100;

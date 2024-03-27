@@ -37,9 +37,10 @@ mod test {
 		let test_info = test_info!()?;
 		let mut evh = evh!(
 			Debug(false),
-			EvhTimeout(u16::MAX),
+			EvhTimeout(100),
 			EvhThreads(1),
-			EvhReadSlabSize(100)
+			EvhReadSlabSize(100),
+			EvhStatsUpdateMillis(1000)
 		)?;
 
 		let mut client_id = lock_box!(0)?;

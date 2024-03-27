@@ -82,6 +82,7 @@ impl Config for ConfigImpl {
 				ConfigOption::MaxWildCardLength(v) => *v,
 				ConfigOption::EvhThreads(v) => *v,
 				ConfigOption::EvhHouseKeeperFrequencyMillis(v) => *v,
+				ConfigOption::EvhStatsUpdateMillis(v) => *v,
 				ConfigOption::EvhReadSlabSize(v) => *v,
 				ConfigOption::EvhReadSlabCount(v) => *v,
 				_ => default,
@@ -185,6 +186,7 @@ impl ConfigImpl {
 				EvhHouseKeeperFrequencyMillis(_) => {
 					hash.insert(CN::EvhHouseKeeperFrequencyMillis, config.clone())
 				}
+				EvhStatsUpdateMillis(_) => hash.insert(CN::EvhStatsUpdateMillis, config.clone()),
 				EvhTimeout(_) => hash.insert(CN::EvhTimeout, config.clone()),
 				EvhReadSlabSize(_) => hash.insert(CN::EvhReadSlabSize, config.clone()),
 				EvhReadSlabCount(_) => hash.insert(CN::EvhReadSlabCount, config.clone()),
@@ -246,6 +248,7 @@ impl ConfigImpl {
 				EvhHouseKeeperFrequencyMillis(_) => {
 					cc!(self, t, &mut s, CN::EvhHouseKeeperFrequencyMillis)
 				}
+				EvhStatsUpdateMillis(_) => cc!(self, t, &mut s, CN::EvhStatsUpdateMillis),
 				EvhTimeout(_) => cc!(self, t, &mut s, CN::EvhTimeout),
 				EvhReadSlabSize(_) => cc!(self, t, &mut s, CN::EvhReadSlabSize),
 				EvhReadSlabCount(_) => cc!(self, t, &mut s, CN::EvhReadSlabCount),
