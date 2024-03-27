@@ -225,10 +225,7 @@ pub(crate) fn get_events_in(
 		if fd_usize > filter_len {
 			ctx.linux_ctx.filter_set.resize(fd_usize + 100, false);
 		}
-		if evt.etype == EventTypeIn::Read
-			|| evt.etype == EventTypeIn::Accept
-			|| evt.etype == EventTypeIn::Resume
-		{
+		if evt.etype == EventTypeIn::Read {
 			debug!("proc handle adding read to {}", evt.handle)?;
 			interest |= EpollFlags::EPOLLIN;
 			interest |= EpollFlags::EPOLLET;
@@ -260,9 +257,6 @@ pub(crate) fn get_events_in(
 			};
 
 			ctx.linux_ctx.filter_set.replace(fd_usize, true);
-		} else if evt.etype == EventTypeIn::Suspend {
-			(*ctx.linux_ctx.selector).delete(unsafe { BorrowedFd::borrow_raw(evt.handle) })?;
-			ctx.linux_ctx.filter_set.replace(fd_usize, false);
 		}
 	}
 

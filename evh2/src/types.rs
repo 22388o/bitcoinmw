@@ -335,11 +335,8 @@ pub(crate) struct Event {
 
 #[derive(PartialEq)]
 pub(crate) enum EventTypeIn {
-	Accept,
 	Read,
 	Write,
-	Suspend,
-	Resume,
 }
 
 pub(crate) struct EventIn {
