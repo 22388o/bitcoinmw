@@ -909,6 +909,27 @@ where
 		);
 		let stats_update_frequency_millis =
 			config.get_or_usize(&CN::EvhStatsUpdateMillis, EVH_DEFAULT_STATS_UPDATE_MILLIS);
+
+		if read_slab_count == 0 {
+			let text = "EvhReadSlabCount count must not be 0";
+			return Err(err!(ErrKind::Configuration, text));
+		}
+
+		if read_slab_size < 25 {
+			let text = "EvhReadSlabSize must be at least 25";
+			return Err(err!(ErrKind::Configuration, text));
+		}
+
+		if timeout == 0 {
+			let text = "EvhTimeout must not be 0";
+			return Err(err!(ErrKind::Configuration, text));
+		}
+
+		if housekeeping_frequency_millis == 0 {
+			let text = "EvhHouseKeeperFrequencyMillis must not be 0";
+			return Err(err!(ErrKind::Configuration, text));
+		}
+
 		Ok(EventHandlerConfig {
 			threads,
 			debug,
