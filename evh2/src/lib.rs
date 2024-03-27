@@ -28,7 +28,4 @@ mod types;
 #[cfg(target_os = "windows")]
 mod win;
 
-pub use crate::types::{
-	ClientConnection, Connection, EventHandler, EvhBuilder, EvhStats, ServerConnection,
-	UserContext, WriteHandle,
-};
+pub use crate::types::{Connection, EventHandler, EvhBuilder, EvhStats, UserContext, WriteHandle};

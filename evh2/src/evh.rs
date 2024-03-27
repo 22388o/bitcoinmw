@@ -24,11 +24,11 @@ use crate::win::*;
 
 use crate::constants::*;
 use crate::types::{
-	ConnectionImpl, ConnectionVariant, Event, EventHandlerCallbacks, EventHandlerConfig,
+	ConnectionType, ConnectionVariant, Event, EventHandlerCallbacks, EventHandlerConfig,
 	EventHandlerContext, EventHandlerImpl, EventHandlerState, EventIn, EventType, EventTypeIn,
 	GlobalStats, UserContextImpl, Wakeup, WriteHandle, WriteState,
 };
-use crate::{ClientConnection, Connection, EventHandler, EvhStats, ServerConnection, UserContext};
+use crate::{Connection, EventHandler, EvhStats, UserContext};
 use bmw_conf::ConfigOptionName as CN;
 use bmw_conf::{ConfigBuilder, ConfigOption};
 use bmw_deps::errno::errno;
@@ -79,7 +79,7 @@ impl Wakeup {
 impl UserContext for &mut UserContextImpl {
 	fn clone_next_chunk(
 		&mut self,
-		connection: &mut Box<dyn Connection + '_ + Send + Sync>,
+		connection: &mut Connection,
 		buf: &mut [u8],
 	) -> Result<usize, Error> {
 		let last_slab = connection.get_last_slab();
@@ -111,17 +111,10 @@ impl UserContext for &mut UserContextImpl {
 	fn cur_slab_id(&self) -> usize {
 		self.slab_cur
 	}
-	fn clear_all(
-		&mut self,
-		connection: &mut Box<dyn Connection + '_ + Send + Sync>,
-	) -> Result<(), Error> {
+	fn clear_all(&mut self, connection: &mut Connection) -> Result<(), Error> {
 		self.clear_through(connection.get_last_slab(), connection)
 	}
-	fn clear_through(
-		&mut self,
-		slab_id: usize,
-		connection: &mut Box<dyn Connection + '_ + Send + Sync>,
-	) -> Result<(), Error> {
+	fn clear_through(&mut self, slab_id: usize, connection: &mut Connection) -> Result<(), Error> {
 		debug!("clear_through for {}", connection.handle())?;
 		let mut cur = connection.get_first_slab();
 		loop {
@@ -280,7 +273,7 @@ impl WriteHandle {
 	fn write_state(&mut self) -> Result<&mut Box<dyn LockBox<WriteState>>, Error> {
 		Ok(&mut self.write_state)
 	}
-	fn new(connection_impl: &ConnectionImpl) -> Result<Self, Error> {
+	fn new(connection_impl: &Connection) -> Result<Self, Error> {
 		let wakeup = match &connection_impl.wakeup {
 			Some(wakeup) => wakeup.clone(),
 			None => {
@@ -324,11 +317,36 @@ impl WriteHandle {
 	}
 }
 
-impl ClientConnection for ConnectionImpl {
-	fn as_connection(&mut self) -> Box<dyn Connection + '_ + Send + Sync> {
-		Box::new(self)
+impl Connection {
+	pub fn id(&self) -> u128 {
+		self.id
 	}
-
+	pub fn write_handle(&self) -> Result<WriteHandle, Error> {
+		let wh = WriteHandle::new(self)?;
+		Ok(wh)
+	}
+	pub(crate) fn new(
+		handle: Handle,
+		wakeup: Option<Wakeup>,
+		state: Option<Box<dyn LockBox<EventHandlerState>>>,
+		ctype: ConnectionType,
+	) -> Result<Self, Error> {
+		Ok(Self {
+			handle,
+			id: random(),
+			first_slab: usize::MAX,
+			last_slab: usize::MAX,
+			slab_offset: 0,
+			write_state: lock_box!(WriteState::new())?,
+			wakeup,
+			state,
+			tx: None,
+			ctype,
+		})
+	}
+	pub(crate) fn handle(&self) -> Handle {
+		self.handle
+	}
 	fn set_state(&mut self, state: Box<dyn LockBox<EventHandlerState>>) -> Result<(), Error> {
 		self.state = Some(state);
 		Ok(())
@@ -338,64 +356,12 @@ impl ClientConnection for ConnectionImpl {
 		self.wakeup = Some(wakeup);
 		Ok(())
 	}
+
 	fn set_tx(&mut self, tx: SyncSender<()>) {
 		self.tx = Some(tx);
 	}
 	fn get_tx(&mut self) -> Option<&mut SyncSender<()>> {
 		self.tx.as_mut()
-	}
-}
-
-impl ServerConnection for ConnectionImpl {
-	fn as_connection(&mut self) -> Box<dyn Connection + '_ + Send + Sync> {
-		Box::new(self)
-	}
-	fn set_tx(&mut self, tx: SyncSender<()>) {
-		self.tx = Some(tx);
-	}
-	fn get_tx(&mut self) -> Option<&mut SyncSender<()>> {
-		self.tx.as_mut()
-	}
-}
-
-impl Connection for &mut ConnectionImpl {
-	fn handle(&self) -> Handle {
-		self.handle
-	}
-	fn id(&self) -> u128 {
-		self.id
-	}
-	fn get_slab_offset(&self) -> usize {
-		self.slab_offset
-	}
-	fn get_first_slab(&self) -> usize {
-		self.first_slab
-	}
-	fn get_last_slab(&self) -> usize {
-		self.last_slab
-	}
-	fn set_slab_offset(&mut self, offset: usize) {
-		self.slab_offset = offset;
-	}
-	fn set_first_slab(&mut self, first_slab: usize) {
-		self.first_slab = first_slab;
-	}
-	fn set_last_slab(&mut self, last_slab: usize) {
-		self.last_slab = last_slab;
-	}
-
-	fn write_handle(&self) -> Result<WriteHandle, Error> {
-		let wh = WriteHandle::new(self)?;
-		Ok(wh)
-	}
-}
-
-impl Connection for ConnectionImpl {
-	fn handle(&self) -> Handle {
-		self.handle
-	}
-	fn id(&self) -> u128 {
-		self.id
 	}
 	fn get_slab_offset(&self) -> usize {
 		self.slab_offset
@@ -415,31 +381,6 @@ impl Connection for ConnectionImpl {
 	fn set_last_slab(&mut self, last_slab: usize) {
 		self.last_slab = last_slab;
 	}
-
-	fn write_handle(&self) -> Result<WriteHandle, Error> {
-		let wh = WriteHandle::new(self)?;
-		Ok(wh)
-	}
-}
-
-impl ConnectionImpl {
-	pub(crate) fn new(
-		handle: Handle,
-		wakeup: Option<Wakeup>,
-		state: Option<Box<dyn LockBox<EventHandlerState>>>,
-	) -> Result<Self, Error> {
-		Ok(Self {
-			handle,
-			id: random(),
-			first_slab: usize::MAX,
-			last_slab: usize::MAX,
-			slab_offset: 0,
-			write_state: lock_box!(WriteState::new())?,
-			wakeup,
-			state,
-			tx: None,
-		})
-	}
 }
 
 impl EventHandlerState {
@@ -455,28 +396,19 @@ impl EventHandlerState {
 impl<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic> Drop
 	for EventHandlerImpl<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>
 where
-	OnRead: FnMut(
-			&mut Box<dyn Connection + '_ + Send + Sync>,
-			&mut Box<dyn UserContext + '_>,
-		) -> Result<(), Error>
+	OnRead: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
 		+ Sync
 		+ Unpin,
-	OnAccept: FnMut(
-			&mut Box<dyn Connection + '_ + Send + Sync>,
-			&mut Box<dyn UserContext + '_>,
-		) -> Result<(), Error>
+	OnAccept: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
 		+ Sync
 		+ Unpin,
-	OnClose: FnMut(
-			&mut Box<dyn Connection + '_ + Send + Sync>,
-			&mut Box<dyn UserContext + '_>,
-		) -> Result<(), Error>
+	OnClose: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
@@ -510,28 +442,19 @@ impl<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>
 	EventHandler<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>
 	for EventHandlerImpl<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>
 where
-	OnRead: FnMut(
-			&mut Box<dyn Connection + '_ + Send + Sync>,
-			&mut Box<dyn UserContext + '_>,
-		) -> Result<(), Error>
+	OnRead: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
 		+ Sync
 		+ Unpin,
-	OnAccept: FnMut(
-			&mut Box<dyn Connection + '_ + Send + Sync>,
-			&mut Box<dyn UserContext + '_>,
-		) -> Result<(), Error>
+	OnAccept: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
 		+ Sync
 		+ Unpin,
-	OnClose: FnMut(
-			&mut Box<dyn Connection + '_ + Send + Sync>,
-			&mut Box<dyn UserContext + '_>,
-		) -> Result<(), Error>
+	OnClose: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
@@ -573,10 +496,16 @@ where
 		self.callbacks.on_panic = Some(Box::pin(on_panic));
 		Ok(())
 	}
-	fn add_server_connection(
-		&mut self,
-		mut connection: Box<dyn ServerConnection + Send + Sync>,
-	) -> Result<(), Error> {
+	fn add_server_connection(&mut self, mut connection: Connection) -> Result<(), Error> {
+		match connection.ctype {
+			ConnectionType::Server => {}
+			_ => {
+				return Err(err!(
+					ErrKind::IllegalArgument,
+					"trying to add a non-server connection as a server!"
+				))
+			}
+		}
 		let (tx, rx) = sync_channel(1);
 		connection.set_tx(tx);
 
@@ -606,10 +535,16 @@ where
 
 		Ok(())
 	}
-	fn add_client_connection(
-		&mut self,
-		mut connection: Box<dyn ClientConnection + Send + Sync>,
-	) -> Result<WriteHandle, Error> {
+	fn add_client_connection(&mut self, mut connection: Connection) -> Result<WriteHandle, Error> {
+		match connection.ctype {
+			ConnectionType::Client => {}
+			_ => {
+				return Err(err!(
+					ErrKind::IllegalArgument,
+					"trying to add a non-server connection as a server!"
+				))
+			}
+		}
 		let (tx, rx) = sync_channel(1);
 		connection.set_tx(tx);
 
@@ -649,28 +584,19 @@ where
 impl<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>
 	EventHandlerImpl<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>
 where
-	OnRead: FnMut(
-			&mut Box<dyn Connection + '_ + Send + Sync>,
-			&mut Box<dyn UserContext + '_>,
-		) -> Result<(), Error>
+	OnRead: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
 		+ Sync
 		+ Unpin,
-	OnAccept: FnMut(
-			&mut Box<dyn Connection + '_ + Send + Sync>,
-			&mut Box<dyn UserContext + '_>,
-		) -> Result<(), Error>
+	OnAccept: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
 		+ Sync
 		+ Unpin,
-	OnClose: FnMut(
-			&mut Box<dyn Connection + '_ + Send + Sync>,
-			&mut Box<dyn UserContext + '_>,
-		) -> Result<(), Error>
+	OnClose: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
@@ -1224,9 +1150,8 @@ where
 			Some(conn) => match conn {
 				ConnectionVariant::ServerConnection(_conn) => {}
 				ConnectionVariant::ClientConnection(conn) => {
-					let mut conn = conn.as_connection();
 					let handle = conn.handle();
-					let (close, trigger_on_read, pending) = Self::write_conn(&mut conn)?;
+					let (close, trigger_on_read, pending) = Self::write_conn(conn)?;
 					if close {
 						close_list.push(conn.handle());
 					}
@@ -1266,9 +1191,7 @@ where
 		Ok(())
 	}
 
-	fn write_conn(
-		conn: &mut Box<dyn Connection + '_ + Send + Sync>,
-	) -> Result<(bool, bool, bool), Error> {
+	fn write_conn(conn: &mut Connection) -> Result<(bool, bool, bool), Error> {
 		let mut write_handle = conn.write_handle()?;
 		let ret1 = write_handle.is_set(WRITE_STATE_FLAG_CLOSE)?;
 		let ret2 = write_handle.is_set(WRITE_STATE_FLAG_TRIGGER_ON_READ)?;
@@ -1303,8 +1226,7 @@ where
 							Self::call_on_read(user_context, conn, &mut callbacks.on_read)?
 						}
 						ConnectionVariant::ClientConnection(conn) => {
-							let mut conn = conn.as_connection();
-							Self::call_on_read(user_context, &mut conn, &mut callbacks.on_read)?
+							Self::call_on_read(user_context, conn, &mut callbacks.on_read)?
 						}
 						_ => warn!("unexpected Conection variant for trigger_on_read")?,
 					},
@@ -1373,12 +1295,8 @@ where
 						Self::process_accept(conn, &mut accepted)?;
 					}
 					ConnectionVariant::ClientConnection(conn) => {
-						(close, read_count) = Self::process_read(
-							&mut conn.as_connection(),
-							config,
-							callbacks,
-							user_context,
-						)?;
+						(close, read_count) =
+							Self::process_read(conn, config, callbacks, user_context)?;
 					}
 					ConnectionVariant::Connection(conn) => {
 						(close, read_count) =
@@ -1421,11 +1339,12 @@ where
 		for accept in accepted {
 			let accept_usize: usize = try_into!(accept)?;
 			let tid = accept_usize % config.threads;
-			let connection: Box<dyn Connection + Send + Sync> = Box::new(ConnectionImpl::new(
+			let connection = Connection::new(
 				accept,
 				Some(wakeups[tid].clone()),
 				Some(state[tid].clone()),
-			)?);
+				ConnectionType::Connection,
+			)?;
 
 			{
 				let mut state = state[tid].wlock()?;
@@ -1441,7 +1360,7 @@ where
 	}
 
 	fn process_read(
-		conn: &mut Box<dyn Connection + '_ + Send + Sync>,
+		conn: &mut Connection,
 		config: &EventHandlerConfig,
 		callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
 		user_context: &mut UserContextImpl,
@@ -1569,7 +1488,7 @@ where
 
 	fn call_on_read(
 		user_context: &mut UserContextImpl,
-		conn: &mut Box<dyn Connection + '_ + Send + Sync>,
+		conn: &mut Connection,
 		callback: &mut Option<Pin<Box<OnRead>>>,
 	) -> Result<(), Error> {
 		user_context.slab_cur = conn.get_first_slab();
@@ -1590,7 +1509,7 @@ where
 
 	fn call_on_accept(
 		user_context: &mut UserContextImpl,
-		conn: &mut Box<dyn Connection + '_ + Send + Sync>,
+		conn: &mut Connection,
 		callback: &mut Option<Pin<Box<OnAccept>>>,
 	) -> Result<(), Error> {
 		user_context.slab_cur = usize::MAX;
@@ -1628,9 +1547,8 @@ where
 							}
 						}
 						ConnectionVariant::ClientConnection(conn) => {
-							let mut conn = conn.as_connection();
 							let mut user_context: Box<dyn UserContext> = Box::new(user_context);
-							match callback(&mut conn, &mut user_context) {
+							match callback(conn, &mut user_context) {
 								Ok(_) => {}
 								Err(e) => warn!("on_close callback generated error: {}", e)?,
 							}
@@ -1674,7 +1592,6 @@ where
 					user_context.clear_through(conn.get_last_slab(), &mut conn)?;
 				}
 				ConnectionVariant::ClientConnection(mut conn) => {
-					let mut conn = conn.as_connection();
 					user_context.clear_through(conn.get_last_slab(), &mut conn)?;
 				}
 				ConnectionVariant::ServerConnection(_conn) => {
@@ -1697,10 +1614,7 @@ where
 		Ok(())
 	}
 
-	fn process_accept(
-		conn: &Box<dyn ServerConnection + Send + Sync>,
-		accepted: &mut Vec<Handle>,
-	) -> Result<(), Error> {
+	fn process_accept(conn: &Connection, accepted: &mut Vec<Handle>) -> Result<(), Error> {
 		let handle = conn.handle();
 		let id = conn.id();
 		debug!("process read event on handle={},id={}", handle, id)?;
@@ -1734,8 +1648,7 @@ where
 						(close, write_count) = Self::write_loop(conn)?;
 					}
 					ConnectionVariant::ClientConnection(conn) => {
-						let mut conn = conn.as_connection();
-						(close, write_count) = Self::write_loop(&mut conn)?;
+						(close, write_count) = Self::write_loop(conn)?;
 					}
 					_ => todo!(),
 				},
@@ -1756,9 +1669,7 @@ where
 		Ok(())
 	}
 
-	fn write_loop(
-		conn: &mut Box<dyn Connection + '_ + Send + Sync>,
-	) -> Result<(bool, usize), Error> {
+	fn write_loop(conn: &mut Connection) -> Result<(bool, usize), Error> {
 		let mut write_count = 0;
 		let mut wh = conn.write_handle()?;
 		let write_state = wh.write_state()?;

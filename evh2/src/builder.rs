@@ -22,10 +22,8 @@ use crate::mac::*;
 #[cfg(target_os = "windows")]
 use crate::win::*;
 
-use crate::types::{ConnectionImpl, EventHandlerImpl};
-use crate::{
-	ClientConnection, Connection, EventHandler, EvhBuilder, ServerConnection, UserContext,
-};
+use crate::types::{ConnectionType, EventHandlerImpl};
+use crate::{Connection, EventHandler, EvhBuilder, UserContext};
 use bmw_conf::ConfigOption;
 use bmw_err::*;
 use bmw_log::*;
@@ -41,28 +39,19 @@ impl EvhBuilder {
 		Error,
 	>
 	where
-		OnRead: FnMut(
-				&mut Box<dyn Connection + '_ + Send + Sync>,
-				&mut Box<dyn UserContext + '_>,
-			) -> Result<(), Error>
+		OnRead: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 			+ Send
 			+ 'static
 			+ Clone
 			+ Sync
 			+ Unpin,
-		OnAccept: FnMut(
-				&mut Box<dyn Connection + '_ + Send + Sync>,
-				&mut Box<dyn UserContext + '_>,
-			) -> Result<(), Error>
+		OnAccept: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 			+ Send
 			+ 'static
 			+ Clone
 			+ Sync
 			+ Unpin,
-		OnClose: FnMut(
-				&mut Box<dyn Connection + '_ + Send + Sync>,
-				&mut Box<dyn UserContext + '_>,
-			) -> Result<(), Error>
+		OnClose: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 			+ Send
 			+ 'static
 			+ Clone
@@ -84,20 +73,13 @@ impl EvhBuilder {
 		Ok(Box::new(EventHandlerImpl::new(configs)?))
 	}
 
-	pub fn build_server_connection(
-		addr: &str,
-		size: usize,
-	) -> Result<Box<dyn ServerConnection + Send + Sync>, Error> {
+	pub fn build_server_connection(addr: &str, size: usize) -> Result<Connection, Error> {
 		let handle = create_listener(addr, size)?;
-		Ok(Box::new(ConnectionImpl::new(handle, None, None)?))
+		Ok(Connection::new(handle, None, None, ConnectionType::Server)?)
 	}
 
-	pub fn build_client_connection(
-		host: &str,
-		port: u16,
-	) -> Result<Box<dyn ClientConnection + Send + Sync>, Error> {
+	pub fn build_client_connection(host: &str, port: u16) -> Result<Connection, Error> {
 		let handle = create_connection(host, port)?;
-		info!("handle={}", handle)?;
-		Ok(Box::new(ConnectionImpl::new(handle, None, None)?))
+		Ok(Connection::new(handle, None, None, ConnectionType::Client)?)
 	}
 }

@@ -33,28 +33,19 @@ use std::sync::mpsc::SyncSender;
 
 pub trait EventHandler<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>
 where
-	OnRead: FnMut(
-			&mut Box<dyn Connection + '_ + Send + Sync>,
-			&mut Box<dyn UserContext + '_>,
-		) -> Result<(), Error>
+	OnRead: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
 		+ Sync
 		+ Unpin,
-	OnAccept: FnMut(
-			&mut Box<dyn Connection + '_ + Send + Sync>,
-			&mut Box<dyn UserContext + '_>,
-		) -> Result<(), Error>
+	OnAccept: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
 		+ Sync
 		+ Unpin,
-	OnClose: FnMut(
-			&mut Box<dyn Connection + '_ + Send + Sync>,
-			&mut Box<dyn UserContext + '_>,
-		) -> Result<(), Error>
+	OnClose: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
@@ -79,59 +70,33 @@ where
 	fn set_on_close(&mut self, on_close: OnClose) -> Result<(), Error>;
 	fn set_on_housekeeper(&mut self, on_housekeeper: OnHousekeeper) -> Result<(), Error>;
 	fn set_on_panic(&mut self, on_panic: OnPanic) -> Result<(), Error>;
-	fn add_server_connection(
-		&mut self,
-		connection: Box<dyn ServerConnection + Send + Sync>,
-	) -> Result<(), Error>;
-	fn add_client_connection(
-		&mut self,
-		connection: Box<dyn ClientConnection + Send + Sync>,
-	) -> Result<WriteHandle, Error>;
+	fn add_server_connection(&mut self, connection: Connection) -> Result<(), Error>;
+	fn add_client_connection(&mut self, connection: Connection) -> Result<WriteHandle, Error>;
 	fn wait_for_stats(&mut self) -> Result<EvhStats, Error>;
 }
 
-pub trait ClientConnection: Connection {
-	fn as_connection(&mut self) -> Box<dyn Connection + '_ + Send + Sync>;
-	fn set_state(&mut self, state: Box<dyn LockBox<EventHandlerState>>) -> Result<(), Error>;
-	fn set_wakeup(&mut self, wakeup: Wakeup) -> Result<(), Error>;
-	fn set_tx(&mut self, tx: SyncSender<()>);
-	fn get_tx(&mut self) -> Option<&mut SyncSender<()>>;
-}
-
-pub trait ServerConnection: Connection {
-	fn as_connection(&mut self) -> Box<dyn Connection + '_ + Send + Sync>;
-	fn set_tx(&mut self, tx: SyncSender<()>);
-	fn get_tx(&mut self) -> Option<&mut SyncSender<()>>;
-}
-
-pub trait Connection {
-	fn handle(&self) -> Handle;
-	fn id(&self) -> u128;
-	fn get_slab_offset(&self) -> usize;
-	fn get_first_slab(&self) -> usize;
-	fn get_last_slab(&self) -> usize;
-	fn set_slab_offset(&mut self, offset: usize);
-	fn set_first_slab(&mut self, first_slab: usize);
-	fn set_last_slab(&mut self, last_slab: usize);
-	fn write_handle(&self) -> Result<WriteHandle, Error>;
+pub struct Connection {
+	pub(crate) handle: Handle,
+	pub(crate) id: u128,
+	pub(crate) slab_offset: usize,
+	pub(crate) first_slab: usize,
+	pub(crate) last_slab: usize,
+	pub(crate) write_state: Box<dyn LockBox<WriteState>>,
+	pub(crate) wakeup: Option<Wakeup>,
+	pub(crate) state: Option<Box<dyn LockBox<EventHandlerState>>>,
+	pub(crate) tx: Option<SyncSender<()>>,
+	pub(crate) ctype: ConnectionType,
 }
 
 pub trait UserContext {
 	fn clone_next_chunk(
 		&mut self,
-		connection: &mut Box<dyn Connection + '_ + Send + Sync>,
+		connection: &mut Connection,
 		buf: &mut [u8],
 	) -> Result<usize, Error>;
 	fn cur_slab_id(&self) -> usize;
-	fn clear_all(
-		&mut self,
-		connection: &mut Box<dyn Connection + '_ + Send + Sync>,
-	) -> Result<(), Error>;
-	fn clear_through(
-		&mut self,
-		slab_id: usize,
-		connection: &mut Box<dyn Connection + '_ + Send + Sync>,
-	) -> Result<(), Error>;
+	fn clear_all(&mut self, connection: &mut Connection) -> Result<(), Error>;
+	fn clear_through(&mut self, slab_id: usize, connection: &mut Connection) -> Result<(), Error>;
 	fn get_user_data(&mut self) -> &mut Option<Box<dyn Any + Send + Sync>>;
 	fn set_user_data(&mut self, user_data: Box<dyn Any + Send + Sync>);
 }
@@ -155,22 +120,22 @@ pub struct EvhStats {
 	pub event_loops: usize,
 }
 
-pub struct EventHandlerState {
+// crate local structures
+
+pub(crate) struct EventHandlerState {
 	pub(crate) nconnections: VecDeque<ConnectionVariant>,
 	pub(crate) write_queue: VecDeque<u128>,
 	pub(crate) stop: bool,
 }
 
 #[derive(Clone)]
-pub struct Wakeup {
+pub(crate) struct Wakeup {
 	pub(crate) lock: Box<dyn LockBox<bool>>,
 	pub(crate) lock2: Box<dyn LockBox<()>>,
 	pub(crate) reader: Handle,
 	pub(crate) writer: Handle,
 	pub(crate) id: u128,
 }
-
-// crate local structures
 
 pub(crate) struct WriteState {
 	pub(crate) flags: u8,
@@ -183,17 +148,6 @@ pub(crate) struct GlobalStats {
 	pub(crate) tx: Option<SyncSender<()>>,
 }
 
-pub(crate) struct ConnectionImpl {
-	pub(crate) handle: Handle,
-	pub(crate) id: u128,
-	pub(crate) slab_offset: usize,
-	pub(crate) first_slab: usize,
-	pub(crate) last_slab: usize,
-	pub(crate) write_state: Box<dyn LockBox<WriteState>>,
-	pub(crate) wakeup: Option<Wakeup>,
-	pub(crate) state: Option<Box<dyn LockBox<EventHandlerState>>>,
-	pub(crate) tx: Option<SyncSender<()>>,
-}
 pub(crate) struct UserContextImpl {
 	pub(crate) read_slabs: Box<dyn SlabAllocator + Send + Sync>,
 	pub(crate) user_data: Option<Box<dyn Any + Send + Sync>>,
@@ -212,28 +166,19 @@ pub(crate) struct EventHandlerConfig {
 }
 pub(crate) struct EventHandlerImpl<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>
 where
-	OnRead: FnMut(
-			&mut Box<dyn Connection + '_ + Send + Sync>,
-			&mut Box<dyn UserContext + '_>,
-		) -> Result<(), Error>
+	OnRead: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
 		+ Sync
 		+ Unpin,
-	OnAccept: FnMut(
-			&mut Box<dyn Connection + '_ + Send + Sync>,
-			&mut Box<dyn UserContext + '_>,
-		) -> Result<(), Error>
+	OnAccept: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
 		+ Sync
 		+ Unpin,
-	OnClose: FnMut(
-			&mut Box<dyn Connection + '_ + Send + Sync>,
-			&mut Box<dyn UserContext + '_>,
-		) -> Result<(), Error>
+	OnClose: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
@@ -263,28 +208,19 @@ where
 #[derive(Clone)]
 pub(crate) struct EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>
 where
-	OnRead: FnMut(
-			&mut Box<dyn Connection + '_ + Send + Sync>,
-			&mut Box<dyn UserContext + '_>,
-		) -> Result<(), Error>
+	OnRead: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
 		+ Sync
 		+ Unpin,
-	OnAccept: FnMut(
-			&mut Box<dyn Connection + '_ + Send + Sync>,
-			&mut Box<dyn UserContext + '_>,
-		) -> Result<(), Error>
+	OnAccept: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
 		+ Sync
 		+ Unpin,
-	OnClose: FnMut(
-			&mut Box<dyn Connection + '_ + Send + Sync>,
-			&mut Box<dyn UserContext + '_>,
-		) -> Result<(), Error>
+	OnClose: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
@@ -355,8 +291,14 @@ pub(crate) struct EventHandlerContext {
 }
 
 pub(crate) enum ConnectionVariant {
-	ServerConnection(Box<dyn ServerConnection + Send + Sync>),
-	ClientConnection(Box<dyn ClientConnection + Send + Sync>),
-	Connection(Box<dyn Connection + Send + Sync>),
+	ServerConnection(Connection),
+	ClientConnection(Connection),
+	Connection(Connection),
 	Wakeup(Wakeup),
+}
+
+pub(crate) enum ConnectionType {
+	Server,
+	Client,
+	Connection,
 }
