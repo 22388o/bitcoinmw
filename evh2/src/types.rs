@@ -163,6 +163,7 @@ pub struct Wakeup {
 	pub(crate) id: u128,
 }
 
+#[derive(Debug, Clone)]
 pub struct EvhStats {
 	pub accepts: usize,
 	pub closes: usize,
@@ -172,6 +173,12 @@ pub struct EvhStats {
 }
 
 // crate local structures
+
+pub(crate) struct GlobalStats {
+	pub(crate) stats: EvhStats,
+	pub(crate) update_counter: usize,
+	pub(crate) tx: Option<SyncSender<()>>,
+}
 
 pub(crate) struct WriteHandleImpl {
 	pub(crate) handle: Handle,
@@ -260,6 +267,7 @@ where
 	pub(crate) state: Array<Box<dyn LockBox<EventHandlerState>>>,
 	pub(crate) wakeups: Array<Wakeup>,
 	pub(crate) stopper: Option<ThreadPoolStopper>,
+	pub(crate) stats: Box<dyn LockBox<GlobalStats>>,
 }
 
 #[derive(Clone)]
@@ -352,6 +360,7 @@ pub(crate) struct EventHandlerContext {
 	pub(crate) trigger_on_read_list: Vec<Handle>,
 	pub(crate) trigger_itt: usize,
 	pub(crate) thread_stats: EvhStats,
+	pub(crate) global_stats: Box<dyn LockBox<GlobalStats>>,
 	pub(crate) last_stats_update: usize,
 
 	#[cfg(target_os = "linux")]

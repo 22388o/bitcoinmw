@@ -40,7 +40,7 @@ mod test {
 			EvhTimeout(100),
 			EvhThreads(1),
 			EvhReadSlabSize(100),
-			EvhStatsUpdateMillis(1000)
+			EvhStatsUpdateMillis(5000)
 		)?;
 
 		let mut client_id = lock_box!(0)?;
@@ -116,6 +116,7 @@ mod test {
 		evh.start()?;
 		let port = test_info.port();
 		let addr = format!("127.0.0.1:{}", port);
+		info!("connecting to addr {}", addr)?;
 		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
 
 		info!("adding connection now")?;
@@ -655,6 +656,52 @@ mod test {
 
 		info!("data={:?}", &buf[0..len_sum])?;
 		assert_eq!(&buf[0..len_sum], [49, 49, 49, 49, 50, 50, 50, 50]);
+
+		Ok(())
+	}
+
+	#[test]
+	#[cfg(target_os = "linux")]
+	fn test_evh_stats() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut evh = evh_oro!(
+			Debug(false),
+			EvhTimeout(10),
+			EvhThreads(1),
+			EvhReadSlabSize(100),
+			EvhStatsUpdateMillis(1000)
+		)?;
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			ctx.clear_all(connection)?;
+			Ok(())
+		})?;
+
+		evh.start()?;
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		info!("addr={}", addr)?;
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+		evh.add_server_connection(conn)?;
+
+		{
+			let _strm = TcpStream::connect(addr.clone())?;
+			let _strm = TcpStream::connect(addr.clone())?;
+			let _strm = TcpStream::connect(addr.clone())?;
+			let _strm = TcpStream::connect(addr.clone())?;
+			let _strm = TcpStream::connect(addr.clone())?;
+		}
+		let mut strm = TcpStream::connect(addr.clone())?;
+		strm.write(b"test")?;
+
+		let stats = evh.wait_for_stats()?;
+
+		// 1 left in scope has not disconnecte yet
+		assert_eq!(stats.accepts, 6);
+		assert_eq!(stats.closes, 5);
+		assert_eq!(stats.reads, 1);
+		assert!(stats.event_loops != 0);
+		info!("stats={:?}", stats)?;
 
 		Ok(())
 	}

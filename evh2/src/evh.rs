@@ -26,7 +26,7 @@ use crate::constants::*;
 use crate::types::{
 	ConnectionImpl, ConnectionVariant, Event, EventHandlerCallbacks, EventHandlerConfig,
 	EventHandlerContext, EventHandlerImpl, EventHandlerState, EventIn, EventType, EventTypeIn,
-	UserContextImpl, Wakeup, WriteHandleImpl, WriteState,
+	GlobalStats, UserContextImpl, Wakeup, WriteHandleImpl, WriteState,
 };
 use crate::{
 	ClientConnection, Connection, EventHandler, EvhStats, ServerConnection, UserContext,
@@ -714,6 +714,13 @@ where
 			wakeups[i] = Wakeup::new()?;
 		}
 
+		let global_stats = GlobalStats {
+			stats: EvhStats::new(),
+			update_counter: 0,
+			tx: None,
+		};
+		let stats = lock_box!(global_stats)?;
+
 		Ok(Self {
 			callbacks: EventHandlerCallbacks {
 				on_read: None,
@@ -725,12 +732,31 @@ where
 			config,
 			state,
 			wakeups,
+			stats,
 			stopper: None,
 		})
 	}
 
 	fn wait_for_stats(&mut self) -> Result<EvhStats, Error> {
-		todo!()
+		let mut ret = EvhStats::new();
+		let (tx, rx) = sync_channel(1);
+		{
+			let mut stats = self.stats.wlock()?;
+			let guard = stats.guard()?;
+			(**guard).tx = Some(tx);
+		}
+
+		rx.recv()?;
+
+		{
+			let mut stats = self.stats.wlock()?;
+			let guard = stats.guard()?;
+
+			let _ = std::mem::replace(&mut ret, (**guard).stats.clone());
+			(**guard).stats.reset();
+		}
+
+		Ok(ret)
 	}
 
 	fn start_impl(&mut self) -> Result<(), Error> {
@@ -755,12 +781,16 @@ where
 		};
 		let mut ctx_arr = array!(
 			config.threads,
-			&lock_box!(EventHandlerContext::new(wakeups.clone(), 0)?)?
+			&lock_box!(EventHandlerContext::new(
+				wakeups.clone(),
+				0,
+				self.stats.clone()
+			)?)?
 		)?;
 		let mut user_context_arr = array!(config.threads, &lock_box!(user_context)?)?;
 
 		for i in 0..config.threads {
-			let mut evhc = EventHandlerContext::new(wakeups.clone(), i)?;
+			let mut evhc = EventHandlerContext::new(wakeups.clone(), i, self.stats.clone())?;
 			let wakeup_reader = wakeups[i].reader;
 			let evt = EventIn::new(wakeup_reader, EventTypeIn::Read);
 			evhc.in_events.push(evt);
@@ -979,6 +1009,7 @@ where
 				Ok(_) => {}
 				Err(e) => fatal!("get_events generated an unexpected error: {}", e)?,
 			}
+			(**ctx_guard).thread_stats.event_loops += 1;
 			(**ctx_guard).in_events.clear();
 			(**ctx_guard)
 				.in_events
@@ -1043,14 +1074,33 @@ where
 		}
 
 		if now.saturating_sub(ctx.last_stats_update) > config.stats_update_frequency_millis {
-			Self::update_stats(ctx)?;
+			Self::update_stats(ctx, config)?;
 			ctx.last_stats_update = now;
 		}
 		Ok(())
 	}
 
-	fn update_stats(ctx: &mut EventHandlerContext) -> Result<(), Error> {
-		debug!("update stats")?;
+	fn update_stats(
+		ctx: &mut EventHandlerContext,
+		config: &EventHandlerConfig,
+	) -> Result<(), Error> {
+		{
+			let mut global_stats = ctx.global_stats.wlock()?;
+			let guard = global_stats.guard()?;
+			(**guard).stats.incr_stats(&ctx.thread_stats);
+			(**guard).update_counter += 1;
+			if (**guard).update_counter >= config.threads {
+				match &(**guard).tx {
+					Some(tx) => {
+						tx.send(())?;
+					}
+					None => {}
+				}
+
+				(**guard).update_counter = 0;
+			}
+		}
+
 		ctx.thread_stats.reset();
 		Ok(())
 	}
@@ -1106,6 +1156,7 @@ where
 						(conn.handle(), conn.id())
 					}
 					ConnectionVariant::Connection(conn) => {
+						ctx.thread_stats.accepts += 1;
 						Self::call_on_accept(user_context, conn, &mut callbacks.on_accept)?;
 						(conn.handle(), conn.id())
 					}
@@ -1305,6 +1356,7 @@ where
 	) -> Result<(), Error> {
 		let mut accepted = vec![];
 		let mut close = false;
+		let mut read_count = 0;
 		debug!("process read event= {}", handle)?;
 		match ctx.handle_hash.get(&handle) {
 			Some(id) => match ctx.id_hash.get_mut(&id) {
@@ -1313,7 +1365,7 @@ where
 						Self::process_accept(conn, &mut accepted)?;
 					}
 					ConnectionVariant::ClientConnection(conn) => {
-						close = Self::process_read(
+						(close, read_count) = Self::process_read(
 							&mut conn.as_connection(),
 							config,
 							callbacks,
@@ -1321,7 +1373,8 @@ where
 						)?;
 					}
 					ConnectionVariant::Connection(conn) => {
-						close = Self::process_read(conn, config, callbacks, user_context)?;
+						(close, read_count) =
+							Self::process_read(conn, config, callbacks, user_context)?;
 					}
 					ConnectionVariant::Wakeup(_wakeup) => {
 						let mut buf = [0u8; 1000];
@@ -1345,6 +1398,7 @@ where
 			debug!("closing handle {}", handle)?;
 			Self::process_close(handle, ctx, callbacks, user_context)?;
 		}
+		ctx.thread_stats.reads += read_count;
 
 		Self::process_accepted_connections(accepted, config, state, &mut ctx.wakeups)
 	}
@@ -1383,9 +1437,10 @@ where
 		config: &EventHandlerConfig,
 		callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
 		user_context: &mut UserContextImpl,
-	) -> Result<bool, Error> {
+	) -> Result<(bool, usize), Error> {
 		debug!("in process_read")?;
 		let mut close = false;
+		let mut read_count = 0;
 		let handle = conn.handle();
 		// loop through and read as many slabs as we can
 		loop {
@@ -1455,6 +1510,7 @@ where
 				Some(rlen) => {
 					if rlen > 0 {
 						conn.set_slab_offset(slab_offset + rlen);
+						read_count += 1;
 					}
 
 					debug!(
@@ -1480,7 +1536,7 @@ where
 			Self::call_on_read(user_context, conn, &mut callbacks.on_read)?;
 		}
 
-		Ok(close)
+		Ok((close, read_count))
 	}
 
 	fn call_on_housekeeper(
@@ -1599,6 +1655,7 @@ where
 		mut user_context: &mut UserContextImpl,
 	) -> Result<(), Error> {
 		debug!("Calling close")?;
+		ctx.thread_stats.closes += 1;
 		Self::call_on_close(user_context, handle, &mut callbacks.on_close, ctx)?;
 
 		let id = ctx.handle_hash.remove(&handle).unwrap_or(u128::MAX);
@@ -1661,15 +1718,16 @@ where
 		handle: Handle,
 	) -> Result<(), Error> {
 		let mut close = false;
+		let mut write_count = 0;
 		match ctx.handle_hash.get(&handle) {
 			Some(id) => match ctx.id_hash.get_mut(id) {
 				Some(conn) => match conn {
 					ConnectionVariant::Connection(conn) => {
-						close = Self::write_loop(conn)?;
+						(close, write_count) = Self::write_loop(conn)?;
 					}
 					ConnectionVariant::ClientConnection(conn) => {
 						let mut conn = conn.as_connection();
-						close = Self::write_loop(&mut conn)?;
+						(close, write_count) = Self::write_loop(&mut conn)?;
 					}
 					_ => todo!(),
 				},
@@ -1685,10 +1743,15 @@ where
 		if close {
 			close_impl_ctx(handle, ctx)?;
 		}
+
+		ctx.thread_stats.delay_writes += write_count;
 		Ok(())
 	}
 
-	fn write_loop(conn: &mut Box<dyn Connection + '_ + Send + Sync>) -> Result<bool, Error> {
+	fn write_loop(
+		conn: &mut Box<dyn Connection + '_ + Send + Sync>,
+	) -> Result<(bool, usize), Error> {
+		let mut write_count = 0;
 		let mut wh = conn.write_handle()?;
 		let write_state = wh.write_state()?;
 		let mut write_state = write_state.wlock()?;
@@ -1710,6 +1773,9 @@ where
 				break;
 			} else {
 				let wlen: usize = try_into!(wlen)?;
+				if wlen > 0 {
+					write_count += 1;
+				}
 
 				(**guard).write_buffer.drain(0..wlen);
 				(**guard).write_buffer.shrink_to_fit();
@@ -1720,7 +1786,7 @@ where
 			(**guard).unset_flag(WRITE_STATE_FLAG_PENDING);
 		}
 
-		Ok(close)
+		Ok((close, write_count))
 	}
 
 	fn stop(&mut self) -> Result<(), Error> {
@@ -1758,7 +1824,11 @@ impl EventIn {
 }
 
 impl EventHandlerContext {
-	fn new(wakeups: Array<Wakeup>, tid: usize) -> Result<Self, Error> {
+	fn new(
+		wakeups: Array<Wakeup>,
+		tid: usize,
+		global_stats: Box<dyn LockBox<GlobalStats>>,
+	) -> Result<Self, Error> {
 		let ret_event_count = 0;
 		let ret_events = [Event::empty(); MAX_RET_HANDLES];
 		let in_events = vec![];
@@ -1780,6 +1850,7 @@ impl EventHandlerContext {
 			trigger_itt: 0,
 			ret_event_itt: 0,
 			thread_stats: EvhStats::new(),
+			global_stats,
 			last_stats_update: 0,
 		})
 	}
@@ -1802,5 +1873,13 @@ impl EvhStats {
 		self.reads = 0;
 		self.delay_writes = 0;
 		self.event_loops = 0;
+	}
+
+	fn incr_stats(&mut self, stats: &EvhStats) {
+		self.accepts += stats.accepts;
+		self.closes += stats.closes;
+		self.reads += stats.reads;
+		self.delay_writes += stats.delay_writes;
+		self.event_loops += stats.event_loops;
 	}
 }
