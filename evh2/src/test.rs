@@ -167,6 +167,7 @@ mod test {
 			assert_eq!(dstring, "hi");
 			wlock!(recv_msg) = true;
 			tx.send(())?;
+			ctx.clear_all(connection)?;
 			Ok(())
 		})?;
 
@@ -209,6 +210,7 @@ mod test {
 				let dstring = from_utf8(&data)?;
 				info!("data[{}]='{}'", connection.id(), dstring,)?;
 				connection.write_handle()?.write(b"ok")?;
+				ctx.clear_all(connection)?;
 				Ok(())
 			})?;
 			evh.start()?;
@@ -238,24 +240,10 @@ mod test {
 		let mut evh = evh!(
 			EvhThreads(threads),
 			EvhTimeout(1),
-			EvhHouseKeeperFrequencyMillis(1)
+			EvhHouseKeeperFrequencyMillis(2)
 		)?;
 		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
-			let mut buf = [0u8; 1024];
-			let mut data: Vec<u8> = vec![];
-			loop {
-				let len = ctx.clone_next_chunk(connection, &mut buf)?;
-
-				if len == 0 {
-					break;
-				}
-
-				data.extend(&buf[0..len]);
-			}
-
-			let dstring = from_utf8(&data)?;
-			info!("data[{}]='{}'", connection.id(), dstring,)?;
-			connection.write_handle()?.write(b"ok")?;
+			ctx.clear_all(connection)?;
 			Ok(())
 		})?;
 
@@ -314,6 +302,215 @@ mod test {
 
 		rx.recv()?;
 		assert!(rlock!(complete_clone));
+
+		Ok(())
+	}
+
+	#[test]
+	#[cfg(target_os = "linux")]
+	fn test_evh_panic1() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let threads = 1;
+
+		let mut evh = evh_oro!(
+			EvhThreads(threads),
+			EvhTimeout(u16::MAX),
+			EvhHouseKeeperFrequencyMillis(usize::MAX)
+		)?;
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			let mut buf = [0u8; 1024];
+			let mut data: Vec<u8> = vec![];
+			loop {
+				let len = ctx.clone_next_chunk(connection, &mut buf)?;
+
+				if len == 0 {
+					break;
+				}
+
+				data.extend(&buf[0..len]);
+			}
+
+			let dstring = from_utf8(&data)?;
+			info!("data[{}]='{}'", connection.id(), dstring,)?;
+			if dstring == "crash\r\n" {
+				let x: Option<u32> = None;
+				let _y = x.unwrap();
+			}
+			let mut wh = connection.write_handle()?;
+			wh.write(&data)?;
+
+			ctx.clear_all(connection)?;
+			Ok(())
+		})?;
+
+		evh.start()?;
+
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		info!("Host on {}", addr)?;
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+
+		info!("adding connection now")?;
+		evh.add_server_connection(conn)?;
+
+		let mut strm1 = TcpStream::connect(addr.clone())?;
+		let mut strm2 = TcpStream::connect(addr)?;
+
+		strm1.write(b"x")?;
+		let mut buf = [0u8; 100];
+		let len = strm1.read(&mut buf)?;
+		assert_eq!(len, 1);
+		assert_eq!(buf[0], b'x');
+		strm1.write(b"crash\r\n")?;
+
+		assert!(strm1.read(&mut buf)? == 0);
+		strm2.write(b"y")?;
+		let len = strm2.read(&mut buf)?;
+		assert_eq!(len, 1);
+		assert_eq!(buf[0], b'y');
+		info!("got y response back")?;
+
+		Ok(())
+	}
+
+	#[test]
+	#[cfg(target_os = "linux")]
+	fn test_evh_panic_trigger_on_read() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut evh = evh_oro!(
+			Debug(false),
+			EvhTimeout(u16::MAX),
+			EvhThreads(1),
+			EvhReadSlabSize(100)
+		)?;
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			info!("onRead")?;
+			let mut buf = [0u8; 1024];
+			let mut data: Vec<u8> = vec![];
+			loop {
+				let len = ctx.clone_next_chunk(connection, &mut buf)?;
+
+				if len == 0 {
+					break;
+				}
+
+				data.extend(&buf[0..len]);
+			}
+
+			let mut wh = connection.write_handle()?;
+
+			let dstring = from_utf8(&data)?;
+			info!("data[{}]='{}'", connection.id(), dstring,)?;
+
+			if dstring == "hi\r\n" {
+				wh.write(b"1111")?;
+				spawn(move || -> Result<(), Error> {
+					info!("trigger on read")?;
+					wh.trigger_on_read()?;
+					info!("trigger complete")?;
+					Ok(())
+				});
+			} else if dstring == "" {
+				let x: Option<u32> = None;
+				let _y = x.unwrap();
+			}
+
+			ctx.clear_all(connection)?;
+			Ok(())
+		})?;
+
+		evh.start()?;
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+		evh.add_server_connection(conn)?;
+
+		info!("connecting to {}", addr)?;
+
+		let mut strm = TcpStream::connect(addr)?;
+		strm.write(b"hi\r\n")?;
+
+		let mut buf = [0u8; 100];
+
+		let len = strm.read(&mut buf)?;
+		assert_eq!(len, 4);
+
+		info!("data={:?}", &buf[0..len])?;
+		assert_eq!(&buf[0..len], [49, 49, 49, 49]);
+
+		assert_eq!(strm.read(&mut buf)?, 0);
+
+		Ok(())
+	}
+
+	#[test]
+	#[cfg(target_os = "linux")]
+	fn test_evh_trigger_on_read() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut evh = evh_oro!(
+			Debug(false),
+			EvhTimeout(u16::MAX),
+			EvhThreads(1),
+			EvhReadSlabSize(100)
+		)?;
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			info!("onRead")?;
+			let mut buf = [0u8; 1024];
+			let mut data: Vec<u8> = vec![];
+			loop {
+				let len = ctx.clone_next_chunk(connection, &mut buf)?;
+
+				if len == 0 {
+					break;
+				}
+
+				data.extend(&buf[0..len]);
+			}
+
+			let mut wh = connection.write_handle()?;
+
+			let dstring = from_utf8(&data)?;
+			info!("data[{}]='{}'", connection.id(), dstring,)?;
+
+			if dstring == "hi" {
+				wh.write(b"1111")?;
+				spawn(move || -> Result<(), Error> {
+					wh.trigger_on_read()?;
+					Ok(())
+				});
+			} else if dstring == "" {
+				wh.write(b"2222")?;
+			}
+
+			ctx.clear_all(connection)?;
+			Ok(())
+		})?;
+
+		evh.start()?;
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+		evh.add_server_connection(conn)?;
+
+		let mut strm = TcpStream::connect(addr)?;
+		strm.write(b"hi")?;
+
+		let mut buf = [0u8; 100];
+		let mut len_sum = 0;
+
+		loop {
+			let len = strm.read(&mut buf[len_sum..])?;
+			len_sum += len;
+			if len_sum == 8 {
+				break;
+			}
+		}
+
+		info!("data={:?}", &buf[0..len_sum])?;
+		assert_eq!(&buf[0..len_sum], [49, 49, 49, 49, 50, 50, 50, 50]);
 
 		Ok(())
 	}

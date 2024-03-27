@@ -161,11 +161,11 @@ impl UserContext for &mut UserContextImpl {
 		Ok(())
 	}
 
-	fn get_user_data(&mut self) -> &mut Option<Box<dyn Any>> {
+	fn get_user_data(&mut self) -> &mut Option<Box<dyn Any + Send + Sync>> {
 		&mut self.user_data
 	}
 
-	fn set_user_data(&mut self, user_data: Box<dyn Any>) {
+	fn set_user_data(&mut self, user_data: Box<dyn Any + Send + Sync>) {
 		self.user_data = Some(user_data);
 	}
 }
@@ -247,6 +247,7 @@ impl WriteHandle for WriteHandleImpl {
 		Ok(())
 	}
 	fn trigger_on_read(&mut self) -> Result<(), Error> {
+		debug!("trigger on read {} ", self.handle)?;
 		{
 			let mut write_state = self.write_state.wlock()?;
 			let guard = write_state.guard()?;
@@ -260,7 +261,6 @@ impl WriteHandle for WriteHandleImpl {
 		{
 			wlock!(self.state).write_queue.push_back(self.id);
 		}
-
 		self.wakeup.wakeup()?;
 
 		Ok(())
@@ -726,22 +726,112 @@ where
 
 	fn start_impl(&mut self) -> Result<(), Error> {
 		let mut tp = thread_pool!(MinSize(self.config.threads))?;
+		let mut executor = lock_box!(tp.executor()?)?;
+		let mut executor_clone = executor.clone();
 		self.stopper = Some(tp.stopper()?);
 
+		let config = self.config.clone();
+		let callbacks = self.callbacks.clone();
+		let state = self.state.clone();
+		let wakeups = self.wakeups.clone();
+
+		let read_slabs = slab_allocator!(
+			SlabSize(config.read_slab_size),
+			SlabCount(config.read_slab_count)
+		)?;
+		let user_context = UserContextImpl {
+			read_slabs,
+			user_data: None,
+			slab_cur: usize::MAX,
+		};
+		let mut ctx_arr = array!(
+			config.threads,
+			&lock_box!(EventHandlerContext::new(wakeups.clone(), 0)?)?
+		)?;
+		let mut user_context_arr = array!(config.threads, &lock_box!(user_context)?)?;
+
+		for i in 0..config.threads {
+			let mut evhc = EventHandlerContext::new(wakeups.clone(), i)?;
+			let wakeup_reader = wakeups[i].reader;
+			let evt = EventIn::new(wakeup_reader, EventTypeIn::Read);
+			evhc.in_events.push(evt);
+
+			ctx_arr[i] = lock_box!(evhc)?;
+			let read_slabs = slab_allocator!(
+				SlabSize(config.read_slab_size),
+				SlabCount(config.read_slab_count)
+			)?;
+			let user_context = UserContextImpl {
+				read_slabs,
+				user_data: None,
+				slab_cur: usize::MAX,
+			};
+			user_context_arr[i] = lock_box!(user_context)?;
+
+			wlock!(self.state[i])
+				.nconnections
+				.push_back(ConnectionVariant::Wakeup(wakeups[i].clone()));
+		}
+
+		let user_context_arr_clone = user_context_arr.clone();
+		let ctx_arr_clone = ctx_arr.clone();
+
 		tp.set_on_panic(move |id, e| -> Result<(), Error> {
-			Self::process_thread_pool_panic(id, e)?;
+			let e = e.downcast_ref::<&str>().unwrap_or(&"unknown error");
+			error!("on panic: [thread_id={}]: {}", id, e)?;
+			let config = config.clone();
+			let callbacks = callbacks.clone();
+			let state = state.clone();
+			let user_ctx_arr_clone = user_context_arr_clone.clone();
+			let ctx_arr = ctx_arr_clone.clone();
+
+			wlock!(executor).execute(
+				async move {
+					match EventHandlerImpl::execute_thread(
+						config,
+						callbacks,
+						state,
+						ctx_arr,
+						user_ctx_arr_clone,
+						try_into!(id)?,
+						true,
+					) {
+						Ok(_) => {}
+						Err(e) => {
+							fatal!("Execute thread had an unexpected error: {}", e)?;
+						}
+					}
+					Ok(())
+				},
+				try_into!(id)?,
+			)?;
 			Ok(())
 		})?;
 
 		tp.start()?;
 
+		{
+			let mut executor = executor_clone.wlock()?;
+			let guard = executor.guard()?;
+			(**guard) = tp.executor()?;
+		}
+
 		for i in 0..self.config.threads {
 			let config = self.config.clone();
 			let callbacks = self.callbacks.clone();
 			let state = self.state.clone();
-			let wakeups = self.wakeups.clone();
-			execute!(tp, {
-				match Self::execute_thread(config, callbacks, state, wakeups, i) {
+			let ctx_arr = ctx_arr.clone();
+			let user_context_arr = user_context_arr.clone();
+			execute!(tp, try_into!(i)?, {
+				match Self::execute_thread(
+					config,
+					callbacks,
+					state,
+					ctx_arr.clone(),
+					user_context_arr.clone(),
+					i,
+					false,
+				) {
 					Ok(_) => {}
 					Err(e) => {
 						fatal!("Execute thread had an unexpected error: {}", e)?;
@@ -791,37 +881,80 @@ where
 		config: EventHandlerConfig,
 		mut callbacks: EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
 		mut state: Array<Box<dyn LockBox<EventHandlerState>>>,
-		wakeups: Array<Wakeup>,
+		mut ctx_arr: Array<Box<dyn LockBox<EventHandlerContext>>>,
+		mut user_context_arr: Array<Box<dyn LockBox<UserContextImpl>>>,
 		tid: usize,
+		panic_recovery: bool,
 	) -> Result<(), Error> {
 		debug!("execute thread {}", tid)?;
 
+		let mut ctx = ctx_arr[tid].wlock_ignore_poison()?;
+		let mut user_context = user_context_arr[tid].wlock_ignore_poison()?;
+		let ctx_guard = ctx.guard()?;
+		let user_context_guard = user_context.guard()?;
+
 		let mut count = 0u128;
-		let wakeup_reader = wakeups[tid].reader;
 
-		wlock!(state[tid])
-			.nconnections
-			.push_back(ConnectionVariant::Wakeup(wakeups[tid].clone()));
-		let mut ctx = EventHandlerContext::new(wakeups, tid)?;
-		let read_slabs = slab_allocator!(
-			SlabSize(config.read_slab_size),
-			SlabCount(config.read_slab_count)
-		)?;
-		let mut user_context = UserContextImpl {
-			read_slabs,
-			user_data: None,
-			slab_cur: usize::MAX,
-		};
+		if panic_recovery {
+			let ret_event_itt = (**ctx_guard).ret_event_itt;
+			let ret_event_count = (**ctx_guard).ret_event_count;
 
-		// listen for wakeups
-		let evt = EventIn::new(wakeup_reader, EventTypeIn::Read);
-		ctx.in_events.push(evt);
+			let trigger_itt = (**ctx_guard).trigger_itt;
+			let trigger_count = (**ctx_guard).trigger_on_read_list.len();
+			warn!(
+				"panic recovery with ret_event_count = {}, ret_event_itt = {}, trigger_count = {}, trigger_itt = {}",
+				ret_event_count, ret_event_itt, trigger_count, trigger_itt
+			)?;
+
+			if trigger_itt < trigger_count {
+				let handle = (**ctx_guard).trigger_on_read_list[trigger_itt];
+				debug!("handle to close (trigger_on_read) = {}", handle)?;
+
+				Self::process_close(
+					handle,
+					&mut (**ctx_guard),
+					&mut callbacks,
+					&mut (**user_context_guard),
+				)?;
+
+				// skip over errant event
+				(**ctx_guard).trigger_itt += 1;
+			} else if ret_event_itt < ret_event_count {
+				// the error must have been in the on_read regular read events
+				let handle = (**ctx_guard).ret_events[(**ctx_guard).ret_event_itt].handle;
+				debug!("handle to close (regular) = {}", handle)?;
+
+				Self::process_close(
+					handle,
+					&mut (**ctx_guard),
+					&mut callbacks,
+					&mut (**user_context_guard),
+				)?;
+
+				// skip over errant event
+				(**ctx_guard).ret_event_itt += 1;
+			} else {
+				// something's wrong but continue
+				warn!("panic, but no pending events. Internal panic?")?;
+			}
+
+			match Self::process_events(
+				&config,
+				&mut (**ctx_guard),
+				&mut callbacks,
+				&mut state,
+				&mut (**user_context_guard),
+			) {
+				Ok(_) => {}
+				Err(e) => fatal!("Process events generated an unexpected error: {}", e)?,
+			}
+		}
 
 		match Self::process_state(
 			&mut state[tid],
-			&mut ctx,
+			&mut (**ctx_guard),
 			&mut callbacks,
-			&mut user_context,
+			&mut (**user_context_guard),
 			&config,
 		) {
 			Ok(_) => {}
@@ -829,32 +962,24 @@ where
 		}
 
 		loop {
-			match get_events(&config, &mut ctx) {
+			match get_events(&config, &mut (**ctx_guard)) {
 				Ok(_) => {}
 				Err(e) => fatal!("get_events generated an unexpected error: {}", e)?,
 			}
-			ctx.in_events.clear();
-			ctx.in_events.shrink_to(EVH_DEFAULT_IN_EVENTS_SIZE);
+			(**ctx_guard).in_events.clear();
+			(**ctx_guard)
+				.in_events
+				.shrink_to(EVH_DEFAULT_IN_EVENTS_SIZE);
 
 			if config.debug {
 				info!("Thread loop {}", count)?;
 			}
 
-			match Self::process_events(
-				&config,
-				&mut ctx,
-				&mut callbacks,
-				&mut state,
-				&mut user_context,
-			) {
-				Ok(_) => {}
-				Err(e) => fatal!("Process events generated an unexpected error: {}", e)?,
-			}
 			match Self::process_state(
 				&mut state[tid],
-				&mut ctx,
+				&mut (**ctx_guard),
 				&mut callbacks,
-				&mut user_context,
+				&mut (**user_context_guard),
 				&config,
 			) {
 				Ok(stop) => {
@@ -862,6 +987,21 @@ where
 						break Ok(());
 					}
 				}
+				Err(e) => fatal!("Process events generated an unexpected error: {}", e)?,
+			}
+
+			debug!("calling proc events")?;
+			// set iterator to 0 outside function in case of thread panic
+			(**ctx_guard).ret_event_itt = 0;
+			(**ctx_guard).trigger_itt = 0;
+			match Self::process_events(
+				&config,
+				&mut (**ctx_guard),
+				&mut callbacks,
+				&mut state,
+				&mut (**user_context_guard),
+			) {
+				Ok(_) => {}
 				Err(e) => fatal!("Process events generated an unexpected error: {}", e)?,
 			}
 			count += 1;
@@ -982,6 +1122,7 @@ where
 			}
 		}
 
+		ctx.trigger_on_read_list.clear();
 		for id in ids {
 			Self::process_write_id(ctx, id, callbacks, user_context)?;
 		}
@@ -996,7 +1137,6 @@ where
 		user_context: &mut UserContextImpl,
 	) -> Result<(), Error> {
 		let mut close_list = vec![];
-		let mut trigger_on_read_list = vec![];
 		match ctx.id_hash.get_mut(&id) {
 			Some(conn) => match conn {
 				ConnectionVariant::ServerConnection(_conn) => {}
@@ -1008,7 +1148,7 @@ where
 						close_list.push(conn.handle());
 					}
 					if trigger_on_read {
-						trigger_on_read_list.push(conn.handle());
+						ctx.trigger_on_read_list.push(conn.handle());
 					}
 
 					if pending {
@@ -1023,7 +1163,7 @@ where
 						close_list.push(conn.handle());
 					}
 					if trigger_on_read {
-						trigger_on_read_list.push(conn.handle());
+						ctx.trigger_on_read_list.push(conn.handle());
 					}
 					if pending {
 						let evt = EventIn::new(handle, EventTypeIn::Write);
@@ -1039,24 +1179,6 @@ where
 
 		for handle in close_list {
 			Self::process_close(handle, ctx, callbacks, user_context)?;
-		}
-		for handle in trigger_on_read_list {
-			match ctx.handle_hash.get(&handle) {
-				Some(id) => match ctx.id_hash.get_mut(&id) {
-					Some(conn) => match conn {
-						ConnectionVariant::Connection(conn) => {
-							Self::call_on_read(user_context, conn, &mut callbacks.on_read)?
-						}
-						_ => todo!(),
-					},
-					None => {
-						warn!("none in trigger_on_read1")?;
-					}
-				},
-				None => {
-					warn!("none in trigger_on_read2")?;
-				}
-			}
 		}
 		Ok(())
 	}
@@ -1081,27 +1203,71 @@ where
 		state: &mut Array<Box<dyn LockBox<EventHandlerState>>>,
 		user_context: &mut UserContextImpl,
 	) -> Result<(), Error> {
+		// first call the trigger on reads
+		debug!("trig list = {:?}", ctx.trigger_on_read_list)?;
+		//for handle in &ctx.trigger_on_read_list {
+		let list_len = ctx.trigger_on_read_list.len();
+		loop {
+			if ctx.trigger_itt == list_len {
+				break;
+			}
+
+			let handle = ctx.trigger_on_read_list[ctx.trigger_itt];
+			match ctx.handle_hash.get(&handle) {
+				Some(id) => match ctx.id_hash.get_mut(&id) {
+					Some(conn) => match conn {
+						ConnectionVariant::Connection(conn) => {
+							Self::call_on_read(user_context, conn, &mut callbacks.on_read)?
+						}
+						ConnectionVariant::ClientConnection(conn) => {
+							let mut conn = conn.as_connection();
+							Self::call_on_read(user_context, &mut conn, &mut callbacks.on_read)?
+						}
+						_ => warn!("unexpected Conection variant for trigger_on_read")?,
+					},
+					None => {
+						warn!("none in trigger_on_read1")?;
+					}
+				},
+				None => {
+					warn!("none in trigger_on_read2")?;
+				}
+			}
+			ctx.trigger_itt += 1;
+		}
+
+		// next process events
 		debug!("events to process = {}", ctx.ret_event_count)?;
-		for i in 0..ctx.ret_event_count {
-			debug!("proc event = {:?}", ctx.ret_events[i])?;
-			if ctx.ret_events[i].etype == EventType::Read
-				|| ctx.ret_events[i].etype == EventType::ReadWrite
+		loop {
+			if ctx.ret_event_itt == ctx.ret_event_count {
+				break;
+			}
+			debug!("proc event = {:?}", ctx.ret_events[ctx.ret_event_itt])?;
+			if ctx.ret_events[ctx.ret_event_itt].etype == EventType::Read
+				|| ctx.ret_events[ctx.ret_event_itt].etype == EventType::ReadWrite
 			{
 				Self::process_read_event(
 					config,
 					ctx,
 					callbacks,
-					ctx.ret_events[i].handle,
+					ctx.ret_events[ctx.ret_event_itt].handle,
 					state,
 					user_context,
 				)?;
 			}
-			if ctx.ret_events[i].etype == EventType::Write
-				|| ctx.ret_events[i].etype == EventType::ReadWrite
+			if ctx.ret_events[ctx.ret_event_itt].etype == EventType::Write
+				|| ctx.ret_events[ctx.ret_event_itt].etype == EventType::ReadWrite
 			{
-				Self::process_write_event(config, ctx, callbacks, ctx.ret_events[i].handle)?;
+				Self::process_write_event(
+					config,
+					ctx,
+					callbacks,
+					ctx.ret_events[ctx.ret_event_itt].handle,
+				)?;
 			}
+			ctx.ret_event_itt += 1;
 		}
+
 		Ok(())
 	}
 
@@ -1115,7 +1281,7 @@ where
 	) -> Result<(), Error> {
 		let mut accepted = vec![];
 		let mut close = false;
-		debug!("lookup handle = {}", handle)?;
+		debug!("process read event= {}", handle)?;
 		match ctx.handle_hash.get(&handle) {
 			Some(id) => match ctx.id_hash.get_mut(&id) {
 				Some(conn) => match conn {
@@ -1152,6 +1318,7 @@ where
 		}
 		debug!("close was {}", close)?;
 		if close {
+			debug!("closing handle {}", handle)?;
 			Self::process_close(handle, ctx, callbacks, user_context)?;
 		}
 
@@ -1532,10 +1699,6 @@ where
 		Ok(close)
 	}
 
-	fn process_thread_pool_panic(_id: u128, _e: Box<dyn Any + Send>) -> Result<(), Error> {
-		Ok(())
-	}
-
 	fn stop(&mut self) -> Result<(), Error> {
 		// stop thread pool and all threads
 		match &mut self.stopper {
@@ -1577,6 +1740,7 @@ impl EventHandlerContext {
 		let in_events = vec![];
 		let id_hash = HashMap::new();
 		let handle_hash = HashMap::new();
+
 		Ok(Self {
 			ret_event_count,
 			ret_events,
@@ -1588,6 +1752,9 @@ impl EventHandlerContext {
 			wakeups,
 			tid,
 			last_housekeeping: 0,
+			trigger_on_read_list: vec![],
+			trigger_itt: 0,
+			ret_event_itt: 0,
 		})
 	}
 }

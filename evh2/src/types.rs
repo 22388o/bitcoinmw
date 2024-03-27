@@ -141,8 +141,8 @@ pub trait UserContext {
 		slab_id: usize,
 		connection: &mut Box<dyn Connection + '_ + Send + Sync>,
 	) -> Result<(), Error>;
-	fn get_user_data(&mut self) -> &mut Option<Box<dyn Any>>;
-	fn set_user_data(&mut self, user_data: Box<dyn Any>);
+	fn get_user_data(&mut self) -> &mut Option<Box<dyn Any + Send + Sync>>;
+	fn set_user_data(&mut self, user_data: Box<dyn Any + Send + Sync>);
 }
 
 pub struct EvhBuilder {}
@@ -190,7 +190,7 @@ pub(crate) struct ConnectionImpl {
 }
 pub(crate) struct UserContextImpl {
 	pub(crate) read_slabs: Box<dyn SlabAllocator + Send + Sync>,
-	pub(crate) user_data: Option<Box<dyn Any>>,
+	pub(crate) user_data: Option<Box<dyn Any + Send + Sync>>,
 	pub(crate) slab_cur: usize,
 }
 
@@ -332,12 +332,15 @@ pub(crate) struct EventIn {
 pub(crate) struct EventHandlerContext {
 	pub(crate) ret_event_count: usize,
 	pub(crate) ret_events: [Event; MAX_RET_HANDLES],
+	pub(crate) ret_event_itt: usize,
 	pub(crate) in_events: Vec<EventIn>,
 	pub(crate) handle_hash: HashMap<Handle, u128>,
 	pub(crate) id_hash: HashMap<u128, ConnectionVariant>,
 	pub(crate) wakeups: Array<Wakeup>,
 	pub(crate) tid: usize,
 	pub(crate) last_housekeeping: usize,
+	pub(crate) trigger_on_read_list: Vec<Handle>,
+	pub(crate) trigger_itt: usize,
 
 	#[cfg(target_os = "linux")]
 	pub(crate) linux_ctx: LinuxContext,
