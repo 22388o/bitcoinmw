@@ -4944,6 +4944,27 @@
 <a href="#4942" id="4942">4942</a>
 <a href="#4943" id="4943">4943</a>
 <a href="#4944" id="4944">4944</a>
+<a href="#4945" id="4945">4945</a>
+<a href="#4946" id="4946">4946</a>
+<a href="#4947" id="4947">4947</a>
+<a href="#4948" id="4948">4948</a>
+<a href="#4949" id="4949">4949</a>
+<a href="#4950" id="4950">4950</a>
+<a href="#4951" id="4951">4951</a>
+<a href="#4952" id="4952">4952</a>
+<a href="#4953" id="4953">4953</a>
+<a href="#4954" id="4954">4954</a>
+<a href="#4955" id="4955">4955</a>
+<a href="#4956" id="4956">4956</a>
+<a href="#4957" id="4957">4957</a>
+<a href="#4958" id="4958">4958</a>
+<a href="#4959" id="4959">4959</a>
+<a href="#4960" id="4960">4960</a>
+<a href="#4961" id="4961">4961</a>
+<a href="#4962" id="4962">4962</a>
+<a href="#4963" id="4963">4963</a>
+<a href="#4964" id="4964">4964</a>
+<a href="#4965" id="4965">4965</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -9885,6 +9906,27 @@
 		<span class="macro">assert!</span>(build_hash(<span class="macro">vec!</span>[IsHashtable(<span class="bool-val">true</span>), SlabSize(<span class="number">100</span>)]).is_err());
 		<span class="macro">assert!</span>(build_hash(<span class="macro">vec!</span>[IsHashtable(<span class="bool-val">true</span>), SlabSize(<span class="number">100</span>), SlabCount(<span class="number">10</span>)]).is_err());
 		<span class="macro">assert!</span>(build_hash(<span class="macro">vec!</span>[IsHashtable(<span class="bool-val">true</span>), GlobalSlabAllocator(<span class="bool-val">false</span>)]).is_err());
+		<span class="prelude-val">Ok</span>(())
+	}
+
+	<span class="attr">#[test]
+	</span><span class="kw">fn </span>test_thread_pool_error() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>tp = <span class="macro">thread_pool!</span>(MinSize(<span class="number">4</span>))<span class="question-mark">?</span>;
+		tp.set_on_panic(<span class="kw">move </span>|<span class="kw">_</span>, <span class="kw">_</span>| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; { <span class="prelude-val">Ok</span>(()) })<span class="question-mark">?</span>;
+		tp.start()<span class="question-mark">?</span>;
+
+		<span class="kw">let </span>h = <span class="macro">execute!</span>(tp, {
+			<span class="kw">if </span><span class="bool-val">false </span>{
+				<span class="prelude-val">Ok</span>(())
+			} <span class="kw">else </span>{
+				<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Test, <span class="string">"test err"</span>))
+			}
+		})<span class="question-mark">?</span>;
+
+		<span class="kw">let </span>res = <span class="macro">block_on!</span>(h);
+		<span class="macro">assert_eq!</span>(res, PoolResult::Err(<span class="macro">err!</span>(ErrKind::Test, <span class="string">"test err"</span>)));
+		<span class="macro">info!</span>(<span class="string">"res={:?}"</span>, res)<span class="question-mark">?</span>;
+
 		<span class="prelude-val">Ok</span>(())
 	}
 }

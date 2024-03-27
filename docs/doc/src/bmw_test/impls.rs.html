@@ -106,6 +106,26 @@
 <a href="#104" id="104">104</a>
 <a href="#105" id="105">105</a>
 <a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -132,6 +152,10 @@
 <span class="kw">use </span>bmw_err::Error;
 <span class="kw">use </span>std::fs::{create_dir_all, remove_dir_all};
 <span class="kw">use </span>std::sync::atomic::{AtomicU16, Ordering};
+<span class="kw">use </span>std::thread::{sleep, spawn};
+<span class="kw">use </span>std::time::Duration;
+
+<span class="kw">use </span>std::sync::mpsc::{sync_channel, Receiver, SyncSender};
 
 <span class="comment">// global counter for getting a port number
 </span><span class="kw">static </span>GLOBAL_NEXT_PORT: AtomicU16 = AtomicU16::new(<span class="number">9000</span>);
@@ -162,6 +186,22 @@
 
 	<span class="kw">fn </span>port(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u16 {
 		<span class="self">self</span>.port
+	}
+	<span class="kw">fn </span>sync_channel(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; (SyncSender&lt;()&gt;, Receiver&lt;()&gt;) {
+		<span class="kw">let </span>(tx, rx) = sync_channel(<span class="number">1</span>);
+		<span class="kw">let </span>tx_clone = tx.clone();
+		spawn(<span class="kw">move </span>|| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+			sleep(Duration::from_millis(<span class="number">60_000</span>));
+			<span class="kw">match </span>tx_clone.send(()) {
+				<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
+				<span class="prelude-val">Err</span>(e) =&gt; <span class="macro">println!</span>(
+					<span class="string">"an error occurred while trying to send timeout (TestInfoImpl): {}"</span>,
+					e
+				),
+			}
+			<span class="prelude-val">Ok</span>(())
+		});
+		(tx, rx)
 	}
 }
 
