@@ -26,12 +26,9 @@ use crate::constants::*;
 use crate::types::{
 	ConnectionImpl, ConnectionVariant, Event, EventHandlerCallbacks, EventHandlerConfig,
 	EventHandlerContext, EventHandlerImpl, EventHandlerState, EventIn, EventType, EventTypeIn,
-	GlobalStats, UserContextImpl, Wakeup, WriteHandleImpl, WriteState,
+	GlobalStats, UserContextImpl, Wakeup, WriteHandle, WriteState,
 };
-use crate::{
-	ClientConnection, Connection, EventHandler, EvhStats, ServerConnection, UserContext,
-	WriteHandle,
-};
+use crate::{ClientConnection, Connection, EventHandler, EvhStats, ServerConnection, UserContext};
 use bmw_conf::ConfigOptionName as CN;
 use bmw_conf::{ConfigBuilder, ConfigOption};
 use bmw_deps::errno::errno;
@@ -192,8 +189,8 @@ impl WriteState {
 	}
 }
 
-impl WriteHandle for WriteHandleImpl {
-	fn write(&mut self, data: &[u8]) -> Result<(), Error> {
+impl WriteHandle {
+	pub fn write(&mut self, data: &[u8]) -> Result<(), Error> {
 		let data_len = data.len();
 		let wlen = {
 			let write_state = self.write_state.rlock()?;
@@ -225,7 +222,7 @@ impl WriteHandle for WriteHandleImpl {
 		}
 		Ok(())
 	}
-	fn close(&mut self) -> Result<(), Error> {
+	pub fn close(&mut self) -> Result<(), Error> {
 		{
 			let mut write_state = self.write_state.wlock()?;
 			let guard = write_state.guard()?;
@@ -247,7 +244,7 @@ impl WriteHandle for WriteHandleImpl {
 		self.wakeup.wakeup()?;
 		Ok(())
 	}
-	fn trigger_on_read(&mut self) -> Result<(), Error> {
+	pub fn trigger_on_read(&mut self) -> Result<(), Error> {
 		debug!("trigger on read {} ", self.handle)?;
 		{
 			let mut write_state = self.write_state.wlock()?;
@@ -273,13 +270,6 @@ impl WriteHandle for WriteHandleImpl {
 		Ok((**guard).is_set(flag))
 	}
 
-	fn set_flag(&mut self, flag: u8) -> Result<(), Error> {
-		let mut write_state = self.write_state.wlock()?;
-		let guard = write_state.guard()?;
-		(**guard).set_flag(flag);
-		Ok(())
-	}
-
 	fn unset_flag(&mut self, flag: u8) -> Result<(), Error> {
 		let mut write_state = self.write_state.wlock()?;
 		let guard = write_state.guard()?;
@@ -290,9 +280,6 @@ impl WriteHandle for WriteHandleImpl {
 	fn write_state(&mut self) -> Result<&mut Box<dyn LockBox<WriteState>>, Error> {
 		Ok(&mut self.write_state)
 	}
-}
-
-impl WriteHandleImpl {
 	fn new(connection_impl: &ConnectionImpl) -> Result<Self, Error> {
 		let wakeup = match &connection_impl.wakeup {
 			Some(wakeup) => wakeup.clone(),
@@ -397,8 +384,8 @@ impl Connection for &mut ConnectionImpl {
 		self.last_slab = last_slab;
 	}
 
-	fn write_handle(&self) -> Result<Box<dyn WriteHandle + Send + Sync>, Error> {
-		let wh: Box<dyn WriteHandle + Send + Sync> = Box::new(WriteHandleImpl::new(self)?);
+	fn write_handle(&self) -> Result<WriteHandle, Error> {
+		let wh = WriteHandle::new(self)?;
 		Ok(wh)
 	}
 }
@@ -429,8 +416,8 @@ impl Connection for ConnectionImpl {
 		self.last_slab = last_slab;
 	}
 
-	fn write_handle(&self) -> Result<Box<dyn WriteHandle + Send + Sync>, Error> {
-		let wh: Box<dyn WriteHandle + Send + Sync> = Box::new(WriteHandleImpl::new(self)?);
+	fn write_handle(&self) -> Result<WriteHandle, Error> {
+		let wh = WriteHandle::new(self)?;
 		Ok(wh)
 	}
 }
@@ -622,7 +609,7 @@ where
 	fn add_client_connection(
 		&mut self,
 		mut connection: Box<dyn ClientConnection + Send + Sync>,
-	) -> Result<Box<dyn WriteHandle + Send + Sync>, Error> {
+	) -> Result<WriteHandle, Error> {
 		let (tx, rx) = sync_channel(1);
 		connection.set_tx(tx);
 

@@ -86,7 +86,7 @@ where
 	fn add_client_connection(
 		&mut self,
 		connection: Box<dyn ClientConnection + Send + Sync>,
-	) -> Result<Box<dyn WriteHandle + Send + Sync>, Error>;
+	) -> Result<WriteHandle, Error>;
 	fn wait_for_stats(&mut self) -> Result<EvhStats, Error>;
 }
 
@@ -113,17 +113,7 @@ pub trait Connection {
 	fn set_slab_offset(&mut self, offset: usize);
 	fn set_first_slab(&mut self, first_slab: usize);
 	fn set_last_slab(&mut self, last_slab: usize);
-	fn write_handle(&self) -> Result<Box<dyn WriteHandle + Send + Sync>, Error>;
-}
-
-pub trait WriteHandle {
-	fn write(&mut self, data: &[u8]) -> Result<(), Error>;
-	fn close(&mut self) -> Result<(), Error>;
-	fn trigger_on_read(&mut self) -> Result<(), Error>;
-	fn is_set(&self, flag: u8) -> Result<bool, Error>;
-	fn set_flag(&mut self, flag: u8) -> Result<(), Error>;
-	fn unset_flag(&mut self, flag: u8) -> Result<(), Error>;
-	fn write_state(&mut self) -> Result<&mut Box<dyn LockBox<WriteState>>, Error>;
+	fn write_handle(&self) -> Result<WriteHandle, Error>;
 }
 
 pub trait UserContext {
@@ -148,6 +138,23 @@ pub trait UserContext {
 
 pub struct EvhBuilder {}
 
+pub struct WriteHandle {
+	pub(crate) handle: Handle,
+	pub(crate) id: u128,
+	pub(crate) write_state: Box<dyn LockBox<WriteState>>,
+	pub(crate) wakeup: Wakeup,
+	pub(crate) state: Box<dyn LockBox<EventHandlerState>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct EvhStats {
+	pub accepts: usize,
+	pub closes: usize,
+	pub reads: usize,
+	pub delay_writes: usize,
+	pub event_loops: usize,
+}
+
 pub struct EventHandlerState {
 	pub(crate) nconnections: VecDeque<ConnectionVariant>,
 	pub(crate) write_queue: VecDeque<u128>,
@@ -163,34 +170,17 @@ pub struct Wakeup {
 	pub(crate) id: u128,
 }
 
-#[derive(Debug, Clone)]
-pub struct EvhStats {
-	pub accepts: usize,
-	pub closes: usize,
-	pub reads: usize,
-	pub delay_writes: usize,
-	pub event_loops: usize,
-}
-
 // crate local structures
+
+pub(crate) struct WriteState {
+	pub(crate) flags: u8,
+	pub(crate) write_buffer: Vec<u8>,
+}
 
 pub(crate) struct GlobalStats {
 	pub(crate) stats: EvhStats,
 	pub(crate) update_counter: usize,
 	pub(crate) tx: Option<SyncSender<()>>,
-}
-
-pub(crate) struct WriteHandleImpl {
-	pub(crate) handle: Handle,
-	pub(crate) id: u128,
-	pub(crate) write_state: Box<dyn LockBox<WriteState>>,
-	pub(crate) wakeup: Wakeup,
-	pub(crate) state: Box<dyn LockBox<EventHandlerState>>,
-}
-
-pub struct WriteState {
-	pub(crate) flags: u8,
-	pub(crate) write_buffer: Vec<u8>,
 }
 
 pub(crate) struct ConnectionImpl {
