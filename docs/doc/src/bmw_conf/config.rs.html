@@ -299,6 +299,9 @@
 <a href="#297" id="297">297</a>
 <a href="#298" id="298">298</a>
 <a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -383,6 +386,7 @@
 				ConfigOption::MaxWildCardLength(v) =&gt; <span class="kw-2">*</span>v,
 				ConfigOption::EvhThreads(v) =&gt; <span class="kw-2">*</span>v,
 				ConfigOption::EvhHouseKeeperFrequencyMillis(v) =&gt; <span class="kw-2">*</span>v,
+				ConfigOption::EvhStatsUpdateMillis(v) =&gt; <span class="kw-2">*</span>v,
 				ConfigOption::EvhReadSlabSize(v) =&gt; <span class="kw-2">*</span>v,
 				ConfigOption::EvhReadSlabCount(v) =&gt; <span class="kw-2">*</span>v,
 				<span class="kw">_ </span>=&gt; default,
@@ -486,6 +490,7 @@
 				EvhHouseKeeperFrequencyMillis(<span class="kw">_</span>) =&gt; {
 					hash.insert(CN::EvhHouseKeeperFrequencyMillis, config.clone())
 				}
+				EvhStatsUpdateMillis(<span class="kw">_</span>) =&gt; hash.insert(CN::EvhStatsUpdateMillis, config.clone()),
 				EvhTimeout(<span class="kw">_</span>) =&gt; hash.insert(CN::EvhTimeout, config.clone()),
 				EvhReadSlabSize(<span class="kw">_</span>) =&gt; hash.insert(CN::EvhReadSlabSize, config.clone()),
 				EvhReadSlabCount(<span class="kw">_</span>) =&gt; hash.insert(CN::EvhReadSlabCount, config.clone()),
@@ -547,6 +552,7 @@
 				EvhHouseKeeperFrequencyMillis(<span class="kw">_</span>) =&gt; {
 					<span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhHouseKeeperFrequencyMillis)
 				}
+				EvhStatsUpdateMillis(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhStatsUpdateMillis),
 				EvhTimeout(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhTimeout),
 				EvhReadSlabSize(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhReadSlabSize),
 				EvhReadSlabCount(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhReadSlabCount),

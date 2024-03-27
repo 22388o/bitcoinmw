@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"macro":["evh","evh_oro"],"struct":["EvhBuilder"],"trait":["ClientConnection","Connection","EventHandler","ServerConnection","UserContext","WriteHandle"]};
+window.SIDEBAR_ITEMS = {"macro":["evh","evh_oro"],"struct":["EvhBuilder","EvhStats"],"trait":["ClientConnection","Connection","EventHandler","ServerConnection","UserContext","WriteHandle"]};

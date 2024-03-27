@@ -482,6 +482,8 @@
 <a href="#480" id="480">480</a>
 <a href="#481" id="481">481</a>
 <a href="#482" id="482">482</a>
+<a href="#483" id="483">483</a>
+<a href="#484" id="484">484</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -898,6 +900,7 @@
 	IsSync,
 	EvhThreads,
 	EvhHouseKeeperFrequencyMillis,
+	EvhStatsUpdateMillis,
 	EvhTimeout,
 	EvhReadSlabSize,
 	EvhReadSlabCount,
@@ -946,6 +949,7 @@
 	IsSync(bool),
 	EvhThreads(usize),
 	EvhHouseKeeperFrequencyMillis(usize),
+	EvhStatsUpdateMillis(usize),
 	EvhTimeout(u16),
 	EvhReadSlabSize(usize),
 	EvhReadSlabCount(usize),
