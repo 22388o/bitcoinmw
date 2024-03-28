@@ -1453,10 +1453,18 @@ where
 				user_context.read_slabs.get_mut(last_slab)?
 			};
 			let slab_offset = conn.get_slab_offset();
-			let rlen = read_impl(
+			let rlen = match read_impl(
 				handle,
 				&mut slab.get_mut()[slab_offset..read_slab_next_offset],
-			)?;
+			) {
+				Ok(rlen) => rlen,
+				Err(_e) => {
+					// read error. Close the connection
+					// we don't log this because it pollutes the logs
+					close = true;
+					break;
+				}
+			};
 
 			match rlen {
 				Some(rlen) => {
@@ -1711,7 +1719,15 @@ where
 				rem = false;
 				break;
 			}
-			let wlen = write_impl(conn.handle(), &(**guard).write_buffer)?;
+			let wlen = match write_impl(conn.handle(), &(**guard).write_buffer) {
+				Ok(wlen) => wlen,
+				Err(_e) => {
+					// write i/o error. Don't log these because they would pollute
+					// the logs
+					close = true;
+					break;
+				}
+			};
 			if wlen < 0 {
 				let err = errno().0;
 				if err != EAGAIN && err != ETEMPUNAVAILABLE && err != WINNONBLOCKING {
