@@ -205,9 +205,9 @@ pub(crate) fn create_listener(addr: &str, size: usize) -> Result<Handle, Error> 
 }
 
 pub(crate) fn update_ctx(
-	ctx: &mut EventHandlerContext,
-	handle: Handle,
-	etype: EventTypeIn,
+	_ctx: &mut EventHandlerContext,
+	_handle: Handle,
+	_etype: EventTypeIn,
 ) -> Result<(), Error> {
 	Ok(())
 }

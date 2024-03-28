@@ -41,9 +41,9 @@ mod test {
 	#[test]
 	fn test_wakeup_impl() -> Result<(), Error> {
 		let (x, y) = wakeup_impl()?;
-		write_impl(x, b"test")?;
+		write_impl(y, b"test")?;
 		let mut buf = [0u8; 100];
-		let len = read_impl(y, &mut buf)?;
+		let len = read_impl(x, &mut buf)?;
 		assert_eq!(len, Some(4));
 		Ok(())
 	}
