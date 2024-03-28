@@ -1269,27 +1269,25 @@ where
 				break;
 			}
 			debug!("proc event = {:?}", ctx.ret_events[ctx.ret_event_itt])?;
+			let handle = ctx.ret_events[ctx.ret_event_itt].handle;
+			let mut need_read_update = false;
+			let mut need_write_update = false;
 			if ctx.ret_events[ctx.ret_event_itt].etype == EventType::Read
 				|| ctx.ret_events[ctx.ret_event_itt].etype == EventType::ReadWrite
 			{
-				Self::process_read_event(
-					config,
-					ctx,
-					callbacks,
-					ctx.ret_events[ctx.ret_event_itt].handle,
-					state,
-					user_context,
-				)?;
+				need_read_update =
+					Self::process_read_event(config, ctx, callbacks, handle, state, user_context)?;
 			}
 			if ctx.ret_events[ctx.ret_event_itt].etype == EventType::Write
 				|| ctx.ret_events[ctx.ret_event_itt].etype == EventType::ReadWrite
 			{
-				Self::process_write_event(
-					config,
-					ctx,
-					callbacks,
-					ctx.ret_events[ctx.ret_event_itt].handle,
-				)?;
+				need_write_update = Self::process_write_event(config, ctx, callbacks, handle)?;
+			}
+
+			if need_write_update {
+				update_ctx(ctx, handle, EventTypeIn::Write)?;
+			} else if need_read_update {
+				update_ctx(ctx, handle, EventTypeIn::Read)?;
 			}
 			ctx.ret_event_itt += 1;
 		}
@@ -1304,7 +1302,8 @@ where
 		handle: Handle,
 		state: &mut Array<Box<dyn LockBox<EventHandlerState>>>,
 		user_context: &mut UserContextImpl,
-	) -> Result<(), Error> {
+	) -> Result<bool, Error> {
+		let mut ret = false;
 		let mut accepted = vec![];
 		let mut close = false;
 		let mut read_count = 0;
@@ -1314,14 +1313,17 @@ where
 				Some(conn) => match conn {
 					ConnectionVariant::ServerConnection(conn) => {
 						Self::process_accept(conn, &mut accepted)?;
+						ret = true;
 					}
 					ConnectionVariant::ClientConnection(conn) => {
 						(close, read_count) =
 							Self::process_read(conn, config, callbacks, user_context)?;
+						ret = !close;
 					}
 					ConnectionVariant::Connection(conn) => {
 						(close, read_count) =
 							Self::process_read(conn, config, callbacks, user_context)?;
+						ret = !close;
 					}
 					ConnectionVariant::Wakeup(_wakeup) => {
 						let mut buf = [0u8; 1000];
@@ -1330,6 +1332,7 @@ where
 							debug!("wakeup read rlen = {:?}", rlen)?;
 							cbreak!(rlen.is_none());
 						}
+						ret = true;
 					}
 				},
 				None => {
@@ -1347,7 +1350,8 @@ where
 		}
 		ctx.thread_stats.reads += read_count;
 
-		Self::process_accepted_connections(accepted, config, state, &mut ctx.wakeups)
+		Self::process_accepted_connections(accepted, config, state, &mut ctx.wakeups)?;
+		Ok(ret)
 	}
 
 	fn process_accepted_connections(
@@ -1659,7 +1663,7 @@ where
 		ctx: &mut EventHandlerContext,
 		_callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
 		handle: Handle,
-	) -> Result<(), Error> {
+	) -> Result<bool, Error> {
 		let mut close = false;
 		let mut write_count = 0;
 		match ctx.handle_hash.get(&handle) {
@@ -1682,12 +1686,15 @@ where
 			}
 		}
 
-		if close {
+		let ret = if close {
 			close_impl_ctx(handle, ctx)?;
-		}
+			false
+		} else {
+			true
+		};
 
 		ctx.thread_stats.delay_writes += write_count;
-		Ok(())
+		Ok(ret)
 	}
 
 	fn write_loop(conn: &mut Connection) -> Result<(bool, usize), Error> {
@@ -1794,6 +1801,8 @@ impl EventHandlerContext {
 			linux_ctx: LinuxContext::new()?,
 			#[cfg(target_os = "macos")]
 			macos_ctx: MacosContext::new()?,
+			#[cfg(target_os = "windows")]
+			windows_ctx: WindowsContext::new()?,
 		})
 	}
 }

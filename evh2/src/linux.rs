@@ -204,6 +204,14 @@ pub(crate) fn create_listener(addr: &str, size: usize) -> Result<Handle, Error> 
 	Ok(fd)
 }
 
+pub(crate) fn update_ctx(
+	ctx: &mut EventHandlerContext,
+	handle: Handle,
+	etype: EventTypeIn,
+) -> Result<(), Error> {
+	Ok(())
+}
+
 pub(crate) fn get_events(
 	config: &EventHandlerConfig,
 	ctx: &mut EventHandlerContext,
@@ -222,7 +230,7 @@ pub(crate) fn get_events_in(
 		let fd_u64: u64 = try_into!(evt.handle)?;
 		let filter_len = ctx.linux_ctx.filter_set.len();
 		let mut interest = EpollFlags::empty();
-		if fd_usize > filter_len {
+		if fd_usize >= filter_len {
 			ctx.linux_ctx.filter_set.resize(fd_usize + 100, false);
 		}
 		if evt.etype == EventTypeIn::Read {

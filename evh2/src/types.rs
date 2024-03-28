@@ -290,6 +290,8 @@ pub(crate) struct EventHandlerContext {
 	pub(crate) linux_ctx: LinuxContext,
 	#[cfg(target_os = "macos")]
 	pub(crate) macos_ctx: MacosContext,
+	#[cfg(target_os = "windows")]
+	pub(crate) windows_ctx: WindowsContext,
 }
 
 pub(crate) enum ConnectionVariant {

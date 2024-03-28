@@ -29,10 +29,26 @@ mod test {
 	use std::str::from_utf8;
 	use std::thread;
 
+	#[cfg(target_os = "linux")]
+	use crate::linux::*;
+	#[cfg(target_os = "macos")]
+	use crate::mac::*;
+	#[cfg(target_os = "windows")]
+	use crate::win::*;
+
 	info!();
 
 	#[test]
-	#[cfg(unix)]
+	fn test_wakeup_impl() -> Result<(), Error> {
+		let (x, y) = wakeup_impl()?;
+		write_impl(x, b"test")?;
+		let mut buf = [0u8; 100];
+		let len = read_impl(y, &mut buf)?;
+		assert_eq!(len, Some(4));
+		Ok(())
+	}
+
+	#[test]
 	fn test_evh_basic() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let mut evh = evh!(
@@ -135,7 +151,6 @@ mod test {
 	}
 
 	#[test]
-	#[cfg(unix)]
 	fn test_evh_oro() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let mut evh = evh_oro!(
@@ -190,7 +205,6 @@ mod test {
 	}
 
 	#[test]
-	#[cfg(unix)]
 	fn test_evh_stop() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let mut strm;
@@ -236,7 +250,6 @@ mod test {
 	}
 
 	#[test]
-	#[cfg(unix)]
 	fn test_evh_housekeeping() -> Result<(), Error> {
 		let threads = 10;
 		let mut evh = evh!(
@@ -309,7 +322,6 @@ mod test {
 	}
 
 	#[test]
-	#[cfg(unix)]
 	fn test_evh_panic1() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let threads = 1;
@@ -377,7 +389,6 @@ mod test {
 	}
 
 	#[test]
-	#[cfg(unix)]
 	fn test_evh_panic_advanced() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let threads = 1;
@@ -520,7 +531,6 @@ mod test {
 	}
 
 	#[test]
-	#[cfg(unix)]
 	fn test_evh_panic_trigger_on_read() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let mut evh = evh_oro!(
@@ -591,7 +601,6 @@ mod test {
 	}
 
 	#[test]
-	#[cfg(unix)]
 	fn test_evh_trigger_on_read() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let mut evh = evh_oro!(
@@ -661,7 +670,6 @@ mod test {
 	}
 
 	#[test]
-	#[cfg(unix)]
 	fn test_evh_stats() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let mut evh = evh_oro!(
@@ -669,7 +677,7 @@ mod test {
 			EvhTimeout(10),
 			EvhThreads(1),
 			EvhReadSlabSize(100),
-			EvhStatsUpdateMillis(1000)
+			EvhStatsUpdateMillis(3_000)
 		)?;
 
 		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
@@ -695,13 +703,13 @@ mod test {
 		strm.write(b"test")?;
 
 		let stats = evh.wait_for_stats()?;
+		info!("stats={:?}", stats)?;
 
 		// 1 left in scope has not disconnecte yet
 		assert_eq!(stats.accepts, 6);
 		assert_eq!(stats.closes, 5);
 		assert_eq!(stats.reads, 1);
 		assert!(stats.event_loops != 0);
-		info!("stats={:?}", stats)?;
 
 		Ok(())
 	}
