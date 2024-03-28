@@ -225,8 +225,8 @@ mod test {
 			strm = TcpStream::connect(addr)?;
 			strm.write(b"test")?;
 			let mut buf = [0u8; 100];
-			let res = strm.read(&mut buf);
-			assert!(res.is_ok());
+			let res = strm.read(&mut buf)?;
+			assert_eq!(res, 2);
 		}
 
 		let mut buf = [0u8; 100];
