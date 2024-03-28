@@ -32,7 +32,7 @@ mod test {
 	info!();
 
 	#[test]
-	#[cfg(target_os = "linux")]
+	#[cfg(unix)]
 	fn test_evh_basic() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let mut evh = evh!(
@@ -135,7 +135,7 @@ mod test {
 	}
 
 	#[test]
-	#[cfg(target_os = "linux")]
+	#[cfg(unix)]
 	fn test_evh_oro() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let mut evh = evh_oro!(
@@ -190,7 +190,7 @@ mod test {
 	}
 
 	#[test]
-	#[cfg(target_os = "linux")]
+	#[cfg(unix)]
 	fn test_evh_stop() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let mut strm;
@@ -236,7 +236,7 @@ mod test {
 	}
 
 	#[test]
-	#[cfg(target_os = "linux")]
+	#[cfg(unix)]
 	fn test_evh_housekeeping() -> Result<(), Error> {
 		let threads = 10;
 		let mut evh = evh!(
@@ -309,7 +309,7 @@ mod test {
 	}
 
 	#[test]
-	#[cfg(target_os = "linux")]
+	#[cfg(unix)]
 	fn test_evh_panic1() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let threads = 1;
@@ -377,7 +377,7 @@ mod test {
 	}
 
 	#[test]
-	#[cfg(target_os = "linux")]
+	#[cfg(unix)]
 	fn test_evh_panic_advanced() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let threads = 1;
@@ -520,7 +520,7 @@ mod test {
 	}
 
 	#[test]
-	#[cfg(target_os = "linux")]
+	#[cfg(unix)]
 	fn test_evh_panic_trigger_on_read() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let mut evh = evh_oro!(
@@ -591,7 +591,7 @@ mod test {
 	}
 
 	#[test]
-	#[cfg(target_os = "linux")]
+	#[cfg(unix)]
 	fn test_evh_trigger_on_read() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let mut evh = evh_oro!(
@@ -661,7 +661,7 @@ mod test {
 	}
 
 	#[test]
-	#[cfg(target_os = "linux")]
+	#[cfg(unix)]
 	fn test_evh_stats() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let mut evh = evh_oro!(

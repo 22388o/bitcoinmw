@@ -792,6 +792,7 @@ where
 				Ok(())
 			})?;
 		}
+		std::thread::sleep(std::time::Duration::from_millis(1000));
 		Ok(())
 	}
 
@@ -1757,8 +1758,6 @@ impl EventHandlerContext {
 		Ok(Self {
 			ret_event_count,
 			ret_events,
-			#[cfg(target_os = "linux")]
-			linux_ctx: LinuxContext::new()?,
 			in_events,
 			id_hash,
 			handle_hash,
@@ -1771,6 +1770,10 @@ impl EventHandlerContext {
 			thread_stats: EvhStats::new(),
 			global_stats,
 			last_stats_update: 0,
+			#[cfg(target_os = "linux")]
+			linux_ctx: LinuxContext::new()?,
+			#[cfg(target_os = "macos")]
+			macos_ctx: MacosContext::new()?,
 		})
 	}
 }
