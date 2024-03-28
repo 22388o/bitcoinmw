@@ -75,15 +75,11 @@ impl EvhBuilder {
 
 	pub fn build_server_connection(addr: &str, size: usize) -> Result<Connection, Error> {
 		let handle = create_listener(addr, size)?;
-		std::thread::sleep(std::time::Duration::from_millis(1000));
-
 		Ok(Connection::new(handle, None, None, ConnectionType::Server)?)
 	}
 
 	pub fn build_client_connection(host: &str, port: u16) -> Result<Connection, Error> {
 		let handle = create_connection(host, port)?;
-		std::thread::sleep(std::time::Duration::from_millis(1000));
-
 		Ok(Connection::new(handle, None, None, ConnectionType::Client)?)
 	}
 }

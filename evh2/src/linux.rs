@@ -268,26 +268,16 @@ pub(crate) fn get_events_out(
 	ctx: &mut EventHandlerContext,
 ) -> Result<(), Error> {
 	let results = {
-		let lock = ctx.wakeups[ctx.tid].get_lock();
-		let mut lock = lock.wlock()?;
-		let guard = lock.guard()?;
+		let (requested, _lock) = ctx.wakeups[ctx.tid].pre_block()?;
 
-		let ret = Epoll::wait(
+		Epoll::wait(
 			&*ctx.linux_ctx.selector,
 			&mut ctx.linux_ctx.epoll_events,
-			if **guard { 0 } else { config.timeout },
-		)?;
-
-		**guard = false;
-
-		ret
+			if requested { 0 } else { config.timeout },
+		)?
 	};
 
-	{
-		let lock2 = ctx.wakeups[ctx.tid].get_lock2();
-		let lock2 = lock2.rlock()?;
-		let _guard = lock2.guard()?;
-	}
+	ctx.wakeups[ctx.tid].post_block()?;
 
 	ctx.ret_event_count = 0;
 	for i in 0..results {

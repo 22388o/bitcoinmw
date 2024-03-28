@@ -240,33 +240,23 @@ pub(crate) fn get_events_out(
 			FilterFlag::empty(),
 		));
 	}
-
 	let results = {
-		let lock = ctx.wakeups[ctx.tid].get_lock();
-		let mut lock = lock.wlock()?;
-		let guard = lock.guard()?;
-
 		set_errno(Errno(0));
-		let ret_count = unsafe {
+		let (requested, _lock) = ctx.wakeups[ctx.tid].pre_block()?;
+		let timeout = Duration::from_millis(if requested { 0 } else { config.timeout.into() });
+		unsafe {
 			kevent(
 				ctx.macos_ctx.selector,
 				kevs.as_ptr(),
 				kevs.len().try_into()?,
 				ret_kevs.as_mut_ptr(),
 				ret_kevs.len().try_into()?,
-				&duration_to_timespec(Duration::from_millis(config.timeout.into())),
+				&duration_to_timespec(timeout),
 			)
-		};
-
-		**guard = false;
-		ret_count
+		}
 	};
 
-	{
-		let lock2 = ctx.wakeups[ctx.tid].get_lock2();
-		let lock2 = lock2.rlock()?;
-		let _guard = lock2.guard()?;
-	}
+	ctx.wakeups[ctx.tid].post_block()?;
 
 	if results < 0 {
 		return Err(err!(

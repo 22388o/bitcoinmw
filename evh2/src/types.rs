@@ -130,11 +130,11 @@ pub(crate) struct EventHandlerState {
 
 #[derive(Clone)]
 pub(crate) struct Wakeup {
-	pub(crate) lock: Box<dyn LockBox<bool>>,
-	pub(crate) lock2: Box<dyn LockBox<()>>,
+	pub(crate) id: u128,
 	pub(crate) reader: Handle,
 	pub(crate) writer: Handle,
-	pub(crate) id: u128,
+	pub(crate) requested: Box<dyn LockBox<bool>>,
+	pub(crate) needed: Box<dyn LockBox<bool>>,
 }
 
 pub(crate) struct WriteState {

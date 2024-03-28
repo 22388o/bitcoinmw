@@ -31,7 +31,7 @@ use crate::types::{
 use crate::{Connection, EventHandler, EvhStats, UserContext};
 use bmw_conf::ConfigOptionName as CN;
 use bmw_conf::{ConfigBuilder, ConfigOption};
-use bmw_deps::errno::errno;
+use bmw_deps::errno::{errno, set_errno, Errno};
 use bmw_deps::rand::random;
 use bmw_err::*;
 use bmw_log::*;
@@ -45,34 +45,52 @@ use std::time::{SystemTime, UNIX_EPOCH};
 info!();
 
 impl Wakeup {
-	fn new() -> Result<Self, Error> {
-		let lock = lock_box!(false)?;
-		let lock2 = lock_box!(())?;
+	pub(crate) fn new() -> Result<Self, Error> {
+		set_errno(Errno(0));
 		let (reader, writer) = wakeup_impl()?;
+		let requested = lock_box!(false)?;
+		let needed = lock_box!(false)?;
 		let id = random();
 		Ok(Self {
-			lock,
-			lock2,
+			id,
 			reader,
 			writer,
-			id,
+			requested,
+			needed,
 		})
 	}
 
-	fn wakeup(&mut self) -> Result<(), Error> {
-		let buf = [0u8; 1];
-		let _lock = self.lock2.wlock()?;
-		write_impl(self.writer, &buf)?;
-		wlock!(self.lock) = true;
+	pub(crate) fn wakeup(&mut self) -> Result<(), Error> {
+		let mut requested = self.requested.wlock()?;
+		let needed = self.needed.rlock()?;
+		let need_wakeup = **needed.guard()? && !(**requested.guard()?);
+		**requested.guard()? = true;
+		if need_wakeup {
+			debug!("wakeup writing to {}", self.writer)?;
+			let len = write_impl(self.writer, &[0u8; 1])?;
+			debug!("len={},errno={}", len, errno())?;
+		}
 		Ok(())
 	}
 
-	pub(crate) fn get_lock(&mut self) -> &mut Box<dyn LockBox<bool>> {
-		&mut self.lock
+	pub(crate) fn pre_block(&mut self) -> Result<(bool, RwLockReadGuardWrapper<bool>), Error> {
+		let requested = self.requested.rlock()?;
+		{
+			let mut needed = self.needed.wlock()?;
+			**needed.guard()? = true;
+		}
+		let lock_guard = self.needed.rlock()?;
+		let is_requested = **requested.guard()?;
+		Ok((is_requested, lock_guard))
 	}
 
-	pub(crate) fn get_lock2(&mut self) -> &mut Box<dyn LockBox<()>> {
-		&mut self.lock2
+	pub(crate) fn post_block(&mut self) -> Result<(), Error> {
+		let mut requested = self.requested.wlock()?;
+		let mut needed = self.needed.wlock()?;
+
+		**requested.guard()? = false;
+		**needed.guard()? = false;
+		Ok(())
 	}
 }
 
@@ -561,6 +579,7 @@ where
 			tid,
 			connection.id(),
 		)?;
+
 		{
 			let mut state = self.state[tid].wlock()?;
 			let guard = state.guard()?;
@@ -568,6 +587,7 @@ where
 				.nconnections
 				.push_back(ConnectionVariant::ClientConnection(connection));
 		}
+
 		debug!("push client connection to tid = {}", tid)?;
 
 		self.wakeups[tid].wakeup()?;
@@ -792,7 +812,6 @@ where
 				Ok(())
 			})?;
 		}
-		std::thread::sleep(std::time::Duration::from_millis(1000));
 		Ok(())
 	}
 
@@ -944,6 +963,7 @@ where
 				Ok(_) => {}
 				Err(e) => fatal!("get_events generated an unexpected error: {}", e)?,
 			}
+
 			(**ctx_guard).thread_stats.event_loops += 1;
 			(**ctx_guard).in_events.clear();
 			(**ctx_guard)
