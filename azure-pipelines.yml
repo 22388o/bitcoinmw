@@ -13,7 +13,7 @@
 # limitations under the License.
 
 schedules:
-- cron: "50 5 * * *"
+- cron: "53 5 * * *"
   displayName: Daily midnight build
   branches:
     include:
@@ -103,4 +103,18 @@ jobs:
     - script: |
         sw_vers
       displayName: macOS print out os version
+    - template: '.ci/long.yml'
+- job: longwindows
+  pool: 
+    vmImage: windows-latest
+  strategy:
+    matrix:
+      all:
+        CI_JOB: windows
+        PLATFORM: win-x64
+  steps:
+    - script: |
+        choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
+        choco install nasm
+      displayName: Windows Install Dependencies
     - template: '.ci/long.yml'
