@@ -78,6 +78,7 @@ jobs:
       displayName: Windows Install Dependencies
     - template: '.ci/all.yml'
 - job: longlinux
+  timeoutInMinutes: 120
   pool:
     vmImage: ubuntu-latest
   strategy:
@@ -92,6 +93,7 @@ jobs:
       displayName: Linux Install Dependencies
     - template: '.ci/long.yml'
 - job: longmacos
+  timeoutInMinutes: 120
   pool:
     vmImage: macOS-13
   strategy:
@@ -105,6 +107,7 @@ jobs:
       displayName: macOS print out os version
     - template: '.ci/long.yml'
 - job: longwindows
+  timeoutInMinutes: 120
   pool: 
     vmImage: windows-latest
   strategy:
