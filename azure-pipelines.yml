@@ -101,6 +101,6 @@ jobs:
         PLATFORM: macos
   steps:
     - script: |
-      sw_vers
+        sw_vers
       displayName: macOS print out os version
     - template: '.ci/long.yml'
