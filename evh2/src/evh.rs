@@ -1807,9 +1807,8 @@ where
 
 	fn stop(&mut self) -> Result<(), Error> {
 		// stop thread pool and all threads
-		match &mut self.stopper {
-			Some(ref mut stopper) => stopper.stop()?,
-			None => {}
+		if self.stopper.is_some() {
+			self.stopper.as_mut().unwrap().stop()?;
 		}
 		for i in 0..self.config.threads {
 			wlock!(self.state[i]).stop = true;
