@@ -641,6 +641,8 @@ where
 		let mut state = array!(config.threads, &lock_box!(EventHandlerState::new()?)?)?;
 
 		let w = Wakeup::new()?;
+		close_impl(w.reader)?;
+		close_impl(w.writer)?;
 		let mut wakeups = array!(config.threads, &w)?;
 
 		for i in 0..config.threads {
@@ -962,7 +964,7 @@ where
 		loop {
 			match get_events(&config, &mut (**ctx_guard)) {
 				Ok(_) => {}
-				Err(e) => fatal!("get_events generated an unexpected error: {}", e)?,
+				Err(e) => fatal!("get_events generated an unexpected error: {}", e,)?,
 			}
 
 			(**ctx_guard).thread_stats.event_loops += 1;
@@ -1009,10 +1011,14 @@ where
 	}
 
 	fn close_handles(ctx: &mut EventHandlerContext) -> Result<(), Error> {
+		debug!("in close_handles {}", ctx.tid)?;
 		for (handle, id) in &ctx.handle_hash {
 			debug!("close handle = {}, id = {}", handle, id)?;
 			close_impl(*handle)?;
 		}
+
+		close_impl(ctx.wakeups[ctx.tid].reader)?;
+		close_impl(ctx.wakeups[ctx.tid].writer)?;
 		Ok(())
 	}
 
@@ -1074,7 +1080,7 @@ where
 
 		let mut state = state.wlock()?;
 		let guard = state.guard()?;
-
+		debug!("guard.stop={}", (**guard).stop)?;
 		if (**guard).stop {
 			debug!("stopping thread")?;
 			Self::close_handles(ctx)?;
