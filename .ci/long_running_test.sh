@@ -3,7 +3,7 @@
 if [ "$1" == "Schedule" ]; then
   cargo install cargo-tarpaulin
 
-  for i in {0..450}
+  for i in {0..$2}
   do
     echo "Running tests: $i `date`"
     cargo tarpaulin -p bmw_evh2 --skip-clean

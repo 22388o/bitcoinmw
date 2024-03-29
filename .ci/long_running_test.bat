@@ -1,7 +1,7 @@
 @echo OFF
 IF "%1" equ "Schedule" (
   cargo install cargo-tarpaulin
-  for /L %%a in (1,1,300) do (
+  for /L %%a in (1,1,%2) do (
     echo "Running tests: %%a"
     cargo tarpaulin -p bmw_evh2 --skip-clean
     IF errorlevel 1 (
