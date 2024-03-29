@@ -13,7 +13,7 @@
 # limitations under the License.
 
 schedules:
-- cron: "45 4 * * *"
+- cron: "55 4 * * *"
   displayName: Daily midnight build
   branches:
     include:
@@ -77,3 +77,17 @@ jobs:
         choco install nasm
       displayName: Windows Install Dependencies
     - template: '.ci/all.yml'
+- job: long
+  pool:
+    vmImage: ubuntu-latest
+  strategy:
+    matrix:
+      all:
+        CI_JOB: all
+        PLATFORM: linux-amd64
+  steps:
+    - script: |
+        sudo apt-get update -yqq
+        sudo apt-get install -yqq --no-install-recommends libncursesw5-dev libssl-dev
+      displayName: Linux Install Dependencies
+    - template: '.ci/long.yml'

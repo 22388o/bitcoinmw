@@ -124,7 +124,3 @@ steps:
       ./.ci/pushdocs.sh $(github_pat) $(Build.SourceVersion) $(Build.Reason)
     displayName: Create and Push Docs
     condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))
-  - script: |
-      ./.ci/long_running_test.sh $(Build.Reason)
-    displayName: Long running test
-    condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))
