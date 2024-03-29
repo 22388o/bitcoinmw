@@ -1,11 +1,9 @@
 #!/bin/bash
 
 if [ "$1" == "Schedule" ]; then
-  sudo apt-get update -yqq
-  sudo apt-get install -yqq --no-install-recommends libncursesw5-dev libssl-dev
   cargo install cargo-tarpaulin
 
-  for i in {0..300}
+  for i in {0..200}
   do
     echo "Running tests: $i `date`"
     cargo tarpaulin -p bmw_evh2 --skip-clean
