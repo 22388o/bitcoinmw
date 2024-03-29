@@ -1012,13 +1012,21 @@ where
 
 	fn close_handles(ctx: &mut EventHandlerContext) -> Result<(), Error> {
 		debug!("in close_handles {}", ctx.tid)?;
+		let reader = ctx.wakeups[ctx.tid].reader;
+		let writer = ctx.wakeups[ctx.tid].writer;
 		for (handle, id) in &ctx.handle_hash {
 			debug!("close handle = {}, id = {}", handle, id)?;
-			close_impl(*handle)?;
+			if *handle != reader && *handle != writer {
+				close_impl(*handle)?;
+			}
 		}
 
-		close_impl(ctx.wakeups[ctx.tid].reader)?;
-		close_impl(ctx.wakeups[ctx.tid].writer)?;
+		debug!(
+			"close reader = {},writer={}",
+			ctx.wakeups[ctx.tid].reader, ctx.wakeups[ctx.tid].writer
+		)?;
+		close_impl(reader)?;
+		close_impl(writer)?;
 		Ok(())
 	}
 

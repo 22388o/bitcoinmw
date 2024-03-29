@@ -970,4 +970,62 @@ mod test {
 
 		Ok(())
 	}
+
+	#[test]
+	fn test_evh_resources() -> Result<(), Error> {
+		// this test doesn't currently do assertions, but it can be used to monitor resources
+		// like file descriptors. Change `target` to a higher value and increase sleep at the
+		// end to be able to look at usage
+		let test_info = test_info!()?;
+		let mut loop_count = 0;
+		let target = 10;
+		loop {
+			info!("create evh")?;
+			let mut evh = evh_oro!(
+				Debug(false),
+				EvhTimeout(u16::MAX),
+				EvhThreads(5),
+				EvhReadSlabSize(100)
+			)?;
+			evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+				let mut buf = [0u8; 1024];
+				let mut data: Vec<u8> = vec![];
+				info!("chunk starting")?;
+				loop {
+					let len = ctx.clone_next_chunk(connection, &mut buf)?;
+					info!("len={}", len)?;
+
+					if len == 0 {
+						break;
+					}
+
+					data.extend(&buf[0..len]);
+				}
+
+				let dstring = from_utf8(&data)?;
+				info!("data='{}'", dstring)?;
+
+				ctx.clear_all(connection)?;
+				Ok(())
+			})?;
+			evh.start()?;
+			let port = test_info.port();
+			let addr = format!("127.0.0.1:{}", port);
+			let conn = EvhBuilder::build_server_connection(&addr, 100)?;
+			evh.add_server_connection(conn)?;
+			let conn2 = EvhBuilder::build_client_connection("127.0.0.1", port)?;
+			let mut wh = evh.add_client_connection(conn2)?;
+			wh.write(b"01234567890123456789")?;
+
+			info!("drop evh")?;
+			loop_count += 1;
+
+			if loop_count == target {
+				break;
+			}
+		}
+
+		sleep(Duration::from_millis(600));
+		Ok(())
+	}
 }
