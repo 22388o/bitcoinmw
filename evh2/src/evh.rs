@@ -110,7 +110,7 @@ impl UserContext for &mut UserContextImpl {
 			let slab = slab.get();
 			let start_ptr = slab.len().saturating_sub(4);
 
-			let mut offset = if self.slab_cur == last_slab {
+			let offset = if self.slab_cur == last_slab {
 				slab_offset
 			} else {
 				start_ptr
@@ -118,7 +118,8 @@ impl UserContext for &mut UserContextImpl {
 
 			let buf_len = buf.len();
 			if buf_len < offset {
-				offset = buf_len;
+				let text = format!("buf too small. Needed={},allocated={}", offset, buf_len);
+				return Err(err!(ErrKind::IllegalArgument, text));
 			}
 			buf[0..offset].clone_from_slice(&slab[0..offset]);
 			self.slab_cur =
@@ -1395,6 +1396,7 @@ where
 		let mut read_count = 0;
 		let handle = conn.handle();
 		// loop through and read as many slabs as we can
+
 		loop {
 			let last_slab = conn.get_last_slab();
 			let slab_offset = conn.get_slab_offset();
@@ -1493,6 +1495,7 @@ where
 				}
 			}
 
+			debug!("call onread")?;
 			Self::call_on_read(user_context, conn, &mut callbacks.on_read)?;
 		}
 

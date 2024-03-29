@@ -713,4 +713,261 @@ mod test {
 
 		Ok(())
 	}
+
+	#[test]
+	fn test_evh_trigger_empty() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut evh = evh_oro!(
+			Debug(false),
+			EvhTimeout(u16::MAX),
+			EvhThreads(1),
+			EvhReadSlabSize(100)
+		)?;
+
+		let mut recv_msg = lock_box!(false)?;
+		let recv_msg_clone = recv_msg.clone();
+		let (tx, rx) = test_info.sync_channel();
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			info!("onRead")?;
+			ctx.clear_all(connection)?;
+			wlock!(recv_msg) = true;
+			tx.send(())?;
+			Ok(())
+		})?;
+
+		evh.start()?;
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+		evh.add_server_connection(conn)?;
+
+		let conn2 = EvhBuilder::build_client_connection("127.0.0.1", port)?;
+		let mut wh = evh.add_client_connection(conn2)?;
+		wh.trigger_on_read()?;
+
+		rx.recv()?;
+		assert!(rlock!(recv_msg_clone));
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_short_buf() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut evh = evh_oro!(
+			Debug(false),
+			EvhTimeout(u16::MAX),
+			EvhThreads(1),
+			EvhReadSlabSize(100)
+		)?;
+
+		let mut recv_msg = lock_box!(false)?;
+		let recv_msg_clone = recv_msg.clone();
+		let (tx, rx) = test_info.sync_channel();
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			info!("onRead")?;
+			assert_ne!(ctx.cur_slab_id(), usize::MAX);
+
+			let mut buf = [0u8; 10];
+			assert!(ctx.clone_next_chunk(connection, &mut buf).is_err());
+			wlock!(recv_msg) = true;
+			tx.send(())?;
+			ctx.clear_all(connection)?;
+			Ok(())
+		})?;
+
+		evh.start()?;
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+		evh.add_server_connection(conn)?;
+
+		let conn2 = EvhBuilder::build_client_connection("127.0.0.1", port)?;
+		let mut wh = evh.add_client_connection(conn2)?;
+		wh.write(b"01234567890123456789")?;
+
+		rx.recv()?;
+		assert!(rlock!(recv_msg_clone));
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_multi_chunk() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut evh = evh_oro!(
+			Debug(false),
+			EvhTimeout(10),
+			EvhThreads(1),
+			EvhReadSlabSize(25),
+		)?;
+
+		let (tx, rx) = test_info.sync_channel();
+		let b = b"0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789";
+		let mut found_full = lock_box!(false)?;
+		let found_full_read = found_full.clone();
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			info!("onRead")?;
+			let mut buf = [0u8; 1024];
+			let mut data: Vec<u8> = vec![];
+			info!("chunk starting")?;
+			loop {
+				let len = ctx.clone_next_chunk(connection, &mut buf)?;
+				info!("len={}", len)?;
+
+				if len == 0 {
+					break;
+				}
+
+				data.extend(&buf[0..len]);
+			}
+
+			let mut wh = connection.write_handle()?;
+
+			let dstring = from_utf8(&data)?;
+			info!("data[{}]='{}'", connection.id(), dstring,)?;
+
+			if dstring == "hi" {
+				wh.write(b"1111")?;
+				spawn(move || -> Result<(), Error> {
+					wh.trigger_on_read()?;
+					Ok(())
+				});
+			} else if dstring == "" {
+				wh.write(b"2222")?;
+			}
+
+			if data == b {
+				wlock!(found_full) = true;
+				tx.send(())?;
+			}
+
+			Ok(())
+		})?;
+
+		evh.start()?;
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		info!("addr={}", addr)?;
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+		evh.add_server_connection(conn)?;
+
+		let mut strm = TcpStream::connect(addr.clone())?;
+		strm.write(b"0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789")?;
+
+		rx.recv()?;
+		assert!(rlock!(found_full_read));
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_user_data() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut evh = evh_oro!(
+			Debug(false),
+			EvhTimeout(u16::MAX),
+			EvhThreads(1),
+			EvhReadSlabSize(100)
+		)?;
+
+		let mut recv_msg = lock_box!(false)?;
+		let mut recv_msg2 = lock_box!(false)?;
+		let recv_msg_clone = recv_msg.clone();
+		let recv_msg2_clone = recv_msg2.clone();
+		let (tx, rx) = test_info.sync_channel();
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			let x = ctx.get_user_data();
+			if !rlock!(recv_msg) {
+				info!("none")?;
+				assert!(x.is_none());
+			} else {
+				info!("some")?;
+				assert_eq!(
+					x.as_ref().unwrap().downcast_ref::<usize>().unwrap(),
+					&1usize
+				);
+				wlock!(recv_msg2) = true;
+				tx.send(())?;
+			}
+			ctx.set_user_data(Box::new(1usize));
+			info!("onRead")?;
+			assert_ne!(ctx.cur_slab_id(), usize::MAX);
+
+			let mut buf = [0u8; 10];
+			assert!(ctx.clone_next_chunk(connection, &mut buf).is_err());
+			wlock!(recv_msg) = true;
+			ctx.clear_all(connection)?;
+			Ok(())
+		})?;
+
+		evh.start()?;
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+		evh.add_server_connection(conn)?;
+
+		let conn2 = EvhBuilder::build_client_connection("127.0.0.1", port)?;
+		let mut wh = evh.add_client_connection(conn2)?;
+		wh.write(b"01234567890123456789")?;
+
+		let conn3 = EvhBuilder::build_client_connection("127.0.0.1", port)?;
+		let mut wh = evh.add_client_connection(conn3)?;
+		wh.write(b"01234567890123456789")?;
+
+		rx.recv()?;
+		assert!(rlock!(recv_msg_clone));
+		assert!(rlock!(recv_msg2_clone));
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_connection_close() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut evh = evh_oro!(
+			Debug(false),
+			EvhTimeout(u16::MAX),
+			EvhThreads(1),
+			EvhReadSlabSize(100)
+		)?;
+
+		let mut recv_msg = lock_box!(false)?;
+		let recv_msg_clone = recv_msg.clone();
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			let mut wh = connection.write_handle()?;
+			wh.write(b"test")?;
+			wh.close()?;
+			assert!(wh.write(b"test").is_err());
+			assert!(wh.close().is_err());
+			wlock!(recv_msg) = true;
+			ctx.clear_all(connection)?;
+			Ok(())
+		})?;
+
+		evh.start()?;
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		let conn = EvhBuilder::build_server_connection(&addr, 100)?;
+		evh.add_server_connection(conn)?;
+
+		let mut strm = TcpStream::connect(addr)?;
+		strm.write(b"01234567890123456789")?;
+
+		let mut buf = [0u8; 100];
+		let len = strm.read(&mut buf)?;
+		assert_eq!(len, 4);
+		assert_eq!(&buf[0..4], b"test");
+
+		// closed connection
+		assert_eq!(strm.read(&mut buf)?, 0);
+		assert!(rlock!(recv_msg_clone));
+
+		Ok(())
+	}
 }
