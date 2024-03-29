@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `evh2/src/evh.rs`."><title>evh.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_evh2" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.0 (aedd173a2 2024-03-17)" data-channel="1.77.0" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `evh2/src/evh.rs`."><title>evh.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_evh2" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
             <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../bmw_evh2/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
@@ -1806,6 +1806,105 @@
 <a href="#1804" id="1804">1804</a>
 <a href="#1805" id="1805">1805</a>
 <a href="#1806" id="1806">1806</a>
+<a href="#1807" id="1807">1807</a>
+<a href="#1808" id="1808">1808</a>
+<a href="#1809" id="1809">1809</a>
+<a href="#1810" id="1810">1810</a>
+<a href="#1811" id="1811">1811</a>
+<a href="#1812" id="1812">1812</a>
+<a href="#1813" id="1813">1813</a>
+<a href="#1814" id="1814">1814</a>
+<a href="#1815" id="1815">1815</a>
+<a href="#1816" id="1816">1816</a>
+<a href="#1817" id="1817">1817</a>
+<a href="#1818" id="1818">1818</a>
+<a href="#1819" id="1819">1819</a>
+<a href="#1820" id="1820">1820</a>
+<a href="#1821" id="1821">1821</a>
+<a href="#1822" id="1822">1822</a>
+<a href="#1823" id="1823">1823</a>
+<a href="#1824" id="1824">1824</a>
+<a href="#1825" id="1825">1825</a>
+<a href="#1826" id="1826">1826</a>
+<a href="#1827" id="1827">1827</a>
+<a href="#1828" id="1828">1828</a>
+<a href="#1829" id="1829">1829</a>
+<a href="#1830" id="1830">1830</a>
+<a href="#1831" id="1831">1831</a>
+<a href="#1832" id="1832">1832</a>
+<a href="#1833" id="1833">1833</a>
+<a href="#1834" id="1834">1834</a>
+<a href="#1835" id="1835">1835</a>
+<a href="#1836" id="1836">1836</a>
+<a href="#1837" id="1837">1837</a>
+<a href="#1838" id="1838">1838</a>
+<a href="#1839" id="1839">1839</a>
+<a href="#1840" id="1840">1840</a>
+<a href="#1841" id="1841">1841</a>
+<a href="#1842" id="1842">1842</a>
+<a href="#1843" id="1843">1843</a>
+<a href="#1844" id="1844">1844</a>
+<a href="#1845" id="1845">1845</a>
+<a href="#1846" id="1846">1846</a>
+<a href="#1847" id="1847">1847</a>
+<a href="#1848" id="1848">1848</a>
+<a href="#1849" id="1849">1849</a>
+<a href="#1850" id="1850">1850</a>
+<a href="#1851" id="1851">1851</a>
+<a href="#1852" id="1852">1852</a>
+<a href="#1853" id="1853">1853</a>
+<a href="#1854" id="1854">1854</a>
+<a href="#1855" id="1855">1855</a>
+<a href="#1856" id="1856">1856</a>
+<a href="#1857" id="1857">1857</a>
+<a href="#1858" id="1858">1858</a>
+<a href="#1859" id="1859">1859</a>
+<a href="#1860" id="1860">1860</a>
+<a href="#1861" id="1861">1861</a>
+<a href="#1862" id="1862">1862</a>
+<a href="#1863" id="1863">1863</a>
+<a href="#1864" id="1864">1864</a>
+<a href="#1865" id="1865">1865</a>
+<a href="#1866" id="1866">1866</a>
+<a href="#1867" id="1867">1867</a>
+<a href="#1868" id="1868">1868</a>
+<a href="#1869" id="1869">1869</a>
+<a href="#1870" id="1870">1870</a>
+<a href="#1871" id="1871">1871</a>
+<a href="#1872" id="1872">1872</a>
+<a href="#1873" id="1873">1873</a>
+<a href="#1874" id="1874">1874</a>
+<a href="#1875" id="1875">1875</a>
+<a href="#1876" id="1876">1876</a>
+<a href="#1877" id="1877">1877</a>
+<a href="#1878" id="1878">1878</a>
+<a href="#1879" id="1879">1879</a>
+<a href="#1880" id="1880">1880</a>
+<a href="#1881" id="1881">1881</a>
+<a href="#1882" id="1882">1882</a>
+<a href="#1883" id="1883">1883</a>
+<a href="#1884" id="1884">1884</a>
+<a href="#1885" id="1885">1885</a>
+<a href="#1886" id="1886">1886</a>
+<a href="#1887" id="1887">1887</a>
+<a href="#1888" id="1888">1888</a>
+<a href="#1889" id="1889">1889</a>
+<a href="#1890" id="1890">1890</a>
+<a href="#1891" id="1891">1891</a>
+<a href="#1892" id="1892">1892</a>
+<a href="#1893" id="1893">1893</a>
+<a href="#1894" id="1894">1894</a>
+<a href="#1895" id="1895">1895</a>
+<a href="#1896" id="1896">1896</a>
+<a href="#1897" id="1897">1897</a>
+<a href="#1898" id="1898">1898</a>
+<a href="#1899" id="1899">1899</a>
+<a href="#1900" id="1900">1900</a>
+<a href="#1901" id="1901">1901</a>
+<a href="#1902" id="1902">1902</a>
+<a href="#1903" id="1903">1903</a>
+<a href="#1904" id="1904">1904</a>
+<a href="#1905" id="1905">1905</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1832,17 +1931,14 @@
 
 <span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
 <span class="kw">use </span><span class="kw">crate</span>::types::{
-	ConnectionImpl, ConnectionVariant, Event, EventHandlerCallbacks, EventHandlerConfig,
+	ConnectionType, ConnectionVariant, Event, EventHandlerCallbacks, EventHandlerConfig,
 	EventHandlerContext, EventHandlerImpl, EventHandlerState, EventIn, EventType, EventTypeIn,
-	UserContextImpl, Wakeup, WriteHandleImpl, WriteState,
+	GlobalStats, UserContextImpl, Wakeup, WriteHandle, WriteState,
 };
-<span class="kw">use crate</span>::{
-	ClientConnection, Connection, EventHandler, EvhStats, ServerConnection, UserContext,
-	WriteHandle,
-};
+<span class="kw">use crate</span>::{Connection, EventHandler, EvhStats, UserContext};
 <span class="kw">use </span>bmw_conf::ConfigOptionName <span class="kw">as </span>CN;
 <span class="kw">use </span>bmw_conf::{ConfigBuilder, ConfigOption};
-<span class="kw">use </span>bmw_deps::errno::errno;
+<span class="kw">use </span>bmw_deps::errno::{errno, set_errno, Errno};
 <span class="kw">use </span>bmw_deps::rand::random;
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
@@ -1856,41 +1952,59 @@
 <span class="macro">info!</span>();
 
 <span class="kw">impl </span>Wakeup {
-	<span class="kw">fn </span>new() -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
-		<span class="kw">let </span>lock = <span class="macro">lock_box!</span>(<span class="bool-val">false</span>)<span class="question-mark">?</span>;
-		<span class="kw">let </span>lock2 = <span class="macro">lock_box!</span>(())<span class="question-mark">?</span>;
+	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new() -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
+		set_errno(Errno(<span class="number">0</span>));
 		<span class="kw">let </span>(reader, writer) = wakeup_impl()<span class="question-mark">?</span>;
+		<span class="kw">let </span>requested = <span class="macro">lock_box!</span>(<span class="bool-val">false</span>)<span class="question-mark">?</span>;
+		<span class="kw">let </span>needed = <span class="macro">lock_box!</span>(<span class="bool-val">false</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span>id = random();
 		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
-			lock,
-			lock2,
+			id,
 			reader,
 			writer,
-			id,
+			requested,
+			needed,
 		})
 	}
 
-	<span class="kw">fn </span>wakeup(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>buf = [<span class="number">0u8</span>; <span class="number">1</span>];
-		<span class="kw">let </span>_lock = <span class="self">self</span>.lock2.wlock()<span class="question-mark">?</span>;
-		write_impl(<span class="self">self</span>.writer, <span class="kw-2">&amp;</span>buf)<span class="question-mark">?</span>;
-		<span class="macro">wlock!</span>(<span class="self">self</span>.lock) = <span class="bool-val">true</span>;
+	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>wakeup(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>requested = <span class="self">self</span>.requested.wlock()<span class="question-mark">?</span>;
+		<span class="kw">let </span>needed = <span class="self">self</span>.needed.rlock()<span class="question-mark">?</span>;
+		<span class="kw">let </span>need_wakeup = <span class="kw-2">**</span>needed.guard()<span class="question-mark">? </span>&amp;&amp; !(<span class="kw-2">**</span>requested.guard()<span class="question-mark">?</span>);
+		<span class="kw-2">**</span>requested.guard()<span class="question-mark">? </span>= <span class="bool-val">true</span>;
+		<span class="kw">if </span>need_wakeup {
+			<span class="macro">debug!</span>(<span class="string">"wakeup writing to {}"</span>, <span class="self">self</span>.writer)<span class="question-mark">?</span>;
+			<span class="kw">let </span>len = write_impl(<span class="self">self</span>.writer, <span class="kw-2">&amp;</span>[<span class="number">0u8</span>; <span class="number">1</span>])<span class="question-mark">?</span>;
+			<span class="macro">debug!</span>(<span class="string">"len={},errno={}"</span>, len, errno())<span class="question-mark">?</span>;
+		}
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_lock(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>LockBox&lt;bool&gt;&gt; {
-		<span class="kw-2">&amp;mut </span><span class="self">self</span>.lock
+	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>pre_block(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(bool, RwLockReadGuardWrapper&lt;bool&gt;), Error&gt; {
+		<span class="kw">let </span>requested = <span class="self">self</span>.requested.rlock()<span class="question-mark">?</span>;
+		{
+			<span class="kw">let </span><span class="kw-2">mut </span>needed = <span class="self">self</span>.needed.wlock()<span class="question-mark">?</span>;
+			<span class="kw-2">**</span>needed.guard()<span class="question-mark">? </span>= <span class="bool-val">true</span>;
+		}
+		<span class="kw">let </span>lock_guard = <span class="self">self</span>.needed.rlock()<span class="question-mark">?</span>;
+		<span class="kw">let </span>is_requested = <span class="kw-2">**</span>requested.guard()<span class="question-mark">?</span>;
+		<span class="prelude-val">Ok</span>((is_requested, lock_guard))
 	}
 
-	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_lock2(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>LockBox&lt;()&gt;&gt; {
-		<span class="kw-2">&amp;mut </span><span class="self">self</span>.lock2
+	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>post_block(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>requested = <span class="self">self</span>.requested.wlock()<span class="question-mark">?</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>needed = <span class="self">self</span>.needed.wlock()<span class="question-mark">?</span>;
+
+		<span class="kw-2">**</span>requested.guard()<span class="question-mark">? </span>= <span class="bool-val">false</span>;
+		<span class="kw-2">**</span>needed.guard()<span class="question-mark">? </span>= <span class="bool-val">false</span>;
+		<span class="prelude-val">Ok</span>(())
 	}
 }
 
 <span class="kw">impl </span>UserContext <span class="kw">for </span><span class="kw-2">&amp;mut </span>UserContextImpl {
 	<span class="kw">fn </span>clone_next_chunk(
 		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
-		connection: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Connection + <span class="lifetime">'_ </span>+ Send + Sync&gt;,
+		connection: <span class="kw-2">&amp;mut </span>Connection,
 		buf: <span class="kw-2">&amp;mut </span>[u8],
 	) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
 		<span class="kw">let </span>last_slab = connection.get_last_slab();
@@ -1903,7 +2017,7 @@
 			<span class="kw">let </span>slab = slab.get();
 			<span class="kw">let </span>start_ptr = slab.len().saturating_sub(<span class="number">4</span>);
 
-			<span class="kw">let </span><span class="kw-2">mut </span>offset = <span class="kw">if </span><span class="self">self</span>.slab_cur == last_slab {
+			<span class="kw">let </span>offset = <span class="kw">if </span><span class="self">self</span>.slab_cur == last_slab {
 				slab_offset
 			} <span class="kw">else </span>{
 				start_ptr
@@ -1911,7 +2025,8 @@
 
 			<span class="kw">let </span>buf_len = buf.len();
 			<span class="kw">if </span>buf_len &lt; offset {
-				offset = buf_len;
+				<span class="kw">let </span>text = <span class="macro">format!</span>(<span class="string">"buf too small. Needed={},allocated={}"</span>, offset, buf_len);
+				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IllegalArgument, text));
 			}
 			buf[<span class="number">0</span>..offset].clone_from_slice(<span class="kw-2">&amp;</span>slab[<span class="number">0</span>..offset]);
 			<span class="self">self</span>.slab_cur =
@@ -1922,17 +2037,10 @@
 	<span class="kw">fn </span>cur_slab_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
 		<span class="self">self</span>.slab_cur
 	}
-	<span class="kw">fn </span>clear_all(
-		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
-		connection: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Connection + <span class="lifetime">'_ </span>+ Send + Sync&gt;,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">fn </span>clear_all(<span class="kw-2">&amp;mut </span><span class="self">self</span>, connection: <span class="kw-2">&amp;mut </span>Connection) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.clear_through(connection.get_last_slab(), connection)
 	}
-	<span class="kw">fn </span>clear_through(
-		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
-		slab_id: usize,
-		connection: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Connection + <span class="lifetime">'_ </span>+ Send + Sync&gt;,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">fn </span>clear_through(<span class="kw-2">&amp;mut </span><span class="self">self</span>, slab_id: usize, connection: <span class="kw-2">&amp;mut </span>Connection) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="macro">debug!</span>(<span class="string">"clear_through for {}"</span>, connection.handle())<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>cur = connection.get_first_slab();
 		<span class="kw">loop </span>{
@@ -2000,8 +2108,8 @@
 	</span>}
 }
 
-<span class="kw">impl </span>WriteHandle <span class="kw">for </span>WriteHandleImpl {
-	<span class="kw">fn </span>write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, data: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+<span class="kw">impl </span>WriteHandle {
+	<span class="kw">pub fn </span>write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, data: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>data_len = data.len();
 		<span class="kw">let </span>wlen = {
 			<span class="kw">let </span>write_state = <span class="self">self</span>.write_state.rlock()<span class="question-mark">?</span>;
@@ -2033,7 +2141,7 @@
 		}
 		<span class="prelude-val">Ok</span>(())
 	}
-	<span class="kw">fn </span>close(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">pub fn </span>close(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>write_state = <span class="self">self</span>.write_state.wlock()<span class="question-mark">?</span>;
 			<span class="kw">let </span>guard = write_state.guard()<span class="question-mark">?</span>;
@@ -2055,7 +2163,7 @@
 		<span class="self">self</span>.wakeup.wakeup()<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
-	<span class="kw">fn </span>trigger_on_read(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">pub fn </span>trigger_on_read(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="macro">debug!</span>(<span class="string">"trigger on read {} "</span>, <span class="self">self</span>.handle)<span class="question-mark">?</span>;
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>write_state = <span class="self">self</span>.write_state.wlock()<span class="question-mark">?</span>;
@@ -2081,13 +2189,6 @@
 		<span class="prelude-val">Ok</span>((<span class="kw-2">**</span>guard).is_set(flag))
 	}
 
-	<span class="kw">fn </span>set_flag(<span class="kw-2">&amp;mut </span><span class="self">self</span>, flag: u8) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span><span class="kw-2">mut </span>write_state = <span class="self">self</span>.write_state.wlock()<span class="question-mark">?</span>;
-		<span class="kw">let </span>guard = write_state.guard()<span class="question-mark">?</span>;
-		(<span class="kw-2">**</span>guard).set_flag(flag);
-		<span class="prelude-val">Ok</span>(())
-	}
-
 	<span class="kw">fn </span>unset_flag(<span class="kw-2">&amp;mut </span><span class="self">self</span>, flag: u8) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>write_state = <span class="self">self</span>.write_state.wlock()<span class="question-mark">?</span>;
 		<span class="kw">let </span>guard = write_state.guard()<span class="question-mark">?</span>;
@@ -2098,10 +2199,7 @@
 	<span class="kw">fn </span>write_state(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;, Error&gt; {
 		<span class="prelude-val">Ok</span>(<span class="kw-2">&amp;mut </span><span class="self">self</span>.write_state)
 	}
-}
-
-<span class="kw">impl </span>WriteHandleImpl {
-	<span class="kw">fn </span>new(connection_impl: <span class="kw-2">&amp;</span>ConnectionImpl) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
+	<span class="kw">fn </span>new(connection_impl: <span class="kw-2">&amp;</span>Connection) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
 		<span class="kw">let </span>wakeup = <span class="kw">match </span><span class="kw-2">&amp;</span>connection_impl.wakeup {
 			<span class="prelude-val">Some</span>(wakeup) =&gt; wakeup.clone(),
 			<span class="prelude-val">None </span>=&gt; {
@@ -2145,11 +2243,36 @@
 	}
 }
 
-<span class="kw">impl </span>ClientConnection <span class="kw">for </span>ConnectionImpl {
-	<span class="kw">fn </span>as_connection(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Connection + <span class="lifetime">'_ </span>+ Send + Sync&gt; {
-		Box::new(<span class="self">self</span>)
+<span class="kw">impl </span>Connection {
+	<span class="kw">pub fn </span>id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u128 {
+		<span class="self">self</span>.id
 	}
-
+	<span class="kw">pub fn </span>write_handle(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;WriteHandle, Error&gt; {
+		<span class="kw">let </span>wh = WriteHandle::new(<span class="self">self</span>)<span class="question-mark">?</span>;
+		<span class="prelude-val">Ok</span>(wh)
+	}
+	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(
+		handle: Handle,
+		wakeup: <span class="prelude-ty">Option</span>&lt;Wakeup&gt;,
+		state: <span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;EventHandlerState&gt;&gt;&gt;,
+		ctype: ConnectionType,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
+		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
+			handle,
+			id: random(),
+			first_slab: usize::MAX,
+			last_slab: usize::MAX,
+			slab_offset: <span class="number">0</span>,
+			write_state: <span class="macro">lock_box!</span>(WriteState::new())<span class="question-mark">?</span>,
+			wakeup,
+			state,
+			tx: <span class="prelude-val">None</span>,
+			ctype,
+		})
+	}
+	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>handle(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Handle {
+		<span class="self">self</span>.handle
+	}
 	<span class="kw">fn </span>set_state(<span class="kw-2">&amp;mut </span><span class="self">self</span>, state: Box&lt;<span class="kw">dyn </span>LockBox&lt;EventHandlerState&gt;&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="self">self</span>.state = <span class="prelude-val">Some</span>(state);
 		<span class="prelude-val">Ok</span>(())
@@ -2159,64 +2282,12 @@
 		<span class="self">self</span>.wakeup = <span class="prelude-val">Some</span>(wakeup);
 		<span class="prelude-val">Ok</span>(())
 	}
+
 	<span class="kw">fn </span>set_tx(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tx: SyncSender&lt;()&gt;) {
 		<span class="self">self</span>.tx = <span class="prelude-val">Some</span>(tx);
 	}
 	<span class="kw">fn </span>get_tx(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>SyncSender&lt;()&gt;&gt; {
 		<span class="self">self</span>.tx.as_mut()
-	}
-}
-
-<span class="kw">impl </span>ServerConnection <span class="kw">for </span>ConnectionImpl {
-	<span class="kw">fn </span>as_connection(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw">dyn </span>Connection + <span class="lifetime">'_ </span>+ Send + Sync&gt; {
-		Box::new(<span class="self">self</span>)
-	}
-	<span class="kw">fn </span>set_tx(<span class="kw-2">&amp;mut </span><span class="self">self</span>, tx: SyncSender&lt;()&gt;) {
-		<span class="self">self</span>.tx = <span class="prelude-val">Some</span>(tx);
-	}
-	<span class="kw">fn </span>get_tx(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>SyncSender&lt;()&gt;&gt; {
-		<span class="self">self</span>.tx.as_mut()
-	}
-}
-
-<span class="kw">impl </span>Connection <span class="kw">for </span><span class="kw-2">&amp;mut </span>ConnectionImpl {
-	<span class="kw">fn </span>handle(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Handle {
-		<span class="self">self</span>.handle
-	}
-	<span class="kw">fn </span>id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u128 {
-		<span class="self">self</span>.id
-	}
-	<span class="kw">fn </span>get_slab_offset(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
-		<span class="self">self</span>.slab_offset
-	}
-	<span class="kw">fn </span>get_first_slab(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
-		<span class="self">self</span>.first_slab
-	}
-	<span class="kw">fn </span>get_last_slab(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
-		<span class="self">self</span>.last_slab
-	}
-	<span class="kw">fn </span>set_slab_offset(<span class="kw-2">&amp;mut </span><span class="self">self</span>, offset: usize) {
-		<span class="self">self</span>.slab_offset = offset;
-	}
-	<span class="kw">fn </span>set_first_slab(<span class="kw-2">&amp;mut </span><span class="self">self</span>, first_slab: usize) {
-		<span class="self">self</span>.first_slab = first_slab;
-	}
-	<span class="kw">fn </span>set_last_slab(<span class="kw-2">&amp;mut </span><span class="self">self</span>, last_slab: usize) {
-		<span class="self">self</span>.last_slab = last_slab;
-	}
-
-	<span class="kw">fn </span>write_handle(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>WriteHandle + Send + Sync&gt;, Error&gt; {
-		<span class="kw">let </span>wh: Box&lt;<span class="kw">dyn </span>WriteHandle + Send + Sync&gt; = Box::new(WriteHandleImpl::new(<span class="self">self</span>)<span class="question-mark">?</span>);
-		<span class="prelude-val">Ok</span>(wh)
-	}
-}
-
-<span class="kw">impl </span>Connection <span class="kw">for </span>ConnectionImpl {
-	<span class="kw">fn </span>handle(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Handle {
-		<span class="self">self</span>.handle
-	}
-	<span class="kw">fn </span>id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u128 {
-		<span class="self">self</span>.id
 	}
 	<span class="kw">fn </span>get_slab_offset(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
 		<span class="self">self</span>.slab_offset
@@ -2236,31 +2307,6 @@
 	<span class="kw">fn </span>set_last_slab(<span class="kw-2">&amp;mut </span><span class="self">self</span>, last_slab: usize) {
 		<span class="self">self</span>.last_slab = last_slab;
 	}
-
-	<span class="kw">fn </span>write_handle(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>WriteHandle + Send + Sync&gt;, Error&gt; {
-		<span class="kw">let </span>wh: Box&lt;<span class="kw">dyn </span>WriteHandle + Send + Sync&gt; = Box::new(WriteHandleImpl::new(<span class="self">self</span>)<span class="question-mark">?</span>);
-		<span class="prelude-val">Ok</span>(wh)
-	}
-}
-
-<span class="kw">impl </span>ConnectionImpl {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(
-		handle: Handle,
-		wakeup: <span class="prelude-ty">Option</span>&lt;Wakeup&gt;,
-		state: <span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;EventHandlerState&gt;&gt;&gt;,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
-		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
-			handle,
-			id: random(),
-			first_slab: usize::MAX,
-			last_slab: usize::MAX,
-			slab_offset: <span class="number">0</span>,
-			write_state: <span class="macro">lock_box!</span>(WriteState::new())<span class="question-mark">?</span>,
-			wakeup,
-			state,
-			tx: <span class="prelude-val">None</span>,
-		})
-	}
 }
 
 <span class="kw">impl </span>EventHandlerState {
@@ -2276,28 +2322,19 @@
 <span class="kw">impl</span>&lt;OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic&gt; Drop
 	<span class="kw">for </span>EventHandlerImpl&lt;OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic&gt;
 <span class="kw">where
-	</span>OnRead: FnMut(
-			<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Connection + <span class="lifetime">'_ </span>+ Send + Sync&gt;,
-			<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>UserContext + <span class="lifetime">'_</span>&gt;,
-		) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
+	</span>OnRead: FnMut(<span class="kw-2">&amp;mut </span>Connection, <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>UserContext + <span class="lifetime">'_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 		+ Send
 		+ <span class="lifetime">'static
 		</span>+ Clone
 		+ Sync
 		+ Unpin,
-	OnAccept: FnMut(
-			<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Connection + <span class="lifetime">'_ </span>+ Send + Sync&gt;,
-			<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>UserContext + <span class="lifetime">'_</span>&gt;,
-		) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
+	OnAccept: FnMut(<span class="kw-2">&amp;mut </span>Connection, <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>UserContext + <span class="lifetime">'_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 		+ Send
 		+ <span class="lifetime">'static
 		</span>+ Clone
 		+ Sync
 		+ Unpin,
-	OnClose: FnMut(
-			<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Connection + <span class="lifetime">'_ </span>+ Send + Sync&gt;,
-			<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>UserContext + <span class="lifetime">'_</span>&gt;,
-		) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
+	OnClose: FnMut(<span class="kw-2">&amp;mut </span>Connection, <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>UserContext + <span class="lifetime">'_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 		+ Send
 		+ <span class="lifetime">'static
 		</span>+ Clone
@@ -2331,28 +2368,19 @@
 	EventHandler&lt;OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic&gt;
 	<span class="kw">for </span>EventHandlerImpl&lt;OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic&gt;
 <span class="kw">where
-	</span>OnRead: FnMut(
-			<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Connection + <span class="lifetime">'_ </span>+ Send + Sync&gt;,
-			<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>UserContext + <span class="lifetime">'_</span>&gt;,
-		) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
+	</span>OnRead: FnMut(<span class="kw-2">&amp;mut </span>Connection, <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>UserContext + <span class="lifetime">'_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 		+ Send
 		+ <span class="lifetime">'static
 		</span>+ Clone
 		+ Sync
 		+ Unpin,
-	OnAccept: FnMut(
-			<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Connection + <span class="lifetime">'_ </span>+ Send + Sync&gt;,
-			<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>UserContext + <span class="lifetime">'_</span>&gt;,
-		) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
+	OnAccept: FnMut(<span class="kw-2">&amp;mut </span>Connection, <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>UserContext + <span class="lifetime">'_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 		+ Send
 		+ <span class="lifetime">'static
 		</span>+ Clone
 		+ Sync
 		+ Unpin,
-	OnClose: FnMut(
-			<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Connection + <span class="lifetime">'_ </span>+ Send + Sync&gt;,
-			<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>UserContext + <span class="lifetime">'_</span>&gt;,
-		) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
+	OnClose: FnMut(<span class="kw-2">&amp;mut </span>Connection, <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>UserContext + <span class="lifetime">'_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 		+ Send
 		+ <span class="lifetime">'static
 		</span>+ Clone
@@ -2394,10 +2422,16 @@
 		<span class="self">self</span>.callbacks.on_panic = <span class="prelude-val">Some</span>(Box::pin(on_panic));
 		<span class="prelude-val">Ok</span>(())
 	}
-	<span class="kw">fn </span>add_server_connection(
-		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
-		<span class="kw-2">mut </span>connection: Box&lt;<span class="kw">dyn </span>ServerConnection + Send + Sync&gt;,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">fn </span>add_server_connection(<span class="kw-2">&amp;mut </span><span class="self">self</span>, <span class="kw-2">mut </span>connection: Connection) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">match </span>connection.ctype {
+			ConnectionType::Server =&gt; {}
+			<span class="kw">_ </span>=&gt; {
+				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
+					ErrKind::IllegalArgument,
+					<span class="string">"trying to add a non-server connection as a server!"
+				</span>))
+			}
+		}
 		<span class="kw">let </span>(tx, rx) = sync_channel(<span class="number">1</span>);
 		connection.set_tx(tx);
 
@@ -2427,10 +2461,16 @@
 
 		<span class="prelude-val">Ok</span>(())
 	}
-	<span class="kw">fn </span>add_client_connection(
-		<span class="kw-2">&amp;mut </span><span class="self">self</span>,
-		<span class="kw-2">mut </span>connection: Box&lt;<span class="kw">dyn </span>ClientConnection + Send + Sync&gt;,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;Box&lt;<span class="kw">dyn </span>WriteHandle + Send + Sync&gt;, Error&gt; {
+	<span class="kw">fn </span>add_client_connection(<span class="kw-2">&amp;mut </span><span class="self">self</span>, <span class="kw-2">mut </span>connection: Connection) -&gt; <span class="prelude-ty">Result</span>&lt;WriteHandle, Error&gt; {
+		<span class="kw">match </span>connection.ctype {
+			ConnectionType::Client =&gt; {}
+			<span class="kw">_ </span>=&gt; {
+				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
+					ErrKind::IllegalArgument,
+					<span class="string">"trying to add a non-server connection as a server!"
+				</span>))
+			}
+		}
 		<span class="kw">let </span>(tx, rx) = sync_channel(<span class="number">1</span>);
 		connection.set_tx(tx);
 
@@ -2447,6 +2487,7 @@
 			tid,
 			connection.id(),
 		)<span class="question-mark">?</span>;
+
 		{
 			<span class="kw">let </span><span class="kw-2">mut </span>state = <span class="self">self</span>.state[tid].wlock()<span class="question-mark">?</span>;
 			<span class="kw">let </span>guard = state.guard()<span class="question-mark">?</span>;
@@ -2454,6 +2495,7 @@
 				.nconnections
 				.push_back(ConnectionVariant::ClientConnection(connection));
 		}
+
 		<span class="macro">debug!</span>(<span class="string">"push client connection to tid = {}"</span>, tid)<span class="question-mark">?</span>;
 
 		<span class="self">self</span>.wakeups[tid].wakeup()<span class="question-mark">?</span>;
@@ -2470,28 +2512,19 @@
 <span class="kw">impl</span>&lt;OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic&gt;
 	EventHandlerImpl&lt;OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic&gt;
 <span class="kw">where
-	</span>OnRead: FnMut(
-			<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Connection + <span class="lifetime">'_ </span>+ Send + Sync&gt;,
-			<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>UserContext + <span class="lifetime">'_</span>&gt;,
-		) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
+	</span>OnRead: FnMut(<span class="kw-2">&amp;mut </span>Connection, <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>UserContext + <span class="lifetime">'_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 		+ Send
 		+ <span class="lifetime">'static
 		</span>+ Clone
 		+ Sync
 		+ Unpin,
-	OnAccept: FnMut(
-			<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Connection + <span class="lifetime">'_ </span>+ Send + Sync&gt;,
-			<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>UserContext + <span class="lifetime">'_</span>&gt;,
-		) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
+	OnAccept: FnMut(<span class="kw-2">&amp;mut </span>Connection, <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>UserContext + <span class="lifetime">'_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 		+ Send
 		+ <span class="lifetime">'static
 		</span>+ Clone
 		+ Sync
 		+ Unpin,
-	OnClose: FnMut(
-			<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Connection + <span class="lifetime">'_ </span>+ Send + Sync&gt;,
-			<span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>UserContext + <span class="lifetime">'_</span>&gt;,
-		) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
+	OnClose: FnMut(<span class="kw-2">&amp;mut </span>Connection, <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>UserContext + <span class="lifetime">'_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 		+ Send
 		+ <span class="lifetime">'static
 		</span>+ Clone
@@ -2515,12 +2548,21 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>state = <span class="macro">array!</span>(config.threads, <span class="kw-2">&amp;</span><span class="macro">lock_box!</span>(EventHandlerState::new()<span class="question-mark">?</span>)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>w = Wakeup::new()<span class="question-mark">?</span>;
+		close_impl(w.reader)<span class="question-mark">?</span>;
+		close_impl(w.writer)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>wakeups = <span class="macro">array!</span>(config.threads, <span class="kw-2">&amp;</span>w)<span class="question-mark">?</span>;
 
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..config.threads {
 			state[i] = <span class="macro">lock_box!</span>(EventHandlerState::new()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 			wakeups[i] = Wakeup::new()<span class="question-mark">?</span>;
 		}
+
+		<span class="kw">let </span>global_stats = GlobalStats {
+			stats: EvhStats::new(),
+			update_counter: <span class="number">0</span>,
+			tx: <span class="prelude-val">None</span>,
+		};
+		<span class="kw">let </span>stats = <span class="macro">lock_box!</span>(global_stats)<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
 			callbacks: EventHandlerCallbacks {
@@ -2533,12 +2575,31 @@
 			config,
 			state,
 			wakeups,
+			stats,
 			stopper: <span class="prelude-val">None</span>,
 		})
 	}
 
 	<span class="kw">fn </span>wait_for_stats(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;EvhStats, Error&gt; {
-		<span class="macro">todo!</span>()
+		<span class="kw">let </span><span class="kw-2">mut </span>ret = EvhStats::new();
+		<span class="kw">let </span>(tx, rx) = sync_channel(<span class="number">1</span>);
+		{
+			<span class="kw">let </span><span class="kw-2">mut </span>stats = <span class="self">self</span>.stats.wlock()<span class="question-mark">?</span>;
+			<span class="kw">let </span>guard = stats.guard()<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>guard).tx = <span class="prelude-val">Some</span>(tx);
+		}
+
+		rx.recv()<span class="question-mark">?</span>;
+
+		{
+			<span class="kw">let </span><span class="kw-2">mut </span>stats = <span class="self">self</span>.stats.wlock()<span class="question-mark">?</span>;
+			<span class="kw">let </span>guard = stats.guard()<span class="question-mark">?</span>;
+
+			<span class="kw">let _ </span>= std::mem::replace(<span class="kw-2">&amp;mut </span>ret, (<span class="kw-2">**</span>guard).stats.clone());
+			(<span class="kw-2">**</span>guard).stats.reset();
+		}
+
+		<span class="prelude-val">Ok</span>(ret)
 	}
 
 	<span class="kw">fn </span>start_impl(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
@@ -2563,12 +2624,16 @@
 		};
 		<span class="kw">let </span><span class="kw-2">mut </span>ctx_arr = <span class="macro">array!</span>(
 			config.threads,
-			<span class="kw-2">&amp;</span><span class="macro">lock_box!</span>(EventHandlerContext::new(wakeups.clone(), <span class="number">0</span>)<span class="question-mark">?</span>)<span class="question-mark">?
+			<span class="kw-2">&amp;</span><span class="macro">lock_box!</span>(EventHandlerContext::new(
+				wakeups.clone(),
+				<span class="number">0</span>,
+				<span class="self">self</span>.stats.clone()
+			)<span class="question-mark">?</span>)<span class="question-mark">?
 		</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>user_context_arr = <span class="macro">array!</span>(config.threads, <span class="kw-2">&amp;</span><span class="macro">lock_box!</span>(user_context)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..config.threads {
-			<span class="kw">let </span><span class="kw-2">mut </span>evhc = EventHandlerContext::new(wakeups.clone(), i)<span class="question-mark">?</span>;
+			<span class="kw">let </span><span class="kw-2">mut </span>evhc = EventHandlerContext::new(wakeups.clone(), i, <span class="self">self</span>.stats.clone())<span class="question-mark">?</span>;
 			<span class="kw">let </span>wakeup_reader = wakeups[i].reader;
 			<span class="kw">let </span>evt = EventIn::new(wakeup_reader, EventTypeIn::Read);
 			evhc.in_events.push(evt);
@@ -2687,6 +2752,27 @@
 		);
 		<span class="kw">let </span>stats_update_frequency_millis =
 			config.get_or_usize(<span class="kw-2">&amp;</span>CN::EvhStatsUpdateMillis, EVH_DEFAULT_STATS_UPDATE_MILLIS);
+
+		<span class="kw">if </span>read_slab_count == <span class="number">0 </span>{
+			<span class="kw">let </span>text = <span class="string">"EvhReadSlabCount count must not be 0"</span>;
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Configuration, text));
+		}
+
+		<span class="kw">if </span>read_slab_size &lt; <span class="number">25 </span>{
+			<span class="kw">let </span>text = <span class="string">"EvhReadSlabSize must be at least 25"</span>;
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Configuration, text));
+		}
+
+		<span class="kw">if </span>timeout == <span class="number">0 </span>{
+			<span class="kw">let </span>text = <span class="string">"EvhTimeout must not be 0"</span>;
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Configuration, text));
+		}
+
+		<span class="kw">if </span>housekeeping_frequency_millis == <span class="number">0 </span>{
+			<span class="kw">let </span>text = <span class="string">"EvhHouseKeeperFrequencyMillis must not be 0"</span>;
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Configuration, text));
+		}
+
 		<span class="prelude-val">Ok</span>(EventHandlerConfig {
 			threads,
 			debug,
@@ -2771,69 +2857,113 @@
 			}
 		}
 
-		<span class="kw">match </span><span class="self">Self</span>::process_state(
+		<span class="kw">let </span>stop = <span class="kw">match </span><span class="self">Self</span>::process_state(
 			<span class="kw-2">&amp;mut </span>state[tid],
 			<span class="kw-2">&amp;mut </span>(<span class="kw-2">**</span>ctx_guard),
 			<span class="kw-2">&amp;mut </span>callbacks,
 			<span class="kw-2">&amp;mut </span>(<span class="kw-2">**</span>user_context_guard),
 			<span class="kw-2">&amp;</span>config,
 		) {
-			<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
-			<span class="prelude-val">Err</span>(e) =&gt; <span class="macro">fatal!</span>(<span class="string">"Process events generated an unexpected error: {}"</span>, e)<span class="question-mark">?</span>,
-		}
+			<span class="prelude-val">Ok</span>(stop) =&gt; stop,
+			<span class="prelude-val">Err</span>(e) =&gt; {
+				<span class="macro">fatal!</span>(<span class="string">"Process events generated an unexpected error: {}"</span>, e)<span class="question-mark">?</span>;
+				<span class="bool-val">true
+			</span>}
+		};
 
-		<span class="kw">loop </span>{
-			<span class="kw">match </span>get_events(<span class="kw-2">&amp;</span>config, <span class="kw-2">&amp;mut </span>(<span class="kw-2">**</span>ctx_guard)) {
-				<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
-				<span class="prelude-val">Err</span>(e) =&gt; <span class="macro">fatal!</span>(<span class="string">"get_events generated an unexpected error: {}"</span>, e)<span class="question-mark">?</span>,
-			}
-			(<span class="kw-2">**</span>ctx_guard).in_events.clear();
-			(<span class="kw-2">**</span>ctx_guard)
-				.in_events
-				.shrink_to(EVH_DEFAULT_IN_EVENTS_SIZE);
-
-			<span class="kw">if </span>config.debug {
-				<span class="macro">info!</span>(<span class="string">"Thread loop {}"</span>, count)<span class="question-mark">?</span>;
-			}
-
-			<span class="kw">match </span><span class="self">Self</span>::process_state(
-				<span class="kw-2">&amp;mut </span>state[tid],
-				<span class="kw-2">&amp;mut </span>(<span class="kw-2">**</span>ctx_guard),
-				<span class="kw-2">&amp;mut </span>callbacks,
-				<span class="kw-2">&amp;mut </span>(<span class="kw-2">**</span>user_context_guard),
-				<span class="kw-2">&amp;</span>config,
-			) {
-				<span class="prelude-val">Ok</span>(stop) =&gt; {
-					<span class="kw">if </span>stop {
-						<span class="kw">break </span><span class="prelude-val">Ok</span>(());
-					}
+		<span class="kw">if </span>!stop {
+			<span class="kw">loop </span>{
+				<span class="kw">match </span>get_events(<span class="kw-2">&amp;</span>config, <span class="kw-2">&amp;mut </span>(<span class="kw-2">**</span>ctx_guard)) {
+					<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
+					<span class="prelude-val">Err</span>(e) =&gt; <span class="macro">fatal!</span>(<span class="string">"get_events generated an unexpected error: {}"</span>, e,)<span class="question-mark">?</span>,
 				}
-				<span class="prelude-val">Err</span>(e) =&gt; <span class="macro">fatal!</span>(<span class="string">"Process events generated an unexpected error: {}"</span>, e)<span class="question-mark">?</span>,
-			}
 
-			<span class="macro">debug!</span>(<span class="string">"calling proc events"</span>)<span class="question-mark">?</span>;
-			<span class="comment">// set iterator to 0 outside function in case of thread panic
-			</span>(<span class="kw-2">**</span>ctx_guard).ret_event_itt = <span class="number">0</span>;
-			(<span class="kw-2">**</span>ctx_guard).trigger_itt = <span class="number">0</span>;
-			<span class="kw">match </span><span class="self">Self</span>::process_events(
-				<span class="kw-2">&amp;</span>config,
-				<span class="kw-2">&amp;mut </span>(<span class="kw-2">**</span>ctx_guard),
-				<span class="kw-2">&amp;mut </span>callbacks,
-				<span class="kw-2">&amp;mut </span>state,
-				<span class="kw-2">&amp;mut </span>(<span class="kw-2">**</span>user_context_guard),
-			) {
-				<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
-				<span class="prelude-val">Err</span>(e) =&gt; <span class="macro">fatal!</span>(<span class="string">"Process events generated an unexpected error: {}"</span>, e)<span class="question-mark">?</span>,
+				(<span class="kw-2">**</span>ctx_guard).thread_stats.event_loops += <span class="number">1</span>;
+				(<span class="kw-2">**</span>ctx_guard).in_events.clear();
+				(<span class="kw-2">**</span>ctx_guard)
+					.in_events
+					.shrink_to(EVH_DEFAULT_IN_EVENTS_SIZE);
+
+				<span class="kw">if </span>config.debug {
+					<span class="macro">info!</span>(<span class="string">"Thread loop {}"</span>, count)<span class="question-mark">?</span>;
+				}
+
+				<span class="kw">match </span><span class="self">Self</span>::process_state(
+					<span class="kw-2">&amp;mut </span>state[tid],
+					<span class="kw-2">&amp;mut </span>(<span class="kw-2">**</span>ctx_guard),
+					<span class="kw-2">&amp;mut </span>callbacks,
+					<span class="kw-2">&amp;mut </span>(<span class="kw-2">**</span>user_context_guard),
+					<span class="kw-2">&amp;</span>config,
+				) {
+					<span class="prelude-val">Ok</span>(stop) =&gt; {
+						<span class="kw">if </span>stop {
+							<span class="kw">break</span>;
+						}
+					}
+					<span class="prelude-val">Err</span>(e) =&gt; <span class="macro">fatal!</span>(<span class="string">"Process events generated an unexpected error: {}"</span>, e)<span class="question-mark">?</span>,
+				}
+
+				<span class="macro">debug!</span>(<span class="string">"calling proc events"</span>)<span class="question-mark">?</span>;
+				<span class="comment">// set iterator to 0 outside function in case of thread panic
+				</span>(<span class="kw-2">**</span>ctx_guard).ret_event_itt = <span class="number">0</span>;
+				(<span class="kw-2">**</span>ctx_guard).trigger_itt = <span class="number">0</span>;
+				<span class="kw">match </span><span class="self">Self</span>::process_events(
+					<span class="kw-2">&amp;</span>config,
+					<span class="kw-2">&amp;mut </span>(<span class="kw-2">**</span>ctx_guard),
+					<span class="kw-2">&amp;mut </span>callbacks,
+					<span class="kw-2">&amp;mut </span>state,
+					<span class="kw-2">&amp;mut </span>(<span class="kw-2">**</span>user_context_guard),
+				) {
+					<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
+					<span class="prelude-val">Err</span>(e) =&gt; <span class="macro">fatal!</span>(<span class="string">"Process events generated an unexpected error: {}"</span>, e)<span class="question-mark">?</span>,
+				}
+				count += <span class="number">1</span>;
 			}
-			count += <span class="number">1</span>;
 		}
+		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">fn </span>close_handles(ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">fn </span>close_handles(
+		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
+		nconnections: <span class="kw-2">&amp;</span>VecDeque&lt;ConnectionVariant&gt;,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="macro">debug!</span>(<span class="string">"in close_handles {}"</span>, ctx.tid)<span class="question-mark">?</span>;
+		<span class="kw">let </span>reader = ctx.wakeups[ctx.tid].reader;
+		<span class="kw">let </span>writer = ctx.wakeups[ctx.tid].writer;
 		<span class="kw">for </span>(handle, id) <span class="kw">in </span><span class="kw-2">&amp;</span>ctx.handle_hash {
 			<span class="macro">debug!</span>(<span class="string">"close handle = {}, id = {}"</span>, handle, id)<span class="question-mark">?</span>;
-			close_impl(<span class="kw-2">*</span>handle)<span class="question-mark">?</span>;
+			<span class="kw">if </span><span class="kw-2">*</span>handle != reader &amp;&amp; <span class="kw-2">*</span>handle != writer {
+				close_impl(<span class="kw-2">*</span>handle)<span class="question-mark">?</span>;
+			}
 		}
+
+		<span class="kw">for </span>conn <span class="kw">in </span>nconnections {
+			<span class="kw">match </span>conn {
+				ConnectionVariant::ServerConnection(c) =&gt; {
+					<span class="kw">let </span>handle = c.handle();
+					<span class="kw">if </span>handle != reader &amp;&amp; handle != writer {
+						close_impl(handle)<span class="question-mark">?</span>;
+					}
+				}
+				ConnectionVariant::ClientConnection(c) =&gt; {
+					<span class="kw">let </span>handle = c.handle();
+					<span class="kw">if </span>handle != reader &amp;&amp; handle != writer {
+						close_impl(handle)<span class="question-mark">?</span>;
+					}
+				}
+				ConnectionVariant::Connection(c) =&gt; {
+					<span class="kw">let </span>handle = c.handle();
+					<span class="kw">if </span>handle != reader &amp;&amp; handle != writer {
+						close_impl(handle)<span class="question-mark">?</span>;
+					}
+				}
+				ConnectionVariant::Wakeup(_w) =&gt; {}
+			}
+		}
+
+		close_impl(reader)<span class="question-mark">?</span>;
+		close_impl(writer)<span class="question-mark">?</span>;
+
 		<span class="prelude-val">Ok</span>(())
 	}
 
@@ -2851,14 +2981,33 @@
 		}
 
 		<span class="kw">if </span>now.saturating_sub(ctx.last_stats_update) &gt; config.stats_update_frequency_millis {
-			<span class="self">Self</span>::update_stats(ctx)<span class="question-mark">?</span>;
+			<span class="self">Self</span>::update_stats(ctx, config)<span class="question-mark">?</span>;
 			ctx.last_stats_update = now;
 		}
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">fn </span>update_stats(ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="macro">debug!</span>(<span class="string">"update stats"</span>)<span class="question-mark">?</span>;
+	<span class="kw">fn </span>update_stats(
+		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
+		config: <span class="kw-2">&amp;</span>EventHandlerConfig,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		{
+			<span class="kw">let </span><span class="kw-2">mut </span>global_stats = ctx.global_stats.wlock()<span class="question-mark">?</span>;
+			<span class="kw">let </span>guard = global_stats.guard()<span class="question-mark">?</span>;
+			(<span class="kw-2">**</span>guard).stats.incr_stats(<span class="kw-2">&amp;</span>ctx.thread_stats);
+			(<span class="kw-2">**</span>guard).update_counter += <span class="number">1</span>;
+			<span class="kw">if </span>(<span class="kw-2">**</span>guard).update_counter &gt;= config.threads {
+				<span class="kw">match </span><span class="kw-2">&amp;</span>(<span class="kw-2">**</span>guard).tx {
+					<span class="prelude-val">Some</span>(tx) =&gt; {
+						tx.send(())<span class="question-mark">?</span>;
+					}
+					<span class="prelude-val">None </span>=&gt; {}
+				}
+
+				(<span class="kw-2">**</span>guard).update_counter = <span class="number">0</span>;
+			}
+		}
+
 		ctx.thread_stats.reset();
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -2876,10 +3025,10 @@
 
 		<span class="kw">let </span><span class="kw-2">mut </span>state = state.wlock()<span class="question-mark">?</span>;
 		<span class="kw">let </span>guard = state.guard()<span class="question-mark">?</span>;
-
+		<span class="macro">debug!</span>(<span class="string">"guard.stop={}"</span>, (<span class="kw-2">**</span>guard).stop)<span class="question-mark">?</span>;
 		<span class="kw">if </span>(<span class="kw-2">**</span>guard).stop {
 			<span class="macro">debug!</span>(<span class="string">"stopping thread"</span>)<span class="question-mark">?</span>;
-			<span class="self">Self</span>::close_handles(ctx)<span class="question-mark">?</span>;
+			<span class="self">Self</span>::close_handles(ctx, <span class="kw-2">&amp;</span>(<span class="kw-2">**</span>guard).nconnections)<span class="question-mark">?</span>;
 			<span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
 		} <span class="kw">else </span>{
 			<span class="self">Self</span>::process_housekeeper(ctx, callbacks, user_context, config)<span class="question-mark">?</span>;
@@ -2914,6 +3063,7 @@
 						(conn.handle(), conn.id())
 					}
 					ConnectionVariant::Connection(conn) =&gt; {
+						ctx.thread_stats.accepts += <span class="number">1</span>;
 						<span class="self">Self</span>::call_on_accept(user_context, conn, <span class="kw-2">&amp;mut </span>callbacks.on_accept)<span class="question-mark">?</span>;
 						(conn.handle(), conn.id())
 					}
@@ -2973,9 +3123,8 @@
 			<span class="prelude-val">Some</span>(conn) =&gt; <span class="kw">match </span>conn {
 				ConnectionVariant::ServerConnection(_conn) =&gt; {}
 				ConnectionVariant::ClientConnection(conn) =&gt; {
-					<span class="kw">let </span><span class="kw-2">mut </span>conn = conn.as_connection();
 					<span class="kw">let </span>handle = conn.handle();
-					<span class="kw">let </span>(close, trigger_on_read, pending) = <span class="self">Self</span>::write_conn(<span class="kw-2">&amp;mut </span>conn)<span class="question-mark">?</span>;
+					<span class="kw">let </span>(close, trigger_on_read, pending) = <span class="self">Self</span>::write_conn(conn)<span class="question-mark">?</span>;
 					<span class="kw">if </span>close {
 						close_list.push(conn.handle());
 					}
@@ -3015,9 +3164,7 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">fn </span>write_conn(
-		conn: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Connection + <span class="lifetime">'_ </span>+ Send + Sync&gt;,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;(bool, bool, bool), Error&gt; {
+	<span class="kw">fn </span>write_conn(conn: <span class="kw-2">&amp;mut </span>Connection) -&gt; <span class="prelude-ty">Result</span>&lt;(bool, bool, bool), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>write_handle = conn.write_handle()<span class="question-mark">?</span>;
 		<span class="kw">let </span>ret1 = write_handle.is_set(WRITE_STATE_FLAG_CLOSE)<span class="question-mark">?</span>;
 		<span class="kw">let </span>ret2 = write_handle.is_set(WRITE_STATE_FLAG_TRIGGER_ON_READ)<span class="question-mark">?</span>;
@@ -3052,8 +3199,7 @@
 							<span class="self">Self</span>::call_on_read(user_context, conn, <span class="kw-2">&amp;mut </span>callbacks.on_read)<span class="question-mark">?
 						</span>}
 						ConnectionVariant::ClientConnection(conn) =&gt; {
-							<span class="kw">let </span><span class="kw-2">mut </span>conn = conn.as_connection();
-							<span class="self">Self</span>::call_on_read(user_context, <span class="kw-2">&amp;mut </span>conn, <span class="kw-2">&amp;mut </span>callbacks.on_read)<span class="question-mark">?
+							<span class="self">Self</span>::call_on_read(user_context, conn, <span class="kw-2">&amp;mut </span>callbacks.on_read)<span class="question-mark">?
 						</span>}
 						<span class="kw">_ </span>=&gt; <span class="macro">warn!</span>(<span class="string">"unexpected Conection variant for trigger_on_read"</span>)<span class="question-mark">?</span>,
 					},
@@ -3075,27 +3221,25 @@
 				<span class="kw">break</span>;
 			}
 			<span class="macro">debug!</span>(<span class="string">"proc event = {:?}"</span>, ctx.ret_events[ctx.ret_event_itt])<span class="question-mark">?</span>;
+			<span class="kw">let </span>handle = ctx.ret_events[ctx.ret_event_itt].handle;
+			<span class="kw">let </span><span class="kw-2">mut </span>need_read_update = <span class="bool-val">false</span>;
+			<span class="kw">let </span><span class="kw-2">mut </span>need_write_update = <span class="bool-val">false</span>;
 			<span class="kw">if </span>ctx.ret_events[ctx.ret_event_itt].etype == EventType::Read
 				|| ctx.ret_events[ctx.ret_event_itt].etype == EventType::ReadWrite
 			{
-				<span class="self">Self</span>::process_read_event(
-					config,
-					ctx,
-					callbacks,
-					ctx.ret_events[ctx.ret_event_itt].handle,
-					state,
-					user_context,
-				)<span class="question-mark">?</span>;
+				need_read_update =
+					<span class="self">Self</span>::process_read_event(config, ctx, callbacks, handle, state, user_context)<span class="question-mark">?</span>;
 			}
 			<span class="kw">if </span>ctx.ret_events[ctx.ret_event_itt].etype == EventType::Write
 				|| ctx.ret_events[ctx.ret_event_itt].etype == EventType::ReadWrite
 			{
-				<span class="self">Self</span>::process_write_event(
-					config,
-					ctx,
-					callbacks,
-					ctx.ret_events[ctx.ret_event_itt].handle,
-				)<span class="question-mark">?</span>;
+				need_write_update = <span class="self">Self</span>::process_write_event(config, ctx, callbacks, handle)<span class="question-mark">?</span>;
+			}
+
+			<span class="kw">if </span>need_write_update {
+				update_ctx(ctx, handle, EventTypeIn::Write)<span class="question-mark">?</span>;
+			} <span class="kw">else if </span>need_read_update {
+				update_ctx(ctx, handle, EventTypeIn::Read)<span class="question-mark">?</span>;
 			}
 			ctx.ret_event_itt += <span class="number">1</span>;
 		}
@@ -3110,34 +3254,43 @@
 		handle: Handle,
 		state: <span class="kw-2">&amp;mut </span>Array&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;EventHandlerState&gt;&gt;&gt;,
 		user_context: <span class="kw-2">&amp;mut </span>UserContextImpl,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>ret = <span class="bool-val">false</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>accepted = <span class="macro">vec!</span>[];
 		<span class="kw">let </span><span class="kw-2">mut </span>close = <span class="bool-val">false</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>read_count = <span class="number">0</span>;
 		<span class="macro">debug!</span>(<span class="string">"process read event= {}"</span>, handle)<span class="question-mark">?</span>;
 		<span class="kw">match </span>ctx.handle_hash.get(<span class="kw-2">&amp;</span>handle) {
 			<span class="prelude-val">Some</span>(id) =&gt; <span class="kw">match </span>ctx.id_hash.get_mut(<span class="kw-2">&amp;</span>id) {
 				<span class="prelude-val">Some</span>(conn) =&gt; <span class="kw">match </span>conn {
 					ConnectionVariant::ServerConnection(conn) =&gt; {
 						<span class="self">Self</span>::process_accept(conn, <span class="kw-2">&amp;mut </span>accepted)<span class="question-mark">?</span>;
+						ret = <span class="bool-val">true</span>;
 					}
 					ConnectionVariant::ClientConnection(conn) =&gt; {
-						close = <span class="self">Self</span>::process_read(
-							<span class="kw-2">&amp;mut </span>conn.as_connection(),
-							config,
-							callbacks,
-							user_context,
-						)<span class="question-mark">?</span>;
+						(close, read_count) =
+							<span class="self">Self</span>::process_read(conn, config, callbacks, user_context)<span class="question-mark">?</span>;
+						ret = !close;
 					}
 					ConnectionVariant::Connection(conn) =&gt; {
-						close = <span class="self">Self</span>::process_read(conn, config, callbacks, user_context)<span class="question-mark">?</span>;
+						(close, read_count) =
+							<span class="self">Self</span>::process_read(conn, config, callbacks, user_context)<span class="question-mark">?</span>;
+						ret = !close;
 					}
 					ConnectionVariant::Wakeup(_wakeup) =&gt; {
 						<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">1000</span>];
 						<span class="kw">loop </span>{
-							<span class="kw">let </span>rlen = read_impl(handle, <span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+							<span class="kw">let </span>rlen = <span class="kw">match </span>read_impl(handle, <span class="kw-2">&amp;mut </span>buf) {
+								<span class="prelude-val">Ok</span>(rlen) =&gt; rlen,
+								<span class="prelude-val">Err</span>(e) =&gt; {
+									<span class="macro">warn!</span>(<span class="string">"wakeup read_impl err: {}"</span>, e)<span class="question-mark">?</span>;
+									<span class="prelude-val">None
+								</span>}
+							};
 							<span class="macro">debug!</span>(<span class="string">"wakeup read rlen = {:?}"</span>, rlen)<span class="question-mark">?</span>;
 							<span class="macro">cbreak!</span>(rlen.is_none());
 						}
+						ret = <span class="bool-val">true</span>;
 					}
 				},
 				<span class="prelude-val">None </span>=&gt; {
@@ -3153,8 +3306,10 @@
 			<span class="macro">debug!</span>(<span class="string">"closing handle {}"</span>, handle)<span class="question-mark">?</span>;
 			<span class="self">Self</span>::process_close(handle, ctx, callbacks, user_context)<span class="question-mark">?</span>;
 		}
+		ctx.thread_stats.reads += read_count;
 
-		<span class="self">Self</span>::process_accepted_connections(accepted, config, state, <span class="kw-2">&amp;mut </span>ctx.wakeups)
+		<span class="self">Self</span>::process_accepted_connections(accepted, config, state, <span class="kw-2">&amp;mut </span>ctx.wakeups)<span class="question-mark">?</span>;
+		<span class="prelude-val">Ok</span>(ret)
 	}
 
 	<span class="kw">fn </span>process_accepted_connections(
@@ -3167,11 +3322,12 @@
 		<span class="kw">for </span>accept <span class="kw">in </span>accepted {
 			<span class="kw">let </span>accept_usize: usize = <span class="macro">try_into!</span>(accept)<span class="question-mark">?</span>;
 			<span class="kw">let </span>tid = accept_usize % config.threads;
-			<span class="kw">let </span>connection: Box&lt;<span class="kw">dyn </span>Connection + Send + Sync&gt; = Box::new(ConnectionImpl::new(
+			<span class="kw">let </span>connection = Connection::new(
 				accept,
 				<span class="prelude-val">Some</span>(wakeups[tid].clone()),
 				<span class="prelude-val">Some</span>(state[tid].clone()),
-			)<span class="question-mark">?</span>);
+				ConnectionType::Connection,
+			)<span class="question-mark">?</span>;
 
 			{
 				<span class="kw">let </span><span class="kw-2">mut </span>state = state[tid].wlock()<span class="question-mark">?</span>;
@@ -3187,15 +3343,17 @@
 	}
 
 	<span class="kw">fn </span>process_read(
-		conn: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Connection + <span class="lifetime">'_ </span>+ Send + Sync&gt;,
+		conn: <span class="kw-2">&amp;mut </span>Connection,
 		config: <span class="kw-2">&amp;</span>EventHandlerConfig,
 		callbacks: <span class="kw-2">&amp;mut </span>EventHandlerCallbacks&lt;OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic&gt;,
 		user_context: <span class="kw-2">&amp;mut </span>UserContextImpl,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
+	) -&gt; <span class="prelude-ty">Result</span>&lt;(bool, usize), Error&gt; {
 		<span class="macro">debug!</span>(<span class="string">"in process_read"</span>)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>close = <span class="bool-val">false</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>read_count = <span class="number">0</span>;
 		<span class="kw">let </span>handle = conn.handle();
 		<span class="comment">// loop through and read as many slabs as we can
+
 		</span><span class="kw">loop </span>{
 			<span class="kw">let </span>last_slab = conn.get_last_slab();
 			<span class="kw">let </span>slab_offset = conn.get_slab_offset();
@@ -3254,15 +3412,24 @@
 				user_context.read_slabs.get_mut(last_slab)<span class="question-mark">?
 			</span>};
 			<span class="kw">let </span>slab_offset = conn.get_slab_offset();
-			<span class="kw">let </span>rlen = read_impl(
+			<span class="kw">let </span>rlen = <span class="kw">match </span>read_impl(
 				handle,
 				<span class="kw-2">&amp;mut </span>slab.get_mut()[slab_offset..read_slab_next_offset],
-			)<span class="question-mark">?</span>;
+			) {
+				<span class="prelude-val">Ok</span>(rlen) =&gt; rlen,
+				<span class="prelude-val">Err</span>(_e) =&gt; {
+					<span class="comment">// read error. Close the connection
+					// we don't log this because it pollutes the logs
+					</span>close = <span class="bool-val">true</span>;
+					<span class="kw">break</span>;
+				}
+			};
 
 			<span class="kw">match </span>rlen {
 				<span class="prelude-val">Some</span>(rlen) =&gt; {
 					<span class="kw">if </span>rlen &gt; <span class="number">0 </span>{
 						conn.set_slab_offset(slab_offset + rlen);
+						read_count += <span class="number">1</span>;
 					}
 
 					<span class="macro">debug!</span>(
@@ -3285,10 +3452,11 @@
 				}
 			}
 
+			<span class="macro">debug!</span>(<span class="string">"call onread"</span>)<span class="question-mark">?</span>;
 			<span class="self">Self</span>::call_on_read(user_context, conn, <span class="kw-2">&amp;mut </span>callbacks.on_read)<span class="question-mark">?</span>;
 		}
 
-		<span class="prelude-val">Ok</span>(close)
+		<span class="prelude-val">Ok</span>((close, read_count))
 	}
 
 	<span class="kw">fn </span>call_on_housekeeper(
@@ -3313,7 +3481,7 @@
 
 	<span class="kw">fn </span>call_on_read(
 		user_context: <span class="kw-2">&amp;mut </span>UserContextImpl,
-		conn: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Connection + <span class="lifetime">'_ </span>+ Send + Sync&gt;,
+		conn: <span class="kw-2">&amp;mut </span>Connection,
 		callback: <span class="kw-2">&amp;mut </span><span class="prelude-ty">Option</span>&lt;Pin&lt;Box&lt;OnRead&gt;&gt;&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		user_context.slab_cur = conn.get_first_slab();
@@ -3334,7 +3502,7 @@
 
 	<span class="kw">fn </span>call_on_accept(
 		user_context: <span class="kw-2">&amp;mut </span>UserContextImpl,
-		conn: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Connection + <span class="lifetime">'_ </span>+ Send + Sync&gt;,
+		conn: <span class="kw-2">&amp;mut </span>Connection,
 		callback: <span class="kw-2">&amp;mut </span><span class="prelude-ty">Option</span>&lt;Pin&lt;Box&lt;OnAccept&gt;&gt;&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		user_context.slab_cur = usize::MAX;
@@ -3372,9 +3540,8 @@
 							}
 						}
 						ConnectionVariant::ClientConnection(conn) =&gt; {
-							<span class="kw">let </span><span class="kw-2">mut </span>conn = conn.as_connection();
 							<span class="kw">let </span><span class="kw-2">mut </span>user_context: Box&lt;<span class="kw">dyn </span>UserContext&gt; = Box::new(user_context);
-							<span class="kw">match </span>callback(<span class="kw-2">&amp;mut </span>conn, <span class="kw-2">&amp;mut </span>user_context) {
+							<span class="kw">match </span>callback(conn, <span class="kw-2">&amp;mut </span>user_context) {
 								<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
 								<span class="prelude-val">Err</span>(e) =&gt; <span class="macro">warn!</span>(<span class="string">"on_close callback generated error: {}"</span>, e)<span class="question-mark">?</span>,
 							}
@@ -3407,6 +3574,7 @@
 		<span class="kw-2">mut </span>user_context: <span class="kw-2">&amp;mut </span>UserContextImpl,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="macro">debug!</span>(<span class="string">"Calling close"</span>)<span class="question-mark">?</span>;
+		ctx.thread_stats.closes += <span class="number">1</span>;
 		<span class="self">Self</span>::call_on_close(user_context, handle, <span class="kw-2">&amp;mut </span>callbacks.on_close, ctx)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>id = ctx.handle_hash.remove(<span class="kw-2">&amp;</span>handle).unwrap_or(u128::MAX);
@@ -3417,7 +3585,6 @@
 					user_context.clear_through(conn.get_last_slab(), <span class="kw-2">&amp;mut </span>conn)<span class="question-mark">?</span>;
 				}
 				ConnectionVariant::ClientConnection(<span class="kw-2">mut </span>conn) =&gt; {
-					<span class="kw">let </span><span class="kw-2">mut </span>conn = conn.as_connection();
 					user_context.clear_through(conn.get_last_slab(), <span class="kw-2">&amp;mut </span>conn)<span class="question-mark">?</span>;
 				}
 				ConnectionVariant::ServerConnection(_conn) =&gt; {
@@ -3440,10 +3607,7 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">fn </span>process_accept(
-		conn: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>ServerConnection + Send + Sync&gt;,
-		accepted: <span class="kw-2">&amp;mut </span>Vec&lt;Handle&gt;,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">fn </span>process_accept(conn: <span class="kw-2">&amp;</span>Connection, accepted: <span class="kw-2">&amp;mut </span>Vec&lt;Handle&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>handle = conn.handle();
 		<span class="kw">let </span>id = conn.id();
 		<span class="macro">debug!</span>(<span class="string">"process read event on handle={},id={}"</span>, handle, id)<span class="question-mark">?</span>;
@@ -3467,17 +3631,17 @@
 		ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
 		_callbacks: <span class="kw-2">&amp;mut </span>EventHandlerCallbacks&lt;OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic&gt;,
 		handle: Handle,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>close = <span class="bool-val">false</span>;
+		<span class="kw">let </span><span class="kw-2">mut </span>write_count = <span class="number">0</span>;
 		<span class="kw">match </span>ctx.handle_hash.get(<span class="kw-2">&amp;</span>handle) {
 			<span class="prelude-val">Some</span>(id) =&gt; <span class="kw">match </span>ctx.id_hash.get_mut(id) {
 				<span class="prelude-val">Some</span>(conn) =&gt; <span class="kw">match </span>conn {
 					ConnectionVariant::Connection(conn) =&gt; {
-						close = <span class="self">Self</span>::write_loop(conn)<span class="question-mark">?</span>;
+						(close, write_count) = <span class="self">Self</span>::write_loop(conn)<span class="question-mark">?</span>;
 					}
 					ConnectionVariant::ClientConnection(conn) =&gt; {
-						<span class="kw">let </span><span class="kw-2">mut </span>conn = conn.as_connection();
-						close = <span class="self">Self</span>::write_loop(<span class="kw-2">&amp;mut </span>conn)<span class="question-mark">?</span>;
+						(close, write_count) = <span class="self">Self</span>::write_loop(conn)<span class="question-mark">?</span>;
 					}
 					<span class="kw">_ </span>=&gt; <span class="macro">todo!</span>(),
 				},
@@ -3490,13 +3654,19 @@
 			}
 		}
 
-		<span class="kw">if </span>close {
+		<span class="kw">let </span>ret = <span class="kw">if </span>close {
 			close_impl_ctx(handle, ctx)<span class="question-mark">?</span>;
-		}
-		<span class="prelude-val">Ok</span>(())
+			<span class="bool-val">false
+		</span>} <span class="kw">else </span>{
+			<span class="bool-val">true
+		</span>};
+
+		ctx.thread_stats.delay_writes += write_count;
+		<span class="prelude-val">Ok</span>(ret)
 	}
 
-	<span class="kw">fn </span>write_loop(conn: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Connection + <span class="lifetime">'_ </span>+ Send + Sync&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
+	<span class="kw">fn </span>write_loop(conn: <span class="kw-2">&amp;mut </span>Connection) -&gt; <span class="prelude-ty">Result</span>&lt;(bool, usize), Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>write_count = <span class="number">0</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>wh = conn.write_handle()<span class="question-mark">?</span>;
 		<span class="kw">let </span>write_state = wh.write_state()<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>write_state = write_state.wlock()<span class="question-mark">?</span>;
@@ -3509,7 +3679,15 @@
 				rem = <span class="bool-val">false</span>;
 				<span class="kw">break</span>;
 			}
-			<span class="kw">let </span>wlen = write_impl(conn.handle(), <span class="kw-2">&amp;</span>(<span class="kw-2">**</span>guard).write_buffer)<span class="question-mark">?</span>;
+			<span class="kw">let </span>wlen = <span class="kw">match </span>write_impl(conn.handle(), <span class="kw-2">&amp;</span>(<span class="kw-2">**</span>guard).write_buffer) {
+				<span class="prelude-val">Ok</span>(wlen) =&gt; wlen,
+				<span class="prelude-val">Err</span>(_e) =&gt; {
+					<span class="comment">// write i/o error. Don't log these because they would pollute
+					// the logs
+					</span>close = <span class="bool-val">true</span>;
+					<span class="kw">break</span>;
+				}
+			};
 			<span class="kw">if </span>wlen &lt; <span class="number">0 </span>{
 				<span class="kw">let </span>err = errno().<span class="number">0</span>;
 				<span class="kw">if </span>err != EAGAIN &amp;&amp; err != ETEMPUNAVAILABLE &amp;&amp; err != WINNONBLOCKING {
@@ -3518,6 +3696,9 @@
 				<span class="kw">break</span>;
 			} <span class="kw">else </span>{
 				<span class="kw">let </span>wlen: usize = <span class="macro">try_into!</span>(wlen)<span class="question-mark">?</span>;
+				<span class="kw">if </span>wlen &gt; <span class="number">0 </span>{
+					write_count += <span class="number">1</span>;
+				}
 
 				(<span class="kw-2">**</span>guard).write_buffer.drain(<span class="number">0</span>..wlen);
 				(<span class="kw-2">**</span>guard).write_buffer.shrink_to_fit();
@@ -3528,7 +3709,7 @@
 			(<span class="kw-2">**</span>guard).unset_flag(WRITE_STATE_FLAG_PENDING);
 		}
 
-		<span class="prelude-val">Ok</span>(close)
+		<span class="prelude-val">Ok</span>((close, write_count))
 	}
 
 	<span class="kw">fn </span>stop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
@@ -3566,7 +3747,11 @@
 }
 
 <span class="kw">impl </span>EventHandlerContext {
-	<span class="kw">fn </span>new(wakeups: Array&lt;Wakeup&gt;, tid: usize) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
+	<span class="kw">fn </span>new(
+		wakeups: Array&lt;Wakeup&gt;,
+		tid: usize,
+		global_stats: Box&lt;<span class="kw">dyn </span>LockBox&lt;GlobalStats&gt;&gt;,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
 		<span class="kw">let </span>ret_event_count = <span class="number">0</span>;
 		<span class="kw">let </span>ret_events = [Event::empty(); MAX_RET_HANDLES];
 		<span class="kw">let </span>in_events = <span class="macro">vec!</span>[];
@@ -3576,8 +3761,6 @@
 		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
 			ret_event_count,
 			ret_events,
-			<span class="attr">#[cfg(target_os = <span class="string">"linux"</span>)]
-			</span>linux_ctx: LinuxContext::new()<span class="question-mark">?</span>,
 			in_events,
 			id_hash,
 			handle_hash,
@@ -3588,7 +3771,14 @@
 			trigger_itt: <span class="number">0</span>,
 			ret_event_itt: <span class="number">0</span>,
 			thread_stats: EvhStats::new(),
+			global_stats,
 			last_stats_update: <span class="number">0</span>,
+			<span class="attr">#[cfg(target_os = <span class="string">"linux"</span>)]
+			</span>linux_ctx: LinuxContext::new()<span class="question-mark">?</span>,
+			<span class="attr">#[cfg(target_os = <span class="string">"macos"</span>)]
+			</span>macos_ctx: MacosContext::new()<span class="question-mark">?</span>,
+			<span class="attr">#[cfg(target_os = <span class="string">"windows"</span>)]
+			</span>windows_ctx: WindowsContext::new()<span class="question-mark">?</span>,
 		})
 	}
 }
@@ -3610,6 +3800,14 @@
 		<span class="self">self</span>.reads = <span class="number">0</span>;
 		<span class="self">self</span>.delay_writes = <span class="number">0</span>;
 		<span class="self">self</span>.event_loops = <span class="number">0</span>;
+	}
+
+	<span class="kw">fn </span>incr_stats(<span class="kw-2">&amp;mut </span><span class="self">self</span>, stats: <span class="kw-2">&amp;</span>EvhStats) {
+		<span class="self">self</span>.accepts += stats.accepts;
+		<span class="self">self</span>.closes += stats.closes;
+		<span class="self">self</span>.reads += stats.reads;
+		<span class="self">self</span>.delay_writes += stats.delay_writes;
+		<span class="self">self</span>.event_loops += stats.event_loops;
 	}
 }
 </code></pre></div></section></main></body></html>
