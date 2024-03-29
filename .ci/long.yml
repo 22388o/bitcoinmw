@@ -3,3 +3,8 @@ steps:
       ./.ci/long_running_test.sh $(Build.Reason)
     displayName: Long running test
     condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))
+steps:
+  - script: |
+      ./.ci/long_running_test.sh $(Build.Reason)
+    displayName: Long running test
+    condition: and(succeeded(), eq( variables['Agent.OS'], 'Darwin' ))
