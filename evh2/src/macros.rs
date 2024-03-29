@@ -143,6 +143,8 @@
 ///         Ok(())
 ///     })?;
 ///
+///     evh.start()?;
+///
 ///     Ok(())
 /// }
 ///
@@ -272,6 +274,8 @@ macro_rules! evh {
 ///     })?;
 ///
 ///     // no other handlers are necessary
+///
+///     evh.start()?;
 ///
 ///     Ok(())
 /// }
