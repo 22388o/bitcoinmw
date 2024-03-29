@@ -978,22 +978,22 @@ mod test {
 		// end to be able to look at usage
 		let test_info = test_info!()?;
 		let mut loop_count = 0;
-		let target = 10;
+		let target = 1;
 		loop {
-			info!("create evh")?;
+			info!("create evh {}", loop_count)?;
 			let mut evh = evh_oro!(
 				Debug(false),
 				EvhTimeout(u16::MAX),
 				EvhThreads(5),
 				EvhReadSlabSize(100)
 			)?;
+
+			let (tx, rx) = test_info.sync_channel();
 			evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
 				let mut buf = [0u8; 1024];
 				let mut data: Vec<u8> = vec![];
-				info!("chunk starting")?;
 				loop {
 					let len = ctx.clone_next_chunk(connection, &mut buf)?;
-					info!("len={}", len)?;
 
 					if len == 0 {
 						break;
@@ -1002,8 +1002,8 @@ mod test {
 					data.extend(&buf[0..len]);
 				}
 
-				let dstring = from_utf8(&data)?;
-				info!("data='{}'", dstring)?;
+				let _dstring = from_utf8(&data)?;
+				tx.send(())?;
 
 				ctx.clear_all(connection)?;
 				Ok(())
@@ -1016,16 +1016,18 @@ mod test {
 			let conn2 = EvhBuilder::build_client_connection("127.0.0.1", port)?;
 			let mut wh = evh.add_client_connection(conn2)?;
 			wh.write(b"01234567890123456789")?;
+			rx.recv()?;
 
-			info!("drop evh")?;
 			loop_count += 1;
 
 			if loop_count == target {
 				break;
 			}
+			//sleep(Duration::from_millis(100));
 		}
 
-		sleep(Duration::from_millis(600));
+		info!("sleep")?;
+		//sleep(Duration::from_millis(120_000));
 		Ok(())
 	}
 }

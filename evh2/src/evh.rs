@@ -950,67 +950,76 @@ where
 			}
 		}
 
-		match Self::process_state(
+		let stop = match Self::process_state(
 			&mut state[tid],
 			&mut (**ctx_guard),
 			&mut callbacks,
 			&mut (**user_context_guard),
 			&config,
 		) {
-			Ok(_) => {}
-			Err(e) => fatal!("Process events generated an unexpected error: {}", e)?,
-		}
-
-		loop {
-			match get_events(&config, &mut (**ctx_guard)) {
-				Ok(_) => {}
-				Err(e) => fatal!("get_events generated an unexpected error: {}", e,)?,
+			Ok(stop) => stop,
+			Err(e) => {
+				fatal!("Process events generated an unexpected error: {}", e)?;
+				true
 			}
+		};
 
-			(**ctx_guard).thread_stats.event_loops += 1;
-			(**ctx_guard).in_events.clear();
-			(**ctx_guard)
-				.in_events
-				.shrink_to(EVH_DEFAULT_IN_EVENTS_SIZE);
-
-			if config.debug {
-				info!("Thread loop {}", count)?;
-			}
-
-			match Self::process_state(
-				&mut state[tid],
-				&mut (**ctx_guard),
-				&mut callbacks,
-				&mut (**user_context_guard),
-				&config,
-			) {
-				Ok(stop) => {
-					if stop {
-						break Ok(());
-					}
+		if !stop {
+			loop {
+				match get_events(&config, &mut (**ctx_guard)) {
+					Ok(_) => {}
+					Err(e) => fatal!("get_events generated an unexpected error: {}", e,)?,
 				}
-				Err(e) => fatal!("Process events generated an unexpected error: {}", e)?,
-			}
 
-			debug!("calling proc events")?;
-			// set iterator to 0 outside function in case of thread panic
-			(**ctx_guard).ret_event_itt = 0;
-			(**ctx_guard).trigger_itt = 0;
-			match Self::process_events(
-				&config,
-				&mut (**ctx_guard),
-				&mut callbacks,
-				&mut state,
-				&mut (**user_context_guard),
-			) {
-				Ok(_) => {}
-				Err(e) => fatal!("Process events generated an unexpected error: {}", e)?,
+				(**ctx_guard).thread_stats.event_loops += 1;
+				(**ctx_guard).in_events.clear();
+				(**ctx_guard)
+					.in_events
+					.shrink_to(EVH_DEFAULT_IN_EVENTS_SIZE);
+
+				if config.debug {
+					info!("Thread loop {}", count)?;
+				}
+
+				match Self::process_state(
+					&mut state[tid],
+					&mut (**ctx_guard),
+					&mut callbacks,
+					&mut (**user_context_guard),
+					&config,
+				) {
+					Ok(stop) => {
+						if stop {
+							break;
+						}
+					}
+					Err(e) => fatal!("Process events generated an unexpected error: {}", e)?,
+				}
+
+				debug!("calling proc events")?;
+				// set iterator to 0 outside function in case of thread panic
+				(**ctx_guard).ret_event_itt = 0;
+				(**ctx_guard).trigger_itt = 0;
+				match Self::process_events(
+					&config,
+					&mut (**ctx_guard),
+					&mut callbacks,
+					&mut state,
+					&mut (**user_context_guard),
+				) {
+					Ok(_) => {}
+					Err(e) => fatal!("Process events generated an unexpected error: {}", e)?,
+				}
+				count += 1;
 			}
-			count += 1;
 		}
+		Ok(())
 	}
 
-	fn close_handles(ctx: &mut EventHandlerContext) -> Result<(), Error> {
+	fn close_handles(
+		ctx: &mut EventHandlerContext,
+		nconnections: &VecDeque<ConnectionVariant>,
+	) -> Result<(), Error> {
 		debug!("in close_handles {}", ctx.tid)?;
 		let reader = ctx.wakeups[ctx.tid].reader;
 		let writer = ctx.wakeups[ctx.tid].writer;
@@ -1021,12 +1030,33 @@ where
 			}
 		}
 
-		debug!(
-			"close reader = {},writer={}",
-			ctx.wakeups[ctx.tid].reader, ctx.wakeups[ctx.tid].writer
-		)?;
+		for conn in nconnections {
+			match conn {
+				ConnectionVariant::ServerConnection(c) => {
+					let handle = c.handle();
+					if handle != reader && handle != writer {
+						close_impl(handle)?;
+					}
+				}
+				ConnectionVariant::ClientConnection(c) => {
+					let handle = c.handle();
+					if handle != reader && handle != writer {
+						close_impl(handle)?;
+					}
+				}
+				ConnectionVariant::Connection(c) => {
+					let handle = c.handle();
+					if handle != reader && handle != writer {
+						close_impl(handle)?;
+					}
+				}
+				ConnectionVariant::Wakeup(_w) => {}
+			}
+		}
+
 		close_impl(reader)?;
 		close_impl(writer)?;
+
 		Ok(())
 	}
 
@@ -1091,7 +1121,7 @@ where
 		debug!("guard.stop={}", (**guard).stop)?;
 		if (**guard).stop {
 			debug!("stopping thread")?;
-			Self::close_handles(ctx)?;
+			Self::close_handles(ctx, &(**guard).nconnections)?;
 			Ok(true)
 		} else {
 			Self::process_housekeeper(ctx, callbacks, user_context, config)?;
@@ -1343,7 +1373,13 @@ where
 					ConnectionVariant::Wakeup(_wakeup) => {
 						let mut buf = [0u8; 1000];
 						loop {
-							let rlen = read_impl(handle, &mut buf)?;
+							let rlen = match read_impl(handle, &mut buf) {
+								Ok(rlen) => rlen,
+								Err(e) => {
+									warn!("wakeup read_impl err: {}", e)?;
+									None
+								}
+							};
 							debug!("wakeup read rlen = {:?}", rlen)?;
 							cbreak!(rlen.is_none());
 						}

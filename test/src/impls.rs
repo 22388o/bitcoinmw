@@ -66,10 +66,7 @@ impl TestInfo for TestInfoImpl {
 			sleep(Duration::from_millis(60_000));
 			match tx_clone.send(()) {
 				Ok(_) => {}
-				Err(e) => println!(
-					"an error occurred while trying to send timeout (TestInfoImpl): {}",
-					e
-				),
+				Err(_e) => {}
 			}
 			Ok(())
 		});
