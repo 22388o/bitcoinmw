@@ -24,7 +24,7 @@ use crate::win::*;
 
 use crate::constants::*;
 use crate::types::{
-	ConnectionType, ConnectionVariant, Event, EventHandlerCallbacks, EventHandlerConfig,
+	ConnectionType, ConnectionVariant, DebugInfo, Event, EventHandlerCallbacks, EventHandlerConfig,
 	EventHandlerContext, EventHandlerImpl, EventHandlerState, EventIn, EventType, EventTypeIn,
 	GlobalStats, UserContextImpl, Wakeup, WriteHandle, WriteState,
 };
@@ -43,6 +43,12 @@ use std::sync::mpsc::{sync_channel, SyncSender};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 info!();
+
+impl Default for DebugInfo {
+	fn default() -> Self {
+		Self { pending: false }
+	}
+}
 
 impl Wakeup {
 	pub(crate) fn new() -> Result<Self, Error> {
@@ -211,7 +217,7 @@ impl WriteHandle {
 			if (**guard).is_set(WRITE_STATE_FLAG_CLOSE) {
 				let text = format!("write on a closed handle: {}", self.handle);
 				return Err(err!(ErrKind::IO, text));
-			} else if (**guard).is_set(WRITE_STATE_FLAG_PENDING) {
+			} else if (**guard).is_set(WRITE_STATE_FLAG_PENDING) || self.debug_info.pending {
 				0
 			} else {
 				write_impl(self.handle, data)?
@@ -292,7 +298,7 @@ impl WriteHandle {
 	fn write_state(&mut self) -> Result<&mut Box<dyn LockBox<WriteState>>, Error> {
 		Ok(&mut self.write_state)
 	}
-	fn new(connection_impl: &Connection) -> Result<Self, Error> {
+	fn new(connection_impl: &Connection, debug_info: DebugInfo) -> Result<Self, Error> {
 		let wakeup = match &connection_impl.wakeup {
 			Some(wakeup) => wakeup.clone(),
 			None => {
@@ -311,12 +317,14 @@ impl WriteHandle {
 				));
 			}
 		};
+
 		Ok(Self {
 			handle: connection_impl.handle,
 			id: connection_impl.id,
 			write_state: connection_impl.write_state.clone(),
 			wakeup,
 			state,
+			debug_info,
 		})
 	}
 	fn queue_data(&mut self, data: &[u8]) -> Result<(), Error> {
@@ -341,7 +349,7 @@ impl Connection {
 		self.id
 	}
 	pub fn write_handle(&self) -> Result<WriteHandle, Error> {
-		let wh = WriteHandle::new(self)?;
+		let wh = WriteHandle::new(self, self.debug_info.clone())?;
 		Ok(wh)
 	}
 	pub(crate) fn new(
@@ -349,6 +357,7 @@ impl Connection {
 		wakeup: Option<Wakeup>,
 		state: Option<Box<dyn LockBox<EventHandlerState>>>,
 		ctype: ConnectionType,
+		debug_info: DebugInfo,
 	) -> Result<Self, Error> {
 		Ok(Self {
 			handle,
@@ -361,6 +370,7 @@ impl Connection {
 			state,
 			tx: None,
 			ctype,
+			debug_info,
 		})
 	}
 	pub(crate) fn handle(&self) -> Handle {
@@ -515,6 +525,10 @@ where
 		self.callbacks.on_panic = Some(Box::pin(on_panic));
 		Ok(())
 	}
+	fn set_debug_info(&mut self, debug_info: DebugInfo) -> Result<(), Error> {
+		self.debug_info = debug_info;
+		Ok(())
+	}
 	fn add_server_connection(&mut self, mut connection: Connection) -> Result<(), Error> {
 		match connection.ctype {
 			ConnectionType::Server => {}
@@ -527,6 +541,7 @@ where
 		}
 		let (tx, rx) = sync_channel(1);
 		connection.set_tx(tx);
+		connection.debug_info = self.debug_info.clone();
 
 		let handle = connection.handle();
 		let tid: usize = try_into!(handle % self.config.threads as Handle)?;
@@ -566,6 +581,7 @@ where
 		}
 		let (tx, rx) = sync_channel(1);
 		connection.set_tx(tx);
+		connection.debug_info = self.debug_info.clone();
 
 		let handle = connection.handle();
 		let tid: usize = try_into!(handle % self.config.threads as Handle)?;
@@ -657,6 +673,8 @@ where
 		};
 		let stats = lock_box!(global_stats)?;
 
+		let debug_info = DebugInfo::default();
+
 		Ok(Self {
 			callbacks: EventHandlerCallbacks {
 				on_read: None,
@@ -670,6 +688,7 @@ where
 			wakeups,
 			stats,
 			stopper: None,
+			debug_info,
 		})
 	}
 
@@ -750,6 +769,7 @@ where
 
 		let user_context_arr_clone = user_context_arr.clone();
 		let ctx_arr_clone = ctx_arr.clone();
+		let debug_info_clone = self.debug_info.clone();
 
 		tp.set_on_panic(move |id, e| -> Result<(), Error> {
 			let e = e.downcast_ref::<&str>().unwrap_or(&"unknown error");
@@ -759,6 +779,7 @@ where
 			let state = state.clone();
 			let user_ctx_arr_clone = user_context_arr_clone.clone();
 			let ctx_arr = ctx_arr_clone.clone();
+			let debug_info = debug_info_clone.clone();
 
 			wlock!(executor).execute(
 				async move {
@@ -770,6 +791,7 @@ where
 						user_ctx_arr_clone,
 						try_into!(id)?,
 						true,
+						&debug_info,
 					) {
 						Ok(_) => {}
 						Err(e) => {
@@ -797,6 +819,7 @@ where
 			let state = self.state.clone();
 			let ctx_arr = ctx_arr.clone();
 			let user_context_arr = user_context_arr.clone();
+			let debug_info = self.debug_info.clone();
 			execute!(tp, try_into!(i)?, {
 				match Self::execute_thread(
 					config,
@@ -806,6 +829,7 @@ where
 					user_context_arr.clone(),
 					i,
 					false,
+					&debug_info,
 				) {
 					Ok(_) => {}
 					Err(e) => {
@@ -885,6 +909,7 @@ where
 		mut user_context_arr: Array<Box<dyn LockBox<UserContextImpl>>>,
 		tid: usize,
 		panic_recovery: bool,
+		debug_info: &DebugInfo,
 	) -> Result<(), Error> {
 		debug!("execute thread {}", tid)?;
 
@@ -944,6 +969,7 @@ where
 				&mut callbacks,
 				&mut state,
 				&mut (**user_context_guard),
+				debug_info,
 			) {
 				Ok(_) => {}
 				Err(e) => fatal!("Process events generated an unexpected error: {}", e)?,
@@ -1006,6 +1032,7 @@ where
 					&mut callbacks,
 					&mut state,
 					&mut (**user_context_guard),
+					debug_info,
 				) {
 					Ok(_) => {}
 					Err(e) => fatal!("Process events generated an unexpected error: {}", e)?,
@@ -1218,7 +1245,9 @@ where
 				ConnectionVariant::ClientConnection(conn) => {
 					let handle = conn.handle();
 					let (close, trigger_on_read, pending) = Self::write_conn(conn)?;
-					if close {
+
+					// if data is pending complete the write first
+					if close && !pending {
 						close_list.push(conn.handle());
 					}
 					if trigger_on_read {
@@ -1233,7 +1262,9 @@ where
 				ConnectionVariant::Connection(conn) => {
 					let handle = conn.handle();
 					let (close, trigger_on_read, pending) = Self::write_conn(conn)?;
-					if close {
+
+					// if data is pending complete the write first
+					if close && !pending {
 						close_list.push(conn.handle());
 					}
 					if trigger_on_read {
@@ -1274,10 +1305,10 @@ where
 		callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
 		state: &mut Array<Box<dyn LockBox<EventHandlerState>>>,
 		user_context: &mut UserContextImpl,
+		debug_info: &DebugInfo,
 	) -> Result<(), Error> {
 		// first call the trigger on reads
 		debug!("trig list = {:?}", ctx.trigger_on_read_list)?;
-		//for handle in &ctx.trigger_on_read_list {
 		let list_len = ctx.trigger_on_read_list.len();
 		loop {
 			if ctx.trigger_itt == list_len {
@@ -1320,8 +1351,15 @@ where
 			if ctx.ret_events[ctx.ret_event_itt].etype == EventType::Read
 				|| ctx.ret_events[ctx.ret_event_itt].etype == EventType::ReadWrite
 			{
-				need_read_update =
-					Self::process_read_event(config, ctx, callbacks, handle, state, user_context)?;
+				need_read_update = Self::process_read_event(
+					config,
+					ctx,
+					callbacks,
+					handle,
+					state,
+					user_context,
+					debug_info,
+				)?;
 			}
 			if ctx.ret_events[ctx.ret_event_itt].etype == EventType::Write
 				|| ctx.ret_events[ctx.ret_event_itt].etype == EventType::ReadWrite
@@ -1347,6 +1385,7 @@ where
 		handle: Handle,
 		state: &mut Array<Box<dyn LockBox<EventHandlerState>>>,
 		user_context: &mut UserContextImpl,
+		debug_info: &DebugInfo,
 	) -> Result<bool, Error> {
 		let mut ret = false;
 		let mut accepted = vec![];
@@ -1401,7 +1440,7 @@ where
 		}
 		ctx.thread_stats.reads += read_count;
 
-		Self::process_accepted_connections(accepted, config, state, &mut ctx.wakeups)?;
+		Self::process_accepted_connections(accepted, config, state, &mut ctx.wakeups, debug_info)?;
 		Ok(ret)
 	}
 
@@ -1410,6 +1449,7 @@ where
 		config: &EventHandlerConfig,
 		state: &mut Array<Box<dyn LockBox<EventHandlerState>>>,
 		wakeups: &mut Array<Wakeup>,
+		debug_info: &DebugInfo,
 	) -> Result<(), Error> {
 		debug!("accepted connections = {:?}", accepted)?;
 		for accept in accepted {
@@ -1420,6 +1460,7 @@ where
 				Some(wakeups[tid].clone()),
 				Some(state[tid].clone()),
 				ConnectionType::Connection,
+				debug_info.clone(),
 			)?;
 
 			{
@@ -1800,6 +1841,10 @@ where
 
 		if !rem {
 			(**guard).unset_flag(WRITE_STATE_FLAG_PENDING);
+
+			if (**guard).is_set(WRITE_STATE_FLAG_CLOSE) {
+				close = true;
+			}
 		}
 
 		Ok((close, write_count))
@@ -1807,8 +1852,9 @@ where
 
 	fn stop(&mut self) -> Result<(), Error> {
 		// stop thread pool and all threads
-		if self.stopper.is_some() {
-			self.stopper.as_mut().unwrap().stop()?;
+		match &mut self.stopper {
+			Some(ref mut stopper) => stopper.stop()?,
+			None => {}
 		}
 		for i in 0..self.config.threads {
 			wlock!(self.state[i]).stop = true;

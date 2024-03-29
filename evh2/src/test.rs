@@ -18,6 +18,7 @@
 #[cfg(test)]
 mod test {
 	use crate as bmw_evh2;
+	use crate::types::DebugInfo;
 	use crate::{evh, evh_oro, EvhBuilder};
 	use bmw_err::*;
 	use bmw_log::*;
@@ -922,6 +923,57 @@ mod test {
 		rx.recv()?;
 		assert!(rlock!(recv_msg_clone));
 		assert!(rlock!(recv_msg2_clone));
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_pending1() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut evh = evh_oro!(
+			Debug(false),
+			EvhTimeout(u16::MAX),
+			EvhThreads(1),
+			EvhReadSlabSize(100)
+		)?;
+
+		let debug_info = DebugInfo {
+			pending: true,
+			..Default::default()
+		};
+		evh.set_debug_info(debug_info.clone())?;
+
+		let mut recv_msg = lock_box!(false)?;
+		let recv_msg_clone = recv_msg.clone();
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			let mut wh = connection.write_handle()?;
+			wh.write(b"test")?;
+			wh.close()?;
+			assert!(wh.write(b"test").is_err());
+			assert!(wh.close().is_err());
+			wlock!(recv_msg) = true;
+			ctx.clear_all(connection)?;
+			Ok(())
+		})?;
+
+		evh.start()?;
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		let conn = EvhBuilder::build_server_connection(&addr, 100)?;
+		evh.add_server_connection(conn)?;
+
+		let mut strm = TcpStream::connect(addr)?;
+		strm.write(b"01234567890123456789")?;
+
+		let mut buf = [0u8; 100];
+		let len = strm.read(&mut buf)?;
+		assert_eq!(len, 4);
+		assert_eq!(&buf[0..4], b"test");
+
+		// closed connection
+		assert_eq!(strm.read(&mut buf)?, 0);
+		assert!(rlock!(recv_msg_clone));
 
 		Ok(())
 	}

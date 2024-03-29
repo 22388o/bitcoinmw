@@ -73,6 +73,7 @@ where
 	fn add_server_connection(&mut self, connection: Connection) -> Result<(), Error>;
 	fn add_client_connection(&mut self, connection: Connection) -> Result<WriteHandle, Error>;
 	fn wait_for_stats(&mut self) -> Result<EvhStats, Error>;
+	fn set_debug_info(&mut self, debug_info: DebugInfo) -> Result<(), Error>;
 }
 
 pub struct Connection {
@@ -86,6 +87,7 @@ pub struct Connection {
 	pub(crate) state: Option<Box<dyn LockBox<EventHandlerState>>>,
 	pub(crate) tx: Option<SyncSender<()>>,
 	pub(crate) ctype: ConnectionType,
+	pub(crate) debug_info: DebugInfo,
 }
 
 pub trait UserContext {
@@ -109,6 +111,7 @@ pub struct WriteHandle {
 	pub(crate) write_state: Box<dyn LockBox<WriteState>>,
 	pub(crate) wakeup: Wakeup,
 	pub(crate) state: Box<dyn LockBox<EventHandlerState>>,
+	pub(crate) debug_info: DebugInfo,
 }
 
 #[derive(Debug, Clone)]
@@ -118,6 +121,12 @@ pub struct EvhStats {
 	pub reads: usize,
 	pub delay_writes: usize,
 	pub event_loops: usize,
+}
+
+#[allow(dead_code)]
+#[derive(Clone)]
+pub struct DebugInfo {
+	pub(crate) pending: bool,
 }
 
 // crate local structures
@@ -203,6 +212,7 @@ where
 	pub(crate) wakeups: Array<Wakeup>,
 	pub(crate) stopper: Option<ThreadPoolStopper>,
 	pub(crate) stats: Box<dyn LockBox<GlobalStats>>,
+	pub(crate) debug_info: DebugInfo,
 }
 
 #[derive(Clone)]
