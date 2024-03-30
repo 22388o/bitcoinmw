@@ -18,13 +18,17 @@
 #[cfg(test)]
 mod test {
 	use crate as bmw_evh2;
-	use crate::types::{ConnectionType, DebugInfo, Wakeup, WriteHandle, WriteState};
-	use crate::{evh, evh_oro, Connection, EvhBuilder};
+	use crate::types::{
+		ConnectionType, ConnectionVariant, DebugInfo, EventHandlerCallbacks, EventHandlerConfig,
+		EventHandlerContext, EventHandlerImpl, EventHandlerState, EvhStats, GlobalStats,
+		UserContextImpl, Wakeup, WriteHandle, WriteState,
+	};
+	use crate::{evh, evh_oro, Connection, EvhBuilder, UserContext};
 	use bmw_err::*;
 	use bmw_log::*;
 	use bmw_test::*;
 	use bmw_util::*;
-	use std::collections::HashMap;
+	use std::collections::{HashMap, VecDeque};
 	use std::io::{Read, Write};
 	use std::net::TcpStream;
 	use std::str::from_utf8;
@@ -183,7 +187,7 @@ mod test {
 	fn test_evh_oro() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let mut evh = evh_oro!(
-			Debug(false),
+			Debug(true),
 			EvhTimeout(u16::MAX),
 			EvhThreads(1),
 			EvhReadSlabSize(100)
@@ -696,6 +700,89 @@ mod test {
 
 		info!("data={:?}", &buf[0..len_sum])?;
 		assert_eq!(&buf[0..len_sum], [49, 49, 49, 49, 50, 50, 50, 50]);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_invalid_configs() -> Result<(), Error> {
+		// timeout == 0
+		let error;
+		match evh_oro!(
+			Debug(false),
+			EvhTimeout(0),
+			EvhThreads(1),
+			EvhReadSlabSize(100),
+			EvhStatsUpdateMillis(3_000)
+		) {
+			Ok(mut evh) => {
+				evh.set_on_read(move |_, _| -> Result<(), Error> { Ok(()) })?;
+				error = false;
+			}
+			Err(_) => {
+				error = true;
+			}
+		}
+		assert!(error);
+
+		// read_slab_size < 25
+		let error;
+		match evh_oro!(
+			Debug(false),
+			EvhTimeout(1),
+			EvhThreads(1),
+			EvhReadSlabSize(10),
+			EvhStatsUpdateMillis(3_000)
+		) {
+			Ok(mut evh) => {
+				evh.set_on_read(move |_, _| -> Result<(), Error> { Ok(()) })?;
+				error = false;
+			}
+			Err(_) => {
+				error = true;
+			}
+		}
+		assert!(error);
+
+		// read_slab_count == 0
+		let error;
+		match evh_oro!(
+			Debug(false),
+			EvhTimeout(1),
+			EvhThreads(1),
+			EvhReadSlabSize(100),
+			EvhReadSlabCount(0),
+			EvhStatsUpdateMillis(3_000)
+		) {
+			Ok(mut evh) => {
+				evh.set_on_read(move |_, _| -> Result<(), Error> { Ok(()) })?;
+				error = false;
+			}
+			Err(_) => {
+				error = true;
+			}
+		}
+		assert!(error);
+
+		// housekeeping_frequency_millis == 0
+		let error;
+		match evh_oro!(
+			Debug(false),
+			EvhTimeout(1),
+			EvhThreads(1),
+			EvhReadSlabSize(100),
+			EvhHouseKeeperFrequencyMillis(0),
+			EvhStatsUpdateMillis(3_000)
+		) {
+			Ok(mut evh) => {
+				evh.set_on_read(move |_, _| -> Result<(), Error> { Ok(()) })?;
+				error = false;
+			}
+			Err(_) => {
+				error = true;
+			}
+		}
+		assert!(error);
 
 		Ok(())
 	}
@@ -1225,6 +1312,145 @@ mod test {
 	}
 
 	#[test]
+	fn test_evh_normal_fatal_error() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let threads = 1;
+
+		let mut evh = evh!(
+			EvhThreads(threads),
+			EvhTimeout(u16::MAX),
+			EvhHouseKeeperFrequencyMillis(usize::MAX)
+		)?;
+		evh.set_debug_info(DebugInfo {
+			normal_fatal_error: lock_box!(true)?,
+			..Default::default()
+		})?;
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			let mut buf = [0u8; 1024];
+			let mut data: Vec<u8> = vec![];
+			loop {
+				let len = ctx.clone_next_chunk(connection, &mut buf)?;
+
+				if len == 0 {
+					break;
+				}
+
+				data.extend(&buf[0..len]);
+			}
+
+			let dstring = from_utf8(&data)?;
+			info!("data[{}]='{}'", connection.id(), dstring,)?;
+			let mut wh = connection.write_handle()?;
+			wh.write(&data)?;
+
+			ctx.clear_all(connection)?;
+			Ok(())
+		})?;
+
+		evh.set_on_panic(move |_id, e| -> Result<(), Error> {
+			let e = e.downcast_ref::<&str>().unwrap_or(&"unknown error");
+			error!("on panic: {}", e)?;
+			Ok(())
+		})?;
+
+		evh.set_on_accept(move |_, _| -> Result<(), Error> { Ok(()) })?;
+		evh.set_on_close(move |_, _| -> Result<(), Error> { Ok(()) })?;
+		evh.set_on_housekeeper(move |_| -> Result<(), Error> { Ok(()) })?;
+
+		evh.start()?;
+
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		info!("Host on {}", addr)?;
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+
+		info!("adding connection now")?;
+		spawn(move || {
+			// this will never complete due to the fatal error that occurs in the server
+			// thread
+			let _ = evh.add_server_connection(conn);
+		});
+
+		// sleep to ensure code is exercised
+		sleep(Duration::from_millis(QA_SLEEP));
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_panic_fatal_error() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let threads = 1;
+
+		let mut evh = evh!(
+			EvhThreads(threads),
+			EvhTimeout(u16::MAX),
+			EvhHouseKeeperFrequencyMillis(usize::MAX)
+		)?;
+		evh.set_debug_info(DebugInfo {
+			panic_fatal_error: lock_box!(true)?,
+			..Default::default()
+		})?;
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			let mut buf = [0u8; 1024];
+			let mut data: Vec<u8> = vec![];
+			loop {
+				let len = ctx.clone_next_chunk(connection, &mut buf)?;
+
+				if len == 0 {
+					break;
+				}
+
+				data.extend(&buf[0..len]);
+			}
+
+			let dstring = from_utf8(&data)?;
+			info!("data[{}]='{}'", connection.id(), dstring,)?;
+			if dstring == "crash\r\n" {
+				let x: Option<u32> = None;
+				let _y = x.unwrap();
+			}
+			let mut wh = connection.write_handle()?;
+			wh.write(&data)?;
+
+			ctx.clear_all(connection)?;
+			Ok(())
+		})?;
+
+		let (tx, rx) = test_info.sync_channel();
+		evh.set_on_panic(move |_id, e| -> Result<(), Error> {
+			let e = e.downcast_ref::<&str>().unwrap_or(&"unknown error");
+			error!("on panic: {}", e)?;
+			tx.send(())?;
+			Ok(())
+		})?;
+
+		evh.set_on_accept(move |_, _| -> Result<(), Error> { Ok(()) })?;
+		evh.set_on_close(move |_, _| -> Result<(), Error> { Ok(()) })?;
+		evh.set_on_housekeeper(move |_| -> Result<(), Error> { Ok(()) })?;
+
+		evh.start()?;
+
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		info!("Host on {}", addr)?;
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+
+		info!("adding connection now")?;
+		evh.add_server_connection(conn)?;
+
+		let mut strm = TcpStream::connect(addr)?;
+		// trigger panic
+		strm.write(b"crash\r\n")?;
+		rx.recv()?;
+		sleep(Duration::from_millis(QA_SLEEP));
+
+		Ok(())
+	}
+
+	#[test]
 	fn test_invalid_write_handle() -> Result<(), Error> {
 		let connection = Connection {
 			handle: 0,
@@ -1291,6 +1517,219 @@ mod test {
 		// we should still be able to connect because stop failed.
 		assert!(TcpStream::connect(addr).is_ok());
 
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_get_events_error() -> Result<(), Error> {
+		let config = EventHandlerConfig {
+			debug: false,
+			housekeeping_frequency_millis: 100,
+			stats_update_frequency_millis: 100,
+			threads: 1,
+			timeout: 1_000,
+			read_slab_count: 1,
+			read_slab_size: 100,
+		};
+		let debug_info = DebugInfo {
+			get_events_error: lock_box!(true)?,
+			..Default::default()
+		};
+
+		let read_slabs = slab_allocator!(
+			SlabSize(config.read_slab_size),
+			SlabCount(config.read_slab_count)
+		)?;
+		let user_context = UserContextImpl {
+			read_slabs,
+			user_data: None,
+			slab_cur: usize::MAX,
+		};
+		let user_context_arr = array!(1, &lock_box!(user_context)?)?;
+		let state = array!(config.threads, &lock_box!(EventHandlerState::new()?)?)?;
+		let w = Wakeup::new()?;
+		let wakeups = array!(1, &w)?;
+
+		let global_stats = GlobalStats {
+			stats: EvhStats::new(),
+			update_counter: 0,
+			tx: None,
+		};
+		let stats = lock_box!(global_stats)?;
+
+		let sample = EventHandlerContext::new(wakeups, 0, stats)?;
+		let sample = lock_box!(sample)?;
+		let ctx_arr = array!(1, &sample)?;
+		let callbacks = EventHandlerCallbacks {
+			on_read: Some(Box::pin(
+				move |_: &mut Connection, _: &mut Box<dyn UserContext + '_>| -> Result<(), Error> {
+					Ok(())
+				},
+			)),
+			on_accept: Some(Box::pin(
+				move |_: &mut Connection, _: &mut Box<dyn UserContext + '_>| -> Result<(), Error> {
+					Ok(())
+				},
+			)),
+			on_close: Some(Box::pin(
+				move |_: &mut Connection, _: &mut Box<dyn UserContext + '_>| -> Result<(), Error> {
+					Ok(())
+				},
+			)),
+			on_panic: Some(Box::pin(
+				move |_: &mut Box<dyn UserContext + '_>, _| -> Result<(), Error> { Ok(()) },
+			)),
+			on_housekeeper: Some(Box::pin(
+				move |_: &mut Box<dyn UserContext + '_>| -> Result<(), Error> { Ok(()) },
+			)),
+		};
+
+		spawn(move || {
+			let _ = EventHandlerImpl::execute_thread(
+				config,
+				callbacks,
+				state,
+				ctx_arr,
+				user_context_arr,
+				0,
+				true,
+				&debug_info,
+			);
+		});
+
+		sleep(Duration::from_millis(QA_SLEEP));
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_close_handles() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let w = Wakeup::new()?;
+		let wakeups = array!(1, &w)?;
+
+		let global_stats = GlobalStats {
+			stats: EvhStats::new(),
+			update_counter: 0,
+			tx: None,
+		};
+		let stats = lock_box!(global_stats)?;
+		let mut ehc = EventHandlerContext::new(wakeups, 0, stats)?;
+		let mut callbacks = EventHandlerCallbacks {
+			on_read: Some(Box::pin(
+				move |_: &mut Connection, _: &mut Box<dyn UserContext + '_>| -> Result<(), Error> {
+					Ok(())
+				},
+			)),
+			on_accept: Some(Box::pin(
+				move |_: &mut Connection, _: &mut Box<dyn UserContext + '_>| -> Result<(), Error> {
+					Ok(())
+				},
+			)),
+			on_close: Some(Box::pin(
+				move |_: &mut Connection, _: &mut Box<dyn UserContext + '_>| -> Result<(), Error> {
+					Ok(())
+				},
+			)),
+			on_panic: Some(Box::pin(
+				move |_: &mut Box<dyn UserContext + '_>, _| -> Result<(), Error> { Ok(()) },
+			)),
+			on_housekeeper: Some(Box::pin(
+				move |_: &mut Box<dyn UserContext + '_>| -> Result<(), Error> { Ok(()) },
+			)),
+		};
+
+		let mut v = VecDeque::new();
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		let conn = EvhBuilder::build_server_connection(&addr, 1)?;
+		v.push_back(ConnectionVariant::ServerConnection(conn));
+		let conn = EvhBuilder::build_client_connection("127.0.0.1", port)?;
+		v.push_back(ConnectionVariant::ClientConnection(conn));
+		let conn = EvhBuilder::build_client_connection("127.0.0.1", port)?;
+		v.push_back(ConnectionVariant::Connection(conn));
+		assert!(EventHandlerImpl::close_handles(&mut ehc, &v, &mut callbacks).is_ok());
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_execute_thread_other_situations() -> Result<(), Error> {
+		let config = EventHandlerConfig {
+			debug: false,
+			housekeeping_frequency_millis: 100,
+			stats_update_frequency_millis: 100,
+			threads: 1,
+			timeout: 1_000,
+			read_slab_count: 1,
+			read_slab_size: 100,
+		};
+		let debug_info = DebugInfo {
+			internal_panic: lock_box!(true)?,
+			..Default::default()
+		};
+
+		let read_slabs = slab_allocator!(
+			SlabSize(config.read_slab_size),
+			SlabCount(config.read_slab_count)
+		)?;
+		let user_context = UserContextImpl {
+			read_slabs,
+			user_data: None,
+			slab_cur: usize::MAX,
+		};
+		let user_context_arr = array!(1, &lock_box!(user_context)?)?;
+		let state = array!(config.threads, &lock_box!(EventHandlerState::new()?)?)?;
+		let w = Wakeup::new()?;
+		let wakeups = array!(1, &w)?;
+
+		let global_stats = GlobalStats {
+			stats: EvhStats::new(),
+			update_counter: 0,
+			tx: None,
+		};
+		let stats = lock_box!(global_stats)?;
+
+		let sample = EventHandlerContext::new(wakeups, 0, stats)?;
+		let sample = lock_box!(sample)?;
+		let ctx_arr = array!(1, &sample)?;
+		let callbacks = EventHandlerCallbacks {
+			on_read: Some(Box::pin(
+				move |_: &mut Connection, _: &mut Box<dyn UserContext + '_>| -> Result<(), Error> {
+					Ok(())
+				},
+			)),
+			on_accept: Some(Box::pin(
+				move |_: &mut Connection, _: &mut Box<dyn UserContext + '_>| -> Result<(), Error> {
+					Ok(())
+				},
+			)),
+			on_close: Some(Box::pin(
+				move |_: &mut Connection, _: &mut Box<dyn UserContext + '_>| -> Result<(), Error> {
+					Ok(())
+				},
+			)),
+			on_panic: Some(Box::pin(
+				move |_: &mut Box<dyn UserContext + '_>, _| -> Result<(), Error> { Ok(()) },
+			)),
+			on_housekeeper: Some(Box::pin(
+				move |_: &mut Box<dyn UserContext + '_>| -> Result<(), Error> { Ok(()) },
+			)),
+		};
+
+		spawn(move || {
+			let _ = EventHandlerImpl::execute_thread(
+				config,
+				callbacks,
+				state,
+				ctx_arr,
+				user_context_arr,
+				0,
+				true,
+				&debug_info,
+			);
+		});
+
+		sleep(Duration::from_millis(QA_SLEEP));
 		Ok(())
 	}
 

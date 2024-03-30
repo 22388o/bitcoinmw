@@ -36,4 +36,6 @@ pub use std::thread::spawn;
 #[doc(hidden)]
 pub use std::time::Duration;
 
+pub const QA_SLEEP: u64 = 3_000;
+
 pub use crate::types::{Builder, TestInfo};

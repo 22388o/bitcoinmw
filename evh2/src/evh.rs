@@ -65,6 +65,17 @@ fn do_write_impl(handle: Handle, buf: &[u8], debug_info: &DebugInfo) -> Result<i
 	write_impl(handle, buf)
 }
 
+fn do_get_events(
+	config: &EventHandlerConfig,
+	ctx: &mut EventHandlerContext,
+	debug_info: &DebugInfo,
+) -> Result<(), Error> {
+	if debug_info.is_get_events_error() {
+		return Err(err!(ErrKind::Test, "get events err"));
+	}
+	get_events(config, ctx)
+}
+
 impl Default for DebugInfo {
 	fn default() -> Self {
 		Self {
@@ -73,6 +84,10 @@ impl Default for DebugInfo {
 			read_err: lock_box!(false).unwrap(),
 			write_handle_err: lock_box!(false).unwrap(),
 			stop_error: lock_box!(false).unwrap(),
+			panic_fatal_error: lock_box!(false).unwrap(),
+			normal_fatal_error: lock_box!(false).unwrap(),
+			internal_panic: lock_box!(false).unwrap(),
+			get_events_error: lock_box!(false).unwrap(),
 		}
 	}
 }
@@ -128,12 +143,56 @@ impl DebugInfo {
 			false
 		}
 	}
+	fn is_panic_fatal_error(&self) -> bool {
+		#[cfg(test)]
+		{
+			**self.panic_fatal_error.rlock().unwrap().guard().unwrap()
+		}
+		#[cfg(not(test))]
+		{
+			false
+		}
+	}
+	fn is_normal_fatal_error(&self) -> bool {
+		#[cfg(test)]
+		{
+			**self.normal_fatal_error.rlock().unwrap().guard().unwrap()
+		}
+		#[cfg(not(test))]
+		{
+			false
+		}
+	}
+	fn is_internal_panic(&self) -> bool {
+		#[cfg(test)]
+		{
+			**self.internal_panic.rlock().unwrap().guard().unwrap()
+		}
+		#[cfg(not(test))]
+		{
+			false
+		}
+	}
+	fn is_get_events_error(&self) -> bool {
+		#[cfg(test)]
+		{
+			**self.get_events_error.rlock().unwrap().guard().unwrap()
+		}
+		#[cfg(not(test))]
+		{
+			false
+		}
+	}
 	fn update(&mut self, debug_info: DebugInfo) -> Result<(), Error> {
 		wlock!(self.pending) = rlock!(debug_info.pending);
 		wlock!(self.write_err) = rlock!(debug_info.write_err);
 		wlock!(self.read_err) = rlock!(debug_info.read_err);
 		wlock!(self.write_handle_err) = rlock!(debug_info.write_handle_err);
 		wlock!(self.stop_error) = rlock!(debug_info.stop_error);
+		wlock!(self.panic_fatal_error) = rlock!(debug_info.panic_fatal_error);
+		wlock!(self.normal_fatal_error) = rlock!(debug_info.normal_fatal_error);
+		wlock!(self.internal_panic) = rlock!(debug_info.internal_panic);
+		wlock!(self.get_events_error) = rlock!(debug_info.get_events_error);
 		Ok(())
 	}
 }
@@ -792,7 +851,7 @@ where
 		self.stopper = Some(tp.stopper()?);
 
 		let config = self.config.clone();
-		let callbacks = self.callbacks.clone();
+		let mut callbacks = self.callbacks.clone();
 		let state = self.state.clone();
 		let wakeups = self.wakeups.clone();
 
@@ -835,13 +894,17 @@ where
 			wlock!(self.state[i]).nconnections.push_back(nv);
 		}
 
-		let user_context_arr_clone = user_context_arr.clone();
 		let ctx_arr_clone = ctx_arr.clone();
 		let debug_info_clone = self.debug_info.clone();
+		let mut user_context_arr_clone = user_context_arr.clone();
 
 		tp.set_on_panic(move |id, e| -> Result<(), Error> {
-			let e = e.downcast_ref::<&str>().unwrap_or(&"unknown error");
-			error!("on panic: [thread_id={}]: {}", id, e)?;
+			{
+				let id = try_into!(id)?;
+				let mut user_context = user_context_arr_clone[id].wlock_ignore_poison()?;
+				let guard = user_context.guard()?;
+				Self::call_on_panic(&mut callbacks.on_panic, &mut *guard, e)?;
+			}
 			let config = config.clone();
 			let callbacks = callbacks.clone();
 			let state = state.clone();
@@ -851,16 +914,15 @@ where
 
 			wlock!(executor).execute(
 				async move {
-					let r = EventHandlerImpl::execute_thread(
-						config,
-						callbacks,
-						state,
-						ctx_arr,
-						user_ctx_arr_clone,
-						try_into!(id)?,
-						true,
-						&debug_info,
-					);
+					let i = try_into!(id)?;
+					let c = config;
+					let d = callbacks;
+					let e = state;
+					let f = ctx_arr;
+					let g = user_ctx_arr_clone;
+					let h = true;
+					let x = &debug_info;
+					let r = EventHandlerImpl::execute_thread(c, d, e, f, g, i, h, x);
 
 					if r.is_err() {
 						let e = r.unwrap_err();
@@ -889,20 +951,18 @@ where
 			let user_context_arr = user_context_arr.clone();
 			let debug_info = self.debug_info.clone();
 			execute!(tp, try_into!(i)?, {
-				match Self::execute_thread(
-					config,
-					callbacks,
-					state,
-					ctx_arr.clone(),
-					user_context_arr.clone(),
-					i,
-					false,
-					&debug_info,
-				) {
-					Ok(_) => {}
-					Err(e) => {
-						fatal!("Execute thread had an unexpected error: {}", e)?;
-					}
+				let c = config;
+				let a = callbacks;
+				let s = state;
+				let r = ctx_arr.clone();
+				let u = user_context_arr.clone();
+				let f = false;
+				let d = &debug_info;
+
+				let t = Self::execute_thread(c, a, s, r, u, i, f, d);
+				if t.is_err() {
+					let e = t.unwrap_err();
+					fatal!("Execute thread had an unexpected error: {}", e)?;
 				}
 				Ok(())
 			})?;
@@ -926,17 +986,17 @@ where
 		)?;
 
 		let threads = config.get_or_usize(&CN::EvhThreads, EVH_DEFAULT_THREADS);
-		let read_slab_count =
-			config.get_or_usize(&CN::EvhReadSlabCount, EVH_DEFAULT_READ_SLAB_COUNT);
+		let evhrlc = &CN::EvhReadSlabCount;
+		let read_slab_count = config.get_or_usize(evhrlc, EVH_DEFAULT_READ_SLAB_COUNT);
 		let read_slab_size = config.get_or_usize(&CN::EvhReadSlabSize, EVH_DEFAULT_READ_SLAB_SIZE);
 		let debug = config.get_or_bool(&CN::Debug, false);
 		let timeout = config.get_or_u16(&CN::EvhTimeout, EVH_DEFAULT_TIMEOUT);
-		let housekeeping_frequency_millis = config.get_or_usize(
-			&CN::EvhHouseKeeperFrequencyMillis,
-			EVH_DEFAULT_HOUSEKEEPING_FREQUENCY_MILLIS,
-		);
-		let stats_update_frequency_millis =
-			config.get_or_usize(&CN::EvhStatsUpdateMillis, EVH_DEFAULT_STATS_UPDATE_MILLIS);
+		let evhkfm = &CN::EvhHouseKeeperFrequencyMillis;
+		let default = EVH_DEFAULT_HOUSEKEEPING_FREQUENCY_MILLIS;
+		let housekeeping_frequency_millis = config.get_or_usize(evhkfm, default);
+		let evhsum = &CN::EvhStatsUpdateMillis;
+		let default = EVH_DEFAULT_STATS_UPDATE_MILLIS;
+		let stats_update_frequency_millis = config.get_or_usize(evhsum, default);
 
 		if read_slab_count == 0 {
 			let text = "EvhReadSlabCount count must not be 0";
@@ -958,7 +1018,7 @@ where
 			return Err(err!(ErrKind::Configuration, text));
 		}
 
-		Ok(EventHandlerConfig {
+		let evhc = EventHandlerConfig {
 			threads,
 			debug,
 			timeout,
@@ -966,10 +1026,11 @@ where
 			read_slab_count,
 			housekeeping_frequency_millis,
 			stats_update_frequency_millis,
-		})
+		};
+		Ok(evhc)
 	}
 
-	fn execute_thread(
+	pub(crate) fn execute_thread(
 		config: EventHandlerConfig,
 		mut callbacks: EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
 		mut state: Array<Box<dyn LockBox<EventHandlerState>>>,
@@ -979,6 +1040,11 @@ where
 		panic_recovery: bool,
 		debug_info: &DebugInfo,
 	) -> Result<(), Error> {
+		if panic_recovery && debug_info.is_panic_fatal_error() {
+			return Err(err!(ErrKind::Test, "panic fatal err"));
+		} else if !panic_recovery && debug_info.is_normal_fatal_error() {
+			return Err(err!(ErrKind::Test, "normal fatal err"));
+		}
 		debug!("execute thread {}", tid)?;
 
 		let mut ctx = ctx_arr[tid].wlock_ignore_poison()?;
@@ -994,116 +1060,103 @@ where
 
 			let trigger_itt = (**ctx_guard).trigger_itt;
 			let trigger_count = (**ctx_guard).trigger_on_read_list.len();
-			warn!(
-				"panic recovery with ret_event_count = {}, ret_event_itt = {}, trigger_count = {}, trigger_itt = {}",
-				ret_event_count, ret_event_itt, trigger_count, trigger_itt
-			)?;
+			warn!("panic occurred, trying to recover")?;
 
-			if trigger_itt < trigger_count {
+			if trigger_itt < trigger_count && !debug_info.is_internal_panic() {
 				let handle = (**ctx_guard).trigger_on_read_list[trigger_itt];
 				debug!("handle to close (trigger_on_read) = {}", handle)?;
 
-				Self::process_close(
-					handle,
-					&mut (**ctx_guard),
-					&mut callbacks,
-					&mut (**user_context_guard),
-				)?;
+				let h = handle;
+				let g = &mut (**ctx_guard);
+				let c = &mut callbacks;
+				let u = &mut (**user_context_guard);
+				Self::process_close(h, g, c, u)?;
 
 				// skip over errant event
 				(**ctx_guard).trigger_itt += 1;
-			} else if ret_event_itt < ret_event_count {
+			} else if ret_event_itt < ret_event_count && !debug_info.is_internal_panic() {
 				// the error must have been in the on_read regular read events
 				let handle = (**ctx_guard).ret_events[(**ctx_guard).ret_event_itt].handle;
 				debug!("handle to close (regular) = {}", handle)?;
 
-				Self::process_close(
-					handle,
-					&mut (**ctx_guard),
-					&mut callbacks,
-					&mut (**user_context_guard),
-				)?;
+				let h = handle;
+				let g = &mut (**ctx_guard);
+				let c = &mut callbacks;
+				let u = &mut (**user_context_guard);
+				Self::process_close(h, g, c, u)?;
 
 				// skip over errant event
 				(**ctx_guard).ret_event_itt += 1;
 			} else {
-				// something's wrong but continue
+				// something's wrong
 				warn!("panic, but no pending events. Internal panic?")?;
 			}
 
-			match Self::process_events(
-				&config,
-				&mut (**ctx_guard),
-				&mut callbacks,
-				&mut state,
-				&mut (**user_context_guard),
-				debug_info,
-			) {
-				Ok(_) => {}
-				Err(e) => fatal!("Process events generated an unexpected error: {}", e)?,
+			let c = &config;
+			let g = &mut (**ctx_guard);
+			let ca = &mut callbacks;
+			let s = &mut state;
+			let u = &mut (**user_context_guard);
+			let r = Self::process_events(c, g, ca, s, u, debug_info);
+
+			if r.is_err() {
+				let e = r.unwrap_err();
+				fatal!("Process events generated an unexpected error: {}", e)?;
 			}
 		}
 
-		let stop = match Self::process_state(
-			&mut state[tid],
-			&mut (**ctx_guard),
-			&mut callbacks,
-			&mut (**user_context_guard),
-			&config,
-		) {
+		let s = &mut state[tid];
+		let c = &mut (**ctx_guard);
+		let ca = &mut callbacks;
+		let u = &mut (**user_context_guard);
+		let co = &config;
+
+		let proc_state_res = Self::process_state(s, c, ca, u, co, debug_info);
+		let stop = match proc_state_res {
 			Ok(stop) => stop,
 			Err(e) => {
 				fatal!("Process events generated an unexpected error: {}", e)?;
-				true
+				!debug_info.is_internal_panic()
 			}
 		};
 
 		if !stop {
 			loop {
-				match get_events(&config, &mut (**ctx_guard)) {
-					Ok(_) => {}
-					Err(e) => fatal!("get_events generated an unexpected error: {}", e,)?,
+				let r = do_get_events(&config, &mut (**ctx_guard), debug_info);
+				if r.is_err() {
+					let e = r.unwrap_err();
+					fatal!("get_events generated an unexpected error: {}", e,)?;
 				}
 
-				(**ctx_guard).thread_stats.event_loops += 1;
-				(**ctx_guard).in_events.clear();
-				(**ctx_guard)
-					.in_events
-					.shrink_to(EVH_DEFAULT_IN_EVENTS_SIZE);
+				let cg = &mut **ctx_guard;
+				cg.thread_stats.event_loops += 1;
+				cg.in_events.clear();
+				cg.in_events.shrink_to(EVH_DEFAULT_IN_EVENTS_SIZE);
 
 				if config.debug {
 					info!("Thread loop {}", count)?;
 				}
 
-				match Self::process_state(
-					&mut state[tid],
-					&mut (**ctx_guard),
-					&mut callbacks,
-					&mut (**user_context_guard),
-					&config,
-				) {
-					Ok(stop) => {
-						if stop {
-							break;
-						}
-					}
+				let s = &mut state[tid];
+				let c = &mut callbacks;
+				let u = &mut (**user_context_guard);
+				let co = &config;
+
+				let r = Self::process_state(s, cg, c, u, co, debug_info);
+				match r {
+					Ok(stop) => cbreak!(stop),
 					Err(e) => fatal!("Process events generated an unexpected error: {}", e)?,
 				}
 
 				debug!("calling proc events")?;
 				// set iterator to 0 outside function in case of thread panic
-				(**ctx_guard).ret_event_itt = 0;
-				(**ctx_guard).trigger_itt = 0;
-				match Self::process_events(
-					&config,
-					&mut (**ctx_guard),
-					&mut callbacks,
-					&mut state,
-					&mut (**user_context_guard),
-					debug_info,
-				) {
-					Ok(_) => {}
-					Err(e) => fatal!("Process events generated an unexpected error: {}", e)?,
+				cg.ret_event_itt = 0;
+				cg.trigger_itt = 0;
+				let s = &mut state;
+				let r = Self::process_events(co, cg, c, s, u, debug_info);
+				if r.is_err() {
+					let e = r.unwrap_err();
+					fatal!("Process events generated an unexpected error: {}", e)?;
 				}
 				count += 1;
 			}
@@ -1111,9 +1164,10 @@ where
 		Ok(())
 	}
 
-	fn close_handles(
+	pub(crate) fn close_handles(
 		ctx: &mut EventHandlerContext,
 		nconnections: &VecDeque<ConnectionVariant>,
+		_callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
 	) -> Result<(), Error> {
 		debug!("in close_handles {}", ctx.tid)?;
 		let reader = ctx.wakeups[ctx.tid].reader;
@@ -1185,11 +1239,9 @@ where
 			(**guard).stats.incr_stats(&ctx.thread_stats);
 			(**guard).update_counter += 1;
 			if (**guard).update_counter >= config.threads {
-				match &(**guard).tx {
-					Some(tx) => {
-						tx.send(())?;
-					}
-					None => {}
+				if (**guard).tx.is_some() {
+					let tx = &(**guard).tx.as_mut().unwrap();
+					tx.send(())?;
 				}
 
 				(**guard).update_counter = 0;
@@ -1206,7 +1258,12 @@ where
 		callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
 		user_context: &mut UserContextImpl,
 		config: &EventHandlerConfig,
+		debug_info: &DebugInfo,
 	) -> Result<bool, Error> {
+		if debug_info.is_internal_panic() {
+			return Err(err!(ErrKind::Test, "internal panic"));
+		}
+
 		debug!("in process state tid={}", ctx.tid)?;
 
 		Self::process_write_pending(ctx, callbacks, user_context, state)?;
@@ -1216,37 +1273,29 @@ where
 		debug!("guard.stop={}", (**guard).stop)?;
 		if (**guard).stop {
 			debug!("stopping thread")?;
-			Self::close_handles(ctx, &(**guard).nconnections)?;
+			Self::close_handles(ctx, &(**guard).nconnections, callbacks)?;
 			Ok(true)
 		} else {
 			Self::process_housekeeper(ctx, callbacks, user_context, config)?;
 			debug!("nconnections.size={}", (**guard).nconnections.len())?;
 			loop {
 				let next = (**guard).nconnections.pop_front();
-				if next.is_none() {
-					break;
-				}
+				cbreak!(next.is_none());
 				let mut next = next.unwrap();
 				let (handle, id) = match &mut next {
 					ConnectionVariant::ServerConnection(conn) => {
 						debug!("server in process state")?;
-						match conn.get_tx() {
-							Some(tx) => {
-								// attempt to send notification
-								let _ = tx.send(());
-							}
-							None => {}
+						let mut tx = conn.get_tx();
+						if tx.is_some() {
+							let _ = tx.as_mut().unwrap().send(());
 						}
 						(conn.handle(), conn.id())
 					}
 					ConnectionVariant::ClientConnection(conn) => {
 						debug!("client in process state")?;
-						match conn.get_tx() {
-							Some(tx) => {
-								// attempt to send notification
-								let _ = tx.send(());
-							}
-							None => {}
+						let mut tx = conn.get_tx();
+						if tx.is_some() {
+							let _ = tx.as_mut().unwrap().send(());
 						}
 						(conn.handle(), conn.id())
 					}
@@ -1281,14 +1330,9 @@ where
 			let mut state = state.wlock()?;
 			let guard = state.guard()?;
 			debug!("write_queue.len={}", (**guard).write_queue.len())?;
-			loop {
-				match (**guard).write_queue.pop_front() {
-					Some(id) => {
-						debug!("popped id = {}", id)?;
-						ids.push(id);
-					}
-					None => break,
-				}
+			while (**guard).write_queue.len() != 0 {
+				let id = (**guard).write_queue.pop_front();
+				ids.push(id.unwrap());
 			}
 		}
 
@@ -1375,6 +1419,10 @@ where
 		user_context: &mut UserContextImpl,
 		debug_info: &DebugInfo,
 	) -> Result<(), Error> {
+		if debug_info.is_internal_panic() || debug_info.is_get_events_error() {
+			return Err(err!(ErrKind::Test, "internal panic"));
+		}
+
 		// first call the trigger on reads
 		debug!("trig list = {:?}", ctx.trigger_on_read_list)?;
 		let list_len = ctx.trigger_on_read_list.len();
@@ -1684,6 +1732,24 @@ where
 		Ok(())
 	}
 
+	fn call_on_panic(
+		callback: &mut Option<Pin<Box<OnPanic>>>,
+		user_context: &mut UserContextImpl,
+		e: Box<dyn Any + Send>,
+	) -> Result<(), Error> {
+		let mut user_context: Box<dyn UserContext> = Box::new(user_context);
+		match callback {
+			Some(ref mut on_panic) => match on_panic(&mut user_context, e) {
+				Ok(_) => {}
+				Err(e) => warn!("on_panic callback generated error: {}", e)?,
+			},
+			None => {
+				warn!("no on panic handler!")?;
+			}
+		}
+		Ok(())
+	}
+
 	fn call_on_read(
 		user_context: &mut UserContextImpl,
 		conn: &mut Connection,
@@ -1963,7 +2029,7 @@ impl EventIn {
 }
 
 impl EventHandlerContext {
-	fn new(
+	pub(crate) fn new(
 		wakeups: Array<Wakeup>,
 		tid: usize,
 		global_stats: Box<dyn LockBox<GlobalStats>>,
@@ -2000,7 +2066,7 @@ impl EventHandlerContext {
 }
 
 impl EvhStats {
-	fn new() -> Self {
+	pub(crate) fn new() -> Self {
 		Self {
 			accepts: 0,
 			closes: 0,
