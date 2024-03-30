@@ -1849,7 +1849,7 @@ where
 					ConnectionVariant::ClientConnection(conn) => {
 						(close, write_count) = Self::write_loop(conn)?;
 					}
-					_ => todo!(),
+					_ => warn!("unexpected ConnectionVariant in process_write_event")?,
 				},
 				None => {
 					warn!("id hash lookup failed for id: {}, handle: {}", id, handle)?;
