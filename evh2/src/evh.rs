@@ -72,11 +72,22 @@ impl Default for DebugInfo {
 			write_err: lock_box!(false).unwrap(),
 			read_err: lock_box!(false).unwrap(),
 			write_handle_err: lock_box!(false).unwrap(),
+			stop_error: lock_box!(false).unwrap(),
 		}
 	}
 }
 
 impl DebugInfo {
+	fn is_stop_error(&self) -> bool {
+		#[cfg(test)]
+		{
+			**self.stop_error.rlock().unwrap().guard().unwrap()
+		}
+		#[cfg(not(test))]
+		{
+			false
+		}
+	}
 	fn is_write_handle_err(&self) -> bool {
 		#[cfg(test)]
 		{
@@ -122,6 +133,7 @@ impl DebugInfo {
 		wlock!(self.write_err) = rlock!(debug_info.write_err);
 		wlock!(self.read_err) = rlock!(debug_info.read_err);
 		wlock!(self.write_handle_err) = rlock!(debug_info.write_handle_err);
+		wlock!(self.stop_error) = rlock!(debug_info.stop_error);
 		Ok(())
 	}
 }
@@ -373,23 +385,19 @@ impl WriteHandle {
 	fn write_state(&mut self) -> Result<&mut Box<dyn LockBox<WriteState>>, Error> {
 		Ok(&mut self.write_state)
 	}
-	fn new(connection_impl: &Connection, debug_info: DebugInfo) -> Result<Self, Error> {
+	pub(crate) fn new(connection_impl: &Connection, debug_info: DebugInfo) -> Result<Self, Error> {
 		let wakeup = match &connection_impl.wakeup {
 			Some(wakeup) => wakeup.clone(),
 			None => {
-				return Err(err!(
-					ErrKind::IllegalState,
-					"cannot create a write handle on a connection that has no wakeup set"
-				));
+				let text = "connection has no Wakeup";
+				return Err(err!(ErrKind::IllegalState, text));
 			}
 		};
 		let state = match &connection_impl.state {
 			Some(state) => state.clone(),
 			None => {
-				return Err(err!(
-					ErrKind::IllegalState,
-					"cannot create a write handle on a connection that has no state set"
-				));
+				let text = "connection has no WriteState";
+				return Err(err!(ErrKind::IllegalState, text));
 			}
 		};
 
@@ -533,11 +541,9 @@ where
 {
 	fn drop(&mut self) {
 		let _ = debug!("drop evh");
-		match self.stop() {
-			Ok(_) => {}
-			Err(e) => {
-				let _ = error!("Error occurred while dropping: {}", e);
-			}
+		let stop_res = self.stop();
+		if stop_res.is_err() {
+			let _ = error!("Error occurred while dropping: {}", stop_res.unwrap_err());
 		}
 	}
 }
@@ -605,14 +611,9 @@ where
 		Ok(())
 	}
 	fn add_server_connection(&mut self, mut connection: Connection) -> Result<(), Error> {
-		match connection.ctype {
-			ConnectionType::Server => {}
-			_ => {
-				return Err(err!(
-					ErrKind::IllegalArgument,
-					"trying to add a non-server connection as a server!"
-				))
-			}
+		if connection.ctype != ConnectionType::Server {
+			let text = "trying to add a non-server connection as a server!";
+			return Err(err!(ErrKind::IllegalArgument, text));
 		}
 		let (tx, rx) = sync_channel(1);
 		connection.set_tx(tx);
@@ -620,18 +621,13 @@ where
 
 		let handle = connection.handle();
 		let tid: usize = try_into!(handle % self.config.threads as Handle)?;
-		debug!(
-			"adding server handle = {}, tid = {}",
-			connection.handle(),
-			tid
-		)?;
+		debug!("adding server handle = {}, tid = {}", handle, tid)?;
 
 		{
 			let mut state = self.state[tid].wlock()?;
 			let guard = state.guard()?;
-			(**guard)
-				.nconnections
-				.push_back(ConnectionVariant::ServerConnection(connection));
+			let nv = ConnectionVariant::ServerConnection(connection);
+			(**guard).nconnections.push_back(nv);
 		}
 
 		debug!("about to wakeup")?;
@@ -645,14 +641,9 @@ where
 		Ok(())
 	}
 	fn add_client_connection(&mut self, mut connection: Connection) -> Result<WriteHandle, Error> {
-		match connection.ctype {
-			ConnectionType::Client => {}
-			_ => {
-				return Err(err!(
-					ErrKind::IllegalArgument,
-					"trying to add a non-server connection as a server!"
-				))
-			}
+		if connection.ctype != ConnectionType::Client {
+			let text = "trying to add a non-server connection as a server!";
+			return Err(err!(ErrKind::IllegalArgument, text));
 		}
 		let (tx, rx) = sync_channel(1);
 		connection.set_tx(tx);
@@ -660,24 +651,19 @@ where
 
 		let handle = connection.handle();
 		let tid: usize = try_into!(handle % self.config.threads as Handle)?;
+		let id = connection.id();
 
 		connection.set_state(self.state[tid].clone())?;
 		connection.set_wakeup(self.wakeups[tid].clone())?;
 		let ret = connection.write_handle()?;
 
-		debug!(
-			"adding client handle = {}, tid = {}, id = {}",
-			connection.handle(),
-			tid,
-			connection.id(),
-		)?;
+		debug!("adding client handle={},tid={},id={}", handle, tid, id)?;
 
 		{
 			let mut state = self.state[tid].wlock()?;
 			let guard = state.guard()?;
-			(**guard)
-				.nconnections
-				.push_back(ConnectionVariant::ClientConnection(connection));
+			let nv = ConnectionVariant::ClientConnection(connection);
+			(**guard).nconnections.push_back(nv);
 		}
 
 		debug!("push client connection to tid = {}", tid)?;
@@ -749,22 +735,32 @@ where
 		let stats = lock_box!(global_stats)?;
 
 		let debug_info = DebugInfo::default();
+		let on_read = None;
+		let on_accept = None;
+		let on_close = None;
+		let on_panic = None;
+		let on_housekeeper = None;
+		let callbacks = EventHandlerCallbacks {
+			on_read,
+			on_accept,
+			on_close,
+			on_panic,
+			on_housekeeper,
+		};
 
-		Ok(Self {
-			callbacks: EventHandlerCallbacks {
-				on_read: None,
-				on_accept: None,
-				on_close: None,
-				on_panic: None,
-				on_housekeeper: None,
-			},
+		let stopper = None;
+
+		let ret = Self {
+			callbacks,
 			config,
 			state,
 			wakeups,
 			stats,
-			stopper: None,
+			stopper,
 			debug_info,
-		})
+		};
+
+		Ok(ret)
 	}
 
 	fn wait_for_stats(&mut self) -> Result<EvhStats, Error> {
@@ -809,14 +805,12 @@ where
 			user_data: None,
 			slab_cur: usize::MAX,
 		};
-		let mut ctx_arr = array!(
-			config.threads,
-			&lock_box!(EventHandlerContext::new(
-				wakeups.clone(),
-				0,
-				self.stats.clone()
-			)?)?
-		)?;
+
+		let wakeups_cl = wakeups.clone();
+		let stats_cl = self.stats.clone();
+		let sample = EventHandlerContext::new(wakeups_cl, 0, stats_cl)?;
+		let sample = lock_box!(sample)?;
+		let mut ctx_arr = array!(config.threads, &sample)?;
 		let mut user_context_arr = array!(config.threads, &lock_box!(user_context)?)?;
 
 		for i in 0..config.threads {
@@ -837,9 +831,8 @@ where
 			};
 			user_context_arr[i] = lock_box!(user_context)?;
 
-			wlock!(self.state[i])
-				.nconnections
-				.push_back(ConnectionVariant::Wakeup(wakeups[i].clone()));
+			let nv = ConnectionVariant::Wakeup(wakeups[i].clone());
+			wlock!(self.state[i]).nconnections.push_back(nv);
 		}
 
 		let user_context_arr_clone = user_context_arr.clone();
@@ -858,7 +851,7 @@ where
 
 			wlock!(executor).execute(
 				async move {
-					match EventHandlerImpl::execute_thread(
+					let r = EventHandlerImpl::execute_thread(
 						config,
 						callbacks,
 						state,
@@ -867,11 +860,11 @@ where
 						try_into!(id)?,
 						true,
 						&debug_info,
-					) {
-						Ok(_) => {}
-						Err(e) => {
-							fatal!("Execute thread had an unexpected error: {}", e)?;
-						}
+					);
+
+					if r.is_err() {
+						let e = r.unwrap_err();
+						fatal!("Execute thread had an unexpected error: {}", e)?;
 					}
 					Ok(())
 				},
@@ -1931,6 +1924,11 @@ where
 	}
 
 	fn stop(&mut self) -> Result<(), Error> {
+		if self.debug_info.is_stop_error() {
+			let text = "simulated stop error";
+			return Err(err!(ErrKind::Test, text));
+		}
+
 		// stop thread pool and all threads
 		match &mut self.stopper {
 			Some(ref mut stopper) => stopper.stop()?,

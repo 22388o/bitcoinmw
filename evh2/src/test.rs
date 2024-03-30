@@ -18,8 +18,8 @@
 #[cfg(test)]
 mod test {
 	use crate as bmw_evh2;
-	use crate::types::DebugInfo;
-	use crate::{evh, evh_oro, EvhBuilder};
+	use crate::types::{ConnectionType, DebugInfo, Wakeup, WriteHandle, WriteState};
+	use crate::{evh, evh_oro, Connection, EvhBuilder};
 	use bmw_err::*;
 	use bmw_log::*;
 	use bmw_test::*;
@@ -152,6 +152,34 @@ mod test {
 	}
 
 	#[test]
+	fn test_evh_wrong_add() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+
+		let mut evh = evh_oro!(
+			Debug(false),
+			EvhTimeout(100),
+			EvhThreads(1),
+			EvhReadSlabSize(100),
+			EvhStatsUpdateMillis(5000)
+		)?;
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			ctx.clear_all(connection)?;
+			Ok(())
+		})?;
+		evh.start()?;
+
+		// show adding a server as a client and vice-versa is an error
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+		assert!(evh.add_client_connection(conn).is_err());
+		let conn2 = EvhBuilder::build_client_connection("127.0.0.1", port)?;
+		assert!(evh.add_server_connection(conn2).is_err());
+		Ok(())
+	}
+
+	#[test]
 	fn test_evh_oro() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let mut evh = evh_oro!(
@@ -208,6 +236,9 @@ mod test {
 	#[test]
 	fn test_evh_stop() -> Result<(), Error> {
 		let test_info = test_info!()?;
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+
 		let mut strm;
 		{
 			let mut evh = evh_oro!(EvhThreads(2), EvhTimeout(u16::MAX))?;
@@ -231,13 +262,11 @@ mod test {
 				Ok(())
 			})?;
 			evh.start()?;
-			let port = test_info.port();
-			let addr = format!("127.0.0.1:{}", port);
 			let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
 			info!("conn.handle = {}", conn.handle())?;
 			evh.add_server_connection(conn)?;
 
-			strm = TcpStream::connect(addr)?;
+			strm = TcpStream::connect(addr.clone())?;
 			strm.write(b"test")?;
 			let mut buf = [0u8; 100];
 			let res = strm.read(&mut buf)?;
@@ -247,6 +276,7 @@ mod test {
 		let mut buf = [0u8; 100];
 		let res = strm.read(&mut buf)?;
 		assert!(res == 0); // closed
+
 		Ok(())
 	}
 
@@ -670,7 +700,7 @@ mod test {
 		Ok(())
 	}
 
-	//#[test]
+	#[test]
 	fn test_evh_stats() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let mut evh = evh_oro!(
@@ -1166,6 +1196,7 @@ mod test {
 			wh.write(b"test")?;
 			wh.close()?;
 			assert!(wh.write(b"test").is_err());
+			assert!(wh.trigger_on_read().is_err());
 			assert!(wh.close().is_err());
 			wlock!(recv_msg) = true;
 			ctx.clear_all(connection)?;
@@ -1189,6 +1220,76 @@ mod test {
 		// closed connection
 		assert_eq!(strm.read(&mut buf)?, 0);
 		assert!(rlock!(recv_msg_clone));
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_invalid_write_handle() -> Result<(), Error> {
+		let connection = Connection {
+			handle: 0,
+			id: 0,
+			slab_offset: 0,
+			last_slab: 0,
+			first_slab: 0,
+			write_state: lock_box!(WriteState {
+				flags: 0,
+				write_buffer: vec![]
+			})?,
+			wakeup: None,
+			state: None,
+			tx: None,
+			ctype: ConnectionType::Connection,
+			debug_info: DebugInfo::default(),
+		};
+		assert!(WriteHandle::new(&connection, DebugInfo::default()).is_err());
+
+		let connection = Connection {
+			handle: 0,
+			id: 0,
+			slab_offset: 0,
+			last_slab: 0,
+			first_slab: 0,
+			write_state: lock_box!(WriteState {
+				flags: 0,
+				write_buffer: vec![]
+			})?,
+			wakeup: Some(Wakeup::new()?),
+			state: None,
+			tx: None,
+			ctype: ConnectionType::Connection,
+			debug_info: DebugInfo::default(),
+		};
+		assert!(WriteHandle::new(&connection, DebugInfo::default()).is_err());
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_stop_error() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		{
+			let mut evh = evh_oro!(
+				Debug(false),
+				EvhTimeout(u16::MAX),
+				EvhThreads(5),
+				EvhReadSlabSize(100)
+			)?;
+			evh.set_on_read(move |_connection, _ctx| -> Result<(), Error> { Ok(()) })?;
+			evh.set_debug_info(DebugInfo {
+				stop_error: lock_box!(true).unwrap(),
+				..Default::default()
+			})?;
+
+			evh.start()?;
+
+			let conn = EvhBuilder::build_server_connection(&addr, 100)?;
+			evh.add_server_connection(conn)?;
+		}
+
+		// we should still be able to connect because stop failed.
+		assert!(TcpStream::connect(addr).is_ok());
 
 		Ok(())
 	}

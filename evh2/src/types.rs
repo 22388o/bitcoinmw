@@ -130,6 +130,7 @@ pub struct DebugInfo {
 	pub(crate) write_err: Box<dyn LockBox<bool>>,
 	pub(crate) read_err: Box<dyn LockBox<bool>>,
 	pub(crate) write_handle_err: Box<dyn LockBox<bool>>,
+	pub(crate) stop_error: Box<dyn LockBox<bool>>,
 }
 
 // crate local structures
@@ -314,6 +315,7 @@ pub(crate) enum ConnectionVariant {
 	Wakeup(Wakeup),
 }
 
+#[derive(PartialEq)]
 pub(crate) enum ConnectionType {
 	Server,
 	Client,
