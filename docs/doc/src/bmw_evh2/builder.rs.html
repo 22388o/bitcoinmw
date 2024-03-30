@@ -85,6 +85,18 @@
 <a href="#83" id="83">83</a>
 <a href="#84" id="84">84</a>
 <a href="#85" id="85">85</a>
+<a href="#86" id="86">86</a>
+<a href="#87" id="87">87</a>
+<a href="#88" id="88">88</a>
+<a href="#89" id="89">89</a>
+<a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -109,7 +121,7 @@
 <span class="attr">#[cfg(target_os = <span class="string">"windows"</span>)]
 </span><span class="kw">use </span><span class="kw">crate</span>::win::<span class="kw-2">*</span>;
 
-<span class="kw">use </span><span class="kw">crate</span>::types::{ConnectionType, EventHandlerImpl};
+<span class="kw">use </span><span class="kw">crate</span>::types::{ConnectionType, DebugInfo, EventHandlerImpl};
 <span class="kw">use crate</span>::{Connection, EventHandler, EvhBuilder, UserContext};
 <span class="kw">use </span>bmw_conf::ConfigOption;
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
@@ -162,12 +174,24 @@
 
 	<span class="kw">pub fn </span>build_server_connection(addr: <span class="kw-2">&amp;</span>str, size: usize) -&gt; <span class="prelude-ty">Result</span>&lt;Connection, Error&gt; {
 		<span class="kw">let </span>handle = create_listener(addr, size)<span class="question-mark">?</span>;
-		<span class="prelude-val">Ok</span>(Connection::new(handle, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, ConnectionType::Server)<span class="question-mark">?</span>)
+		<span class="prelude-val">Ok</span>(Connection::new(
+			handle,
+			<span class="prelude-val">None</span>,
+			<span class="prelude-val">None</span>,
+			ConnectionType::Server,
+			DebugInfo::default(),
+		)<span class="question-mark">?</span>)
 	}
 
 	<span class="kw">pub fn </span>build_client_connection(host: <span class="kw-2">&amp;</span>str, port: u16) -&gt; <span class="prelude-ty">Result</span>&lt;Connection, Error&gt; {
 		<span class="kw">let </span>handle = create_connection(host, port)<span class="question-mark">?</span>;
-		<span class="prelude-val">Ok</span>(Connection::new(handle, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, ConnectionType::Client)<span class="question-mark">?</span>)
+		<span class="prelude-val">Ok</span>(Connection::new(
+			handle,
+			<span class="prelude-val">None</span>,
+			<span class="prelude-val">None</span>,
+			ConnectionType::Client,
+			DebugInfo::default(),
+		)<span class="question-mark">?</span>)
 	}
 }
 </code></pre></div></section></main></body></html>

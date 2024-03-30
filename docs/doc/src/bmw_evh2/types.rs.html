@@ -308,6 +308,25 @@
 <a href="#306" id="306">306</a>
 <a href="#307" id="307">307</a>
 <a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
+<a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -383,6 +402,7 @@
 	<span class="kw">fn </span>add_server_connection(<span class="kw-2">&amp;mut </span><span class="self">self</span>, connection: Connection) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="kw">fn </span>add_client_connection(<span class="kw-2">&amp;mut </span><span class="self">self</span>, connection: Connection) -&gt; <span class="prelude-ty">Result</span>&lt;WriteHandle, Error&gt;;
 	<span class="kw">fn </span>wait_for_stats(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;EvhStats, Error&gt;;
+	<span class="kw">fn </span>set_debug_info(<span class="kw-2">&amp;mut </span><span class="self">self</span>, debug_info: DebugInfo) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 }
 
 <span class="kw">pub struct </span>Connection {
@@ -396,6 +416,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) state: <span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;EventHandlerState&gt;&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) tx: <span class="prelude-ty">Option</span>&lt;SyncSender&lt;()&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) ctype: ConnectionType,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_info: DebugInfo,
 }
 
 <span class="kw">pub trait </span>UserContext {
@@ -419,6 +440,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) write_state: Box&lt;<span class="kw">dyn </span>LockBox&lt;WriteState&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) wakeup: Wakeup,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) state: Box&lt;<span class="kw">dyn </span>LockBox&lt;EventHandlerState&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_info: DebugInfo,
 }
 
 <span class="attr">#[derive(Debug, Clone)]
@@ -428,6 +450,20 @@
 	<span class="kw">pub </span>reads: usize,
 	<span class="kw">pub </span>delay_writes: usize,
 	<span class="kw">pub </span>event_loops: usize,
+}
+
+<span class="attr">#[allow(dead_code)]
+#[derive(Clone)]
+</span><span class="kw">pub struct </span>DebugInfo {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) pending: Box&lt;<span class="kw">dyn </span>LockBox&lt;bool&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) write_err: Box&lt;<span class="kw">dyn </span>LockBox&lt;bool&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) read_err: Box&lt;<span class="kw">dyn </span>LockBox&lt;bool&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) write_handle_err: Box&lt;<span class="kw">dyn </span>LockBox&lt;bool&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) stop_error: Box&lt;<span class="kw">dyn </span>LockBox&lt;bool&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) panic_fatal_error: Box&lt;<span class="kw">dyn </span>LockBox&lt;bool&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) normal_fatal_error: Box&lt;<span class="kw">dyn </span>LockBox&lt;bool&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) internal_panic: Box&lt;<span class="kw">dyn </span>LockBox&lt;bool&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) get_events_error: Box&lt;<span class="kw">dyn </span>LockBox&lt;bool&gt;&gt;,
 }
 
 <span class="comment">// crate local structures
@@ -513,6 +549,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) wakeups: Array&lt;Wakeup&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) stopper: <span class="prelude-ty">Option</span>&lt;ThreadPoolStopper&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) stats: Box&lt;<span class="kw">dyn </span>LockBox&lt;GlobalStats&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_info: DebugInfo,
 }
 
 <span class="attr">#[derive(Clone)]
@@ -611,7 +648,8 @@
 	Wakeup(Wakeup),
 }
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum </span>ConnectionType {
+<span class="attr">#[derive(PartialEq)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum </span>ConnectionType {
 	Server,
 	Client,
 	Connection,
