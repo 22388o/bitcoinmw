@@ -670,7 +670,7 @@ mod test {
 		Ok(())
 	}
 
-	//#[test]
+	#[test]
 	fn test_evh_stats() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let mut evh = evh_oro!(
