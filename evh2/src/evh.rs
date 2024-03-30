@@ -44,9 +44,85 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 info!();
 
+fn do_read_impl(
+	handle: Handle,
+	buf: &mut [u8],
+	debug_info: &DebugInfo,
+) -> Result<Option<usize>, Error> {
+	if debug_info.is_read_err() {
+		let text = "simulated write error";
+		return Err(err!(ErrKind::Test, text));
+	}
+	read_impl(handle, buf)
+}
+
+fn do_write_impl(handle: Handle, buf: &[u8], debug_info: &DebugInfo) -> Result<isize, Error> {
+	if debug_info.is_write_err() {
+		let text = "simulated write error";
+		return Err(err!(ErrKind::Test, text));
+	}
+
+	write_impl(handle, buf)
+}
+
 impl Default for DebugInfo {
 	fn default() -> Self {
-		Self { pending: false }
+		Self {
+			pending: lock_box!(false).unwrap(),
+			write_err: lock_box!(false).unwrap(),
+			read_err: lock_box!(false).unwrap(),
+			write_handle_err: lock_box!(false).unwrap(),
+		}
+	}
+}
+
+impl DebugInfo {
+	fn is_write_handle_err(&self) -> bool {
+		#[cfg(test)]
+		{
+			**self.write_handle_err.rlock().unwrap().guard().unwrap()
+		}
+		#[cfg(not(test))]
+		{
+			false
+		}
+	}
+	fn is_pending(&self) -> bool {
+		#[cfg(test)]
+		{
+			**self.pending.rlock().unwrap().guard().unwrap()
+		}
+		#[cfg(not(test))]
+		{
+			false
+		}
+	}
+	fn is_read_err(&self) -> bool {
+		#[cfg(test)]
+		{
+			**self.read_err.rlock().unwrap().guard().unwrap()
+		}
+		#[cfg(not(test))]
+		{
+			false
+		}
+	}
+	fn is_write_err(&self) -> bool {
+		#[cfg(test)]
+		{
+			**self.write_err.rlock().unwrap().guard().unwrap()
+		}
+		#[cfg(not(test))]
+		{
+			false
+		}
+	}
+	fn update(&mut self, debug_info: DebugInfo) -> Result<(), Error> {
+		wlock!(self.pending) = rlock!(debug_info.pending);
+		wlock!(self.write_err) = rlock!(debug_info.write_err);
+		wlock!(self.read_err) = rlock!(debug_info.read_err);
+		wlock!(self.write_handle_err) = rlock!(debug_info.write_handle_err);
+		Ok(())
 	}
 }
 
@@ -217,19 +293,18 @@ impl WriteHandle {
 			if (**guard).is_set(WRITE_STATE_FLAG_CLOSE) {
 				let text = format!("write on a closed handle: {}", self.handle);
 				return Err(err!(ErrKind::IO, text));
-			} else if (**guard).is_set(WRITE_STATE_FLAG_PENDING) || self.debug_info.pending {
+			} else if (**guard).is_set(WRITE_STATE_FLAG_PENDING)
+				|| self.debug_info.is_pending()
+				|| self.debug_info.is_write_handle_err()
+			{
 				0
 			} else {
 				write_impl(self.handle, data)?
 			}
 		};
 
-		if wlen < 0 {
-			let text = format!(
-				"An i/o error occurred while trying to write to handle {}: {}",
-				self.handle,
-				errno()
-			);
+		if wlen < 0 || self.debug_info.is_write_handle_err() {
+			let text = format!("write I/O error handle {}: {}", self.handle, errno());
 			return Err(err!(ErrKind::IO, text));
 		}
 
@@ -526,7 +601,7 @@ where
 		Ok(())
 	}
 	fn set_debug_info(&mut self, debug_info: DebugInfo) -> Result<(), Error> {
-		self.debug_info = debug_info;
+		self.debug_info.update(debug_info)?;
 		Ok(())
 	}
 	fn add_server_connection(&mut self, mut connection: Connection) -> Result<(), Error> {
@@ -1364,7 +1439,8 @@ where
 			if ctx.ret_events[ctx.ret_event_itt].etype == EventType::Write
 				|| ctx.ret_events[ctx.ret_event_itt].etype == EventType::ReadWrite
 			{
-				need_write_update = Self::process_write_event(config, ctx, callbacks, handle)?;
+				need_write_update =
+					Self::process_write_event(config, ctx, callbacks, handle, user_context)?;
 			}
 
 			if need_write_update {
@@ -1401,12 +1477,12 @@ where
 					}
 					ConnectionVariant::ClientConnection(conn) => {
 						(close, read_count) =
-							Self::process_read(conn, config, callbacks, user_context)?;
+							Self::process_read(conn, config, callbacks, user_context, debug_info)?;
 						ret = !close;
 					}
 					ConnectionVariant::Connection(conn) => {
 						(close, read_count) =
-							Self::process_read(conn, config, callbacks, user_context)?;
+							Self::process_read(conn, config, callbacks, user_context, debug_info)?;
 						ret = !close;
 					}
 					ConnectionVariant::Wakeup(_wakeup) => {
@@ -1481,6 +1557,7 @@ where
 		config: &EventHandlerConfig,
 		callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
 		user_context: &mut UserContextImpl,
+		debug_info: &DebugInfo,
 	) -> Result<(bool, usize), Error> {
 		debug!("in process_read")?;
 		let mut close = false;
@@ -1546,9 +1623,10 @@ where
 				user_context.read_slabs.get_mut(last_slab)?
 			};
 			let slab_offset = conn.get_slab_offset();
-			let rlen = match read_impl(
+			let rlen = match do_read_impl(
 				handle,
 				&mut slab.get_mut()[slab_offset..read_slab_next_offset],
+				debug_info,
 			) {
 				Ok(rlen) => rlen,
 				Err(_e) => {
@@ -1763,8 +1841,9 @@ where
 	fn process_write_event(
 		_config: &EventHandlerConfig,
 		ctx: &mut EventHandlerContext,
-		_callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
+		callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
 		handle: Handle,
+		user_context: &mut UserContextImpl,
 	) -> Result<bool, Error> {
 		let mut close = false;
 		let mut write_count = 0;
@@ -1789,7 +1868,7 @@ where
 		}
 
 		let ret = if close {
-			close_impl_ctx(handle, ctx)?;
+			Self::process_close(handle, ctx, callbacks, user_context)?;
 			false
 		} else {
 			true
@@ -1813,7 +1892,8 @@ where
 				rem = false;
 				break;
 			}
-			let wlen = match write_impl(conn.handle(), &(**guard).write_buffer) {
+			let wlen = match do_write_impl(conn.handle(), &(**guard).write_buffer, &conn.debug_info)
+			{
 				Ok(wlen) => wlen,
 				Err(_e) => {
 					// write i/o error. Don't log these because they would pollute

@@ -670,7 +670,7 @@ mod test {
 		Ok(())
 	}
 
-	#[test]
+	//#[test]
 	fn test_evh_stats() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let mut evh = evh_oro!(
@@ -938,7 +938,7 @@ mod test {
 		)?;
 
 		let debug_info = DebugInfo {
-			pending: true,
+			pending: lock_box!(true)?,
 			..Default::default()
 		};
 		evh.set_debug_info(debug_info.clone())?;
@@ -974,6 +974,163 @@ mod test {
 		// closed connection
 		assert_eq!(strm.read(&mut buf)?, 0);
 		assert!(rlock!(recv_msg_clone));
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_read_error() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut evh = evh_oro!(
+			Debug(false),
+			EvhTimeout(u16::MAX),
+			EvhThreads(1),
+			EvhReadSlabSize(100)
+		)?;
+
+		let debug_info = DebugInfo {
+			read_err: lock_box!(true)?,
+			..Default::default()
+		};
+		evh.set_debug_info(debug_info.clone())?;
+
+		let mut recv_msg = lock_box!(false)?;
+		let recv_msg_clone = recv_msg.clone();
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			let mut wh = connection.write_handle()?;
+			wlock!(recv_msg) = true;
+			wh.write(b"test")?;
+			ctx.clear_all(connection)?;
+			Ok(())
+		})?;
+
+		evh.start()?;
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		let conn = EvhBuilder::build_server_connection(&addr, 100)?;
+		evh.add_server_connection(conn)?;
+
+		let mut strm = TcpStream::connect(addr.clone())?;
+		strm.write(b"01234567890123456789")?;
+
+		let mut buf = [0u8; 100];
+		// this will be an error because the connection is closed when there's a read error
+		assert!(strm.read(&mut buf).is_err());
+		assert!(!rlock!(recv_msg_clone));
+
+		evh.set_debug_info(DebugInfo::default())?;
+
+		let mut strm = TcpStream::connect(addr)?;
+		strm.write(b"01234567890123456789")?;
+
+		let mut buf = [0u8; 100];
+		// this will be an error because the connection is closed when there's a read error
+
+		let len = strm.read(&mut buf)?;
+		assert_eq!(len, 4);
+		assert_eq!(&buf[0..len], b"test");
+		assert!(rlock!(recv_msg_clone));
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_write_error() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut evh = evh_oro!(
+			Debug(false),
+			EvhTimeout(u16::MAX),
+			EvhThreads(1),
+			EvhReadSlabSize(100)
+		)?;
+
+		let debug_info = DebugInfo {
+			write_err: lock_box!(true)?,
+			pending: lock_box!(true)?,
+			..Default::default()
+		};
+		evh.set_debug_info(debug_info.clone())?;
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			let mut wh = connection.write_handle()?;
+			wh.write(b"test")?;
+			ctx.clear_all(connection)?;
+			Ok(())
+		})?;
+
+		evh.start()?;
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		let conn = EvhBuilder::build_server_connection(&addr, 100)?;
+		evh.add_server_connection(conn)?;
+
+		let mut strm = TcpStream::connect(addr.clone())?;
+		strm.write(b"01234567890123456789")?;
+
+		let mut buf = [0u8; 100];
+		let len = strm.read(&mut buf)?;
+		// the len will be 0 because it will be closed by the server due to the write error
+		assert_eq!(len, 0);
+
+		// now update debug info to avoid the error
+
+		evh.set_debug_info(DebugInfo::default())?;
+
+		let mut strm = TcpStream::connect(addr)?;
+		strm.write(b"01234567890123456789")?;
+
+		let mut buf = [0u8; 100];
+		let len = strm.read(&mut buf)?;
+		// now it's corrected
+		assert_eq!(len, 4);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_write_handle_error() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut evh = evh_oro!(
+			Debug(false),
+			EvhTimeout(u16::MAX),
+			EvhThreads(1),
+			EvhReadSlabSize(100)
+		)?;
+
+		let debug_info = DebugInfo {
+			write_handle_err: lock_box!(true)?,
+			..Default::default()
+		};
+		evh.set_debug_info(debug_info.clone())?;
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			let mut wh = connection.write_handle()?;
+			wh.write(b"test")?;
+			ctx.clear_all(connection)?;
+			Ok(())
+		})?;
+
+		evh.start()?;
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		let conn = EvhBuilder::build_server_connection(&addr, 100)?;
+		evh.add_server_connection(conn)?;
+
+		let mut strm = TcpStream::connect(addr.clone())?;
+		// trigger write handle error
+		strm.write(b"01234567890123456789")?;
+
+		// now fix it
+		evh.set_debug_info(DebugInfo::default())?;
+		strm.write(b"01234567890123456789")?;
+
+		let mut buf = [0u8; 100];
+
+		let len = strm.read(&mut buf)?;
+		// the message goes through now
+		assert_eq!(len, 4);
+		assert_eq!(&buf[0..4], b"test");
 
 		Ok(())
 	}

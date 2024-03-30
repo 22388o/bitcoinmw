@@ -126,7 +126,10 @@ pub struct EvhStats {
 #[allow(dead_code)]
 #[derive(Clone)]
 pub struct DebugInfo {
-	pub(crate) pending: bool,
+	pub(crate) pending: Box<dyn LockBox<bool>>,
+	pub(crate) write_err: Box<dyn LockBox<bool>>,
+	pub(crate) read_err: Box<dyn LockBox<bool>>,
+	pub(crate) write_handle_err: Box<dyn LockBox<bool>>,
 }
 
 // crate local structures
