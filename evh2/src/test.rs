@@ -156,6 +156,114 @@ mod test {
 	}
 
 	#[test]
+	fn test_evh_basic_pending() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut evh = evh!(
+			Debug(false),
+			EvhTimeout(100),
+			EvhThreads(1),
+			EvhReadSlabSize(100),
+			EvhStatsUpdateMillis(5000)
+		)?;
+
+		let debug_info = DebugInfo {
+			pending: lock_box!(true)?,
+			..Default::default()
+		};
+		evh.set_debug_info(debug_info)?;
+
+		let mut client_id = lock_box!(0)?;
+
+		let mut client_recv = lock_box!(false)?;
+		let mut server_recv = lock_box!(false)?;
+		let client_recv_clone = client_recv.clone();
+		let server_recv_clone = server_recv.clone();
+		let (tx, rx) = test_info.sync_channel();
+		let client_id_clone = client_id.clone();
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			info!("onRead")?;
+			let mut buf = [0u8; 1024];
+			let mut data: Vec<u8> = vec![];
+			loop {
+				let len = ctx.clone_next_chunk(connection, &mut buf)?;
+
+				if len == 0 {
+					break;
+				}
+
+				data.extend(&buf[0..len]);
+			}
+
+			let dstring = from_utf8(&data)?;
+			info!("data[{}]='{}'", connection.id(), dstring,)?;
+
+			assert_eq!(dstring, "hi");
+
+			let mut wh = connection.write_handle()?;
+
+			// echo
+			if rlock!(client_id_clone) != connection.id() {
+				wh.write(dstring.as_bytes())?;
+				wlock!(server_recv) = true;
+			} else {
+				wlock!(client_recv) = true;
+			}
+
+			if rlock!(client_recv) && rlock!(server_recv) {
+				tx.send(())?;
+			}
+
+			ctx.clear_all(connection)?;
+			Ok(())
+		})?;
+
+		evh.set_on_accept(move |connection, _ctx| -> Result<(), Error> {
+			info!(
+				"onAccept: handle={},id={}",
+				connection.handle(),
+				connection.id()
+			)?;
+			Ok(())
+		})?;
+
+		evh.set_on_close(move |_connection, _ctx| -> Result<(), Error> {
+			info!("onClose")?;
+			Ok(())
+		})?;
+
+		evh.set_on_housekeeper(move |_ctx| -> Result<(), Error> {
+			info!("onHousekeeper")?;
+			Ok(())
+		})?;
+
+		evh.set_on_panic(move |_ctx, _e| -> Result<(), Error> {
+			info!("onPanic")?;
+			Ok(())
+		})?;
+
+		evh.start()?;
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		info!("connecting to addr {}", addr)?;
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+
+		info!("adding connection now")?;
+		evh.add_server_connection(conn)?;
+		let conn2 = EvhBuilder::build_client_connection("127.0.0.1", port)?;
+		wlock!(client_id) = conn2.id();
+
+		let mut wh = evh.add_client_connection(conn2)?;
+		wh.write(b"hi")?;
+
+		rx.recv()?;
+		assert!(rlock!(client_recv_clone));
+		assert!(rlock!(server_recv_clone));
+
+		Ok(())
+	}
+
+	#[test]
 	fn test_evh_wrong_add() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let port = test_info.port();
@@ -1602,7 +1710,7 @@ mod test {
 	}
 
 	#[test]
-	fn test_evh_close_handles() -> Result<(), Error> {
+	fn test_evh_functions() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let w = Wakeup::new()?;
 		let wakeups = array!(1, &w)?;
@@ -1641,13 +1749,147 @@ mod test {
 		let mut v = VecDeque::new();
 		let port = test_info.port();
 		let addr = format!("127.0.0.1:{}", port);
-		let conn = EvhBuilder::build_server_connection(&addr, 1)?;
-		v.push_back(ConnectionVariant::ServerConnection(conn));
-		let conn = EvhBuilder::build_client_connection("127.0.0.1", port)?;
-		v.push_back(ConnectionVariant::ClientConnection(conn));
-		let conn = EvhBuilder::build_client_connection("127.0.0.1", port)?;
-		v.push_back(ConnectionVariant::Connection(conn));
+		let server = EvhBuilder::build_server_connection(&addr, 1)?;
+		v.push_back(ConnectionVariant::ServerConnection(server));
+		let client = EvhBuilder::build_client_connection("127.0.0.1", port)?;
+		v.push_back(ConnectionVariant::ClientConnection(client));
+		let client2 = EvhBuilder::build_client_connection("127.0.0.1", port)?;
+		v.push_back(ConnectionVariant::Connection(client2));
+		v.push_back(ConnectionVariant::Wakeup(Wakeup::new()?));
 		assert!(EventHandlerImpl::close_handles(&mut ehc, &v, &mut callbacks).is_ok());
+
+		let read_slabs = slab_allocator!(SlabSize(100), SlabCount(1))?;
+		let mut user_context = UserContextImpl {
+			read_slabs,
+			user_data: None,
+			slab_cur: usize::MAX,
+		};
+
+		let port = pick_free_port()?;
+		let addr = format!("127.0.0.1:{}", port);
+		let conn = EvhBuilder::build_server_connection(&addr, 1)?;
+		ehc.id_hash
+			.insert(0, ConnectionVariant::ServerConnection(conn));
+		assert!(
+			EventHandlerImpl::process_write_id(&mut ehc, 0, &mut callbacks, &mut user_context)
+				.is_ok()
+		);
+
+		let mut conn = EvhBuilder::build_client_connection("127.0.0.1", port)?;
+		conn.wakeup = Some(Wakeup::new()?);
+		conn.state = Some(lock_box!(EventHandlerState::new()?)?);
+		conn.write_handle()?.trigger_on_read()?;
+		conn.write_handle()?.close()?;
+		ehc.id_hash.insert(0, ConnectionVariant::Connection(conn));
+		assert!(
+			EventHandlerImpl::process_write_id(&mut ehc, 0, &mut callbacks, &mut user_context)
+				.is_ok()
+		);
+
+		let mut conn = EvhBuilder::build_client_connection("127.0.0.1", port)?;
+		conn.wakeup = Some(Wakeup::new()?);
+		conn.state = Some(lock_box!(EventHandlerState::new()?)?);
+		conn.write_handle()?.trigger_on_read()?;
+		conn.write_handle()?.close()?;
+		ehc.id_hash
+			.insert(0, ConnectionVariant::ClientConnection(conn));
+		assert!(
+			EventHandlerImpl::process_write_id(&mut ehc, 0, &mut callbacks, &mut user_context)
+				.is_ok()
+		);
+
+		ehc.id_hash
+			.insert(0, ConnectionVariant::Wakeup(Wakeup::new()?));
+		assert!(
+			EventHandlerImpl::process_write_id(&mut ehc, 0, &mut callbacks, &mut user_context)
+				.is_ok()
+		);
+
+		// try on a not found. just prints a warning
+		assert!(
+			EventHandlerImpl::process_write_id(&mut ehc, 1, &mut callbacks, &mut user_context)
+				.is_ok()
+		);
+
+		let config = EventHandlerConfig {
+			debug: false,
+			housekeeping_frequency_millis: 100,
+			stats_update_frequency_millis: 100,
+			threads: 1,
+			timeout: 1_000,
+			read_slab_count: 1,
+			read_slab_size: 100,
+		};
+		let mut state = array!(config.threads, &lock_box!(EventHandlerState::new()?)?)?;
+		let debug_info = DebugInfo::default();
+
+		let port = pick_free_port()?;
+		let addr = format!("127.0.0.1:{}", port);
+		let conn = EvhBuilder::build_server_connection(&addr, 1)?;
+		ehc.handle_hash.insert(conn.handle(), conn.id());
+		ehc.trigger_on_read_list.push(conn.handle());
+		ehc.id_hash
+			.insert(conn.id(), ConnectionVariant::ServerConnection(conn));
+
+		let conn = EvhBuilder::build_client_connection("127.0.0.1", port)?;
+		ehc.handle_hash.insert(conn.handle(), conn.id());
+		ehc.trigger_on_read_list.push(conn.handle());
+
+		assert!(EventHandlerImpl::process_events(
+			&config,
+			&mut ehc,
+			&mut callbacks,
+			&mut state,
+			&mut user_context,
+			&debug_info,
+		)
+		.is_ok());
+
+		let debug_info = DebugInfo {
+			wakeup_read_err: lock_box!(true)?,
+			..Default::default()
+		};
+		let wakeup = Wakeup::new()?;
+		ehc.handle_hash.insert(0, 0);
+		ehc.id_hash.insert(0, ConnectionVariant::Wakeup(wakeup));
+
+		assert!(EventHandlerImpl::process_read_event(
+			&config,
+			&mut ehc,
+			&mut callbacks,
+			0,
+			&mut state,
+			&mut user_context,
+			&debug_info,
+		)
+		.is_ok());
+
+		ehc.handle_hash.insert(0, 100);
+
+		assert!(EventHandlerImpl::process_read_event(
+			&config,
+			&mut ehc,
+			&mut callbacks,
+			0,
+			&mut state,
+			&mut user_context,
+			&debug_info,
+		)
+		.is_ok());
+
+		assert!(EventHandlerImpl::process_read_event(
+			&config,
+			&mut ehc,
+			&mut callbacks,
+			1230,
+			&mut state,
+			&mut user_context,
+			&debug_info,
+		)
+		.is_ok());
+
+		let port = pick_free_port()?;
+		assert!(create_listener(&format!("[::1]:{}", port), 1).is_ok());
 
 		Ok(())
 	}

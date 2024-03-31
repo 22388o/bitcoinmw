@@ -38,4 +38,5 @@ pub use std::time::Duration;
 
 pub const QA_SLEEP: u64 = 3_000;
 
+pub use crate::impls::pick_free_port;
 pub use crate::types::{Builder, TestInfo};

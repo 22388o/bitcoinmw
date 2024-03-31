@@ -44,13 +44,25 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 info!();
 
+fn do_wakeup_read_impl(
+	handle: Handle,
+	buf: &mut [u8],
+	debug_info: &DebugInfo,
+) -> Result<Option<usize>, Error> {
+	if debug_info.is_wakeup_read_err() {
+		let text = "simulated read error";
+		return Err(err!(ErrKind::Test, text));
+	}
+	read_impl(handle, buf)
+}
+
 fn do_read_impl(
 	handle: Handle,
 	buf: &mut [u8],
 	debug_info: &DebugInfo,
 ) -> Result<Option<usize>, Error> {
 	if debug_info.is_read_err() {
-		let text = "simulated write error";
+		let text = "simulated read error";
 		return Err(err!(ErrKind::Test, text));
 	}
 	read_impl(handle, buf)
@@ -82,6 +94,7 @@ impl Default for DebugInfo {
 			pending: lock_box!(false).unwrap(),
 			write_err: lock_box!(false).unwrap(),
 			read_err: lock_box!(false).unwrap(),
+			wakeup_read_err: lock_box!(false).unwrap(),
 			write_handle_err: lock_box!(false).unwrap(),
 			stop_error: lock_box!(false).unwrap(),
 			panic_fatal_error: lock_box!(false).unwrap(),
@@ -127,6 +140,16 @@ impl DebugInfo {
 		#[cfg(test)]
 		{
 			**self.read_err.rlock().unwrap().guard().unwrap()
+		}
+		#[cfg(not(test))]
+		{
+			false
+		}
+	}
+	fn is_wakeup_read_err(&self) -> bool {
+		#[cfg(test)]
+		{
+			**self.wakeup_read_err.rlock().unwrap().guard().unwrap()
 		}
 		#[cfg(not(test))]
 		{
@@ -187,6 +210,7 @@ impl DebugInfo {
 		wlock!(self.pending) = rlock!(debug_info.pending);
 		wlock!(self.write_err) = rlock!(debug_info.write_err);
 		wlock!(self.read_err) = rlock!(debug_info.read_err);
+		wlock!(self.wakeup_read_err) = rlock!(debug_info.wakeup_read_err);
 		wlock!(self.write_handle_err) = rlock!(debug_info.write_handle_err);
 		wlock!(self.stop_error) = rlock!(debug_info.stop_error);
 		wlock!(self.panic_fatal_error) = rlock!(debug_info.panic_fatal_error);
@@ -334,7 +358,7 @@ impl UserContext for &mut UserContextImpl {
 }
 
 impl WriteState {
-	fn new() -> Self {
+	pub(crate) fn new() -> Self {
 		Self {
 			flags: 0,
 			write_buffer: vec![],
@@ -518,7 +542,10 @@ impl Connection {
 	pub(crate) fn handle(&self) -> Handle {
 		self.handle
 	}
-	fn set_state(&mut self, state: Box<dyn LockBox<EventHandlerState>>) -> Result<(), Error> {
+	pub(crate) fn set_state(
+		&mut self,
+		state: Box<dyn LockBox<EventHandlerState>>,
+	) -> Result<(), Error> {
 		self.state = Some(state);
 		Ok(())
 	}
@@ -1344,15 +1371,17 @@ where
 		Ok(())
 	}
 
-	fn process_write_id(
+	pub(crate) fn process_write_id(
 		ctx: &mut EventHandlerContext,
 		id: u128,
 		callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
 		user_context: &mut UserContextImpl,
 	) -> Result<(), Error> {
 		let mut close_list = vec![];
-		match ctx.id_hash.get_mut(&id) {
-			Some(conn) => match conn {
+		let mut conn = ctx.id_hash.get_mut(&id);
+		if conn.is_some() {
+			let conn = conn.as_mut().unwrap();
+			match conn {
 				ConnectionVariant::ServerConnection(_conn) => {}
 				ConnectionVariant::ClientConnection(conn) => {
 					let handle = conn.handle();
@@ -1388,10 +1417,9 @@ where
 					}
 				}
 				ConnectionVariant::Wakeup(_wakeup) => {}
-			},
-			None => {
-				warn!("none1 in process_write_id")?;
 			}
+		} else {
+			warn!("none1 in process_write_id")?;
 		}
 
 		for handle in close_list {
@@ -1411,15 +1439,15 @@ where
 		Ok((ret1, ret2, ret3))
 	}
 
-	fn process_events(
+	pub(crate) fn process_events(
 		config: &EventHandlerConfig,
 		ctx: &mut EventHandlerContext,
 		callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
 		state: &mut Array<Box<dyn LockBox<EventHandlerState>>>,
-		user_context: &mut UserContextImpl,
-		debug_info: &DebugInfo,
+		u: &mut UserContextImpl,
+		d: &DebugInfo,
 	) -> Result<(), Error> {
-		if debug_info.is_internal_panic() || debug_info.is_get_events_error() {
+		if d.is_internal_panic() || d.is_get_events_error() {
 			return Err(err!(ErrKind::Test, "internal panic"));
 		}
 
@@ -1427,29 +1455,28 @@ where
 		debug!("trig list = {:?}", ctx.trigger_on_read_list)?;
 		let list_len = ctx.trigger_on_read_list.len();
 		loop {
-			if ctx.trigger_itt == list_len {
-				break;
-			}
+			cbreak!(ctx.trigger_itt == list_len);
 
 			let handle = ctx.trigger_on_read_list[ctx.trigger_itt];
-			match ctx.handle_hash.get(&handle) {
-				Some(id) => match ctx.id_hash.get_mut(&id) {
-					Some(conn) => match conn {
+			let id = ctx.handle_hash.get(&handle);
+			if id.is_some() {
+				let id = id.unwrap();
+				let mut conn = ctx.id_hash.get_mut(&id);
+				if conn.is_some() {
+					match conn.as_mut().unwrap() {
 						ConnectionVariant::Connection(conn) => {
-							Self::call_on_read(user_context, conn, &mut callbacks.on_read)?
+							Self::call_on_read(u, conn, &mut callbacks.on_read)?
 						}
 						ConnectionVariant::ClientConnection(conn) => {
-							Self::call_on_read(user_context, conn, &mut callbacks.on_read)?
+							Self::call_on_read(u, conn, &mut callbacks.on_read)?
 						}
 						_ => warn!("unexpected Conection variant for trigger_on_read")?,
-					},
-					None => {
-						warn!("none in trigger_on_read1")?;
 					}
-				},
-				None => {
-					warn!("none in trigger_on_read2")?;
+				} else {
+					warn!("none in trigger_on_read1")?;
 				}
+			} else {
+				warn!("none in trigger_on_read2")?;
 			}
 			ctx.trigger_itt += 1;
 		}
@@ -1457,37 +1484,28 @@ where
 		// next process events
 		debug!("events to process = {}", ctx.ret_event_count)?;
 		loop {
-			if ctx.ret_event_itt == ctx.ret_event_count {
-				break;
-			}
+			cbreak!(ctx.ret_event_itt == ctx.ret_event_count);
+
 			debug!("proc event = {:?}", ctx.ret_events[ctx.ret_event_itt])?;
-			let handle = ctx.ret_events[ctx.ret_event_itt].handle;
+			let h = ctx.ret_events[ctx.ret_event_itt].handle;
 			let mut need_read_update = false;
 			let mut need_write_update = false;
 			if ctx.ret_events[ctx.ret_event_itt].etype == EventType::Read
 				|| ctx.ret_events[ctx.ret_event_itt].etype == EventType::ReadWrite
 			{
-				need_read_update = Self::process_read_event(
-					config,
-					ctx,
-					callbacks,
-					handle,
-					state,
-					user_context,
-					debug_info,
-				)?;
+				need_read_update =
+					Self::process_read_event(config, ctx, callbacks, h, state, u, d)?;
 			}
 			if ctx.ret_events[ctx.ret_event_itt].etype == EventType::Write
 				|| ctx.ret_events[ctx.ret_event_itt].etype == EventType::ReadWrite
 			{
-				need_write_update =
-					Self::process_write_event(config, ctx, callbacks, handle, user_context)?;
+				need_write_update = Self::process_write_event(config, ctx, callbacks, h, u)?;
 			}
 
 			if need_write_update {
-				update_ctx(ctx, handle, EventTypeIn::Write)?;
+				update_ctx(ctx, h, EventTypeIn::Write)?;
 			} else if need_read_update {
-				update_ctx(ctx, handle, EventTypeIn::Read)?;
+				update_ctx(ctx, h, EventTypeIn::Read)?;
 			}
 			ctx.ret_event_itt += 1;
 		}
@@ -1495,7 +1513,7 @@ where
 		Ok(())
 	}
 
-	fn process_read_event(
+	pub(crate) fn process_read_event(
 		config: &EventHandlerConfig,
 		ctx: &mut EventHandlerContext,
 		callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
@@ -1509,9 +1527,13 @@ where
 		let mut close = false;
 		let mut read_count = 0;
 		debug!("process read event= {}", handle)?;
-		match ctx.handle_hash.get(&handle) {
-			Some(id) => match ctx.id_hash.get_mut(&id) {
-				Some(conn) => match conn {
+		let id = ctx.handle_hash.get(&handle);
+		if id.is_some() {
+			let id = id.unwrap();
+			let mut conn = ctx.id_hash.get_mut(&id);
+			if conn.is_some() {
+				let mut conn = conn.as_mut().unwrap();
+				match conn {
 					ConnectionVariant::ServerConnection(conn) => {
 						Self::process_accept(conn, &mut accepted)?;
 						ret = true;
@@ -1529,7 +1551,7 @@ where
 					ConnectionVariant::Wakeup(_wakeup) => {
 						let mut buf = [0u8; 1000];
 						loop {
-							let rlen = match read_impl(handle, &mut buf) {
+							let rlen = match do_wakeup_read_impl(handle, &mut buf, debug_info) {
 								Ok(rlen) => rlen,
 								Err(e) => {
 									warn!("wakeup read_impl err: {}", e)?;
@@ -1541,14 +1563,12 @@ where
 						}
 						ret = true;
 					}
-				},
-				None => {
-					warn!("none1")?;
 				}
-			},
-			None => {
-				warn!("none2")?;
+			} else {
+				warn!("none1")?;
 			}
+		} else {
+			warn!("none2")?;
 		}
 		debug!("close was {}", close)?;
 		if close {
@@ -1569,23 +1589,19 @@ where
 		debug_info: &DebugInfo,
 	) -> Result<(), Error> {
 		debug!("accepted connections = {:?}", accepted)?;
-		for accept in accepted {
-			let accept_usize: usize = try_into!(accept)?;
+		for a in accepted {
+			let accept_usize: usize = try_into!(a)?;
 			let tid = accept_usize % config.threads;
-			let connection = Connection::new(
-				accept,
-				Some(wakeups[tid].clone()),
-				Some(state[tid].clone()),
-				ConnectionType::Connection,
-				debug_info.clone(),
-			)?;
+			let wakeup = Some(wakeups[tid].clone());
+			let cstate = Some(state[tid].clone());
+			let ctype = ConnectionType::Connection;
+			let connection = Connection::new(a, wakeup, cstate, ctype, debug_info.clone())?;
 
 			{
 				let mut state = state[tid].wlock()?;
 				let guard = state.guard()?;
-				(**guard)
-					.nconnections
-					.push_back(ConnectionVariant::Connection(connection));
+				let nv = ConnectionVariant::Connection(connection);
+				(**guard).nconnections.push_back(nv);
 			}
 
 			wakeups[tid].wakeup()?;
@@ -1996,9 +2012,8 @@ where
 		}
 
 		// stop thread pool and all threads
-		match &mut self.stopper {
-			Some(ref mut stopper) => stopper.stop()?,
-			None => {}
+		if self.stopper.is_some() {
+			self.stopper.as_mut().unwrap().stop()?;
 		}
 		for i in 0..self.config.threads {
 			wlock!(self.state[i]).stop = true;

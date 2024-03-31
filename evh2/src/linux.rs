@@ -107,10 +107,7 @@ pub(crate) fn read_impl(handle: Handle, buf: &mut [u8]) -> Result<Option<usize>,
 			debug!("--------------------EAGAIN------------------")?;
 			Ok(None)
 		} else {
-			let text = format!(
-				"I/O error occurred while reading handle {}. Error msg: {}",
-				handle, errno
-			);
+			let text = format!("I/O error handle={}. Error msg: {}", handle, errno);
 			Err(err!(ErrKind::IO, text))
 		}
 	} else {
@@ -150,7 +147,6 @@ pub(crate) fn create_connection(host: &str, port: u16) -> Result<Handle, Error> 
 	let strm = TcpStream::connect(format!("{}:{}", host, port))?;
 	strm.set_nonblocking(true)?;
 	let fd = strm.into_raw_fd();
-
 	Ok(fd)
 }
 
@@ -256,12 +252,11 @@ pub(crate) fn get_events_in(
 
 			let mut event = EpollEvent::new(interest, fd_u64);
 
+			let bfd = unsafe { BorrowedFd::borrow_raw(evt.handle) };
 			if *ctx.linux_ctx.filter_set.get(fd_usize).unwrap() {
-				(*ctx.linux_ctx.selector)
-					.modify(unsafe { BorrowedFd::borrow_raw(evt.handle) }, &mut event)?;
+				(*ctx.linux_ctx.selector).modify(bfd, &mut event)?;
 			} else {
-				(*ctx.linux_ctx.selector)
-					.add(unsafe { BorrowedFd::borrow_raw(evt.handle) }, event)?;
+				(*ctx.linux_ctx.selector).add(bfd, event)?;
 			};
 
 			ctx.linux_ctx.filter_set.replace(fd_usize, true);
