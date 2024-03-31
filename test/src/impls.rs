@@ -32,6 +32,8 @@ use std::sync::mpsc::{sync_channel, Receiver, SyncSender};
 // global counter for getting a port number
 static GLOBAL_NEXT_PORT: AtomicU16 = AtomicU16::new(9000);
 
+const TIMEOUT: u64 = 60_000;
+
 // pick a free port that does not collide with recently assigned ports
 pub fn pick_free_port() -> Result<u16, Error> {
 	loop {
@@ -60,17 +62,7 @@ impl TestInfo for TestInfoImpl {
 		self.port
 	}
 	fn sync_channel(&self) -> (SyncSender<()>, Receiver<()>) {
-		let (tx, rx) = sync_channel(1);
-		let tx_clone = tx.clone();
-		spawn(move || -> Result<(), Error> {
-			sleep(Duration::from_millis(60_000));
-			match tx_clone.send(()) {
-				Ok(_) => {}
-				Err(_e) => {}
-			}
-			Ok(())
-		});
-		(tx, rx)
+		self.sync_channel_impl(TIMEOUT)
 	}
 }
 
@@ -110,6 +102,17 @@ impl TestInfoImpl {
 			preserve,
 		};
 		Ok(ret)
+	}
+
+	pub(crate) fn sync_channel_impl(&self, timeout: u64) -> (SyncSender<()>, Receiver<()>) {
+		let (tx, rx) = sync_channel(1);
+		let tx_clone = tx.clone();
+		spawn(move || -> Result<(), Error> {
+			sleep(Duration::from_millis(timeout));
+			let _ = tx_clone.send(());
+			Ok(())
+		});
+		(tx, rx)
 	}
 }
 

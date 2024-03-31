@@ -19,6 +19,7 @@
 #[cfg(test)]
 mod test {
 	use crate as bmw_test;
+	use crate::types::TestInfoImpl;
 	use crate::{test_info, TestInfo};
 	use bmw_err::Error;
 
@@ -35,6 +36,16 @@ mod test {
 		let test_info = test_info!()?;
 		assert!(test_info.port() >= 9000);
 		assert!(test_info.directory().ends_with("bmw"));
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_impl() -> Result<(), Error> {
+		let test_info = TestInfoImpl::new(false)?;
+		let (_tx, rx) = test_info.sync_channel_impl(1_000);
+		assert!(rx.recv().is_ok());
+
 		Ok(())
 	}
 }

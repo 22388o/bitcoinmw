@@ -63,6 +63,20 @@ mod test {
 		// since p2 is at the beginning, both match
 		let count = search_trie.tmatch(b"p2p1", &mut matches)?;
 		assert_eq!(count, 2);
+
+		assert!(search_trie!(
+			vec![pattern!(Regex("p1".to_string()), PatternId(0))?],
+			TerminationLength(0),
+			MaxWildCardLength(100)
+		)
+		.is_err());
+
+		assert!(search_trie!(
+			vec![pattern!(Regex("p1".to_string()), PatternId(0))?],
+			TerminationLength(100),
+			MaxWildCardLength(0)
+		)
+		.is_err());
 		Ok(())
 	}
 
@@ -1533,6 +1547,13 @@ mod test {
 			)
 		);
 
+		let hashtable = HashImpl::<usize>::new(vec![
+			ConfigOption::IsSync(true),
+			ConfigOption::GlobalSlabAllocator(true),
+		]);
+
+		assert!(hashtable.is_err());
+
 		Ok(())
 	}
 
@@ -2606,6 +2627,10 @@ mod test {
 			Ok(123)
 		})?;
 		assert_eq!(block_on!(resp), PoolResult::Ok(123));
+		let pr: PoolResult<u32, Error> = PoolResult::Ok(123);
+		assert!(!pr.is_err());
+		let pr: PoolResult<u32, Error> = PoolResult::Panic;
+		assert!(pr.is_err());
 
 		let mut tp = thread_pool!(MinSize(3))?;
 		tp.set_on_panic(move |_id, _e| -> Result<(), Error> { Ok(()) })?;

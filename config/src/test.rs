@@ -144,6 +144,7 @@ mod test {
 			IsHashtable(true),
 			IsHashset(true),
 			IsList(true),
+			EvhTimeout(123),
 			Debug(true),
 			DebugLargeSlabCount(true)
 		);
@@ -187,6 +188,7 @@ mod test {
 					CN::IsList,
 					CN::Debug,
 					CN::DebugLargeSlabCount,
+					CN::EvhTimeout,
 				],
 				vec![]
 			)
@@ -229,6 +231,9 @@ mod test {
 		assert_eq!(config.get_or_u64(&CN::LineNumDataMaxLen, u64::MAX), 10);
 		assert_eq!(config.get_or_u64(&CN::AutoRotate, u64::MAX), u64::MAX);
 
+		assert_eq!(config.get_or_u16(&CN::EvhTimeout, u16::MAX), 123);
+		assert_eq!(config.get_or_u16(&CN::AutoRotate, u16::MAX), u16::MAX);
+
 		assert_eq!(
 			config.get_or_string(&CN::FileHeader, "".to_string()),
 			"test".to_string()
@@ -254,6 +259,10 @@ mod test {
 			"".to_string()
 		);
 		assert_eq!(empty_config.get_or_f64(&CN::AutoRotate, 0.0), 0.0);
+
+		let config = config!(AutoRotate(false));
+
+		assert_eq!(config.get_or_u16(&CN::EvhTimeout, u16::MAX), u16::MAX);
 
 		Ok(())
 	}

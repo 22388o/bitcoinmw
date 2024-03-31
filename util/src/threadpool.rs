@@ -39,7 +39,8 @@ impl<T, E> PoolResult<T, E> {
 	pub fn is_err(&self) -> bool {
 		match self {
 			PoolResult::Err(_) => true,
-			_ => false,
+			PoolResult::Ok(_) => false,
+			PoolResult::Panic => true,
 		}
 	}
 }

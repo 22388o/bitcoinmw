@@ -196,7 +196,8 @@ macro_rules! map_err {
 	($in_err:expr, $kind:expr, $msg:expr) => {{
 		use bmw_err::{ErrKind, Error, ErrorKind};
 		$in_err.map_err(|e| -> Error {
-			match $kind {
+			let k = $kind;
+			match k {
 				ErrKind::Configuration => {
 					ErrorKind::Configuration(format!("{}: {}", $msg, e)).into()
 				}
