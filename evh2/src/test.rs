@@ -211,15 +211,14 @@ mod test {
 				panic!("test panic");
 			}
 
-			info!("write a byte")?;
-			connection.write_handle()?.write(b"0")?;
-
 			ctx.clear_all(connection)?;
 
 			if rlock!(on_read_count) == 1 {
 				tx.send(())?;
 				Err(err!(ErrKind::Test, "on read err"))
 			} else {
+				info!("write a byte")?;
+				connection.write_handle()?.write(b"0")?;
 				Ok(())
 			}
 		})?;
