@@ -36,3 +36,6 @@ pub(crate) const WRITE_STATE_FLAG_TRIGGER_ON_READ: u8 = 0x1 << 2;
 pub(crate) const EAGAIN: i32 = 11;
 pub(crate) const ETEMPUNAVAILABLE: i32 = 35;
 pub(crate) const WINNONBLOCKING: i32 = 10035;
+
+// true to avoid the warning on while true loops
+pub(crate) const TRUE: bool = true;

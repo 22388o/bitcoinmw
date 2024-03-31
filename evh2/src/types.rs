@@ -128,6 +128,7 @@ pub struct EvhStats {
 pub struct DebugInfo {
 	pub(crate) pending: Box<dyn LockBox<bool>>,
 	pub(crate) write_err: Box<dyn LockBox<bool>>,
+	pub(crate) write_err2: Box<dyn LockBox<bool>>,
 	pub(crate) read_err: Box<dyn LockBox<bool>>,
 	pub(crate) wakeup_read_err: Box<dyn LockBox<bool>>,
 	pub(crate) write_handle_err: Box<dyn LockBox<bool>>,

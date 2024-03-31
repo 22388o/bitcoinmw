@@ -73,8 +73,12 @@ fn do_write_impl(handle: Handle, buf: &[u8], debug_info: &DebugInfo) -> Result<i
 		let text = "simulated write error";
 		return Err(err!(ErrKind::Test, text));
 	}
-
-	write_impl(handle, buf)
+	if debug_info.is_write_err2() {
+		set_errno(Errno(1));
+		Ok(-1)
+	} else {
+		write_impl(handle, buf)
+	}
 }
 
 fn do_get_events(
@@ -93,6 +97,7 @@ impl Default for DebugInfo {
 		Self {
 			pending: lock_box!(false).unwrap(),
 			write_err: lock_box!(false).unwrap(),
+			write_err2: lock_box!(false).unwrap(),
 			read_err: lock_box!(false).unwrap(),
 			wakeup_read_err: lock_box!(false).unwrap(),
 			write_handle_err: lock_box!(false).unwrap(),
@@ -167,6 +172,16 @@ impl DebugInfo {
 			false
 		}
 	}
+	fn is_write_err2(&self) -> bool {
+		#[cfg(test)]
+		{
+			**self.write_err2.rlock().unwrap().guard().unwrap()
+		}
+		#[cfg(not(test))]
+		{
+			false
+		}
+	}
 	fn is_panic_fatal_error(&self) -> bool {
 		#[cfg(test)]
 		{
@@ -220,6 +235,7 @@ impl DebugInfo {
 	fn update(&mut self, debug_info: DebugInfo) -> Result<(), Error> {
 		wlock!(self.pending) = rlock!(debug_info.pending);
 		wlock!(self.write_err) = rlock!(debug_info.write_err);
+		wlock!(self.write_err2) = rlock!(debug_info.write_err2);
 		wlock!(self.read_err) = rlock!(debug_info.read_err);
 		wlock!(self.wakeup_read_err) = rlock!(debug_info.wakeup_read_err);
 		wlock!(self.write_handle_err) = rlock!(debug_info.write_handle_err);
@@ -731,9 +747,6 @@ where
 		debug!("about to wakeup")?;
 
 		self.wakeups[tid].wakeup()?;
-
-		debug!("add complete")?;
-
 		rx.recv()?;
 
 		Ok(())
@@ -1079,6 +1092,7 @@ where
 		panic_recovery: bool,
 		debug_info: &DebugInfo,
 	) -> Result<(), Error> {
+		debug!("panic rec")?;
 		if panic_recovery && debug_info.is_panic_fatal_error() {
 			return Err(err!(ErrKind::Test, "panic fatal err"));
 		} else if !panic_recovery && debug_info.is_normal_fatal_error() {
@@ -1114,6 +1128,7 @@ where
 				// skip over errant event
 				(**ctx_guard).trigger_itt += 1;
 			} else if ret_event_itt < ret_event_count && !debug_info.is_internal_panic() {
+				debug!("itt={},count={}", ret_event_itt, ret_event_count)?;
 				// the error must have been in the on_read regular read events
 				let handle = (**ctx_guard).ret_events[(**ctx_guard).ret_event_itt].handle;
 				debug!("handle to close (regular) = {}", handle)?;
@@ -1257,7 +1272,6 @@ where
 		let now: usize = try_into!(SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis())?;
 		if now.saturating_sub(ctx.last_housekeeping) > config.housekeeping_frequency_millis {
 			Self::call_on_housekeeper(user_context, &mut callbacks.on_housekeeper)?;
-
 			ctx.last_housekeeping = now;
 		}
 
@@ -1547,7 +1561,7 @@ where
 				let conn = conn.as_mut().unwrap();
 				match conn {
 					ConnectionVariant::ServerConnection(conn) => {
-						Self::process_accept(conn, &mut accepted, debug_info)?;
+						Self::process_accept(conn, &mut accepted, debug_info, callbacks)?;
 						ret = true;
 					}
 					ConnectionVariant::ClientConnection(conn) => {
@@ -1634,26 +1648,26 @@ where
 		let handle = conn.handle();
 		// loop through and read as many slabs as we can
 
-		loop {
+		while TRUE {
 			let last_slab = conn.get_last_slab();
 			let slab_offset = conn.get_slab_offset();
 			let len = config.read_slab_size;
 			let read_slab_next_offset = len.saturating_sub(4);
 			let mut slab = if last_slab >= u32::MAX as usize {
-				let mut slab = match user_context.read_slabs.allocate() {
-					Ok(slab) => slab,
+				let slab = match user_context.read_slabs.allocate() {
+					Ok(slab) => Some(slab),
 					Err(e) => {
-						warn!("cannot allocate any more slabs due to: {}", e)?;
-						// close connection
+						warn!("cannot allocate any more slabs1 due to: {}", e)?;
 						close = true;
-						break;
+						None
 					}
 				};
+
+				cbreak!(slab.is_none());
+				let mut slab = slab.unwrap();
+
 				let id = slab.id();
-				debug!(
-					"----------------------allocate a slab1----------------({})",
-					id
-				)?;
+				debug!("allocate a slab1 {}", id)?;
 				// initialize connection with values
 				conn.set_last_slab(id);
 				conn.set_first_slab(id);
@@ -1665,18 +1679,19 @@ where
 				slab
 			} else if slab_offset == read_slab_next_offset {
 				let slab = match user_context.read_slabs.allocate() {
-					Ok(slab) => slab,
+					Ok(slab) => Some(slab),
 					Err(e) => {
-						warn!("cannot allocate any more slabs due to: {}", e)?;
+						warn!("cannot allocate any more slabs2 due to: {}", e)?;
 						close = true;
-						break;
+						None
 					}
 				};
+
+				cbreak!(slab.is_none());
+				let slab = slab.unwrap();
+
 				let slab_id = slab.id();
-				debug!(
-					"----------------------allocate a slab2----------------({})",
-					slab_id
-				)?;
+				debug!("allocate a slab2 {}", slab_id)?;
 				user_context.read_slabs.get_mut(last_slab)?.get_mut()
 					[read_slab_next_offset..read_slab_next_offset + 4]
 					.clone_from_slice(&(slab_id as u32).to_be_bytes());
@@ -1691,46 +1706,41 @@ where
 			} else {
 				user_context.read_slabs.get_mut(last_slab)?
 			};
+
 			let slab_offset = conn.get_slab_offset();
-			let rlen = match do_read_impl(
-				handle,
-				&mut slab.get_mut()[slab_offset..read_slab_next_offset],
-				debug_info,
-			) {
+			let slab_bytes = &mut slab.get_mut()[slab_offset..read_slab_next_offset];
+			let rlen = match do_read_impl(handle, slab_bytes, debug_info) {
 				Ok(rlen) => rlen,
 				Err(_e) => {
 					// read error. Close the connection
 					// we don't log this because it pollutes the logs
 					close = true;
-					break;
+					None
 				}
 			};
 
-			match rlen {
-				Some(rlen) => {
-					if rlen > 0 {
-						conn.set_slab_offset(slab_offset + rlen);
-						read_count += 1;
-					}
+			cbreak!(close);
 
-					debug!(
-						"rlen={},slab_id={},slab_offset={}",
-						rlen,
-						slab.id(),
-						slab_offset + rlen
-					)?;
+			if rlen.is_some() {
+				let rlen = rlen.unwrap();
+				if rlen > 0 {
+					conn.set_slab_offset(slab_offset + rlen);
+					read_count += 1;
+				}
 
-					if rlen == 0 {
-						debug!("connection closed")?;
-						close = true;
-						break;
-					}
+				let id = slab.id();
+				let cur = slab_offset + rlen;
+				debug!("rlen={},slab_id={},slab_offset={}", rlen, id, cur)?;
+
+				if rlen == 0 {
+					debug!("connection closed")?;
+					close = true;
+					cbreak!(true);
 				}
-				None => {
-					debug!("no more data to read for now")?;
-					// no more to read for now
-					break;
-				}
+			} else {
+				debug!("no more data to read for now")?;
+				// no more to read for now
+				cbreak!(true);
 			}
 
 			debug!("call onread")?;
@@ -1745,16 +1755,13 @@ where
 		callback: &mut Option<Pin<Box<OnHousekeeper>>>,
 	) -> Result<(), Error> {
 		user_context.slab_cur = usize::MAX;
-		match callback {
-			Some(ref mut on_housekeeper) => {
-				let mut user_context: Box<dyn UserContext> = Box::new(user_context);
-				match on_housekeeper(&mut user_context) {
-					Ok(_) => {}
-					Err(e) => warn!("on_housekeeper callback generated error: {}", e)?,
-				}
-			}
-			None => {
-				warn!("no on housekeeper handler!")?;
+		if callback.is_some() {
+			let callback = callback.as_mut().unwrap();
+			let mut user_context: Box<dyn UserContext> = Box::new(user_context);
+			let res = callback(&mut user_context);
+			if res.is_err() {
+				let e = res.unwrap_err();
+				warn!("on_housekeeper callback generated error: {}", e)?;
 			}
 		}
 		Ok(())
@@ -1765,14 +1772,13 @@ where
 		user_context: &mut UserContextImpl,
 		e: Box<dyn Any + Send>,
 	) -> Result<(), Error> {
-		let mut user_context: Box<dyn UserContext> = Box::new(user_context);
-		match callback {
-			Some(ref mut on_panic) => match on_panic(&mut user_context, e) {
-				Ok(_) => {}
-				Err(e) => warn!("on_panic callback generated error: {}", e)?,
-			},
-			None => {
-				warn!("no on panic handler!")?;
+		if callback.is_some() {
+			let mut user_context: Box<dyn UserContext> = Box::new(user_context);
+			let callback = callback.as_mut().unwrap();
+			let res = callback(&mut user_context, e);
+			if res.is_err() {
+				let e = res.unwrap_err();
+				warn!("on_panic callback generated error: {}", e)?;
 			}
 		}
 		Ok(())
@@ -1784,16 +1790,13 @@ where
 		callback: &mut Option<Pin<Box<OnRead>>>,
 	) -> Result<(), Error> {
 		user_context.slab_cur = conn.get_first_slab();
-		match callback {
-			Some(ref mut on_read) => {
-				let mut user_context: Box<dyn UserContext> = Box::new(user_context);
-				match on_read(conn, &mut user_context) {
-					Ok(_) => {}
-					Err(e) => warn!("on_read callback generated error: {}", e)?,
-				}
-			}
-			None => {
-				warn!("no on read handler!")?;
+		if callback.is_some() {
+			let mut user_context: Box<dyn UserContext> = Box::new(user_context);
+			let callback = callback.as_mut().unwrap();
+			let res = callback(conn, &mut user_context);
+			if res.is_err() {
+				let e = res.unwrap_err();
+				warn!("on_read callback generated error: {}", e)?;
 			}
 		}
 		Ok(())
@@ -1805,76 +1808,64 @@ where
 		callback: &mut Option<Pin<Box<OnAccept>>>,
 	) -> Result<(), Error> {
 		user_context.slab_cur = usize::MAX;
-		match callback {
-			Some(ref mut on_accept) => {
-				let mut user_context: Box<dyn UserContext> = Box::new(user_context);
-				match on_accept(conn, &mut user_context) {
-					Ok(_) => {}
-					Err(e) => warn!("on_accept callback generated error: {}", e)?,
-				}
-			}
-			None => {
-				warn!("no on accept handler!")?;
+		if callback.is_some() {
+			let mut user_context: Box<dyn UserContext> = Box::new(user_context);
+			let callback = callback.as_mut().unwrap();
+			let res = callback(conn, &mut user_context);
+			if res.is_err() {
+				let e = res.unwrap_err();
+				warn!("on_accept callback generated error: {}", e)?;
 			}
 		}
 		Ok(())
 	}
 
-	fn call_on_close(
+	pub(crate) fn call_on_close(
 		user_context: &mut UserContextImpl,
 		handle: Handle,
-		callback: &mut Option<Pin<Box<OnClose>>>,
+		callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
 		ctx: &mut EventHandlerContext,
 	) -> Result<(), Error> {
 		user_context.slab_cur = usize::MAX;
-		match callback {
+		match callbacks.on_close {
 			Some(ref mut callback) => match ctx.handle_hash.get(&handle) {
 				Some(id) => match ctx.id_hash.get_mut(id) {
 					Some(conn) => match conn {
 						ConnectionVariant::Connection(conn) => {
 							let mut user_context: Box<dyn UserContext> = Box::new(user_context);
-							match callback(conn, &mut user_context) {
-								Ok(_) => {}
-								Err(e) => warn!("on_close callback generated error: {}", e)?,
+							let res = callback(conn, &mut user_context);
+							if res.is_err() {
+								let e = res.unwrap_err();
+								warn!("on_close callback generated error: {}", e)?;
 							}
 						}
 						ConnectionVariant::ClientConnection(conn) => {
 							let mut user_context: Box<dyn UserContext> = Box::new(user_context);
-							match callback(conn, &mut user_context) {
-								Ok(_) => {}
-								Err(e) => warn!("on_close callback generated error: {}", e)?,
+							let res = callback(conn, &mut user_context);
+							if res.is_err() {
+								let e = res.unwrap_err();
+								warn!("on_close callback generated error: {}", e)?;
 							}
 						}
-						ConnectionVariant::ServerConnection(_conn) => {
-							warn!(
-								"unexpected on_close called on server connection tid = {}",
-								ctx.tid
-							)?;
-						}
-						ConnectionVariant::Wakeup(_wakeup) => {
-							warn!("unexpected on_close called on wakeup tid = {}", ctx.tid)?;
-						}
+						_ => warn!("on_close called on unexpected type. tid = {}", ctx.tid)?,
 					},
-					None => warn!("noneA")?,
+					None => warn!("onclose noneA")?,
 				},
-				None => warn!("noneB")?,
+				None => warn!("onclose noneB")?,
 			},
-			None => {
-				warn!("noneC")?;
-			}
+			None => warn!("onclose noneC")?,
 		}
 		Ok(())
 	}
 
-	fn process_close(
+	pub(crate) fn process_close(
 		handle: Handle,
 		ctx: &mut EventHandlerContext,
 		callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
 		mut user_context: &mut UserContextImpl,
 	) -> Result<(), Error> {
-		debug!("Calling close")?;
 		ctx.thread_stats.closes += 1;
-		Self::call_on_close(user_context, handle, &mut callbacks.on_close, ctx)?;
+		Self::call_on_close(user_context, handle, callbacks, ctx)?;
 
 		let id = ctx.handle_hash.remove(&handle).unwrap_or(u128::MAX);
 		debug!("removing handle={},id={}", handle, id)?;
@@ -1886,18 +1877,7 @@ where
 				ConnectionVariant::ClientConnection(mut conn) => {
 					user_context.clear_through(conn.get_last_slab(), &mut conn)?;
 				}
-				ConnectionVariant::ServerConnection(_conn) => {
-					warn!(
-						"unexpected process_close called on server_connection tid = {}",
-						ctx.tid
-					)?;
-				}
-				ConnectionVariant::Wakeup(_wakeup) => {
-					warn!(
-						"unexpected process_close called on wakeup tid = {}",
-						ctx.tid
-					)?;
-				}
+				_ => warn!("unexpected process_close server/wakeup tid = {}", ctx.tid)?,
 			},
 			None => warn!("expected a connection")?,
 		}
@@ -1906,30 +1886,32 @@ where
 		Ok(())
 	}
 
-	fn process_accept(
+	pub(crate) fn process_accept(
 		conn: &Connection,
 		accepted: &mut Vec<Handle>,
 		debug_info: &DebugInfo,
+		_callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
 	) -> Result<(), Error> {
 		let handle = conn.handle();
 		let id = conn.id();
 		debug!("process read event on handle={},id={}", handle, id)?;
-		loop {
-			match accept_impl(handle, debug_info) {
-				Ok(next) => {
-					cbreak!(next.is_none());
-					accepted.push(next.unwrap());
-				}
-				Err(e) => {
-					warn!("accept generated error: {}", e)?;
-					break;
-				}
+		while TRUE {
+			let accept_res = accept_impl(handle, debug_info);
+
+			if accept_res.is_ok() {
+				let next = accept_res.unwrap();
+				cbreak!(next.is_none());
+				accepted.push(next.unwrap());
+			} else {
+				let e = accept_res.unwrap_err();
+				warn!("accept generated error: {}", e)?;
+				cbreak!(true);
 			}
 		}
 		Ok(())
 	}
 
-	fn process_write_event(
+	pub(crate) fn process_write_event(
 		_config: &EventHandlerConfig,
 		ctx: &mut EventHandlerContext,
 		callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
@@ -1942,20 +1924,16 @@ where
 			Some(id) => match ctx.id_hash.get_mut(id) {
 				Some(conn) => match conn {
 					ConnectionVariant::Connection(conn) => {
-						(close, write_count) = Self::write_loop(conn)?;
+						(close, write_count) = Self::write_loop(conn, callbacks)?;
 					}
 					ConnectionVariant::ClientConnection(conn) => {
-						(close, write_count) = Self::write_loop(conn)?;
+						(close, write_count) = Self::write_loop(conn, callbacks)?;
 					}
 					_ => warn!("unexpected ConnectionVariant in process_write_event")?,
 				},
-				None => {
-					warn!("id hash lookup failed for id: {}, handle: {}", id, handle)?;
-				}
+				None => warn!("id hash lookup failed for id: {}, handle: {}", id, handle)?,
 			},
-			None => {
-				warn!("handle lookup failed for  handle: {}", handle)?;
-			}
+			None => warn!("handle lookup failed for  handle: {}", handle)?,
 		}
 
 		let ret = if close {
@@ -1969,7 +1947,10 @@ where
 		Ok(ret)
 	}
 
-	fn write_loop(conn: &mut Connection) -> Result<(bool, usize), Error> {
+	pub(crate) fn write_loop(
+		conn: &mut Connection,
+		_callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
+	) -> Result<(bool, usize), Error> {
 		let mut write_count = 0;
 		let mut wh = conn.write_handle()?;
 		let write_state = wh.write_state()?;
@@ -1977,11 +1958,12 @@ where
 		let guard = write_state.guard()?;
 		let mut close = false;
 		let mut rem = true;
+
 		loop {
 			let len = (**guard).write_buffer.len();
-			if len == 0 {
+			if len == 0 && !conn.debug_info.is_write_err2() {
 				rem = false;
-				break;
+				cbreak!(true);
 			}
 			let wlen = match do_write_impl(conn.handle(), &(**guard).write_buffer, &conn.debug_info)
 			{
@@ -1990,15 +1972,17 @@ where
 					// write i/o error. Don't log these because they would pollute
 					// the logs
 					close = true;
-					break;
+					0
 				}
 			};
+			cbreak!(close);
+
 			if wlen < 0 {
 				let err = errno().0;
 				if err != EAGAIN && err != ETEMPUNAVAILABLE && err != WINNONBLOCKING {
 					close = true;
 				}
-				break;
+				cbreak!(true);
 			} else {
 				let wlen: usize = try_into!(wlen)?;
 				if wlen > 0 {

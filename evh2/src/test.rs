@@ -75,7 +75,7 @@ mod test {
 	}
 
 	#[test]
-	fn test_evh_basic() -> Result<(), Error> {
+	fn test_evh_basic1() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let mut evh = evh!(
 			Debug(false),
@@ -140,9 +140,16 @@ mod test {
 			Ok(())
 		})?;
 
+		let (tx2, rx2) = test_info.sync_channel();
+		let mut counter = lock_box!(0)?;
+
 		evh.set_on_close(move |_connection, _ctx| -> Result<(), Error> {
 			info!("onClose")?;
-			Ok(())
+			if rlock!(counter) == 1 {
+				tx2.send(())?;
+			}
+			wlock!(counter) += 1;
+			Err(err!(ErrKind::Test, "simulated error"))
 		})?;
 
 		evh.set_on_housekeeper(move |_ctx| -> Result<(), Error> {
@@ -156,6 +163,7 @@ mod test {
 		})?;
 
 		evh.start()?;
+
 		let port = test_info.port();
 		let addr = format!("127.0.0.1:{}", port);
 		info!("connecting to addr {}", addr)?;
@@ -172,6 +180,118 @@ mod test {
 		rx.recv()?;
 		assert!(rlock!(client_recv_clone));
 		assert!(rlock!(server_recv_clone));
+
+		wh.close()?;
+
+		rx2.recv()?;
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_handler_errors() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut evh = evh!(
+			Debug(false),
+			EvhTimeout(1),
+			EvhThreads(1),
+			EvhReadSlabSize(100),
+			EvhStatsUpdateMillis(5000),
+			EvhHouseKeeperFrequencyMillis(2)
+		)?;
+
+		let mut on_read_count = lock_box!(0)?;
+		let (tx, rx) = test_info.sync_channel();
+		let (tx2, rx2) = test_info.sync_channel();
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			info!("onRead")?;
+			wlock!(on_read_count) += 1;
+
+			if rlock!(on_read_count) == 3 {
+				panic!("test panic");
+			}
+
+			info!("write a byte")?;
+			connection.write_handle()?.write(b"0")?;
+
+			ctx.clear_all(connection)?;
+
+			if rlock!(on_read_count) == 1 {
+				tx.send(())?;
+				Err(err!(ErrKind::Test, "on read err"))
+			} else {
+				Ok(())
+			}
+		})?;
+
+		evh.set_on_accept(move |_connection, _ctx| -> Result<(), Error> {
+			Err(err!(ErrKind::Test, "on accept err"))
+		})?;
+
+		evh.set_on_close(move |_connection, _ctx| -> Result<(), Error> {
+			Err(err!(ErrKind::Test, "on close err"))
+		})?;
+
+		let mut tx2_sent = lock_box!(false)?;
+
+		evh.set_on_housekeeper(move |_ctx| -> Result<(), Error> {
+			if !rlock!(tx2_sent) {
+				tx2.send(())?;
+			}
+
+			wlock!(tx2_sent) = true;
+			Err(err!(ErrKind::Test, "on housekeeper err"))
+		})?;
+
+		evh.set_on_panic(move |_ctx, _e| -> Result<(), Error> {
+			Err(err!(ErrKind::Test, "on_panic err"))
+		})?;
+
+		evh.start()?;
+
+		// wait for house keeper to execute
+		info!("wait for a housekeeper")?;
+		rx2.recv()?;
+
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		info!("connecting to addr {}", addr)?;
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+
+		evh.add_server_connection(conn)?;
+
+		{
+			let mut strm = TcpStream::connect(addr.clone())?;
+
+			strm.write(b"x")?;
+			rx.recv()?;
+			strm.write(b"y")?;
+			let mut buf = [8u8; 100];
+			let len = strm.read(&mut buf)?;
+			assert_eq!(len, 1);
+			assert_eq!(buf[0], b'0');
+		}
+		// stream will close. Ensure we can still connect
+		{
+			let mut strm = TcpStream::connect(addr.clone())?;
+
+			// this causes a thread panic (counter == 3)
+			strm.write(b"x")?;
+			let mut buf = [8u8; 100];
+			let len = strm.read(&mut buf)?;
+			// closed
+			assert_eq!(len, 0);
+		}
+		// stream will close. Ensure we can still connect
+		{
+			// now everything is normal
+			let mut strm = TcpStream::connect(addr)?;
+			strm.write(b"x")?;
+			let mut buf = [8u8; 100];
+			let len = strm.read(&mut buf)?;
+			assert_eq!(len, 1);
+			assert_eq!(buf[0], b'0');
+		}
 
 		Ok(())
 	}
@@ -1912,6 +2032,103 @@ mod test {
 		let port = pick_free_port()?;
 		assert!(create_listener(&format!("[::1]:{}", port), 1, &DebugInfo::default()).is_ok());
 
+		ehc.handle_hash.clear();
+		ehc.id_hash.clear();
+
+		ehc.handle_hash.insert(0, 0);
+		ehc.id_hash
+			.insert(0, ConnectionVariant::Wakeup(Wakeup::new()?));
+		assert!(
+			EventHandlerImpl::call_on_close(&mut user_context, 0, &mut callbacks, &mut ehc).is_ok()
+		);
+
+		ehc.handle_hash.clear();
+		ehc.id_hash.clear();
+
+		ehc.handle_hash.insert(0, 0);
+		assert!(
+			EventHandlerImpl::call_on_close(&mut user_context, 0, &mut callbacks, &mut ehc).is_ok()
+		);
+
+		ehc.handle_hash.clear();
+		ehc.id_hash.clear();
+
+		assert!(
+			EventHandlerImpl::call_on_close(&mut user_context, 0, &mut callbacks, &mut ehc).is_ok()
+		);
+
+		callbacks.on_close = None;
+		assert!(
+			EventHandlerImpl::call_on_close(&mut user_context, 0, &mut callbacks, &mut ehc).is_ok()
+		);
+
+		ehc.handle_hash.insert(0, 0);
+		ehc.id_hash
+			.insert(0, ConnectionVariant::Wakeup(Wakeup::new()?));
+		assert!(
+			EventHandlerImpl::process_close(0, &mut ehc, &mut callbacks, &mut user_context).is_ok()
+		);
+
+		let port = pick_free_port()?;
+		let _server = EvhBuilder::build_server_connection(&format!("127.0.0.1:{}", port), 1)?;
+		let mut client = EvhBuilder::build_client_connection("127.0.0.1", port)?;
+
+		// try to accept on the client (internal error printed out, but it returns ok)
+		assert!(EventHandlerImpl::process_accept(
+			&client,
+			&mut vec![],
+			&DebugInfo::default(),
+			&mut callbacks,
+		)
+		.is_ok());
+
+		assert!(EventHandlerImpl::process_write_event(
+			&config,
+			&mut ehc,
+			&mut callbacks,
+			0,
+			&mut user_context
+		)
+		.is_ok());
+
+		ehc.handle_hash.clear();
+		ehc.id_hash.clear();
+
+		ehc.handle_hash.insert(0, 0);
+
+		assert!(EventHandlerImpl::process_write_event(
+			&config,
+			&mut ehc,
+			&mut callbacks,
+			0,
+			&mut user_context
+		)
+		.is_ok());
+
+		ehc.handle_hash.clear();
+		ehc.id_hash.clear();
+
+		ehc.handle_hash.insert(0, 0);
+		ehc.id_hash
+			.insert(0, ConnectionVariant::Wakeup(Wakeup::new()?));
+
+		assert!(EventHandlerImpl::process_write_event(
+			&config,
+			&mut ehc,
+			&mut callbacks,
+			0,
+			&mut user_context
+		)
+		.is_ok());
+
+		client.wakeup = Some(Wakeup::new()?);
+		client.state = Some(lock_box!(EventHandlerState::new()?)?);
+		client.debug_info = DebugInfo {
+			write_err2: lock_box!(true)?,
+			..Default::default()
+		};
+		assert!(EventHandlerImpl::write_loop(&mut client, &mut callbacks).is_ok());
+
 		Ok(())
 	}
 
@@ -1993,6 +2210,78 @@ mod test {
 		});
 
 		sleep(Duration::from_millis(QA_SLEEP));
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_out_of_slabs() -> Result<(), Error> {
+		let test_info = test_info!()?;
+
+		let mut evh = evh_oro!(
+			Debug(false),
+			EvhTimeout(u16::MAX),
+			EvhThreads(1),
+			EvhReadSlabSize(25),
+			EvhReadSlabCount(1)
+		)?;
+
+		let mut counter = lock_box!(0)?;
+		let counter_clone = counter.clone();
+
+		evh.set_on_read(move |conn, _| -> Result<(), Error> {
+			info!("on read")?;
+			let mut counter = counter.wlock()?;
+			let guard = counter.guard()?;
+			**guard += 1;
+
+			if **guard == 2 {
+				conn.write_handle()?.write(b"response")?;
+			}
+
+			Ok(())
+		})?;
+
+		evh.start()?;
+
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+
+		info!("connecting to addr {}", addr)?;
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+
+		info!("adding connection now")?;
+		evh.add_server_connection(conn)?;
+
+		let mut strm = TcpStream::connect(addr.clone())?;
+		// write over 25 bytes
+		strm.write(b"012345678901234567890123456789")?;
+
+		let mut buf = [0u8; 100];
+
+		// the stream gets closed by the server because there's no more slabs
+		assert!(strm.read(&mut buf).is_err());
+
+		// we should have only gotten a single request (second one causes the allocation
+		// error)
+		assert_eq!(rlock!(counter_clone), 1);
+
+		// now that the connection is closed, we can continue processing because the slabs
+		// is freed up.
+
+		// open two connections
+		let mut strm1 = TcpStream::connect(addr.clone())?;
+		let mut strm2 = TcpStream::connect(addr)?;
+
+		// write less than the single slab
+		strm1.write(b"test")?;
+		strm2.write(b"test")?;
+
+		// stream 2 gets closed, but 1 is ok
+		assert!(strm2.read(&mut buf).is_err());
+		assert_eq!(strm1.read(&mut buf)?, 8);
+		assert_eq!(&buf[0..8], b"response");
+		assert_eq!(rlock!(counter_clone), 2);
+
 		Ok(())
 	}
 
