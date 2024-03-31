@@ -1749,7 +1749,7 @@ mod test {
 		let mut v = VecDeque::new();
 		let port = test_info.port();
 		let addr = format!("127.0.0.1:{}", port);
-		let server = EvhBuilder::build_server_connection(&addr, 1)?;
+		let server = EvhBuilder::build_server_connection(&addr, 5)?;
 		v.push_back(ConnectionVariant::ServerConnection(server));
 		let client = EvhBuilder::build_client_connection("127.0.0.1", port)?;
 		v.push_back(ConnectionVariant::ClientConnection(client));
@@ -1767,7 +1767,7 @@ mod test {
 
 		let port = pick_free_port()?;
 		let addr = format!("127.0.0.1:{}", port);
-		let conn = EvhBuilder::build_server_connection(&addr, 1)?;
+		let conn = EvhBuilder::build_server_connection(&addr, 5)?;
 		ehc.id_hash
 			.insert(0, ConnectionVariant::ServerConnection(conn));
 		assert!(
@@ -1825,7 +1825,7 @@ mod test {
 
 		let port = pick_free_port()?;
 		let addr = format!("127.0.0.1:{}", port);
-		let conn = EvhBuilder::build_server_connection(&addr, 1)?;
+		let conn = EvhBuilder::build_server_connection(&addr, 5)?;
 		ehc.handle_hash.insert(conn.handle(), conn.id());
 		ehc.trigger_on_read_list.push(conn.handle());
 		ehc.id_hash

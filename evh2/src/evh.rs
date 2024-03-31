@@ -1532,7 +1532,7 @@ where
 			let id = id.unwrap();
 			let mut conn = ctx.id_hash.get_mut(&id);
 			if conn.is_some() {
-				let mut conn = conn.as_mut().unwrap();
+				let conn = conn.as_mut().unwrap();
 				match conn {
 					ConnectionVariant::ServerConnection(conn) => {
 						Self::process_accept(conn, &mut accepted)?;
