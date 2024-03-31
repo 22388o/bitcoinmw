@@ -153,8 +153,8 @@ pub(crate) fn read_impl(
 	}
 }
 
-pub(crate) fn accept_impl(fd: RawFd, debug_info: &DebugInfo) -> Result<Option<Handle>, Error> {
-	if debug_info.is_os_err() {
+pub(crate) fn accept_impl(handle: Handle, debug_info: &DebugInfo) -> Result<Option<Handle>, Error> {
+	if debug_info.is_os_error() {
 		return Err(err!(ErrKind::Test, "os error"));
 	}
 	let handle = unsafe {
@@ -182,7 +182,7 @@ pub(crate) fn create_connection(host: &str, port: u16) -> Result<Handle, Error> 
 
 pub(crate) fn create_listener(
 	addr: &str,
-	size: usize,
+	_size: usize,
 	debug_info: &DebugInfo,
 ) -> Result<Handle, Error> {
 	if debug_info.is_os_error() {
