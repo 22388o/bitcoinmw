@@ -21,7 +21,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 /// The config trait allows for easy construction of configurations. Configurations can be
-/// retreived with the [`crate::Config::get`] function and configurations can be checked with the
+/// retrieved with the [`crate::Config::get`] function and configurations can be checked with the
 /// [`crate::Config::check_config`] function.
 pub trait Config {
 	/// Get a configuration option if it exists or [`std::option::Option::None`] if no configuration

@@ -394,7 +394,7 @@ where
 	fn set_on_panic_none(&mut self) -> Result<(), Error>;
 }
 
-/// This handle is returned by [`crate::ThreadPool::execute`]. It can be used to retreive the task
+/// This handle is returned by [`crate::ThreadPool::execute`]. It can be used to retrieve the task
 /// id or to block on the task.
 #[derive(Debug)]
 pub struct ThreadPoolHandle<T> {

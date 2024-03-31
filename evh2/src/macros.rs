@@ -40,7 +40,7 @@
 /// [`crate::EventHandler::set_on_housekeeper`] function. It is important to note that each thread
 /// executes it's own housekeeper function. The default value is 10_000 (10 seconds).
 /// * EvhStatsUpdateMillis ([`prim@usize`]) - The frequency, in milliseconds, at which the stats
-/// data is returned. The stats data may be retreived by calling the
+/// data is returned. The stats data may be retrieved by calling the
 /// [`crate::EventHandler::wait_for_stats`] function. The default value is 5_000 (5 seconds).
 /// * Debug ([`bool`]) - If this parameter is set to true, additional debugging information will be
 /// logged. This parameter must NOT be set in a production configuration.
@@ -194,7 +194,7 @@ macro_rules! evh {
 /// [`crate::EventHandler::set_on_housekeeper`] function. It is important to note that each thread
 /// executes it's own housekeeper function. The default value is 10_000 (10 seconds).
 /// * EvhStatsUpdateMillis ([`prim@usize`]) - The frequency, in milliseconds, at which the stats
-/// data is returned. The stats data may be retreived by calling the
+/// data is returned. The stats data may be retrieved by calling the
 /// [`crate::EventHandler::wait_for_stats`] function. The default value is 5_000 (5 seconds).
 /// * Debug ([`bool`]) - If this parameter is set to true, additional debugging information will be
 /// logged. This parameter must NOT be set in a production configuration.

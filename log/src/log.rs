@@ -724,7 +724,7 @@ impl LogImpl {
 		if metadata.is_err() || self.config.debug_invalid_metadata {
 			return Err(err!(
 				ErrKind::Log,
-				format!("failed to retreive metadata for file: {}", path.display())
+				format!("failed to retrieve metadata for file: {}", path.display())
 			));
 		}
 		let metadata = metadata.unwrap();
