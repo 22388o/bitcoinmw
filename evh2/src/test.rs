@@ -45,10 +45,11 @@ mod test {
 
 	#[test]
 	fn test_wakeup_impl() -> Result<(), Error> {
+		let debug_info = DebugInfo::default();
 		let (x, y) = wakeup_impl()?;
 		write_impl(y, b"test")?;
 		let mut buf = [0u8; 100];
-		let len = read_impl(x, &mut buf)?;
+		let len = read_impl(x, &mut buf, &debug_info)?;
 		assert_eq!(len, Some(4));
 		Ok(())
 	}
@@ -62,6 +63,14 @@ mod test {
 		let port = pick_free_port()?;
 		let addr = format!("127.0.0.1:{}", port);
 		assert!(create_listener(&addr, 1, &debug_info).is_err());
+
+		let port = pick_free_port()?;
+		let addr = format!("127.0.0.1:{}", port);
+		let conn = EvhBuilder::build_server_connection(&addr, 5)?;
+		assert!(accept_impl(conn.handle(), &debug_info).is_err());
+
+		let mut buf = [0u8; 100];
+		assert!(read_impl(conn.handle(), &mut buf, &debug_info).is_err());
 		Ok(())
 	}
 

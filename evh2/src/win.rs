@@ -136,11 +136,15 @@ pub(crate) fn close_impl_ctx(handle: Handle, ctx: &mut EventHandlerContext) -> R
 	Ok(())
 }
 
-pub(crate) fn read_impl(handle: Handle, buf: &mut [u8]) -> Result<Option<usize>, Error> {
+pub(crate) fn read_impl(
+	handle: Handle,
+	buf: &mut [u8],
+	debug_info: &DebugInfo,
+) -> Result<Option<usize>, Error> {
 	let cbuf: *mut u8 = buf as *mut _ as *mut u8;
 	let len = try_into!(buf.len())?;
 	let len = unsafe { recv(handle, cbuf, len, 0) };
-	if len < 0 && errno().0 == WINNONBLOCKING {
+	if len < 0 && errno().0 == WINNONBLOCKING && !debug_info.is_os_error() {
 		Ok(None)
 	} else if len < 0 {
 		Err(err!(ErrKind::IO, "read err {}", errno()))
@@ -149,7 +153,10 @@ pub(crate) fn read_impl(handle: Handle, buf: &mut [u8]) -> Result<Option<usize>,
 	}
 }
 
-pub(crate) fn accept_impl(handle: Handle) -> Result<Option<Handle>, Error> {
+pub(crate) fn accept_impl(fd: RawFd, debug_info: &DebugInfo) -> Result<Option<Handle>, Error> {
+	if debug_info.is_os_err() {
+		return Err(err!(ErrKind::Test, "os error"));
+	}
 	let handle = unsafe {
 		accept(
 			handle,

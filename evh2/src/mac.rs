@@ -83,14 +83,18 @@ pub(crate) fn close_impl_ctx(handle: Handle, _ctx: &mut EventHandlerContext) -> 
 	Ok(())
 }
 
-pub(crate) fn read_impl(handle: Handle, buf: &mut [u8]) -> Result<Option<usize>, Error> {
+pub(crate) fn read_impl(
+	handle: Handle,
+	buf: &mut [u8],
+	debug_info: &DebugInfo,
+) -> Result<Option<usize>, Error> {
 	set_errno(Errno(0));
 	let cbuf: *mut c_void = buf as *mut _ as *mut c_void;
 	let rlen = unsafe { read(handle, cbuf, buf.len()) };
 
 	if rlen < 0 {
 		let errno = errno();
-		if errno.0 == libc::EAGAIN {
+		if errno.0 == libc::EAGAIN && !debug_info.is_os_error() {
 			debug!("--------------------EAGAIN------------------")?;
 			Ok(None)
 		} else {
@@ -105,7 +109,7 @@ pub(crate) fn read_impl(handle: Handle, buf: &mut [u8]) -> Result<Option<usize>,
 	}
 }
 
-pub(crate) fn accept_impl(fd: RawFd) -> Result<Option<Handle>, Error> {
+pub(crate) fn accept_impl(fd: RawFd, debug_info: &DebugInfo) -> Result<Option<Handle>, Error> {
 	set_errno(Errno(0));
 	let handle = unsafe {
 		accept(
@@ -118,7 +122,7 @@ pub(crate) fn accept_impl(fd: RawFd) -> Result<Option<Handle>, Error> {
 	debug!("accept handle = {}", handle)?;
 
 	if handle < 0 {
-		if errno().0 == libc::EAGAIN {
+		if errno().0 == libc::EAGAIN && !debug_info.is_os_error() {
 			// would block, return the negative number
 			return Ok(None);
 		}

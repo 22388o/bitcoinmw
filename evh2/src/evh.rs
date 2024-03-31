@@ -53,7 +53,7 @@ fn do_wakeup_read_impl(
 		let text = "simulated read error";
 		return Err(err!(ErrKind::Test, text));
 	}
-	read_impl(handle, buf)
+	read_impl(handle, buf, debug_info)
 }
 
 fn do_read_impl(
@@ -65,7 +65,7 @@ fn do_read_impl(
 		let text = "simulated read error";
 		return Err(err!(ErrKind::Test, text));
 	}
-	read_impl(handle, buf)
+	read_impl(handle, buf, debug_info)
 }
 
 fn do_write_impl(handle: Handle, buf: &[u8], debug_info: &DebugInfo) -> Result<isize, Error> {
@@ -1547,7 +1547,7 @@ where
 				let conn = conn.as_mut().unwrap();
 				match conn {
 					ConnectionVariant::ServerConnection(conn) => {
-						Self::process_accept(conn, &mut accepted)?;
+						Self::process_accept(conn, &mut accepted, debug_info)?;
 						ret = true;
 					}
 					ConnectionVariant::ClientConnection(conn) => {
@@ -1906,12 +1906,16 @@ where
 		Ok(())
 	}
 
-	fn process_accept(conn: &Connection, accepted: &mut Vec<Handle>) -> Result<(), Error> {
+	fn process_accept(
+		conn: &Connection,
+		accepted: &mut Vec<Handle>,
+		debug_info: &DebugInfo,
+	) -> Result<(), Error> {
 		let handle = conn.handle();
 		let id = conn.id();
 		debug!("process read event on handle={},id={}", handle, id)?;
 		loop {
-			match accept_impl(handle) {
+			match accept_impl(handle, debug_info) {
 				Ok(next) => {
 					cbreak!(next.is_none());
 					accepted.push(next.unwrap());
