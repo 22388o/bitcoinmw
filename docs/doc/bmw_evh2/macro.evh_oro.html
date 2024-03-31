@@ -32,7 +32,7 @@ at which the housekeeper callback is called. The housekeeper closure is set by t
 <a href="trait.EventHandler.html#tymethod.set_on_housekeeper" title="method bmw_evh2::EventHandler::set_on_housekeeper"><code>crate::EventHandler::set_on_housekeeper</code></a> function. It is important to note that each thread
 executes it’s own housekeeper function. The default value is 10_000 (10 seconds).</li>
 <li>EvhStatsUpdateMillis (<a href="https://doc.rust-lang.org/1.77.1/std/primitive.usize.html" title="primitive usize"><code>usize</code></a>) - The frequency, in milliseconds, at which the stats
-data is returned. The stats data may be retreived by calling the
+data is returned. The stats data may be retrieved by calling the
 <a href="trait.EventHandler.html#tymethod.wait_for_stats" title="method bmw_evh2::EventHandler::wait_for_stats"><code>crate::EventHandler::wait_for_stats</code></a> function. The default value is 5_000 (5 seconds).</li>
 <li>Debug (<a href="https://doc.rust-lang.org/1.77.1/std/primitive.bool.html" title="primitive bool"><code>bool</code></a>) - If this parameter is set to true, additional debugging information will be
 logged. This parameter must NOT be set in a production configuration.</li>

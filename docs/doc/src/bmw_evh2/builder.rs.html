@@ -173,7 +173,7 @@
 	}
 
 	<span class="kw">pub fn </span>build_server_connection(addr: <span class="kw-2">&amp;</span>str, size: usize) -&gt; <span class="prelude-ty">Result</span>&lt;Connection, Error&gt; {
-		<span class="kw">let </span>handle = create_listener(addr, size)<span class="question-mark">?</span>;
+		<span class="kw">let </span>handle = create_listener(addr, size, <span class="kw-2">&amp;</span>DebugInfo::default())<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(Connection::new(
 			handle,
 			<span class="prelude-val">None</span>,

@@ -251,6 +251,7 @@
 <a href="#249" id="249">249</a>
 <a href="#250" id="250">250</a>
 <a href="#251" id="251">251</a>
+<a href="#252" id="252">252</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -449,7 +450,8 @@
 	(<span class="macro-nonterminal">$in_err</span>:expr, <span class="macro-nonterminal">$kind</span>:expr, <span class="macro-nonterminal">$msg</span>:expr) =&gt; {{
 		<span class="kw">use </span>bmw_err::{ErrKind, Error, ErrorKind};
 		<span class="macro-nonterminal">$in_err</span>.map_err(|e| -&gt; Error {
-			<span class="kw">match </span><span class="macro-nonterminal">$kind </span>{
+			<span class="kw">let </span>k = <span class="macro-nonterminal">$kind</span>;
+			<span class="kw">match </span>k {
 				ErrKind::Configuration =&gt; {
 					ErrorKind::Configuration(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into()
 				}

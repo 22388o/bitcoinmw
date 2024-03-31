@@ -316,6 +316,11 @@
 <a href="#314" id="314">314</a>
 <a href="#315" id="315">315</a>
 <a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -334,7 +339,9 @@
 // limitations under the License.
 
 </span><span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
-<span class="kw">use </span><span class="kw">crate</span>::types::{Event, EventHandlerConfig, EventHandlerContext, EventType, EventTypeIn};
+<span class="kw">use </span><span class="kw">crate</span>::types::{
+	DebugInfo, Event, EventHandlerConfig, EventHandlerContext, EventType, EventTypeIn,
+};
 <span class="kw">use </span>bmw_deps::bitvec::vec::BitVec;
 <span class="kw">use </span>bmw_deps::errno::{errno, set_errno, Errno};
 <span class="kw">use </span>bmw_deps::libc::{
@@ -414,21 +421,22 @@
 	<span class="prelude-val">Ok</span>(())
 }
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>read_impl(handle: Handle, buf: <span class="kw-2">&amp;mut </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;usize&gt;, Error&gt; {
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>read_impl(
+	handle: Handle,
+	buf: <span class="kw-2">&amp;mut </span>[u8],
+	debug_info: <span class="kw-2">&amp;</span>DebugInfo,
+) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;usize&gt;, Error&gt; {
 	set_errno(Errno(<span class="number">0</span>));
 	<span class="kw">let </span>cbuf: <span class="kw-2">*mut </span>c_void = buf <span class="kw">as </span><span class="kw-2">*mut </span><span class="kw">_ as </span><span class="kw-2">*mut </span>c_void;
 	<span class="kw">let </span>rlen = <span class="kw">unsafe </span>{ read(handle, cbuf, buf.len()) };
 
 	<span class="kw">if </span>rlen &lt; <span class="number">0 </span>{
 		<span class="kw">let </span>errno = errno();
-		<span class="kw">if </span>errno.<span class="number">0 </span>== libc::EAGAIN {
+		<span class="kw">if </span>errno.<span class="number">0 </span>== libc::EAGAIN &amp;&amp; !debug_info.is_os_error() {
 			<span class="macro">debug!</span>(<span class="string">"--------------------EAGAIN------------------"</span>)<span class="question-mark">?</span>;
 			<span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
 		} <span class="kw">else </span>{
-			<span class="kw">let </span>text = <span class="macro">format!</span>(
-				<span class="string">"I/O error occurred while reading handle {}. Error msg: {}"</span>,
-				handle, errno
-			);
+			<span class="kw">let </span>text = <span class="macro">format!</span>(<span class="string">"I/O error handle={}. Error msg: {}"</span>, handle, errno);
 			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IO, text))
 		}
 	} <span class="kw">else </span>{
@@ -436,7 +444,7 @@
 	}
 }
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>accept_impl(fd: RawFd) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Handle&gt;, Error&gt; {
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>accept_impl(fd: RawFd, debug_info: <span class="kw-2">&amp;</span>DebugInfo) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Handle&gt;, Error&gt; {
 	set_errno(Errno(<span class="number">0</span>));
 	<span class="kw">let </span>handle = <span class="kw">unsafe </span>{
 		accept(
@@ -449,7 +457,7 @@
 	<span class="macro">debug!</span>(<span class="string">"accept handle = {}"</span>, handle)<span class="question-mark">?</span>;
 
 	<span class="kw">if </span>handle &lt; <span class="number">0 </span>{
-		<span class="kw">if </span>errno().<span class="number">0 </span>== libc::EAGAIN {
+		<span class="kw">if </span>errno().<span class="number">0 </span>== libc::EAGAIN &amp;&amp; !debug_info.is_os_error() {
 			<span class="comment">// would block, return the negative number
 			</span><span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
 		}
@@ -468,11 +476,14 @@
 	<span class="kw">let </span>strm = TcpStream::connect(<span class="macro">format!</span>(<span class="string">"{}:{}"</span>, host, port))<span class="question-mark">?</span>;
 	strm.set_nonblocking(<span class="bool-val">true</span>)<span class="question-mark">?</span>;
 	<span class="kw">let </span>fd = strm.into_raw_fd();
-
 	<span class="prelude-val">Ok</span>(fd)
 }
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>create_listener(addr: <span class="kw-2">&amp;</span>str, size: usize) -&gt; <span class="prelude-ty">Result</span>&lt;Handle, Error&gt; {
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>create_listener(
+	addr: <span class="kw-2">&amp;</span>str,
+	size: usize,
+	debug_info: <span class="kw-2">&amp;</span>DebugInfo,
+) -&gt; <span class="prelude-ty">Result</span>&lt;Handle, Error&gt; {
 	set_errno(Errno(<span class="number">0</span>));
 	<span class="kw">let </span>fd = <span class="kw">match </span>SockaddrIn::from_str(addr) {
 		<span class="prelude-val">Ok</span>(sock_addr) =&gt; {
@@ -513,7 +524,7 @@
 	};
 
 	<span class="kw">unsafe </span>{
-		<span class="kw">if </span>listen(fd, <span class="macro">try_into!</span>(size)<span class="question-mark">?</span>) != <span class="number">0 </span>{
+		<span class="kw">if </span>listen(fd, <span class="macro">try_into!</span>(size)<span class="question-mark">?</span>) != <span class="number">0 </span>|| debug_info.is_os_error() {
 			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IO, <span class="string">"listen failed"</span>));
 		}
 		fcntl(fd, F_SETFL, O_NONBLOCK);
@@ -574,12 +585,11 @@
 
 			<span class="kw">let </span><span class="kw-2">mut </span>event = EpollEvent::new(interest, fd_u64);
 
+			<span class="kw">let </span>bfd = <span class="kw">unsafe </span>{ BorrowedFd::borrow_raw(evt.handle) };
 			<span class="kw">if </span><span class="kw-2">*</span>ctx.linux_ctx.filter_set.get(fd_usize).unwrap() {
-				(<span class="kw-2">*</span>ctx.linux_ctx.selector)
-					.modify(<span class="kw">unsafe </span>{ BorrowedFd::borrow_raw(evt.handle) }, <span class="kw-2">&amp;mut </span>event)<span class="question-mark">?</span>;
+				(<span class="kw-2">*</span>ctx.linux_ctx.selector).modify(bfd, <span class="kw-2">&amp;mut </span>event)<span class="question-mark">?</span>;
 			} <span class="kw">else </span>{
-				(<span class="kw-2">*</span>ctx.linux_ctx.selector)
-					.add(<span class="kw">unsafe </span>{ BorrowedFd::borrow_raw(evt.handle) }, event)<span class="question-mark">?</span>;
+				(<span class="kw-2">*</span>ctx.linux_ctx.selector).add(bfd, event)<span class="question-mark">?</span>;
 			};
 
 			ctx.linux_ctx.filter_set.replace(fd_usize, <span class="bool-val">true</span>);

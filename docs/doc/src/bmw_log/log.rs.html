@@ -1583,7 +1583,7 @@
 		<span class="kw">if </span>metadata.is_err() || <span class="self">self</span>.config.debug_invalid_metadata {
 			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
 				ErrKind::Log,
-				<span class="macro">format!</span>(<span class="string">"failed to retreive metadata for file: {}"</span>, path.display())
+				<span class="macro">format!</span>(<span class="string">"failed to retrieve metadata for file: {}"</span>, path.display())
 			));
 		}
 		<span class="kw">let </span>metadata = metadata.unwrap();

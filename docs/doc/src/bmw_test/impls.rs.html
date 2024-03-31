@@ -123,6 +123,9 @@
 <a href="#121" id="121">121</a>
 <a href="#122" id="122">122</a>
 <a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -157,8 +160,10 @@
 <span class="comment">// global counter for getting a port number
 </span><span class="kw">static </span>GLOBAL_NEXT_PORT: AtomicU16 = AtomicU16::new(<span class="number">9000</span>);
 
+<span class="kw">const </span>TIMEOUT: u64 = <span class="number">60_000</span>;
+
 <span class="comment">// pick a free port that does not collide with recently assigned ports
-</span><span class="kw">fn </span>pick_free_port() -&gt; <span class="prelude-ty">Result</span>&lt;u16, Error&gt; {
+</span><span class="kw">pub fn </span>pick_free_port() -&gt; <span class="prelude-ty">Result</span>&lt;u16, Error&gt; {
 	<span class="kw">loop </span>{
 		<span class="kw">let </span>port = GLOBAL_NEXT_PORT.fetch_add(<span class="number">1</span>, Ordering::SeqCst);
 		<span class="kw">let </span>port = <span class="kw">if </span>port == <span class="number">9000 </span>{
@@ -185,17 +190,7 @@
 		<span class="self">self</span>.port
 	}
 	<span class="kw">fn </span>sync_channel(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; (SyncSender&lt;()&gt;, Receiver&lt;()&gt;) {
-		<span class="kw">let </span>(tx, rx) = sync_channel(<span class="number">1</span>);
-		<span class="kw">let </span>tx_clone = tx.clone();
-		spawn(<span class="kw">move </span>|| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-			sleep(Duration::from_millis(<span class="number">60_000</span>));
-			<span class="kw">match </span>tx_clone.send(()) {
-				<span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
-				<span class="prelude-val">Err</span>(_e) =&gt; {}
-			}
-			<span class="prelude-val">Ok</span>(())
-		});
-		(tx, rx)
+		<span class="self">self</span>.sync_channel_impl(TIMEOUT)
 	}
 }
 
@@ -235,6 +230,17 @@
 			preserve,
 		};
 		<span class="prelude-val">Ok</span>(ret)
+	}
+
+	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>sync_channel_impl(<span class="kw-2">&amp;</span><span class="self">self</span>, timeout: u64) -&gt; (SyncSender&lt;()&gt;, Receiver&lt;()&gt;) {
+		<span class="kw">let </span>(tx, rx) = sync_channel(<span class="number">1</span>);
+		<span class="kw">let </span>tx_clone = tx.clone();
+		spawn(<span class="kw">move </span>|| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+			sleep(Duration::from_millis(timeout));
+			<span class="kw">let _ </span>= tx_clone.send(());
+			<span class="prelude-val">Ok</span>(())
+		});
+		(tx, rx)
 	}
 }
 

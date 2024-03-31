@@ -267,6 +267,15 @@
 <a href="#265" id="265">265</a>
 <a href="#266" id="266">266</a>
 <a href="#267" id="267">267</a>
+<a href="#268" id="268">268</a>
+<a href="#269" id="269">269</a>
+<a href="#270" id="270">270</a>
+<a href="#271" id="271">271</a>
+<a href="#272" id="272">272</a>
+<a href="#273" id="273">273</a>
+<a href="#274" id="274">274</a>
+<a href="#275" id="275">275</a>
+<a href="#276" id="276">276</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -413,6 +422,7 @@
 			IsHashtable(<span class="bool-val">true</span>),
 			IsHashset(<span class="bool-val">true</span>),
 			IsList(<span class="bool-val">true</span>),
+			EvhTimeout(<span class="number">123</span>),
 			Debug(<span class="bool-val">true</span>),
 			DebugLargeSlabCount(<span class="bool-val">true</span>)
 		);
@@ -456,6 +466,7 @@
 					CN::IsList,
 					CN::Debug,
 					CN::DebugLargeSlabCount,
+					CN::EvhTimeout,
 				],
 				<span class="macro">vec!</span>[]
 			)
@@ -498,6 +509,9 @@
 		<span class="macro">assert_eq!</span>(config.get_or_u64(<span class="kw-2">&amp;</span>CN::LineNumDataMaxLen, u64::MAX), <span class="number">10</span>);
 		<span class="macro">assert_eq!</span>(config.get_or_u64(<span class="kw-2">&amp;</span>CN::AutoRotate, u64::MAX), u64::MAX);
 
+		<span class="macro">assert_eq!</span>(config.get_or_u16(<span class="kw-2">&amp;</span>CN::EvhTimeout, u16::MAX), <span class="number">123</span>);
+		<span class="macro">assert_eq!</span>(config.get_or_u16(<span class="kw-2">&amp;</span>CN::AutoRotate, u16::MAX), u16::MAX);
+
 		<span class="macro">assert_eq!</span>(
 			config.get_or_string(<span class="kw-2">&amp;</span>CN::FileHeader, <span class="string">""</span>.to_string()),
 			<span class="string">"test"</span>.to_string()
@@ -523,6 +537,10 @@
 			<span class="string">""</span>.to_string()
 		);
 		<span class="macro">assert_eq!</span>(empty_config.get_or_f64(<span class="kw-2">&amp;</span>CN::AutoRotate, <span class="number">0.0</span>), <span class="number">0.0</span>);
+
+		<span class="kw">let </span>config = <span class="macro">config!</span>(AutoRotate(<span class="bool-val">false</span>));
+
+		<span class="macro">assert_eq!</span>(config.get_or_u16(<span class="kw-2">&amp;</span>CN::EvhTimeout, u16::MAX), u16::MAX);
 
 		<span class="prelude-val">Ok</span>(())
 	}
