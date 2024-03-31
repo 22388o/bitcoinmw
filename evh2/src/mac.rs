@@ -16,7 +16,9 @@
 // limitations under the License.
 
 use crate::constants::*;
-use crate::types::{Event, EventHandlerConfig, EventHandlerContext, EventType, EventTypeIn};
+use crate::types::{
+	DebugInfo, Event, EventHandlerConfig, EventHandlerContext, EventType, EventTypeIn,
+};
 use bmw_deps::errno::{errno, set_errno, Errno};
 use bmw_deps::kqueue_sys::{kevent, kqueue, EventFilter, EventFlag, FilterFlag};
 use bmw_deps::libc::{
@@ -139,7 +141,11 @@ pub(crate) fn create_connection(host: &str, port: u16) -> Result<Handle, Error> 
 	Ok(fd)
 }
 
-pub(crate) fn create_listener(addr: &str, size: usize) -> Result<Handle, Error> {
+pub(crate) fn create_listener(
+	addr: &str,
+	size: usize,
+	debug_info: &DebugInfo,
+) -> Result<Handle, Error> {
 	set_errno(Errno(0));
 	let fd = match SockaddrIn::from_str(addr) {
 		Ok(sock_addr) => {
@@ -180,7 +186,7 @@ pub(crate) fn create_listener(addr: &str, size: usize) -> Result<Handle, Error> 
 	};
 
 	unsafe {
-		if listen(fd, try_into!(size)?) != 0 {
+		if listen(fd, try_into!(size)?) != 0 || debug_info.is_os_error() {
 			return Err(err!(ErrKind::IO, "listen failed"));
 		}
 		fcntl(fd, F_SETFL, O_NONBLOCK);

@@ -74,7 +74,7 @@ impl EvhBuilder {
 	}
 
 	pub fn build_server_connection(addr: &str, size: usize) -> Result<Connection, Error> {
-		let handle = create_listener(addr, size)?;
+		let handle = create_listener(addr, size, &DebugInfo::default())?;
 		Ok(Connection::new(
 			handle,
 			None,

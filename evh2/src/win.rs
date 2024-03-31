@@ -16,7 +16,9 @@
 // limitations under the License.
 
 use crate::constants::*;
-use crate::types::{Event, EventHandlerConfig, EventHandlerContext, EventType, EventTypeIn};
+use crate::types::{
+	DebugInfo, Event, EventHandlerConfig, EventHandlerContext, EventType, EventTypeIn,
+};
 use bmw_deps::bitvec::vec::BitVec;
 use bmw_deps::errno::{errno, set_errno, Errno};
 use bmw_deps::portpicker::pick_unused_port;
@@ -171,7 +173,14 @@ pub(crate) fn create_connection(host: &str, port: u16) -> Result<Handle, Error> 
 	Ok(try_into!(fd)?)
 }
 
-pub(crate) fn create_listener(addr: &str, _size: usize) -> Result<Handle, Error> {
+pub(crate) fn create_listener(
+	addr: &str,
+	size: usize,
+	debug_info: &DebugInfo,
+) -> Result<Handle, Error> {
+	if debug_info.is_os_error() {
+		return Err(err!(ErrKind::Test, "debug_info::os_error true"));
+	}
 	let handle = try_into!(TcpListener::bind(addr)?.into_raw_socket())?;
 	let fionbio = 0x8004667eu32;
 	if unsafe { ioctlsocket(handle, fionbio as c_int, &mut 1) } != 0 {

@@ -101,6 +101,7 @@ impl Default for DebugInfo {
 			normal_fatal_error: lock_box!(false).unwrap(),
 			internal_panic: lock_box!(false).unwrap(),
 			get_events_error: lock_box!(false).unwrap(),
+			os_error: lock_box!(false).unwrap(),
 		}
 	}
 }
@@ -206,6 +207,16 @@ impl DebugInfo {
 			false
 		}
 	}
+	pub(crate) fn is_os_error(&self) -> bool {
+		#[cfg(test)]
+		{
+			**self.os_error.rlock().unwrap().guard().unwrap()
+		}
+		#[cfg(not(test))]
+		{
+			false
+		}
+	}
 	fn update(&mut self, debug_info: DebugInfo) -> Result<(), Error> {
 		wlock!(self.pending) = rlock!(debug_info.pending);
 		wlock!(self.write_err) = rlock!(debug_info.write_err);
@@ -217,6 +228,7 @@ impl DebugInfo {
 		wlock!(self.normal_fatal_error) = rlock!(debug_info.normal_fatal_error);
 		wlock!(self.internal_panic) = rlock!(debug_info.internal_panic);
 		wlock!(self.get_events_error) = rlock!(debug_info.get_events_error);
+		wlock!(self.os_error) = rlock!(debug_info.os_error);
 		Ok(())
 	}
 }

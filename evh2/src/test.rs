@@ -54,6 +54,18 @@ mod test {
 	}
 
 	#[test]
+	fn test_evh_os() -> Result<(), Error> {
+		let debug_info = DebugInfo {
+			os_error: lock_box!(true)?,
+			..Default::default()
+		};
+		let port = pick_free_port()?;
+		let addr = format!("127.0.0.1:{}", port);
+		assert!(create_listener(&addr, 1, &debug_info).is_err());
+		Ok(())
+	}
+
+	#[test]
 	fn test_evh_basic() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let mut evh = evh!(
@@ -1889,7 +1901,7 @@ mod test {
 		.is_ok());
 
 		let port = pick_free_port()?;
-		assert!(create_listener(&format!("[::1]:{}", port), 1).is_ok());
+		assert!(create_listener(&format!("[::1]:{}", port), 1, &DebugInfo::default()).is_ok());
 
 		Ok(())
 	}

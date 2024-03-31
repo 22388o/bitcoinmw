@@ -136,6 +136,7 @@ pub struct DebugInfo {
 	pub(crate) normal_fatal_error: Box<dyn LockBox<bool>>,
 	pub(crate) internal_panic: Box<dyn LockBox<bool>>,
 	pub(crate) get_events_error: Box<dyn LockBox<bool>>,
+	pub(crate) os_error: Box<dyn LockBox<bool>>,
 }
 
 // crate local structures
