@@ -2,7 +2,7 @@
 name = "bmw_evh"
 version = "0.0.3-beta.1"
 authors = ["The BitcoinMW Develoeprs"]
-description = "Eventhandler"
+description = "Eventhandler v2"
 license = "Apache-2.0"
 repository = "https://github.com/cgilliard/bitcoinmw"
 keywords = [ "crypto", "bitcoinmw" ]
@@ -14,6 +14,7 @@ edition = "2021"
 
 bmw_deps   = { path = "../deps"   }
 bmw_err    = { path = "../error"  }
+bmw_conf   = { path = "../config" }
 bmw_log    = { path = "../log"    }
 bmw_ser    = { path = "../ser"    }
 bmw_derive = { path = "../derive" }

@@ -30,17 +30,11 @@ use bmw_util::{
 };
 use clap::{load_yaml, App, ArgMatches};
 use std::collections::HashMap;
-use std::net::TcpStream;
 use std::process::exit;
 use std::sync::mpsc::sync_channel;
 use std::sync::mpsc::SyncSender;
 use std::thread::{sleep, spawn};
 use std::time::{Duration, Instant};
-
-#[cfg(unix)]
-use std::os::unix::io::IntoRawFd;
-#[cfg(windows)]
-use std::os::windows::io::IntoRawSocket;
 
 const SPACER: &str =
 	"----------------------------------------------------------------------------------------------------";
@@ -146,94 +140,59 @@ fn run_eventhandler(
 	set_log_option!(ConfigOption::DisplayLogLevel(true))?;
 
 	let addr = &format!("{}:{}", host, port)[..];
-	let config = EventHandlerConfig {
-		threads,
-		housekeeping_frequency_millis: 10_000,
-		read_slab_count,
-		max_handles_per_thread,
-		..Default::default()
-	};
-	let mut evh = bmw_evh::Builder::build_evh(config)?;
 
-	evh.set_on_read(move |conn_data, _thread_context, _| {
-		let first_slab = conn_data.first_slab();
-		let last_slab = conn_data.last_slab();
-		let slab_offset = conn_data.slab_offset();
-		let id = conn_data.get_connection_id();
-		let tid = conn_data.tid();
-		let mut wh = conn_data.write_handle();
-		let byte_count = conn_data.borrow_slab_allocator(move |sa| {
-			let mut slab_id = first_slab;
-			let mut byte_count = 0;
-			loop {
-				let slab = sa.get(slab_id.try_into()?)?;
-				let slab_bytes = slab.get();
-				let offset = if slab_id != last_slab {
-					READ_SLAB_DATA_SIZE
-				} else {
-					slab_offset as usize
-				};
+	let mut evh = evh!(
+		EvhThreads(threads),
+		EvhReadSlabCount(read_slab_count),
+		EvhReadSlabSize(512),
+		EvhHouseKeeperFrequencyMillis(10_000)
+	)?;
 
-				wh.write(&slab_bytes[0..offset as usize])?;
-				byte_count += offset;
+	evh.set_on_read(move |connection, ctx| {
+		let mut wh = connection.write_handle()?;
+		let id = connection.id();
 
-				if slab_id == last_slab {
-					break;
-				}
-				slab_id = u32::from_be_bytes(try_into!(
-					slab_bytes[READ_SLAB_DATA_SIZE..READ_SLAB_DATA_SIZE + 4]
-				)?);
+		let mut buf = [0u8; 512];
+		let mut len_sum = 0;
+		loop {
+			let len = ctx.clone_next_chunk(connection, &mut buf)?;
+			if len == 0 {
+				break;
 			}
-			Ok(byte_count)
-		})?;
+			wh.write(&buf[0..len])?;
+			len_sum += len;
+		}
 
-		conn_data.clear_through(last_slab)?;
 		if debug {
 			info!(
-				"[tid={}] Wrote back {} bytes on connection {}",
-				tid, byte_count, id
+				"[tid={:?},bytes={},cid={}",
+				std::thread::current().id(),
+				len_sum,
+				id
 			)?;
 		}
 
+		ctx.clear_all(connection)?;
+
 		Ok(())
 	})?;
 
-	evh.set_on_accept(move |conn_data, _thread_context| {
-		debug!(
-			"accept a connection handle = {}, tid={}",
-			conn_data.get_handle(),
-			conn_data.tid()
-		)?;
+	evh.set_on_accept(move |conn_data, _| {
+		debug!("accept a connection id = {}", conn_data.id(),)?;
 		Ok(())
 	})?;
-	evh.set_on_close(move |conn_data, _thread_context| {
+	evh.set_on_close(move |conn_data, _| {
 		if debug {
-			info!(
-				"on close: {}/{}",
-				conn_data.get_handle(),
-				conn_data.get_connection_id()
-			)?;
+			info!("on close: {}", conn_data.id())?;
 		}
 		Ok(())
 	})?;
 	evh.set_on_panic(move |_, _| Ok(()))?;
-	evh.set_housekeeper(move |_thread_context| Ok(()))?;
+	evh.set_on_housekeeper(move |_| Ok(()))?;
 
 	evh.start()?;
-	let handles = create_listeners(threads, addr, 10_000, reuse_port)?;
-	debug!("handles.size={},handles={:?}", handles.size(), handles)?;
-	let sc = ServerConnection {
-		tls_config: match tls {
-			true => Some(TlsServerConfig {
-				certificates_file: "./resources/cert.pem".to_string(),
-				private_key_file: "./resources/key.pem".to_string(),
-			}),
-			false => None,
-		},
-		handles,
-		is_reuse_port: reuse_port,
-	};
-	evh.add_server(sc, Box::new(""))?;
+	let sc = EvhBuilder::build_server_connection(addr, 10_000)?;
+	evh.add_server_connection(sc)?;
 
 	info!(
 		"{}",
@@ -317,7 +276,8 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 	let host = match args.is_present("host") {
 		true => args.value_of("host").unwrap(),
 		false => "127.0.0.1",
-	};
+	}
+	.to_string();
 
 	let histo = args.is_present("histo");
 
@@ -365,28 +325,19 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 	configs.insert("histo".to_string(), histo.to_string());
 	print_configs(configs)?;
 
-	let addr = format!("{}:{}", host, port);
-	let config = EventHandlerConfig {
-		threads: 1,
-		housekeeping_frequency_millis: 10_000,
-		read_slab_count,
-		max_handles_per_thread,
-		..Default::default()
-	};
-
 	let mut pool = thread_pool!(MinSize(threads), MaxSize(threads))?;
 	pool.start()?;
 	pool.set_on_panic(move |_, _| Ok(()))?;
 	let mut completions = vec![];
 	let state = lock_box!(GlobalStats::new())?;
 	for _ in 0..threads {
-		let addr = addr.clone();
-		let config = config.clone();
 		let state_clone = state.clone();
+		let host = host.clone();
 		completions.push(execute!(pool, {
 			let res = run_thread(
-				&config,
-				addr,
+				read_slab_count,
+				host,
+				port,
 				itt,
 				count,
 				clients,
@@ -618,8 +569,9 @@ fn print_histo(data: Vec<u64>, delta_micros: usize) -> Result<(), Error> {
 }
 
 fn run_thread(
-	config: &EventHandlerConfig,
-	addr: String,
+	read_slab_count: usize,
+	host: String,
+	port: u16,
 	itt: usize,
 	count: usize,
 	clients: usize,
@@ -631,14 +583,18 @@ fn run_thread(
 	min: usize,
 	sleep_time: u64,
 	histo_delta_micros: usize,
-	tls: bool,
+	_tls: bool,
 ) -> Result<(), Error> {
 	let mut dictionary = vec![];
 	for i in 0..max {
 		dictionary.push(('a' as usize + (i % 26)) as u8);
 	}
 	let state_clone = state.clone();
-	let mut evh = bmw_evh::Builder::build_evh(config.clone())?;
+	let mut evh = evh!(
+		EvhThreads(1),
+		EvhReadSlabCount(read_slab_count),
+		EvhReadSlabSize(512)
+	)?;
 
 	let (tx, rx) = sync_channel(1);
 	let sender = lock_box!(tx)?;
@@ -648,64 +604,38 @@ fn run_thread(
 	let mut recv_count = lock_box!(0usize)?;
 	let mut recv_count_clone = recv_count.clone();
 
-	evh.set_on_read(move |conn_data, _thread_context, _| {
+	evh.set_on_read(move |connection, ctx| {
 		if debug {
 			info!("evh on read")?;
 		}
-		let id = conn_data.get_connection_id();
-		let first_slab = conn_data.first_slab();
-		let slab_offset = conn_data.slab_offset();
-		let last_slab = conn_data.last_slab();
+		let id = connection.id();
 		let mut sender = sender.clone();
 		let mut state_clone = state_clone.clone();
 		let partial_data = partial_data.clone();
 		let mut partial_data_clone = partial_data.clone();
-		let res = conn_data.borrow_slab_allocator(move |sa| {
-			let mut slab_id = first_slab;
-			let mut ret: Vec<u8> = vec![];
-			let mut data_extended = false;
 
-			let partial_data = partial_data.rlock()?;
-			let guard = partial_data.guard()?;
-			match (**guard).get(&id) {
-				Some(data) => {
-					if debug {
-						info!("extend data with {:?}", data)?;
-					}
-					ret.extend(data);
-					data_extended = true;
-				}
-				_ => {}
+		let mut res = vec![];
+		let mut buf = [0u8; 512];
+		let mut len_sum = 0;
+		loop {
+			let len = ctx.clone_next_chunk(connection, &mut buf)?;
+			if len == 0 {
+				break;
 			}
+			res.extend(&buf[0..len]);
+			len_sum += len;
+		}
 
-			loop {
-				let slab = sa.get(slab_id.try_into()?)?;
-				let slab_bytes = slab.get();
-				let offset = if slab_id == last_slab {
-					slab_offset as usize
-				} else {
-					READ_SLAB_DATA_SIZE
-				};
+		if debug {
+			info!(
+				"[tid={:?},bytes={},cid={}",
+				std::thread::current().id(),
+				len_sum,
+				id
+			)?;
+		}
 
-				debug!("read bytes[{}] = {:?}", offset, &slab_bytes[0..offset])?;
-				ret.extend(&slab_bytes[0..offset]);
-
-				if debug && data_extended {
-					info!("slab extend data with {:?}", &slab_bytes[0..offset])?;
-				}
-
-				if slab_id == last_slab {
-					break;
-				} else {
-					slab_id = u32::from_be_bytes(try_into!(
-						slab_bytes[READ_SLAB_DATA_SIZE..READ_SLAB_DATA_SIZE + 4]
-					)?);
-				}
-			}
-			Ok(ret)
-		})?;
-
-		conn_data.clear_through(last_slab)?;
+		ctx.clear_all(connection)?;
 
 		if debug {
 			info!("evh read {} bytes", res.len())?;
@@ -769,8 +699,10 @@ fn run_thread(
 			if id != id_read {
 				let mut state = state_clone.wlock()?;
 				let guard = state.guard()?;
-				info!(
-					"messages={},lat_sum={}",
+				warn!(
+					"id = {} read_id = {} messages={},lat_sum={}",
+					id,
+					id_read,
 					(**guard).messages,
 					(**guard).lat_sum
 				)?;
@@ -824,45 +756,25 @@ fn run_thread(
 
 	evh.set_on_accept(move |conn_data, _thread_context| {
 		debug!(
-			"accept a connection handle = {}, tid={}",
-			conn_data.get_handle(),
-			conn_data.tid()
+			"accept a connection id = {}, tid={:?}",
+			conn_data.id(),
+			std::thread::current().id()
 		)?;
 		Ok(())
 	})?;
 	evh.set_on_close(move |conn_data, _thread_context| {
-		debug!(
-			"on close: {}/{}",
-			conn_data.get_handle(),
-			conn_data.get_connection_id()
-		)?;
+		debug!("on close: {}", conn_data.id(),)?;
 		Ok(())
 	})?;
 	evh.set_on_panic(move |_, _| Ok(()))?;
-	evh.set_housekeeper(move |_thread_context| Ok(()))?;
+	evh.set_on_housekeeper(move |_thread_context| Ok(()))?;
 	evh.start()?;
 
 	for _ in 0..reconns {
 		let mut whs = vec![];
 		for _ in 0..clients {
-			let connection = TcpStream::connect(addr.clone())?;
-			connection.set_nonblocking(true)?;
-			#[cfg(unix)]
-			let connection_handle = connection.into_raw_fd();
-			#[cfg(windows)]
-			let connection_handle = connection.into_raw_socket().try_into()?;
-
-			let client = ClientConnection {
-				handle: connection_handle,
-				tls_config: match tls {
-					true => Some(TlsClientConfig {
-						sni_host: "localhost".to_string(),
-						trusted_cert_full_chain_file: Some("./resources/cert.pem".to_string()),
-					}),
-					false => None,
-				},
-			};
-			let wh = evh.add_client(client, Box::new(""))?;
+			let client = EvhBuilder::build_client_connection(&host, port)?;
+			let wh = evh.add_client_connection(client)?;
 			whs.push(wh);
 		}
 
@@ -872,8 +784,8 @@ fn run_thread(
 				let guard = recv_count.guard()?;
 				(**guard) = 0;
 			}
-
-			for _ in 0..count {
+			info!("count={}", count);
+			for i in 0..count {
 				for wh in &mut whs {
 					let mut buf = vec![];
 					let rfloat = random::<f64>();
@@ -881,6 +793,7 @@ fn run_thread(
 					let len = min + (rfloat * (max.saturating_sub(min)) as f64).round() as usize;
 					buf.resize(len + 28, 0);
 					u32_to_slice(len as u32, &mut buf[0..4])?; // length of data
+					info!("wh.id={},count={}", wh.id(), i);
 					u128_to_slice(wh.id(), &mut buf[4..20])?; // connection id
 					usize_to_slice(try_into!(start.elapsed().as_nanos())?, &mut buf[20..28])?; // start time for request
 					buf[28..(28 + len)].copy_from_slice(&dictionary[0..len]); // data

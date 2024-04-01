@@ -15,51 +15,109 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::types::EventHandlerImpl;
-use crate::{
-	AttachmentHolder, Builder, ConnectionData, EventHandler, EventHandlerConfig, ThreadContext,
-};
+#[cfg(target_os = "linux")]
+use crate::linux::*;
+#[cfg(target_os = "macos")]
+use crate::mac::*;
+#[cfg(target_os = "windows")]
+use crate::win::*;
+
+use crate::types::{ConnectionType, DebugInfo, EventHandlerImpl};
+use crate::{Connection, EventHandler, EvhBuilder, UserContext};
+use bmw_conf::ConfigOption;
 use bmw_err::*;
+use bmw_log::*;
 use std::any::Any;
 
-impl Builder {
-	/// Builds a [`crate::EventHandler`] instance based on the specified
-	/// [`crate::EventHandlerConfig`].
-	pub fn build_evh<OnRead, OnAccept, OnClose, HouseKeeper, OnPanic>(
-		config: EventHandlerConfig,
-	) -> Result<impl EventHandler<OnRead, OnAccept, OnClose, HouseKeeper, OnPanic>, Error>
+info!();
+
+impl EvhBuilder {
+	/// Builds a [`crate::EventHandler`] with the specified vector of [`bmw_conf::ConfigOption`].
+	/// This is generally not called directly, but instead done indirectly by calling the
+	/// [`crate::evh!`] or [`crate::evh_oro`] macros.
+	pub fn build_evh<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>(
+		configs: Vec<ConfigOption>,
+	) -> Result<
+		Box<dyn EventHandler<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic> + Send + Sync>,
+		Error,
+	>
 	where
-		OnRead: FnMut(
-				&mut ConnectionData,
-				&mut ThreadContext,
-				Option<AttachmentHolder>,
-			) -> Result<(), Error>
+		OnRead: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 			+ Send
 			+ 'static
 			+ Clone
 			+ Sync
 			+ Unpin,
-		OnAccept: FnMut(&mut ConnectionData, &mut ThreadContext) -> Result<(), Error>
+		OnAccept: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 			+ Send
 			+ 'static
 			+ Clone
 			+ Sync
 			+ Unpin,
-		OnClose: FnMut(&mut ConnectionData, &mut ThreadContext) -> Result<(), Error>
+		OnClose: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 			+ Send
 			+ 'static
 			+ Clone
 			+ Sync
 			+ Unpin,
-		HouseKeeper:
-			FnMut(&mut ThreadContext) -> Result<(), Error> + Send + 'static + Clone + Sync + Unpin,
-		OnPanic: FnMut(&mut ThreadContext, Box<dyn Any + Send>) -> Result<(), Error>
+		OnHousekeeper: FnMut(&mut Box<dyn UserContext + '_>) -> Result<(), Error>
+			+ Send
+			+ 'static
+			+ Clone
+			+ Sync
+			+ Unpin,
+		OnPanic: FnMut(&mut Box<dyn UserContext + '_>, Box<dyn Any + Send>) -> Result<(), Error>
 			+ Send
 			+ 'static
 			+ Clone
 			+ Sync
 			+ Unpin,
 	{
-		EventHandlerImpl::new(config)
+		Ok(Box::new(EventHandlerImpl::new(configs)?))
+	}
+
+	/// Builds a server side [`crate::Connection`] that can be added to the
+	/// [`crate::EventHandler`] via the [`crate::EventHandler::add_server_connection`]
+	/// function.
+	/// # Input Parameters
+	/// addr - The TCP/IP address to bind to. (e.g. "127.0.0.1", "0.0.0.0", or "`[::1]`").
+	/// IPV6 is supported.
+	/// backlog - The parameter passed to the [`bmw_deps::libc::listen`] as the backlog parameter. This
+	/// value is used on Unix systems, but ignored on Windows.
+	/// # Returns
+	/// On success, [`unit`] is returned and on failure, [`bmw_err::Error`] is returned.
+	/// # Errors
+	/// [`bmw_err::ErrKind::IO`] if an i/o error occurs.
+	pub fn build_server_connection(addr: &str, backlog: usize) -> Result<Connection, Error> {
+		let handle = create_listener(addr, backlog, &DebugInfo::default())?;
+		Ok(Connection::new(
+			handle,
+			None,
+			None,
+			ConnectionType::Server,
+			DebugInfo::default(),
+		)?)
+	}
+
+	/// Builds a client side [`crate::Connection`] that can be added to the
+	/// [`crate::EventHandler`] via the [`crate::EventHandler::add_client_connection`]
+	/// function.
+	/// # Input Parameters
+	/// host - The remote host to bind to.
+	/// port - The parameter passed to the [`bmw_deps::libc::listen`] as the backlog parameter. This
+	/// value is used on Unix systems, but ignored on Windows.
+	/// # Returns
+	/// On success, [`unit`] is returned and on failure, [`bmw_err::Error`] is returned.
+	/// # Errors
+	/// [`bmw_err::ErrKind::IO`] if an i/o error occurs.
+	pub fn build_client_connection(host: &str, port: u16) -> Result<Connection, Error> {
+		let handle = create_connection(host, port)?;
+		Ok(Connection::new(
+			handle,
+			None,
+			None,
+			ConnectionType::Client,
+			DebugInfo::default(),
+		)?)
 	}
 }

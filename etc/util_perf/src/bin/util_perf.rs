@@ -18,16 +18,11 @@
 
 use bmw_err::*;
 use bmw_log::*;
-use bmw_util::{
-	array, array_list, global_slab_allocator, hashtable, slab_allocator, Hashtable, List,
-	MaxEntries, SlabAllocator, SlabCount, SlabSize, Slabs,
-};
+use bmw_util::{array, array_list, global_slab_allocator, hashtable, Hashtable, List};
 use clap::{load_yaml, App};
 use num_format::{Locale, ToFormattedString};
 use std::alloc::{GlobalAlloc, Layout, System};
-use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
 use std::time::Instant;
 
 info!();
@@ -216,13 +211,13 @@ fn do_array_string() -> Result<(), Error> {
 	Ok(())
 }
 
-fn do_hashtable(slabs: Rc<RefCell<dyn SlabAllocator>>) -> Result<(), Error> {
+fn do_hashtable() -> Result<(), Error> {
 	info!("Testing hashtable")?;
 	let mut start;
 	{
 		reset_stats()?;
 		start = Instant::now();
-		let mut hashtable = hashtable!(MaxEntries(10_000), Slabs(&slabs))?;
+		let mut hashtable = hashtable!(MaxEntries(10_000), SlabSize(100), SlabCount(100_000))?;
 
 		show_mem(start, "hashtable init")?;
 		reset_stats()?;
@@ -321,7 +316,6 @@ fn main() -> Result<(), Error> {
 
 	info!("util_perf")?;
 
-	let slabs = slab_allocator!(SlabSize(16), SlabCount(10_000))?;
 	let hashtable = args.is_present("hashtable");
 	let arraylist = args.is_present("arraylist");
 	let vec = args.is_present("vec");
@@ -331,7 +325,7 @@ fn main() -> Result<(), Error> {
 	let array_string = args.is_present("array_string");
 
 	if hashtable {
-		do_hashtable(slabs.clone())?;
+		do_hashtable()?;
 	}
 	if hashmap {
 		do_hashmap()?;

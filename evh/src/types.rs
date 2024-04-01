@@ -15,336 +15,440 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use bmw_deps::rustls::client::ClientConnection as RustlsClientConnection;
-use bmw_deps::rustls::server::{ServerConfig, ServerConnection as RustlsServerConnection};
-use bmw_derive::Serializable;
+#[cfg(target_os = "macos")]
+use crate::mac::*;
+#[cfg(target_os = "windows")]
+use crate::win::*;
+
+#[cfg(target_os = "linux")]
+use crate::linux::*;
+
+use crate::constants::*;
 use bmw_err::*;
 use bmw_util::*;
 use std::any::Any;
-use std::collections::HashMap;
-use std::net::TcpStream;
+use std::collections::{HashMap, VecDeque};
 use std::pin::Pin;
 use std::sync::mpsc::SyncSender;
-use std::sync::Arc;
 
-#[cfg(unix)]
-use std::os::unix::prelude::RawFd;
-
-#[cfg(target_os = "linux")]
-use bmw_deps::bitvec::vec::BitVec;
-#[cfg(target_os = "linux")]
-use bmw_deps::nix::sys::epoll::{Epoll, EpollEvent};
-
-#[cfg(target_os = "windows")]
-use bmw_deps::bitvec::vec::BitVec;
-
-/// TlsServerConfig specifies the configuration for a tls server.
-#[derive(Clone, Debug, PartialEq)]
-pub struct TlsServerConfig {
-	/// The location of the private_key file (privkey.pem).
-	pub private_key_file: String,
-	/// The location of the certificates file (fullchain.pem).
-	pub certificates_file: String,
-}
-
-/// TlsClientConfig specifies the configuration for a tls client.
-#[derive(PartialEq)]
-pub struct TlsClientConfig {
-	/// The sni_host you are connecting to.
-	pub sni_host: String,
-	/// An optional trusted cert full chain file for this tls connection.
-	pub trusted_cert_full_chain_file: Option<String>,
-}
-
-/// A thread context which is passed to the callbacks specified by a [`crate::EventHandler`].
-pub struct ThreadContext {
-	/// User may set this to any value and it is passed to the callbacks as a mutable
-	/// reference.
-	pub user_data: Box<dyn Any + Send + Sync>,
-}
-
-/// A struct which specifies a client connection.
-pub struct ClientConnection {
-	/// The handle (file desciptor on Unix and file handle on Windows) of this client.
-	pub handle: Handle,
-	/// The optional tls configuration for this client.
-	pub tls_config: Option<TlsClientConfig>,
-}
-
-/// A struct which specifies a server connection.
-pub struct ServerConnection {
-	/// An array of handles. The size of this array must be equal to the number of threads that
-	/// the [`crate::EventHandler`] has configured.
-	pub handles: Array<Handle>,
-	/// This is an optional TlsServerConfig for this connection. If none is specified, plain
-	/// text is used.
-	pub tls_config: Option<TlsServerConfig>,
-	pub is_reuse_port: bool,
-}
-
-/// A struct which is passed to several of the callbacks in [`crate::EventHandler`]. It provides
-/// information on the connection from which data is read.
-pub struct ConnectionData<'a> {
-	pub(crate) rwi: &'a mut StreamInfo,
-	pub(crate) tid: usize,
-	pub(crate) slabs: &'a mut Box<dyn SlabAllocator + Send + Sync>,
-	pub(crate) event_handler_data: Box<dyn LockBox<EventHandlerData>>,
-	pub(crate) debug_write_queue: bool,
-	pub(crate) debug_pending: bool,
-	pub(crate) debug_write_error: bool,
-	pub(crate) debug_suspended: bool,
-}
-
-/// A struct which is used to write to a connection.
-#[derive(Clone)]
-pub struct WriteHandle {
-	pub(crate) write_state: Box<dyn LockBox<WriteState>>,
-	pub(crate) id: u128,
-	pub(crate) handle: Handle,
-	pub(crate) event_handler_data: Box<dyn LockBox<EventHandlerData>>,
-	pub(crate) debug_write_queue: bool,
-	pub(crate) debug_pending: bool,
-	pub(crate) debug_write_error: bool,
-	pub(crate) debug_suspended: bool,
-	pub(crate) tls_server: Option<Box<dyn LockBox<RustlsServerConnection>>>,
-	pub(crate) tls_client: Option<Box<dyn LockBox<RustlsClientConnection>>>,
-}
-
-/// A struct which can be used to close a connection (note: if writing is needed as well use
-/// WriteHandle, but this is a minimal structure needed to close the connection
-pub struct CloseHandle {
-	pub(crate) write_state: Box<dyn LockBox<WriteState>>,
-	pub(crate) id: u128,
-	pub(crate) event_handler_data: Box<dyn LockBox<EventHandlerData>>,
-}
-
-/// This trait which is implemented by [`crate::ConnectionData`]. This trait is used to interact
-/// with a connection.
-pub trait ConnData {
-	/// Returns the thread id that this event occurred on.
-	fn tid(&self) -> usize;
-	/// Returns the connection id of this event.
-	fn get_connection_id(&self) -> u128;
-	/// Returns the handle of this event.
-	fn get_handle(&self) -> Handle;
-	/// Returns the handle (if any) which this connection was accepted on.
-	fn get_accept_handle(&self) -> Option<Handle>;
-	/// Returns a write handle which can be used to write to this connection.
-	fn write_handle(&self) -> WriteHandle;
-	/// borrows, immutably, the slab allocator associated with this connection.
-	fn borrow_slab_allocator<F, T>(&self, f: F) -> Result<T, Error>
-	where
-		F: FnMut(&Box<dyn SlabAllocator + Send + Sync>) -> Result<T, Error>;
-	/// Returns the offset that data has been read to in the most recent slab for this
-	/// connection.
-	fn slab_offset(&self) -> u16;
-	/// Returns the first slab in which data has been read for this connection.
-	fn first_slab(&self) -> u32;
-	/// Returns the last slab in which data has been read for this connection.
-	fn last_slab(&self) -> u32;
-	/// Clears data in slabs from memory up to and including `slab_id` for this connection.
-	fn clear_through(&mut self, slab_id: u32) -> Result<(), Error>;
-}
-
-/// The configuration for the [`crate::EventHandler`].
-#[derive(Clone)]
-pub struct EventHandlerConfig {
-	/// the number of threads for this [`crate::EventHandler`]. The default value is 6.
-	pub threads: usize,
-	/// the size of the sync_channel for the [`bmw_util::ThreadPool`] in this [`crate::EventHandler`].
-	/// The default value is 10.
-	pub sync_channel_size: usize,
-	/// the size of the write_queue for this [`crate::EventHandler`]. This is used when a write
-	/// operation would block and the data needs to be queued for writing. The default value is
-	/// 100,000.
-	pub write_queue_size: usize,
-	/// The queue size for the new handles in this [`crate::EventHandler`]. Each time a new
-	/// connection is added it must be queued. If the connections are accepted and this
-	/// [`crate::EventHandler`] is not configured with a reusable port, it must also be queued.
-	/// The default value is 1,000.
-	pub nhandles_queue_size: usize,
-	/// The maximum events to register to the eventhandler per request. Note that this is only
-	/// a hint and if the acutal need is greater than this value, the Vec that holds them is
-	/// resized. After which the vec is resized back to this value. The default value is 100.
-	pub max_events_in: usize,
-	/// The maximum events that are returned by the eventhandler per request. The default value
-	/// is 100.
-	pub max_events: usize,
-	/// The frequency at which the housekeeper callback is executed. Each thread executes the
-	/// housekeeper at this frequency. The default value is 1,000 ms or 1 second.
-	pub housekeeping_frequency_millis: u128,
-	/// The number of read slabs for this eventhandler. The default value is 1,000.
-	pub read_slab_count: usize,
-	/// The maximum number of handles per thread. The default value is 1,000.
-	pub max_handles_per_thread: usize,
-}
-
-/// This trait defines the behaviour of an eventhandler. See the module level documentation for
-/// examples.
-pub trait EventHandler<OnRead, OnAccept, OnClose, HouseKeeper, OnPanic>
+/// The [`crate::EventHandler`] trait is implemented by the returned value of the
+/// [`crate::EvhBuilder::build_evh`] function.
+/// # See also
+/// See the [`crate`] documentation as well for the background information and motivation
+/// for this crate as well as examples.
+pub trait EventHandler<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>
 where
-	OnRead: FnMut(
-			&mut ConnectionData,
-			&mut ThreadContext,
-			Option<AttachmentHolder>,
-		) -> Result<(), Error>
+	OnRead: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
 		+ Sync
 		+ Unpin,
-	OnAccept: FnMut(&mut ConnectionData, &mut ThreadContext) -> Result<(), Error>
+	OnAccept: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
 		+ Sync
 		+ Unpin,
-	OnClose: FnMut(&mut ConnectionData, &mut ThreadContext) -> Result<(), Error>
+	OnClose: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
 		+ Sync
 		+ Unpin,
-	HouseKeeper:
-		FnMut(&mut ThreadContext) -> Result<(), Error> + Send + 'static + Clone + Sync + Unpin,
-	OnPanic: FnMut(&mut ThreadContext, Box<dyn Any + Send>) -> Result<(), Error>
+	OnHousekeeper: FnMut(&mut Box<dyn UserContext + '_>) -> Result<(), Error>
+		+ Send
+		+ 'static
+		+ Clone
+		+ Sync
+		+ Unpin,
+	OnPanic: FnMut(&mut Box<dyn UserContext + '_>, Box<dyn Any + Send>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
 		+ Sync
 		+ Unpin,
 {
-	/// sets the on read callback for this [`crate::EventHandler`]. This callback is exuected
-	/// whenever data is read by a connection.
-	fn set_on_read(&mut self, on_read: OnRead) -> Result<(), Error>;
-	/// sets the on accept callback for this [`crate::EventHandler`]. This callback is executed
-	/// whenever a connection is accepted.
-	fn set_on_accept(&mut self, on_accept: OnAccept) -> Result<(), Error>;
-	/// sets the on close callback for this [`crate::EventHandler`]. This callback is executed
-	/// whenever a connection is closed.
-	fn set_on_close(&mut self, on_close: OnClose) -> Result<(), Error>;
-	/// sets the housekeeper callback for this [`crate::EventHandler`]. This callback is
-	/// executed once every [`crate::EventHandlerConfig::housekeeping_frequency_millis`]
-	/// milliseconds. Each thread executes this callback independantly.
-	fn set_housekeeper(&mut self, housekeeper: HouseKeeper) -> Result<(), Error>;
-	/// sets the on panic callback for this [`crate::EventHandler`]. This callback is executed
-	/// whenever a user callback generates a thread panic.
-	fn set_on_panic(&mut self, on_panic: OnPanic) -> Result<(), Error>;
-	/// Stop this [`crate::EventHandler`] and free all resources associated with it.
-	fn stop(&mut self) -> Result<(), Error>;
-	/// Start the [`crate::EventHandler`].
+	/// Start the [`crate::EventHandler`]. This function must be called before connections may
+	/// be added to the event handler.
+	/// # Input Parameters
+	/// none
+	/// # Returns
+	/// On success, [`unit`] is returned and on failure, [`bmw_err::Error`] is returned.
+	/// # See Also
+	/// [`crate`], [`crate::EventHandler`]
 	fn start(&mut self) -> Result<(), Error>;
-	/// Add a [`crate::ClientConnection`] to this [`crate::EventHandler`].
-	fn add_client(
-		&mut self,
-		connection: ClientConnection,
-		attachment: Box<dyn Any + Send + Sync>,
-	) -> Result<WriteHandle, Error>;
-	/// Add a [`crate::ServerConnection`] to this [`crate::EventHandler`].
-	fn add_server(
-		&mut self,
-		connection: ServerConnection,
-		attachment: Box<dyn Any + Send + Sync>,
-	) -> Result<(), Error>;
-	/// Get the eventhandler data array
-	fn event_handler_data(&self) -> Result<Array<Box<dyn LockBox<EventHandlerData>>>, Error>;
-	/// Return an instance of a [`crate::EventHandlerController`] that is associated with this
-	/// [`crate::EventHandler``].
-	fn event_handler_controller(&self) -> Result<EventHandlerController, Error>;
+	/// Set the OnRead handler for this [`crate::EventHandler`]. When data is ready on any
+	/// connections that have been added to this event handler, the OnRead callback will be
+	/// executed.
+	/// # Input Parameters
+	/// The OnRead handler to use as a callback for this [`crate::EventHandler`].
+	/// # Returns
+	/// On success, [`unit`] is returned and on failure, [`bmw_err::Error`] is returned.
+	/// # See Also
+	/// [`crate`], [`crate::EventHandler`], [`crate::UserContext`]
+	fn set_on_read(&mut self, on_read: OnRead) -> Result<(), Error>;
+	/// Set the OnAccept handler for this [`crate::EventHandler`]. When new connections are
+	/// accepted by a server connection, this callback will be executed.
+	/// # Input Parameters
+	/// The OnAccept handler to use as a callback for this [`crate::EventHandler`].
+	/// # Returns
+	/// On success, [`unit`] is returned and on failure, [`bmw_err::Error`] is returned.
+	/// # See Also
+	/// [`crate`], [`crate::EventHandler`], [`crate::UserContext`]
+	fn set_on_accept(&mut self, on_accept: OnAccept) -> Result<(), Error>;
+	/// Set the OnClose handler for this [`crate::EventHandler`]. When connections are
+	/// closed, this callback will be executed.
+	/// # Input Parameters
+	/// The OnClose handler to use as a callback for this [`crate::EventHandler`].
+	/// # Returns
+	/// On success, [`unit`] is returned and on failure, [`bmw_err::Error`] is returned.
+	/// # See Also
+	/// [`crate`], [`crate::EventHandler`], [`crate::UserContext`]
+	fn set_on_close(&mut self, on_close: OnClose) -> Result<(), Error>;
+	/// Set the OnHousekeeper handler for this [`crate::EventHandler`]. Periodically,
+	/// housekeeping needs to occur. This function allows the user to specify a hook that is
+	/// executed periodically. This can be used to close stale connections, log data, or
+	/// anything the user wishes to implement.
+	/// # Input Parameters
+	/// The OnHousekeeper handler to use as a callback for this [`crate::EventHandler`].
+	/// # Returns
+	/// On success, [`unit`] is returned and on failure, [`bmw_err::Error`] is returned.
+	/// # See Also
+	/// [`crate`], [`crate::EventHandler`], [`crate::UserContext`]
+	fn set_on_housekeeper(&mut self, on_housekeeper: OnHousekeeper) -> Result<(), Error>;
+	/// Sets the OnPanic handler for this  [`crate::EventHandler`]. This handler is executed
+	/// when a thread panic occurs in the [`crate::EventHandler::set_on_read`] handler. The
+	/// event handler implementation will tollorate thread panics in the OnRead handler only.
+	/// Panics in other handlers result in undefined behavior.
+	/// # Input Parameters
+	/// The OnPanic handler to use as a callback for this [`crate::EventHandler`].
+	/// # Returns
+	/// On success, [`unit`] is returned and on failure, [`bmw_err::Error`] is returned.
+	/// # See Also
+	/// [`crate`], [`crate::EventHandler`], [`crate::UserContext`]
+	fn set_on_panic(&mut self, on_panic: OnPanic) -> Result<(), Error>;
+	/// Add a server connection to this [`crate::EventHandler`].
+	/// # Input Parameters
+	/// connection - the [`crate::Connection`] to add to this [`crate::EventHandler`] instance.
+	/// # Returns
+	/// On success, [`unit`] is returned and on failure, [`bmw_err::Error`] is returned.
+	/// # Errors
+	/// [`bmw_err::ErrKind::IllegalArgument`] - If the connection is not a server connection.
+	/// [`bmw_err::ErrKind::IO`] - If an i/o error occurs in the [`crate::EventHandler`] while
+	/// adding this connection.
+	/// # See Also
+	/// [`crate`], [`crate::EventHandler`], [`crate::EvhBuilder::build_server_connection`]
+	fn add_server_connection(&mut self, connection: Connection) -> Result<(), Error>;
+	/// Add a client connection to this [`crate::EventHandler`].
+	/// # Input Parameters
+	/// connection - the [`crate::Connection`] to add to this [`crate::EventHandler`] instance.
+	/// # Returns
+	/// On success, [`crate::WriteHandle`] is returned and on failure, [`bmw_err::Error`] is returned.
+	/// # Errors
+	/// [`bmw_err::ErrKind::IllegalArgument`] - If the connection is not a client connection.
+	/// [`bmw_err::ErrKind::IO`] - If an i/o error occurs in the [`crate::EventHandler`] while
+	/// adding this connection.
+	/// # See Also
+	/// [`crate`], [`crate::EventHandler`], [`crate::EvhBuilder::build_client_connection`]
+	fn add_client_connection(&mut self, connection: Connection) -> Result<WriteHandle, Error>;
+	/// This function will block until statistical data is ready for this
+	/// [`crate::EventHandler`]. The time this function blocks is specified by the
+	/// [`bmw_conf::ConfigOption::EvhStatsUpdateMillis`] parameter. It is important to note
+	/// that this function may block longer if an event loop does not occur at the time
+	/// specified. So, if accurate timing is desired, a lower
+	/// [`bmw_conf::ConfigOption::EvhTimeout`] parameter may be used.
+	/// # Input Parameters
+	/// none
+	/// # Returns
+	/// On success, [`crate::EvhStats`] is returned and on failure, [`bmw_err::Error`] is returned.
+	/// # Errors
+	/// [`bmw_err::ErrKind::IO`] - If an i/o error occurs in the [`crate::EventHandler`] while
+	/// waiting for the statistical data.
+	/// # See Also
+	/// [`crate`], [`crate::EventHandler`], [`crate::EvhStats`]
+	fn wait_for_stats(&mut self) -> Result<EvhStats, Error>;
+	#[doc(hidden)]
+	fn set_debug_info(&mut self, debug_info: DebugInfo) -> Result<(), Error>;
 }
 
-/// Since [`crate::EventHandler'] is returned as an impl trait, it is not possible to store it in
-/// data structures. This struct can be used to do some operations after the
-/// [`crate::EventHandler`] has gone out of scope.
+/// The [`crate::UserContext`] trait is returned on all callbacks specified by the
+/// [`crate::EventHandler`]. It can be used to read data from the underlying connections, clear
+/// slabs that are not needed, and get or set a `user_data` structure that can be used as a context
+/// variable by the caller. The `user_data` structure is of the type `Box<dyn Any + Send + Sync>`
+/// so the user may use this for practically anything. This value stays consistent accross all
+/// callbacks for the thread that is invoked on. Each thread of the [`crate::EventHandler`] does
+/// store and return a distinct value.
+/// See the [`crate`] documentation as well for the background information and motivation
+/// for this crate as well as examples. See [`crate::EventHandler`] for the callback functions.
+pub trait UserContext {
+	/// Clone the next chunk of data, if available, that has been read by the
+	/// [`crate::EventHandler`] for this [`crate::Connection`].
+	/// # Input Parameters
+	/// connection - the [`crate::Connection`] to get the next chunk from.
+	/// buf - the mutable slice to clone the data into.
+	/// # Returns
+	/// On success, length in bytes, of data cloned is returned and on failure,
+	/// [`bmw_err::Error`] is returned.
+	/// # Errors
+	/// [`bmw_err::ErrKind::IllegalArgument`] - If the buffer is too small to store the
+	/// chunk's data. The maximum size returned is the value configured using
+	/// [`bmw_conf::ConfigOption::EvhReadSlabSize`] parameter.
+	/// # See Also
+	/// [`crate`], [`crate::UserContext`], [`crate::UserContext::clear_all`]
+	fn clone_next_chunk(
+		&mut self,
+		connection: &mut Connection,
+		buf: &mut [u8],
+	) -> Result<usize, Error>;
+	/// Retrieve the `slab_id` of the current slab being processed by this
+	/// [`crate::Connection`].
+	/// # Input Parameters
+	/// none
+	/// # Returns
+	/// The `slab_id` of the slab that is currently pointed to by this [`crate::UserContext`].
+	/// If there are no more slabs associated with this [`crate::Connection`], a number equal
+	/// to or greater than [`u32::MAX`] is returned.
+	/// # See Also
+	/// [`crate`], [`crate::UserContext`], [`crate::UserContext::clear_through`]
+	fn cur_slab_id(&self) -> usize;
+	/// Clear all slabs that are associated with this [`crate::Connection`].
+	/// # Input Parameters
+	/// connection - The [`crate::Connection`] to clear data from.
+	/// # Returns
+	/// On success, [`unit`] is returned and on failure, [`bmw_err::Error`] is returned.
+	/// # See Also
+	/// [`crate`], [`crate::UserContext`], [`crate::UserContext::clear_through`],
+	/// [`crate::UserContext::cur_slab_id`]
+	fn clear_all(&mut self, connection: &mut Connection) -> Result<(), Error>;
+	/// Clear all slabs, through the `slab_id` specified, that are associated with this
+	/// [`crate::Connection`].
+	/// # Input Parameters
+	/// slab_id - The `slab_id` of the slab to clear data through. This value can be obtained
+	/// by calling the [`crate::UserContext::cur_slab_id`] as the
+	/// [`crate::UserContext::clone_next_chunk`] function is called.
+	/// connection - The [`crate::Connection`] to clear data from.
+	/// # Returns
+	/// On success, [`unit`] is returned and on failure, [`bmw_err::Error`] is returned.
+	/// # See Also
+	/// [`crate`], [`crate::UserContext`], [`crate::UserContext::clear_all`],
+	/// [`crate::UserContext::cur_slab_id`]
+	fn clear_through(&mut self, slab_id: usize, connection: &mut Connection) -> Result<(), Error>;
+	/// Get the `user_data` object associated with this thread.
+	/// # Input Parameters
+	/// none
+	/// # Returns
+	/// The `user_data` which has been specified on a previous call to
+	/// [`crate::UserContext::set_user_data`].
+	/// # See Also
+	/// [`crate`], [`crate::UserContext`], [`crate::UserContext::set_user_data`]
+	fn get_user_data(&mut self) -> &mut Option<Box<dyn Any + Send + Sync>>;
+	/// Set the `user_data` object associated with this thread.
+	/// # Input Parameters
+	/// user_data - The value to set for this thread's context data.
+	/// # Returns
+	/// none
+	/// # See Also
+	/// [`crate`], [`crate::UserContext`], [`crate::UserContext::get_user_data`]
+	fn set_user_data(&mut self, user_data: Box<dyn Any + Send + Sync>);
+}
+
+/// The [`crate::Connection`] struct represents a connection. It may be either a server side
+/// connection or a client side connection. To create a server side connection, see
+/// [`crate::EvhBuilder::build_server_connection`]. To create a client side connection, see
+/// [`crate::EvhBuilder::build_client_connection`]. These connections can then be added to a
+/// [`crate::EventHandler`] via the [`crate::EventHandler::add_server_connection`] and
+/// [`crate::EventHandler::add_client_connection`] functions respectively.
+pub struct Connection {
+	pub(crate) handle: Handle,
+	pub(crate) id: u128,
+	pub(crate) slab_offset: usize,
+	pub(crate) first_slab: usize,
+	pub(crate) last_slab: usize,
+	pub(crate) write_state: Box<dyn LockBox<WriteState>>,
+	pub(crate) wakeup: Option<Wakeup>,
+	pub(crate) state: Option<Box<dyn LockBox<EventHandlerState>>>,
+	pub(crate) tx: Option<SyncSender<()>>,
+	pub(crate) ctype: ConnectionType,
+	pub(crate) debug_info: DebugInfo,
+}
+
+/// Builder struct for the crate. All implementations are created through this struct.
+pub struct EvhBuilder {}
+
+/// The [`crate::WriteHandle`] struct may be used to write data to the underlying connection. Since
+/// [`std::clone::Clone`] is implmeneted, the WriteHandle may be cloned and passed to other
+/// threads. This allows for asynchronous writes for applications like Websockets.
 #[derive(Clone)]
-pub struct EventHandlerController {
-	pub(crate) data: Array<Box<dyn LockBox<EventHandlerData>>>,
-	pub(crate) thread_pool_stopper: Box<dyn LockBox<Option<ThreadPoolStopper>>>,
+pub struct WriteHandle {
+	pub(crate) handle: Handle,
+	pub(crate) id: u128,
+	pub(crate) write_state: Box<dyn LockBox<WriteState>>,
+	pub(crate) wakeup: Wakeup,
+	pub(crate) state: Box<dyn LockBox<EventHandlerState>>,
+	pub(crate) debug_info: DebugInfo,
 }
 
-/// The structure that builds eventhandlers.
-pub struct Builder {}
-
+/// Statistical information for the [`crate::EventHandler`]. This struct may be retrieved by
+/// calling the [`crate::EventHandler::wait_for_stats`] function.
 #[derive(Debug, Clone)]
-pub struct AttachmentHolder {
-	pub attachment: Box<dyn LockBox<Box<dyn Any + Send + Sync>>>,
+pub struct EvhStats {
+	/// The  number of connections accepted by the [`crate::EventHandler`] in the last statistical
+	/// interval. See [`crate::EventHandler::wait_for_stats`].
+	pub accepts: usize,
+	/// The  number of connections closed by the [`crate::EventHandler`] in the last statistical
+	/// interval. See [`crate::EventHandler::wait_for_stats`].
+	pub closes: usize,
+	/// The  number of reads completed by the [`crate::EventHandler`] in the last statistical
+	/// interval. See [`crate::EventHandler::wait_for_stats`].
+	pub reads: usize,
+	/// The number of delayed writes completed by the [`crate::EventHandler`] in the last
+	/// statistical interval. See [`crate::EventHandler::wait_for_stats`]. A delay write is a
+	/// write that cannot complete at the time [`crate::WriteHandle::write`] is called. In the
+	/// event that the operating system cannot complete the write of data fully, the
+	/// [`crate::EventHandler`] will queue the data and do a `delay_write`.
+	pub delay_writes: usize,
+	/// The  number of event loops that occured by the [`crate::EventHandler`] in the last
+	/// statistical interval. See [`crate::EventHandler::wait_for_stats`]. This is the number
+	/// of times the event handler has gone through it's main loop. This can be controlled
+	/// by specifying the [`bmw_conf::ConfigOption::EvhTimeout`] parameter on instantiation as
+	/// that will affect the number of times the loop occurs. However, a loop will always
+	/// occur if the server needs to read/write. So, the number will be higher for servers
+	/// with a lot of I/O happening.
+	pub event_loops: usize,
 }
 
-// pub(crate) types
+#[allow(dead_code)]
+#[derive(Clone)]
+pub struct DebugInfo {
+	pub(crate) pending: Box<dyn LockBox<bool>>,
+	pub(crate) write_err: Box<dyn LockBox<bool>>,
+	pub(crate) write_err2: Box<dyn LockBox<bool>>,
+	pub(crate) read_err: Box<dyn LockBox<bool>>,
+	pub(crate) wakeup_read_err: Box<dyn LockBox<bool>>,
+	pub(crate) write_handle_err: Box<dyn LockBox<bool>>,
+	pub(crate) stop_error: Box<dyn LockBox<bool>>,
+	pub(crate) panic_fatal_error: Box<dyn LockBox<bool>>,
+	pub(crate) normal_fatal_error: Box<dyn LockBox<bool>>,
+	pub(crate) internal_panic: Box<dyn LockBox<bool>>,
+	pub(crate) get_events_error: Box<dyn LockBox<bool>>,
+	pub(crate) os_error: Box<dyn LockBox<bool>>,
+}
 
-#[derive(Clone, Debug)]
-pub(crate) enum LastProcessType {
-	OnRead,
-	OnClose,
-	OnAccept,
-	Housekeeper,
-	OnAcceptOutOfBand,
+// crate local structures
+
+pub(crate) struct EventHandlerState {
+	pub(crate) nconnections: VecDeque<ConnectionVariant>,
+	pub(crate) write_queue: VecDeque<u128>,
+	pub(crate) stop: bool,
 }
 
 #[derive(Clone)]
-pub(crate) struct EventHandlerContext {
-	pub(crate) debug_bypass_acc_err: bool,
-	pub(crate) debug_trigger_on_read: bool,
-	pub(crate) events: Array<Event>,
-	pub(crate) events_in: Vec<EventIn>,
-	pub(crate) tid: usize,
-	#[cfg(target_os = "linux")]
-	pub(crate) filter_set: BitVec,
-	#[cfg(target_os = "windows")]
-	pub(crate) filter_set: BitVec,
-	#[cfg(target_os = "linux")]
-	pub(crate) epoll_events: Vec<EpollEvent>,
-	#[cfg(target_os = "linux")]
-	pub(crate) selector: Arc<Epoll>,
-	#[cfg(target_os = "macos")]
-	pub(crate) selector: Handle,
-	#[cfg(target_os = "windows")]
-	pub(crate) selector: Handle,
-	pub(crate) now: u128,
-	pub(crate) last_housekeeper: u128,
-	pub(crate) connection_hashtable: Box<dyn Hashtable<u128, ConnectionInfo> + Send + Sync>,
-	pub(crate) handle_hashtable: Box<dyn Hashtable<Handle, u128> + Send + Sync>,
+pub(crate) struct Wakeup {
+	pub(crate) id: u128,
+	pub(crate) reader: Handle,
+	pub(crate) writer: Handle,
+	pub(crate) requested: Box<dyn LockBox<bool>>,
+	pub(crate) needed: Box<dyn LockBox<bool>>,
+}
+
+pub(crate) struct WriteState {
+	pub(crate) flags: u8,
+	pub(crate) write_buffer: Vec<u8>,
+}
+
+pub(crate) struct GlobalStats {
+	pub(crate) stats: EvhStats,
+	pub(crate) update_counter: usize,
+	pub(crate) tx: Option<SyncSender<()>>,
+}
+
+pub(crate) struct UserContextImpl {
 	pub(crate) read_slabs: Box<dyn SlabAllocator + Send + Sync>,
-	#[cfg(target_os = "windows")]
-	pub(crate) write_set: Box<dyn Hashset<Handle> + Send + Sync>,
-	pub(crate) counter: usize,
-	pub(crate) count: usize,
-	pub(crate) last_process_type: LastProcessType,
-	pub(crate) last_rw: Option<StreamInfo>,
-	pub(crate) last_handle_oob: Handle,
-	pub(crate) buffer: Vec<u8>,
-	pub(crate) do_write_back: bool,
-	pub(crate) attachments: HashMap<u128, AttachmentHolder>,
+	pub(crate) user_data: Option<Box<dyn Any + Send + Sync>>,
+	pub(crate) slab_cur: usize,
 }
 
 #[derive(Clone)]
-pub(crate) struct EventHandlerImpl<OnRead, OnAccept, OnClose, HouseKeeper, OnPanic>
+pub(crate) struct EventHandlerConfig {
+	pub(crate) threads: usize,
+	pub(crate) debug: bool,
+	pub(crate) timeout: u16,
+	pub(crate) read_slab_size: usize,
+	pub(crate) read_slab_count: usize,
+	pub(crate) housekeeping_frequency_millis: usize,
+	pub(crate) stats_update_frequency_millis: usize,
+}
+pub(crate) struct EventHandlerImpl<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>
 where
-	OnRead: FnMut(
-			&mut ConnectionData,
-			&mut ThreadContext,
-			Option<AttachmentHolder>,
-		) -> Result<(), Error>
+	OnRead: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
 		+ Sync
 		+ Unpin,
-	OnAccept: FnMut(&mut ConnectionData, &mut ThreadContext) -> Result<(), Error>
+	OnAccept: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
 		+ Sync
 		+ Unpin,
-	OnClose: FnMut(&mut ConnectionData, &mut ThreadContext) -> Result<(), Error>
+	OnClose: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
 		+ Sync
 		+ Unpin,
-	HouseKeeper:
-		FnMut(&mut ThreadContext) -> Result<(), Error> + Send + 'static + Clone + Sync + Unpin,
-	OnPanic: FnMut(&mut ThreadContext, Box<dyn Any + Send>) -> Result<(), Error>
+	OnHousekeeper: FnMut(&mut Box<dyn UserContext + '_>) -> Result<(), Error>
+		+ Send
+		+ 'static
+		+ Clone
+		+ Sync
+		+ Unpin,
+	OnPanic: FnMut(&mut Box<dyn UserContext + '_>, Box<dyn Any + Send>) -> Result<(), Error>
+		+ Send
+		+ 'static
+		+ Clone
+		+ Sync
+		+ Unpin,
+{
+	pub(crate) callbacks: EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
+	pub(crate) config: EventHandlerConfig,
+	pub(crate) state: Array<Box<dyn LockBox<EventHandlerState>>>,
+	pub(crate) wakeups: Array<Wakeup>,
+	pub(crate) stopper: Option<ThreadPoolStopper>,
+	pub(crate) stats: Box<dyn LockBox<GlobalStats>>,
+	pub(crate) debug_info: DebugInfo,
+}
+
+#[derive(Clone)]
+pub(crate) struct EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>
+where
+	OnRead: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
+		+ Send
+		+ 'static
+		+ Clone
+		+ Sync
+		+ Unpin,
+	OnAccept: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
+		+ Send
+		+ 'static
+		+ Clone
+		+ Sync
+		+ Unpin,
+	OnClose: FnMut(&mut Connection, &mut Box<dyn UserContext + '_>) -> Result<(), Error>
+		+ Send
+		+ 'static
+		+ Clone
+		+ Sync
+		+ Unpin,
+	OnHousekeeper: FnMut(&mut Box<dyn UserContext + '_>) -> Result<(), Error>
+		+ Send
+		+ 'static
+		+ Clone
+		+ Sync
+		+ Unpin,
+	OnPanic: FnMut(&mut Box<dyn UserContext + '_>, Box<dyn Any + Send>) -> Result<(), Error>
 		+ Send
 		+ 'static
 		+ Clone
@@ -355,116 +459,67 @@ where
 	pub(crate) on_accept: Option<Pin<Box<OnAccept>>>,
 	pub(crate) on_close: Option<Pin<Box<OnClose>>>,
 	pub(crate) on_panic: Option<Pin<Box<OnPanic>>>,
-	pub(crate) housekeeper: Option<Pin<Box<HouseKeeper>>>,
-	pub(crate) config: EventHandlerConfig,
-	pub(crate) data: Array<Box<dyn LockBox<EventHandlerData>>>,
-	pub(crate) thread_pool_stopper: Box<dyn LockBox<Option<ThreadPoolStopper>>>,
-	pub(crate) debug_write_queue: bool,
-	pub(crate) debug_pending: bool,
-	pub(crate) debug_write_error: bool,
-	pub(crate) debug_suspended: bool,
-	pub(crate) debug_fatal_error: bool,
-	pub(crate) debug_tls_server_error: bool,
-	pub(crate) debug_read_error: bool,
-	pub(crate) debug_tls_read: bool,
-	pub(crate) debug_attachment_none: bool,
-	pub(crate) debug_rw_accept_id_none: bool,
-	pub(crate) debug_close_handle: bool,
+	pub(crate) on_housekeeper: Option<Pin<Box<OnHousekeeper>>>,
 }
 
-#[derive(Clone)]
-pub(crate) struct Wakeup {
-	pub(crate) _tcp_stream: Option<Arc<TcpStream>>,
-	pub(crate) _tcp_listener: Option<Arc<TcpStream>>,
-	pub(crate) reader: Handle,
-	pub(crate) writer: Handle,
-	pub(crate) requested: Box<dyn LockBox<bool>>,
-	pub(crate) needed: Box<dyn LockBox<bool>>,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) enum ConnectionInfo {
-	ListenerInfo(ListenerInfo),
-	StreamInfo(StreamInfo),
-}
-
-unsafe impl Send for ConnectionInfo {}
-unsafe impl Sync for ConnectionInfo {}
-
-#[derive(Clone)]
-pub(crate) struct ListenerInfo {
-	pub(crate) id: u128,
-	pub(crate) handle: Handle,
-	pub(crate) is_reuse_port: bool,
-	pub(crate) tls_config: Option<Arc<ServerConfig>>,
-	pub(crate) tx: Option<SyncSender<()>>,
-	pub(crate) ready: Box<dyn LockBox<bool>>,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct StreamInfo {
-	pub(crate) id: u128,
-	pub(crate) handle: Handle,
-	pub(crate) accept_handle: Option<Handle>,
-	pub(crate) accept_id: Option<u128>,
-	pub(crate) write_state: Box<dyn LockBox<WriteState>>,
-	pub(crate) first_slab: u32,
-	pub(crate) last_slab: u32,
-	pub(crate) slab_offset: u16,
-	pub(crate) is_accepted: bool,
-	pub(crate) tls_server: Option<Box<dyn LockBox<RustlsServerConnection>>>,
-	pub(crate) tls_client: Option<Box<dyn LockBox<RustlsClientConnection>>>,
-	pub(crate) tx: Option<SyncSender<()>>,
-}
-
-#[derive(Clone, Debug, Serializable)]
-pub struct WriteState {
-	pub(crate) write_buffer: Vec<u8>,
-	pub(crate) flags: u8,
-}
-
-#[derive(Clone)]
-pub struct EventHandlerData {
-	pub(crate) write_queue: Box<dyn Queue<u128> + Send + Sync>,
-	pub(crate) nhandles: Box<dyn Queue<ConnectionInfo> + Send + Sync>,
-	pub(crate) stop: bool,
-	pub(crate) stopped: bool,
-	pub(crate) attachments: HashMap<u128, AttachmentHolder>,
-	pub(crate) wakeup: Wakeup,
-	pub(crate) debug_write_queue: bool,
-	pub(crate) debug_pending: bool,
-	pub(crate) debug_write_error: bool,
-	pub(crate) debug_suspended: bool,
-}
-
-#[cfg(unix)]
-pub type Handle = RawFd;
-#[cfg(windows)]
-pub type Handle = usize;
-
-#[derive(Debug, Clone, Serializable, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub(crate) enum EventType {
 	Read,
 	Write,
+	ReadWrite,
 }
 
-#[derive(Debug, Clone, Serializable, PartialEq)]
-pub(crate) enum EventTypeIn {
-	Accept,
-	Read,
-	Write,
-	Suspend,
-	Resume,
-}
-
-#[derive(Debug, Clone, Serializable, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub(crate) struct Event {
 	pub(crate) handle: Handle,
 	pub(crate) etype: EventType,
 }
 
-#[derive(Debug, Clone, Serializable, PartialEq)]
+#[derive(PartialEq)]
+pub(crate) enum EventTypeIn {
+	Read,
+	Write,
+}
+
 pub(crate) struct EventIn {
 	pub(crate) handle: Handle,
 	pub(crate) etype: EventTypeIn,
+}
+
+pub(crate) struct EventHandlerContext {
+	pub(crate) ret_event_count: usize,
+	pub(crate) ret_events: [Event; MAX_RET_HANDLES],
+	pub(crate) ret_event_itt: usize,
+	pub(crate) in_events: Vec<EventIn>,
+	pub(crate) handle_hash: HashMap<Handle, u128>,
+	pub(crate) id_hash: HashMap<u128, ConnectionVariant>,
+	pub(crate) wakeups: Array<Wakeup>,
+	pub(crate) tid: usize,
+	pub(crate) last_housekeeping: usize,
+	pub(crate) trigger_on_read_list: Vec<Handle>,
+	pub(crate) trigger_itt: usize,
+	pub(crate) thread_stats: EvhStats,
+	pub(crate) global_stats: Box<dyn LockBox<GlobalStats>>,
+	pub(crate) last_stats_update: usize,
+
+	#[cfg(target_os = "linux")]
+	pub(crate) linux_ctx: LinuxContext,
+	#[cfg(target_os = "macos")]
+	pub(crate) macos_ctx: MacosContext,
+	#[cfg(target_os = "windows")]
+	pub(crate) windows_ctx: WindowsContext,
+}
+
+pub(crate) enum ConnectionVariant {
+	ServerConnection(Connection),
+	ClientConnection(Connection),
+	Connection(Connection),
+	Wakeup(Wakeup),
+}
+
+#[derive(PartialEq)]
+pub(crate) enum ConnectionType {
+	Server,
+	Client,
+	Connection,
 }

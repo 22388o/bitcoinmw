@@ -15,118 +15,101 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::constants::*;
 use crate::types::{
-	Event, EventHandlerConfig, EventHandlerContext, EventType, EventTypeIn, Handle,
+	DebugInfo, Event, EventHandlerConfig, EventHandlerContext, EventType, EventTypeIn,
 };
 use bmw_deps::errno::{errno, set_errno, Errno};
-use bmw_deps::kqueue_sys::{kevent, EventFilter, EventFlag, FilterFlag};
+use bmw_deps::kqueue_sys::{kevent, kqueue, EventFilter, EventFlag, FilterFlag};
 use bmw_deps::libc::{
-	self, accept, c_void, close, fcntl, listen, pipe, read, sockaddr, socket, timespec, write,
-	F_SETFL, O_NONBLOCK,
+	self, accept, c_int, c_void, close, fcntl, listen, pipe, read, sockaddr, socket, timespec,
+	write, F_SETFL, O_NONBLOCK,
 };
 use bmw_deps::nix::sys::socket::{bind, SockaddrIn, SockaddrIn6};
 use bmw_err::*;
 use bmw_log::*;
-use bmw_util::*;
 use std::mem::{size_of, zeroed};
 use std::net::TcpStream;
-use std::os::raw::c_int;
-use std::os::unix::prelude::RawFd;
+use std::os::fd::IntoRawFd;
+use std::os::fd::RawFd;
 use std::str::FromStr;
-use std::sync::Arc;
-use std::thread::sleep;
 use std::time::Duration;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 info!();
 
-pub(crate) fn get_reader_writer() -> Result<
-	(
-		Handle,
-		Handle,
-		Option<Arc<TcpStream>>,
-		Option<Arc<TcpStream>>,
-	),
-	Error,
-> {
+pub(crate) type Handle = RawFd;
+
+pub(crate) struct MacosContext {
+	pub(crate) selector: Handle,
+}
+
+impl MacosContext {
+	pub(crate) fn new() -> Result<Self, Error> {
+		Ok(Self {
+			selector: unsafe { kqueue() },
+		})
+	}
+}
+
+pub(crate) fn write_impl(handle: Handle, buf: &[u8]) -> Result<isize, Error> {
+	set_errno(Errno(0));
+	let cbuf: *const c_void = buf as *const _ as *const c_void;
+	Ok(unsafe { write(handle, cbuf, buf.len().into()) })
+}
+
+pub(crate) fn wakeup_impl() -> Result<(Handle, Handle), Error> {
+	set_errno(Errno(0));
 	let mut retfds = [0i32; 2];
 	let fds: *mut c_int = &mut retfds as *mut _ as *mut c_int;
 	unsafe { pipe(fds) };
 	unsafe { fcntl(retfds[0], F_SETFL, O_NONBLOCK) };
 	unsafe { fcntl(retfds[1], F_SETFL, O_NONBLOCK) };
-	Ok((retfds[0], retfds[1], None, None))
+	Ok((retfds[0], retfds[1]))
 }
 
-pub(crate) fn read_bytes_impl(handle: Handle, buf: &mut [u8]) -> isize {
-	let cbuf: *mut c_void = buf as *mut _ as *mut c_void;
-	unsafe { read(handle, cbuf, buf.len()) }
-}
-
-pub(crate) fn write_bytes_impl(handle: Handle, buf: &[u8]) -> isize {
-	let cbuf: *const c_void = buf as *const _ as *const c_void;
-	unsafe { write(handle, cbuf, buf.len().into()) }
-}
-
-pub(crate) fn create_listeners_impl(
-	size: usize,
-	addr: &str,
-	listen_size: usize,
-	_reuse_port: bool,
-) -> Result<Array<Handle>, Error> {
-	let fd = match SockaddrIn::from_str(addr) {
-		Ok(sock_addr) => {
-			let fd = get_socket(libc::AF_INET)?;
-			unsafe {
-				let optval: libc::c_int = 1;
-				libc::setsockopt(
-					fd,
-					libc::SOL_SOCKET,
-					libc::SO_REUSEADDR,
-					&optval as *const _ as *const libc::c_void,
-					std::mem::size_of_val(&optval) as libc::socklen_t,
-				);
-			}
-
-			bind(fd, &sock_addr)?;
-
-			fd
-		}
-		Err(_) => {
-			let sock_addr = SockaddrIn6::from_str(addr)?;
-			let fd = get_socket(libc::AF_INET6)?;
-			unsafe {
-				let optval: libc::c_int = 1;
-				libc::setsockopt(
-					fd,
-					libc::SOL_SOCKET,
-					libc::SO_REUSEADDR,
-					&optval as *const _ as *const libc::c_void,
-					std::mem::size_of_val(&optval) as libc::socklen_t,
-				);
-			}
-
-			bind(fd, &sock_addr)?;
-
-			fd
-		}
-	};
-
+pub(crate) fn close_impl(handle: Handle) -> Result<(), Error> {
+	debug!("closing {}", handle)?;
+	set_errno(Errno(0));
 	unsafe {
-		if listen(fd, try_into!(listen_size)?) != 0 {
-			return Err(err!(ErrKind::IO, "listen failed"));
-		}
-		fcntl(fd, F_SETFL, O_NONBLOCK);
+		close(handle);
 	}
-
-	let mut ret = array!(size, &0)?;
-	for i in 0..size {
-		ret[i] = fd;
-	}
-
-	Ok(ret)
+	Ok(())
 }
 
-pub(crate) fn accept_impl(fd: RawFd) -> Result<RawFd, Error> {
+pub(crate) fn close_impl_ctx(handle: Handle, _ctx: &mut EventHandlerContext) -> Result<(), Error> {
+	set_errno(Errno(0));
+	debug!("close_impl_ctx handle = {}", handle)?;
+	close_impl(handle)?;
+	Ok(())
+}
+
+pub(crate) fn read_impl(
+	handle: Handle,
+	buf: &mut [u8],
+	debug_info: &DebugInfo,
+) -> Result<Option<usize>, Error> {
+	set_errno(Errno(0));
+	let cbuf: *mut c_void = buf as *mut _ as *mut c_void;
+	let rlen = unsafe { read(handle, cbuf, buf.len()) };
+
+	if rlen < 0 {
+		let errno = errno();
+		if errno.0 == libc::EAGAIN && !debug_info.is_os_error() {
+			debug!("--------------------EAGAIN------------------")?;
+			Ok(None)
+		} else {
+			let text = format!(
+				"I/O error occurred while reading handle {}. Error msg: {}",
+				handle, errno
+			);
+			Err(err!(ErrKind::IO, text))
+		}
+	} else {
+		Ok(Some(try_into!(rlen)?))
+	}
+}
+
+pub(crate) fn accept_impl(fd: RawFd, debug_info: &DebugInfo) -> Result<Option<Handle>, Error> {
 	set_errno(Errno(0));
 	let handle = unsafe {
 		accept(
@@ -136,10 +119,12 @@ pub(crate) fn accept_impl(fd: RawFd) -> Result<RawFd, Error> {
 		)
 	};
 
+	debug!("accept handle = {}", handle)?;
+
 	if handle < 0 {
-		if errno().0 == libc::EAGAIN {
+		if errno().0 == libc::EAGAIN && !debug_info.is_os_error() {
 			// would block, return the negative number
-			return Ok(handle);
+			return Ok(None);
 		}
 		let fmt = format!("accept failed: {}", errno());
 		return Err(err!(ErrKind::IO, fmt));
@@ -149,50 +134,95 @@ pub(crate) fn accept_impl(fd: RawFd) -> Result<RawFd, Error> {
 		fcntl(handle, F_SETFL, O_NONBLOCK);
 	}
 
-	Ok(handle)
+	Ok(Some(handle))
 }
 
-pub(crate) fn close_impl(
+pub(crate) fn create_connection(host: &str, port: u16) -> Result<Handle, Error> {
+	let strm = TcpStream::connect(format!("{}:{}", host, port))?;
+	strm.set_nonblocking(true)?;
+	let fd = strm.into_raw_fd();
+
+	Ok(fd)
+}
+
+pub(crate) fn create_listener(
+	addr: &str,
+	size: usize,
+	debug_info: &DebugInfo,
+) -> Result<Handle, Error> {
+	set_errno(Errno(0));
+	let fd = match SockaddrIn::from_str(addr) {
+		Ok(sock_addr) => {
+			let fd = unsafe { socket(libc::AF_INET, libc::SOCK_STREAM, 0) };
+
+			unsafe {
+				let optval: libc::c_int = 1;
+				libc::setsockopt(
+					fd,
+					libc::SOL_SOCKET,
+					libc::SO_REUSEADDR,
+					&optval as *const _ as *const libc::c_void,
+					std::mem::size_of_val(&optval) as libc::socklen_t,
+				);
+			}
+
+			bind(fd, &sock_addr)?;
+			fd
+		}
+		Err(_) => {
+			let sock_addr = SockaddrIn6::from_str(addr)?;
+			let fd = unsafe { socket(libc::AF_INET6, libc::SOCK_STREAM, 0) };
+
+			unsafe {
+				let optval: libc::c_int = 1;
+				libc::setsockopt(
+					fd,
+					libc::SOL_SOCKET,
+					libc::SO_REUSEADDR,
+					&optval as *const _ as *const libc::c_void,
+					std::mem::size_of_val(&optval) as libc::socklen_t,
+				);
+			}
+
+			bind(fd, &sock_addr)?;
+			fd
+		}
+	};
+
+	unsafe {
+		if listen(fd, try_into!(size)?) != 0 || debug_info.is_os_error() {
+			return Err(err!(ErrKind::IO, "listen failed"));
+		}
+		fcntl(fd, F_SETFL, O_NONBLOCK);
+	}
+	debug!("ret fd = {}", fd)?;
+	Ok(fd)
+}
+
+pub(crate) fn update_ctx(
 	_ctx: &mut EventHandlerContext,
-	handle: Handle,
-	_partial: bool,
+	_handle: Handle,
+	_etype: EventTypeIn,
 ) -> Result<(), Error> {
-	unsafe {
-		close(handle);
-	}
 	Ok(())
 }
 
-pub(crate) fn close_handle_impl(handle: Handle) -> Result<(), Error> {
-	unsafe {
-		close(handle);
-	}
-	Ok(())
-}
-
-pub(crate) fn get_events_impl(
+pub(crate) fn get_events(
 	config: &EventHandlerConfig,
 	ctx: &mut EventHandlerContext,
-	wakeup_requested: bool,
-	kevs: &mut Vec<kevent>,
-	ret_kevs: &mut Vec<kevent>,
-) -> Result<usize, Error> {
-	debug!(
-		"get_impl_mac: {}, pushing {} fd",
-		ctx.tid,
-		ctx.events_in.len()
-	)?;
-	kevs.clear();
-	for evt in &ctx.events_in {
+) -> Result<(), Error> {
+	let kevs = get_events_in(config, ctx)?;
+	get_events_out(config, ctx, kevs)?;
+	Ok(())
+}
+
+pub(crate) fn get_events_in(
+	_config: &EventHandlerConfig,
+	ctx: &mut EventHandlerContext,
+) -> Result<Vec<kevent>, Error> {
+	let mut kevs = vec![];
+	for evt in &ctx.in_events {
 		match evt.etype {
-			EventTypeIn::Accept => {
-				kevs.push(kevent::new(
-					evt.handle.try_into()?,
-					EventFilter::EVFILT_READ,
-					EventFlag::EV_ADD | EventFlag::EV_CLEAR,
-					FilterFlag::empty(),
-				));
-			}
 			EventTypeIn::Read => {
 				kevs.push(kevent::new(
 					evt.handle.try_into()?,
@@ -209,75 +239,68 @@ pub(crate) fn get_events_impl(
 					FilterFlag::empty(),
 				));
 			}
-			EventTypeIn::Suspend => {
-				kevs.push(kevent::new(
-					evt.handle.try_into()?,
-					EventFilter::EVFILT_READ,
-					EventFlag::EV_DISABLE,
-					FilterFlag::empty(),
-				));
-			}
-			EventTypeIn::Resume => {
-				kevs.push(kevent::new(
-					evt.handle.try_into()?,
-					EventFilter::EVFILT_READ,
-					EventFlag::EV_ENABLE,
-					FilterFlag::empty(),
-				));
-			}
 		}
 	}
-	ctx.events_in.clear();
-	ctx.events_in.shrink_to(config.max_events_in);
+	Ok(kevs)
+}
 
-	let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
-	let diff = now - ctx.now;
-	let sleep = if wakeup_requested {
-		0
-	} else {
-		config.housekeeping_frequency_millis.saturating_sub(diff)
+pub(crate) fn get_events_out(
+	config: &EventHandlerConfig,
+	ctx: &mut EventHandlerContext,
+	kevs: Vec<kevent>,
+) -> Result<(), Error> {
+	let mut ret_kevs = vec![];
+	for _ in 0..MAX_RET_HANDLES {
+		ret_kevs.push(kevent::new(
+			0,
+			EventFilter::EVFILT_SYSCOUNT,
+			EventFlag::empty(),
+			FilterFlag::empty(),
+		));
+	}
+	let results = {
+		set_errno(Errno(0));
+		let (requested, _lock) = ctx.wakeups[ctx.tid].pre_block()?;
+		let timeout = Duration::from_millis(if requested { 0 } else { config.timeout.into() });
+		unsafe {
+			kevent(
+				ctx.macos_ctx.selector,
+				kevs.as_ptr(),
+				kevs.len().try_into()?,
+				ret_kevs.as_mut_ptr(),
+				ret_kevs.len().try_into()?,
+				&duration_to_timespec(timeout),
+			)
+		}
 	};
-	set_errno(Errno(0));
-	let ret_count = unsafe {
-		kevent(
-			ctx.selector,
-			kevs.as_ptr(),
-			kevs.len().try_into()?,
-			ret_kevs.as_mut_ptr(),
-			ret_kevs.len().try_into()?,
-			&duration_to_timespec(Duration::from_millis(sleep as u64)),
-		)
-	};
-	ctx.now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
-	debug!("ret_count = {}", ret_count)?;
-	if ret_count < 0 {
+
+	ctx.wakeups[ctx.tid].post_block()?;
+
+	if results < 0 {
 		return Err(err!(
 			ErrKind::IO,
 			format!("kqueue selector had an error: {}", errno())
 		));
 	}
 
-	for i in 0..ret_count as usize {
-		ctx.events[i] = Event {
-			handle: ret_kevs[i].ident.try_into()?,
-			etype: match ret_kevs[i].filter {
-				EventFilter::EVFILT_READ => EventType::Read,
-				EventFilter::EVFILT_WRITE => EventType::Write,
-				_ => {
-					return Err(err!(
-						ErrKind::IO,
-						format!(
-							"unexpected event type returned by kqueue: {:?}",
-							ret_kevs[i]
-						)
-					));
-				}
-			},
-		};
-		debug!("ev = {:?}", ctx.events[i])?;
+	let results: usize = try_into!(results)?;
+
+	ctx.ret_event_count = 0;
+	for i in 0..results {
+		let is_write = ret_kevs[i].filter == EventFilter::EVFILT_WRITE;
+		let is_read = ret_kevs[i].filter == EventFilter::EVFILT_READ;
+		if is_write {
+			ctx.ret_events[ctx.ret_event_count] =
+				Event::new(try_into!(ret_kevs[i].ident)?, EventType::ReadWrite);
+			ctx.ret_event_count += 1;
+		} else if is_read {
+			ctx.ret_events[ctx.ret_event_count] =
+				Event::new(try_into!(ret_kevs[i].ident)?, EventType::Read);
+			ctx.ret_event_count += 1;
+		}
 	}
 
-	Ok(ret_count.try_into()?)
+	Ok(())
 }
 
 fn duration_to_timespec(d: Duration) -> timespec {
@@ -293,21 +316,4 @@ fn duration_to_timespec(d: Duration) -> timespec {
 	}
 
 	timespec { tv_sec, tv_nsec }
-}
-
-fn get_socket(family: c_int) -> Result<RawFd, Error> {
-	let mut count = 0;
-	loop {
-		count += 1;
-		let raw_fd = unsafe { socket(family, libc::SOCK_STREAM, 0) };
-
-		if raw_fd <= 0 {
-			if count > 10 {
-				return Err(err!(ErrKind::IO, "socket returned an invalid fd"));
-			}
-			sleep(Duration::from_millis(1));
-		} else {
-			return Ok(raw_fd);
-		}
-	}
 }
