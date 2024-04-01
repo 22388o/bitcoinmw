@@ -316,6 +316,8 @@ pub struct EvhStats {
 	/// occur if the server needs to read/write. So, the number will be higher for servers
 	/// with a lot of I/O happening.
 	pub event_loops: usize,
+	pub bytes_read: u128,
+	pub bytes_delay_write: u128,
 }
 
 #[allow(dead_code)]

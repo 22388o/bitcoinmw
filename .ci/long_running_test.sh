@@ -8,7 +8,7 @@ if [ "$1" == "Schedule" ]; then
   for (( i=0; i<$LOOPS; i++ ))
   do
     echo "Running tests: $i `date`"
-    cargo tarpaulin -p bmw_evh2 --skip-clean
+    cargo tarpaulin -p bmw_evh --skip-clean
     if [ $? != 0 ]; then
       break;
     fi

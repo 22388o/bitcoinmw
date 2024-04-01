@@ -1592,6 +1592,7 @@ where
 		let mut accepted = vec![];
 		let mut close = false;
 		let mut read_count = 0;
+		let mut read_sum = 0;
 		debug!("process read event= {}", handle)?;
 		let id = ctx.handle_hash.get(&handle);
 		if id.is_some() {
@@ -1605,12 +1606,12 @@ where
 						ret = true;
 					}
 					ConnectionVariant::ClientConnection(conn) => {
-						(close, read_count) =
+						(close, read_count, read_sum) =
 							Self::process_read(conn, config, callbacks, user_context, debug_info)?;
 						ret = !close;
 					}
 					ConnectionVariant::Connection(conn) => {
-						(close, read_count) =
+						(close, read_count, read_sum) =
 							Self::process_read(conn, config, callbacks, user_context, debug_info)?;
 						ret = !close;
 					}
@@ -1642,6 +1643,7 @@ where
 			Self::process_close(handle, ctx, callbacks, user_context)?;
 		}
 		ctx.thread_stats.reads += read_count;
+		ctx.thread_stats.bytes_read += read_sum;
 
 		Self::process_accepted_connections(accepted, config, state, &mut ctx.wakeups, debug_info)?;
 		Ok(ret)
@@ -1681,10 +1683,11 @@ where
 		callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
 		user_context: &mut UserContextImpl,
 		debug_info: &DebugInfo,
-	) -> Result<(bool, usize), Error> {
+	) -> Result<(bool, usize, u128), Error> {
 		debug!("in process_read")?;
 		let mut close = false;
 		let mut read_count = 0;
+		let mut read_sum = 0u128;
 		let handle = conn.handle();
 		// loop through and read as many slabs as we can
 
@@ -1766,6 +1769,8 @@ where
 				if rlen > 0 {
 					conn.set_slab_offset(slab_offset + rlen);
 					read_count += 1;
+					let rlen_u128: u128 = try_into!(rlen)?;
+					read_sum += rlen_u128;
 				}
 
 				let id = slab.id();
@@ -1787,7 +1792,7 @@ where
 			Self::call_on_read(user_context, conn, &mut callbacks.on_read)?;
 		}
 
-		Ok((close, read_count))
+		Ok((close, read_count, read_sum))
 	}
 
 	fn call_on_housekeeper(
@@ -1960,14 +1965,15 @@ where
 	) -> Result<bool, Error> {
 		let mut close = false;
 		let mut write_count = 0;
+		let mut write_sum = 0;
 		match ctx.handle_hash.get(&handle) {
 			Some(id) => match ctx.id_hash.get_mut(id) {
 				Some(conn) => match conn {
 					ConnectionVariant::Connection(conn) => {
-						(close, write_count) = Self::write_loop(conn, callbacks)?;
+						(close, write_count, write_sum) = Self::write_loop(conn, callbacks)?;
 					}
 					ConnectionVariant::ClientConnection(conn) => {
-						(close, write_count) = Self::write_loop(conn, callbacks)?;
+						(close, write_count, write_sum) = Self::write_loop(conn, callbacks)?;
 					}
 					_ => warn!("unexpected ConnectionVariant in process_write_event")?,
 				},
@@ -1984,14 +1990,17 @@ where
 		};
 
 		ctx.thread_stats.delay_writes += write_count;
+		ctx.thread_stats.bytes_delay_write += write_sum;
+
 		Ok(ret)
 	}
 
 	pub(crate) fn write_loop(
 		conn: &mut Connection,
 		_callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
-	) -> Result<(bool, usize), Error> {
+	) -> Result<(bool, usize, u128), Error> {
 		let mut write_count = 0;
+		let mut write_sum = 0;
 		let mut wh = conn.write_handle()?;
 		let write_state = wh.write_state()?;
 		let mut write_state = write_state.wlock()?;
@@ -2027,6 +2036,8 @@ where
 				let wlen: usize = try_into!(wlen)?;
 				if wlen > 0 {
 					write_count += 1;
+					let wlen_u128: u128 = try_into!(wlen)?;
+					write_sum += wlen_u128;
 				}
 
 				(**guard).write_buffer.drain(0..wlen);
@@ -2042,7 +2053,7 @@ where
 			}
 		}
 
-		Ok((close, write_count))
+		Ok((close, write_count, write_sum))
 	}
 
 	fn stop(&mut self) -> Result<(), Error> {
@@ -2128,6 +2139,8 @@ impl EvhStats {
 			reads: 0,
 			delay_writes: 0,
 			event_loops: 0,
+			bytes_delay_write: 0,
+			bytes_read: 0,
 		}
 	}
 
@@ -2137,6 +2150,8 @@ impl EvhStats {
 		self.reads = 0;
 		self.delay_writes = 0;
 		self.event_loops = 0;
+		self.bytes_read = 0;
+		self.bytes_delay_write = 0;
 	}
 
 	fn incr_stats(&mut self, stats: &EvhStats) {
@@ -2145,5 +2160,7 @@ impl EvhStats {
 		self.reads += stats.reads;
 		self.delay_writes += stats.delay_writes;
 		self.event_loops += stats.event_loops;
+		self.bytes_read += stats.bytes_read;
+		self.bytes_delay_write += stats.bytes_delay_write;
 	}
 }
