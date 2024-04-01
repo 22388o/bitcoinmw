@@ -32,6 +32,9 @@ use std::any::Any;
 info!();
 
 impl EvhBuilder {
+	/// Builds a [`crate::EventHandler`] with the specified vector of [`bmw_conf::ConfigOption`].
+	/// This is generally not called directly, but instead done indirectly by calling the
+	/// [`crate::evh!`] or [`crate::evh_oro`] macros.
 	pub fn build_evh<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>(
 		configs: Vec<ConfigOption>,
 	) -> Result<
@@ -73,8 +76,20 @@ impl EvhBuilder {
 		Ok(Box::new(EventHandlerImpl::new(configs)?))
 	}
 
-	pub fn build_server_connection(addr: &str, size: usize) -> Result<Connection, Error> {
-		let handle = create_listener(addr, size, &DebugInfo::default())?;
+	/// Builds a server side [`crate::Connection`] that can be added to the
+	/// [`crate::EventHandler`] via the [`crate::EventHandler::add_server_connection`]
+	/// function.
+	/// # Input Parameters
+	/// addr - The TCP/IP address to bind to. (e.g. "127.0.0.1", "0.0.0.0", or "`[::1]`").
+	/// IPV6 is supported.
+	/// backlog - The parameter passed to the [`bmw_deps::libc::listen`] as the backlog parameter. This
+	/// value is used on Unix systems, but ignored on Windows.
+	/// # Returns
+	/// On success, [`unit`] is returned and on failure, [`bmw_err::Error`] is returned.
+	/// # Errors
+	/// [`bmw_err::ErrKind::IO`] if an i/o error occurs.
+	pub fn build_server_connection(addr: &str, backlog: usize) -> Result<Connection, Error> {
+		let handle = create_listener(addr, backlog, &DebugInfo::default())?;
 		Ok(Connection::new(
 			handle,
 			None,
@@ -84,6 +99,17 @@ impl EvhBuilder {
 		)?)
 	}
 
+	/// Builds a client side [`crate::Connection`] that can be added to the
+	/// [`crate::EventHandler`] via the [`crate::EventHandler::add_client_connection`]
+	/// function.
+	/// # Input Parameters
+	/// host - The remote host to bind to.
+	/// port - The parameter passed to the [`bmw_deps::libc::listen`] as the backlog parameter. This
+	/// value is used on Unix systems, but ignored on Windows.
+	/// # Returns
+	/// On success, [`unit`] is returned and on failure, [`bmw_err::Error`] is returned.
+	/// # Errors
+	/// [`bmw_err::ErrKind::IO`] if an i/o error occurs.
 	pub fn build_client_connection(host: &str, port: u16) -> Result<Connection, Error> {
 		let handle = create_connection(host, port)?;
 		Ok(Connection::new(

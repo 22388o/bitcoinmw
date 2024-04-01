@@ -407,6 +407,17 @@ impl WriteState {
 }
 
 impl WriteHandle {
+	/// Write data to the underlying connection for this [`crate::WriteHandle`].
+	/// # Input Parameters
+	/// data - the data to be written to the connecction.
+	/// # Returns
+	/// On success, [`unit`] is returned and on failure, [`bmw_err::Error`] is returned.
+	/// # Errors
+	/// [`bmw_err::ErrKind::IO`] - if an I/O error occurs while writing to the connection.
+	/// [`bmw_err::ErrKind::IO`] - if the connection is already closed.
+	/// # See also
+	/// See the [`crate`] documentation as well for the background information and motivation
+	/// for this crate as well as examples.
 	pub fn write(&mut self, data: &[u8]) -> Result<(), Error> {
 		let data_len = data.len();
 		let wlen = {
@@ -438,6 +449,15 @@ impl WriteHandle {
 		}
 		Ok(())
 	}
+	/// Close the underlying connection for this [`crate::WriteHandle`].
+	/// # Returns
+	/// On success, [`unit`] is returned and on failure, [`bmw_err::Error`] is returned.
+	/// # Errors
+	/// [`bmw_err::ErrKind::IO`] - if an I/O error occurs while closing the connection.
+	/// [`bmw_err::ErrKind::IO`] - if the connection is already closed.
+	/// # See also
+	/// See the [`crate`] documentation as well for the background information and motivation
+	/// for this crate as well as examples.
 	pub fn close(&mut self) -> Result<(), Error> {
 		{
 			let mut write_state = self.write_state.wlock()?;
@@ -460,6 +480,17 @@ impl WriteHandle {
 		self.wakeup.wakeup()?;
 		Ok(())
 	}
+
+	/// Trigger a callback of the handler specified by [`crate::EventHandler::set_on_read`].
+	/// This is useful in applications like pipelines where data is held up for later
+	/// processing so that asynchronous threads can be executed.
+	/// On success, [`unit`] is returned and on failure, [`bmw_err::Error`] is returned.
+	/// # Errors
+	/// [`bmw_err::ErrKind::IO`] - if an I/O error occurs.
+	/// [`bmw_err::ErrKind::IO`] - if the connection is already closed.
+	/// # See also
+	/// See the [`crate`] documentation as well for the background information and motivation
+	/// for this crate as well as examples.
 	pub fn trigger_on_read(&mut self) -> Result<(), Error> {
 		debug!("trigger on read {} ", self.handle)?;
 		{
@@ -539,9 +570,14 @@ impl WriteHandle {
 }
 
 impl Connection {
+	/// Retrieves the `id` for this Connection. The id is a unique random u128 value.
 	pub fn id(&self) -> u128 {
 		self.id
 	}
+
+	/// Returns a [`crate::WriteHandle`] which can be used to write data, close the
+	/// connection, or trigger and on_read event for the underlying connection. See
+	/// [`crate::WriteHandle`].
 	pub fn write_handle(&self) -> Result<WriteHandle, Error> {
 		let wh = WriteHandle::new(self, self.debug_info.clone())?;
 		Ok(wh)

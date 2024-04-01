@@ -107,6 +107,7 @@ mod test {
 		});
 
 		rx.recv()?;
+
 		wakeup.wakeup()?;
 
 		let mut count = 0;

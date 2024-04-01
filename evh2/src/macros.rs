@@ -58,8 +58,8 @@
 /// * [`bmw_err::ErrKind::Configuration`] - If EvhHouseKeeperFrequencyMillis is 0.
 ///
 /// # See also
-/// See the [`crate`] documentation as well for the background information and motivation for this
-/// crate.
+/// See the [`crate`] documentation as well for the background information and motivation
+/// for this crate as well as examples.
 ///
 /// # Examples
 ///```
@@ -73,7 +73,7 @@
 ///
 /// fn main() -> Result<(), Error> {
 ///     // create an evh with the specified configuration. The unspecified values are
-///     //the defaults mentioned above.
+///     // the defaults mentioned above.
 ///     let mut evh = evh!(
 ///         EvhTimeout(100),
 ///         EvhThreads(1),
@@ -165,7 +165,7 @@ macro_rules! evh {
 
 /// The [`crate::evh_oro!`] macro builds a [`crate::EventHandler`] implementation. This is a simplified
 /// version of the [`crate::evh!`] macro. It allows the user to not have to specify the handlers
-/// other than the [`crate::EventHandler::set_on_read`]. Hence, it is called `evh_oro` (evh on read
+/// other than the [`crate::EventHandler::set_on_read`] handler. Hence, it is called `evh_oro` (evh on read
 /// only). This macro is useful for testing, but also for simple use cases where only on read
 /// processing is necessary. It can allow the user to avoid specifying the unused boilerplate code
 /// that is required since all of the handlers must be specified with the [`crate::evh!`] macro.
@@ -212,8 +212,8 @@ macro_rules! evh {
 /// * [`bmw_err::ErrKind::Configuration`] - If EvhHouseKeeperFrequencyMillis is 0.
 ///
 /// # See also
-/// See the [`crate`] documentation as well for the background information and motivation for this
-/// crate.
+/// See the [`crate`] documentation as well for the background information and motivation
+/// for this crate as well as examples.
 ///
 /// # Examples
 ///```
@@ -227,7 +227,7 @@ macro_rules! evh {
 ///
 /// fn main() -> Result<(), Error> {
 ///     // create an evh with the specified configuration. The unspecified values are
-///     //the defaults mentioned above.
+///     // the defaults mentioned above.
 ///     let mut evh = evh_oro!(
 ///         EvhTimeout(100),
 ///         EvhThreads(1),
