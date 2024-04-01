@@ -44,8 +44,8 @@ values mentioned above or if there are any duplicate parameters specified.</li>
 <li>[<code>bmw_err::ErrKind::Configuration</code>] - If EvhHouseKeeperFrequencyMillis is 0.</li>
 </ul>
 <h2 id="see-also"><a class="doc-anchor" href="#see-also">§</a>See also</h2>
-<p>See the <a href="index.html" title="mod bmw_evh2"><code>crate</code></a> documentation as well for the background information and motivation for this
-crate.</p>
+<p>See the <a href="index.html" title="mod bmw_evh2"><code>crate</code></a> documentation as well for the background information and motivation
+for this crate as well as examples.</p>
 <h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2>
 <div class="example-wrap"><pre class="rust rust-example-rendered"><code> <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
  <span class="kw">use </span>bmw_test::<span class="kw-2">*</span>;
@@ -57,7 +57,7 @@ crate.</p>
 
  <span class="kw">fn </span>main() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
      <span class="comment">// create an evh with the specified configuration. The unspecified values are
-     //the defaults mentioned above.
+     // the defaults mentioned above.
      </span><span class="kw">let </span><span class="kw-2">mut </span>evh = <span class="macro">evh!</span>(
          EvhTimeout(<span class="number">100</span>),
          EvhThreads(<span class="number">1</span>),

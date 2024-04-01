@@ -97,6 +97,32 @@
 <a href="#95" id="95">95</a>
 <a href="#96" id="96">96</a>
 <a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -131,7 +157,10 @@
 <span class="macro">info!</span>();
 
 <span class="kw">impl </span>EvhBuilder {
-	<span class="kw">pub fn </span>build_evh&lt;OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic&gt;(
+	<span class="doccomment">/// Builds a [`crate::EventHandler`] with the specified vector of [`bmw_conf::ConfigOption`].
+	/// This is generally not called directly, but instead done indirectly by calling the
+	/// [`crate::evh!`] or [`crate::evh_oro`] macros.
+	</span><span class="kw">pub fn </span>build_evh&lt;OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic&gt;(
 		configs: Vec&lt;ConfigOption&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;
 		Box&lt;<span class="kw">dyn </span>EventHandler&lt;OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic&gt; + Send + Sync&gt;,
@@ -172,8 +201,20 @@
 		<span class="prelude-val">Ok</span>(Box::new(EventHandlerImpl::new(configs)<span class="question-mark">?</span>))
 	}
 
-	<span class="kw">pub fn </span>build_server_connection(addr: <span class="kw-2">&amp;</span>str, size: usize) -&gt; <span class="prelude-ty">Result</span>&lt;Connection, Error&gt; {
-		<span class="kw">let </span>handle = create_listener(addr, size, <span class="kw-2">&amp;</span>DebugInfo::default())<span class="question-mark">?</span>;
+	<span class="doccomment">/// Builds a server side [`crate::Connection`] that can be added to the
+	/// [`crate::EventHandler`] via the [`crate::EventHandler::add_server_connection`]
+	/// function.
+	/// # Input Parameters
+	/// addr - The TCP/IP address to bind to. (e.g. "127.0.0.1", "0.0.0.0", or "`[::1]`").
+	/// IPV6 is supported.
+	/// backlog - The parameter passed to the [`bmw_deps::libc::listen`] as the backlog parameter. This
+	/// value is used on Unix systems, but ignored on Windows.
+	/// # Returns
+	/// On success, [`unit`] is returned and on failure, [`bmw_err::Error`] is returned.
+	/// # Errors
+	/// [`bmw_err::ErrKind::IO`] if an i/o error occurs.
+	</span><span class="kw">pub fn </span>build_server_connection(addr: <span class="kw-2">&amp;</span>str, backlog: usize) -&gt; <span class="prelude-ty">Result</span>&lt;Connection, Error&gt; {
+		<span class="kw">let </span>handle = create_listener(addr, backlog, <span class="kw-2">&amp;</span>DebugInfo::default())<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(Connection::new(
 			handle,
 			<span class="prelude-val">None</span>,
@@ -183,7 +224,18 @@
 		)<span class="question-mark">?</span>)
 	}
 
-	<span class="kw">pub fn </span>build_client_connection(host: <span class="kw-2">&amp;</span>str, port: u16) -&gt; <span class="prelude-ty">Result</span>&lt;Connection, Error&gt; {
+	<span class="doccomment">/// Builds a client side [`crate::Connection`] that can be added to the
+	/// [`crate::EventHandler`] via the [`crate::EventHandler::add_client_connection`]
+	/// function.
+	/// # Input Parameters
+	/// host - The remote host to bind to.
+	/// port - The parameter passed to the [`bmw_deps::libc::listen`] as the backlog parameter. This
+	/// value is used on Unix systems, but ignored on Windows.
+	/// # Returns
+	/// On success, [`unit`] is returned and on failure, [`bmw_err::Error`] is returned.
+	/// # Errors
+	/// [`bmw_err::ErrKind::IO`] if an i/o error occurs.
+	</span><span class="kw">pub fn </span>build_client_connection(host: <span class="kw-2">&amp;</span>str, port: u16) -&gt; <span class="prelude-ty">Result</span>&lt;Connection, Error&gt; {
 		<span class="kw">let </span>handle = create_connection(host, port)<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(Connection::new(
 			handle,
