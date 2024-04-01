@@ -96,9 +96,9 @@ args:
         long: histo
         short: z
         takes_value: false
-    - tls:
-        help: Run the client/eventhandler using TLS (i.e. ssl)
-        long: tls
+    - stats:
+        help: Print additional statistical information for the eventhandlers (both CLIENT and EVENT_HANDLER)
+        long: stats
         short: l
         takes_value: false
     - host:

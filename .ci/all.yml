@@ -4,7 +4,7 @@ steps:
     displayName: Windows Cargo Test
     condition: eq( variables['Agent.OS'], 'Windows_NT' )
   - script: |
-      # .ci\perf.bat $(Build.Reason)
+      echo "disabled for now";
     displayName: Windows Eventhandler Perf Test
     condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ))
   - script: |

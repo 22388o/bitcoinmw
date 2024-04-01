@@ -102,7 +102,7 @@ fn run_eventhandler(
 	};
 	let reuse_port = args.is_present("reuse_port");
 
-	let tls = args.is_present("tls");
+	let stats = args.is_present("stats");
 
 	let max_handles_per_thread = match args.is_present("max_handles_per_thread") {
 		true => args.value_of("max_handles_per_thread").unwrap().parse()?,
@@ -134,7 +134,7 @@ fn run_eventhandler(
 		"read_slab_count".to_string(),
 		read_slab_count.to_formatted_string(&Locale::en),
 	);
-	configs.insert("tls".to_string(), tls.to_string());
+	configs.insert("stats".to_string(), stats.to_string());
 	print_configs(configs)?;
 
 	set_log_option!(ConfigOption::DisplayLogLevel(true))?;
@@ -147,6 +147,16 @@ fn run_eventhandler(
 		EvhReadSlabSize(512),
 		EvhHouseKeeperFrequencyMillis(10_000)
 	)?;
+
+	if stats {
+		std::thread::spawn(move || -> Result<(), Error> {
+			loop {
+				std::thread::sleep(Duration::from_millis(3_000));
+				info!("stats")?;
+			}
+			Ok(())
+		});
+	}
 
 	evh.set_on_read(move |connection, ctx| {
 		let mut wh = connection.write_handle()?;
@@ -220,7 +230,7 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 		false => 10,
 	};
 
-	let tls = args.is_present("tls");
+	let stats = args.is_present("stats");
 
 	let port = match args.is_present("port") {
 		true => args.value_of("port").unwrap().parse()?,
@@ -317,11 +327,12 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 		threads.to_formatted_string(&Locale::en),
 	);
 
+	configs.insert("stats".to_string(), stats.to_string());
+
 	configs.insert(
 		"read_slab_count".to_string(),
 		read_slab_count.to_formatted_string(&Locale::en),
 	);
-	configs.insert("tls".to_string(), tls.to_string());
 	configs.insert("histo".to_string(), histo.to_string());
 	print_configs(configs)?;
 
@@ -349,7 +360,7 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 				min,
 				sleep_time,
 				histo_delta_micros,
-				tls,
+				false,
 			);
 			match res {
 				Ok(_) => {}
