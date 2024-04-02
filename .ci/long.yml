@@ -10,4 +10,8 @@ steps:
   - script: |
       .ci\long_running_test.bat $(Build.Reason) 20
     displayName: Windows Long running test
-    condition: eq( variables['Agent.OS'], 'Windows_NT' )
+    condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ))
+  - script: |
+      ./.ci/pushdocs.sh $(github_pat) $(Build.SourceVersion) $(Build.Reason)
+    displayName: Pushdocs
+    condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))

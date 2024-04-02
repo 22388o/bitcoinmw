@@ -116,11 +116,3 @@ steps:
       title: '$(build.my_tag)'
       assetUploadMode: 'replace'
       addChangeLog: true
-  - script: |
-      ./.ci/tarpaulin.sh $(github_pat) $(Build.SourceVersion) $(Build.Reason)
-    displayName: Tarpaulin
-    condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))
-  - script: |
-      ./.ci/pushdocs.sh $(github_pat) $(Build.SourceVersion) $(Build.Reason)
-    displayName: Create and Push Docs
-    condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))
