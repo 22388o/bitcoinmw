@@ -101,6 +101,11 @@ args:
         long: stats
         short: l
         takes_value: false
+    - connect:
+        help: Connect only mode. Just connect the specified number of clients
+        long: connect
+        short: b
+        takes_value: false
     - host:
         help: The tcp host to connect to
         long: host

@@ -27,11 +27,17 @@ use bmw_log::*;
 use bmw_util::*;
 use clap::{load_yaml, App, ArgMatches};
 use std::collections::HashMap;
+use std::net::TcpStream;
 use std::process::exit;
 use std::sync::mpsc::sync_channel;
 use std::sync::mpsc::SyncSender;
 use std::thread::{sleep, spawn};
 use std::time::{Duration, Instant};
+
+#[cfg(not(target_os = "windows"))]
+use std::os::fd::IntoRawFd;
+#[cfg(target_os = "windows")]
+use std::os::windows::io::IntoRawSocket;
 
 const SPACER: &str =
 	"----------------------------------------------------------------------------------------------------";
@@ -210,6 +216,43 @@ fn run_eventhandler(
 		std::thread::park();
 	}
 
+	Ok(())
+}
+
+fn run_connect(args: ArgMatches) -> Result<(), Error> {
+	let count: usize = match args.is_present("count") {
+		true => args.value_of("count").unwrap().parse()?,
+		false => 1,
+	};
+
+	let host = match args.is_present("host") {
+		true => args.value_of("host").unwrap(),
+		false => "127.0.0.1",
+	}
+	.to_string();
+
+	let port = match args.is_present("port") {
+		true => args.value_of("port").unwrap().parse()?,
+		false => 8081,
+	};
+
+	info!("connecting {} clients to {}:{}", count, host, port)?;
+
+	let mut clients_vec = vec![];
+	let addr = format!("{}:{}", host, port);
+	for _ in 0..count {
+		let strm = TcpStream::connect(addr.clone())?;
+		strm.set_nonblocking(true)?;
+		#[cfg(target_os = "windows")]
+		let handle = strm.into_raw_socket();
+		#[cfg(not(target_os = "windows"))]
+		let handle = strm.into_raw_fd();
+		clients_vec.push(handle);
+	}
+
+	info!("complete")?;
+
+	std::thread::park();
 	Ok(())
 }
 
@@ -851,8 +894,11 @@ fn main() -> Result<(), Error> {
 
 	let client = args.is_present("client");
 	let eventhandler = args.is_present("eventhandler");
+	let connect = args.is_present("connect");
 
-	if client && eventhandler {
+	if connect {
+		run_connect(args)?;
+	} else if client && eventhandler {
 		info!(
 			"{}",
 			format!("evh_perf Client/{}", built_info::PKG_VERSION).green()
