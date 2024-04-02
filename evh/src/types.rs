@@ -172,6 +172,10 @@ where
 	fn set_debug_info(&mut self, debug_info: DebugInfo) -> Result<(), Error>;
 }
 
+/// A chunk of data returned by the [`crate::EventHandler`]. Chunks are of a maximum size defined
+/// by the `EvhReadSlabSize` parameter minus 4 bytes.
+/// # See Also
+/// [`crate::UserContext`]
 pub struct Chunk<'a> {
 	pub(crate) slab: Slab<'a>,
 	pub(crate) len: usize,
@@ -187,6 +191,15 @@ pub struct Chunk<'a> {
 /// See the [`crate`] documentation as well for the background information and motivation
 /// for this crate as well as examples. See [`crate::EventHandler`] for the callback functions.
 pub trait UserContext {
+	/// Get the next chunk of data, if available, that has been read by the
+	/// [`crate::EventHandler`] for this [`crate::Connection`].
+	/// # Input Parameters
+	/// connection - the [`crate::Connection`] to get the next chunk from.
+	/// # Returns
+	/// On success, the next [`crate::Chunk`] or [`None`] if there are no more chunks.
+	/// [`bmw_err::Error`] is returned if an error occurs.
+	/// # See Also
+	/// [`crate`], [`crate::UserContext`], [`crate::UserContext::clear_all`]
 	fn next_chunk(&mut self, connection: &mut Connection) -> Result<Option<Chunk>, Error>;
 	/// Clear all slabs that are associated with this [`crate::Connection`].
 	/// # Input Parameters
@@ -195,20 +208,20 @@ pub trait UserContext {
 	/// On success, [`unit`] is returned and on failure, [`bmw_err::Error`] is returned.
 	/// # See Also
 	/// [`crate`], [`crate::UserContext`], [`crate::UserContext::clear_through`],
-	/// [`crate::UserContext::cur_slab_id`]
+	/// [`crate::UserContext::next_chunk`]
 	fn clear_all(&mut self, connection: &mut Connection) -> Result<(), Error>;
 	/// Clear all slabs, through the `slab_id` specified, that are associated with this
 	/// [`crate::Connection`].
 	/// # Input Parameters
 	/// slab_id - The `slab_id` of the slab to clear data through. This value can be obtained
-	/// by calling the [`crate::UserContext::cur_slab_id`] as the
-	/// [`crate::UserContext::clone_next_chunk`] function is called.
+	/// by calling [`crate::UserContext::next_chunk`] and then calling the
+	/// [`crate::Chunk::slab_id`] function.
 	/// connection - The [`crate::Connection`] to clear data from.
 	/// # Returns
 	/// On success, [`unit`] is returned and on failure, [`bmw_err::Error`] is returned.
 	/// # See Also
 	/// [`crate`], [`crate::UserContext`], [`crate::UserContext::clear_all`],
-	/// [`crate::UserContext::cur_slab_id`]
+	/// [`crate::UserContext::next_chunk`]
 	fn clear_through(&mut self, slab_id: usize, connection: &mut Connection) -> Result<(), Error>;
 	/// Get the `user_data` object associated with this thread.
 	/// # Input Parameters

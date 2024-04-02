@@ -168,6 +168,7 @@ fn run_eventhandler(
 			)?;
 		}
 
+		debug!("clear all for conn {}", connection.id())?;
 		ctx.clear_all(connection)?;
 
 		Ok(())
@@ -806,13 +807,13 @@ fn run_thread(
 			rx.recv()?;
 		}
 
-		for mut wh in whs {
-			wh.close()?;
-		}
-
 		if sleep_time > 0 {
 			info!("sleeping for {} ms.", sleep_time)?;
 			sleep(Duration::from_millis(sleep_time));
+		}
+
+		for mut wh in whs {
+			wh.close()?;
 		}
 	}
 

@@ -21,6 +21,9 @@
 //! mechanism used are Epoll on Linux, Kqueues on MacOS and WePoll on Windows. These libraries
 //! allow for perfromant handling of reads and writes on multiple socket connections.
 //! # Motivation
+//! Eventhandler provides an fast interface to the low level eventing libraries on various
+//! platforms. It will be the basis for the HTTP server and the rustlet library and eventually the
+//! cryptocurrency that will be built on top of these libraries.
 //! # Performance
 //! The /etc directory in the projects inlcudes a subdirectory called "evh_perf". This subdirectory
 //! is used for testing the performance of the eventhandler.
@@ -40,4 +43,6 @@ mod types;
 #[cfg(target_os = "windows")]
 mod win;
 
-pub use crate::types::{Connection, EventHandler, EvhBuilder, EvhStats, UserContext, WriteHandle};
+pub use crate::types::{
+	Chunk, Connection, EventHandler, EvhBuilder, EvhStats, UserContext, WriteHandle,
+};

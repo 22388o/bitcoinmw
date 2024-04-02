@@ -349,7 +349,7 @@ impl UserContext for &mut UserContextImpl {
 			let len = slab.len();
 			let start = len.saturating_sub(4);
 			let next = u32::from_be_bytes(try_into!(&slab[start..start + 4])?) as usize;
-			debug!("free slab {}", cur)?;
+			debug!("free slab1 {}", cur)?;
 			self.read_slabs.free(cur)?;
 
 			connection.set_first_slab(next);
@@ -1748,6 +1748,7 @@ where
 			};
 
 			let slab_offset = conn.get_slab_offset();
+			let slab_id = slab.id();
 			let slab_bytes = &mut slab.get_mut()[slab_offset..read_slab_next_offset];
 			let rlen = match do_read_impl(handle, slab_bytes, debug_info) {
 				Ok(rlen) => rlen,
@@ -1770,9 +1771,8 @@ where
 					read_sum += rlen_u128;
 				}
 
-				let id = slab.id();
 				let cur = slab_offset + rlen;
-				debug!("rlen={},slab_id={},slab_offset={}", rlen, id, cur)?;
+				debug!("rlen={},slab_id={},slab_offset={}", rlen, slab_id, cur)?;
 
 				if rlen == 0 {
 					debug!("connection closed")?;
@@ -1781,6 +1781,21 @@ where
 				}
 			} else {
 				debug!("no more data to read for now")?;
+				// if the slab doesn't have any data, we free it
+				if slab_offset == 0 {
+					debug!("free slab2 {}", slab_id)?;
+					user_context.read_slabs.free(slab_id)?;
+					conn.set_last_slab(last_slab);
+
+					if last_slab < u32::MAX as usize {
+						let mut slab_mut = user_context.read_slabs.get_mut(last_slab)?;
+						slab_mut.get_mut()[read_slab_next_offset..read_slab_next_offset + 4]
+							.clone_from_slice(&u32::MAX.to_be_bytes());
+					} else {
+						conn.set_first_slab(last_slab);
+					}
+				}
+
 				// no more to read for now
 				cbreak!(true);
 			}
