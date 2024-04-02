@@ -24,10 +24,7 @@ use bmw_err::*;
 use bmw_evh::*;
 use bmw_log::bmw_conf::ConfigOption;
 use bmw_log::*;
-use bmw_util::{
-	block_on, execute, global_slab_allocator, lock_box, slice_to_u128, slice_to_usize, thread_pool,
-	u128_to_slice, u32_to_slice, usize_to_slice, LockBox, ThreadPool,
-};
+use bmw_util::*;
 use clap::{load_yaml, App, ArgMatches};
 use std::collections::HashMap;
 use std::process::exit;
@@ -148,22 +145,13 @@ fn run_eventhandler(
 		EvhHouseKeeperFrequencyMillis(10_000)
 	)?;
 
-	if stats {
-		std::thread::spawn(move || -> Result<(), Error> {
-			loop {
-				std::thread::sleep(Duration::from_millis(3_000));
-				info!("stats")?;
-			}
-			Ok(())
-		});
-	}
-
 	evh.set_on_read(move |connection, ctx| {
 		let mut wh = connection.write_handle()?;
 		let id = connection.id();
 
 		let mut buf = [0u8; 512];
 		let mut len_sum = 0;
+
 		loop {
 			let len = ctx.clone_next_chunk(connection, &mut buf)?;
 			if len == 0 {
@@ -214,7 +202,14 @@ fn run_eventhandler(
 		None => {}
 	}
 
-	std::thread::park();
+	if stats {
+		loop {
+			let stats = evh.wait_for_stats()?;
+			info!("stats: {:?}", stats)?;
+		}
+	} else {
+		std::thread::park();
+	}
 
 	Ok(())
 }
@@ -562,20 +557,6 @@ fn print_histo(data: Vec<u64>, delta_micros: usize) -> Result<(), Error> {
 	}
 	info_plain!("{}", SPACER)?;
 
-	/*
-	info_plain!("====================>")?;
-	info_plain!("==============================>")?;
-	info_plain!("========================================>")?;
-	info_plain!("==================================================>")?;
-	info_plain!("============================================================>")?;
-	info_plain!("======================================================================>")?;
-	info_plain!(
-		"================================================================================>"
-	)?;
-	info_plain!("==========================================================================================>")?;
-	info_plain!("====================================================================================================>")?;
-		*/
-
 	Ok(())
 }
 
@@ -626,6 +607,21 @@ fn run_thread(
 		let mut partial_data_clone = partial_data.clone();
 
 		let mut res = vec![];
+
+		{
+			let partial_data = partial_data.rlock()?;
+			let guard = partial_data.guard()?;
+			match (**guard).get(&id) {
+				Some(data) => {
+					if debug {
+						info!("extend data with {:?}", data)?;
+					}
+					res.extend(data);
+				}
+				_ => {}
+			}
+		}
+
 		let mut buf = [0u8; 512];
 		let mut len_sum = 0;
 		loop {
@@ -795,8 +791,7 @@ fn run_thread(
 				let guard = recv_count.guard()?;
 				(**guard) = 0;
 			}
-			info!("count={}", count);
-			for i in 0..count {
+			for _ in 0..count {
 				for wh in &mut whs {
 					let mut buf = vec![];
 					let rfloat = random::<f64>();
@@ -804,7 +799,6 @@ fn run_thread(
 					let len = min + (rfloat * (max.saturating_sub(min)) as f64).round() as usize;
 					buf.resize(len + 28, 0);
 					u32_to_slice(len as u32, &mut buf[0..4])?; // length of data
-					info!("wh.id={},count={}", wh.id(), i);
 					u128_to_slice(wh.id(), &mut buf[4..20])?; // connection id
 					usize_to_slice(try_into!(start.elapsed().as_nanos())?, &mut buf[20..28])?; // start time for request
 					buf[28..(28 + len)].copy_from_slice(&dictionary[0..len]); // data
