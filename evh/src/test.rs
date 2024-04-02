@@ -115,6 +115,8 @@ mod test {
 
 			let mut wh = connection.write_handle()?;
 
+			assert_eq!(wh.id(), connection.id());
+
 			// echo
 			if rlock!(client_id_clone) != connection.id() {
 				wh.write(dstring.as_bytes())?;
