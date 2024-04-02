@@ -2251,6 +2251,56 @@ mod test {
 	}
 
 	#[test]
+	fn test_evh_no_clear() -> Result<(), Error> {
+		let test_info = test_info!()?;
+
+		let mut evh = evh_oro!(
+			Debug(false),
+			EvhTimeout(u16::MAX),
+			EvhThreads(1),
+			EvhReadSlabSize(25),
+			EvhReadSlabCount(10)
+		)?;
+
+		evh.set_on_read(move |conn, _| -> Result<(), Error> {
+			info!("on read")?;
+			conn.write_handle()?.write(b"response")?;
+
+			Ok(())
+		})?;
+
+		evh.start()?;
+
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+
+		info!("connecting to addr {}", addr)?;
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+
+		info!("adding connection now")?;
+		evh.add_server_connection(conn)?;
+
+		let mut strm = TcpStream::connect(addr.clone())?;
+		// write over 25 bytes
+		strm.write(b"012345678901234567890")?;
+
+		let mut buf = [0u8; 100];
+		let len = strm.read(&mut buf)?;
+
+		assert_eq!(len, 8);
+		assert_eq!(&buf[0..8], b"response");
+
+		strm.write(b"hi")?;
+		let mut buf = [0u8; 100];
+		let len = strm.read(&mut buf)?;
+
+		assert_eq!(len, 8);
+		assert_eq!(&buf[0..8], b"response");
+
+		Ok(())
+	}
+
+	#[test]
 	fn test_evh_resources() -> Result<(), Error> {
 		// this test doesn't currently do assertions, but it can be used to monitor resources
 		// like file descriptors. Change `target` to a higher value and increase sleep at the

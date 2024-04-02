@@ -1759,6 +1759,7 @@ where
 					None
 				}
 			};
+			debug!("rlen={:?}, slab_offset={}", rlen, slab_offset)?;
 
 			cbreak!(close);
 
