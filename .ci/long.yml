@@ -15,3 +15,7 @@ steps:
       ./.ci/pushdocs.sh $(github_pat) $(Build.SourceVersion) $(Build.Reason)
     displayName: Pushdocs
     condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))
+  - script |
+      ./.ci/tarpaulin.sh $(github_pat) $(Build.SourceVersion) $(Build.Reason)
+    displayName: Tarpaulin
+    condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))
