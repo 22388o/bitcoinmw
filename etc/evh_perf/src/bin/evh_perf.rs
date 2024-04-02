@@ -208,9 +208,17 @@ fn run_eventhandler(
 	}
 
 	if stats {
+		let mut accept_sum: usize = 0;
+		let mut close_sum: usize = 0;
 		loop {
 			let stats = evh.wait_for_stats()?;
-			info!("stats: {:?}", stats)?;
+			accept_sum += stats.accepts;
+			close_sum += stats.closes;
+			let diff: i64 = accept_sum as i64 - close_sum as i64;
+			info!(
+				"stats: {:?},active_connections={},accept_sum={},close_sum={}",
+				stats, diff, accept_sum, close_sum
+			)?;
 		}
 	} else {
 		std::thread::park();
