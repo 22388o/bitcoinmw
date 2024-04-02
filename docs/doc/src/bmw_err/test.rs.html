@@ -381,21 +381,6 @@
 <a href="#379" id="379">379</a>
 <a href="#380" id="380">380</a>
 <a href="#381" id="381">381</a>
-<a href="#382" id="382">382</a>
-<a href="#383" id="383">383</a>
-<a href="#384" id="384">384</a>
-<a href="#385" id="385">385</a>
-<a href="#386" id="386">386</a>
-<a href="#387" id="387">387</a>
-<a href="#388" id="388">388</a>
-<a href="#389" id="389">389</a>
-<a href="#390" id="390">390</a>
-<a href="#391" id="391">391</a>
-<a href="#392" id="392">392</a>
-<a href="#393" id="393">393</a>
-<a href="#394" id="394">394</a>
-<a href="#395" id="395">395</a>
-<a href="#396" id="396">396</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -421,12 +406,8 @@
 
 	<span class="kw">use crate as </span>bmw_err;
 	<span class="kw">use crate</span>::{err, map_err, ErrKind, Error, ErrorKind};
-	<span class="kw">use </span>bmw_deps::rustls::pki_types::{InvalidDnsNameError, ServerName};
-	<span class="kw">use </span>bmw_deps::rustls::AlertDescription;
-	<span class="kw">use </span>bmw_deps::rustls::Error <span class="kw">as </span>RustlsError;
 	<span class="kw">use </span>bmw_deps::substring::Substring;
 	<span class="kw">use </span>bmw_deps::url::{ParseError, Url};
-	<span class="kw">use </span>bmw_deps::webpki::Error <span class="kw">as </span>WebpkiError;
 	<span class="kw">use </span>std::alloc::Layout;
 	<span class="kw">use </span>std::convert::TryInto;
 	<span class="kw">use </span>std::ffi::OsString;
@@ -747,10 +728,6 @@
 			ErrorKind::SystemTime(<span class="string">"System time error"</span>.into()).into(),
 		)<span class="question-mark">?</span>;
 
-		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;ServerName, InvalidDnsNameError&gt; = <span class="string">"a*$&amp;@@!aa"</span>.try_into();
-		<span class="macro">assert!</span>(err.is_err());
-		check_error(err, ErrorKind::Rustls(<span class="string">"rustls error: "</span>.to_string()).into())<span class="question-mark">?</span>;
-
 		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;IpAddr, AddrParseError&gt; = <span class="string">"127.0.0.1:8080"</span>.parse();
 		<span class="macro">assert!</span>(err.is_err());
 		check_error(
@@ -762,13 +739,6 @@
 		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;String, FromUtf8Error&gt; = String::from_utf8(bytes.to_vec());
 		<span class="macro">assert!</span>(err.is_err());
 		check_error(err, ErrorKind::Misc(<span class="string">"utf8 error: "</span>.to_string()).into())<span class="question-mark">?</span>;
-
-		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;String, WebpkiError&gt; = <span class="prelude-val">Err</span>(WebpkiError::BadDerTime);
-		check_error(err, ErrorKind::Misc(<span class="string">"webpkiError: "</span>.to_string()).into())<span class="question-mark">?</span>;
-
-		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;(), RustlsError&gt; =
-			<span class="prelude-val">Err</span>(RustlsError::AlertReceived(AlertDescription::CloseNotify));
-		check_error(err, ErrorKind::Rustls(<span class="string">"rustls error: "</span>.to_string()).into())<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>err: <span class="prelude-ty">Result</span>&lt;Url, ParseError&gt; = Url::parse(<span class="string">"http://*&amp;^%$"</span>);
 		check_error(err, ErrorKind::Misc(<span class="string">"url::ParseError: "</span>.to_string()).into())<span class="question-mark">?</span>;

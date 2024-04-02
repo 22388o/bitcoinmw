@@ -2346,6 +2346,8 @@
 <a href="#2344" id="2344">2344</a>
 <a href="#2345" id="2345">2345</a>
 <a href="#2346" id="2346">2346</a>
+<a href="#2347" id="2347">2347</a>
+<a href="#2348" id="2348">2348</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2462,6 +2464,8 @@
 			<span class="macro">assert_eq!</span>(dstring, <span class="string">"hi"</span>);
 
 			<span class="kw">let </span><span class="kw-2">mut </span>wh = connection.write_handle()<span class="question-mark">?</span>;
+
+			<span class="macro">assert_eq!</span>(wh.id(), connection.id());
 
 			<span class="comment">// echo
 			</span><span class="kw">if </span><span class="macro">rlock!</span>(client_id_clone) != connection.id() {
