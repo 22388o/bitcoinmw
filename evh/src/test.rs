@@ -2297,6 +2297,8 @@ mod test {
 		assert_eq!(len, 8);
 		assert_eq!(&buf[0..8], b"response");
 
+		sleep(Duration::from_millis(QA_SLEEP));
+
 		Ok(())
 	}
 
