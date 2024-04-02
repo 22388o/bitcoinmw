@@ -15,6 +15,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! # The BMW Eventhandler crate
+//! This crate defines and implements the [`crate::EventHandler`] trait. The event handler handles
+//! events on tcp/ip connections. It manages both inbound and outbound connections. The underlying
+//! mechanism used are Epoll on Linux, Kqueues on MacOS and WePoll on Windows. These libraries
+//! allow for perfromant handling of reads and writes on multiple socket connections.
+//! # Motivation
+//! # Performance
+//! The /etc directory in the projects inlcudes a subdirectory called "evh_perf". This subdirectory
+//! is used for testing the performance of the eventhandler.
+//! # Examples
+//!
+//!
 mod builder;
 mod constants;
 mod evh;

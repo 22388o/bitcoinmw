@@ -24,9 +24,9 @@ use crate::win::*;
 
 use crate::constants::*;
 use crate::types::{
-	ConnectionType, ConnectionVariant, DebugInfo, Event, EventHandlerCallbacks, EventHandlerConfig,
-	EventHandlerContext, EventHandlerImpl, EventHandlerState, EventIn, EventType, EventTypeIn,
-	GlobalStats, UserContextImpl, Wakeup, WriteHandle, WriteState,
+	Chunk, ConnectionType, ConnectionVariant, DebugInfo, Event, EventHandlerCallbacks,
+	EventHandlerConfig, EventHandlerContext, EventHandlerImpl, EventHandlerState, EventIn,
+	EventType, EventTypeIn, GlobalStats, UserContextImpl, Wakeup, WriteHandle, WriteState,
 };
 use crate::{Connection, EventHandler, EvhStats, UserContext};
 use bmw_conf::ConfigOptionName as CN;
@@ -299,41 +299,38 @@ impl Wakeup {
 	}
 }
 
+impl<'a> Chunk<'a> {
+	pub fn slab_id(&self) -> usize {
+		self.slab.id()
+	}
+	pub fn data(&'a self) -> &'a [u8] {
+		&self.slab.get()[0..self.len]
+	}
+}
+
 impl UserContext for &mut UserContextImpl {
-	fn clone_next_chunk(
-		&mut self,
-		connection: &mut Connection,
-		buf: &mut [u8],
-	) -> Result<usize, Error> {
+	fn next_chunk(&mut self, connection: &mut Connection) -> Result<Option<Chunk>, Error> {
 		let last_slab = connection.get_last_slab();
 		let slab_offset = connection.get_slab_offset();
 
 		if self.slab_cur >= u32::MAX as usize {
-			Ok(0)
+			Ok(None)
 		} else {
 			let slab = self.read_slabs.get(self.slab_cur)?;
-			let slab = slab.get();
-			let start_ptr = slab.len().saturating_sub(4);
-
-			let offset = if self.slab_cur == last_slab {
+			let slab_bytes = slab.get();
+			let next_ptr = slab_bytes.len().saturating_sub(4);
+			let len = if self.slab_cur == last_slab {
 				slab_offset
 			} else {
-				start_ptr
+				next_ptr
 			};
 
-			let buf_len = buf.len();
-			if buf_len < offset {
-				let text = format!("buf too small. Needed={},allocated={}", offset, buf_len);
-				return Err(err!(ErrKind::IllegalArgument, text));
-			}
-			buf[0..offset].clone_from_slice(&slab[0..offset]);
-			self.slab_cur =
-				u32::from_be_bytes(try_into!(&slab[start_ptr..start_ptr + 4])?) as usize;
-			Ok(offset)
+			let bytes = try_into!(&slab_bytes[next_ptr..next_ptr + 4])?;
+			self.slab_cur = u32::from_be_bytes(bytes) as usize;
+
+			let chunk = Chunk { slab, len };
+			Ok(Some(chunk))
 		}
-	}
-	fn cur_slab_id(&self) -> usize {
-		self.slab_cur
 	}
 	fn clear_all(&mut self, connection: &mut Connection) -> Result<(), Error> {
 		self.clear_through(connection.get_last_slab(), connection)

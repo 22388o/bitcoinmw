@@ -84,20 +84,18 @@
 ///
 ///     // set the on read handler
 ///     evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
-///         let mut buf = [0u8; 1024];
 ///         let mut data: Vec<u8> = vec![];
 ///
-///         // loop through each of the available chunks clone them to local
-///         // variable and append to a vec.
+///         // loop through each of the available chunks and append data to a vec.
+///         let mut data: Vec<u8> = vec![];
+///
 ///         loop {
-///             let len = ctx.clone_next_chunk(connection, &mut buf)?;
-///
-///             if len == 0 {
-///                 break;
-///             }
-///
-///             data.extend(&buf[0..len]);
+///             let next_chunk = ctx.next_chunk(connection)?;
+///             cbreak!(next_chunk.is_none());
+///             let next_chunk = next_chunk.unwrap();
+///             data.extend(next_chunk.data());
 ///         }
+///
 ///
 ///         // convert returned data to a utf8 string
 ///         let dstring = from_utf8(&data)?;
@@ -238,20 +236,15 @@ macro_rules! evh {
 ///
 ///     // set the on read handler
 ///     evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
-///         let mut buf = [0u8; 1024];
+///         // loop through each of the available chunks and append data to a vec.
 ///         let mut data: Vec<u8> = vec![];
 ///
-///         // loop through each of the available chunks clone them to local
-///         // variable and append to a vec.
-///         loop {
-///             let len = ctx.clone_next_chunk(connection, &mut buf)?;
-///
-///             if len == 0 {
-///                 break;
-///             }
-///
-///             data.extend(&buf[0..len]);
-///         }
+///         loop {         
+///             let next_chunk = ctx.next_chunk(connection)?;
+///             cbreak!(next_chunk.is_none());
+///             let next_chunk = next_chunk.unwrap();
+///             data.extend(next_chunk.data());
+///         }  
 ///
 ///         // convert returned data to a utf8 string
 ///         let dstring = from_utf8(&data)?;

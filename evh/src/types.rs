@@ -172,6 +172,11 @@ where
 	fn set_debug_info(&mut self, debug_info: DebugInfo) -> Result<(), Error>;
 }
 
+pub struct Chunk<'a> {
+	pub(crate) slab: Slab<'a>,
+	pub(crate) len: usize,
+}
+
 /// The [`crate::UserContext`] trait is returned on all callbacks specified by the
 /// [`crate::EventHandler`]. It can be used to read data from the underlying connections, clear
 /// slabs that are not needed, and get or set a `user_data` structure that can be used as a context
@@ -182,36 +187,7 @@ where
 /// See the [`crate`] documentation as well for the background information and motivation
 /// for this crate as well as examples. See [`crate::EventHandler`] for the callback functions.
 pub trait UserContext {
-	/// Clone the next chunk of data, if available, that has been read by the
-	/// [`crate::EventHandler`] for this [`crate::Connection`].
-	/// # Input Parameters
-	/// connection - the [`crate::Connection`] to get the next chunk from.
-	/// buf - the mutable slice to clone the data into.
-	/// # Returns
-	/// On success, length in bytes, of data cloned is returned and on failure,
-	/// [`bmw_err::Error`] is returned.
-	/// # Errors
-	/// [`bmw_err::ErrKind::IllegalArgument`] - If the buffer is too small to store the
-	/// chunk's data. The maximum size returned is the value configured using
-	/// [`bmw_conf::ConfigOption::EvhReadSlabSize`] parameter.
-	/// # See Also
-	/// [`crate`], [`crate::UserContext`], [`crate::UserContext::clear_all`]
-	fn clone_next_chunk(
-		&mut self,
-		connection: &mut Connection,
-		buf: &mut [u8],
-	) -> Result<usize, Error>;
-	/// Retrieve the `slab_id` of the current slab being processed by this
-	/// [`crate::Connection`].
-	/// # Input Parameters
-	/// none
-	/// # Returns
-	/// The `slab_id` of the slab that is currently pointed to by this [`crate::UserContext`].
-	/// If there are no more slabs associated with this [`crate::Connection`], a number equal
-	/// to or greater than [`u32::MAX`] is returned.
-	/// # See Also
-	/// [`crate`], [`crate::UserContext`], [`crate::UserContext::clear_through`]
-	fn cur_slab_id(&self) -> usize;
+	fn next_chunk(&mut self, connection: &mut Connection) -> Result<Option<Chunk>, Error>;
 	/// Clear all slabs that are associated with this [`crate::Connection`].
 	/// # Input Parameters
 	/// connection - The [`crate::Connection`] to clear data from.

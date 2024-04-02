@@ -148,17 +148,15 @@ fn run_eventhandler(
 	evh.set_on_read(move |connection, ctx| {
 		let mut wh = connection.write_handle()?;
 		let id = connection.id();
-
-		let mut buf = [0u8; 512];
 		let mut len_sum = 0;
 
 		loop {
-			let len = ctx.clone_next_chunk(connection, &mut buf)?;
-			if len == 0 {
-				break;
-			}
-			wh.write(&buf[0..len])?;
-			len_sum += len;
+			let next_chunk = ctx.next_chunk(connection)?;
+			cbreak!(next_chunk.is_none());
+			let next_chunk = next_chunk.unwrap();
+			let data = next_chunk.data();
+			wh.write(data)?;
+			len_sum += data.len();
 		}
 
 		if debug {
@@ -622,15 +620,14 @@ fn run_thread(
 			}
 		}
 
-		let mut buf = [0u8; 512];
 		let mut len_sum = 0;
 		loop {
-			let len = ctx.clone_next_chunk(connection, &mut buf)?;
-			if len == 0 {
-				break;
-			}
-			res.extend(&buf[0..len]);
-			len_sum += len;
+			let next_chunk = ctx.next_chunk(connection)?;
+			cbreak!(next_chunk.is_none());
+			let next_chunk = next_chunk.unwrap();
+			let data = next_chunk.data();
+			len_sum += data.len();
+			res.extend(data);
 		}
 
 		if debug {

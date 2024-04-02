@@ -96,16 +96,13 @@ mod test {
 
 		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
 			info!("onRead")?;
-			let mut buf = [0u8; 1024];
 			let mut data: Vec<u8> = vec![];
+
 			loop {
-				let len = ctx.clone_next_chunk(connection, &mut buf)?;
-
-				if len == 0 {
-					break;
-				}
-
-				data.extend(&buf[0..len]);
+				let next_chunk = ctx.next_chunk(connection)?;
+				cbreak!(next_chunk.is_none());
+				let next_chunk = next_chunk.unwrap();
+				data.extend(next_chunk.data());
 			}
 
 			let dstring = from_utf8(&data)?;
@@ -325,16 +322,13 @@ mod test {
 
 		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
 			info!("onRead")?;
-			let mut buf = [0u8; 1024];
 			let mut data: Vec<u8> = vec![];
+
 			loop {
-				let len = ctx.clone_next_chunk(connection, &mut buf)?;
-
-				if len == 0 {
-					break;
-				}
-
-				data.extend(&buf[0..len]);
+				let next_chunk = ctx.next_chunk(connection)?;
+				cbreak!(next_chunk.is_none());
+				let next_chunk = next_chunk.unwrap();
+				data.extend(next_chunk.data());
 			}
 
 			let dstring = from_utf8(&data)?;
@@ -449,16 +443,13 @@ mod test {
 
 		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
 			info!("onRead")?;
-			let mut buf = [0u8; 1024];
 			let mut data: Vec<u8> = vec![];
+
 			loop {
-				let len = ctx.clone_next_chunk(connection, &mut buf)?;
-
-				if len == 0 {
-					break;
-				}
-
-				data.extend(&buf[0..len]);
+				let next_chunk = ctx.next_chunk(connection)?;
+				cbreak!(next_chunk.is_none());
+				let next_chunk = next_chunk.unwrap();
+				data.extend(next_chunk.data());
 			}
 
 			let dstring = from_utf8(&data)?;
@@ -497,16 +488,13 @@ mod test {
 		{
 			let mut evh = evh_oro!(EvhThreads(2), EvhTimeout(u16::MAX))?;
 			evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
-				let mut buf = [0u8; 1024];
 				let mut data: Vec<u8> = vec![];
+
 				loop {
-					let len = ctx.clone_next_chunk(connection, &mut buf)?;
-
-					if len == 0 {
-						break;
-					}
-
-					data.extend(&buf[0..len]);
+					let next_chunk = ctx.next_chunk(connection)?;
+					cbreak!(next_chunk.is_none());
+					let next_chunk = next_chunk.unwrap();
+					data.extend(next_chunk.data());
 				}
 
 				let dstring = from_utf8(&data)?;
@@ -618,16 +606,13 @@ mod test {
 		)?;
 
 		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
-			let mut buf = [0u8; 1024];
 			let mut data: Vec<u8> = vec![];
+
 			loop {
-				let len = ctx.clone_next_chunk(connection, &mut buf)?;
-
-				if len == 0 {
-					break;
-				}
-
-				data.extend(&buf[0..len]);
+				let next_chunk = ctx.next_chunk(connection)?;
+				cbreak!(next_chunk.is_none());
+				let next_chunk = next_chunk.unwrap();
+				data.extend(next_chunk.data());
 			}
 
 			let dstring = from_utf8(&data)?;
@@ -696,16 +681,13 @@ mod test {
 		let (tx, rx) = test_info.sync_channel();
 
 		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
-			let mut buf = [0u8; 1024];
 			let mut data: Vec<u8> = vec![];
+
 			loop {
-				let len = ctx.clone_next_chunk(connection, &mut buf)?;
-
-				if len == 0 {
-					break;
-				}
-
-				data.extend(&buf[0..len]);
+				let next_chunk = ctx.next_chunk(connection)?;
+				cbreak!(next_chunk.is_none());
+				let next_chunk = next_chunk.unwrap();
+				data.extend(next_chunk.data());
 			}
 
 			let dstring = from_utf8(&data)?;
@@ -827,16 +809,13 @@ mod test {
 
 		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
 			info!("onRead")?;
-			let mut buf = [0u8; 1024];
 			let mut data: Vec<u8> = vec![];
+
 			loop {
-				let len = ctx.clone_next_chunk(connection, &mut buf)?;
-
-				if len == 0 {
-					break;
-				}
-
-				data.extend(&buf[0..len]);
+				let next_chunk = ctx.next_chunk(connection)?;
+				cbreak!(next_chunk.is_none());
+				let next_chunk = next_chunk.unwrap();
+				data.extend(next_chunk.data());
 			}
 
 			let mut wh = connection.write_handle()?;
@@ -897,16 +876,13 @@ mod test {
 
 		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
 			info!("onRead")?;
-			let mut buf = [0u8; 1024];
 			let mut data: Vec<u8> = vec![];
+
 			loop {
-				let len = ctx.clone_next_chunk(connection, &mut buf)?;
-
-				if len == 0 {
-					break;
-				}
-
-				data.extend(&buf[0..len]);
+				let next_chunk = ctx.next_chunk(connection)?;
+				cbreak!(next_chunk.is_none());
+				let next_chunk = next_chunk.unwrap();
+				data.extend(next_chunk.data());
 			}
 
 			let mut wh = connection.write_handle()?;
@@ -1136,10 +1112,9 @@ mod test {
 
 		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
 			info!("onRead")?;
-			assert_ne!(ctx.cur_slab_id(), usize::MAX);
+			let next_chunk = ctx.next_chunk(connection)?.unwrap();
+			assert_ne!(next_chunk.slab_id(), usize::MAX);
 
-			let mut buf = [0u8; 10];
-			assert!(ctx.clone_next_chunk(connection, &mut buf).is_err());
 			wlock!(recv_msg) = true;
 			tx.send(())?;
 			ctx.clear_all(connection)?;
@@ -1179,18 +1154,13 @@ mod test {
 
 		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
 			info!("onRead")?;
-			let mut buf = [0u8; 1024];
 			let mut data: Vec<u8> = vec![];
-			info!("chunk starting")?;
+
 			loop {
-				let len = ctx.clone_next_chunk(connection, &mut buf)?;
-				info!("len={}", len)?;
-
-				if len == 0 {
-					break;
-				}
-
-				data.extend(&buf[0..len]);
+				let next_chunk = ctx.next_chunk(connection)?;
+				cbreak!(next_chunk.is_none());
+				let next_chunk = next_chunk.unwrap();
+				data.extend(next_chunk.data());
 			}
 
 			let mut wh = connection.write_handle()?;
@@ -1264,10 +1234,10 @@ mod test {
 			}
 			ctx.set_user_data(Box::new(1usize));
 			info!("onRead")?;
-			assert_ne!(ctx.cur_slab_id(), usize::MAX);
 
-			let mut buf = [0u8; 10];
-			assert!(ctx.clone_next_chunk(connection, &mut buf).is_err());
+			let next_chunk = ctx.next_chunk(connection)?.unwrap();
+			assert_ne!(next_chunk.slab_id(), usize::MAX);
+
 			wlock!(recv_msg) = true;
 			ctx.clear_all(connection)?;
 			Ok(())
@@ -1577,16 +1547,13 @@ mod test {
 		})?;
 
 		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
-			let mut buf = [0u8; 1024];
 			let mut data: Vec<u8> = vec![];
+
 			loop {
-				let len = ctx.clone_next_chunk(connection, &mut buf)?;
-
-				if len == 0 {
-					break;
-				}
-
-				data.extend(&buf[0..len]);
+				let next_chunk = ctx.next_chunk(connection)?;
+				cbreak!(next_chunk.is_none());
+				let next_chunk = next_chunk.unwrap();
+				data.extend(next_chunk.data());
 			}
 
 			let dstring = from_utf8(&data)?;
@@ -1644,16 +1611,13 @@ mod test {
 		})?;
 
 		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
-			let mut buf = [0u8; 1024];
 			let mut data: Vec<u8> = vec![];
+
 			loop {
-				let len = ctx.clone_next_chunk(connection, &mut buf)?;
-
-				if len == 0 {
-					break;
-				}
-
-				data.extend(&buf[0..len]);
+				let next_chunk = ctx.next_chunk(connection)?;
+				cbreak!(next_chunk.is_none());
+				let next_chunk = next_chunk.unwrap();
+				data.extend(next_chunk.data());
 			}
 
 			let dstring = from_utf8(&data)?;
@@ -2305,16 +2269,13 @@ mod test {
 
 			let (tx, rx) = test_info.sync_channel();
 			evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
-				let mut buf = [0u8; 1024];
 				let mut data: Vec<u8> = vec![];
+
 				loop {
-					let len = ctx.clone_next_chunk(connection, &mut buf)?;
-
-					if len == 0 {
-						break;
-					}
-
-					data.extend(&buf[0..len]);
+					let next_chunk = ctx.next_chunk(connection)?;
+					cbreak!(next_chunk.is_none());
+					let next_chunk = next_chunk.unwrap();
+					data.extend(next_chunk.data());
 				}
 
 				let _dstring = from_utf8(&data)?;
