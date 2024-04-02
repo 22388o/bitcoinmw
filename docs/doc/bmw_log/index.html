@@ -1,0 +1,194 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="The BMW Logging Crate"><title>bmw_log - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="bmw_log" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../bmw_log/index.html">bmw_log</a><span class="version">0.0.3-beta.1</span></h2></div><div class="sidebar-elems"><ul class="block">
+            <li><a id="all-types" href="all.html">All Items</a></li></ul><section><ul class="block"><li><a href="#macros">Macros</a></li><li><a href="#structs">Structs</a></li><li><a href="#enums">Enums</a></li><li><a href="#traits">Traits</a></li></ul></section></div></nav><div class="sidebar-resizer"></div>
+    <main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../bmw_log/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Crate <a class="mod" href="#">bmw_log</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="src" href="../src/bmw_log/lib.rs.html#18-161">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="the-bmw-logging-crate"><a href="#the-bmw-logging-crate">The BMW Logging Crate</a></h2>
+<p>The BMW Logging crate handles logging for all crates within BMW. There is a global static
+logger which is used as a main log and for debugging tests and independant loggers which may be
+used for things like request and statistical logging. The interface should be fairly
+straightforward to understand it the logger is largely compatible with the Rust
+<a href="https://docs.rs/log/latest/log/">log</a> crate with some minor adjustments. Most notably, the
+logging macros return errors in the case of i/o and other configuration related errors.
+In addition to the <a href="macro.trace.html" title="macro bmw_log::trace"><code>trace</code></a>, <a href="macro.debug.html" title="macro bmw_log::debug"><code>debug</code></a>, <a href="macro.info.html" title="macro bmw_log::info"><code>info</code></a>, <a href="macro.warn.html" title="macro bmw_log::warn"><code>warn</code></a>, <a href="macro.error.html" title="macro bmw_log::error"><code>error</code></a>
+and <a href="macro.fatal.html" title="macro bmw_log::fatal"><code>fatal</code></a> macros, this crate provides an ‘all’ version and ‘plain’
+version of each macro. For example: <a href="macro.info_all.html" title="macro bmw_log::info_all"><code>info_all</code></a> and <a href="macro.info_plain.html" title="macro bmw_log::info_plain"><code>info_plain</code></a>.
+These macros allow for logging to standard out no matter how the log is
+configured and for logging without the timestamp respectively.</p>
+<h2 id="examples"><a href="#examples">Examples</a></h2>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code> <span class="comment">// example of using the global static logger
+ </span><span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
+ <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
+ <span class="kw">use </span>bmw_test::<span class="kw-2">*</span>;
+ <span class="kw">use </span>std::path::PathBuf;
+
+ <span class="macro">info!</span>(); <span class="comment">// set the log level of the global logger to 'info'.
+
+ </span><span class="kw">fn </span>global_logger() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+     <span class="comment">// get test_info for a uniqe test directory
+     </span><span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+
+     <span class="comment">// create a path_buf
+     </span><span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
+     buf.push(test_info.directory());
+     buf.push(<span class="string">"mylog.log"</span>);
+
+     <span class="comment">// init the log. Important to do this before any logging takes place or a default log
+     // config will be applied
+     </span><span class="macro">log_init!</span>(
+         AutoRotate(<span class="bool-val">true</span>), <span class="comment">// turn on autorotation
+         </span>LogFilePath(<span class="prelude-val">Some</span>(buf)), <span class="comment">// log to our log file
+         </span>MaxSizeBytes(<span class="number">1024 </span>* <span class="number">1024</span>), <span class="comment">// do a rotation when the log file reaches 1mb
+         </span>MaxAgeMillis(<span class="number">60 </span>* <span class="number">60 </span>* <span class="number">1000</span>) <span class="comment">// do a rotation when the log file is over 1 hour old
+     </span>)<span class="question-mark">?</span>;
+
+     <span class="comment">// log at the info level
+     </span><span class="macro">info!</span>(<span class="string">"Starting up the logger"</span>)<span class="question-mark">?</span>;
+
+     <span class="comment">// log at the debug level
+     </span><span class="macro">debug!</span>(<span class="string">"This will not show up because 'debug' is below 'info'"</span>)<span class="question-mark">?</span>;
+     <span class="prelude-val">Ok</span>(())
+ }
+
+ <span class="comment">// example of an independent logger
+ </span><span class="kw">fn </span>independent_logger() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+     <span class="comment">// get a test_info to get a unique test directory
+     </span><span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
+
+     <span class="comment">// create the path buffer with our log name
+     </span><span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
+     buf.push(test_info.directory());
+     buf.push(<span class="string">"some_log.log"</span>);
+
+     <span class="comment">// create the logger with the logger macro.
+     </span><span class="kw">let </span><span class="kw-2">mut </span>logger = <span class="macro">logger!</span>(
+         LogFilePath(<span class="prelude-val">Some</span>(buf)), <span class="comment">// our path
+         </span>MaxAgeMillis(<span class="number">1000 </span>* <span class="number">30 </span>* <span class="number">60</span>), <span class="comment">// log max age before rotation
+         </span>DisplayColors(<span class="bool-val">false</span>), <span class="comment">// don't display colors
+         </span>DisplayBackTrace(<span class="bool-val">false</span>) <span class="comment">// don't show the backtrace on error/fatal log lines
+     </span>)<span class="question-mark">?</span>;
+
+     logger.init()<span class="question-mark">?</span>;
+     logger.set_log_level(LogLevel::Debug);
+     logger.log(LogLevel::Debug, <span class="string">"this is a test"</span>)<span class="question-mark">?</span>;
+
+     <span class="prelude-val">Ok</span>(())
+ }
+
+ <span class="kw">fn </span>main() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+     global_logger()<span class="question-mark">?</span>;
+     independent_logger()<span class="question-mark">?</span>;
+     <span class="prelude-val">Ok</span>(())
+ }</code></pre></div>
+<h2 id="sample-output"><a href="#sample-output">Sample output</a></h2>
+<p>The default output will look something like this:</p>
+<div class="example-wrap"><pre class="language-text"><code>[2022-02-24 13:52:24.123]: (FATAL) [..ibconcord/src/main.rs:116]: fatal
+[2022-02-24 13:52:24.123]: (ERROR) [..ibconcord/src/main.rs:120]: error
+[2022-02-24 13:52:24.123]: (WARN) [..ibconcord/src/main.rs:124]: warn
+[2022-02-24 13:52:24.123]: (INFO) [..ibconcord/src/main.rs:128]: info
+[2022-02-24 13:52:24.123]: (DEBUG) [..ibconcord/src/main.rs:132]: debug
+[2022-02-24 13:52:24.123]: (TRACE) [..ibconcord/src/main.rs:136]: trace
+</code></pre></div>
+<p>If enabled, color coding is included as well.</p>
+<p>Logging may be configured in many ways. The <a href="macro.log_init.html" title="macro bmw_log::log_init"><code>crate::log_init</code></a> macro
+allows for convenient configuration of logging.</p>
+<h2 id="post-initialization-configuration"><a href="#post-initialization-configuration">Post initialization configuration</a></h2>
+<p>Most log configuration options may be set after the log has been initialized. See the example
+below. For all configuration options, see <a href="macro.log_init.html" title="macro bmw_log::log_init"><code>crate::log_init</code></a>. Only the
+<a href="../bmw_conf/types/enum.ConfigOption.html#variant.LogFilePath" title="variant bmw_conf::types::ConfigOption::LogFilePath"><code>bmw_conf::ConfigOption::LogFilePath</code></a> may NOT be changed after <a href="trait.Log.html#tymethod.init" title="method bmw_log::Log::init"><code>crate::Log::init</code></a> is called.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code> <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
+ <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
+
+ <span class="macro">info!</span>();
+
+ <span class="kw">fn </span>main() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+     <span class="comment">// Init log first
+     </span><span class="macro">log_init!</span>(
+         DisplayColors(<span class="bool-val">false</span>),
+         DisplayStdout(<span class="bool-val">true</span>),
+     )<span class="question-mark">?</span>;
+
+     <span class="macro">info!</span>(<span class="string">"show this!"</span>)<span class="question-mark">?</span>;
+
+     <span class="macro">set_log_option!</span>(DisplayColors(<span class="bool-val">true</span>))<span class="question-mark">?</span>;
+
+     <span class="macro">info!</span>(<span class="string">"show this with colors!"</span>)<span class="question-mark">?</span>;
+
+     <span class="prelude-val">Ok</span>(())
+ }
+</code></pre></div>
+</div></details><h2 id="macros" class="section-header"><a href="#macros">Macros</a></h2><ul class="item-table"><li><div class="item-name"><a class="macro" href="macro.debug.html" title="macro bmw_log::debug">debug</a></div><div class="desc docblock-short">Set <a href="enum.LogLevel.html" title="enum bmw_log::LogLevel"><code>crate::LogLevel</code></a> to <a href="enum.LogLevel.html#variant.Debug" title="variant bmw_log::LogLevel::Debug"><code>crate::LogLevel::Debug</code></a> or log at the <a href="enum.LogLevel.html#variant.Debug" title="variant bmw_log::LogLevel::Debug"><code>crate::LogLevel::Debug</code></a> log level.
+If no parameters are specified the log level will be set. If a single parameter is specified,
+that string will be logged. If two or more parameters are specified, the first parameter is a format
+string, the additional parameters will be formatted based on the format string. Logging
+is done by the global logger which can be configured using the <a href="macro.log_init.html" title="macro bmw_log::log_init"><code>crate::log_init</code></a>
+macro. If <a href="macro.log_init.html" title="macro bmw_log::log_init"><code>crate::log_init</code></a> is not called, the default values are used.</div></li><li><div class="item-name"><a class="macro" href="macro.debug_all.html" title="macro bmw_log::debug_all">debug_all</a></div><div class="desc docblock-short">Same as <a href="macro.debug.html" title="macro bmw_log::debug"><code>debug</code></a> except that the <a href="trait.Log.html#tymethod.log_all" title="method bmw_log::Log::log_all"><code>crate::Log::log_all</code></a> function of the underlying logger
+is called instead of the the <a href="trait.Log.html#tymethod.log" title="method bmw_log::Log::log"><code>crate::Log::log</code></a> function. See the <a href="trait.Log.html" title="trait bmw_log::Log"><code>crate::Log</code></a> trait for
+details on each.</div></li><li><div class="item-name"><a class="macro" href="macro.debug_plain.html" title="macro bmw_log::debug_plain">debug_plain</a></div><div class="desc docblock-short">Same as <a href="macro.debug.html" title="macro bmw_log::debug"><code>debug</code></a> except that the <a href="trait.Log.html#tymethod.log_plain" title="method bmw_log::Log::log_plain"><code>crate::Log::log_plain</code></a> function of the underlying logger
+is called instead of the the <a href="trait.Log.html#tymethod.log" title="method bmw_log::Log::log"><code>crate::Log::log</code></a> function. See the <a href="trait.Log.html" title="trait bmw_log::Log"><code>crate::Log</code></a> trait for
+details on each.</div></li><li><div class="item-name"><a class="macro" href="macro.error.html" title="macro bmw_log::error">error</a></div><div class="desc docblock-short">Set <a href="enum.LogLevel.html" title="enum bmw_log::LogLevel"><code>crate::LogLevel</code></a> to <a href="enum.LogLevel.html#variant.Error" title="variant bmw_log::LogLevel::Error"><code>crate::LogLevel::Error</code></a> or log at the <a href="enum.LogLevel.html#variant.Error" title="variant bmw_log::LogLevel::Error"><code>crate::LogLevel::Error</code></a> log level.
+If no parameters are specified the log level will be set. If a single parameter is specified,
+that string will be logged. If two or more parameters are specified, the first parameter is a format
+string, the additional parameters will be formatted based on the format string. Logging
+is done by the global logger which can be configured using the <a href="macro.log_init.html" title="macro bmw_log::log_init"><code>crate::log_init</code></a>
+macro. If <a href="macro.log_init.html" title="macro bmw_log::log_init"><code>crate::log_init</code></a> is not called, the default values are used.</div></li><li><div class="item-name"><a class="macro" href="macro.error_all.html" title="macro bmw_log::error_all">error_all</a></div><div class="desc docblock-short">Same as <a href="macro.error.html" title="macro bmw_log::error"><code>error</code></a> except that the <a href="trait.Log.html#tymethod.log_all" title="method bmw_log::Log::log_all"><code>crate::Log::log_all</code></a> function of the underlying logger
+is called instead of the the <a href="trait.Log.html#tymethod.log" title="method bmw_log::Log::log"><code>crate::Log::log</code></a> function. See the <a href="trait.Log.html" title="trait bmw_log::Log"><code>crate::Log</code></a> trait for
+details on each.</div></li><li><div class="item-name"><a class="macro" href="macro.error_plain.html" title="macro bmw_log::error_plain">error_plain</a></div><div class="desc docblock-short">Same as <a href="macro.error.html" title="macro bmw_log::error"><code>error</code></a> except that the <a href="trait.Log.html#tymethod.log_plain" title="method bmw_log::Log::log_plain"><code>crate::Log::log_plain</code></a> function of the underlying logger
+is called instead of the the <a href="trait.Log.html#tymethod.log" title="method bmw_log::Log::log"><code>crate::Log::log</code></a> function. See the <a href="trait.Log.html" title="trait bmw_log::Log"><code>crate::Log</code></a> trait for
+details on each.</div></li><li><div class="item-name"><a class="macro" href="macro.fatal.html" title="macro bmw_log::fatal">fatal</a></div><div class="desc docblock-short">Set <a href="enum.LogLevel.html" title="enum bmw_log::LogLevel"><code>crate::LogLevel</code></a> to <a href="enum.LogLevel.html#variant.Fatal" title="variant bmw_log::LogLevel::Fatal"><code>crate::LogLevel::Fatal</code></a> or log at the <a href="enum.LogLevel.html#variant.Fatal" title="variant bmw_log::LogLevel::Fatal"><code>crate::LogLevel::Fatal</code></a> log level.
+If no parameters are specified the log level will be set. If a single parameter is specified,
+that string will be logged. If two or more parameters are specified, the first parameter is a format
+string, the additional parameters will be formatted based on the format string. Logging
+is done by the global logger which can be configured using the <a href="macro.log_init.html" title="macro bmw_log::log_init"><code>crate::log_init</code></a>
+macro. If <a href="macro.log_init.html" title="macro bmw_log::log_init"><code>crate::log_init</code></a> is not called, the default values are used.</div></li><li><div class="item-name"><a class="macro" href="macro.fatal_all.html" title="macro bmw_log::fatal_all">fatal_all</a></div><div class="desc docblock-short">Same as <a href="macro.fatal.html" title="macro bmw_log::fatal"><code>fatal</code></a> except that the <a href="trait.Log.html#tymethod.log_all" title="method bmw_log::Log::log_all"><code>crate::Log::log_all</code></a> function of the underlying logger
+is called instead of the the <a href="trait.Log.html#tymethod.log" title="method bmw_log::Log::log"><code>crate::Log::log</code></a> function. See the <a href="trait.Log.html" title="trait bmw_log::Log"><code>crate::Log</code></a> trait for
+details on each.</div></li><li><div class="item-name"><a class="macro" href="macro.fatal_plain.html" title="macro bmw_log::fatal_plain">fatal_plain</a></div><div class="desc docblock-short">Same as <a href="macro.fatal.html" title="macro bmw_log::fatal"><code>fatal</code></a> except that the <a href="trait.Log.html#tymethod.log_plain" title="method bmw_log::Log::log_plain"><code>crate::Log::log_plain</code></a> function of the underlying logger
+is called instead of the the <a href="trait.Log.html#tymethod.log" title="method bmw_log::Log::log"><code>crate::Log::log</code></a> function. See the <a href="trait.Log.html" title="trait bmw_log::Log"><code>crate::Log</code></a> trait for
+details on each.</div></li><li><div class="item-name"><a class="macro" href="macro.get_log_option.html" title="macro bmw_log::get_log_option">get_log_option</a></div><div class="desc docblock-short">Get the current value of the specified log option for the global log. The single parameter
+must be of the type ConfigOptionName. The macro returns a ConfigOption
+on success and Error on error. See <a href="trait.Log.html#tymethod.get_config_option" title="method bmw_log::Log::get_config_option"><code>crate::Log::get_config_option</code></a> which
+is the underlying function call for full details.</div></li><li><div class="item-name"><a class="macro" href="macro.info.html" title="macro bmw_log::info">info</a></div><div class="desc docblock-short">Set <a href="enum.LogLevel.html" title="enum bmw_log::LogLevel"><code>crate::LogLevel</code></a> to <a href="enum.LogLevel.html#variant.Info" title="variant bmw_log::LogLevel::Info"><code>crate::LogLevel::Info</code></a> or log at the <a href="enum.LogLevel.html#variant.Info" title="variant bmw_log::LogLevel::Info"><code>crate::LogLevel::Info</code></a> log level.
+If no parameters are specified the log level will be set. If a single parameter is specified,
+that string will be logged. If two or more parameters are specified, the first parameter is a format
+string, the additional parameters will be formatted based on the format string. Logging
+is done by the global logger which can be configured using the <a href="macro.log_init.html" title="macro bmw_log::log_init"><code>crate::log_init</code></a>
+macro. If <a href="macro.log_init.html" title="macro bmw_log::log_init"><code>crate::log_init</code></a> is not called, the default values are used.</div></li><li><div class="item-name"><a class="macro" href="macro.info_all.html" title="macro bmw_log::info_all">info_all</a></div><div class="desc docblock-short">Same as <a href="macro.info.html" title="macro bmw_log::info"><code>info</code></a> except that the <a href="trait.Log.html#tymethod.log_all" title="method bmw_log::Log::log_all"><code>crate::Log::log_all</code></a> function of the underlying logger
+is called instead of the the <a href="trait.Log.html#tymethod.log" title="method bmw_log::Log::log"><code>crate::Log::log</code></a> function. See the <a href="trait.Log.html" title="trait bmw_log::Log"><code>crate::Log</code></a> trait for
+details on each.</div></li><li><div class="item-name"><a class="macro" href="macro.info_plain.html" title="macro bmw_log::info_plain">info_plain</a></div><div class="desc docblock-short">Same as <a href="macro.info.html" title="macro bmw_log::info"><code>info</code></a> except that the <a href="trait.Log.html#tymethod.log_plain" title="method bmw_log::Log::log_plain"><code>crate::Log::log_plain</code></a> function of the underlying logger
+is called instead of the the <a href="trait.Log.html#tymethod.log" title="method bmw_log::Log::log"><code>crate::Log::log</code></a> function. See the <a href="trait.Log.html" title="trait bmw_log::Log"><code>crate::Log</code></a> trait for
+details on each.</div></li><li><div class="item-name"><a class="macro" href="macro.log_init.html" title="macro bmw_log::log_init">log_init</a></div><div class="desc docblock-short">Initialize the global log. This macro takes a list of ConfigOption, If none are
+specified, the default values are used. Note that if this macro
+is not called before logging occurs, the default configuration is used. After
+either this macro is called or the default is set via another logging macro,
+calling this macro again will result in an error. It usually makes sense to
+initialize this macro very early in the startup of an application so that no
+unanticipated logging occurs before this macro is called by mistake.</div></li><li><div class="item-name"><a class="macro" href="macro.log_rotate.html" title="macro bmw_log::log_rotate">log_rotate</a></div><div class="desc docblock-short">Rotate the global log. See <a href="trait.Log.html#tymethod.rotate" title="method bmw_log::Log::rotate"><code>crate::Log::rotate</code></a> for full details on
+the underlying rotate function and log rotation in general.</div></li><li><div class="item-name"><a class="macro" href="macro.logger.html" title="macro bmw_log::logger">logger</a></div><div class="desc docblock-short">This macro builds a <a href="trait.Log.html" title="trait bmw_log::Log"><code>crate::Log</code></a> implementation and returns it. Specifically, it return a
+Box&lt;dyn Log + Send + Sync&gt;. This example below shows all of the allowed configurations that may
+be specified. All of these are optional.</div></li><li><div class="item-name"><a class="macro" href="macro.need_rotate.html" title="macro bmw_log::need_rotate">need_rotate</a></div><div class="desc docblock-short">See if the global log needs to be rotated. See <a href="trait.Log.html#tymethod.need_rotate" title="method bmw_log::Log::need_rotate"><code>crate::Log::need_rotate</code></a> for full details
+on the underlying need_rotate function.</div></li><li><div class="item-name"><a class="macro" href="macro.set_log_option.html" title="macro bmw_log::set_log_option">set_log_option</a></div><div class="desc docblock-short">Configure the global log with the specified ConfigOption. This macro takes
+a single argument. The macro returns () on success or Error on failure.
+See <a href="trait.Log.html#tymethod.set_config_option" title="method bmw_log::Log::set_config_option"><code>crate::Log::set_config_option</code></a> which is the underlying function call for
+full details.</div></li><li><div class="item-name"><a class="macro" href="macro.trace.html" title="macro bmw_log::trace">trace</a></div><div class="desc docblock-short">Set <a href="enum.LogLevel.html" title="enum bmw_log::LogLevel"><code>crate::LogLevel</code></a> to <a href="enum.LogLevel.html#variant.Trace" title="variant bmw_log::LogLevel::Trace"><code>crate::LogLevel::Trace</code></a> or log at the <a href="enum.LogLevel.html#variant.Trace" title="variant bmw_log::LogLevel::Trace"><code>crate::LogLevel::Trace</code></a> log level.
+If no parameters are specified the log level will be set. If a single parameter is specified,
+that string will be logged. If two or more parameters are specified, the first parameter is a format
+string, the additional parameters will be formatted based on the format string. Logging
+is done by the global logger which can be configured using the <a href="macro.log_init.html" title="macro bmw_log::log_init"><code>crate::log_init</code></a>
+macro. If <a href="macro.log_init.html" title="macro bmw_log::log_init"><code>crate::log_init</code></a> is not called, the default values are used.</div></li><li><div class="item-name"><a class="macro" href="macro.trace_all.html" title="macro bmw_log::trace_all">trace_all</a></div><div class="desc docblock-short">Same as <a href="macro.trace.html" title="macro bmw_log::trace"><code>trace</code></a> except that the <a href="trait.Log.html#tymethod.log_all" title="method bmw_log::Log::log_all"><code>crate::Log::log_all</code></a> function of the underlying logger
+is called instead of the the <a href="trait.Log.html#tymethod.log" title="method bmw_log::Log::log"><code>crate::Log::log</code></a> function. See the <a href="trait.Log.html" title="trait bmw_log::Log"><code>crate::Log</code></a> trait for
+details on each.</div></li><li><div class="item-name"><a class="macro" href="macro.trace_plain.html" title="macro bmw_log::trace_plain">trace_plain</a></div><div class="desc docblock-short">Same as <a href="macro.trace.html" title="macro bmw_log::trace"><code>trace</code></a> except that the <a href="trait.Log.html#tymethod.log_plain" title="method bmw_log::Log::log_plain"><code>crate::Log::log_plain</code></a> function of the underlying logger
+is called instead of the the <a href="trait.Log.html#tymethod.log" title="method bmw_log::Log::log"><code>crate::Log::log</code></a> function. See the <a href="trait.Log.html" title="trait bmw_log::Log"><code>crate::Log</code></a> trait for
+details on each.</div></li><li><div class="item-name"><a class="macro" href="macro.u64.html" title="macro bmw_log::u64">u64</a></div><div class="desc docblock-short">a u64 conversion macro</div></li><li><div class="item-name"><a class="macro" href="macro.usize.html" title="macro bmw_log::usize">usize</a></div><div class="desc docblock-short">a usize conversion macro</div></li><li><div class="item-name"><a class="macro" href="macro.warn.html" title="macro bmw_log::warn">warn</a></div><div class="desc docblock-short">Set <a href="enum.LogLevel.html" title="enum bmw_log::LogLevel"><code>crate::LogLevel</code></a> to <a href="enum.LogLevel.html#variant.Warn" title="variant bmw_log::LogLevel::Warn"><code>crate::LogLevel::Warn</code></a> or log at the <a href="enum.LogLevel.html#variant.Warn" title="variant bmw_log::LogLevel::Warn"><code>crate::LogLevel::Warn</code></a> log level.
+If no parameters are specified the log level will be set. If a single parameter is specified,
+that string will be logged. If two or more parameters are specified, the first parameter is a format
+string, the additional parameters will be formatted based on the format string. Logging
+is done by the global logger which can be configured using the <a href="macro.log_init.html" title="macro bmw_log::log_init"><code>crate::log_init</code></a>
+macro. If <a href="macro.log_init.html" title="macro bmw_log::log_init"><code>crate::log_init</code></a> is not called, the default values are used.</div></li><li><div class="item-name"><a class="macro" href="macro.warn_all.html" title="macro bmw_log::warn_all">warn_all</a></div><div class="desc docblock-short">Same as <a href="macro.warn.html" title="macro bmw_log::warn"><code>warn</code></a> except that the <a href="trait.Log.html#tymethod.log_all" title="method bmw_log::Log::log_all"><code>crate::Log::log_all</code></a> function of the underlying logger
+is called instead of the the <a href="trait.Log.html#tymethod.log" title="method bmw_log::Log::log"><code>crate::Log::log</code></a> function. See the <a href="trait.Log.html" title="trait bmw_log::Log"><code>crate::Log</code></a> trait for
+details on each.</div></li><li><div class="item-name"><a class="macro" href="macro.warn_plain.html" title="macro bmw_log::warn_plain">warn_plain</a></div><div class="desc docblock-short">Same as <a href="macro.warn.html" title="macro bmw_log::warn"><code>warn</code></a> except that the <a href="trait.Log.html#tymethod.log_plain" title="method bmw_log::Log::log_plain"><code>crate::Log::log_plain</code></a> function of the underlying logger
+is called instead of the the <a href="trait.Log.html#tymethod.log" title="method bmw_log::Log::log"><code>crate::Log::log</code></a> function. See the <a href="trait.Log.html" title="trait bmw_log::Log"><code>crate::Log</code></a> trait for
+details on each.</div></li></ul><h2 id="structs" class="section-header"><a href="#structs">Structs</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.LogBuilder.html" title="struct bmw_log::LogBuilder">LogBuilder</a></div><div class="desc docblock-short">Builder struct used to build <a href="trait.Log.html" title="trait bmw_log::Log"><code>crate::Log</code></a> implementations.</div></li></ul><h2 id="enums" class="section-header"><a href="#enums">Enums</a></h2><ul class="item-table"><li><div class="item-name"><a class="enum" href="enum.LogLevel.html" title="enum bmw_log::LogLevel">LogLevel</a></div><div class="desc docblock-short">Standard 6 log levels.</div></li><li><div class="item-name"><a class="enum" href="enum.LoggingType.html" title="enum bmw_log::LoggingType">LoggingType</a></div><div class="desc docblock-short">Internal enum used by the global logging macros like <a href="macro.info.html" title="macro bmw_log::info"><code>crate::info</code></a>, <a href="macro.info_plain.html" title="macro bmw_log::info_plain"><code>crate::info_plain</code></a>,
+and <a href="macro.info_all.html" title="macro bmw_log::info_all"><code>crate::info_all</code></a> to configure which option is being used. This should not generally be
+used in favor of using the macros to control output.</div></li></ul><h2 id="traits" class="section-header"><a href="#traits">Traits</a></h2><ul class="item-table"><li><div class="item-name"><a class="trait" href="trait.Log.html" title="trait bmw_log::Log">Log</a></div><div class="desc docblock-short">The main trait implemented by the bmw_log crate. Some features include: color coding, timestamps,
+stdout/file, rotation by size and time, log levels, file/line number to help with debugging,
+millisecond precision, auto-rotation capabilities, backtraces, file headers and ability to
+delete log rotations. Most implementations can use the log macros in this library instead
+of using the logger directly.</div></li></ul></section></div></main></body></html>
