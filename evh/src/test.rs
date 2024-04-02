@@ -2282,7 +2282,7 @@ mod test {
 
 		let mut strm = TcpStream::connect(addr.clone())?;
 		// write over 25 bytes
-		strm.write(b"012345678901234567890")?;
+		strm.write(b"0123456789012345678")?;
 
 		let mut buf = [0u8; 100];
 		let len = strm.read(&mut buf)?;

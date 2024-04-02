@@ -1791,9 +1791,8 @@ where
 					if last_slab < u32::MAX as usize {
 						let mut slab_mut = user_context.read_slabs.get_mut(last_slab)?;
 						let slab = slab_mut.get_mut();
-						let start = read_slab_next_offset;
-						let max = u32::MAX.to_be_bytes();
-						slab[start..start + 4].clone_from_slice(&max);
+						slab[read_slab_next_offset..read_slab_next_offset + 4]
+							.clone_from_slice(&u32::MAX.to_be_bytes());
 					} else {
 						conn.set_first_slab(last_slab);
 					}
