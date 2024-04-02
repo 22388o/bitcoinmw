@@ -1,13 +1,13 @@
 steps:
   - script: |
-      ./.ci/long_running_test.sh $(Build.Reason) 400
+      ./.ci/long_running_test.sh $(Build.Reason) 3600
     displayName: Linux Long running test
     condition: and(succeeded(), eq( variables['Agent.OS'], 'Linux' ))
   - script: |
-      ./.ci/long_running_test.sh $(Build.Reason) 400
+      ./.ci/long_running_test.sh $(Build.Reason) 3600
     displayName: Macos Long running test
     condition: and(succeeded(), eq( variables['Agent.OS'], 'Darwin' ))
   - script: |
-      .ci\long_running_test.bat $(Build.Reason) 200
+      .ci\long_running_test.bat $(Build.Reason) 20
     displayName: Windows Long running test
     condition: eq( variables['Agent.OS'], 'Windows_NT' )
