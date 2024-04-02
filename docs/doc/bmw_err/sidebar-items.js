@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["ErrKind","ErrorKind"],"macro":["cbreak","err","map_err","try_into"],"struct":["Error"]};

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"macro":["instance","request","response","rustlet","rustlet_init","rustlet_mapping","rustlet_start","rustlet_stop","tls_config","websocket","websocket_mapping","websocket_request"],"struct":["RustletConfig","RustletContainer","RustletContainerConfig"],"trait":["RustletRequest","RustletResponse","WebSocketRequest"]};
