@@ -21,10 +21,7 @@ use bmw_deps::nix::errno::Errno as NixErrno;
 
 use crate::types::{Error, ErrorKind};
 use bmw_deps::failure::{Backtrace, Context, Fail};
-use bmw_deps::rustls::pki_types::InvalidDnsNameError;
-use bmw_deps::rustls::Error as RustlsError;
 use bmw_deps::url::ParseError;
-use bmw_deps::webpki::Error as WebpkiError;
 use std::alloc::LayoutError;
 use std::convert::Infallible;
 use std::ffi::OsString;
@@ -91,17 +88,6 @@ impl From<std::io::Error> for Error {
 	}
 }
 
-impl From<InvalidDnsNameError> for Error {
-	fn from(e: InvalidDnsNameError) -> Error {
-		Error {
-			inner: Context::new(ErrorKind::Rustls(format!(
-				"Rustls Invalid DnsNameError: {}",
-				e
-			))),
-		}
-	}
-}
-
 impl From<ParseError> for Error {
 	fn from(e: ParseError) -> Error {
 		Error {
@@ -122,14 +108,6 @@ impl From<TryFromIntError> for Error {
 	fn from(e: TryFromIntError) -> Error {
 		Error {
 			inner: Context::new(ErrorKind::Misc(format!("TryFromIntError: {}", e))),
-		}
-	}
-}
-
-impl From<WebpkiError> for Error {
-	fn from(e: WebpkiError) -> Error {
-		Error {
-			inner: Context::new(ErrorKind::Misc(format!("webpkiError: {}", e))),
 		}
 	}
 }
@@ -220,14 +198,6 @@ impl From<NixErrno> for Error {
 	fn from(e: NixErrno) -> Error {
 		Error {
 			inner: Context::new(ErrorKind::Errno(format!("Errno system error: {}", e))),
-		}
-	}
-}
-
-impl From<RustlsError> for Error {
-	fn from(e: RustlsError) -> Error {
-		Error {
-			inner: Context::new(ErrorKind::Rustls(format!("Rustls error: {}", e))),
 		}
 	}
 }

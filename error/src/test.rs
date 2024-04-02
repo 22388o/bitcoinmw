@@ -23,12 +23,8 @@ mod test {
 
 	use crate as bmw_err;
 	use crate::{err, map_err, ErrKind, Error, ErrorKind};
-	use bmw_deps::rustls::pki_types::{InvalidDnsNameError, ServerName};
-	use bmw_deps::rustls::AlertDescription;
-	use bmw_deps::rustls::Error as RustlsError;
 	use bmw_deps::substring::Substring;
 	use bmw_deps::url::{ParseError, Url};
-	use bmw_deps::webpki::Error as WebpkiError;
 	use std::alloc::Layout;
 	use std::convert::TryInto;
 	use std::ffi::OsString;
@@ -349,10 +345,6 @@ mod test {
 			ErrorKind::SystemTime("System time error".into()).into(),
 		)?;
 
-		let err: Result<ServerName, InvalidDnsNameError> = "a*$&@@!aa".try_into();
-		assert!(err.is_err());
-		check_error(err, ErrorKind::Rustls("rustls error: ".to_string()).into())?;
-
 		let err: Result<IpAddr, AddrParseError> = "127.0.0.1:8080".parse();
 		assert!(err.is_err());
 		check_error(
@@ -364,13 +356,6 @@ mod test {
 		let err: Result<String, FromUtf8Error> = String::from_utf8(bytes.to_vec());
 		assert!(err.is_err());
 		check_error(err, ErrorKind::Misc("utf8 error: ".to_string()).into())?;
-
-		let err: Result<String, WebpkiError> = Err(WebpkiError::BadDerTime);
-		check_error(err, ErrorKind::Misc("webpkiError: ".to_string()).into())?;
-
-		let err: Result<(), RustlsError> =
-			Err(RustlsError::AlertReceived(AlertDescription::CloseNotify));
-		check_error(err, ErrorKind::Rustls("rustls error: ".to_string()).into())?;
 
 		let err: Result<Url, ParseError> = Url::parse("http://*&^%$");
 		check_error(err, ErrorKind::Misc("url::ParseError: ".to_string()).into())?;
