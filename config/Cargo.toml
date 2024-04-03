@@ -1,6 +1,6 @@
 [package]
 name = "bmw_conf"
-version = "0.0.3-beta.1"
+version = "0.0.3-beta.2"
 authors = ["The BitcoinMW Developers"]
 description = "Configuration Library"
 license = "Apache-2.0"

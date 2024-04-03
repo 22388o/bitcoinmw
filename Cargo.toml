@@ -1,6 +1,6 @@
 [package]
 name = "bmw"
-version = "0.0.3-beta.1"
+version = "0.0.3-beta.2"
 authors = ["The BitcoinMW Developers"]
 description = "Bitcoin Mimblewimble (BMW) core libraries"
 license = "Apache-2.0"

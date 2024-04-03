@@ -1,6 +1,6 @@
 [package]
 name = "bmw_evh"
-version = "0.0.3-beta.1"
+version = "0.0.3-beta.2"
 authors = ["The BitcoinMW Develoeprs"]
 description = "Eventhandler v2"
 license = "Apache-2.0"

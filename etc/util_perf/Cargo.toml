@@ -1,6 +1,6 @@
 [package]
 name = "util_perf"
-version = "0.0.3-beta.1"
+version = "0.0.3-beta.2"
 edition = "2021"
 description = "Utility to test performance of data structures"
 license = "Apache-2.0"

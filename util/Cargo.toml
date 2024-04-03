@@ -1,6 +1,6 @@
 [package]
 name = "bmw_util"
-version = "0.0.3-beta.1"
+version = "0.0.3-beta.2"
 authors = ["The BitcoinMW Developers"]
 description = "Utility Library"
 license = "Apache-2.0"
