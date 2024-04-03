@@ -305,7 +305,12 @@ pub struct EvhStats {
 	/// occur if the server needs to read/write. So, the number will be higher for servers
 	/// with a lot of I/O happening.
 	pub event_loops: usize,
+	/// The total number of bytes read by the [`crate::EventHandler`] in the last statistical
+	/// interval. See [`crate::EventHandler::wait_for_stats`].
 	pub bytes_read: u128,
+	/// The total number of bytes `delay written` by the [`crate::EventHandler`] in the
+	/// last statistical interval. See [`crate::EventHandler::wait_for_stats`]. See also
+	/// [`crate::EvhStats::delay_writes`].
 	pub bytes_delay_write: u128,
 }
 

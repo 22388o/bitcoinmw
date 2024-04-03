@@ -300,9 +300,12 @@ impl Wakeup {
 }
 
 impl<'a> Chunk<'a> {
+	/// Retrieves the `slab_id` of the slab for this [`crate::Chunk`]. See
+	/// [`crate::UserContext::clear_through`].
 	pub fn slab_id(&self) -> usize {
 		self.slab.id()
 	}
+	/// Retrieves the data associated with this chunk as a [`slice`].
 	pub fn data(&'a self) -> &'a [u8] {
 		&self.slab.get()[0..self.len]
 	}
