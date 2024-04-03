@@ -19,7 +19,7 @@
 //!
 //! <table style="border: 0px"><tr><td><img style="width: 900px; height: 200px; background: white;"
 //! src="https://raw.githubusercontent.com/cgilliard/bitcoinmw/main/.github/images/rose-7136832_1280.png"></td><td>
-//! This crate defines and implements the EventHandler trait. The event handler handles
+//! The BMW evh crate defines and implements the EventHandler trait. The event handler handles
 //! events on tcp/ip connections. It manages both inbound and outbound connections. The underlying
 //! mechanism used are Epoll on Linux, Kqueues on MacOS and WePoll on Windows. These libraries
 //! allow for perfromant handling of reads and writes on multiple socket connections. It is used in
@@ -41,7 +41,7 @@
 //! # Performance
 //! The /etc directory in the project inlcudes a subdirectory called "evh_perf". This subdirectory
 //! is used for testing the performance of the eventhandler. The README for this tool can be found
-//! on [Github](https://github.com/cgilliard/bitcoinmw/tree/main/etc/evh_perf).
+//! on [Github](https://github.com/cgilliard/bitcoinmw/blob/main/etc/evh_perf/README.md)
 //! # Limitations
 //!
 //! <p>The evh is designed to be highly performant and thus it does not check the total number of

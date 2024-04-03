@@ -16,12 +16,13 @@
 // limitations under the License.
 
 //! # The BMW Logging Crate
-//! The BMW Logging crate handles logging for all crates within BMW. There is a global static
-//! logger which is used as a main log and for debugging tests and independant loggers which may be
-//! used for things like request and statistical logging. The interface should be fairly
-//! straightforward to understand it the logger is largely compatible with the Rust
-//! [log](https://docs.rs/log/latest/log/) crate with some minor adjustments. Most notably, the
-//! logging macros return errors in the case of i/o and other configuration related errors.
+//!
+//! <table style="border: 0px"><tr><td><img style="width: 900px; height: 150px; background: white;"
+//! src="https://raw.githubusercontent.com/cgilliard/bitcoinmw/main/.github/images/butterfly-7402310_1280.png"></td><td>
+//! The BMW Logging crate handles logging for all crates within BMW. There is a global static logger which is used as a main log and for debugging tests and independant loggers which may be used for things like request and statistical logging. The interface should be fairly straightforward to understand and it is largely compatible with the Rust <a href="https://docs.rs/log/latest/log/">log</a> crate with some minor adjustments. Most notably, the logging macros return errors in the case of i/o and other configuration related errors.
+//! </td></tr></table>
+//!
+//! # Macros
 //! In addition to the [`trace`], [`debug`], [`info`], [`warn`], [`error`]
 //! and [`fatal`] macros, this crate provides an 'all' version and 'plain'
 //! version of each macro. For example: [`info_all`] and [`info_plain`].
