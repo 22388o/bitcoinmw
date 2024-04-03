@@ -16,10 +16,19 @@
 // limitations under the License.
 
 //! # The BMW Eventhandler crate
-//! This crate defines and implements the [`crate::EventHandler`] trait. The event handler handles
+//!
+//! <table style="border: 0px"><tr><td><img style="width: 900px; height: 200px; background: white;"
+//! src="https://raw.githubusercontent.com/cgilliard/bitcoinmw/main/.github/images/rose-7136832_1280.png"></td><td>
+//! This crate defines and implements the EventHandler trait. The event handler handles
 //! events on tcp/ip connections. It manages both inbound and outbound connections. The underlying
 //! mechanism used are Epoll on Linux, Kqueues on MacOS and WePoll on Windows. These libraries
-//! allow for perfromant handling of reads and writes on multiple socket connections.
+//! allow for perfromant handling of reads and writes on multiple socket connections. It is used in
+//! the HTTP and Rustlet libraries to manage connections and is the basis for all tcp/ip
+//! communication within BMW. As with the other libraries, macros are provided that should
+//! generally be used instead of using the Builder struct directly. This is an advanced low-level
+//! library and must be used carefully.
+//! </td></tr></table>
+//!
 //! # Motivation
 //! Eventhandler provides a convenient interface to the low level eventing libraries on various
 //! platforms. It is the basis for the HTTP server and the Rustlet library and eventually the
@@ -34,23 +43,25 @@
 //! is used for testing the performance of the eventhandler. The README for this tool can be found
 //! on [Github](https://github.com/cgilliard/bitcoinmw/tree/main/etc/evh_perf).
 //! # Limitations
-//! The evh is designed to be highly performant and thus it does not check the total number of
+//!
+//! <p>The evh is designed to be highly performant and thus it does not check the total number of
 //! inbound connections. So, if the server gets in a state where there are too many open files, it
 //! will continue to try to accept additional connections. Unfortunately, when it gets in this
 //! situation, the edge triggered accept events do not happen until a new connection is
 //! established. So, it is very important that the number of file desciptors be set to a sufficient
-//! level for the evh so that you do not run out of file desciptors. Since eventhandler is more of
+//! level for the evh so that you do not run out of file desciptors.</p><p>Since eventhandler is more of
 //! a low level piece of software, it is expected that the users of this library will understand
 //! this and design in code that checks the number of connections and handles the situation. In BMW
 //! itself, the HTTP server and/or Rustlet library will deal with this situation appropriately.
 //! Another limitation of the evh is that it doesn't support TLS. We will address this at the
 //! higher level libraries with some additional functionalities, but this library is intended to be
-//! very performant and low level so we are not implementing it here. Additionally, the user should
+//! very performant and low level so we are not implementing it here.</p><p>Additionally, the user should
 //! be aware that once a connection (client or server) is added to the EVH, it will close it's file
 //! desciptor and or socket handle in the EVH drop handler, but if those Connections are dropped
 //! without being added to the EVH, the file desciptors may be leaked because the Connection struct
 //! doesn't implement a drop handler. The higher level libraries that use the EVH should take this
-//! into consideration.
+//! into consideration.</p>
+//!
 //! # Examples
 //!```
 //! use bmw_err::*;
