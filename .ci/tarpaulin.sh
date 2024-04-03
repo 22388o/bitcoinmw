@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "Reason=$3";
-if [ "$3" == "Schedule" ]; then
+if [ "$3" == "Schedule" ] || [ "$3" == "Manual" ]; then
   echo "updating"
   cargo install cargo-tarpaulin
   cargo tarpaulin --all > /tmp/tarpaulin.out

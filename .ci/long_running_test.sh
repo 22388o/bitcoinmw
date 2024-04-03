@@ -2,7 +2,7 @@
 
 start=`date +%s`
 
-if [ "$1" == "Schedule" ]; then
+if [ "$1" == "Schedule" ] || [ "$1" == "Manual" ]; then
   cargo install cargo-tarpaulin
   LOOPS=10000;
   echo $LOOPS

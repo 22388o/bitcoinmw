@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "Reason=$3";
-if [ "$3" == "Schedule" ]; then
+if [ "$3" == "Schedule" ] || [ "$3" == "Manual" ]; then
   cd ~
   git clone https://anything:$1@github.com/cgilliard/bitcoinmw.git bmw_new2
   cd bmw_new2
