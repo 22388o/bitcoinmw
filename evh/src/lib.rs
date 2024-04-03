@@ -21,7 +21,7 @@
 //! mechanism used are Epoll on Linux, Kqueues on MacOS and WePoll on Windows. These libraries
 //! allow for perfromant handling of reads and writes on multiple socket connections.
 //! # Motivation
-//! Eventhandler provides an convenient interface to the low level eventing libraries on various
+//! Eventhandler provides a convenient interface to the low level eventing libraries on various
 //! platforms. It is the basis for the HTTP server and the Rustlet library and eventually the
 //! cryptocurrency that will be built on top of these libraries. The event handler is designed to
 //! address the [C10m
@@ -30,8 +30,8 @@
 //! Separately, the eventhandler can handle over 2 million messages per second. See the performance
 //! section for further details.
 //! # Performance
-//! The /etc directory in the projects inlcudes a subdirectory called "evh_perf". This subdirectory
-//! is used for testing the performance of the eventhandler. This README for this tool can be found
+//! The /etc directory in the project inlcudes a subdirectory called "evh_perf". This subdirectory
+//! is used for testing the performance of the eventhandler. The README for this tool can be found
 //! on [Github](https://github.com/cgilliard/bitcoinmw/tree/main/etc/evh_perf).
 //! # Examples
 //!```
