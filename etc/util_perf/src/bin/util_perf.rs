@@ -217,7 +217,12 @@ fn do_hashtable() -> Result<(), Error> {
 	{
 		reset_stats()?;
 		start = Instant::now();
-		let mut hashtable = hashtable!(MaxEntries(10_000), SlabSize(100), SlabCount(100_000))?;
+		let mut hashtable = hashtable!(
+			GlobalSlabAllocator(false),
+			MaxEntries(10_000),
+			SlabSize(100),
+			SlabCount(100_000)
+		)?;
 
 		show_mem(start, "hashtable init")?;
 		reset_stats()?;
