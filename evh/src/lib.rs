@@ -25,10 +25,10 @@
 //! platforms. It is the basis for the HTTP server and the Rustlet library and eventually the
 //! cryptocurrency that will be built on top of these libraries. The event handler is designed to
 //! address the [C10m
-//! problem](https://migratorydata.com/blog/migratorydata-solved-the-c10m-problem/). In benchmarks,
-//! it is possible to get over 10 million connections if 32 GB of RAM are avilable. Separately, the
-//! eventhandler can handle over 2 million messages per second. See the performance section for
-//! further details.
+//! problem](https://migratorydata.com/blog/migratorydata-solved-the-c10m-problem/). Benchmarks
+//! indicate it is possible to get over 10 million connections if 32 GB of RAM are avilable.
+//! Separately, the eventhandler can handle over 2 million messages per second. See the performance
+//! section for further details.
 //! # Performance
 //! The /etc directory in the projects inlcudes a subdirectory called "evh_perf". This subdirectory
 //! is used for testing the performance of the eventhandler. This README for this tool can be found
