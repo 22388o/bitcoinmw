@@ -33,6 +33,24 @@
 //! The /etc directory in the project inlcudes a subdirectory called "evh_perf". This subdirectory
 //! is used for testing the performance of the eventhandler. The README for this tool can be found
 //! on [Github](https://github.com/cgilliard/bitcoinmw/tree/main/etc/evh_perf).
+//! # Limitations
+//! The evh is designed to be highly performant and thus it does not check the total number of
+//! inbound connections. So, if the server gets in a state where there are too many open files, it
+//! will continue to try to accept additional connections. Unfortunately, when it gets in this
+//! situation, the edge triggered accept events do not happen until a new connection is
+//! established. So, it is very important that the number of file desciptors be set to a sufficient
+//! level for the evh so that you do not run out of file desciptors. Since eventhandler is more of
+//! a low level piece of software, it is expected that the users of this library will understand
+//! this and design in code that checks the number of connections and handles the situation. In BMW
+//! itself, the HTTP server and/or Rustlet library will deal with this situation appropriately.
+//! Another limitation of the evh is that it doesn't support TLS. We will address this at the
+//! higher level libraries with some additional functionalities, but this library is intended to be
+//! very performant and low level so we are not implementing it here. Additionally, the user should
+//! be aware that once a connection (client or server) is added to the EVH, it will close it's file
+//! desciptor and or socket handle in the EVH drop handler, but if those Connections are dropped
+//! without being added to the EVH, the file desciptors may be leaked because the Connection struct
+//! doesn't implement a drop handler. The higher level libraries that use the EVH should take this
+//! into consideration.
 //! # Examples
 //!```
 //! use bmw_err::*;
