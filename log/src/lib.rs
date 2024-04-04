@@ -16,11 +16,32 @@
 // limitations under the License.
 
 //! # The BMW Logging Crate
-//!
-//! <table style="border: 0px"><tr><td><img style="width: 900px; height: 150px; background: white;"
-//! src="https://raw.githubusercontent.com/cgilliard/bitcoinmw/main/.github/images/butterfly-7402310_1280.png"></td><td>
-//! The BMW Logging crate handles logging for all crates within BMW. There is a global static logger which is used as a main log and for debugging tests and independant loggers which may be used for things like request and statistical logging. The interface should be fairly straightforward to understand and it is largely compatible with the Rust <a href="https://docs.rs/log/latest/log/">log</a> crate with some minor adjustments. Most notably, the logging macros return errors in the case of i/o and other configuration related errors.
-//! </td></tr></table>
+//! <style>
+//!     .box img {
+//!         display: inline-block;
+//!         vertical-align: middle;
+//!         float: left;
+//!         width: 171px;
+//!         margin-right: 15px;
+//!     }
+//!     .box .text {
+//!         display: inline-block;
+//!         vertical-align: top;
+//!         float: right;
+//!         width: calc(100% - 171px);    
+//!     }
+//! </style>
+//! <span class="box">
+//! <img style="width: 171px; background: white;"
+//! src="https://raw.githubusercontent.com/cgilliard/bitcoinmw/main/.github/images/butterfly-7402310_1280.png">
+//! The BMW Logging crate handles logging for all crates within BMW. There is a global static logger which is used
+//! as a main log and for debugging tests and independant loggers which may be used for things like request and
+//! statistical logging. The interface should be fairly straightforward to understand and it is largely compatible
+//! with the Rust <a href="https://docs.rs/log/latest/log/">log</a> crate with some minor adjustments. Most
+//! notably, the logging macros return errors in the case of i/o and other configuration related errors. The global
+//! logger, controlled through macros, is ideal for things like test logging and a main application log. When more
+//! controlled and/or performant logging is required, the standalone logger is ideal.
+//! </span>
 //!
 //! # Macros
 //! In addition to the [`trace`], [`debug`], [`info`], [`warn`], [`error`]

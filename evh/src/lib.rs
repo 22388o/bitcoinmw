@@ -16,18 +16,34 @@
 // limitations under the License.
 
 //! # The BMW Eventhandler crate
-//!
-//! <table style="border: 0px"><tr><td><img style="width: 900px; height: 200px; background: white;"
-//! src="https://raw.githubusercontent.com/cgilliard/bitcoinmw/main/.github/images/rose-7136832_1280.png"></td><td>
-//! The BMW evh crate defines and implements the EventHandler trait. The event handler handles
-//! events on tcp/ip connections. It manages both inbound and outbound connections. The underlying
-//! mechanism used are Epoll on Linux, Kqueues on MacOS and WePoll on Windows. These libraries
-//! allow for perfromant handling of reads and writes on multiple socket connections. It is used in
-//! the HTTP and Rustlet libraries to manage connections and is the basis for all tcp/ip
-//! communication within BMW. As with the other libraries, macros are provided that should
-//! generally be used instead of using the Builder struct directly. This is an advanced low-level
-//! library and must be used carefully.
-//! </td></tr></table>
+//! <style>
+//!     .box img {
+//!         display: inline-block;
+//!         vertical-align: middle;
+//!         float: left;
+//!         width: 171px;
+//!         margin-right: 15px;
+//!     }
+//!     .box .text {
+//!         display: inline-block;
+//!         vertical-align: top;
+//!         float: right;
+//!         width: calc(100% - 171px);    
+//!     }
+//! </style>
+//! <span class="box">
+//! <img style="width: 171px; background: white;"
+//! src="https://raw.githubusercontent.com/cgilliard/bitcoinmw/main/.github/images/rose-7136832_1280.png">
+//! The BMW eventhandler crate defines and implements the EventHandler trait. The event handler handles
+//! events on tcp/ip connections. It manages both inbound and outbound connections. Once added to
+//! the eventhandler, accepted connections and connected connections are treated identically. The underlying
+//! mechanism used are Epoll on Linux, Kqueues on MacOS and WePoll on Windows. So, a high number of
+//! connections may be processed at the same time. At the same time a very high level of throughput
+//! is acheived with low latency as well. These libraries allow for perfromant handling of
+//! reads and writes on multiple socket connections. It is used in the HTTP and Rustlet libraries
+//! to manage connections and is the basis for all tcp/ip communication within BMW. As with the
+//! other libraries, macros are provided that should generally be used instead of using the
+//! Builder struct directly. This is an advanced low-level library and must be used carefully.</span>
 //!
 //! # Motivation
 //! Eventhandler provides a convenient interface to the low level eventing libraries on various
