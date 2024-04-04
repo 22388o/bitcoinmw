@@ -21,14 +21,14 @@
 //!         display: inline-block;
 //!         vertical-align: middle;
 //!         float: left;
-//!         width: 100px;
+//!         width: 171px;
 //!         margin: 5px;
 //!     }
 //!     .box .text {
 //!         display: inline-block;
 //!         vertical-align: top;
 //!         float: right;
-//!         width: calc(100% - 100px);    
+//!         width: calc(100% - 171px);    
 //!     }
 //! </style>
 //! <span class="box">
@@ -41,8 +41,11 @@
 //! libraries, macros are provided and should be used in favor of using the Builder struct. All
 //! options that are available for these macros are documented in the Rustdoc. A performance tool
 //! is also available for this crate and it's README can be seen on <a
-//! href="https://github.com/cgilliard/bitcoinmw/blob/main/etc/util_perf/README.md">Github</a>.</span>
-//!
+//! href="https://github.com/cgilliard/bitcoinmw/blob/main/etc/util_perf/README.md">Github</a>.
+//! The byte utilities allow for conversions from slice to various different primative types. These
+//! include usize, u128, u64, and u32. The random number generator is a thread local crypto secure
+//! random number generator.
+//! </span>
 //!
 //! # Motivation
 //!
