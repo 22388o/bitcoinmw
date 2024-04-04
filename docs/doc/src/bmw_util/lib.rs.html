@@ -99,6 +99,21 @@
 <a href="#97" id="97">97</a>
 <a href="#98" id="98">98</a>
 <a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -117,9 +132,24 @@
 // limitations under the License.
 
 </span><span class="doccomment">//! # The BMW Utility crate
-//!
-//! &lt;table style="border: 0px"&gt;&lt;tr&gt;&lt;td&gt;&lt;img style="width: 1100px; height: 200px; background: white;"
-//! src="https://raw.githubusercontent.com/cgilliard/bitcoinmw/main/.github/images/elephant-5553135_1280.png"&gt;&lt;/td&gt;&lt;td&gt;
+//! &lt;style&gt;
+//!     .box img {
+//!         display: inline-block;
+//!         vertical-align: middle;
+//!         float: left;
+//!         width: 100px;
+//!         margin: 5px;
+//!     }
+//!     .box .text {
+//!         display: inline-block;
+//!         vertical-align: top;
+//!         float: right;
+//!         width: calc(100% - 100px);    
+//!     }
+//! &lt;/style&gt;
+//! &lt;span class="box"&gt;
+//! &lt;img style="background: white;"
+//! src="https://raw.githubusercontent.com/cgilliard/bitcoinmw/main/.github/images/elephant-5553135_1280-small.png"&gt;
 //! The BMW Utility crate defines and implements numerous utilties used in BMW. Generally, these
 //! utilities are designed to allocate little to no memory after initialization. In addition to
 //! these data structures, there are byte utils, random number generation tools a slab allocator
@@ -127,8 +157,8 @@
 //! libraries, macros are provided and should be used in favor of using the Builder struct. All
 //! options that are available for these macros are documented in the Rustdoc. A performance tool
 //! is also available for this crate and it's README can be seen on &lt;a
-//! href="https://github.com/cgilliard/bitcoinmw/blob/main/etc/util_perf/README.md"&gt;Github&lt;/a&gt;.
-//! &lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+//! href="https://github.com/cgilliard/bitcoinmw/blob/main/etc/util_perf/README.md"&gt;Github&lt;/a&gt;.&lt;/span&gt;
+//!
 //!
 //! # Motivation
 //!
