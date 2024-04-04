@@ -24,24 +24,28 @@ thread_local!(
 
 );
 
+/// Return a secure random u32 value using ring::rand::SystemRandom.
 pub fn random_u32() -> u32 {
 	let mut buffer = [0u8; 4];
 	fill(&mut buffer);
 	u32::from_be_bytes(buffer)
 }
 
+/// Return a secure random u64 value using ring::rand::SystemRandom.
 pub fn random_u64() -> u64 {
 	let mut buffer = [0u8; 8];
 	fill(&mut buffer);
 	u64::from_be_bytes(buffer)
 }
 
+/// Return a secure random u128 value using ring::rand::SystemRandom.
 pub fn random_u128() -> u128 {
 	let mut buffer = [0u8; 16];
 	fill(&mut buffer);
 	u128::from_be_bytes(buffer)
 }
 
+/// Return a secure random byte value using ring::rand::SystemRandom.
 pub fn random_bytes(mut buffer: &mut [u8]) {
 	fill(&mut buffer);
 }

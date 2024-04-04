@@ -107,6 +107,7 @@ pub trait SortableList<V>: List<V> + DynClone {
 		V: Ord;
 }
 
+/// A queue trait. See [`crate::queue`] for working examples.
 pub trait Queue<V>: DynClone {
 	/// Enqueue a value
 	fn enqueue(&mut self, value: V) -> Result<(), Error>;
@@ -118,6 +119,7 @@ pub trait Queue<V>: DynClone {
 	fn length(&self) -> usize;
 }
 
+/// A stack trait. See [`crate::stack`] for working examples.
 pub trait Stack<V>: DynClone {
 	/// push a `value` onto the stack
 	fn push(&mut self, value: V) -> Result<(), Error>;
@@ -129,6 +131,7 @@ pub trait Stack<V>: DynClone {
 	fn length(&self) -> usize;
 }
 
+/// The hashtable trait. See [`crate::hashtable`] for working examples.
 pub trait Hashtable<K, V>: Debug + DynClone
 where
 	K: Serializable + Clone,
@@ -173,6 +176,7 @@ where
 	) -> Result<Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>, Error>;
 }
 
+/// The hashset trait. See [`crate::hashset`] for working examples.
 pub trait Hashset<K>: Debug + DynClone
 where
 	K: Serializable + Clone,
@@ -220,6 +224,7 @@ where
 	pub(crate) slab_reader: SlabReader,
 }
 
+/// Internal struct used to build slab allocators. See [`crate::slab_allocator`].
 #[derive(Debug, Clone, Serializable)]
 pub struct SlabAllocatorConfig {
 	/// The size, in bytes, of a slab
@@ -242,32 +247,31 @@ pub struct Slab<'a> {
 	pub(crate) id: usize,
 }
 
+/// The slab allocator trait defines the operations available for a Slab Allocator. See
+/// [`crate::slab_allocator`] for working examples.
 pub trait SlabAllocator: DynClone + Debug {
 	/// If the slab allocator has been initialized, return true, otherwise, false.
 	fn is_init(&self) -> bool;
-
+	/// Allocate a slab or return an error if one is not available.
 	fn allocate<'a>(&'a mut self) -> Result<SlabMut<'a>, Error>;
-
+	/// Free a slab. Return an error if the slab cannot be freed.
 	fn free(&mut self, id: usize) -> Result<(), Error>;
-
+	/// Get an immutible reference to a slab.
 	fn get<'a>(&'a self, id: usize) -> Result<Slab<'a>, Error>;
-
+	/// Get a mutable reference to a slab.
 	fn get_mut<'a>(&'a mut self, id: usize) -> Result<SlabMut<'a>, Error>;
-
 	/// Returns the number of free slabs this [`crate::SlabAllocator`] has remaining.
 	fn free_count(&self) -> Result<usize, Error>;
-
 	/// Returns the configured `slab_size` for this [`crate::SlabAllocator`].
 	fn slab_size(&self) -> Result<usize, Error>;
-
 	/// Returns the configured `slab_count` for this [`crate::SlabAllocator`].
 	fn slab_count(&self) -> Result<usize, Error>;
-
 	/// Initializes the [`crate::SlabAllocator`] with the given `config`. See
 	/// [`crate::SlabAllocatorConfig`] for further details.
 	fn init(&mut self, config: SlabAllocatorConfig) -> Result<(), Error>;
 }
 
+/// A lock which can be used to pass data to and from threads. See [`crate::lock!`].
 pub trait Lock<T>: Send + Sync + Debug
 where
 	T: Send + Sync,
@@ -282,6 +286,8 @@ where
 	fn clone(&self) -> Self;
 }
 
+/// A Lock which can be used to send data to and from threads which is also stored in a box so it
+/// can be stored in structures as well. See [`crate::lock_box`].
 pub trait LockBox<T>: Send + Sync + Debug
 where
 	T: Send + Sync,
@@ -343,6 +349,8 @@ pub struct SlabReader {
 	pub(crate) max_value: usize,
 }
 
+/// The result returned by a call to [`crate::ThreadPoolHandle::block_on`]. It stores the result of
+/// the processed closure.
 #[derive(Debug, PartialEq)]
 pub enum PoolResult<T, E> {
 	Ok(T),
@@ -350,6 +358,7 @@ pub enum PoolResult<T, E> {
 	Panic,
 }
 
+/// A thread pool. See [`crate::thread_pool`] for working examples.
 pub trait ThreadPool<T, OnPanic>
 where
 	OnPanic: FnMut(u128, Box<dyn Any + Send>) -> Result<(), Error>
@@ -419,6 +428,7 @@ pub struct ThreadPoolStopper {
 	pub(crate) state: Box<dyn LockBox<ThreadPoolState>>,
 }
 
+/// A pattern to match with the search trie
 #[derive(Debug, PartialEq, Clone)]
 pub struct Pattern {
 	pub(crate) regex: String,
@@ -428,6 +438,7 @@ pub struct Pattern {
 	pub(crate) id: usize,
 }
 
+/// A match which is returned by the [`crate::SearchTrie::tmatch`] function
 #[derive(Clone, Copy, Debug)]
 pub struct Match {
 	pub(crate) start: usize,
@@ -435,6 +446,10 @@ pub struct Match {
 	pub(crate) id: usize,
 }
 
+/// The search trie is a Trie that can be used to efficiently search for multiple matches within a
+/// single string. It is designed to be fast and not allocate additional memory after it has been
+/// initialized. It is important to note that this trie is not space efficient though. See
+/// [`crate::search_trie!`] which is the macro that builds this data structure.
 pub trait SearchTrie: DynClone {
 	/// return matches associated with the supplied `text` for this
 	/// [`crate::SearchTrie`]. Matches are returned in the `matches`
@@ -452,6 +467,7 @@ clone_trait_object!(SearchTrie);
 clone_trait_object!(<K,V>Hashtable<K,V>);
 clone_trait_object!(<K>Hashset<K>);
 
+/// Builder struct which is used to build the data structures in this library.
 pub struct UtilBuilder {}
 
 // pub(crate) structures
