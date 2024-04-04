@@ -33,6 +33,85 @@
 //! Bitcoin Mimblewimble (BMW) will eventually be a cryptocurrency. It will be based on these core libraries. As they are
 //! available, we will document them here.
 //!
+//! # BMW Eventhandler crate
+//!
+//! The BMW Eventhandler crate is used to handle events on tcp/ip connections. Both inbound and
+//! outbound connections can be handled. It uses epoll on Linux, kqueues on MacOS, and Wepoll on
+//! Windows. It is highly scalable and includes a performance measuring tool as well. A simple
+//! example can be found below:
+//!
+//!```
+//! use bmw_err::*;
+//! use bmw_evh::*;
+//! use bmw_log::*;
+//! use std::str::from_utf8;
+//!
+//! info!();
+//!
+//! fn main() -> Result<(), Error> {
+//!     // create an evh with the specified configuration.
+//!     // This example shows all possible configuration options, but all of
+//!     // are optional. See the macro's documentation for full details.
+//!     let mut evh = evh_oro!(
+//!         EvhTimeout(100), // set timeout to 100 ms.
+//!         EvhThreads(1), // 1 thread
+//!         EvhReadSlabSize(100), // 100 byte slab size
+//!         EvhReadSlabCount(100), // 100 slabs
+//!         EvhHouseKeeperFrequencyMillis(1_000), // run the house keeper every 1_000 ms.
+//!         EvhStatsUpdateMillis(5_000), // return updated stats every 5_000 ms.
+//!         Debug(true) // print additional debugging information.
+//!     )?;
+//!
+//!     // set the on read handler
+//!     evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+//!         // loop through each of the available chunks and append data to a vec.
+//!         let mut data: Vec<u8> = vec![];
+//!
+//!         loop {
+//!             let next_chunk = ctx.next_chunk(connection)?;
+//!             cbreak!(next_chunk.is_none());
+//!             let next_chunk = next_chunk.unwrap();
+//!             data.extend(next_chunk.data());
+//!         }
+//!
+//!         // convert returned data to a utf8 string
+//!         let dstring = from_utf8(&data)?;
+//!         info!("data[{}]='{}'", connection.id(), dstring)?;
+//!
+//!         // get a write handle
+//!         let mut wh = connection.write_handle()?;
+//!
+//!         // echo
+//!         wh.write(dstring.as_bytes())?;
+//!
+//!         // clear all chunks from this connection. Note that partial
+//!         // clearing is possible with the ctx.clear_through function
+//!         // or no data can be cleared at all in which case it can
+//!         // be accessed on a subsequent request. When the connection
+//!         // is closed, all data is cleared automatically.
+//!         ctx.clear_all(connection)?;
+//!
+//!         Ok(())
+//!     })?;
+//!
+//!     // no other handlers are necessary
+//!
+//!     evh.start()?;
+//!
+//!     Ok(())
+//! }
+//!```
+//! For full details, see [`bmw_evh`].
+//!
+//! # BMW Utility crate
+//!
+//! The BMW Utility crate includes utilities used throughout BMW. The [`bmw_util::Hashtable`], [`bmw_util::Hashset`],
+//! [`bmw_util::List`], [`bmw_util::Array`], [`bmw_util::ArrayList`], [`bmw_util::Stack`], [`bmw_util::Queue`]
+//! data structures are designed to reduce memory allocations after initialization. The
+//! [`bmw_util::lock_box`] macro is used for locking, the rand module contains
+//! cryptographically secure system random number generators, and [`bmw_util::thread_pool`]
+//! implements a thread pool. For full details on the utility module, see [`bmw_util`].
+//!
 //! # BMW Configuration crate
 //!
 //! The BMW Configuration library is used to configure other crates within the BMW project. An

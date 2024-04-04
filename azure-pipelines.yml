@@ -46,8 +46,7 @@ jobs:
         PLATFORM: linux-amd64
   steps:
     - script: |
-        sudo apt-get update -yqq
-        sudo apt-get install -yqq --no-install-recommends libncursesw5-dev
+        echo "no additional deps"
       displayName: Linux Install Dependencies
     - template: '.ci/all.yml'
 - job: macos
@@ -87,8 +86,7 @@ jobs:
         PLATFORM: linux-amd64
   steps:
     - script: |
-        sudo apt-get update -yqq
-        sudo apt-get install -yqq --no-install-recommends libncursesw5-dev libssl-dev
+        echo "no additional deps"
       displayName: Linux Install Dependencies
     - template: '.ci/long.yml'
 - job: longmacos
@@ -116,7 +114,6 @@ jobs:
         PLATFORM: win-x64
   steps:
     - script: |
-        choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
-        choco install nasm
+        echo "no additional deps"
       displayName: Windows Install Dependencies
     - template: '.ci/long.yml'
