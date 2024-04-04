@@ -574,6 +574,22 @@
 <a href="#572" id="572">572</a>
 <a href="#573" id="573">573</a>
 <a href="#574" id="574">574</a>
+<a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
+<a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
+<a href="#583" id="583">583</a>
+<a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
+<a href="#590" id="590">590</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -683,7 +699,8 @@
 		</span>V: Ord;
 }
 
-<span class="kw">pub trait </span>Queue&lt;V&gt;: DynClone {
+<span class="doccomment">/// A queue trait. See [`crate::queue`] for working examples.
+</span><span class="kw">pub trait </span>Queue&lt;V&gt;: DynClone {
 	<span class="doccomment">/// Enqueue a value
 	</span><span class="kw">fn </span>enqueue(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: V) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="doccomment">/// Dequeue a value. If the queue is Empty return None
@@ -694,7 +711,8 @@
 	</span><span class="kw">fn </span>length(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize;
 }
 
-<span class="kw">pub trait </span>Stack&lt;V&gt;: DynClone {
+<span class="doccomment">/// A stack trait. See [`crate::stack`] for working examples.
+</span><span class="kw">pub trait </span>Stack&lt;V&gt;: DynClone {
 	<span class="doccomment">/// push a `value` onto the stack
 	</span><span class="kw">fn </span>push(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: V) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 	<span class="doccomment">/// pop a value off the top of the stack
@@ -705,7 +723,8 @@
 	</span><span class="kw">fn </span>length(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize;
 }
 
-<span class="kw">pub trait </span>Hashtable&lt;K, V&gt;: Debug + DynClone
+<span class="doccomment">/// The hashtable trait. See [`crate::hashtable`] for working examples.
+</span><span class="kw">pub trait </span>Hashtable&lt;K, V&gt;: Debug + DynClone
 <span class="kw">where
 	</span>K: Serializable + Clone,
 	V: Serializable,
@@ -749,7 +768,8 @@
 	) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;Box&lt;<span class="kw">dyn </span>SlabAllocator + Send + Sync&gt;&gt;&gt;&gt;, Error&gt;;
 }
 
-<span class="kw">pub trait </span>Hashset&lt;K&gt;: Debug + DynClone
+<span class="doccomment">/// The hashset trait. See [`crate::hashset`] for working examples.
+</span><span class="kw">pub trait </span>Hashset&lt;K&gt;: Debug + DynClone
 <span class="kw">where
 	</span>K: Serializable + Clone,
 {
@@ -796,7 +816,8 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) slab_reader: SlabReader,
 }
 
-<span class="attr">#[derive(Debug, Clone, Serializable)]
+<span class="doccomment">/// Internal struct used to build slab allocators. See [`crate::slab_allocator`].
+</span><span class="attr">#[derive(Debug, Clone, Serializable)]
 </span><span class="kw">pub struct </span>SlabAllocatorConfig {
 	<span class="doccomment">/// The size, in bytes, of a slab
 	</span><span class="kw">pub </span>slab_size: usize,
@@ -818,33 +839,32 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) id: usize,
 }
 
-<span class="kw">pub trait </span>SlabAllocator: DynClone + Debug {
+<span class="doccomment">/// The slab allocator trait defines the operations available for a Slab Allocator. See
+/// [`crate::slab_allocator`] for working examples.
+</span><span class="kw">pub trait </span>SlabAllocator: DynClone + Debug {
 	<span class="doccomment">/// If the slab allocator has been initialized, return true, otherwise, false.
 	</span><span class="kw">fn </span>is_init(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool;
-
-	<span class="kw">fn </span>allocate&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;SlabMut&lt;<span class="lifetime">'a</span>&gt;, Error&gt;;
-
-	<span class="kw">fn </span>free(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
-
-	<span class="kw">fn </span>get&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>, id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;Slab&lt;<span class="lifetime">'a</span>&gt;, Error&gt;;
-
-	<span class="kw">fn </span>get_mut&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>, id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;SlabMut&lt;<span class="lifetime">'a</span>&gt;, Error&gt;;
-
+	<span class="doccomment">/// Allocate a slab or return an error if one is not available.
+	</span><span class="kw">fn </span>allocate&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;SlabMut&lt;<span class="lifetime">'a</span>&gt;, Error&gt;;
+	<span class="doccomment">/// Free a slab. Return an error if the slab cannot be freed.
+	</span><span class="kw">fn </span>free(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+	<span class="doccomment">/// Get an immutible reference to a slab.
+	</span><span class="kw">fn </span>get&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>, id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;Slab&lt;<span class="lifetime">'a</span>&gt;, Error&gt;;
+	<span class="doccomment">/// Get a mutable reference to a slab.
+	</span><span class="kw">fn </span>get_mut&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>, id: usize) -&gt; <span class="prelude-ty">Result</span>&lt;SlabMut&lt;<span class="lifetime">'a</span>&gt;, Error&gt;;
 	<span class="doccomment">/// Returns the number of free slabs this [`crate::SlabAllocator`] has remaining.
 	</span><span class="kw">fn </span>free_count(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt;;
-
 	<span class="doccomment">/// Returns the configured `slab_size` for this [`crate::SlabAllocator`].
 	</span><span class="kw">fn </span>slab_size(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt;;
-
 	<span class="doccomment">/// Returns the configured `slab_count` for this [`crate::SlabAllocator`].
 	</span><span class="kw">fn </span>slab_count(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt;;
-
 	<span class="doccomment">/// Initializes the [`crate::SlabAllocator`] with the given `config`. See
 	/// [`crate::SlabAllocatorConfig`] for further details.
 	</span><span class="kw">fn </span>init(<span class="kw-2">&amp;mut </span><span class="self">self</span>, config: SlabAllocatorConfig) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 }
 
-<span class="kw">pub trait </span>Lock&lt;T&gt;: Send + Sync + Debug
+<span class="doccomment">/// A lock which can be used to pass data to and from threads. See [`crate::lock!`].
+</span><span class="kw">pub trait </span>Lock&lt;T&gt;: Send + Sync + Debug
 <span class="kw">where
 	</span>T: Send + Sync,
 {
@@ -858,7 +878,9 @@
 	</span><span class="kw">fn </span>clone(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self</span>;
 }
 
-<span class="kw">pub trait </span>LockBox&lt;T&gt;: Send + Sync + Debug
+<span class="doccomment">/// A Lock which can be used to send data to and from threads which is also stored in a box so it
+/// can be stored in structures as well. See [`crate::lock_box`].
+</span><span class="kw">pub trait </span>LockBox&lt;T&gt;: Send + Sync + Debug
 <span class="kw">where
 	</span>T: Send + Sync,
 {
@@ -919,14 +941,17 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) max_value: usize,
 }
 
-<span class="attr">#[derive(Debug, PartialEq)]
+<span class="doccomment">/// The result returned by a call to [`crate::ThreadPoolHandle::block_on`]. It stores the result of
+/// the processed closure.
+</span><span class="attr">#[derive(Debug, PartialEq)]
 </span><span class="kw">pub enum </span>PoolResult&lt;T, E&gt; {
 	<span class="prelude-val">Ok</span>(T),
 	<span class="prelude-val">Err</span>(E),
 	Panic,
 }
 
-<span class="kw">pub trait </span>ThreadPool&lt;T, OnPanic&gt;
+<span class="doccomment">/// A thread pool. See [`crate::thread_pool`] for working examples.
+</span><span class="kw">pub trait </span>ThreadPool&lt;T, OnPanic&gt;
 <span class="kw">where
 	</span>OnPanic: FnMut(u128, Box&lt;<span class="kw">dyn </span>Any + Send&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 		+ Send
@@ -995,7 +1020,8 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) state: Box&lt;<span class="kw">dyn </span>LockBox&lt;ThreadPoolState&gt;&gt;,
 }
 
-<span class="attr">#[derive(Debug, PartialEq, Clone)]
+<span class="doccomment">/// A pattern to match with the search trie
+</span><span class="attr">#[derive(Debug, PartialEq, Clone)]
 </span><span class="kw">pub struct </span>Pattern {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) regex: String,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) is_case_sensitive: bool,
@@ -1004,14 +1030,19 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) id: usize,
 }
 
-<span class="attr">#[derive(Clone, Copy, Debug)]
+<span class="doccomment">/// A match which is returned by the [`crate::SearchTrie::tmatch`] function
+</span><span class="attr">#[derive(Clone, Copy, Debug)]
 </span><span class="kw">pub struct </span>Match {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) start: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) end: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) id: usize,
 }
 
-<span class="kw">pub trait </span>SearchTrie: DynClone {
+<span class="doccomment">/// The search trie is a Trie that can be used to efficiently search for multiple matches within a
+/// single string. It is designed to be fast and not allocate additional memory after it has been
+/// initialized. It is important to note that this trie is not space efficient though. See
+/// [`crate::search_trie!`] which is the macro that builds this data structure.
+</span><span class="kw">pub trait </span>SearchTrie: DynClone {
 	<span class="doccomment">/// return matches associated with the supplied `text` for this
 	/// [`crate::SearchTrie`]. Matches are returned in the `matches`
 	/// array supplied by the caller. The result is the number of
@@ -1028,7 +1059,8 @@
 <span class="macro">clone_trait_object!</span>(&lt;K,V&gt;Hashtable&lt;K,V&gt;);
 <span class="macro">clone_trait_object!</span>(&lt;K&gt;Hashset&lt;K&gt;);
 
-<span class="kw">pub struct </span>UtilBuilder {}
+<span class="doccomment">/// Builder struct which is used to build the data structures in this library.
+</span><span class="kw">pub struct </span>UtilBuilder {}
 
 <span class="comment">// pub(crate) structures
 

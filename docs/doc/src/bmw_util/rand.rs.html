@@ -52,6 +52,10 @@
 <a href="#50" id="50">50</a>
 <a href="#51" id="51">51</a>
 <a href="#52" id="52">52</a>
+<a href="#53" id="53">53</a>
+<a href="#54" id="54">54</a>
+<a href="#55" id="55">55</a>
+<a href="#56" id="56">56</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -78,25 +82,29 @@
 
 );
 
-<span class="kw">pub fn </span>random_u32() -&gt; u32 {
+<span class="doccomment">/// Return a secure random u32 value using ring::rand::SystemRandom.
+</span><span class="kw">pub fn </span>random_u32() -&gt; u32 {
 	<span class="kw">let </span><span class="kw-2">mut </span>buffer = [<span class="number">0u8</span>; <span class="number">4</span>];
 	fill(<span class="kw-2">&amp;mut </span>buffer);
 	u32::from_be_bytes(buffer)
 }
 
-<span class="kw">pub fn </span>random_u64() -&gt; u64 {
+<span class="doccomment">/// Return a secure random u64 value using ring::rand::SystemRandom.
+</span><span class="kw">pub fn </span>random_u64() -&gt; u64 {
 	<span class="kw">let </span><span class="kw-2">mut </span>buffer = [<span class="number">0u8</span>; <span class="number">8</span>];
 	fill(<span class="kw-2">&amp;mut </span>buffer);
 	u64::from_be_bytes(buffer)
 }
 
-<span class="kw">pub fn </span>random_u128() -&gt; u128 {
+<span class="doccomment">/// Return a secure random u128 value using ring::rand::SystemRandom.
+</span><span class="kw">pub fn </span>random_u128() -&gt; u128 {
 	<span class="kw">let </span><span class="kw-2">mut </span>buffer = [<span class="number">0u8</span>; <span class="number">16</span>];
 	fill(<span class="kw-2">&amp;mut </span>buffer);
 	u128::from_be_bytes(buffer)
 }
 
-<span class="kw">pub fn </span>random_bytes(<span class="kw-2">mut </span>buffer: <span class="kw-2">&amp;mut </span>[u8]) {
+<span class="doccomment">/// Return a secure random byte value using ring::rand::SystemRandom.
+</span><span class="kw">pub fn </span>random_bytes(<span class="kw-2">mut </span>buffer: <span class="kw-2">&amp;mut </span>[u8]) {
 	fill(<span class="kw-2">&amp;mut </span>buffer);
 }
 
