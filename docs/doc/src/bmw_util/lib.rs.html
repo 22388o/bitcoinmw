@@ -114,6 +114,9 @@
 <a href="#112" id="112">112</a>
 <a href="#113" id="113">113</a>
 <a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -137,14 +140,14 @@
 //!         display: inline-block;
 //!         vertical-align: middle;
 //!         float: left;
-//!         width: 100px;
+//!         width: 171px;
 //!         margin: 5px;
 //!     }
 //!     .box .text {
 //!         display: inline-block;
 //!         vertical-align: top;
 //!         float: right;
-//!         width: calc(100% - 100px);    
+//!         width: calc(100% - 171px);    
 //!     }
 //! &lt;/style&gt;
 //! &lt;span class="box"&gt;
@@ -157,8 +160,11 @@
 //! libraries, macros are provided and should be used in favor of using the Builder struct. All
 //! options that are available for these macros are documented in the Rustdoc. A performance tool
 //! is also available for this crate and it's README can be seen on &lt;a
-//! href="https://github.com/cgilliard/bitcoinmw/blob/main/etc/util_perf/README.md"&gt;Github&lt;/a&gt;.&lt;/span&gt;
-//!
+//! href="https://github.com/cgilliard/bitcoinmw/blob/main/etc/util_perf/README.md"&gt;Github&lt;/a&gt;.
+//! The byte utilities allow for conversions from slice to various different primative types. These
+//! include usize, u128, u64, and u32. The random number generator is a thread local crypto secure
+//! random number generator.
+//! &lt;/span&gt;
 //!
 //! # Motivation
 //!
