@@ -16,9 +16,24 @@
 // limitations under the License.
 
 //! # The BMW Utility crate
-//!
-//! <table style="border: 0px"><tr><td><img style="width: 1100px; height: 200px; background: white;"
-//! src="https://raw.githubusercontent.com/cgilliard/bitcoinmw/main/.github/images/elephant-5553135_1280.png"></td><td>
+//! <style>
+//!     .box img {
+//!         display: inline-block;
+//!         vertical-align: middle;
+//!         float: left;
+//!         width: 100px;
+//!         margin: 5px;
+//!     }
+//!     .box .text {
+//!         display: inline-block;
+//!         vertical-align: top;
+//!         float: right;
+//!         width: calc(100% - 100px);    
+//!     }
+//! </style>
+//! <span class="box">
+//! <img style="background: white;"
+//! src="https://raw.githubusercontent.com/cgilliard/bitcoinmw/main/.github/images/elephant-5553135_1280-small.png">
 //! The BMW Utility crate defines and implements numerous utilties used in BMW. Generally, these
 //! utilities are designed to allocate little to no memory after initialization. In addition to
 //! these data structures, there are byte utils, random number generation tools a slab allocator
@@ -26,8 +41,8 @@
 //! libraries, macros are provided and should be used in favor of using the Builder struct. All
 //! options that are available for these macros are documented in the Rustdoc. A performance tool
 //! is also available for this crate and it's README can be seen on <a
-//! href="https://github.com/cgilliard/bitcoinmw/blob/main/etc/util_perf/README.md">Github</a>.
-//! </td></tr></table>
+//! href="https://github.com/cgilliard/bitcoinmw/blob/main/etc/util_perf/README.md">Github</a>.</span>
+//!
 //!
 //! # Motivation
 //!
