@@ -520,6 +520,18 @@
 <a href="#518" id="518">518</a>
 <a href="#519" id="519">519</a>
 <a href="#520" id="520">520</a>
+<a href="#521" id="521">521</a>
+<a href="#522" id="522">522</a>
+<a href="#523" id="523">523</a>
+<a href="#524" id="524">524</a>
+<a href="#525" id="525">525</a>
+<a href="#526" id="526">526</a>
+<a href="#527" id="527">527</a>
+<a href="#528" id="528">528</a>
+<a href="#529" id="529">529</a>
+<a href="#530" id="530">530</a>
+<a href="#531" id="531">531</a>
+<a href="#532" id="532">532</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -690,8 +702,19 @@
 	/// # See Also
 	/// [`crate`], [`crate::EventHandler`], [`crate::EvhStats`]
 	</span><span class="kw">fn </span>wait_for_stats(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;EvhStats, Error&gt;;
+	<span class="kw">fn </span>controller(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;EvhController, Error&gt;;
 	<span class="attr">#[doc(hidden)]
 	</span><span class="kw">fn </span>set_debug_info(<span class="kw-2">&amp;mut </span><span class="self">self</span>, debug_info: DebugInfo) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+}
+
+<span class="attr">#[derive(Clone)]
+</span><span class="kw">pub struct </span>EvhController {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) state: Array&lt;Box&lt;<span class="kw">dyn </span>LockBox&lt;EventHandlerState&gt;&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) wakeups: Array&lt;Wakeup&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) stopper: <span class="prelude-ty">Option</span>&lt;ThreadPoolStopper&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) stats: Box&lt;<span class="kw">dyn </span>LockBox&lt;GlobalStats&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) config: EventHandlerConfig,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_info: DebugInfo,
 }
 
 <span class="doccomment">/// A chunk of data returned by the [`crate::EventHandler`]. Chunks are of a maximum size defined
@@ -936,6 +959,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) stopper: <span class="prelude-ty">Option</span>&lt;ThreadPoolStopper&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) stats: Box&lt;<span class="kw">dyn </span>LockBox&lt;GlobalStats&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_info: DebugInfo,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) has_controller: bool,
 }
 
 <span class="attr">#[derive(Clone)]
