@@ -520,7 +520,6 @@
 <a href="#518" id="518">518</a>
 <a href="#519" id="519">519</a>
 <a href="#520" id="520">520</a>
-<a href="#521" id="521">521</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -837,8 +836,7 @@
 	</span><span class="kw">pub </span>bytes_delay_write: u128,
 }
 
-<span class="attr">#[allow(dead_code)]
-#[derive(Clone)]
+<span class="attr">#[derive(Clone)]
 </span><span class="kw">pub struct </span>DebugInfo {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) pending: Box&lt;<span class="kw">dyn </span>LockBox&lt;bool&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) write_err: Box&lt;<span class="kw">dyn </span>LockBox&lt;bool&gt;&gt;,

@@ -302,6 +302,86 @@
 <a href="#300" id="300">300</a>
 <a href="#301" id="301">301</a>
 <a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
+<a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
+<a href="#328" id="328">328</a>
+<a href="#329" id="329">329</a>
+<a href="#330" id="330">330</a>
+<a href="#331" id="331">331</a>
+<a href="#332" id="332">332</a>
+<a href="#333" id="333">333</a>
+<a href="#334" id="334">334</a>
+<a href="#335" id="335">335</a>
+<a href="#336" id="336">336</a>
+<a href="#337" id="337">337</a>
+<a href="#338" id="338">338</a>
+<a href="#339" id="339">339</a>
+<a href="#340" id="340">340</a>
+<a href="#341" id="341">341</a>
+<a href="#342" id="342">342</a>
+<a href="#343" id="343">343</a>
+<a href="#344" id="344">344</a>
+<a href="#345" id="345">345</a>
+<a href="#346" id="346">346</a>
+<a href="#347" id="347">347</a>
+<a href="#348" id="348">348</a>
+<a href="#349" id="349">349</a>
+<a href="#350" id="350">350</a>
+<a href="#351" id="351">351</a>
+<a href="#352" id="352">352</a>
+<a href="#353" id="353">353</a>
+<a href="#354" id="354">354</a>
+<a href="#355" id="355">355</a>
+<a href="#356" id="356">356</a>
+<a href="#357" id="357">357</a>
+<a href="#358" id="358">358</a>
+<a href="#359" id="359">359</a>
+<a href="#360" id="360">360</a>
+<a href="#361" id="361">361</a>
+<a href="#362" id="362">362</a>
+<a href="#363" id="363">363</a>
+<a href="#364" id="364">364</a>
+<a href="#365" id="365">365</a>
+<a href="#366" id="366">366</a>
+<a href="#367" id="367">367</a>
+<a href="#368" id="368">368</a>
+<a href="#369" id="369">369</a>
+<a href="#370" id="370">370</a>
+<a href="#371" id="371">371</a>
+<a href="#372" id="372">372</a>
+<a href="#373" id="373">373</a>
+<a href="#374" id="374">374</a>
+<a href="#375" id="375">375</a>
+<a href="#376" id="376">376</a>
+<a href="#377" id="377">377</a>
+<a href="#378" id="378">378</a>
+<a href="#379" id="379">379</a>
+<a href="#380" id="380">380</a>
+<a href="#381" id="381">381</a>
+<a href="#382" id="382">382</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -327,18 +407,41 @@
 
 <span class="comment">// macro to simplify the process of checking the parameters
 </span><span class="macro">macro_rules! </span>cc {
-	(<span class="macro-nonterminal">$self</span>:expr, <span class="macro-nonterminal">$set</span>:expr, <span class="macro-nonterminal">$specified</span>:expr, <span class="macro-nonterminal">$option_name</span>:expr) =&gt; {{
+	(<span class="macro-nonterminal">$self</span>:expr, <span class="macro-nonterminal">$set</span>:expr, <span class="macro-nonterminal">$specified</span>:expr, <span class="macro-nonterminal">$option_name</span>:expr, <span class="macro-nonterminal">$dup</span>:expr) =&gt; {{
 		<span class="kw">let </span>config_option_name = <span class="macro-nonterminal">$option_name</span>;
 		<span class="kw">let </span>i = <span class="macro-nonterminal">$option_name </span><span class="kw">as </span>usize;
 		<span class="macro-nonterminal">$self</span>.check_set(<span class="kw-2">&amp;</span><span class="macro-nonterminal">$set</span>, <span class="kw-2">&amp;</span>config_option_name)<span class="question-mark">?</span>;
-		<span class="macro-nonterminal">$self</span>.check_index(i, <span class="macro-nonterminal">$specified</span>, <span class="macro">format!</span>(<span class="string">"{:?}"</span>, config_option_name))<span class="question-mark">?</span>;
+		<span class="macro-nonterminal">$self</span>.check_index(i, <span class="macro-nonterminal">$specified</span>, <span class="macro">format!</span>(<span class="string">"{:?}"</span>, config_option_name), <span class="kw-2">&amp;</span><span class="macro-nonterminal">$dup</span>)<span class="question-mark">?</span>;
 	}};
+}
+
+<span class="macro">macro_rules! </span>multi {
+	(<span class="macro-nonterminal">$opt</span>:ident, <span class="macro-nonterminal">$name</span>:expr, <span class="macro-nonterminal">$ret</span>:expr, <span class="macro-nonterminal">$config</span>:expr) =&gt; {
+		<span class="kw">match </span><span class="macro-nonterminal">$config </span>{
+			ConfigOption::<span class="macro-nonterminal">$opt</span>(<span class="kw">_</span>) =&gt; {
+				<span class="kw">if </span><span class="macro-nonterminal">$name </span>== <span class="kw-2">&amp;</span>CN::<span class="macro-nonterminal">$opt </span>{
+					<span class="macro-nonterminal">$ret</span>.push(<span class="macro-nonterminal">$config</span>.clone());
+				}
+			}
+			<span class="kw">_ </span>=&gt; {}
+		}
+	};
 }
 
 <span class="comment">// Config implementation just return values from the Impl structure.
 </span><span class="kw">impl </span>Config <span class="kw">for </span>ConfigImpl {
 	<span class="kw">fn </span>get(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>CN) -&gt; <span class="prelude-ty">Option</span>&lt;ConfigOption&gt; {
 		<span class="self">self</span>.hash.get(name).cloned()
+	}
+
+	<span class="kw">fn </span>get_multi(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>CN) -&gt; Vec&lt;ConfigOption&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>ret = <span class="macro">vec!</span>[];
+		<span class="kw">for </span>config <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.configs {
+			<span class="macro">multi!</span>(HttpHeader, name, ret, config);
+			<span class="macro">multi!</span>(FileHeader, name, ret, config);
+		}
+
+		ret
 	}
 
 	<span class="kw">fn </span>get_or_bool(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>CN, default: bool) -&gt; bool {
@@ -411,6 +514,7 @@
 				ConfigOption::MaxSizeBytes(v) =&gt; <span class="kw-2">*</span>v,
 				ConfigOption::MaxAgeMillis(v) =&gt; <span class="kw-2">*</span>v,
 				ConfigOption::LineNumDataMaxLen(v) =&gt; <span class="kw-2">*</span>v,
+				ConfigOption::HttpTimeoutMillis(v) =&gt; <span class="kw-2">*</span>v,
 				<span class="kw">_ </span>=&gt; default,
 			},
 			<span class="prelude-val">None </span>=&gt; default,
@@ -422,6 +526,13 @@
 			<span class="prelude-val">Some</span>(v) =&gt; <span class="kw">match </span>v {
 				ConfigOption::FileHeader(v) =&gt; v.to_string(),
 				ConfigOption::Regex(v) =&gt; v.to_string(),
+				ConfigOption::HttpAccept(v) =&gt; v.to_string(),
+				ConfigOption::HttpMethod(v) =&gt; v.to_string(),
+				ConfigOption::HttpVersion(v) =&gt; v.to_string(),
+				ConfigOption::HttpConnectionType(v) =&gt; v.to_string(),
+				ConfigOption::HttpRequestUri(v) =&gt; v.to_string(),
+				ConfigOption::HttpRequestUrl(v) =&gt; v.to_string(),
+				ConfigOption::HttpUserAgent(v) =&gt; v.to_string(),
 				<span class="kw">_ </span>=&gt; default,
 			},
 			<span class="prelude-val">None </span>=&gt; default,
@@ -439,7 +550,16 @@
 	}
 
 	<span class="kw">fn </span>check_config(<span class="kw-2">&amp;</span><span class="self">self</span>, allowed: Vec&lt;CN&gt;, required: Vec&lt;CN&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="self">self</span>.check_config_impl(allowed, required)
+		<span class="self">self</span>.check_config_impl(allowed, required, <span class="macro">vec!</span>[])
+	}
+
+	<span class="kw">fn </span>check_config_duplicates(
+		<span class="kw-2">&amp;</span><span class="self">self</span>,
+		allowed: Vec&lt;CN&gt;,
+		required: Vec&lt;CN&gt;,
+		allow_duplicates: Vec&lt;CN&gt;,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="self">self</span>.check_config_impl(allowed, required, allow_duplicates)
 	}
 }
 
@@ -494,6 +614,17 @@
 				EvhTimeout(<span class="kw">_</span>) =&gt; hash.insert(CN::EvhTimeout, config.clone()),
 				EvhReadSlabSize(<span class="kw">_</span>) =&gt; hash.insert(CN::EvhReadSlabSize, config.clone()),
 				EvhReadSlabCount(<span class="kw">_</span>) =&gt; hash.insert(CN::EvhReadSlabCount, config.clone()),
+				HttpContentFile(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpContentFile, config.clone()),
+				HttpContentData(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpContentData, config.clone()),
+				HttpAccept(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpAccept, config.clone()),
+				HttpHeader(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpHeader, config.clone()),
+				HttpTimeoutMillis(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpTimeoutMillis, config.clone()),
+				HttpMethod(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpMethod, config.clone()),
+				HttpVersion(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpVersion, config.clone()),
+				HttpConnectionType(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpConnectionType, config.clone()),
+				HttpRequestUri(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpRequestUri, config.clone()),
+				HttpRequestUrl(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpRequestUrl, config.clone()),
+				HttpUserAgent(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpUserAgent, config.clone()),
 				Debug(<span class="kw">_</span>) =&gt; hash.insert(CN::Debug, config.clone()),
 				DebugLargeSlabCount(<span class="kw">_</span>) =&gt; hash.insert(CN::DebugLargeSlabCount, config.clone()),
 			};
@@ -502,7 +633,17 @@
 	}
 
 	<span class="comment">// check the config: 1.) for duplicates, 2.) for allowed input 3.) for the required input.
-	</span><span class="kw">pub fn </span>check_config_impl(<span class="kw-2">&amp;</span><span class="self">self</span>, allowed: Vec&lt;CN&gt;, required: Vec&lt;CN&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	</span><span class="kw">pub fn </span>check_config_impl(
+		<span class="kw-2">&amp;</span><span class="self">self</span>,
+		allowed: Vec&lt;CN&gt;,
+		required: Vec&lt;CN&gt;,
+		allow_duplicates: Vec&lt;CN&gt;,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>d = HashSet::new();
+		<span class="kw">for </span>dup <span class="kw">in </span><span class="kw-2">&amp;</span>allow_duplicates {
+			d.insert(<span class="macro">format!</span>(<span class="string">"{:?}"</span>, dup));
+		}
+
 		<span class="kw">let </span><span class="kw-2">mut </span>t = HashSet::new();
 		<span class="kw">let </span><span class="kw-2">mut </span>s = <span class="macro">vec!</span>[];
 		<span class="kw">for </span>a <span class="kw">in </span><span class="kw-2">&amp;</span>allowed {
@@ -512,52 +653,63 @@
 		<span class="comment">// the cc macro handles #1 and #2 above
 		</span><span class="kw">for </span>v <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.configs {
 			<span class="kw">match </span>v {
-				MaxSizeBytes(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::MaxSizeBytes),
-				MaxAgeMillis(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::MaxAgeMillis),
-				DisplayColors(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::DisplayColors),
-				DisplayStdout(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::DisplayStdout),
-				DisplayTimestamp(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::DisplayTimestamp),
-				DisplayLogLevel(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::DisplayLogLevel),
-				DisplayLineNum(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::DisplayLineNum),
-				DisplayMillis(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::DisplayMillis),
-				LogFilePath(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::LogFilePath),
-				AutoRotate(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::AutoRotate),
-				DisplayBackTrace(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::DisplayBackTrace),
-				LineNumDataMaxLen(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::LineNumDataMaxLen),
-				DeleteRotation(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::DeleteRotation),
-				FileHeader(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::FileHeader),
-				MaxEntries(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::MaxEntries),
-				MaxLoadFactor(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::MaxLoadFactor),
-				SlabSize(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::SlabSize),
-				SlabCount(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::SlabCount),
-				MinSize(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::MinSize),
-				MaxSize(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::MaxSize),
-				SyncChannelSize(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::SyncChannelSize),
-				GlobalSlabAllocator(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::GlobalSlabAllocator),
-				Start(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::Start),
-				End(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::End),
-				MatchId(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::MatchId),
-				Regex(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::Regex),
-				IsCaseSensitive(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::IsCaseSensitive),
-				IsTerminationPattern(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::IsTerminationPattern),
-				IsMultiLine(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::IsMultiLine),
-				PatternId(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::PatternId),
-				IsHashtable(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::IsHashtable),
-				IsHashset(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::IsHashset),
-				IsList(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::IsList),
-				TerminationLength(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::TerminationLength),
-				MaxWildCardLength(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::MaxWildCardLength),
-				IsSync(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::IsSync),
-				EvhThreads(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhThreads),
+				MaxSizeBytes(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::MaxSizeBytes, d),
+				MaxAgeMillis(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::MaxAgeMillis, d),
+				DisplayColors(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::DisplayColors, d),
+				DisplayStdout(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::DisplayStdout, d),
+				DisplayTimestamp(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::DisplayTimestamp, d),
+				DisplayLogLevel(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::DisplayLogLevel, d),
+				DisplayLineNum(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::DisplayLineNum, d),
+				DisplayMillis(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::DisplayMillis, d),
+				LogFilePath(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::LogFilePath, d),
+				AutoRotate(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::AutoRotate, d),
+				DisplayBackTrace(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::DisplayBackTrace, d),
+				LineNumDataMaxLen(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::LineNumDataMaxLen, d),
+				DeleteRotation(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::DeleteRotation, d),
+				FileHeader(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::FileHeader, d),
+				MaxEntries(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::MaxEntries, d),
+				MaxLoadFactor(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::MaxLoadFactor, d),
+				SlabSize(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::SlabSize, d),
+				SlabCount(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::SlabCount, d),
+				MinSize(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::MinSize, d),
+				MaxSize(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::MaxSize, d),
+				SyncChannelSize(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::SyncChannelSize, d),
+				GlobalSlabAllocator(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::GlobalSlabAllocator, d),
+				Start(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::Start, d),
+				End(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::End, d),
+				MatchId(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::MatchId, d),
+				Regex(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::Regex, d),
+				IsCaseSensitive(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::IsCaseSensitive, d),
+				IsTerminationPattern(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::IsTerminationPattern, d),
+				IsMultiLine(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::IsMultiLine, d),
+				PatternId(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::PatternId, d),
+				IsHashtable(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::IsHashtable, d),
+				IsHashset(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::IsHashset, d),
+				IsList(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::IsList, d),
+				TerminationLength(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::TerminationLength, d),
+				MaxWildCardLength(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::MaxWildCardLength, d),
+				IsSync(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::IsSync, d),
+				EvhThreads(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhThreads, d),
 				EvhHouseKeeperFrequencyMillis(<span class="kw">_</span>) =&gt; {
-					<span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhHouseKeeperFrequencyMillis)
+					<span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhHouseKeeperFrequencyMillis, d)
 				}
-				EvhStatsUpdateMillis(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhStatsUpdateMillis),
-				EvhTimeout(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhTimeout),
-				EvhReadSlabSize(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhReadSlabSize),
-				EvhReadSlabCount(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhReadSlabCount),
-				Debug(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::Debug),
-				DebugLargeSlabCount(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::DebugLargeSlabCount),
+				EvhStatsUpdateMillis(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhStatsUpdateMillis, d),
+				EvhTimeout(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhTimeout, d),
+				EvhReadSlabSize(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhReadSlabSize, d),
+				EvhReadSlabCount(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhReadSlabCount, d),
+				HttpContentFile(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpContentFile, d),
+				HttpContentData(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpContentData, d),
+				HttpAccept(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpAccept, d),
+				HttpHeader(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpHeader, d),
+				HttpTimeoutMillis(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpTimeoutMillis, d),
+				HttpMethod(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpMethod, d),
+				HttpVersion(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpVersion, d),
+				HttpConnectionType(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpConnectionType, d),
+				HttpRequestUri(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpRequestUri, d),
+				HttpRequestUrl(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpRequestUrl, d),
+				HttpUserAgent(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpUserAgent, d),
+				Debug(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::Debug, d),
+				DebugLargeSlabCount(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::DebugLargeSlabCount, d),
 			}
 		}
 
@@ -587,7 +739,13 @@
 	}
 
 	<span class="comment">// this checks for duplicates
-	</span><span class="kw">fn </span>check_index(<span class="kw-2">&amp;</span><span class="self">self</span>, i: usize, specified: <span class="kw-2">&amp;mut </span>Vec&lt;bool&gt;, name: String) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	</span><span class="kw">fn </span>check_index(
+		<span class="kw-2">&amp;</span><span class="self">self</span>,
+		i: usize,
+		specified: <span class="kw-2">&amp;mut </span>Vec&lt;bool&gt;,
+		name: String,
+		dupes: <span class="kw-2">&amp;</span>HashSet&lt;String&gt;,
+	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">if </span>specified.len() &lt;= i {
 			specified.resize(i + <span class="number">1</span>, <span class="bool-val">false</span>);
 		}
@@ -599,7 +757,9 @@
 				name
 			))
 		} <span class="kw">else </span>{
-			specified[i] = <span class="bool-val">true</span>;
+			<span class="kw">if </span>dupes.get(<span class="kw-2">&amp;</span>name).is_none() {
+				specified[i] = <span class="bool-val">true</span>;
+			}
 			<span class="prelude-val">Ok</span>(())
 		}
 	}
