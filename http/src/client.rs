@@ -15,9 +15,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::types::HttpClientImpl;
-use crate::{HttpClient, HttpRequest, HttpResponseHandler};
+use crate::types::{HttpClientImpl, HttpConnectionImpl};
+use crate::{HttpClient, HttpConnection, HttpRequest, HttpResponseHandler};
+use bmw_conf::ConfigOption;
 use bmw_err::*;
+use bmw_evh::*;
+use bmw_log::*;
+use std::sync::mpsc::sync_channel;
+use std::thread::spawn;
+
+info!();
 
 impl HttpClient for HttpClientImpl {
 	fn send(
@@ -29,4 +36,53 @@ impl HttpClient for HttpClientImpl {
 	}
 }
 
-impl HttpClientImpl {}
+impl HttpClientImpl {
+	pub(crate) fn new(configs: Vec<ConfigOption>) -> Result<Self, Error> {
+		let (tx, rx) = sync_channel(1);
+		spawn(move || -> Result<(), Error> {
+			let mut evh = EvhBuilder::build_evh(configs)?;
+			evh.set_on_read(move |_connection, _ctx| -> Result<(), Error> { Ok(()) })?;
+			evh.set_on_accept(move |_connection, _ctx| -> Result<(), Error> { Ok(()) })?;
+			evh.set_on_close(move |_connection, _ctx| -> Result<(), Error> { Ok(()) })?;
+
+			evh.set_on_housekeeper(move |_ctx| -> Result<(), Error> { Ok(()) })?;
+
+			evh.set_on_panic(move |_ctx, _e| -> Result<(), Error> { Ok(()) })?;
+			evh.start()?;
+			tx.send(())?;
+
+			loop {
+				let stats = evh.wait_for_stats()?;
+				info!("stats={:?}", stats)?;
+				cbreak!(false);
+			}
+
+			Ok(())
+		});
+		rx.recv()?;
+
+		Ok(Self {})
+	}
+}
+
+impl HttpConnection for HttpConnectionImpl {
+	fn connect(&mut self) -> Result<(), Error> {
+		todo!()
+	}
+	fn send(
+		&mut self,
+		_request: &Box<dyn HttpRequest>,
+		_handler: HttpResponseHandler,
+	) -> Result<(), Error> {
+		todo!()
+	}
+}
+
+impl HttpConnectionImpl {
+	pub(crate) fn new(
+		_configs: Vec<ConfigOption>,
+		_client: Box<dyn HttpClient>,
+	) -> Result<Self, Error> {
+		todo!()
+	}
+}

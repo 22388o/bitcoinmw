@@ -150,3 +150,5 @@ pub(crate) struct HttpResponseImpl {
 	pub(crate) version: HttpVersion,
 	pub(crate) http_content_reader: HttpContentReader,
 }
+
+pub(crate) struct HttpConnectionImpl {}

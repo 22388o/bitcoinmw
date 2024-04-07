@@ -168,8 +168,19 @@ where
 	/// # See Also
 	/// [`crate`], [`crate::EventHandler`], [`crate::EvhStats`]
 	fn wait_for_stats(&mut self) -> Result<EvhStats, Error>;
+	fn controller(&mut self) -> Result<EvhController, Error>;
 	#[doc(hidden)]
 	fn set_debug_info(&mut self, debug_info: DebugInfo) -> Result<(), Error>;
+}
+
+#[derive(Clone)]
+pub struct EvhController {
+	pub(crate) state: Array<Box<dyn LockBox<EventHandlerState>>>,
+	pub(crate) wakeups: Array<Wakeup>,
+	pub(crate) stopper: Option<ThreadPoolStopper>,
+	pub(crate) stats: Box<dyn LockBox<GlobalStats>>,
+	pub(crate) config: EventHandlerConfig,
+	pub(crate) debug_info: DebugInfo,
 }
 
 /// A chunk of data returned by the [`crate::EventHandler`]. Chunks are of a maximum size defined
@@ -414,6 +425,7 @@ where
 	pub(crate) stopper: Option<ThreadPoolStopper>,
 	pub(crate) stats: Box<dyn LockBox<GlobalStats>>,
 	pub(crate) debug_info: DebugInfo,
+	pub(crate) has_controller: bool,
 }
 
 #[derive(Clone)]

@@ -92,7 +92,7 @@ impl From<String> for HttpConnectionType {
 
 impl HttpServer for HttpServerImpl {
 	fn start(&mut self) -> Result<(), Error> {
-		if self.cache.contains("/".into()) {
+		if !self.cache.contains("/".into()) {
 			warn!("test")?;
 		}
 

@@ -2303,6 +2303,75 @@ mod test {
 	}
 
 	#[test]
+	fn test_evh_controller_stop() -> Result<(), Error> {
+		let mut client;
+		let mut controller;
+		let mut buf = [0u8; 100];
+		{
+			let test_info = test_info!()?;
+			let mut evh = evh_oro!(
+				Debug(false),
+				EvhTimeout(100),
+				EvhStatsUpdateMillis(try_into!(QA_SLEEP)?),
+				EvhThreads(1),
+				EvhReadSlabSize(100)
+			)?;
+
+			evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+				info!("onRead")?;
+				let mut data: Vec<u8> = vec![];
+
+				loop {
+					let next_chunk = ctx.next_chunk(connection)?;
+					cbreak!(next_chunk.is_none());
+					let next_chunk = next_chunk.unwrap();
+					data.extend(next_chunk.data());
+				}
+
+				let dstring = from_utf8(&data)?;
+				info!("data[{}]='{}'", connection.id(), dstring,)?;
+
+				assert_eq!(dstring, "hi");
+				let mut wh = connection.write_handle()?;
+				wh.write(b"test")?;
+				ctx.clear_all(connection)?;
+				Ok(())
+			})?;
+
+			evh.start()?;
+			controller = evh.controller()?;
+			let port = test_info.port();
+			let addr = format!("127.0.0.1:{}", port);
+			let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+			evh.add_server_connection(conn)?;
+
+			client = TcpStream::connect(addr)?;
+			client.write(b"hi")?;
+
+			let len = client.read(&mut buf)?;
+			assert_eq!(&buf[0..len], b"test");
+		}
+
+		client.write(b"hi")?;
+		let len = client.read(&mut buf)?;
+		assert_eq!(&buf[0..len], b"test");
+
+		let stats = controller.wait_for_stats()?;
+		info!("stats={:?}", stats)?;
+		assert_eq!(stats.accepts, 1);
+		assert_eq!(stats.reads, 2);
+		assert_eq!(stats.bytes_read, 4);
+
+		controller.stop()?;
+
+		// now it's closed
+		let len = client.read(&mut buf)?;
+		assert_eq!(len, 0);
+
+		Ok(())
+	}
+
+	#[test]
 	fn test_evh_resources() -> Result<(), Error> {
 		// this test doesn't currently do assertions, but it can be used to monitor resources
 		// like file descriptors. Change `target` to a higher value and increase sleep at the

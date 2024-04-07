@@ -26,7 +26,8 @@ use crate::constants::*;
 use crate::types::{
 	Chunk, ConnectionType, ConnectionVariant, DebugInfo, Event, EventHandlerCallbacks,
 	EventHandlerConfig, EventHandlerContext, EventHandlerImpl, EventHandlerState, EventIn,
-	EventType, EventTypeIn, GlobalStats, UserContextImpl, Wakeup, WriteHandle, WriteState,
+	EventType, EventTypeIn, EvhController, GlobalStats, UserContextImpl, Wakeup, WriteHandle,
+	WriteState,
 };
 use crate::{Connection, EventHandler, EvhStats, UserContext};
 use bmw_conf::ConfigOptionName as CN;
@@ -43,6 +44,39 @@ use std::sync::mpsc::{sync_channel, SyncSender};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 info!();
+
+fn add_connection(
+	debug_info: &DebugInfo,
+	state: &mut Array<Box<dyn LockBox<EventHandlerState>>>,
+	wakeups: &mut Array<Wakeup>,
+	mut connection: Connection,
+	is_server: bool,
+	tid: usize,
+	handle: Handle,
+) -> Result<(), Error> {
+	let (tx, rx) = sync_channel(1);
+	connection.set_tx(tx);
+	connection.debug_info = debug_info.clone();
+	debug!("adding server handle = {}, tid = {}", handle, tid)?;
+
+	{
+		let mut state = state[tid].wlock()?;
+		let guard = state.guard()?;
+		let nv = if is_server {
+			ConnectionVariant::ServerConnection(connection)
+		} else {
+			ConnectionVariant::ClientConnection(connection)
+		};
+		(**guard).nconnections.push_back(nv);
+	}
+
+	debug!("about to wakeup")?;
+
+	wakeups[tid].wakeup()?;
+	rx.recv()?;
+
+	Ok(())
+}
 
 fn do_wakeup_read_impl(
 	handle: Handle,
@@ -764,69 +798,146 @@ where
 		self.debug_info.update(debug_info)?;
 		Ok(())
 	}
-	fn add_server_connection(&mut self, mut connection: Connection) -> Result<(), Error> {
+	fn add_server_connection(&mut self, connection: Connection) -> Result<(), Error> {
 		if connection.ctype != ConnectionType::Server {
 			let text = "trying to add a non-server connection as a server!";
 			return Err(err!(ErrKind::IllegalArgument, text));
 		}
-		let (tx, rx) = sync_channel(1);
-		connection.set_tx(tx);
-		connection.debug_info = self.debug_info.clone();
-
 		let handle = connection.handle();
 		let tid: usize = try_into!(handle % self.config.threads as Handle)?;
-		debug!("adding server handle = {}, tid = {}", handle, tid)?;
-
-		{
-			let mut state = self.state[tid].wlock()?;
-			let guard = state.guard()?;
-			let nv = ConnectionVariant::ServerConnection(connection);
-			(**guard).nconnections.push_back(nv);
-		}
-
-		debug!("about to wakeup")?;
-
-		self.wakeups[tid].wakeup()?;
-		rx.recv()?;
-
-		Ok(())
+		add_connection(
+			&self.debug_info,
+			&mut self.state,
+			&mut self.wakeups,
+			connection,
+			true,
+			tid,
+			handle,
+		)
 	}
 	fn add_client_connection(&mut self, mut connection: Connection) -> Result<WriteHandle, Error> {
 		if connection.ctype != ConnectionType::Client {
 			let text = "trying to add a non-server connection as a server!";
 			return Err(err!(ErrKind::IllegalArgument, text));
 		}
-		let (tx, rx) = sync_channel(1);
-		connection.set_tx(tx);
-		connection.debug_info = self.debug_info.clone();
 
 		let handle = connection.handle();
 		let tid: usize = try_into!(handle % self.config.threads as Handle)?;
-		let id = connection.id();
-
 		connection.set_state(self.state[tid].clone())?;
 		connection.set_wakeup(self.wakeups[tid].clone())?;
 		let ret = connection.write_handle()?;
-
-		debug!("adding client handle={},tid={},id={}", handle, tid, id)?;
-
-		{
-			let mut state = self.state[tid].wlock()?;
-			let guard = state.guard()?;
-			let nv = ConnectionVariant::ClientConnection(connection);
-			(**guard).nconnections.push_back(nv);
-		}
-
-		debug!("push client connection to tid = {}", tid)?;
-
-		self.wakeups[tid].wakeup()?;
-
-		rx.recv()?;
+		add_connection(
+			&self.debug_info,
+			&mut self.state,
+			&mut self.wakeups,
+			connection,
+			false,
+			tid,
+			handle,
+		)?;
 		Ok(ret)
+	}
+
+	fn controller(&mut self) -> Result<EvhController, Error> {
+		self.has_controller = true;
+		Ok(EvhController {
+			state: self.state.clone(),
+			wakeups: self.wakeups.clone(),
+			stopper: self.stopper.clone(),
+			stats: self.stats.clone(),
+			debug_info: self.debug_info.clone(),
+			config: self.config.clone(),
+		})
 	}
 
 	fn wait_for_stats(&mut self) -> Result<EvhStats, Error> {
 		self.wait_for_stats()
+	}
+}
+
+impl EvhController {
+	pub fn add_server_connection(&mut self, connection: Connection) -> Result<(), Error> {
+		if connection.ctype != ConnectionType::Server {
+			let text = "trying to add a non-server connection as a server!";
+			return Err(err!(ErrKind::IllegalArgument, text));
+		}
+		let handle = connection.handle();
+		let tid: usize = try_into!(handle % self.config.threads as Handle)?;
+		add_connection(
+			&self.debug_info,
+			&mut self.state,
+			&mut self.wakeups,
+			connection,
+			true,
+			tid,
+			handle,
+		)
+	}
+
+	pub fn add_client_connection(
+		&mut self,
+		mut connection: Connection,
+	) -> Result<WriteHandle, Error> {
+		if connection.ctype != ConnectionType::Client {
+			let text = "trying to add a non-server connection as a server!";
+			return Err(err!(ErrKind::IllegalArgument, text));
+		}
+
+		let handle = connection.handle();
+		let tid: usize = try_into!(handle % self.config.threads as Handle)?;
+		connection.set_state(self.state[tid].clone())?;
+		connection.set_wakeup(self.wakeups[tid].clone())?;
+		let ret = connection.write_handle()?;
+		add_connection(
+			&self.debug_info,
+			&mut self.state,
+			&mut self.wakeups,
+			connection,
+			false,
+			tid,
+			handle,
+		)?;
+		Ok(ret)
+	}
+
+	pub fn wait_for_stats(&mut self) -> Result<EvhStats, Error> {
+		let mut ret = EvhStats::new();
+		let (tx, rx) = sync_channel(1);
+		{
+			let mut stats = self.stats.wlock()?;
+			let guard = stats.guard()?;
+			(**guard).tx = Some(tx);
+		}
+
+		rx.recv()?;
+
+		{
+			let mut stats = self.stats.wlock()?;
+			let guard = stats.guard()?;
+
+			let _ = std::mem::replace(&mut ret, (**guard).stats.clone());
+			(**guard).stats.reset();
+		}
+
+		Ok(ret)
+	}
+
+	pub fn stop(&mut self) -> Result<(), Error> {
+		if self.debug_info.is_stop_error() {
+			let text = "simulated stop error";
+			return Err(err!(ErrKind::Test, text));
+		}
+
+		// stop thread pool and all threads
+		if self.stopper.is_some() {
+			self.stopper.as_mut().unwrap().stop()?;
+		}
+		for i in 0..self.config.threads {
+			wlock!(self.state[i]).stop = true;
+			self.wakeups[i].wakeup()?;
+		}
+
+		Ok(())
 	}
 }
 
@@ -900,6 +1011,7 @@ where
 		};
 
 		let stopper = None;
+		let has_controller = false;
 
 		let ret = Self {
 			callbacks,
@@ -909,6 +1021,7 @@ where
 			stats,
 			stopper,
 			debug_info,
+			has_controller,
 		};
 
 		Ok(ret)
@@ -2074,18 +2187,20 @@ where
 	}
 
 	fn stop(&mut self) -> Result<(), Error> {
-		if self.debug_info.is_stop_error() {
-			let text = "simulated stop error";
-			return Err(err!(ErrKind::Test, text));
-		}
+		if !self.has_controller {
+			if self.debug_info.is_stop_error() {
+				let text = "simulated stop error";
+				return Err(err!(ErrKind::Test, text));
+			}
 
-		// stop thread pool and all threads
-		if self.stopper.is_some() {
-			self.stopper.as_mut().unwrap().stop()?;
-		}
-		for i in 0..self.config.threads {
-			wlock!(self.state[i]).stop = true;
-			self.wakeups[i].wakeup()?;
+			// stop thread pool and all threads
+			if self.stopper.is_some() {
+				self.stopper.as_mut().unwrap().stop()?;
+			}
+			for i in 0..self.config.threads {
+				wlock!(self.state[i]).stop = true;
+				self.wakeups[i].wakeup()?;
+			}
 		}
 
 		Ok(())
