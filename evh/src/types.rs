@@ -314,7 +314,6 @@ pub struct EvhStats {
 	pub bytes_delay_write: u128,
 }
 
-#[allow(dead_code)]
 #[derive(Clone)]
 pub struct DebugInfo {
 	pub(crate) pending: Box<dyn LockBox<bool>>,

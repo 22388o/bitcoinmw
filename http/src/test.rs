@@ -18,7 +18,7 @@
 #[cfg(test)]
 mod test {
 	use crate::constants::*;
-	use crate::*;
+	use crate::types::*;
 	use bmw_conf::ConfigOption;
 	use bmw_err::*;
 	use bmw_log::*;
@@ -134,6 +134,40 @@ mod test {
 		// invalid version
 		let config = vec![ConfigOption::HttpVersion("kasdjlkajlf".to_string())];
 		assert!(HttpBuilder::build_http_request(config).is_err());
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_http_response() -> Result<(), Error> {
+		let mut response: Box<dyn HttpResponse> = Box::new(HttpResponseImpl::new(
+			vec![
+				("test1".to_string(), "v1".to_string()),
+				("test2".to_string(), "v2".to_string()),
+			],
+			123,
+			"OK".to_string(),
+			HttpVersion::Http10,
+			None,
+			b"test".to_vec(),
+		)?);
+
+		assert_eq!(
+			response.headers(),
+			&vec![
+				("test1".to_string(), "v1".to_string()),
+				("test2".to_string(), "v2".to_string()),
+			]
+		);
+
+		assert_eq!(response.code(), 123);
+
+		assert_eq!(response.status_text(), &"OK".to_string());
+		assert_eq!(response.version(), &HttpVersion::Http10);
+
+		let mut s = String::new();
+		response.read_to_string(&mut s)?;
+		assert_eq!(s, "test".to_string());
 
 		Ok(())
 	}

@@ -77,6 +77,7 @@ pub trait HttpClient {
 }
 
 pub trait HttpConnection {
+	fn connect(&mut self) -> Result<(), Error>;
 	fn send(
 		&mut self,
 		request: &Box<dyn HttpRequest>,
@@ -98,7 +99,13 @@ pub trait HttpRequest {
 	fn http_content_reader(&mut self) -> &mut HttpContentReader;
 }
 
-pub trait HttpResponse {}
+pub trait HttpResponse {
+	fn headers(&self) -> &Vec<(String, String)>;
+	fn code(&self) -> u16;
+	fn status_text(&self) -> &String;
+	fn version(&self) -> &HttpVersion;
+	fn http_content_reader(&mut self) -> &mut HttpContentReader;
+}
 
 pub trait WSClient {}
 
@@ -133,5 +140,13 @@ pub(crate) struct HttpRequestImpl {
 	pub(crate) method: HttpMethod,
 	pub(crate) version: HttpVersion,
 	pub(crate) connection_type: HttpConnectionType,
+	pub(crate) http_content_reader: HttpContentReader,
+}
+
+pub(crate) struct HttpResponseImpl {
+	pub(crate) headers: Vec<(String, String)>,
+	pub(crate) code: u16,
+	pub(crate) status_text: String,
+	pub(crate) version: HttpVersion,
 	pub(crate) http_content_reader: HttpContentReader,
 }

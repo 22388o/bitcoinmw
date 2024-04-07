@@ -16,8 +16,12 @@
 // limitations under the License.
 
 use crate::constants::*;
-use crate::types::{HttpCache, HttpContentReader, HttpRequestImpl, HttpServerImpl};
-use crate::{HttpConnectionType, HttpMethod, HttpRequest, HttpServer, HttpStats, HttpVersion};
+use crate::types::{
+	HttpCache, HttpContentReader, HttpRequestImpl, HttpResponseImpl, HttpServerImpl,
+};
+use crate::{
+	HttpConnectionType, HttpMethod, HttpRequest, HttpResponse, HttpServer, HttpStats, HttpVersion,
+};
 use bmw_conf::ConfigOption::*;
 use bmw_conf::ConfigOptionName as CN;
 use bmw_conf::*;
@@ -319,6 +323,51 @@ impl HttpRequestImpl {
 			headers,
 			timeout_millis,
 			user_agent,
+		})
+	}
+}
+
+impl Read for Box<dyn HttpResponse> {
+	fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
+		self.http_content_reader().read(buf)
+	}
+}
+
+impl HttpResponse for HttpResponseImpl {
+	fn headers(&self) -> &Vec<(String, String)> {
+		&self.headers
+	}
+	fn code(&self) -> u16 {
+		self.code
+	}
+	fn status_text(&self) -> &String {
+		&self.status_text
+	}
+	fn version(&self) -> &HttpVersion {
+		&self.version
+	}
+	fn http_content_reader(&mut self) -> &mut HttpContentReader {
+		&mut self.http_content_reader
+	}
+}
+
+#[allow(dead_code)]
+impl HttpResponseImpl {
+	pub(crate) fn new(
+		headers: Vec<(String, String)>,
+		code: u16,
+		status_text: String,
+		version: HttpVersion,
+		content: Option<Box<dyn Read>>,
+		content_data: Vec<u8>,
+	) -> Result<Self, Error> {
+		let http_content_reader = HttpContentReader::new(content_data, content)?;
+		Ok(Self {
+			headers,
+			code,
+			status_text,
+			version,
+			http_content_reader,
 		})
 	}
 }
