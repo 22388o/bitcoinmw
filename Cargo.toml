@@ -21,7 +21,8 @@ members = [
 	"derive",
 	"ser",
 	"config",
-	"evh"
+	"evh",
+	"http"
 ]
 exclude = ["etc"]
 
@@ -35,6 +36,7 @@ bmw_util    = { path = "./util"        }
 bmw_derive  = { path = "./derive"      }
 bmw_ser     = { path = "./ser"         }
 bmw_evh     = { path = "./evh"         }
+bmw_http    = { path = "./http"        }
 
 [dev-dependencies]
 bmw_test    = { path = "./test"        }

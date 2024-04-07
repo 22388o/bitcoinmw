@@ -23,18 +23,41 @@ use std::collections::{HashMap, HashSet};
 
 // macro to simplify the process of checking the parameters
 macro_rules! cc {
-	($self:expr, $set:expr, $specified:expr, $option_name:expr) => {{
+	($self:expr, $set:expr, $specified:expr, $option_name:expr, $dup:expr) => {{
 		let config_option_name = $option_name;
 		let i = $option_name as usize;
 		$self.check_set(&$set, &config_option_name)?;
-		$self.check_index(i, $specified, format!("{:?}", config_option_name))?;
+		$self.check_index(i, $specified, format!("{:?}", config_option_name), &$dup)?;
 	}};
+}
+
+macro_rules! multi {
+	($opt:ident, $name:expr, $ret:expr, $config:expr) => {
+		match $config {
+			ConfigOption::$opt(_) => {
+				if $name == &CN::$opt {
+					$ret.push($config.clone());
+				}
+			}
+			_ => {}
+		}
+	};
 }
 
 // Config implementation just return values from the Impl structure.
 impl Config for ConfigImpl {
 	fn get(&self, name: &CN) -> Option<ConfigOption> {
 		self.hash.get(name).cloned()
+	}
+
+	fn get_multi(&self, name: &CN) -> Vec<ConfigOption> {
+		let mut ret = vec![];
+		for config in &self.configs {
+			multi!(HttpHeader, name, ret, config);
+			multi!(FileHeader, name, ret, config);
+		}
+
+		ret
 	}
 
 	fn get_or_bool(&self, name: &CN, default: bool) -> bool {
@@ -107,6 +130,7 @@ impl Config for ConfigImpl {
 				ConfigOption::MaxSizeBytes(v) => *v,
 				ConfigOption::MaxAgeMillis(v) => *v,
 				ConfigOption::LineNumDataMaxLen(v) => *v,
+				ConfigOption::HttpTimeoutMillis(v) => *v,
 				_ => default,
 			},
 			None => default,
@@ -118,6 +142,13 @@ impl Config for ConfigImpl {
 			Some(v) => match v {
 				ConfigOption::FileHeader(v) => v.to_string(),
 				ConfigOption::Regex(v) => v.to_string(),
+				ConfigOption::HttpAccept(v) => v.to_string(),
+				ConfigOption::HttpMethod(v) => v.to_string(),
+				ConfigOption::HttpVersion(v) => v.to_string(),
+				ConfigOption::HttpConnectionType(v) => v.to_string(),
+				ConfigOption::HttpRequestUri(v) => v.to_string(),
+				ConfigOption::HttpRequestUrl(v) => v.to_string(),
+				ConfigOption::HttpUserAgent(v) => v.to_string(),
 				_ => default,
 			},
 			None => default,
@@ -135,7 +166,16 @@ impl Config for ConfigImpl {
 	}
 
 	fn check_config(&self, allowed: Vec<CN>, required: Vec<CN>) -> Result<(), Error> {
-		self.check_config_impl(allowed, required)
+		self.check_config_impl(allowed, required, vec![])
+	}
+
+	fn check_config_duplicates(
+		&self,
+		allowed: Vec<CN>,
+		required: Vec<CN>,
+		allow_duplicates: Vec<CN>,
+	) -> Result<(), Error> {
+		self.check_config_impl(allowed, required, allow_duplicates)
 	}
 }
 
@@ -190,6 +230,17 @@ impl ConfigImpl {
 				EvhTimeout(_) => hash.insert(CN::EvhTimeout, config.clone()),
 				EvhReadSlabSize(_) => hash.insert(CN::EvhReadSlabSize, config.clone()),
 				EvhReadSlabCount(_) => hash.insert(CN::EvhReadSlabCount, config.clone()),
+				HttpContentFile(_) => hash.insert(CN::HttpContentFile, config.clone()),
+				HttpContentData(_) => hash.insert(CN::HttpContentData, config.clone()),
+				HttpAccept(_) => hash.insert(CN::HttpAccept, config.clone()),
+				HttpHeader(_) => hash.insert(CN::HttpHeader, config.clone()),
+				HttpTimeoutMillis(_) => hash.insert(CN::HttpTimeoutMillis, config.clone()),
+				HttpMethod(_) => hash.insert(CN::HttpMethod, config.clone()),
+				HttpVersion(_) => hash.insert(CN::HttpVersion, config.clone()),
+				HttpConnectionType(_) => hash.insert(CN::HttpConnectionType, config.clone()),
+				HttpRequestUri(_) => hash.insert(CN::HttpRequestUri, config.clone()),
+				HttpRequestUrl(_) => hash.insert(CN::HttpRequestUrl, config.clone()),
+				HttpUserAgent(_) => hash.insert(CN::HttpUserAgent, config.clone()),
 				Debug(_) => hash.insert(CN::Debug, config.clone()),
 				DebugLargeSlabCount(_) => hash.insert(CN::DebugLargeSlabCount, config.clone()),
 			};
@@ -198,7 +249,17 @@ impl ConfigImpl {
 	}
 
 	// check the config: 1.) for duplicates, 2.) for allowed input 3.) for the required input.
-	pub fn check_config_impl(&self, allowed: Vec<CN>, required: Vec<CN>) -> Result<(), Error> {
+	pub fn check_config_impl(
+		&self,
+		allowed: Vec<CN>,
+		required: Vec<CN>,
+		allow_duplicates: Vec<CN>,
+	) -> Result<(), Error> {
+		let mut d = HashSet::new();
+		for dup in &allow_duplicates {
+			d.insert(format!("{:?}", dup));
+		}
+
 		let mut t = HashSet::new();
 		let mut s = vec![];
 		for a in &allowed {
@@ -208,52 +269,63 @@ impl ConfigImpl {
 		// the cc macro handles #1 and #2 above
 		for v in &self.configs {
 			match v {
-				MaxSizeBytes(_) => cc!(self, t, &mut s, CN::MaxSizeBytes),
-				MaxAgeMillis(_) => cc!(self, t, &mut s, CN::MaxAgeMillis),
-				DisplayColors(_) => cc!(self, t, &mut s, CN::DisplayColors),
-				DisplayStdout(_) => cc!(self, t, &mut s, CN::DisplayStdout),
-				DisplayTimestamp(_) => cc!(self, t, &mut s, CN::DisplayTimestamp),
-				DisplayLogLevel(_) => cc!(self, t, &mut s, CN::DisplayLogLevel),
-				DisplayLineNum(_) => cc!(self, t, &mut s, CN::DisplayLineNum),
-				DisplayMillis(_) => cc!(self, t, &mut s, CN::DisplayMillis),
-				LogFilePath(_) => cc!(self, t, &mut s, CN::LogFilePath),
-				AutoRotate(_) => cc!(self, t, &mut s, CN::AutoRotate),
-				DisplayBackTrace(_) => cc!(self, t, &mut s, CN::DisplayBackTrace),
-				LineNumDataMaxLen(_) => cc!(self, t, &mut s, CN::LineNumDataMaxLen),
-				DeleteRotation(_) => cc!(self, t, &mut s, CN::DeleteRotation),
-				FileHeader(_) => cc!(self, t, &mut s, CN::FileHeader),
-				MaxEntries(_) => cc!(self, t, &mut s, CN::MaxEntries),
-				MaxLoadFactor(_) => cc!(self, t, &mut s, CN::MaxLoadFactor),
-				SlabSize(_) => cc!(self, t, &mut s, CN::SlabSize),
-				SlabCount(_) => cc!(self, t, &mut s, CN::SlabCount),
-				MinSize(_) => cc!(self, t, &mut s, CN::MinSize),
-				MaxSize(_) => cc!(self, t, &mut s, CN::MaxSize),
-				SyncChannelSize(_) => cc!(self, t, &mut s, CN::SyncChannelSize),
-				GlobalSlabAllocator(_) => cc!(self, t, &mut s, CN::GlobalSlabAllocator),
-				Start(_) => cc!(self, t, &mut s, CN::Start),
-				End(_) => cc!(self, t, &mut s, CN::End),
-				MatchId(_) => cc!(self, t, &mut s, CN::MatchId),
-				Regex(_) => cc!(self, t, &mut s, CN::Regex),
-				IsCaseSensitive(_) => cc!(self, t, &mut s, CN::IsCaseSensitive),
-				IsTerminationPattern(_) => cc!(self, t, &mut s, CN::IsTerminationPattern),
-				IsMultiLine(_) => cc!(self, t, &mut s, CN::IsMultiLine),
-				PatternId(_) => cc!(self, t, &mut s, CN::PatternId),
-				IsHashtable(_) => cc!(self, t, &mut s, CN::IsHashtable),
-				IsHashset(_) => cc!(self, t, &mut s, CN::IsHashset),
-				IsList(_) => cc!(self, t, &mut s, CN::IsList),
-				TerminationLength(_) => cc!(self, t, &mut s, CN::TerminationLength),
-				MaxWildCardLength(_) => cc!(self, t, &mut s, CN::MaxWildCardLength),
-				IsSync(_) => cc!(self, t, &mut s, CN::IsSync),
-				EvhThreads(_) => cc!(self, t, &mut s, CN::EvhThreads),
+				MaxSizeBytes(_) => cc!(self, t, &mut s, CN::MaxSizeBytes, d),
+				MaxAgeMillis(_) => cc!(self, t, &mut s, CN::MaxAgeMillis, d),
+				DisplayColors(_) => cc!(self, t, &mut s, CN::DisplayColors, d),
+				DisplayStdout(_) => cc!(self, t, &mut s, CN::DisplayStdout, d),
+				DisplayTimestamp(_) => cc!(self, t, &mut s, CN::DisplayTimestamp, d),
+				DisplayLogLevel(_) => cc!(self, t, &mut s, CN::DisplayLogLevel, d),
+				DisplayLineNum(_) => cc!(self, t, &mut s, CN::DisplayLineNum, d),
+				DisplayMillis(_) => cc!(self, t, &mut s, CN::DisplayMillis, d),
+				LogFilePath(_) => cc!(self, t, &mut s, CN::LogFilePath, d),
+				AutoRotate(_) => cc!(self, t, &mut s, CN::AutoRotate, d),
+				DisplayBackTrace(_) => cc!(self, t, &mut s, CN::DisplayBackTrace, d),
+				LineNumDataMaxLen(_) => cc!(self, t, &mut s, CN::LineNumDataMaxLen, d),
+				DeleteRotation(_) => cc!(self, t, &mut s, CN::DeleteRotation, d),
+				FileHeader(_) => cc!(self, t, &mut s, CN::FileHeader, d),
+				MaxEntries(_) => cc!(self, t, &mut s, CN::MaxEntries, d),
+				MaxLoadFactor(_) => cc!(self, t, &mut s, CN::MaxLoadFactor, d),
+				SlabSize(_) => cc!(self, t, &mut s, CN::SlabSize, d),
+				SlabCount(_) => cc!(self, t, &mut s, CN::SlabCount, d),
+				MinSize(_) => cc!(self, t, &mut s, CN::MinSize, d),
+				MaxSize(_) => cc!(self, t, &mut s, CN::MaxSize, d),
+				SyncChannelSize(_) => cc!(self, t, &mut s, CN::SyncChannelSize, d),
+				GlobalSlabAllocator(_) => cc!(self, t, &mut s, CN::GlobalSlabAllocator, d),
+				Start(_) => cc!(self, t, &mut s, CN::Start, d),
+				End(_) => cc!(self, t, &mut s, CN::End, d),
+				MatchId(_) => cc!(self, t, &mut s, CN::MatchId, d),
+				Regex(_) => cc!(self, t, &mut s, CN::Regex, d),
+				IsCaseSensitive(_) => cc!(self, t, &mut s, CN::IsCaseSensitive, d),
+				IsTerminationPattern(_) => cc!(self, t, &mut s, CN::IsTerminationPattern, d),
+				IsMultiLine(_) => cc!(self, t, &mut s, CN::IsMultiLine, d),
+				PatternId(_) => cc!(self, t, &mut s, CN::PatternId, d),
+				IsHashtable(_) => cc!(self, t, &mut s, CN::IsHashtable, d),
+				IsHashset(_) => cc!(self, t, &mut s, CN::IsHashset, d),
+				IsList(_) => cc!(self, t, &mut s, CN::IsList, d),
+				TerminationLength(_) => cc!(self, t, &mut s, CN::TerminationLength, d),
+				MaxWildCardLength(_) => cc!(self, t, &mut s, CN::MaxWildCardLength, d),
+				IsSync(_) => cc!(self, t, &mut s, CN::IsSync, d),
+				EvhThreads(_) => cc!(self, t, &mut s, CN::EvhThreads, d),
 				EvhHouseKeeperFrequencyMillis(_) => {
-					cc!(self, t, &mut s, CN::EvhHouseKeeperFrequencyMillis)
+					cc!(self, t, &mut s, CN::EvhHouseKeeperFrequencyMillis, d)
 				}
-				EvhStatsUpdateMillis(_) => cc!(self, t, &mut s, CN::EvhStatsUpdateMillis),
-				EvhTimeout(_) => cc!(self, t, &mut s, CN::EvhTimeout),
-				EvhReadSlabSize(_) => cc!(self, t, &mut s, CN::EvhReadSlabSize),
-				EvhReadSlabCount(_) => cc!(self, t, &mut s, CN::EvhReadSlabCount),
-				Debug(_) => cc!(self, t, &mut s, CN::Debug),
-				DebugLargeSlabCount(_) => cc!(self, t, &mut s, CN::DebugLargeSlabCount),
+				EvhStatsUpdateMillis(_) => cc!(self, t, &mut s, CN::EvhStatsUpdateMillis, d),
+				EvhTimeout(_) => cc!(self, t, &mut s, CN::EvhTimeout, d),
+				EvhReadSlabSize(_) => cc!(self, t, &mut s, CN::EvhReadSlabSize, d),
+				EvhReadSlabCount(_) => cc!(self, t, &mut s, CN::EvhReadSlabCount, d),
+				HttpContentFile(_) => cc!(self, t, &mut s, CN::HttpContentFile, d),
+				HttpContentData(_) => cc!(self, t, &mut s, CN::HttpContentData, d),
+				HttpAccept(_) => cc!(self, t, &mut s, CN::HttpAccept, d),
+				HttpHeader(_) => cc!(self, t, &mut s, CN::HttpHeader, d),
+				HttpTimeoutMillis(_) => cc!(self, t, &mut s, CN::HttpTimeoutMillis, d),
+				HttpMethod(_) => cc!(self, t, &mut s, CN::HttpMethod, d),
+				HttpVersion(_) => cc!(self, t, &mut s, CN::HttpVersion, d),
+				HttpConnectionType(_) => cc!(self, t, &mut s, CN::HttpConnectionType, d),
+				HttpRequestUri(_) => cc!(self, t, &mut s, CN::HttpRequestUri, d),
+				HttpRequestUrl(_) => cc!(self, t, &mut s, CN::HttpRequestUrl, d),
+				HttpUserAgent(_) => cc!(self, t, &mut s, CN::HttpUserAgent, d),
+				Debug(_) => cc!(self, t, &mut s, CN::Debug, d),
+				DebugLargeSlabCount(_) => cc!(self, t, &mut s, CN::DebugLargeSlabCount, d),
 			}
 		}
 
@@ -283,7 +355,13 @@ impl ConfigImpl {
 	}
 
 	// this checks for duplicates
-	fn check_index(&self, i: usize, specified: &mut Vec<bool>, name: String) -> Result<(), Error> {
+	fn check_index(
+		&self,
+		i: usize,
+		specified: &mut Vec<bool>,
+		name: String,
+		dupes: &HashSet<String>,
+	) -> Result<(), Error> {
 		if specified.len() <= i {
 			specified.resize(i + 1, false);
 		}
@@ -295,7 +373,9 @@ impl ConfigImpl {
 				name
 			))
 		} else {
-			specified[i] = true;
+			if dupes.get(&name).is_none() {
+				specified[i] = true;
+			}
 			Ok(())
 		}
 	}

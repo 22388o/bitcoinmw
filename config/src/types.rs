@@ -18,6 +18,7 @@
 
 use bmw_err::Error;
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::path::PathBuf;
 
 /// The config trait allows for easy construction of configurations. Configurations can be
@@ -370,6 +371,15 @@ pub trait Config {
 		allowed: Vec<ConfigOptionName>,
 		required: Vec<ConfigOptionName>,
 	) -> Result<(), Error>;
+
+	fn check_config_duplicates(
+		&self,
+		allowed: Vec<ConfigOptionName>,
+		required: Vec<ConfigOptionName>,
+		allow_duplicates: Vec<ConfigOptionName>,
+	) -> Result<(), Error>;
+
+	fn get_multi(&self, name: &ConfigOptionName) -> Vec<ConfigOption>;
 }
 
 /// Names of configuration options used throughout BMW via macro. This correspondes to the values
@@ -418,6 +428,17 @@ pub enum ConfigOptionName {
 	EvhTimeout,
 	EvhReadSlabSize,
 	EvhReadSlabCount,
+	HttpContentFile,
+	HttpContentData,
+	HttpAccept,
+	HttpHeader,
+	HttpTimeoutMillis,
+	HttpMethod,
+	HttpVersion,
+	HttpConnectionType,
+	HttpRequestUri,
+	HttpRequestUrl,
+	HttpUserAgent,
 	Debug,
 	DebugLargeSlabCount,
 }
@@ -467,6 +488,17 @@ pub enum ConfigOption {
 	EvhTimeout(u16),
 	EvhReadSlabSize(usize),
 	EvhReadSlabCount(usize),
+	HttpContentFile(PathBuf),
+	HttpContentData(Vec<u8>),
+	HttpAccept(String),
+	HttpHeader((String, String)),
+	HttpTimeoutMillis(u64),
+	HttpMethod(String),
+	HttpVersion(String),
+	HttpConnectionType(String),
+	HttpRequestUri(String),
+	HttpRequestUrl(String),
+	HttpUserAgent(String),
 	Debug(bool),
 	DebugLargeSlabCount(bool),
 }

@@ -273,4 +273,44 @@ mod test {
 		assert!(config.check_config(vec![CN::Debug], vec![]).is_ok());
 		Ok(())
 	}
+
+	#[test]
+	fn test_config_duplicates() -> Result<(), Error> {
+		let config = config!(
+			FileHeader("test1".to_string()),
+			FileHeader("test2".to_string())
+		);
+		assert!(config
+			.check_config_duplicates(vec![CN::FileHeader], vec![], vec![CN::FileHeader])
+			.is_ok());
+
+		assert!(config
+			.check_config_duplicates(vec![CN::FileHeader], vec![], vec![])
+			.is_err());
+
+		let config = config!(
+			FileHeader("test1".to_string()),
+			FileHeader("test2".to_string()),
+			FileHeader("test3".to_string())
+		);
+		assert!(config
+			.check_config_duplicates(vec![CN::FileHeader], vec![], vec![CN::FileHeader])
+			.is_ok());
+
+		let config = config!(
+			FileHeader("test1".to_string()),
+			FileHeader("test2".to_string()),
+			FileHeader("test3".to_string())
+		);
+
+		assert_eq!(
+			config.get_multi(&CN::FileHeader),
+			vec![
+				FileHeader("test1".to_string()),
+				FileHeader("test2".to_string()),
+				FileHeader("test3".to_string())
+			]
+		);
+		Ok(())
+	}
 }

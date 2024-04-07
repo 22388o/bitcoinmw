@@ -1,12 +1,13 @@
 [package]
-name = "bmw_evh"
+name = "bmw_http"
 version = "0.0.3-beta.2"
 authors = ["The BitcoinMW Develoeprs"]
-description = "Eventhandler"
+description = "http library"
 license = "Apache-2.0"
 repository = "https://github.com/cgilliard/bitcoinmw"
 keywords = [ "crypto", "bitcoinmw" ]
 readme = "README.md"
+build = "src/build/build.rs"
 exclude = ["**/*.bmw", "**/*.bmw"]
 edition = "2021"
 
@@ -19,6 +20,10 @@ bmw_log    = { path = "../log"    }
 bmw_ser    = { path = "../ser"    }
 bmw_derive = { path = "../derive" }
 bmw_util   = { path = "../util"   }
+bmw_evh    = { path = "../evh"    }
 
 [dev-dependencies]
 bmw_test = { path = "../test" }
+
+[build-dependencies]
+built = { version = "0.7.1", features = ["git2"]}
