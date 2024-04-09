@@ -2298,6 +2298,8 @@
 <a href="#2296" id="2296">2296</a>
 <a href="#2297" id="2297">2297</a>
 <a href="#2298" id="2298">2298</a>
+<a href="#2299" id="2299">2299</a>
+<a href="#2300" id="2300">2300</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -4264,14 +4266,16 @@
 		conn: <span class="kw-2">&amp;mut </span>Connection,
 		callback: <span class="kw-2">&amp;mut </span><span class="prelude-ty">Option</span>&lt;Pin&lt;Box&lt;OnRead&gt;&gt;&gt;,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		user_context.slab_cur = conn.get_first_slab();
-		<span class="kw">if </span>callback.is_some() {
-			<span class="kw">let </span><span class="kw-2">mut </span>user_context: Box&lt;<span class="kw">dyn </span>UserContext&gt; = Box::new(user_context);
-			<span class="kw">let </span>callback = callback.as_mut().unwrap();
-			<span class="kw">let </span>res = callback(conn, <span class="kw-2">&amp;mut </span>user_context);
-			<span class="kw">if </span>res.is_err() {
-				<span class="kw">let </span>e = res.unwrap_err();
-				<span class="macro">warn!</span>(<span class="string">"on_read callback generated error: {}"</span>, e)<span class="question-mark">?</span>;
+		<span class="kw">if </span>!conn.write_handle()<span class="question-mark">?</span>.is_set(WRITE_STATE_FLAG_CLOSE)<span class="question-mark">? </span>{
+			user_context.slab_cur = conn.get_first_slab();
+			<span class="kw">if </span>callback.is_some() {
+				<span class="kw">let </span><span class="kw-2">mut </span>user_context: Box&lt;<span class="kw">dyn </span>UserContext&gt; = Box::new(user_context);
+				<span class="kw">let </span>callback = callback.as_mut().unwrap();
+				<span class="kw">let </span>res = callback(conn, <span class="kw-2">&amp;mut </span>user_context);
+				<span class="kw">if </span>res.is_err() {
+					<span class="kw">let </span>e = res.unwrap_err();
+					<span class="macro">warn!</span>(<span class="string">"on_read callback generated error: {}"</span>, e)<span class="question-mark">?</span>;
+				}
 			}
 		}
 		<span class="prelude-val">Ok</span>(())

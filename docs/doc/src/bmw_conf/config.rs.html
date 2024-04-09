@@ -382,6 +382,18 @@
 <a href="#380" id="380">380</a>
 <a href="#381" id="381">381</a>
 <a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
+<a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
+<a href="#390" id="390">390</a>
+<a href="#391" id="391">391</a>
+<a href="#392" id="392">392</a>
+<a href="#393" id="393">393</a>
+<a href="#394" id="394">394</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -502,6 +514,7 @@
 		<span class="kw">match </span><span class="self">self</span>.hash.get(name) {
 			<span class="prelude-val">Some</span>(v) =&gt; <span class="kw">match </span>v {
 				ConfigOption::EvhTimeout(v) =&gt; <span class="kw-2">*</span>v,
+				ConfigOption::Port(v) =&gt; <span class="kw-2">*</span>v,
 				<span class="kw">_ </span>=&gt; default,
 			},
 			<span class="prelude-val">None </span>=&gt; default,
@@ -527,12 +540,15 @@
 				ConfigOption::FileHeader(v) =&gt; v.to_string(),
 				ConfigOption::Regex(v) =&gt; v.to_string(),
 				ConfigOption::HttpAccept(v) =&gt; v.to_string(),
-				ConfigOption::HttpMethod(v) =&gt; v.to_string(),
-				ConfigOption::HttpVersion(v) =&gt; v.to_string(),
-				ConfigOption::HttpConnectionType(v) =&gt; v.to_string(),
+				ConfigOption::HttpMeth(v) =&gt; v.to_string(),
+				ConfigOption::HttpVers(v) =&gt; v.to_string(),
+				ConfigOption::HttpConnection(v) =&gt; v.to_string(),
 				ConfigOption::HttpRequestUri(v) =&gt; v.to_string(),
 				ConfigOption::HttpRequestUrl(v) =&gt; v.to_string(),
 				ConfigOption::HttpUserAgent(v) =&gt; v.to_string(),
+				ConfigOption::Host(v) =&gt; v.to_string(),
+				ConfigOption::BaseDir(v) =&gt; v.to_string(),
+				ConfigOption::ServerName(v) =&gt; v.to_string(),
 				<span class="kw">_ </span>=&gt; default,
 			},
 			<span class="prelude-val">None </span>=&gt; default,
@@ -614,14 +630,18 @@
 				EvhTimeout(<span class="kw">_</span>) =&gt; hash.insert(CN::EvhTimeout, config.clone()),
 				EvhReadSlabSize(<span class="kw">_</span>) =&gt; hash.insert(CN::EvhReadSlabSize, config.clone()),
 				EvhReadSlabCount(<span class="kw">_</span>) =&gt; hash.insert(CN::EvhReadSlabCount, config.clone()),
+				Port(<span class="kw">_</span>) =&gt; hash.insert(CN::Port, config.clone()),
+				Host(<span class="kw">_</span>) =&gt; hash.insert(CN::Host, config.clone()),
+				BaseDir(<span class="kw">_</span>) =&gt; hash.insert(CN::BaseDir, config.clone()),
+				ServerName(<span class="kw">_</span>) =&gt; hash.insert(CN::ServerName, config.clone()),
 				HttpContentFile(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpContentFile, config.clone()),
 				HttpContentData(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpContentData, config.clone()),
 				HttpAccept(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpAccept, config.clone()),
 				HttpHeader(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpHeader, config.clone()),
 				HttpTimeoutMillis(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpTimeoutMillis, config.clone()),
-				HttpMethod(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpMethod, config.clone()),
-				HttpVersion(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpVersion, config.clone()),
-				HttpConnectionType(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpConnectionType, config.clone()),
+				HttpMeth(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpMeth, config.clone()),
+				HttpVers(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpVers, config.clone()),
+				HttpConnection(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpConnection, config.clone()),
 				HttpRequestUri(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpRequestUri, config.clone()),
 				HttpRequestUrl(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpRequestUrl, config.clone()),
 				HttpUserAgent(<span class="kw">_</span>) =&gt; hash.insert(CN::HttpUserAgent, config.clone()),
@@ -697,14 +717,18 @@
 				EvhTimeout(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhTimeout, d),
 				EvhReadSlabSize(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhReadSlabSize, d),
 				EvhReadSlabCount(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::EvhReadSlabCount, d),
+				Port(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::Port, d),
+				Host(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::Host, d),
+				BaseDir(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::BaseDir, d),
+				ServerName(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::ServerName, d),
 				HttpContentFile(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpContentFile, d),
 				HttpContentData(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpContentData, d),
 				HttpAccept(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpAccept, d),
 				HttpHeader(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpHeader, d),
 				HttpTimeoutMillis(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpTimeoutMillis, d),
-				HttpMethod(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpMethod, d),
-				HttpVersion(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpVersion, d),
-				HttpConnectionType(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpConnectionType, d),
+				HttpMeth(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpMeth, d),
+				HttpVers(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpVers, d),
+				HttpConnection(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpConnection, d),
 				HttpRequestUri(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpRequestUri, d),
 				HttpRequestUrl(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpRequestUrl, d),
 				HttpUserAgent(<span class="kw">_</span>) =&gt; <span class="macro">cc!</span>(<span class="self">self</span>, t, <span class="kw-2">&amp;mut </span>s, CN::HttpUserAgent, d),

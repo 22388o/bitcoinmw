@@ -154,6 +154,72 @@
 <a href="#152" id="152">152</a>
 <a href="#153" id="153">153</a>
 <a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
+<a href="#163" id="163">163</a>
+<a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -171,11 +237,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
+</span><span class="kw">use </span>bmw_deps::downcast::{downcast, Any};
+<span class="kw">use </span>bmw_deps::dyn_clone::{clone_trait_object, DynClone};
+<span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
+<span class="kw">use </span>bmw_evh::<span class="kw-2">*</span>;
+<span class="kw">use </span>bmw_util::<span class="kw-2">*</span>;
+<span class="kw">use </span>std::collections::HashMap;
+<span class="kw">use </span>std::collections::VecDeque;
 <span class="kw">use </span>std::io::Read;
 <span class="kw">use </span>std::pin::Pin;
 
-<span class="attr">#[derive(PartialEq, Debug)]
+<span class="attr">#[derive(PartialEq, Debug, Clone)]
 </span><span class="kw">pub enum </span>HttpMethod {
 	Get,
 	Post,
@@ -189,7 +261,7 @@
 	Unknown,
 }
 
-<span class="attr">#[derive(PartialEq, Debug)]
+<span class="attr">#[derive(PartialEq, Debug, Clone)]
 </span><span class="kw">pub enum </span>HttpVersion {
 	Http10,
 	Http11,
@@ -197,7 +269,7 @@
 	Unknown,
 }
 
-<span class="attr">#[derive(PartialEq, Debug)]
+<span class="attr">#[derive(PartialEq, Debug, Clone)]
 </span><span class="kw">pub enum </span>HttpConnectionType {
 	KeepAlive,
 	Close,
@@ -206,10 +278,7 @@
 
 <span class="kw">pub type </span>HttpResponseHandler = Pin&lt;
 	Box&lt;
-		<span class="kw">dyn </span>FnMut(
-				<span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest + Send + Sync&gt;,
-				<span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpResponse + Send + Sync&gt;,
-			) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
+		<span class="kw">dyn </span>FnMut(<span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>HttpRequest&gt;, <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>HttpResponse&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
 			+ Send
 			+ Sync
 			+ Unpin,
@@ -241,7 +310,7 @@
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
 }
 
-<span class="kw">pub trait </span>HttpRequest {
+<span class="kw">pub trait </span>HttpRequest: DynClone + Any {
 	<span class="kw">fn </span>request_url(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;String&gt;;
 	<span class="kw">fn </span>request_uri(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;String&gt;;
 	<span class="kw">fn </span>user_agent(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>String;
@@ -252,8 +321,11 @@
 	<span class="kw">fn </span>timeout_millis(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u64;
 	<span class="kw">fn </span>connection_type(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>HttpConnectionType;
 	<span class="kw">fn </span>guid(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u128;
-	<span class="kw">fn </span>http_content_reader(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>HttpContentReader;
+	<span class="kw">fn </span>http_content_reader(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>LockBox&lt;HttpContentReader&gt;&gt;;
 }
+
+<span class="macro">clone_trait_object!</span>(HttpRequest);
+<span class="macro">downcast!</span>(<span class="kw">dyn </span>HttpRequest);
 
 <span class="kw">pub trait </span>HttpResponse {
 	<span class="kw">fn </span>headers(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Vec&lt;(String, String)&gt;;
@@ -265,6 +337,17 @@
 
 <span class="kw">pub trait </span>WSClient {}
 
+<span class="attr">#[derive(Debug, Clone)]
+</span><span class="kw">pub struct </span>HttpHeaders {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) headers: Vec&lt;(String, String)&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) content_length: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) end_headers: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) chunked: bool,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) method: HttpMethod,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) uri: String,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) version: HttpVersion,
+}
+
 <span class="kw">pub struct </span>HttpStats {}
 
 <span class="kw">pub struct </span>HttpContentReader {
@@ -275,17 +358,39 @@
 
 <span class="comment">// crate local
 
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpCache {}
+</span><span class="attr">#[derive(Clone)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpServerConfig {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) base_dir: String,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) port: u16,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) host: String,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) server: String,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) evh_slab_size: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) evh_slab_count: usize,
+}
+
+<span class="attr">#[derive(Clone)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpClientConfig {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) tmp_dir: String,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) evh_read_slab_size: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) evh_read_slab_count: usize,
+}
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpCache {}
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpServerImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) cache: HttpCache,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) controller: EvhController,
 }
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpClientImpl {}
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpClientImpl {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) controller: EvhController,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) state: Box&lt;<span class="kw">dyn </span>LockBox&lt;HttpClientState&gt;&gt;,
+}
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>WSClientImpl {}
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpRequestImpl {
+<span class="attr">#[derive(Clone)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpRequestImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) guid: u128,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) request_url: <span class="prelude-ty">Option</span>&lt;String&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) request_uri: <span class="prelude-ty">Option</span>&lt;String&gt;,
@@ -296,7 +401,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) method: HttpMethod,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) version: HttpVersion,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) connection_type: HttpConnectionType,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) http_content_reader: HttpContentReader,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) http_content_reader: Box&lt;<span class="kw">dyn </span>LockBox&lt;HttpContentReader&gt;&gt;,
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpResponseImpl {
@@ -308,4 +413,31 @@
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpConnectionImpl {}
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpClientState {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) queue: VecDeque&lt;HttpClientData&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) headers: <span class="prelude-ty">Option</span>&lt;HttpHeaders&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) offset: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) headers_cleared: bool,
+}
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpClientData {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) request: Box&lt;<span class="kw">dyn </span>HttpRequest&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) handler: HttpResponseHandler,
+}
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpClientContext {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) trie: Box&lt;<span class="kw">dyn </span>SearchTrie + Send + Sync&gt;,
+}
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpServerContext {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) trie: Box&lt;<span class="kw">dyn </span>SearchTrie + Send + Sync&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) connection_state: HashMap&lt;u128, HttpConnectionState&gt;,
+}
+
+<span class="attr">#[derive(Clone)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpConnectionState {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) is_async: Box&lt;<span class="kw">dyn </span>LockBox&lt;bool&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) offset: usize,
+}
 </code></pre></div></section></main></body></html>

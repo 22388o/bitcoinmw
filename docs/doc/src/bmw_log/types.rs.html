@@ -210,6 +210,7 @@
 <a href="#208" id="208">208</a>
 <a href="#209" id="209">209</a>
 <a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -408,7 +409,8 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) file_header: String,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_process_resolve_frame_error: bool,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_invalid_metadata: bool,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_lineno_is_none: bool,
+	<span class="attr">#[cfg(debug_assertions)]
+	</span><span class="kw">pub</span>(<span class="kw">crate</span>) debug_lineno_is_none: bool,
 }
 
 <span class="attr">#[derive(Clone)]

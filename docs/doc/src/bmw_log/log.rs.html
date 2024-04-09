@@ -857,6 +857,7 @@
 <a href="#855" id="855">855</a>
 <a href="#856" id="856">856</a>
 <a href="#857" id="857">857</a>
+<a href="#858" id="858">858</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1710,7 +1711,8 @@
 			timestamp,
 			debug_process_resolve_frame_error: <span class="bool-val">false</span>,
 			debug_invalid_metadata: <span class="bool-val">false</span>,
-			debug_lineno_is_none: <span class="bool-val">false</span>,
+			<span class="attr">#[cfg(debug_assertions)]
+			</span>debug_lineno_is_none: <span class="bool-val">false</span>,
 		})
 	}
 }

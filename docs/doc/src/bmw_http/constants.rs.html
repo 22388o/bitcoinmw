@@ -44,6 +44,37 @@
 <a href="#42" id="42">42</a>
 <a href="#43" id="43">43</a>
 <a href="#44" id="44">44</a>
+<a href="#45" id="45">45</a>
+<a href="#46" id="46">46</a>
+<a href="#47" id="47">47</a>
+<a href="#48" id="48">48</a>
+<a href="#49" id="49">49</a>
+<a href="#50" id="50">50</a>
+<a href="#51" id="51">51</a>
+<a href="#52" id="52">52</a>
+<a href="#53" id="53">53</a>
+<a href="#54" id="54">54</a>
+<a href="#55" id="55">55</a>
+<a href="#56" id="56">56</a>
+<a href="#57" id="57">57</a>
+<a href="#58" id="58">58</a>
+<a href="#59" id="59">59</a>
+<a href="#60" id="60">60</a>
+<a href="#61" id="61">61</a>
+<a href="#62" id="62">62</a>
+<a href="#63" id="63">63</a>
+<a href="#64" id="64">64</a>
+<a href="#65" id="65">65</a>
+<a href="#66" id="66">66</a>
+<a href="#67" id="67">67</a>
+<a href="#68" id="68">68</a>
+<a href="#69" id="69">69</a>
+<a href="#70" id="70">70</a>
+<a href="#71" id="71">71</a>
+<a href="#72" id="72">72</a>
+<a href="#73" id="73">73</a>
+<a href="#74" id="74">74</a>
+<a href="#75" id="75">75</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -86,6 +117,37 @@
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_METHOD_TRACE: <span class="kw-2">&amp;</span>str = <span class="string">"TRACE"</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_METHOD_PATCH: <span class="kw-2">&amp;</span>str = <span class="string">"PATCH"</span>;
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_CONNECTION_TYPE_CLOSE: <span class="kw-2">&amp;</span>str = <span class="string">"close"</span>;
+<span class="comment">// Http connection types
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_CONNECTION_TYPE_CLOSE: <span class="kw-2">&amp;</span>str = <span class="string">"close"</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_CONNECTION_TYPE_KEEP_ALIVE: <span class="kw-2">&amp;</span>str = <span class="string">"keep-alive"</span>;
+
+<span class="comment">// Http client search trie pattern ids
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_TERMINATION: usize = <span class="number">0</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_HEADER: usize = <span class="number">1</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_CONTENT_LENGTH: usize = <span class="number">2</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_SERVER: usize = <span class="number">3</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_TRANSFER_ENCODING: usize = <span class="number">4</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_GET: usize = <span class="number">5</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_POST: usize = <span class="number">6</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_HEAD: usize = <span class="number">7</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_PUT: usize = <span class="number">8</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_DELETE: usize = <span class="number">9</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_OPTIONS: usize = <span class="number">10</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_CONNECT: usize = <span class="number">11</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_TRACE: usize = <span class="number">12</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_PATCH: usize = <span class="number">13</span>;
+
+<span class="comment">// Http Server defaults
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_DEFAULT_PORT: u16 = <span class="number">8080</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_DEFAULT_HOST: <span class="kw-2">&amp;</span>str = <span class="string">"127.0.0.1"</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_DEFAULT_BASE_DIR: <span class="kw-2">&amp;</span>str = <span class="string">"~/.bmw/www"</span>;
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_FILE_BUFFER_SIZE: usize = <span class="number">1_000</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_DEFAULT_EVH_SLAB_COUNT: usize = <span class="number">10_000</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_DEFAULT_EVH_SLAB_SIZE: usize = <span class="number">512</span>;
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_CLIENT_DEFAULT_BASE_DIR: <span class="kw-2">&amp;</span>str = <span class="string">"~/.bmw"</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_CLIENT_DEFAULT_EVH_SLAB_SIZE: usize = <span class="number">512</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_CLIENT_DEFAULT_EVH_SLAB_COUNT: usize = <span class="number">10_000</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_CLIENT_MAX_MATCHES: usize = <span class="number">1_000</span>;
 </code></pre></div></section></main></body></html>
