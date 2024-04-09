@@ -851,6 +851,7 @@ impl LogConfig {
 			timestamp,
 			debug_process_resolve_frame_error: false,
 			debug_invalid_metadata: false,
+			#[cfg(debug_assertions)]
 			debug_lineno_is_none: false,
 		})
 	}

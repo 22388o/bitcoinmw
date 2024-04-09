@@ -15,11 +15,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bmw_deps::downcast::{downcast, Any};
+use bmw_deps::dyn_clone::{clone_trait_object, DynClone};
 use bmw_err::*;
+use bmw_evh::*;
+use bmw_util::*;
+use std::collections::HashMap;
+use std::collections::VecDeque;
 use std::io::Read;
 use std::pin::Pin;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum HttpMethod {
 	Get,
 	Post,
@@ -33,7 +39,7 @@ pub enum HttpMethod {
 	Unknown,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum HttpVersion {
 	Http10,
 	Http11,
@@ -41,7 +47,7 @@ pub enum HttpVersion {
 	Unknown,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum HttpConnectionType {
 	KeepAlive,
 	Close,
@@ -50,10 +56,7 @@ pub enum HttpConnectionType {
 
 pub type HttpResponseHandler = Pin<
 	Box<
-		dyn FnMut(
-				&Box<dyn HttpRequest + Send + Sync>,
-				&Box<dyn HttpResponse + Send + Sync>,
-			) -> Result<(), Error>
+		dyn FnMut(&Box<dyn HttpRequest>, &mut Box<dyn HttpResponse>) -> Result<(), Error>
 			+ Send
 			+ Sync
 			+ Unpin,
@@ -85,7 +88,7 @@ pub trait HttpConnection {
 	) -> Result<(), Error>;
 }
 
-pub trait HttpRequest {
+pub trait HttpRequest: DynClone + Any {
 	fn request_url(&self) -> &Option<String>;
 	fn request_uri(&self) -> &Option<String>;
 	fn user_agent(&self) -> &String;
@@ -96,8 +99,11 @@ pub trait HttpRequest {
 	fn timeout_millis(&self) -> u64;
 	fn connection_type(&self) -> &HttpConnectionType;
 	fn guid(&self) -> u128;
-	fn http_content_reader(&mut self) -> &mut HttpContentReader;
+	fn http_content_reader(&mut self) -> &mut Box<dyn LockBox<HttpContentReader>>;
 }
+
+clone_trait_object!(HttpRequest);
+downcast!(dyn HttpRequest);
 
 pub trait HttpResponse {
 	fn headers(&self) -> &Vec<(String, String)>;
@@ -109,6 +115,17 @@ pub trait HttpResponse {
 
 pub trait WSClient {}
 
+#[derive(Debug, Clone)]
+pub struct HttpHeaders {
+	pub(crate) headers: Vec<(String, String)>,
+	pub(crate) content_length: usize,
+	pub(crate) end_headers: usize,
+	pub(crate) chunked: bool,
+	pub(crate) method: HttpMethod,
+	pub(crate) uri: String,
+	pub(crate) version: HttpVersion,
+}
+
 pub struct HttpStats {}
 
 pub struct HttpContentReader {
@@ -119,16 +136,38 @@ pub struct HttpContentReader {
 
 // crate local
 
+#[derive(Clone)]
+pub(crate) struct HttpServerConfig {
+	pub(crate) base_dir: String,
+	pub(crate) port: u16,
+	pub(crate) host: String,
+	pub(crate) server: String,
+	pub(crate) evh_slab_size: usize,
+	pub(crate) evh_slab_count: usize,
+}
+
+#[derive(Clone)]
+pub(crate) struct HttpClientConfig {
+	pub(crate) tmp_dir: String,
+	pub(crate) evh_read_slab_size: usize,
+	pub(crate) evh_read_slab_count: usize,
+}
+
 pub(crate) struct HttpCache {}
 
 pub(crate) struct HttpServerImpl {
 	pub(crate) cache: HttpCache,
+	pub(crate) controller: EvhController,
 }
 
-pub(crate) struct HttpClientImpl {}
+pub(crate) struct HttpClientImpl {
+	pub(crate) controller: EvhController,
+	pub(crate) state: Box<dyn LockBox<HttpClientState>>,
+}
 
 pub(crate) struct WSClientImpl {}
 
+#[derive(Clone)]
 pub(crate) struct HttpRequestImpl {
 	pub(crate) guid: u128,
 	pub(crate) request_url: Option<String>,
@@ -140,7 +179,7 @@ pub(crate) struct HttpRequestImpl {
 	pub(crate) method: HttpMethod,
 	pub(crate) version: HttpVersion,
 	pub(crate) connection_type: HttpConnectionType,
-	pub(crate) http_content_reader: HttpContentReader,
+	pub(crate) http_content_reader: Box<dyn LockBox<HttpContentReader>>,
 }
 
 pub(crate) struct HttpResponseImpl {
@@ -152,3 +191,30 @@ pub(crate) struct HttpResponseImpl {
 }
 
 pub(crate) struct HttpConnectionImpl {}
+
+pub(crate) struct HttpClientState {
+	pub(crate) queue: VecDeque<HttpClientData>,
+	pub(crate) headers: Option<HttpHeaders>,
+	pub(crate) offset: usize,
+	pub(crate) headers_cleared: bool,
+}
+
+pub(crate) struct HttpClientData {
+	pub(crate) request: Box<dyn HttpRequest>,
+	pub(crate) handler: HttpResponseHandler,
+}
+
+pub(crate) struct HttpClientContext {
+	pub(crate) trie: Box<dyn SearchTrie + Send + Sync>,
+}
+
+pub(crate) struct HttpServerContext {
+	pub(crate) trie: Box<dyn SearchTrie + Send + Sync>,
+	pub(crate) connection_state: HashMap<u128, HttpConnectionState>,
+}
+
+#[derive(Clone)]
+pub(crate) struct HttpConnectionState {
+	pub(crate) is_async: Box<dyn LockBox<bool>>,
+	pub(crate) offset: usize,
+}

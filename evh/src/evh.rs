@@ -1964,14 +1964,16 @@ where
 		conn: &mut Connection,
 		callback: &mut Option<Pin<Box<OnRead>>>,
 	) -> Result<(), Error> {
-		user_context.slab_cur = conn.get_first_slab();
-		if callback.is_some() {
-			let mut user_context: Box<dyn UserContext> = Box::new(user_context);
-			let callback = callback.as_mut().unwrap();
-			let res = callback(conn, &mut user_context);
-			if res.is_err() {
-				let e = res.unwrap_err();
-				warn!("on_read callback generated error: {}", e)?;
+		if !conn.write_handle()?.is_set(WRITE_STATE_FLAG_CLOSE)? {
+			user_context.slab_cur = conn.get_first_slab();
+			if callback.is_some() {
+				let mut user_context: Box<dyn UserContext> = Box::new(user_context);
+				let callback = callback.as_mut().unwrap();
+				let res = callback(conn, &mut user_context);
+				if res.is_err() {
+					let e = res.unwrap_err();
+					warn!("on_read callback generated error: {}", e)?;
+				}
 			}
 		}
 		Ok(())

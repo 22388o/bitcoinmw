@@ -17,19 +17,29 @@
 
 use crate::constants::*;
 use crate::types::{
-	HttpCache, HttpContentReader, HttpRequestImpl, HttpResponseImpl, HttpServerImpl,
+	HttpCache, HttpConnectionState, HttpContentReader, HttpRequestImpl, HttpResponseImpl,
+	HttpServerConfig, HttpServerContext, HttpServerImpl,
 };
 use crate::{
-	HttpConnectionType, HttpMethod, HttpRequest, HttpResponse, HttpServer, HttpStats, HttpVersion,
+	HttpConnectionType, HttpHeaders, HttpMethod, HttpRequest, HttpResponse, HttpServer, HttpStats,
+	HttpVersion,
 };
 use bmw_conf::ConfigOption::*;
 use bmw_conf::ConfigOptionName as CN;
 use bmw_conf::*;
+use bmw_deps::chrono::Utc;
+use bmw_deps::dirs;
 use bmw_deps::rand::random;
 use bmw_err::*;
+use bmw_evh::*;
 use bmw_log::*;
-use std::fs::File;
-use std::io::Read;
+use bmw_util::*;
+use std::collections::HashMap;
+use std::fs::{create_dir_all, File};
+use std::io::{BufReader, Read};
+use std::path::PathBuf;
+use std::str::from_utf8;
+use std::thread::spawn;
 
 info!();
 
@@ -90,6 +100,17 @@ impl From<String> for HttpConnectionType {
 	}
 }
 
+impl Drop for HttpServerImpl {
+	fn drop(&mut self) {
+		match self.controller.stop() {
+			Ok(_) => {}
+			Err(e) => {
+				let _ = warn!("controller.stop generated error: {}", e);
+			}
+		}
+	}
+}
+
 impl HttpServer for HttpServerImpl {
 	fn start(&mut self) -> Result<(), Error> {
 		if !self.cache.contains("/".into()) {
@@ -105,8 +126,447 @@ impl HttpServer for HttpServerImpl {
 
 impl HttpServerImpl {
 	pub(crate) fn new(configs: Vec<ConfigOption>) -> Result<Self, Error> {
-		let cache = HttpCache::new(configs);
-		Ok(Self { cache })
+		let config = Self::build_config(configs)?;
+		let config_clone = config.clone();
+
+		let cache = HttpCache::new(vec![]);
+
+		let mut matches = [tmatch!()?; 1_000];
+
+		let mut evh = evh!(
+			EvhReadSlabSize(config.evh_slab_size),
+			EvhReadSlabCount(config.evh_slab_count),
+		)?;
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			HttpServerImpl::process_on_read(connection, ctx, &mut matches, &config_clone)
+		})?;
+		evh.set_on_accept(move |connection, ctx| -> Result<(), Error> {
+			HttpServerImpl::process_on_accept(connection, ctx)
+		})?;
+		evh.set_on_close(move |connection, ctx| -> Result<(), Error> {
+			HttpServerImpl::process_on_close(connection, ctx)
+		})?;
+		evh.set_on_housekeeper(move |_ctx| -> Result<(), Error> { Ok(()) })?;
+		evh.set_on_panic(move |_ctx, _e| -> Result<(), Error> { Ok(()) })?;
+		let controller = evh.controller()?;
+		evh.start()?;
+
+		let addr = format!("{}:{}", config.host, config.port);
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+		evh.add_server_connection(conn)?;
+
+		Ok(Self { cache, controller })
+	}
+
+	fn process_on_accept(
+		connection: &mut Connection,
+		ctx: &mut Box<dyn UserContext + '_>,
+	) -> Result<(), Error> {
+		let id = connection.id();
+		debug!("on accept: {}", id)?;
+		let ctx = Self::build_ctx(ctx)?;
+		let state = HttpConnectionState::new()?;
+		ctx.connection_state.insert(id, state);
+		Ok(())
+	}
+
+	fn process_on_close(
+		connection: &mut Connection,
+		ctx: &mut Box<dyn UserContext + '_>,
+	) -> Result<(), Error> {
+		let id = connection.id();
+		debug!("on close: {}", id)?;
+		let ctx = Self::build_ctx(ctx)?;
+		Self::close_connection(id, ctx)?;
+		Ok(())
+	}
+
+	fn close_connection(id: u128, ctx: &mut HttpServerContext) -> Result<(), Error> {
+		ctx.connection_state.remove(&id);
+		Ok(())
+	}
+
+	fn build_config(configs: Vec<ConfigOption>) -> Result<HttpServerConfig, Error> {
+		let config = ConfigBuilder::build_config(configs.clone());
+
+		let port = config.get_or_u16(&CN::Port, HTTP_SERVER_DEFAULT_PORT);
+		let host = config.get_or_string(&CN::Host, HTTP_SERVER_DEFAULT_HOST.to_string());
+		let mut base_dir =
+			config.get_or_string(&CN::BaseDir, HTTP_SERVER_DEFAULT_BASE_DIR.to_string());
+		let evh_slab_size = config.get_or_usize(&CN::SlabSize, HTTP_SERVER_DEFAULT_EVH_SLAB_SIZE);
+		let evh_slab_count =
+			config.get_or_usize(&CN::SlabCount, HTTP_SERVER_DEFAULT_EVH_SLAB_COUNT);
+		let server = config.get_or_string(
+			&CN::ServerName,
+			format!("BitcoinMW/{}", built_info::PKG_VERSION.to_string()),
+		);
+
+		let home_dir = match dirs::home_dir() {
+			Some(p) => p,
+			None => PathBuf::new(),
+		}
+		.as_path()
+		.display()
+		.to_string();
+
+		base_dir = base_dir.replace("~", &home_dir);
+
+		create_dir_all(base_dir.clone())?;
+
+		Ok(HttpServerConfig {
+			base_dir,
+			port,
+			host,
+			server,
+			evh_slab_size,
+			evh_slab_count,
+		})
+	}
+
+	fn process_on_read(
+		connection: &mut Connection,
+		ctx: &mut Box<dyn UserContext + '_>,
+		matches: &mut [Match],
+		config: &HttpServerConfig,
+	) -> Result<(), Error> {
+		let mut data: Vec<u8> = vec![];
+		let mut chunk_ids = vec![];
+
+		loop {
+			let next_chunk = ctx.next_chunk(connection)?;
+			cbreak!(next_chunk.is_none());
+			let next_chunk = next_chunk.unwrap();
+			chunk_ids.push(next_chunk.slab_id());
+			let data_extension = next_chunk.data();
+			debug!("chunk len = {}", data_extension.len())?;
+			data.extend(data_extension);
+		}
+
+		let uctx = Self::build_ctx(ctx)?;
+		let mut conn_state = match uctx.connection_state.get_mut(&connection.id()) {
+			Some(c) => c,
+			None => {
+				return Err(err!(
+					ErrKind::Http,
+					"internal err, couldn't find connection state"
+				));
+			}
+		};
+
+		debug!(
+			"offset={},data='{}'",
+			conn_state.offset,
+			from_utf8(&data).unwrap_or("non-utf8 data")
+		)?;
+
+		// only continue processing if we're not in async mode
+		if !conn_state.is_async() {
+			let data_len = data.len();
+			match Self::process_request(
+				data,
+				&mut uctx.trie,
+				matches,
+				connection,
+				config,
+				&mut conn_state,
+			) {
+				Ok(clear_point) => {
+					debug!("clear_point={}, data.len={}", clear_point, data_len)?;
+					if clear_point == data_len {
+						debug!("clear all")?;
+						conn_state.offset = 0;
+						ctx.clear_all(connection)?;
+					} else if clear_point != 0 {
+						Self::clear_custom(clear_point, ctx, connection, chunk_ids, config)?;
+					}
+				}
+				Err(e) => {
+					debug!("process_request generated error: {}", e)?;
+					// handle error here. Either send a response or close connection
+				}
+			}
+		}
+		Ok(())
+	}
+
+	fn clear_custom(
+		clear_point: usize,
+		ctx: &mut Box<dyn UserContext + '_>,
+		connection: &mut Connection,
+		chunk_ids: Vec<usize>,
+		config: &HttpServerConfig,
+	) -> Result<(), Error> {
+		let bytes_per_slab = config.evh_slab_size.saturating_sub(4);
+		debug!("clear custom: {}", clear_point)?;
+
+		let uctx = Self::build_ctx(ctx)?;
+		let conn_state = match uctx.connection_state.get_mut(&connection.id()) {
+			Some(c) => c,
+			None => {
+				return Err(err!(
+					ErrKind::Http,
+					"internal err, couldn't find connection state"
+				));
+			}
+		};
+
+		conn_state.offset = clear_point % bytes_per_slab;
+
+		if clear_point >= bytes_per_slab {
+			let th_chunk = (clear_point / bytes_per_slab).saturating_sub(1);
+			if th_chunk >= chunk_ids.len() {
+				return Err(err!(
+					ErrKind::Http,
+					"clear chunk had unexpected value={},chunk_ids.len()={}",
+					th_chunk,
+					chunk_ids.len()
+				));
+			}
+			ctx.clear_through(chunk_ids[th_chunk], connection)?;
+		}
+
+		Ok(())
+	}
+
+	fn process_request(
+		data: Vec<u8>,
+		trie: &mut Box<dyn SearchTrie + Send + Sync>,
+		matches: &mut [Match],
+		connection: &mut Connection,
+		config: &HttpServerConfig,
+		conn_state: &mut HttpConnectionState,
+	) -> Result<usize, Error> {
+		let headers = Self::build_headers(&data[conn_state.offset..], trie, matches)?;
+		match headers {
+			Some(headers) => {
+				debug!("found headers with conn_state.offset={}", conn_state.offset)?;
+				let clear_point = Self::process_headers(&headers, connection, config, conn_state)?;
+				Ok(clear_point + conn_state.offset)
+			}
+			None => Ok(0),
+		}
+	}
+
+	fn process_headers(
+		headers: &HttpHeaders,
+		connection: &mut Connection,
+		config: &HttpServerConfig,
+		conn_state: &mut HttpConnectionState,
+	) -> Result<usize, Error> {
+		debug!("in process headers: {:?}", headers)?;
+
+		let file_path = canonicalize_base_path(&config.base_dir, &headers.uri)?;
+		debug!("file requested = {}", file_path)?;
+
+		// check cache here
+
+		let mut write_handle = connection.write_handle()?;
+		Self::send_file(file_path, &mut write_handle, config, conn_state)?;
+
+		Ok(headers.end_headers)
+	}
+
+	fn build_date() -> String {
+		let dt = Utc::now();
+		dt.format("%a, %d %h %C%y %H:%M:%S GMT").to_string()
+	}
+
+	fn send_file(
+		path: String,
+		wh: &mut WriteHandle,
+		config: &HttpServerConfig,
+		conn_state: &mut HttpConnectionState,
+	) -> Result<(), Error> {
+		let file = File::open(path)?;
+		let mut buf_reader = BufReader::new(file);
+		let date = Self::build_date();
+		wh.write(
+			format!(
+				"HTTP/1.1 200 OK\r\nServer: {}\r\nDate: {}\r\nTransfer-Encoding: chunked\r\n\r\n",
+				config.server, date
+			)
+			.as_bytes(),
+		)?;
+
+		let mut wh = wh.clone();
+
+		conn_state.set_async(true)?;
+		let mut conn_state_clone = conn_state.clone();
+		spawn(move || -> Result<(), Error> {
+			let mut buf = [0u8; HTTP_SERVER_FILE_BUFFER_SIZE];
+			let mut i = 0;
+			loop {
+				debug!("loop {} ", i)?;
+				i += 1;
+				let len = buf_reader.read(&mut buf)?;
+				cbreak!(len <= 0);
+				wh.write(&format!("{:X}\r\n", len).as_bytes()[..])?;
+				wh.write(&buf[0..len])?;
+				wh.write(b"\r\n")?;
+			}
+
+			wh.write(b"0\r\n\r\n")?;
+			conn_state_clone.set_async(false)?;
+			wh.trigger_on_read()?;
+			Ok(())
+		});
+
+		Ok(())
+	}
+
+	fn build_ctx<'a>(
+		ctx: &'a mut Box<dyn UserContext + '_>,
+	) -> Result<&'a mut HttpServerContext, Error> {
+		match ctx.get_user_data() {
+			Some(_) => {}
+			None => {
+				ctx.set_user_data(Box::new(HttpServerContext::new(10_000)?));
+			}
+		}
+
+		let ret = ctx.get_user_data().as_mut().unwrap();
+		Ok(ret.downcast_mut::<HttpServerContext>().unwrap())
+	}
+
+	fn build_headers(
+		data: &[u8],
+		trie: &mut Box<dyn SearchTrie + Send + Sync>,
+		matches: &mut [Match],
+	) -> Result<Option<HttpHeaders>, Error> {
+		let count = trie.tmatch(data, matches)?;
+		let mut term = false;
+		let mut headers = HttpHeaders::new();
+		for i in 0..count {
+			let id = matches[i].id();
+			if id == HTTP_SEARCH_TRIE_PATTERN_TERMINATION {
+				headers.end_headers = matches[i].end();
+				term = true;
+			} else if id == HTTP_SEARCH_TRIE_PATTERN_HEADER {
+				let name = Self::header_name(data, matches[i])?;
+				let value = match Self::header_value(data, matches[i])? {
+					Some(v) => v,
+					None => return Ok(None),
+				};
+				headers.headers.push((name.to_string(), value.to_string()));
+			} else if id == HTTP_SEARCH_TRIE_PATTERN_CONTENT_LENGTH {
+				let value = match Self::header_value(data, matches[i])? {
+					Some(v) => v,
+					None => return Ok(None),
+				};
+				headers.content_length = value.parse()?;
+			} else if id == HTTP_SEARCH_TRIE_PATTERN_TRANSFER_ENCODING {
+				let value = match Self::header_value(data, matches[i])? {
+					Some(v) => v,
+					None => return Ok(None),
+				};
+				if value.contains("chunked") {
+					headers.chunked = true;
+				}
+			} else if id == HTTP_SEARCH_TRIE_PATTERN_GET {
+				headers.method = HttpMethod::Get;
+			} else if id == HTTP_SEARCH_TRIE_PATTERN_POST {
+				headers.method = HttpMethod::Post;
+			}
+		}
+
+		if term {
+			if headers.method == HttpMethod::Unknown {
+				return Err(err!(ErrKind::Http, "bad request"));
+			}
+			// get uri and version
+			let start = if headers.method == HttpMethod::Get {
+				4
+			} else {
+				5
+			};
+
+			let mut end = start;
+			// guaranteed to have a \r\n because we have a termination match
+			loop {
+				if data[end] == b' ' || data[end] == b'\r' || data[end] == b'\n' {
+					break;
+				}
+				end += 1;
+			}
+
+			headers.uri = from_utf8(&data[start..end])?.to_string();
+
+			end += 1;
+			let start = end;
+			loop {
+				if data[end] == b'\r' || data[end] == b'\n' {
+					break;
+				}
+				end += 1;
+			}
+
+			if &data[start..end] == b"HTTP/1.0" {
+				headers.version = HttpVersion::Http10;
+			} else if &data[start..end] == b"HTTP/1.1" {
+				headers.version = HttpVersion::Http11;
+			} else if end > start {
+				debug!("version_str='{}'", from_utf8(&data[start..end])?)?;
+				headers.version = HttpVersion::Other;
+			}
+
+			Ok(Some(headers))
+		} else {
+			Ok(None)
+		}
+	}
+
+	fn header_value(data: &[u8], m: Match) -> Result<Option<&str>, Error> {
+		let start = m.end();
+		let mut end = start;
+		loop {
+			if end >= data.len() {
+				// not ready yet
+				return Ok(None);
+			}
+			if data[end] == b'\r' || data[end] == b'\n' {
+				break;
+			}
+			end += 1;
+		}
+		if start >= end {
+			Err(err!(
+				ErrKind::IllegalState,
+				"invalid index returned from search start=({}),end=({})",
+				start,
+				end
+			))
+		} else if end >= data.len() {
+			Err(err!(
+				ErrKind::IllegalState,
+				"invalid index returned from search end=({}),len=({})",
+				end,
+				data.len()
+			))
+		} else {
+			Ok(Some(from_utf8(&data[start..end])?))
+		}
+	}
+
+	fn header_name(data: &[u8], m: Match) -> Result<&str, Error> {
+		let start = m.start() + 2;
+		let end = m.end().saturating_sub(2);
+		if start >= end {
+			Err(err!(
+				ErrKind::IllegalState,
+				"invalid index returned from search start=({}),end=({})",
+				start,
+				end
+			))
+		} else if end >= data.len() {
+			Err(err!(
+				ErrKind::IllegalState,
+				"invalid index returned from search end=({}),len=({})",
+				end,
+				data.len()
+			))
+		} else {
+			Ok(from_utf8(&data[start..end])?)
+		}
 	}
 }
 
@@ -155,7 +615,19 @@ impl Read for HttpContentReader {
 
 impl Read for Box<dyn HttpRequest> {
 	fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
-		self.http_content_reader().read(buf)
+		match self.http_content_reader().wlock() {
+			Ok(mut http_content_reader) => match http_content_reader.guard() {
+				Ok(guard) => guard.read(buf),
+				Err(e) => Err(std::io::Error::new(
+					std::io::ErrorKind::InvalidData,
+					format!("error obtaining guard from http_content_reader: {}", e),
+				)),
+			},
+			Err(e) => Err(std::io::Error::new(
+				std::io::ErrorKind::InvalidData,
+				format!("error obtaining write lock from http_content_reader: {}", e),
+			)),
+		}
 	}
 }
 
@@ -190,7 +662,7 @@ impl HttpRequest for HttpRequestImpl {
 	fn guid(&self) -> u128 {
 		self.guid
 	}
-	fn http_content_reader(&mut self) -> &mut HttpContentReader {
+	fn http_content_reader(&mut self) -> &mut Box<dyn LockBox<HttpContentReader>> {
 		&mut self.http_content_reader
 	}
 }
@@ -205,9 +677,9 @@ impl HttpRequestImpl {
 				CN::HttpAccept,
 				CN::HttpHeader,
 				CN::HttpTimeoutMillis,
-				CN::HttpMethod,
-				CN::HttpVersion,
-				CN::HttpConnectionType,
+				CN::HttpMeth,
+				CN::HttpVers,
+				CN::HttpConnection,
 				CN::HttpRequestUrl,
 				CN::HttpRequestUri,
 				CN::HttpUserAgent,
@@ -253,15 +725,13 @@ impl HttpRequestImpl {
 
 		let version_s = DEFAULT_HTTP_VERSION.to_string();
 		let version = config
-			.get_or_string(&CN::HttpVersion, version_s.clone())
+			.get_or_string(&CN::HttpVers, version_s.clone())
 			.into();
 		let method_s = DEFAULT_HTTP_METHOD.to_string();
-		let method = config
-			.get_or_string(&CN::HttpMethod, method_s.clone())
-			.into();
+		let method = config.get_or_string(&CN::HttpMeth, method_s.clone()).into();
 		let ctype = DEFAULT_HTTP_CONNECTION_TYPE.to_string();
 		let connection_type = config
-			.get_or_string(&CN::HttpConnectionType, ctype.clone())
+			.get_or_string(&CN::HttpConnection, ctype.clone())
 			.into();
 
 		let pkg_version = built_info::PKG_VERSION.to_string();
@@ -309,7 +779,7 @@ impl HttpRequestImpl {
 			return Err(err!(ErrKind::IllegalArgument, text));
 		}
 
-		let http_content_reader = HttpContentReader::new(content_data, content)?;
+		let http_content_reader = lock_box!(HttpContentReader::new(content_data, content)?)?;
 
 		Ok(Self {
 			http_content_reader,
@@ -371,3 +841,117 @@ impl HttpResponseImpl {
 		})
 	}
 }
+
+impl HttpServerContext {
+	fn new(termination_length: usize) -> Result<Self, Error> {
+		let trie = search_trie_box!(
+			vec![
+				pattern!(
+					Regex("\r\n\r\n".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_TERMINATION),
+					IsTerminationPattern(true),
+				)?,
+				pattern!(
+					Regex("\r\nContent-Length: ".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_CONTENT_LENGTH),
+					IsCaseSensitive(true)
+				)?,
+				pattern!(
+					Regex("\r\nServer: ".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_SERVER),
+					IsCaseSensitive(true)
+				)?,
+				pattern!(
+					Regex("\r\nTransfer-Encoding: ".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_TRANSFER_ENCODING),
+					IsCaseSensitive(true)
+				)?,
+				pattern!(
+					Regex("\r\n.*: ".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_HEADER),
+					IsCaseSensitive(true)
+				)?,
+				pattern!(
+					Regex("^GET ".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_GET),
+					IsCaseSensitive(true)
+				)?,
+				pattern!(
+					Regex("^POST ".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_POST),
+					IsCaseSensitive(true)
+				)?,
+				pattern!(
+					Regex("^HEAD ".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_HEAD),
+					IsCaseSensitive(true)
+				)?,
+				pattern!(
+					Regex("^PUT ".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_PUT),
+					IsCaseSensitive(true)
+				)?,
+				pattern!(
+					Regex("^DELETE ".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_DELETE),
+					IsCaseSensitive(true)
+				)?,
+				pattern!(
+					Regex("^OPTIONS ".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_OPTIONS),
+					IsCaseSensitive(true)
+				)?,
+				pattern!(
+					Regex("^CONNECT ".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_CONNECT),
+					IsCaseSensitive(true)
+				)?,
+				pattern!(
+					Regex("^TRACE ".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_TRACE),
+					IsCaseSensitive(true)
+				)?,
+				pattern!(
+					Regex("^PATCH ".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_PATCH),
+					IsCaseSensitive(true)
+				)?,
+			],
+			TerminationLength(termination_length),
+			MaxWildCardLength(termination_length),
+		)?;
+		let connection_state = HashMap::new();
+		Ok(Self {
+			trie,
+			connection_state,
+		})
+	}
+}
+
+impl HttpConnectionState {
+	fn new() -> Result<Self, Error> {
+		Ok(Self {
+			is_async: lock_box!(false)?,
+			offset: 0,
+		})
+	}
+
+	fn is_async(&self) -> bool {
+		match self.is_async.rlock() {
+			Ok(l) => match l.guard() {
+				Ok(g) => **g,
+				Err(_) => false,
+			},
+			Err(_) => false,
+		}
+	}
+
+	fn set_async(&mut self, value: bool) -> Result<(), Error> {
+		wlock!(self.is_async) = value;
+		Ok(())
+	}
+}
+
+unsafe impl Send for HttpContentReader {}
+
+unsafe impl Sync for HttpContentReader {}

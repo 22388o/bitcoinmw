@@ -89,7 +89,7 @@
 //!
 //! fn main() -> Result<(), Error> {
 //!     // create an evh with the specified configuration.
-//!     // This example shows all possible configuration options, but all of
+//!     // This example shows all possible configuration options, but all of them
 //!     // are optional. See the macro's documentation for full details.
 //!     let mut evh = evh_oro!(
 //!         EvhTimeout(100), // set timeout to 100 ms.
@@ -156,5 +156,5 @@ mod types;
 mod win;
 
 pub use crate::types::{
-	Chunk, Connection, EventHandler, EvhBuilder, EvhStats, UserContext, WriteHandle,
+	Chunk, Connection, EventHandler, EvhBuilder, EvhController, EvhStats, UserContext, WriteHandle,
 };

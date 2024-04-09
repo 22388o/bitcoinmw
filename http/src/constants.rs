@@ -40,5 +40,36 @@ pub(crate) const HTTP_METHOD_CONNECT: &str = "CONNECT";
 pub(crate) const HTTP_METHOD_TRACE: &str = "TRACE";
 pub(crate) const HTTP_METHOD_PATCH: &str = "PATCH";
 
+// Http connection types
 pub(crate) const HTTP_CONNECTION_TYPE_CLOSE: &str = "close";
 pub(crate) const HTTP_CONNECTION_TYPE_KEEP_ALIVE: &str = "keep-alive";
+
+// Http client search trie pattern ids
+pub(crate) const HTTP_SEARCH_TRIE_PATTERN_TERMINATION: usize = 0;
+pub(crate) const HTTP_SEARCH_TRIE_PATTERN_HEADER: usize = 1;
+pub(crate) const HTTP_SEARCH_TRIE_PATTERN_CONTENT_LENGTH: usize = 2;
+pub(crate) const HTTP_SEARCH_TRIE_PATTERN_SERVER: usize = 3;
+pub(crate) const HTTP_SEARCH_TRIE_PATTERN_TRANSFER_ENCODING: usize = 4;
+pub(crate) const HTTP_SEARCH_TRIE_PATTERN_GET: usize = 5;
+pub(crate) const HTTP_SEARCH_TRIE_PATTERN_POST: usize = 6;
+pub(crate) const HTTP_SEARCH_TRIE_PATTERN_HEAD: usize = 7;
+pub(crate) const HTTP_SEARCH_TRIE_PATTERN_PUT: usize = 8;
+pub(crate) const HTTP_SEARCH_TRIE_PATTERN_DELETE: usize = 9;
+pub(crate) const HTTP_SEARCH_TRIE_PATTERN_OPTIONS: usize = 10;
+pub(crate) const HTTP_SEARCH_TRIE_PATTERN_CONNECT: usize = 11;
+pub(crate) const HTTP_SEARCH_TRIE_PATTERN_TRACE: usize = 12;
+pub(crate) const HTTP_SEARCH_TRIE_PATTERN_PATCH: usize = 13;
+
+// Http Server defaults
+pub(crate) const HTTP_SERVER_DEFAULT_PORT: u16 = 8080;
+pub(crate) const HTTP_SERVER_DEFAULT_HOST: &str = "127.0.0.1";
+pub(crate) const HTTP_SERVER_DEFAULT_BASE_DIR: &str = "~/.bmw/www";
+
+pub(crate) const HTTP_SERVER_FILE_BUFFER_SIZE: usize = 1_000;
+pub(crate) const HTTP_SERVER_DEFAULT_EVH_SLAB_COUNT: usize = 10_000;
+pub(crate) const HTTP_SERVER_DEFAULT_EVH_SLAB_SIZE: usize = 512;
+
+pub(crate) const HTTP_CLIENT_DEFAULT_BASE_DIR: &str = "~/.bmw";
+pub(crate) const HTTP_CLIENT_DEFAULT_EVH_SLAB_SIZE: usize = 512;
+pub(crate) const HTTP_CLIENT_DEFAULT_EVH_SLAB_COUNT: usize = 10_000;
+pub(crate) const HTTP_CLIENT_MAX_MATCHES: usize = 1_000;

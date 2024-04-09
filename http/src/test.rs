@@ -23,9 +23,12 @@ mod test {
 	use bmw_err::*;
 	use bmw_log::*;
 	use bmw_test::*;
+	use bmw_util::*;
 	use std::fs::File;
 	use std::io::Read;
 	use std::io::Write;
+	use std::path::PathBuf;
+	use std::str::from_utf8;
 
 	// include build information
 	pub mod built_info {
@@ -93,9 +96,9 @@ mod test {
 			ConfigOption::HttpTimeoutMillis(1234),
 			ConfigOption::HttpContentData(b"111".to_vec()),
 			ConfigOption::HttpUserAgent("myagent".to_string()),
-			ConfigOption::HttpMethod(HTTP_METHOD_DELETE.to_string()),
-			ConfigOption::HttpVersion(HTTP_VERSION_10.to_string()),
-			ConfigOption::HttpConnectionType(HTTP_CONNECTION_TYPE_KEEP_ALIVE.to_string()),
+			ConfigOption::HttpMeth(HTTP_METHOD_DELETE.to_string()),
+			ConfigOption::HttpVers(HTTP_VERSION_10.to_string()),
+			ConfigOption::HttpConnection(HTTP_CONNECTION_TYPE_KEEP_ALIVE.to_string()),
 		];
 		let mut request = HttpBuilder::build_http_request(config)?;
 
@@ -132,7 +135,7 @@ mod test {
 		assert!(HttpBuilder::build_http_request(config).is_err());
 
 		// invalid version
-		let config = vec![ConfigOption::HttpVersion("kasdjlkajlf".to_string())];
+		let config = vec![ConfigOption::HttpVers("kasdjlkajlf".to_string())];
 		assert!(HttpBuilder::build_http_request(config).is_err());
 
 		Ok(())
@@ -168,6 +171,52 @@ mod test {
 		let mut s = String::new();
 		response.read_to_string(&mut s)?;
 		assert_eq!(s, "test".to_string());
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_http_client_basic() -> Result<(), Error> {
+		let test_info = test_info!(true)?;
+		let directory = test_info.directory();
+		let mut path_buf = PathBuf::new();
+		path_buf.push(directory);
+		path_buf.push("test.html");
+		let mut file = File::create(path_buf)?;
+		let buf = [b'x'; 1600];
+		file.write_all(&buf)?;
+
+		let port = test_info.port();
+		let mut server = HttpBuilder::build_http_server(vec![
+			ConfigOption::Port(port),
+			ConfigOption::BaseDir(directory.clone()),
+		])?;
+		server.start()?;
+
+		let mut client =
+			HttpBuilder::build_http_client(vec![ConfigOption::BaseDir(directory.clone())])?;
+		let request = HttpBuilder::build_http_request(vec![ConfigOption::HttpRequestUrl(
+			format!("http://localhost:{}/test.html", port),
+		)])?;
+
+		let mut recv = lock_box!(false)?;
+		let recv_clone = recv.clone();
+		let (tx, rx) = test_info.sync_channel();
+		let handler: HttpResponseHandler =
+			Box::pin(move |_request, response| -> Result<(), Error> {
+				let mut s = String::new();
+				response.read_to_string(&mut s)?;
+				info!("in handler[s.len={}]: {}", s.len(), s)?;
+				assert_eq!(s, from_utf8(&buf)?.to_string());
+				wlock!(recv) = true;
+				tx.send(())?;
+				Ok(())
+			});
+		client.send(&request, handler)?;
+
+		rx.recv()?;
+
+		assert!(rlock!(recv_clone));
 
 		Ok(())
 	}
