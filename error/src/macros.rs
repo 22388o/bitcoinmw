@@ -158,6 +158,14 @@ macro_rules! err {
 				let error: Error = ErrorKind::Rustlet($msg.to_string()).into();
 				error
 			}
+                        ErrKind::Http404 => {
+                                let error: Error = ErrorKind::Http404($msg.to_string()).into();
+                                error
+                        }
+                        ErrKind::Http403 => {
+                                let error: Error = ErrorKind::Http403($msg.to_string()).into();
+                                error
+                        }
 		}
 	}};
 }
@@ -235,6 +243,8 @@ macro_rules! map_err {
 				ErrKind::Rustls => ErrorKind::Rustls(format!("{}: {}", $msg, e)).into(),
 				ErrKind::Crypt => ErrorKind::Crypt(format!("{}: {}", $msg, e)).into(),
 				ErrKind::Http => ErrorKind::Http(format!("{}: {}", $msg, e)).into(),
+				ErrKind::Http404 => ErrorKind::Http404(format!("{}: {}", $msg, e)).into(),
+				ErrKind::Http403 => ErrorKind::Http403(format!("{}: {}", $msg, e)).into(),
 				ErrKind::Rustlet => ErrorKind::Rustlet(format!("{}: {}", $msg, e)).into(),
 			}
 		})

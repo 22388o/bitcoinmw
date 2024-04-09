@@ -17,12 +17,11 @@
 
 use crate::constants::*;
 use crate::types::{
-	HttpCache, HttpConnectionState, HttpContentReader, HttpRequestImpl, HttpResponseImpl,
-	HttpServerConfig, HttpServerContext, HttpServerImpl,
+	HttpCache, HttpConnectionState, HttpContentReader, HttpHeaders, HttpRequestImpl,
+	HttpResponseImpl, HttpServerConfig, HttpServerContext, HttpServerImpl,
 };
 use crate::{
-	HttpConnectionType, HttpHeaders, HttpMethod, HttpRequest, HttpResponse, HttpServer, HttpStats,
-	HttpVersion,
+	HttpConnectionType, HttpMethod, HttpRequest, HttpResponse, HttpServer, HttpStats, HttpVersion,
 };
 use bmw_conf::ConfigOption::*;
 use bmw_conf::ConfigOptionName as CN;
@@ -35,7 +34,7 @@ use bmw_evh::*;
 use bmw_log::*;
 use bmw_util::*;
 use std::collections::HashMap;
-use std::fs::{create_dir_all, File};
+use std::fs::{create_dir_all, metadata, remove_dir, remove_file, File};
 use std::io::{BufReader, Read};
 use std::path::PathBuf;
 use std::str::from_utf8;
@@ -280,9 +279,11 @@ impl HttpServerImpl {
 						Self::clear_custom(clear_point, ctx, connection, chunk_ids, config)?;
 					}
 				}
-				Err(e) => {
-					debug!("process_request generated error: {}", e)?;
-					// handle error here. Either send a response or close connection
+				Err(_e) => {
+					// handle error here. If we get here, we have to close the
+					// connection because we don't know what the clear point is
+					let mut write_handle = connection.write_handle()?;
+					Self::process_400(&mut write_handle, config)?;
 				}
 			}
 		}
@@ -337,6 +338,8 @@ impl HttpServerImpl {
 		conn_state: &mut HttpConnectionState,
 	) -> Result<usize, Error> {
 		let headers = Self::build_headers(&data[conn_state.offset..], trie, matches)?;
+
+		debug!("headers={:?}", headers)?;
 		match headers {
 			Some(headers) => {
 				debug!("found headers with conn_state.offset={}", conn_state.offset)?;
@@ -354,14 +357,36 @@ impl HttpServerImpl {
 		conn_state: &mut HttpConnectionState,
 	) -> Result<usize, Error> {
 		debug!("in process headers: {:?}", headers)?;
-
-		let file_path = canonicalize_base_path(&config.base_dir, &headers.uri)?;
-		debug!("file requested = {}", file_path)?;
-
-		// check cache here
-
 		let mut write_handle = connection.write_handle()?;
-		Self::send_file(file_path, &mut write_handle, config, conn_state)?;
+
+		let path = headers.path();
+		match canonicalize_base_path(&config.base_dir, &path) {
+			Ok(file_path) => {
+				debug!("file requested = {}", file_path)?;
+
+				// check cache here
+
+				Self::send_file(
+					file_path,
+					&mut write_handle,
+					config,
+					conn_state,
+					&headers.connection_type,
+					&headers.version,
+				)?;
+			}
+			Err(e) => match e.kind() {
+				ErrorKind::Http404(_s) => {
+					Self::process_404(&mut write_handle, config, &headers.connection_type)?;
+				}
+				ErrorKind::Http403(_s) => {
+					Self::process_403(&mut write_handle, config, &headers.connection_type)?;
+				}
+				// we don't know how to handle this so return an error and close
+				// connection
+				_ => return Err(e),
+			},
+		}
 
 		Ok(headers.end_headers)
 	}
@@ -371,27 +396,119 @@ impl HttpServerImpl {
 		dt.format("%a, %d %h %C%y %H:%M:%S GMT").to_string()
 	}
 
+	fn process_400(wh: &mut WriteHandle, config: &HttpServerConfig) -> Result<(), Error> {
+		debug!("in process 400")?;
+		let msg = &HTTP_SERVER_400_CONTENT;
+		let date = Self::build_date();
+		wh.write(
+                        format!(
+                                "HTTP/1.1 400 Bad Request\r\nServer: {}\r\nDate: {}\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
+                                config.server,
+                                date,
+                                msg.len(),
+                                msg,
+                        )
+                        .as_bytes(),
+                )?;
+		wh.close()?;
+		Ok(())
+	}
+
+	fn process_403(
+		wh: &mut WriteHandle,
+		config: &HttpServerConfig,
+		connection_type: &HttpConnectionType,
+	) -> Result<(), Error> {
+		debug!("in process 403")?;
+		let msg = &HTTP_SERVER_403_CONTENT;
+		let date = Self::build_date();
+		wh.write(
+			format!(
+				"HTTP/1.1 403 Forbidden\r\nServer: {}\r\nDate: {}\r\nConnection: {}\r\nContent-Length: {}\r\n\r\n{}",
+				config.server,
+				date,
+                                if connection_type == &HttpConnectionType::KeepAlive { "keep-alive" } else { "close" },
+				msg.len(),
+				msg,
+			)
+			.as_bytes(),
+		)?;
+		if connection_type != &HttpConnectionType::KeepAlive {
+			wh.close()?;
+		}
+		Ok(())
+	}
+
+	fn process_404(
+		wh: &mut WriteHandle,
+		config: &HttpServerConfig,
+		connection_type: &HttpConnectionType,
+	) -> Result<(), Error> {
+		debug!("in process 404")?;
+		let msg = &HTTP_SERVER_404_CONTENT;
+		let date = Self::build_date();
+		wh.write(
+			format!(
+				"HTTP/1.1 404 Not Found\r\nServer: {}\r\nDate: {}\r\nConnection: {}\r\nContent-Length: {}\r\n\r\n{}",
+				config.server,
+				date,
+                                if connection_type == &HttpConnectionType::KeepAlive { "keep-alive" } else { "close" },
+				msg.len(),
+				msg,
+			)
+			.as_bytes(),
+		)?;
+		if connection_type != &HttpConnectionType::KeepAlive {
+			wh.close()?;
+		}
+		Ok(())
+	}
+
 	fn send_file(
 		path: String,
 		wh: &mut WriteHandle,
 		config: &HttpServerConfig,
 		conn_state: &mut HttpConnectionState,
+		connection_type: &HttpConnectionType,
+		http_version: &HttpVersion,
 	) -> Result<(), Error> {
-		let file = File::open(path)?;
+		let file = match File::open(path.clone()) {
+			Ok(file) => file,
+			Err(_e) => {
+				return Self::process_403(wh, config, connection_type);
+			}
+		};
 		let mut buf_reader = BufReader::new(file);
 		let date = Self::build_date();
-		wh.write(
+
+		if http_version != &HttpVersion::Http11 {
+			let content_length = metadata(path)?.len();
+			wh.write(
+                        format!(
+                                "HTTP/1.1 200 OK\r\nServer: {}\r\nDate: {}\r\nConnection: {}\r\nContent-Length: {}\r\n\r\n",
+                                config.server,
+                                date,
+                                if connection_type == &HttpConnectionType::KeepAlive { "keep-alive" } else { "close" },
+                                content_length,
+                        )
+                        .as_bytes(),
+                        )?;
+		} else {
+			wh.write(
 			format!(
-				"HTTP/1.1 200 OK\r\nServer: {}\r\nDate: {}\r\nTransfer-Encoding: chunked\r\n\r\n",
-				config.server, date
+				"HTTP/1.1 200 OK\r\nServer: {}\r\nDate: {}\r\nConnection: {}\r\nTransfer-Encoding: chunked\r\n\r\n",
+				config.server, date, if connection_type == &HttpConnectionType::KeepAlive { "keep-alive" } else { "close" }
 			)
 			.as_bytes(),
-		)?;
+		        )?;
+		}
 
 		let mut wh = wh.clone();
-
 		conn_state.set_async(true)?;
+
 		let mut conn_state_clone = conn_state.clone();
+		let connection_type_clone = connection_type.clone();
+		let http_version_clone = http_version.clone();
 		spawn(move || -> Result<(), Error> {
 			let mut buf = [0u8; HTTP_SERVER_FILE_BUFFER_SIZE];
 			let mut i = 0;
@@ -400,14 +517,25 @@ impl HttpServerImpl {
 				i += 1;
 				let len = buf_reader.read(&mut buf)?;
 				cbreak!(len <= 0);
-				wh.write(&format!("{:X}\r\n", len).as_bytes()[..])?;
+				if http_version_clone == HttpVersion::Http11 {
+					wh.write(&format!("{:X}\r\n", len).as_bytes()[..])?;
+				}
 				wh.write(&buf[0..len])?;
-				wh.write(b"\r\n")?;
+				if http_version_clone == HttpVersion::Http11 {
+					wh.write(b"\r\n")?;
+				}
 			}
 
-			wh.write(b"0\r\n\r\n")?;
+			if http_version_clone == HttpVersion::Http11 {
+				wh.write(b"0\r\n\r\n")?;
+			}
+
 			conn_state_clone.set_async(false)?;
-			wh.trigger_on_read()?;
+			if connection_type_clone == HttpConnectionType::KeepAlive {
+				wh.trigger_on_read()?;
+			} else {
+				wh.close()?;
+			}
 			Ok(())
 		});
 
@@ -466,6 +594,10 @@ impl HttpServerImpl {
 				headers.method = HttpMethod::Get;
 			} else if id == HTTP_SEARCH_TRIE_PATTERN_POST {
 				headers.method = HttpMethod::Post;
+			} else if id == HTTP_SEARCH_TRIE_PATTERN_CONNECTION_KEEP_ALIVE {
+				headers.connection_type = HttpConnectionType::KeepAlive;
+			} else if id == HTTP_SEARCH_TRIE_PATTERN_CONNECTION_CLOSE {
+				headers.connection_type = HttpConnectionType::Close;
 			}
 		}
 
@@ -502,11 +634,18 @@ impl HttpServerImpl {
 
 			if &data[start..end] == b"HTTP/1.0" {
 				headers.version = HttpVersion::Http10;
+				if headers.connection_type != HttpConnectionType::KeepAlive {
+					headers.connection_type = HttpConnectionType::Close;
+				}
 			} else if &data[start..end] == b"HTTP/1.1" {
 				headers.version = HttpVersion::Http11;
+				if headers.connection_type != HttpConnectionType::Close {
+					headers.connection_type = HttpConnectionType::KeepAlive;
+				}
 			} else if end > start {
 				debug!("version_str='{}'", from_utf8(&data[start..end])?)?;
 				headers.version = HttpVersion::Other;
+				headers.connection_type = HttpConnectionType::Close;
 			}
 
 			Ok(Some(headers))
@@ -821,6 +960,26 @@ impl HttpResponse for HttpResponseImpl {
 	}
 }
 
+impl Drop for HttpResponseImpl {
+	fn drop(&mut self) {
+		match &mut self.drop_file {
+			Some(drop_file) => match remove_file(drop_file.as_path()) {
+				Ok(_) => {
+					// try to remove directory if it's empty error is ok it means
+					// there's other requests being processed so directory didn't
+					// get removed
+					drop_file.pop();
+					let _ = remove_dir(drop_file);
+				}
+				Err(e) => {
+					let _ = warn!("dropping drop_file generated error: {}", e);
+				}
+			},
+			None => {}
+		}
+	}
+}
+
 #[allow(dead_code)]
 impl HttpResponseImpl {
 	pub(crate) fn new(
@@ -830,6 +989,7 @@ impl HttpResponseImpl {
 		version: HttpVersion,
 		content: Option<Box<dyn Read>>,
 		content_data: Vec<u8>,
+		drop_file: Option<PathBuf>,
 	) -> Result<Self, Error> {
 		let http_content_reader = HttpContentReader::new(content_data, content)?;
 		Ok(Self {
@@ -838,6 +998,7 @@ impl HttpResponseImpl {
 			status_text,
 			version,
 			http_content_reader,
+			drop_file,
 		})
 	}
 }
@@ -864,6 +1025,16 @@ impl HttpServerContext {
 				pattern!(
 					Regex("\r\nTransfer-Encoding: ".to_string()),
 					PatternId(HTTP_SEARCH_TRIE_PATTERN_TRANSFER_ENCODING),
+					IsCaseSensitive(true)
+				)?,
+				pattern!(
+					Regex("\r\nConnection: keep-alive".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_CONNECTION_KEEP_ALIVE),
+					IsCaseSensitive(true)
+				)?,
+				pattern!(
+					Regex("\r\nConnection: close".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_CONNECTION_CLOSE),
 					IsCaseSensitive(true)
 				)?,
 				pattern!(

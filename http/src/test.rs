@@ -153,6 +153,7 @@ mod test {
 			HttpVersion::Http10,
 			None,
 			b"test".to_vec(),
+			None,
 		)?);
 
 		assert_eq!(
@@ -186,10 +187,19 @@ mod test {
 		let buf = [b'x'; 1600];
 		file.write_all(&buf)?;
 
+		let mut path_buf2 = PathBuf::new();
+		path_buf2.push(directory);
+		path_buf2.push("test2.html");
+		let mut file2 = File::create(path_buf2)?;
+		let buf2 = [b'y'; 1700];
+		file2.write_all(&buf2)?;
+
 		let port = test_info.port();
+		info!("port={}", port)?;
 		let mut server = HttpBuilder::build_http_server(vec![
 			ConfigOption::Port(port),
 			ConfigOption::BaseDir(directory.clone()),
+			ConfigOption::ServerName("myserver".to_string()),
 		])?;
 		server.start()?;
 
@@ -199,24 +209,104 @@ mod test {
 			format!("http://localhost:{}/test.html", port),
 		)])?;
 
-		let mut recv = lock_box!(false)?;
+		let request2 = HttpBuilder::build_http_request(vec![ConfigOption::HttpRequestUrl(
+			format!("http://localhost:{}/test2.html", port),
+		)])?;
+
+		let mut recv = lock_box!(0)?;
+		let mut recv2 = recv.clone();
 		let recv_clone = recv.clone();
 		let (tx, rx) = test_info.sync_channel();
+		let tx_clone = tx.clone();
 		let handler: HttpResponseHandler =
 			Box::pin(move |_request, response| -> Result<(), Error> {
 				let mut s = String::new();
 				response.read_to_string(&mut s)?;
 				info!("in handler[s.len={}]: {}", s.len(), s)?;
+				info!("headers = {:?}", response.headers())?;
 				assert_eq!(s, from_utf8(&buf)?.to_string());
-				wlock!(recv) = true;
-				tx.send(())?;
+				assert_eq!(response.version(), &HttpVersion::Http11);
+				assert_eq!(response.code(), 200);
+				assert_eq!(response.status_text(), &"OK".to_string());
+
+				let mut found_server_name = false;
+				let mut found_date = false;
+				let mut found_tencoding = false;
+				for header in response.headers() {
+					if header.0 == "Server".to_string() && header.1 == "myserver".to_string() {
+						found_server_name = true;
+					}
+					if header.0 == "Date".to_string() {
+						found_date = true;
+					}
+					if header.0 == "Transfer-Encoding".to_string()
+						&& header.1 == "chunked".to_string()
+					{
+						found_tencoding = true;
+					}
+				}
+
+				assert!(found_server_name);
+				assert!(found_date);
+				assert!(found_tencoding);
+
+				let mut recv = recv2.wlock()?;
+				let guard = recv.guard()?;
+				(**guard) += 1;
+				if **guard == 2 {
+					tx_clone.send(())?;
+				}
 				Ok(())
 			});
+
+		let handler2: HttpResponseHandler =
+			Box::pin(move |_request, response| -> Result<(), Error> {
+				let mut s = String::new();
+				response.read_to_string(&mut s)?;
+				info!("in handler[s.len={}]: {}", s.len(), s)?;
+				assert_eq!(s, from_utf8(&buf2)?.to_string());
+				assert_eq!(response.version(), &HttpVersion::Http11);
+				assert_eq!(response.code(), 200);
+				assert_eq!(response.status_text(), &"OK".to_string());
+
+				let mut found_server_name = false;
+				let mut found_date = false;
+				let mut found_tencoding = false;
+				for header in response.headers() {
+					if header.0 == "Server".to_string() && header.1 == "myserver".to_string() {
+						found_server_name = true;
+					}
+					if header.0 == "Date".to_string() {
+						found_date = true;
+					}
+					if header.0 == "Transfer-Encoding".to_string()
+						&& header.1 == "chunked".to_string()
+					{
+						found_tencoding = true;
+					}
+				}
+
+				assert!(found_server_name);
+				assert!(found_date);
+				assert!(found_tencoding);
+
+				let mut recv = recv.wlock()?;
+				let guard = recv.guard()?;
+				(**guard) += 1;
+				if **guard == 2 {
+					tx.send(())?;
+				}
+				Ok(())
+			});
+
 		client.send(&request, handler)?;
+		client.send(&request2, handler2)?;
 
 		rx.recv()?;
 
-		assert!(rlock!(recv_clone));
+		assert_eq!(rlock!(recv_clone), 2);
+
+		//sleep(Duration::from_millis(60 * 60_000));
 
 		Ok(())
 	}

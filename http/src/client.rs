@@ -18,24 +18,25 @@
 use crate::constants::*;
 use crate::types::{
 	HttpClientConfig, HttpClientContext, HttpClientData, HttpClientImpl, HttpClientState,
-	HttpConnectionImpl, HttpResponseImpl,
+	HttpConnectionImpl, HttpHeaders, HttpResponseImpl,
 };
 use crate::{
-	HttpClient, HttpConnection, HttpHeaders, HttpMethod, HttpRequest, HttpResponse,
+	HttpClient, HttpConnection, HttpConnectionType, HttpMethod, HttpRequest, HttpResponse,
 	HttpResponseHandler, HttpVersion,
 };
 use bmw_conf::ConfigOption;
 use bmw_conf::ConfigOptionName as CN;
 use bmw_conf::*;
 use bmw_deps::dirs;
+use bmw_deps::rand::random;
 use bmw_deps::url::Url;
 use bmw_err::*;
 use bmw_evh::*;
 use bmw_log::*;
 use bmw_util::*;
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::fmt::{Display, Formatter};
-use std::fs::{create_dir_all, File};
+use std::fs::{create_dir_all, remove_dir_all, File};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::str::from_utf8;
@@ -102,13 +103,19 @@ impl HttpClient for HttpClientImpl {
 				))
 			}
 		};
-		let mut state = self.state.wlock()?;
-		let guard = state.guard()?;
-		(**guard)
+
+		let connection = EvhBuilder::build_client_connection(&host, port)?;
+		let id = connection.id();
+		let mut wh = self.controller.add_client_connection(connection)?;
+
+		let mut http_client_state = HttpClientState::new();
+		http_client_state
 			.queue
 			.push_back(HttpClientData::new(request, handler));
-		let connection = EvhBuilder::build_client_connection(&host, port)?;
-		let mut wh = self.controller.add_client_connection(connection)?;
+
+		let mut state = self.state.wlock()?;
+		let guard = state.guard()?;
+		(**guard).insert(id, http_client_state);
 
 		let method = request.method().to_string();
 		let version = "HTTP/1.1";
@@ -131,7 +138,7 @@ impl HttpClientImpl {
 			EvhReadSlabSize(config.evh_read_slab_size),
 			EvhReadSlabCount(config.evh_read_slab_count)
 		)?;
-		let state = lock_box!(HttpClientState::new())?;
+		let state: Box<dyn LockBox<HashMap<u128, HttpClientState>>> = lock_box!(HashMap::new())?;
 		let mut state_clone = state.clone();
 		let mut matches = [tmatch!()?; HTTP_CLIENT_MAX_MATCHES];
 		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
@@ -186,6 +193,9 @@ impl HttpClientImpl {
 		let evh_read_slab_count =
 			config.get_or_usize(&CN::SlabCount, HTTP_CLIENT_DEFAULT_EVH_SLAB_COUNT);
 
+		// first empty it if it exists (ignore errors, just means it didn't exist)
+		let _ = remove_dir_all(tmp_dir_buf.as_path());
+		// then create it
 		create_dir_all(tmp_dir_buf.as_path())?;
 
 		debug!("using tmp_dir={}", tmp_dir)?;
@@ -199,7 +209,7 @@ impl HttpClientImpl {
 	fn process_on_read(
 		connection: &mut Connection,
 		ctx: &mut Box<dyn UserContext + '_>,
-		state: &mut Box<dyn LockBox<HttpClientState>>,
+		state: &mut Box<dyn LockBox<HashMap<u128, HttpClientState>>>,
 		matches: &mut [Match],
 		config: &HttpClientConfig,
 	) -> Result<(), Error> {
@@ -217,7 +227,7 @@ impl HttpClientImpl {
 		}
 
 		let user_ctx = Self::build_ctx(ctx)?;
-		let headers = Self::build_headers(&data, user_ctx, matches, state)?;
+		let headers = Self::build_headers(&data, user_ctx, matches, state, connection.id())?;
 		match headers {
 			Some((mut headers, offset)) => {
 				let clear_point = Self::process_headers(
@@ -247,7 +257,7 @@ impl HttpClientImpl {
 
 	fn clear_custom(
 		clear_point: usize,
-		state: &mut Box<dyn LockBox<HttpClientState>>,
+		state: &mut Box<dyn LockBox<HashMap<u128, HttpClientState>>>,
 		connection: &mut Connection,
 		ctx: &mut Box<dyn UserContext + '_>,
 		chunk_ids: Vec<usize>,
@@ -259,8 +269,20 @@ impl HttpClientImpl {
 		let mut state = state.wlock()?;
 		let guard = state.guard()?;
 
-		(**guard).offset = clear_point % bytes_per_slab;
-		(**guard).headers_cleared = true;
+		match (**guard).get_mut(&connection.id()) {
+			Some(state) => {
+				state.offset = clear_point % bytes_per_slab;
+				state.headers_cleared = true;
+			}
+			None => {
+				warn!("")?;
+				return Err(err!(
+					ErrKind::Http,
+					"could not find state for connection {}",
+					connection.id()
+				));
+			}
+		}
 
 		if clear_point >= bytes_per_slab {
 			let th_chunk = (clear_point / bytes_per_slab).saturating_sub(1);
@@ -290,7 +312,7 @@ impl HttpClientImpl {
 		headers: &mut HttpHeaders,
 		connection: &mut Connection,
 		data: &[u8],
-		state: &mut Box<dyn LockBox<HttpClientState>>,
+		state: &mut Box<dyn LockBox<HashMap<u128, HttpClientState>>>,
 		config: &HttpClientConfig,
 	) -> Result<usize, Error> {
 		let data_len = data.len();
@@ -305,6 +327,7 @@ impl HttpClientImpl {
 				&data[headers.end_headers..headers.end_headers + headers.content_length],
 				headers,
 				None,
+				connection.id(),
 			)?;
 			clear_point = needed;
 		} else {
@@ -326,7 +349,7 @@ impl HttpClientImpl {
 		data: &[u8],
 		headers: &mut HttpHeaders,
 		connection: &mut Connection,
-		state: &mut Box<dyn LockBox<HttpClientState>>,
+		state: &mut Box<dyn LockBox<HashMap<u128, HttpClientState>>>,
 		config: &HttpClientConfig,
 	) -> Result<usize, Error> {
 		debug!("in process chunked")?;
@@ -402,7 +425,7 @@ impl HttpClientImpl {
 	}
 
 	fn process_complete(
-		state: &mut Box<dyn LockBox<HttpClientState>>,
+		state: &mut Box<dyn LockBox<HashMap<u128, HttpClientState>>>,
 		ndata: &[u8],
 		headers: &HttpHeaders,
 		id: u128,
@@ -411,35 +434,59 @@ impl HttpClientImpl {
 		let mut path_buf = PathBuf::new();
 		path_buf.push(config.tmp_dir.clone());
 		path_buf.push(id.to_string());
+		match rlock!(state).get(&id) {
+			Some(state) => {
+				path_buf.push(state.rid.to_string());
+			}
+			None => {
+				return Err(err!(ErrKind::Http, "couldn't find state for {}", id));
+			}
+		}
 
 		if path_buf.as_path().exists() {
 			debug!("complete with file")?;
 			let mut file = File::options().append(true).open(path_buf.clone())?;
 			file.write_all(ndata)?;
-			Self::call_handler(state, &[], headers, Some(path_buf))?;
+			Self::call_handler(state, &[], headers, Some(path_buf), id)?;
 		} else {
-			Self::call_handler(state, &ndata, headers, None)?;
+			Self::call_handler(state, &ndata, headers, None, id)?;
 		}
 		Ok(())
 	}
 
 	fn process_incomplete(
-		state: &mut Box<dyn LockBox<HttpClientState>>,
+		state: &mut Box<dyn LockBox<HashMap<u128, HttpClientState>>>,
 		content: &[u8],
 		headers: &HttpHeaders,
 		config: &HttpClientConfig,
 		connection: &mut Connection,
 	) -> Result<(), Error> {
-		let mut state = state.wlock()?;
-		let guard = state.guard()?;
-
 		let mut path_buf = PathBuf::new();
 		path_buf.push(config.tmp_dir.clone());
 		path_buf.push(connection.id().to_string());
 
-		if (**guard).headers.is_none() {
-			(**guard).headers = Some(headers.clone());
-			File::create_new(path_buf.clone())?;
+		{
+			let mut state = state.wlock()?;
+			let guard = state.guard()?;
+
+			create_dir_all(path_buf.as_path())?;
+			match (**guard).get_mut(&connection.id()) {
+				Some(state) => {
+					path_buf.push(state.rid.to_string());
+
+					if state.headers.is_none() {
+						state.headers = Some(headers.clone());
+						File::create_new(path_buf.clone())?;
+					}
+				}
+				None => {
+					return Err(err!(
+						ErrKind::Http,
+						"couldn't find state for connection {}",
+						connection.id()
+					));
+				}
+			}
 		}
 
 		let mut file = File::options().append(true).open(path_buf)?;
@@ -449,35 +496,50 @@ impl HttpClientImpl {
 	}
 
 	fn call_handler(
-		state: &mut Box<dyn LockBox<HttpClientState>>,
+		state: &mut Box<dyn LockBox<HashMap<u128, HttpClientState>>>,
 		content: &[u8],
-		_headers: &HttpHeaders,
+		headers: &HttpHeaders,
 		path_buf: Option<PathBuf>,
+		id: u128,
 	) -> Result<(), Error> {
 		let mut next = {
 			let mut state = state.wlock()?;
 			let guard = state.guard()?;
 
-			let next = (**guard).queue.pop_front();
-			match next {
-				Some(next) => next,
+			match (**guard).get_mut(&id) {
+				Some(state) => {
+					let next = state.queue.pop_front();
+					match next {
+						Some(next) => next,
+						None => {
+							return Err(err!(ErrKind::IllegalState, "expected a HttpClientState"));
+						}
+					}
+				}
 				None => {
-					return Err(err!(ErrKind::IllegalState, "expected a HttpClientState"));
+					return Err(err!(
+						ErrKind::IllegalState,
+						"couldn't find state for {}",
+						id
+					))
 				}
 			}
 		};
 
 		let file: Option<Box<dyn Read>> = match path_buf {
-			Some(path_buf) => Some(Box::new(File::open(path_buf)?)),
+			Some(ref path_buf) => Some(Box::new(File::open(path_buf)?)),
 			None => None,
 		};
+
+		debug!("headers={:?}", headers)?;
 		let mut response: Box<dyn HttpResponse> = Box::new(HttpResponseImpl::new(
-			next.request.headers().to_vec(),
-			200,
-			"Ok".to_string(),
-			HttpVersion::Http11,
+			headers.headers.clone(),
+			headers.status_code,
+			headers.status_message.clone(),
+			headers.version.clone(),
 			file,
 			content.to_vec(),
+			path_buf,
 		)?);
 		(next.handler)(&next.request, &mut response)?;
 		Ok(())
@@ -501,20 +563,32 @@ impl HttpClientImpl {
 		data: &Vec<u8>,
 		ctx: &mut HttpClientContext,
 		matches: &mut [Match],
-		state: &mut Box<dyn LockBox<HttpClientState>>,
+		state: &mut Box<dyn LockBox<HashMap<u128, HttpClientState>>>,
+		id: u128,
 	) -> Result<Option<(HttpHeaders, usize)>, Error> {
 		// check if we already have headers
 		{
 			let state = state.rlock()?;
 			let guard = state.guard()?;
 
-			if (**guard).headers.is_some() {
-				let mut headers = (**guard).headers.as_ref().unwrap().clone();
-				// headers cleared. It's all content.
-				if (**guard).headers_cleared {
-					headers.end_headers = 0;
+			match (**guard).get(&id) {
+				Some(state) => {
+					if state.headers.is_some() {
+						let mut headers = state.headers.as_ref().unwrap().clone();
+						// headers cleared. It's all content.
+						if state.headers_cleared {
+							headers.end_headers = 0;
+						}
+						return Ok(Some((headers, state.offset)));
+					}
 				}
-				return Ok(Some((headers, (**guard).offset)));
+				None => {
+					return Err(err!(
+						ErrKind::IllegalState,
+						"couldn't find state for {}",
+						id
+					))
+				}
 			}
 		}
 
@@ -538,6 +612,12 @@ impl HttpClientImpl {
 				if value.contains("chunked") {
 					headers.chunked = true;
 				}
+			} else if id == HTTP_SEARCH_TRIE_PATTERN_HTTP11 {
+				headers.version = HttpVersion::Http11;
+				(headers.status_message, headers.status_code) = Self::parse_msg_and_code(data)?;
+			} else if id == HTTP_SEARCH_TRIE_PATTERN_HTTP10 {
+				headers.version = HttpVersion::Http10;
+				(headers.status_message, headers.status_code) = Self::parse_msg_and_code(data)?;
 			}
 		}
 
@@ -546,6 +626,67 @@ impl HttpClientImpl {
 		} else {
 			Ok(None)
 		}
+	}
+
+	fn parse_msg_and_code(data: &[u8]) -> Result<(String, u16), Error> {
+		// first find first space.
+		let mut itt = 0;
+		let data_len = data.len();
+		loop {
+			if itt >= data_len {
+				return Err(err!(
+					ErrKind::Http,
+					"bad request: could not parse msg or code"
+				));
+			}
+
+			if data[itt] == b' ' {
+				break;
+			}
+			itt += 1;
+		}
+
+		let start = itt + 1;
+		let mut end = start;
+
+		loop {
+			if end >= data_len {
+				return Err(err!(
+					ErrKind::Http,
+					"bad request: could not parse msg or code"
+				));
+			}
+
+			if data[end] == b' ' {
+				break;
+			}
+
+			end += 1;
+		}
+
+		let code = from_utf8(&data[start..end])?.parse()?;
+
+		let start = end + 1;
+		let mut end = start;
+
+		loop {
+			if end >= data_len {
+				return Err(err!(
+					ErrKind::Http,
+					"bad request: could not parse msg or code"
+				));
+			}
+
+			if data[end] == b'\r' || data[end] == b'\n' {
+				break;
+			}
+
+			end += 1;
+		}
+
+		let msg = from_utf8(&data[start..end])?.to_string();
+
+		Ok((msg, code))
 	}
 
 	fn header_value(data: &Vec<u8>, m: Match) -> Result<&str, Error> {
@@ -628,6 +769,7 @@ impl HttpClientState {
 			headers: None,
 			offset: 0,
 			headers_cleared: false,
+			rid: random(),
 		}
 	}
 }
@@ -670,6 +812,16 @@ impl HttpClientContext {
 					PatternId(HTTP_SEARCH_TRIE_PATTERN_HEADER),
 					IsCaseSensitive(true)
 				)?,
+				pattern!(
+					Regex("^HTTP/1.1 ".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_HTTP11),
+					IsCaseSensitive(true)
+				)?,
+				pattern!(
+					Regex("^HTTP/1.0 ".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_HTTP10),
+					IsCaseSensitive(true)
+				)?,
 			],
 			TerminationLength(termination_length),
 			MaxWildCardLength(termination_length),
@@ -688,6 +840,16 @@ impl HttpHeaders {
 			method: HttpMethod::Unknown,
 			uri: "".to_string(),
 			version: HttpVersion::Unknown,
+			status_message: "".to_string(),
+			status_code: 0,
+			connection_type: HttpConnectionType::Unknown,
+		}
+	}
+
+	pub(crate) fn path(&self) -> String {
+		match self.uri.find('?') {
+			Some(i) => (&self.uri[0..i]).to_string(),
+			None => (&self.uri[..]).to_string(),
 		}
 	}
 }

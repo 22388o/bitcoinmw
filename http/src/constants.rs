@@ -59,6 +59,10 @@ pub(crate) const HTTP_SEARCH_TRIE_PATTERN_OPTIONS: usize = 10;
 pub(crate) const HTTP_SEARCH_TRIE_PATTERN_CONNECT: usize = 11;
 pub(crate) const HTTP_SEARCH_TRIE_PATTERN_TRACE: usize = 12;
 pub(crate) const HTTP_SEARCH_TRIE_PATTERN_PATCH: usize = 13;
+pub(crate) const HTTP_SEARCH_TRIE_PATTERN_HTTP11: usize = 14;
+pub(crate) const HTTP_SEARCH_TRIE_PATTERN_HTTP10: usize = 15;
+pub(crate) const HTTP_SEARCH_TRIE_PATTERN_CONNECTION_KEEP_ALIVE: usize = 16;
+pub(crate) const HTTP_SEARCH_TRIE_PATTERN_CONNECTION_CLOSE: usize = 17;
 
 // Http Server defaults
 pub(crate) const HTTP_SERVER_DEFAULT_PORT: u16 = 8080;
@@ -73,3 +77,10 @@ pub(crate) const HTTP_CLIENT_DEFAULT_BASE_DIR: &str = "~/.bmw";
 pub(crate) const HTTP_CLIENT_DEFAULT_EVH_SLAB_SIZE: usize = 512;
 pub(crate) const HTTP_CLIENT_DEFAULT_EVH_SLAB_COUNT: usize = 10_000;
 pub(crate) const HTTP_CLIENT_MAX_MATCHES: usize = 1_000;
+
+pub(crate) const HTTP_SERVER_404_CONTENT: &str =
+	"A 404 (not found) error occurred. See server logs for further details.\n";
+pub(crate) const HTTP_SERVER_403_CONTENT: &str =
+	"A 403 (forbidden) error occurred. See server logs for further details.\n";
+pub(crate) const HTTP_SERVER_400_CONTENT: &str =
+	"A 400 (bad request) error occurred. See server logs for further details.\n";

@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bmw_deps::url_path::UrlPath;
 use bmw_err::*;
 use bmw_log::*;
 use std::cell::RefCell;
@@ -37,14 +38,32 @@ pub fn canonicalize_base_path(base_dir: &String, path: &String) -> Result<String
 	let mut ret = base_dir.clone();
 	let path = from_utf8(&path.as_bytes()[1..])?.to_string();
 	ret.push(path);
-	let ret = ret.canonicalize()?;
+	let normalized = UrlPath::new(&ret.display().to_string()).normalize();
+	let mut ret = PathBuf::from(normalized);
 
 	if !ret.starts_with(base_dir) {
+		// still return 404 here so that the request cannot be used to distinguish
+		// existing/non-existing files
 		Err(err!(
-			ErrKind::IO,
+			ErrKind::Http403,
 			"canonicalized version is above the base_dir"
 		))
 	} else {
+		if !ret.exists() {
+			return Err(err!(ErrKind::Http404, "file not found"));
+		}
+
+		if ret.is_dir() {
+			ret.push("index.html");
+			if !ret.exists() {
+				ret.pop();
+				ret.push("index.rsp");
+				if !ret.exists() {
+					return Err(err!(ErrKind::Http404, "file not found"));
+				}
+			}
+		}
+
 		let ret_str = ret.to_str();
 
 		let debug_invalid_str =

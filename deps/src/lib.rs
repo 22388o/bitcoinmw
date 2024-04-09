@@ -64,3 +64,4 @@ pub use ring;
 pub use sha1;
 pub use substring;
 pub use url;
+pub use url_path;

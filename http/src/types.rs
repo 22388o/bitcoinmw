@@ -23,6 +23,7 @@ use bmw_util::*;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::io::Read;
+use std::path::PathBuf;
 use std::pin::Pin;
 
 #[derive(PartialEq, Debug, Clone)]
@@ -115,17 +116,6 @@ pub trait HttpResponse {
 
 pub trait WSClient {}
 
-#[derive(Debug, Clone)]
-pub struct HttpHeaders {
-	pub(crate) headers: Vec<(String, String)>,
-	pub(crate) content_length: usize,
-	pub(crate) end_headers: usize,
-	pub(crate) chunked: bool,
-	pub(crate) method: HttpMethod,
-	pub(crate) uri: String,
-	pub(crate) version: HttpVersion,
-}
-
 pub struct HttpStats {}
 
 pub struct HttpContentReader {
@@ -135,6 +125,19 @@ pub struct HttpContentReader {
 }
 
 // crate local
+#[derive(Debug, Clone)]
+pub(crate) struct HttpHeaders {
+	pub(crate) headers: Vec<(String, String)>,
+	pub(crate) content_length: usize,
+	pub(crate) end_headers: usize,
+	pub(crate) chunked: bool,
+	pub(crate) method: HttpMethod,
+	pub(crate) uri: String,
+	pub(crate) version: HttpVersion,
+	pub(crate) status_message: String,
+	pub(crate) status_code: u16,
+	pub(crate) connection_type: HttpConnectionType,
+}
 
 #[derive(Clone)]
 pub(crate) struct HttpServerConfig {
@@ -162,7 +165,7 @@ pub(crate) struct HttpServerImpl {
 
 pub(crate) struct HttpClientImpl {
 	pub(crate) controller: EvhController,
-	pub(crate) state: Box<dyn LockBox<HttpClientState>>,
+	pub(crate) state: Box<dyn LockBox<HashMap<u128, HttpClientState>>>,
 }
 
 pub(crate) struct WSClientImpl {}
@@ -188,6 +191,7 @@ pub(crate) struct HttpResponseImpl {
 	pub(crate) status_text: String,
 	pub(crate) version: HttpVersion,
 	pub(crate) http_content_reader: HttpContentReader,
+	pub(crate) drop_file: Option<PathBuf>,
 }
 
 pub(crate) struct HttpConnectionImpl {}
@@ -197,6 +201,7 @@ pub(crate) struct HttpClientState {
 	pub(crate) headers: Option<HttpHeaders>,
 	pub(crate) offset: usize,
 	pub(crate) headers_cleared: bool,
+	pub(crate) rid: u128,
 }
 
 pub(crate) struct HttpClientData {
