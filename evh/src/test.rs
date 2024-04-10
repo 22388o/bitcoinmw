@@ -2429,4 +2429,79 @@ mod test {
 		//sleep(Duration::from_millis(120_000));
 		Ok(())
 	}
+
+	#[test]
+	fn test_evh_origin_id() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut evh = evh_oro!(
+			Debug(true),
+			EvhTimeout(u16::MAX),
+			EvhThreads(1),
+			EvhReadSlabSize(100)
+		)?;
+
+		let mut recv_msg = lock_box!(false)?;
+		let mut origin_assertion_ok = lock_box!(false)?;
+		let origin_assertion_ok_clone = origin_assertion_ok.clone();
+		let recv_msg_clone = recv_msg.clone();
+		let (tx, rx) = test_info.sync_channel();
+		let (tx2, rx2) = test_info.sync_channel();
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			info!("onRead")?;
+			let mut data: Vec<u8> = vec![];
+
+			loop {
+				let next_chunk = ctx.next_chunk(connection)?;
+				cbreak!(next_chunk.is_none());
+				let next_chunk = next_chunk.unwrap();
+				data.extend(next_chunk.data());
+			}
+
+			let dstring = from_utf8(&data)?;
+			info!(
+				"data[{}]='{}', origin_id={}",
+				connection.id(),
+				dstring,
+				connection.origin_id()
+			)?;
+
+			assert_eq!(dstring, "hi");
+
+			if !rlock!(recv_msg) {
+				// origin id should be different from id (accepted connection)
+				assert_ne!(connection.id(), connection.origin_id());
+				// send back once
+				let mut wh = connection.write_handle()?;
+				wh.write(b"hi")?;
+			} else {
+				// this is the client, origin id should be equal to id
+				assert_eq!(connection.id(), connection.origin_id());
+				wlock!(origin_assertion_ok) = true;
+				tx2.send(())?;
+			}
+
+			wlock!(recv_msg) = true;
+			tx.send(())?;
+			ctx.clear_all(connection)?;
+			Ok(())
+		})?;
+
+		evh.start()?;
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+		evh.add_server_connection(conn)?;
+
+		let conn2 = EvhBuilder::build_client_connection("127.0.0.1", port)?;
+		let mut wh = evh.add_client_connection(conn2)?;
+		wh.write(b"hi")?;
+
+		rx.recv()?;
+		assert!(rlock!(recv_msg_clone));
+		rx2.recv()?;
+		assert!(rlock!(origin_assertion_ok_clone));
+
+		Ok(())
+	}
 }
