@@ -858,6 +858,9 @@
 <a href="#856" id="856">856</a>
 <a href="#857" id="857">857</a>
 <a href="#858" id="858">858</a>
+<a href="#859" id="859">859</a>
+<a href="#860" id="860">860</a>
+<a href="#861" id="861">861</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -901,7 +904,7 @@
 <span class="kw">use </span>std::path::PathBuf;
 <span class="kw">use </span>std::str::from_utf8;
 
-<span class="macro">info!</span>();
+<span class="macro">debug!</span>();
 
 <span class="kw">impl </span>Display <span class="kw">for </span>HttpMethod {
 	<span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), std::fmt::Error&gt; {
@@ -1165,7 +1168,10 @@
 		_connection: <span class="kw-2">&amp;mut </span>Connection,
 		_config: <span class="kw-2">&amp;</span>HttpClientConfig,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;usize, Error&gt; {
-		<span class="prelude-val">Ok</span>(<span class="number">0</span>)
+		<span class="comment">// for now we just don't clear anything. it builds up in ram, but this is not usually
+		// the case as transfer encoding is usually used for large files
+		// we can implement this later (just perf issue)
+		</span><span class="prelude-val">Ok</span>(<span class="number">0</span>)
 	}
 
 	<span class="kw">fn </span>process_headers(
