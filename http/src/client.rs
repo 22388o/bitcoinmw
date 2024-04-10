@@ -305,6 +305,9 @@ impl HttpClientImpl {
 		_connection: &mut Connection,
 		_config: &HttpClientConfig,
 	) -> Result<usize, Error> {
+		// for now we just don't clear anything. it builds up in ram, but this is not usually
+		// the case as transfer encoding is usually used for large files
+		// we can implement this later (just perf issue)
 		Ok(0)
 	}
 

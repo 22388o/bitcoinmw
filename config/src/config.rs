@@ -79,6 +79,7 @@ impl Config for ConfigImpl {
 				ConfigOption::IsHashtable(v) => *v,
 				ConfigOption::IsHashset(v) => *v,
 				ConfigOption::IsList(v) => *v,
+				ConfigOption::DebugNoChunks(v) => *v,
 				ConfigOption::Debug(v) => *v,
 				ConfigOption::IsSync(v) => *v,
 				ConfigOption::DebugLargeSlabCount(v) => *v,
@@ -249,6 +250,7 @@ impl ConfigImpl {
 				HttpRequestUri(_) => hash.insert(CN::HttpRequestUri, config.clone()),
 				HttpRequestUrl(_) => hash.insert(CN::HttpRequestUrl, config.clone()),
 				HttpUserAgent(_) => hash.insert(CN::HttpUserAgent, config.clone()),
+				DebugNoChunks(_) => hash.insert(CN::DebugNoChunks, config.clone()),
 				Debug(_) => hash.insert(CN::Debug, config.clone()),
 				DebugLargeSlabCount(_) => hash.insert(CN::DebugLargeSlabCount, config.clone()),
 			};
@@ -336,6 +338,7 @@ impl ConfigImpl {
 				HttpRequestUri(_) => cc!(self, t, &mut s, CN::HttpRequestUri, d),
 				HttpRequestUrl(_) => cc!(self, t, &mut s, CN::HttpRequestUrl, d),
 				HttpUserAgent(_) => cc!(self, t, &mut s, CN::HttpUserAgent, d),
+				DebugNoChunks(_) => cc!(self, t, &mut s, CN::DebugNoChunks, d),
 				Debug(_) => cc!(self, t, &mut s, CN::Debug, d),
 				DebugLargeSlabCount(_) => cc!(self, t, &mut s, CN::DebugLargeSlabCount, d),
 			}

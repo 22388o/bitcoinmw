@@ -147,6 +147,7 @@ pub(crate) struct HttpServerConfig {
 	pub(crate) server: String,
 	pub(crate) evh_slab_size: usize,
 	pub(crate) evh_slab_count: usize,
+	pub(crate) debug_no_chunks: bool,
 }
 
 #[derive(Clone)]

@@ -443,6 +443,7 @@ pub enum ConfigOptionName {
 	Host,
 	BaseDir,
 	ServerName,
+	DebugNoChunks,
 	Debug,
 	DebugLargeSlabCount,
 }
@@ -507,6 +508,7 @@ pub enum ConfigOption {
 	Host(String),
 	BaseDir(String),
 	ServerName(String),
+	DebugNoChunks(bool),
 	Debug(bool),
 	DebugLargeSlabCount(bool),
 }

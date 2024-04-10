@@ -187,6 +187,18 @@ impl HttpServerImpl {
 
 	fn build_config(configs: Vec<ConfigOption>) -> Result<HttpServerConfig, Error> {
 		let config = ConfigBuilder::build_config(configs.clone());
+		config.check_config(
+			vec![
+				CN::Port,
+				CN::Host,
+				CN::BaseDir,
+				CN::SlabCount,
+				CN::SlabSize,
+				CN::ServerName,
+				CN::DebugNoChunks,
+			],
+			vec![],
+		)?;
 
 		let port = config.get_or_u16(&CN::Port, HTTP_SERVER_DEFAULT_PORT);
 		let host = config.get_or_string(&CN::Host, HTTP_SERVER_DEFAULT_HOST.to_string());
@@ -199,6 +211,8 @@ impl HttpServerImpl {
 			&CN::ServerName,
 			format!("BitcoinMW/{}", built_info::PKG_VERSION.to_string()),
 		);
+
+		let debug_no_chunks = config.get_or_bool(&CN::DebugNoChunks, false);
 
 		let home_dir = match dirs::home_dir() {
 			Some(p) => p,
@@ -219,6 +233,7 @@ impl HttpServerImpl {
 			server,
 			evh_slab_size,
 			evh_slab_count,
+			debug_no_chunks,
 		})
 	}
 
@@ -481,7 +496,7 @@ impl HttpServerImpl {
 		let mut buf_reader = BufReader::new(file);
 		let date = Self::build_date();
 
-		if http_version != &HttpVersion::Http11 {
+		if http_version != &HttpVersion::Http11 || config.debug_no_chunks {
 			let content_length = metadata(path)?.len();
 			wh.write(
                         format!(
@@ -509,6 +524,7 @@ impl HttpServerImpl {
 		let mut conn_state_clone = conn_state.clone();
 		let connection_type_clone = connection_type.clone();
 		let http_version_clone = http_version.clone();
+		let config = config.clone();
 		spawn(move || -> Result<(), Error> {
 			let mut buf = [0u8; HTTP_SERVER_FILE_BUFFER_SIZE];
 			let mut i = 0;
@@ -517,16 +533,16 @@ impl HttpServerImpl {
 				i += 1;
 				let len = buf_reader.read(&mut buf)?;
 				cbreak!(len <= 0);
-				if http_version_clone == HttpVersion::Http11 {
+				if http_version_clone == HttpVersion::Http11 && !config.debug_no_chunks {
 					wh.write(&format!("{:X}\r\n", len).as_bytes()[..])?;
 				}
 				wh.write(&buf[0..len])?;
-				if http_version_clone == HttpVersion::Http11 {
+				if http_version_clone == HttpVersion::Http11 && !config.debug_no_chunks {
 					wh.write(b"\r\n")?;
 				}
 			}
 
-			if http_version_clone == HttpVersion::Http11 {
+			if http_version_clone == HttpVersion::Http11 && !config.debug_no_chunks {
 				wh.write(b"0\r\n\r\n")?;
 			}
 
