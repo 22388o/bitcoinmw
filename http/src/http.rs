@@ -120,17 +120,39 @@ impl HttpServer for HttpServerImpl {
 		Ok(())
 	}
 	fn start(&mut self) -> Result<(), Error> {
+		// temp to avoid warning
+		if self.cache.contains("test".into()) {
+			warn!("exercise cache")?;
+		}
 		let config_clone = self.config.clone();
 		let mut matches = [tmatch!()?; 1_000];
-		// temporary kludge, need a way to store attachments in evh
-		let instance = self.instances[0].clone();
 
 		let mut evh = evh!(
 			EvhReadSlabSize(self.config.evh_slab_size),
 			EvhReadSlabCount(self.config.evh_slab_count),
 		)?;
+
+		let mut conns_to_add = vec![];
+		for instance in &self.instances {
+			let addr = format!("{}:{}", instance.addr, instance.port);
+			let conn = EvhBuilder::build_server_connection(&addr, instance.listen_queue_size)?;
+			let origin_id = conn.origin_id();
+			self.instance_table.insert(origin_id, instance.clone());
+			conns_to_add.push(conn);
+		}
+
+		let instance_table_clone = self.instance_table.clone();
 		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
-			HttpServerImpl::process_on_read(connection, ctx, &mut matches, &config_clone, &instance)
+			match instance_table_clone.get(&connection.origin_id()) {
+				Some(instance) => HttpServerImpl::process_on_read(
+					connection,
+					ctx,
+					&mut matches,
+					&config_clone,
+					&instance,
+				),
+				None => warn!("on_read for unknown origin_id {}", connection.origin_id()),
+			}
 		})?;
 		evh.set_on_accept(move |connection, ctx| -> Result<(), Error> {
 			HttpServerImpl::process_on_accept(connection, ctx)
@@ -140,12 +162,11 @@ impl HttpServer for HttpServerImpl {
 		})?;
 		evh.set_on_housekeeper(move |_ctx| -> Result<(), Error> { Ok(()) })?;
 		evh.set_on_panic(move |_ctx, _e| -> Result<(), Error> { Ok(()) })?;
-		evh.start()?;
 		self.controller = Some(evh.controller()?);
 
-		for instance in &self.instances {
-			let addr = format!("{}:{}", instance.addr, instance.port);
-			let conn = EvhBuilder::build_server_connection(&addr, instance.listen_queue_size)?;
+		evh.start()?;
+
+		for conn in conns_to_add {
 			evh.add_server_connection(conn)?;
 		}
 
@@ -161,12 +182,14 @@ impl HttpServerImpl {
 		let config = Self::build_config(configs)?;
 		let cache = HttpCache::new(vec![]);
 		let instances = vec![];
+		let instance_table = HashMap::new();
 
 		Ok(Self {
 			cache,
 			controller: None,
 			config,
 			instances,
+			instance_table,
 		})
 	}
 
@@ -364,12 +387,15 @@ impl HttpServerImpl {
 		instance: &'a HttpInstance,
 		headers: &HttpHeadersImpl,
 	) -> Result<&'a String, Error> {
-		match instance.dir_map.get("*") {
+		match instance.dir_map.get(&headers.host) {
 			Some(base_dir) => Ok(base_dir),
-			None => Err(err!(
-				ErrKind::Http,
-				"Couldn't find base directory for this server"
-			)),
+			None => match instance.dir_map.get("*") {
+				Some(base_dir) => Ok(base_dir),
+				None => Err(err!(
+					ErrKind::Http,
+					"Couldn't find base directory for this server"
+				)),
+			},
 		}
 	}
 
@@ -616,6 +642,10 @@ impl HttpServerImpl {
 				if value.contains("chunked") {
 					headers.chunked = true;
 				}
+			} else if id == HTTP_SEARCH_TRIE_PATTERN_HOST {
+				headers.host = Self::header_value(data, matches[i])?
+					.unwrap_or("")
+					.to_string();
 			} else if id == HTTP_SEARCH_TRIE_PATTERN_GET {
 				headers.method = HttpMethod::Get;
 			} else if id == HTTP_SEARCH_TRIE_PATTERN_POST {
@@ -1041,6 +1071,11 @@ impl HttpServerContext {
 				pattern!(
 					Regex("\r\nContent-Length: ".to_string()),
 					PatternId(HTTP_SEARCH_TRIE_PATTERN_CONTENT_LENGTH),
+					IsCaseSensitive(true)
+				)?,
+				pattern!(
+					Regex("\r\nHost: ".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_HOST),
 					IsCaseSensitive(true)
 				)?,
 				pattern!(

@@ -167,6 +167,7 @@ pub(crate) struct HttpHeadersImpl {
 	pub(crate) status_message: String,
 	pub(crate) status_code: u16,
 	pub(crate) connection_type: HttpConnectionType,
+	pub(crate) host: String,
 }
 
 #[derive(Clone)]
@@ -191,6 +192,7 @@ pub(crate) struct HttpServerImpl {
 	pub(crate) controller: Option<EvhController>,
 	pub(crate) config: HttpServerConfig,
 	pub(crate) instances: Vec<HttpInstance>,
+	pub(crate) instance_table: HashMap<u128, HttpInstance>,
 }
 
 pub(crate) struct HttpClientImpl {

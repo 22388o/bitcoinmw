@@ -41,7 +41,7 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::str::from_utf8;
 
-debug!();
+info!();
 
 impl Display for HttpMethod {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
@@ -860,6 +860,7 @@ impl HttpHeadersImpl {
 			status_message: "".to_string(),
 			status_code: 0,
 			connection_type: HttpConnectionType::Unknown,
+			host: "".to_string(),
 		}
 	}
 
