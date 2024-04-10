@@ -220,6 +220,11 @@
 <a href="#218" id="218">218</a>
 <a href="#219" id="219">219</a>
 <a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -245,6 +250,7 @@
 <span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::collections::VecDeque;
 <span class="kw">use </span>std::io::Read;
+<span class="kw">use </span>std::path::PathBuf;
 <span class="kw">use </span>std::pin::Pin;
 
 <span class="attr">#[derive(PartialEq, Debug, Clone)]
@@ -337,17 +343,6 @@
 
 <span class="kw">pub trait </span>WSClient {}
 
-<span class="attr">#[derive(Debug, Clone)]
-</span><span class="kw">pub struct </span>HttpHeaders {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) headers: Vec&lt;(String, String)&gt;,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) content_length: usize,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) end_headers: usize,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) chunked: bool,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) method: HttpMethod,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) uri: String,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) version: HttpVersion,
-}
-
 <span class="kw">pub struct </span>HttpStats {}
 
 <span class="kw">pub struct </span>HttpContentReader {
@@ -357,8 +352,21 @@
 }
 
 <span class="comment">// crate local
+</span><span class="attr">#[derive(Debug, Clone)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpHeaders {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) headers: Vec&lt;(String, String)&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) content_length: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) end_headers: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) chunked: bool,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) method: HttpMethod,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) uri: String,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) version: HttpVersion,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) status_message: String,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) status_code: u16,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) connection_type: HttpConnectionType,
+}
 
-</span><span class="attr">#[derive(Clone)]
+<span class="attr">#[derive(Clone)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpServerConfig {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) base_dir: String,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) port: u16,
@@ -384,7 +392,7 @@
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpClientImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) controller: EvhController,
-	<span class="kw">pub</span>(<span class="kw">crate</span>) state: Box&lt;<span class="kw">dyn </span>LockBox&lt;HttpClientState&gt;&gt;,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) state: Box&lt;<span class="kw">dyn </span>LockBox&lt;HashMap&lt;u128, HttpClientState&gt;&gt;&gt;,
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>WSClientImpl {}
@@ -410,6 +418,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) status_text: String,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) version: HttpVersion,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) http_content_reader: HttpContentReader,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) drop_file: <span class="prelude-ty">Option</span>&lt;PathBuf&gt;,
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpConnectionImpl {}
@@ -419,6 +428,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) headers: <span class="prelude-ty">Option</span>&lt;HttpHeaders&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) offset: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) headers_cleared: bool,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) rid: u128,
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>HttpClientData {

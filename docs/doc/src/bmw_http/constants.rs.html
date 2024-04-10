@@ -75,6 +75,17 @@
 <a href="#73" id="73">73</a>
 <a href="#74" id="74">74</a>
 <a href="#75" id="75">75</a>
+<a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
+<a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a>
+<a href="#86" id="86">86</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -136,6 +147,10 @@
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_CONNECT: usize = <span class="number">11</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_TRACE: usize = <span class="number">12</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_PATCH: usize = <span class="number">13</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_HTTP11: usize = <span class="number">14</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_HTTP10: usize = <span class="number">15</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_CONNECTION_KEEP_ALIVE: usize = <span class="number">16</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_CONNECTION_CLOSE: usize = <span class="number">17</span>;
 
 <span class="comment">// Http Server defaults
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_DEFAULT_PORT: u16 = <span class="number">8080</span>;
@@ -150,4 +165,11 @@
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_CLIENT_DEFAULT_EVH_SLAB_SIZE: usize = <span class="number">512</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_CLIENT_DEFAULT_EVH_SLAB_COUNT: usize = <span class="number">10_000</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_CLIENT_MAX_MATCHES: usize = <span class="number">1_000</span>;
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_404_CONTENT: <span class="kw-2">&amp;</span>str =
+	<span class="string">"A 404 (not found) error occurred. See server logs for further details.\n"</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_403_CONTENT: <span class="kw-2">&amp;</span>str =
+	<span class="string">"A 403 (forbidden) error occurred. See server logs for further details.\n"</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_400_CONTENT: <span class="kw-2">&amp;</span>str =
+	<span class="string">"A 400 (bad request) error occurred. See server logs for further details.\n"</span>;
 </code></pre></div></section></main></body></html>
