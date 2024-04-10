@@ -41,7 +41,7 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::str::from_utf8;
 
-info!();
+debug!();
 
 impl Display for HttpMethod {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
