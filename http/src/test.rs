@@ -196,11 +196,13 @@ mod test {
 
 		let port = test_info.port();
 		info!("port={}", port)?;
-		let mut server = HttpBuilder::build_http_server(vec![
+		let mut server =
+			HttpBuilder::build_http_server(vec![ConfigOption::ServerName("myserver".to_string())])?;
+		let instance = HttpBuilder::build_instance(vec![
 			ConfigOption::Port(port),
 			ConfigOption::BaseDir(directory.clone()),
-			ConfigOption::ServerName("myserver".to_string()),
 		])?;
+		server.add_instance(instance)?;
 		server.start()?;
 
 		let mut client =
@@ -321,11 +323,14 @@ mod test {
 		let port = test_info.port();
 		info!("port={}", port)?;
 		let mut server = HttpBuilder::build_http_server(vec![
-			ConfigOption::Port(port),
-			ConfigOption::BaseDir(directory.clone()),
 			ConfigOption::ServerName("myserver".to_string()),
 			ConfigOption::DebugNoChunks(true),
 		])?;
+		let instance = HttpBuilder::build_instance(vec![
+			ConfigOption::Port(port),
+			ConfigOption::BaseDir(directory.clone()),
+		])?;
+		server.add_instance(instance)?;
 		server.start()?;
 
 		let mut client =

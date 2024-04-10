@@ -17,11 +17,12 @@
 
 use crate::constants::*;
 use crate::types::{
-	HttpCache, HttpConnectionState, HttpContentReader, HttpHeaders, HttpRequestImpl,
-	HttpResponseImpl, HttpServerConfig, HttpServerContext, HttpServerImpl,
+	HttpCache, HttpConnectionState, HttpContentReader, HttpHeadersImpl, HttpInstance,
+	HttpRequestImpl, HttpResponseImpl, HttpServerConfig, HttpServerContext, HttpServerImpl,
 };
 use crate::{
-	HttpConnectionType, HttpMethod, HttpRequest, HttpResponse, HttpServer, HttpStats, HttpVersion,
+	HttpCallback, HttpConnectionType, HttpMethod, HttpRequest, HttpResponse, HttpServer, HttpStats,
+	HttpVersion, WebSocketCallback,
 };
 use bmw_conf::ConfigOption::*;
 use bmw_conf::ConfigOptionName as CN;
@@ -33,7 +34,7 @@ use bmw_err::*;
 use bmw_evh::*;
 use bmw_log::*;
 use bmw_util::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::{create_dir_all, metadata, remove_dir, remove_file, File};
 use std::io::{BufReader, Read};
 use std::path::PathBuf;
@@ -101,19 +102,51 @@ impl From<String> for HttpConnectionType {
 
 impl Drop for HttpServerImpl {
 	fn drop(&mut self) {
-		match self.controller.stop() {
-			Ok(_) => {}
-			Err(e) => {
-				let _ = warn!("controller.stop generated error: {}", e);
-			}
+		match &mut self.controller {
+			Some(ref mut controller) => match controller.stop() {
+				Ok(_) => {}
+				Err(e) => {
+					let _ = warn!("controller.stop generated error: {}", e);
+				}
+			},
+			None => {}
 		}
 	}
 }
 
 impl HttpServer for HttpServerImpl {
+	fn add_instance(&mut self, instance: HttpInstance) -> Result<(), Error> {
+		self.instances.push(instance);
+		Ok(())
+	}
 	fn start(&mut self) -> Result<(), Error> {
-		if !self.cache.contains("/".into()) {
-			warn!("test")?;
+		let config_clone = self.config.clone();
+		let mut matches = [tmatch!()?; 1_000];
+		// temporary kludge, need a way to store attachments in evh
+		let instance = self.instances[0].clone();
+
+		let mut evh = evh!(
+			EvhReadSlabSize(self.config.evh_slab_size),
+			EvhReadSlabCount(self.config.evh_slab_count),
+		)?;
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			HttpServerImpl::process_on_read(connection, ctx, &mut matches, &config_clone, &instance)
+		})?;
+		evh.set_on_accept(move |connection, ctx| -> Result<(), Error> {
+			HttpServerImpl::process_on_accept(connection, ctx)
+		})?;
+		evh.set_on_close(move |connection, ctx| -> Result<(), Error> {
+			HttpServerImpl::process_on_close(connection, ctx)
+		})?;
+		evh.set_on_housekeeper(move |_ctx| -> Result<(), Error> { Ok(()) })?;
+		evh.set_on_panic(move |_ctx, _e| -> Result<(), Error> { Ok(()) })?;
+		evh.start()?;
+		self.controller = Some(evh.controller()?);
+
+		for instance in &self.instances {
+			let addr = format!("{}:{}", instance.addr, instance.port);
+			let conn = EvhBuilder::build_server_connection(&addr, instance.listen_queue_size)?;
+			evh.add_server_connection(conn)?;
 		}
 
 		Ok(())
@@ -126,35 +159,45 @@ impl HttpServer for HttpServerImpl {
 impl HttpServerImpl {
 	pub(crate) fn new(configs: Vec<ConfigOption>) -> Result<Self, Error> {
 		let config = Self::build_config(configs)?;
-		let config_clone = config.clone();
-
 		let cache = HttpCache::new(vec![]);
+		let instances = vec![];
 
-		let mut matches = [tmatch!()?; 1_000];
+		Ok(Self {
+			cache,
+			controller: None,
+			config,
+			instances,
+		})
+	}
 
-		let mut evh = evh!(
-			EvhReadSlabSize(config.evh_slab_size),
-			EvhReadSlabCount(config.evh_slab_count),
+	fn build_config(configs: Vec<ConfigOption>) -> Result<HttpServerConfig, Error> {
+		let config = ConfigBuilder::build_config(configs.clone());
+		config.check_config(
+			vec![
+				CN::SlabCount,
+				CN::SlabSize,
+				CN::ServerName,
+				CN::DebugNoChunks,
+			],
+			vec![],
 		)?;
-		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
-			HttpServerImpl::process_on_read(connection, ctx, &mut matches, &config_clone)
-		})?;
-		evh.set_on_accept(move |connection, ctx| -> Result<(), Error> {
-			HttpServerImpl::process_on_accept(connection, ctx)
-		})?;
-		evh.set_on_close(move |connection, ctx| -> Result<(), Error> {
-			HttpServerImpl::process_on_close(connection, ctx)
-		})?;
-		evh.set_on_housekeeper(move |_ctx| -> Result<(), Error> { Ok(()) })?;
-		evh.set_on_panic(move |_ctx, _e| -> Result<(), Error> { Ok(()) })?;
-		let controller = evh.controller()?;
-		evh.start()?;
 
-		let addr = format!("{}:{}", config.host, config.port);
-		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
-		evh.add_server_connection(conn)?;
+		let evh_slab_size = config.get_or_usize(&CN::SlabSize, HTTP_SERVER_DEFAULT_EVH_SLAB_SIZE);
+		let evh_slab_count =
+			config.get_or_usize(&CN::SlabCount, HTTP_SERVER_DEFAULT_EVH_SLAB_COUNT);
+		let server = config.get_or_string(
+			&CN::ServerName,
+			format!("BitcoinMW/{}", built_info::PKG_VERSION.to_string()),
+		);
 
-		Ok(Self { cache, controller })
+		let debug_no_chunks = config.get_or_bool(&CN::DebugNoChunks, false);
+
+		Ok(HttpServerConfig {
+			server,
+			evh_slab_size,
+			evh_slab_count,
+			debug_no_chunks,
+		})
 	}
 
 	fn process_on_accept(
@@ -185,63 +228,12 @@ impl HttpServerImpl {
 		Ok(())
 	}
 
-	fn build_config(configs: Vec<ConfigOption>) -> Result<HttpServerConfig, Error> {
-		let config = ConfigBuilder::build_config(configs.clone());
-		config.check_config(
-			vec![
-				CN::Port,
-				CN::Host,
-				CN::BaseDir,
-				CN::SlabCount,
-				CN::SlabSize,
-				CN::ServerName,
-				CN::DebugNoChunks,
-			],
-			vec![],
-		)?;
-
-		let port = config.get_or_u16(&CN::Port, HTTP_SERVER_DEFAULT_PORT);
-		let host = config.get_or_string(&CN::Host, HTTP_SERVER_DEFAULT_HOST.to_string());
-		let mut base_dir =
-			config.get_or_string(&CN::BaseDir, HTTP_SERVER_DEFAULT_BASE_DIR.to_string());
-		let evh_slab_size = config.get_or_usize(&CN::SlabSize, HTTP_SERVER_DEFAULT_EVH_SLAB_SIZE);
-		let evh_slab_count =
-			config.get_or_usize(&CN::SlabCount, HTTP_SERVER_DEFAULT_EVH_SLAB_COUNT);
-		let server = config.get_or_string(
-			&CN::ServerName,
-			format!("BitcoinMW/{}", built_info::PKG_VERSION.to_string()),
-		);
-
-		let debug_no_chunks = config.get_or_bool(&CN::DebugNoChunks, false);
-
-		let home_dir = match dirs::home_dir() {
-			Some(p) => p,
-			None => PathBuf::new(),
-		}
-		.as_path()
-		.display()
-		.to_string();
-
-		base_dir = base_dir.replace("~", &home_dir);
-
-		create_dir_all(base_dir.clone())?;
-
-		Ok(HttpServerConfig {
-			base_dir,
-			port,
-			host,
-			server,
-			evh_slab_size,
-			evh_slab_count,
-			debug_no_chunks,
-		})
-	}
-
 	fn process_on_read(
 		connection: &mut Connection,
 		ctx: &mut Box<dyn UserContext + '_>,
 		matches: &mut [Match],
 		config: &HttpServerConfig,
+		instance: &HttpInstance,
 	) -> Result<(), Error> {
 		let mut data: Vec<u8> = vec![];
 		let mut chunk_ids = vec![];
@@ -283,6 +275,7 @@ impl HttpServerImpl {
 				connection,
 				config,
 				&mut conn_state,
+				instance,
 			) {
 				Ok(clear_point) => {
 					debug!("clear_point={}, data.len={}", clear_point, data_len)?;
@@ -351,6 +344,7 @@ impl HttpServerImpl {
 		connection: &mut Connection,
 		config: &HttpServerConfig,
 		conn_state: &mut HttpConnectionState,
+		instance: &HttpInstance,
 	) -> Result<usize, Error> {
 		let headers = Self::build_headers(&data[conn_state.offset..], trie, matches)?;
 
@@ -358,24 +352,40 @@ impl HttpServerImpl {
 		match headers {
 			Some(headers) => {
 				debug!("found headers with conn_state.offset={}", conn_state.offset)?;
-				let clear_point = Self::process_headers(&headers, connection, config, conn_state)?;
+				let clear_point =
+					Self::process_headers(&headers, connection, config, conn_state, instance)?;
 				Ok(clear_point + conn_state.offset)
 			}
 			None => Ok(0),
 		}
 	}
 
+	fn find_base_dir<'a>(
+		instance: &'a HttpInstance,
+		headers: &HttpHeadersImpl,
+	) -> Result<&'a String, Error> {
+		match instance.dir_map.get("*") {
+			Some(base_dir) => Ok(base_dir),
+			None => Err(err!(
+				ErrKind::Http,
+				"Couldn't find base directory for this server"
+			)),
+		}
+	}
+
 	fn process_headers(
-		headers: &HttpHeaders,
+		headers: &HttpHeadersImpl,
 		connection: &mut Connection,
 		config: &HttpServerConfig,
 		conn_state: &mut HttpConnectionState,
+		instance: &HttpInstance,
 	) -> Result<usize, Error> {
 		debug!("in process headers: {:?}", headers)?;
 		let mut write_handle = connection.write_handle()?;
+		let base_dir = Self::find_base_dir(instance, headers)?;
 
 		let path = headers.path();
-		match canonicalize_base_path(&config.base_dir, &path) {
+		match canonicalize_base_path(&base_dir, &path) {
 			Ok(file_path) => {
 				debug!("file requested = {}", file_path)?;
 
@@ -576,10 +586,10 @@ impl HttpServerImpl {
 		data: &[u8],
 		trie: &mut Box<dyn SearchTrie + Send + Sync>,
 		matches: &mut [Match],
-	) -> Result<Option<HttpHeaders>, Error> {
+	) -> Result<Option<HttpHeadersImpl>, Error> {
 		let count = trie.tmatch(data, matches)?;
 		let mut term = false;
-		let mut headers = HttpHeaders::new();
+		let mut headers = HttpHeadersImpl::new();
 		for i in 0..count {
 			let id = matches[i].id();
 			if id == HTTP_SEARCH_TRIE_PATTERN_TERMINATION {
@@ -1135,6 +1145,99 @@ impl HttpConnectionState {
 
 	fn set_async(&mut self, value: bool) -> Result<(), Error> {
 		wlock!(self.is_async) = value;
+		Ok(())
+	}
+}
+
+impl HttpInstance {
+	pub(crate) fn new(configs: Vec<ConfigOption>) -> Result<Self, Error> {
+		let config = ConfigBuilder::build_config(configs);
+		config.check_config(
+			vec![CN::Port, CN::Address, CN::ListenQueueSize, CN::BaseDir],
+			vec![],
+		)?;
+
+		let port = config.get_or_u16(&CN::Port, HTTP_SERVER_DEFAULT_PORT);
+		let addr = config.get_or_string(&CN::Address, HTTP_SERVER_DEFAULT_ADDR.to_string());
+		let listen_queue_size =
+			config.get_or_usize(&CN::ListenQueueSize, HTTP_SERVER_DEFAULT_LISTEN_QUEUE_SIZE);
+
+		let mut dir_map = HashMap::new();
+
+		let mut base_dir =
+			config.get_or_string(&CN::BaseDir, HTTP_SERVER_DEFAULT_BASE_DIR.to_string());
+
+		let home_dir = match dirs::home_dir() {
+			Some(p) => p,
+			None => PathBuf::new(),
+		}
+		.as_path()
+		.display()
+		.to_string();
+
+		base_dir = base_dir.replace("~", &home_dir);
+
+		create_dir_all(base_dir.clone())?;
+
+		dir_map.insert("*".to_string(), base_dir);
+
+		Ok(Self {
+			addr,
+			port,
+			dir_map,
+			listen_queue_size,
+			callback: None,
+			websocket_callback: None,
+			callback_mappings: HashSet::new(),
+			callback_extensions: HashSet::new(),
+			websocket_mappings: HashMap::new(),
+		})
+	}
+
+	pub fn add_dir_mapping(&mut self, host: String, directory: String) -> Result<(), Error> {
+		let home_dir = match dirs::home_dir() {
+			Some(p) => p,
+			None => PathBuf::new(),
+		}
+		.as_path()
+		.display()
+		.to_string();
+
+		let directory = directory.replace("~", &home_dir);
+		self.dir_map.insert(host, directory);
+
+		Ok(())
+	}
+
+	pub fn set_callback(&mut self, callback: Option<HttpCallback>) -> Result<(), Error> {
+		self.callback = callback;
+		Ok(())
+	}
+
+	pub fn set_websocket_callback(
+		&mut self,
+		callback: Option<WebSocketCallback>,
+	) -> Result<(), Error> {
+		self.websocket_callback = callback;
+		Ok(())
+	}
+
+	pub fn add_callback_mapping(&mut self, mapping: String) -> Result<(), Error> {
+		self.callback_mappings.insert(mapping);
+		Ok(())
+	}
+
+	pub fn add_callback_extension(&mut self, extension: String) -> Result<(), Error> {
+		self.callback_extensions.insert(extension);
+		Ok(())
+	}
+
+	pub fn add_websocket_mapping(
+		&mut self,
+		name: String,
+		mapping: HashSet<String>,
+	) -> Result<(), Error> {
+		self.websocket_mappings.insert(name, mapping);
 		Ok(())
 	}
 }

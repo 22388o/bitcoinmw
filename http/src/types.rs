@@ -20,8 +20,7 @@ use bmw_deps::dyn_clone::{clone_trait_object, DynClone};
 use bmw_err::*;
 use bmw_evh::*;
 use bmw_util::*;
-use std::collections::HashMap;
-use std::collections::VecDeque;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::io::Read;
 use std::path::PathBuf;
 use std::pin::Pin;
@@ -55,6 +54,34 @@ pub enum HttpConnectionType {
 	Unknown,
 }
 
+#[derive(Clone)]
+pub struct HttpInstance {
+	pub(crate) addr: String,
+	pub(crate) port: u16,
+	pub(crate) dir_map: HashMap<String, String>,
+	pub(crate) listen_queue_size: usize,
+	pub(crate) callback: Option<HttpCallback>,
+	pub(crate) websocket_callback: Option<WebSocketCallback>,
+	pub(crate) callback_mappings: HashSet<String>,
+	pub(crate) callback_extensions: HashSet<String>,
+	pub(crate) websocket_mappings: HashMap<String, HashSet<String>>,
+}
+
+pub struct WebSocketMessage {}
+
+pub type HttpCallback = fn(
+	headers: &Box<dyn HttpHeaders>,
+	content_reader: &mut Box<dyn LockBox<HttpContentReader>>,
+	write_handle: &mut WriteHandle,
+	instance: &HttpInstance,
+) -> Result<(), Error>;
+
+pub type WebSocketCallback = fn(
+	msg: &WebSocketMessage,
+	write_handle: &mut WriteHandle,
+	instance: &HttpInstance,
+) -> Result<(), Error>;
+
 pub type HttpResponseHandler = Pin<
 	Box<
 		dyn FnMut(&Box<dyn HttpRequest>, &mut Box<dyn HttpResponse>) -> Result<(), Error>
@@ -68,6 +95,7 @@ pub type HttpResponseHandler = Pin<
 pub struct HttpBuilder {}
 
 pub trait HttpServer {
+	fn add_instance(&mut self, instance: HttpInstance) -> Result<(), Error>;
 	fn start(&mut self) -> Result<(), Error>;
 	fn wait_for_stats(&self) -> Result<HttpStats, Error>;
 }
@@ -116,6 +144,8 @@ pub trait HttpResponse {
 
 pub trait WSClient {}
 
+pub trait HttpHeaders {}
+
 pub struct HttpStats {}
 
 pub struct HttpContentReader {
@@ -126,7 +156,7 @@ pub struct HttpContentReader {
 
 // crate local
 #[derive(Debug, Clone)]
-pub(crate) struct HttpHeaders {
+pub(crate) struct HttpHeadersImpl {
 	pub(crate) headers: Vec<(String, String)>,
 	pub(crate) content_length: usize,
 	pub(crate) end_headers: usize,
@@ -141,9 +171,6 @@ pub(crate) struct HttpHeaders {
 
 #[derive(Clone)]
 pub(crate) struct HttpServerConfig {
-	pub(crate) base_dir: String,
-	pub(crate) port: u16,
-	pub(crate) host: String,
 	pub(crate) server: String,
 	pub(crate) evh_slab_size: usize,
 	pub(crate) evh_slab_count: usize,
@@ -161,7 +188,9 @@ pub(crate) struct HttpCache {}
 
 pub(crate) struct HttpServerImpl {
 	pub(crate) cache: HttpCache,
-	pub(crate) controller: EvhController,
+	pub(crate) controller: Option<EvhController>,
+	pub(crate) config: HttpServerConfig,
+	pub(crate) instances: Vec<HttpInstance>,
 }
 
 pub(crate) struct HttpClientImpl {
@@ -199,7 +228,7 @@ pub(crate) struct HttpConnectionImpl {}
 
 pub(crate) struct HttpClientState {
 	pub(crate) queue: VecDeque<HttpClientData>,
-	pub(crate) headers: Option<HttpHeaders>,
+	pub(crate) headers: Option<HttpHeadersImpl>,
 	pub(crate) offset: usize,
 	pub(crate) headers_cleared: bool,
 	pub(crate) rid: u128,

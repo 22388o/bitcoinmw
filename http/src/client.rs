@@ -18,11 +18,11 @@
 use crate::constants::*;
 use crate::types::{
 	HttpClientConfig, HttpClientContext, HttpClientData, HttpClientImpl, HttpClientState,
-	HttpConnectionImpl, HttpHeaders, HttpResponseImpl,
+	HttpConnectionImpl, HttpHeadersImpl, HttpResponseImpl,
 };
 use crate::{
-	HttpClient, HttpConnection, HttpConnectionType, HttpMethod, HttpRequest, HttpResponse,
-	HttpResponseHandler, HttpVersion,
+	HttpClient, HttpConnection, HttpConnectionType, HttpHeaders, HttpMethod, HttpRequest,
+	HttpResponse, HttpResponseHandler, HttpVersion,
 };
 use bmw_conf::ConfigOption;
 use bmw_conf::ConfigOptionName as CN;
@@ -314,7 +314,7 @@ impl HttpClientImpl {
 	}
 
 	fn process_headers(
-		headers: &mut HttpHeaders,
+		headers: &mut HttpHeadersImpl,
 		connection: &mut Connection,
 		data: &[u8],
 		state: &mut Box<dyn LockBox<HashMap<u128, HttpClientState>>>,
@@ -352,7 +352,7 @@ impl HttpClientImpl {
 
 	fn process_chunked(
 		data: &[u8],
-		headers: &mut HttpHeaders,
+		headers: &mut HttpHeadersImpl,
 		connection: &mut Connection,
 		state: &mut Box<dyn LockBox<HashMap<u128, HttpClientState>>>,
 		config: &HttpClientConfig,
@@ -441,7 +441,7 @@ impl HttpClientImpl {
 	fn process_complete(
 		state: &mut Box<dyn LockBox<HashMap<u128, HttpClientState>>>,
 		ndata: &[u8],
-		headers: &HttpHeaders,
+		headers: &HttpHeadersImpl,
 		id: u128,
 		config: &HttpClientConfig,
 	) -> Result<(), Error> {
@@ -471,7 +471,7 @@ impl HttpClientImpl {
 	fn process_incomplete(
 		state: &mut Box<dyn LockBox<HashMap<u128, HttpClientState>>>,
 		content: &[u8],
-		headers: &HttpHeaders,
+		headers: &HttpHeadersImpl,
 		config: &HttpClientConfig,
 		connection: &mut Connection,
 	) -> Result<(), Error> {
@@ -512,7 +512,7 @@ impl HttpClientImpl {
 	fn call_handler(
 		state: &mut Box<dyn LockBox<HashMap<u128, HttpClientState>>>,
 		content: &[u8],
-		headers: &HttpHeaders,
+		headers: &HttpHeadersImpl,
 		path_buf: Option<PathBuf>,
 		id: u128,
 	) -> Result<(), Error> {
@@ -579,7 +579,7 @@ impl HttpClientImpl {
 		matches: &mut [Match],
 		state: &mut Box<dyn LockBox<HashMap<u128, HttpClientState>>>,
 		id: u128,
-	) -> Result<Option<(HttpHeaders, usize)>, Error> {
+	) -> Result<Option<(HttpHeadersImpl, usize)>, Error> {
 		// check if we already have headers
 		{
 			let state = state.rlock()?;
@@ -609,7 +609,7 @@ impl HttpClientImpl {
 
 		let count = ctx.trie.tmatch(data, matches)?;
 		let mut term = false;
-		let mut headers = HttpHeaders::new();
+		let mut headers = HttpHeadersImpl::new();
 		for i in 0..count {
 			let id = matches[i].id();
 			if id == HTTP_SEARCH_TRIE_PATTERN_TERMINATION {
@@ -845,7 +845,9 @@ impl HttpClientContext {
 	}
 }
 
-impl HttpHeaders {
+impl HttpHeaders for HttpHeadersImpl {}
+
+impl HttpHeadersImpl {
 	pub(crate) fn new() -> Self {
 		Self {
 			headers: vec![],

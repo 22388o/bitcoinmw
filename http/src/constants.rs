@@ -66,8 +66,9 @@ pub(crate) const HTTP_SEARCH_TRIE_PATTERN_CONNECTION_CLOSE: usize = 17;
 
 // Http Server defaults
 pub(crate) const HTTP_SERVER_DEFAULT_PORT: u16 = 8080;
-pub(crate) const HTTP_SERVER_DEFAULT_HOST: &str = "127.0.0.1";
+pub(crate) const HTTP_SERVER_DEFAULT_ADDR: &str = "127.0.0.1";
 pub(crate) const HTTP_SERVER_DEFAULT_BASE_DIR: &str = "~/.bmw/www";
+pub(crate) const HTTP_SERVER_DEFAULT_LISTEN_QUEUE_SIZE: usize = 1_000;
 
 pub(crate) const HTTP_SERVER_FILE_BUFFER_SIZE: usize = 1_000;
 pub(crate) const HTTP_SERVER_DEFAULT_EVH_SLAB_COUNT: usize = 10_000;
