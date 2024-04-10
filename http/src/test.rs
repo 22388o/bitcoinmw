@@ -177,7 +177,7 @@ mod test {
 	}
 
 	#[test]
-	fn test_http_client_basic() -> Result<(), Error> {
+	fn test_http_client_basic1() -> Result<(), Error> {
 		let test_info = test_info!(true)?;
 		let directory = test_info.directory();
 		let mut path_buf = PathBuf::new();

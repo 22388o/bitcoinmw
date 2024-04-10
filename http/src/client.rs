@@ -230,6 +230,7 @@ impl HttpClientImpl {
 		let headers = Self::build_headers(&data, user_ctx, matches, state, connection.id())?;
 		match headers {
 			Some((mut headers, offset)) => {
+				debug!("offset set to {}", offset)?;
 				let clear_point = Self::process_headers(
 					&mut headers,
 					connection,
@@ -239,7 +240,8 @@ impl HttpClientImpl {
 				)?;
 				if data.len() == clear_point + offset {
 					ctx.clear_all(connection)?;
-				} else if clear_point + offset != 0 {
+				} else if clear_point != 0 {
+					debug!("clear_point = {}, offset = {}", clear_point, offset)?;
 					Self::clear_custom(
 						clear_point + offset + headers.end_headers + 2,
 						state,
@@ -388,10 +390,10 @@ impl HttpClientImpl {
 			let bytes_len = match usize::from_str_radix(bytes_str, 16) {
 				Ok(b) => b,
 				Err(e) => {
-					warn!(
+					debug!(
 						"Error trying to parse bytes_slice = {:?}, bytes_str='{}'",
 						bytes_slice, bytes_str
-					);
+					)?;
 					return Err(e.into());
 				}
 			};
@@ -586,6 +588,7 @@ impl HttpClientImpl {
 			match (**guard).get(&id) {
 				Some(state) => {
 					if state.headers.is_some() {
+						debug!("state.headers is some, cleared = {}", state.headers_cleared)?;
 						let mut headers = state.headers.as_ref().unwrap().clone();
 						// headers cleared. It's all content.
 						if state.headers_cleared {
