@@ -1128,6 +1128,22 @@
 <a href="#1126" id="1126">1126</a>
 <a href="#1127" id="1127">1127</a>
 <a href="#1128" id="1128">1128</a>
+<a href="#1129" id="1129">1129</a>
+<a href="#1130" id="1130">1130</a>
+<a href="#1131" id="1131">1131</a>
+<a href="#1132" id="1132">1132</a>
+<a href="#1133" id="1133">1133</a>
+<a href="#1134" id="1134">1134</a>
+<a href="#1135" id="1135">1135</a>
+<a href="#1136" id="1136">1136</a>
+<a href="#1137" id="1137">1137</a>
+<a href="#1138" id="1138">1138</a>
+<a href="#1139" id="1139">1139</a>
+<a href="#1140" id="1140">1140</a>
+<a href="#1141" id="1141">1141</a>
+<a href="#1142" id="1142">1142</a>
+<a href="#1143" id="1143">1143</a>
+<a href="#1144" id="1144">1144</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1317,6 +1333,18 @@
 
 	<span class="kw">fn </span>build_config(configs: Vec&lt;ConfigOption&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;HttpServerConfig, Error&gt; {
 		<span class="kw">let </span>config = ConfigBuilder::build_config(configs.clone());
+		config.check_config(
+			<span class="macro">vec!</span>[
+				CN::Port,
+				CN::Host,
+				CN::BaseDir,
+				CN::SlabCount,
+				CN::SlabSize,
+				CN::ServerName,
+				CN::DebugNoChunks,
+			],
+			<span class="macro">vec!</span>[],
+		)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>port = config.get_or_u16(<span class="kw-2">&amp;</span>CN::Port, HTTP_SERVER_DEFAULT_PORT);
 		<span class="kw">let </span>host = config.get_or_string(<span class="kw-2">&amp;</span>CN::Host, HTTP_SERVER_DEFAULT_HOST.to_string());
@@ -1329,6 +1357,8 @@
 			<span class="kw-2">&amp;</span>CN::ServerName,
 			<span class="macro">format!</span>(<span class="string">"BitcoinMW/{}"</span>, built_info::PKG_VERSION.to_string()),
 		);
+
+		<span class="kw">let </span>debug_no_chunks = config.get_or_bool(<span class="kw-2">&amp;</span>CN::DebugNoChunks, <span class="bool-val">false</span>);
 
 		<span class="kw">let </span>home_dir = <span class="kw">match </span>dirs::home_dir() {
 			<span class="prelude-val">Some</span>(p) =&gt; p,
@@ -1349,6 +1379,7 @@
 			server,
 			evh_slab_size,
 			evh_slab_count,
+			debug_no_chunks,
 		})
 	}
 
@@ -1611,7 +1642,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>buf_reader = BufReader::new(file);
 		<span class="kw">let </span>date = <span class="self">Self</span>::build_date();
 
-		<span class="kw">if </span>http_version != <span class="kw-2">&amp;</span>HttpVersion::Http11 {
+		<span class="kw">if </span>http_version != <span class="kw-2">&amp;</span>HttpVersion::Http11 || config.debug_no_chunks {
 			<span class="kw">let </span>content_length = metadata(path)<span class="question-mark">?</span>.len();
 			wh.write(
                         <span class="macro">format!</span>(
@@ -1639,6 +1670,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>conn_state_clone = conn_state.clone();
 		<span class="kw">let </span>connection_type_clone = connection_type.clone();
 		<span class="kw">let </span>http_version_clone = http_version.clone();
+		<span class="kw">let </span>config = config.clone();
 		spawn(<span class="kw">move </span>|| -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 			<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; HTTP_SERVER_FILE_BUFFER_SIZE];
 			<span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
@@ -1647,16 +1679,16 @@
 				i += <span class="number">1</span>;
 				<span class="kw">let </span>len = buf_reader.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
 				<span class="macro">cbreak!</span>(len &lt;= <span class="number">0</span>);
-				<span class="kw">if </span>http_version_clone == HttpVersion::Http11 {
+				<span class="kw">if </span>http_version_clone == HttpVersion::Http11 &amp;&amp; !config.debug_no_chunks {
 					wh.write(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"{:X}\r\n"</span>, len).as_bytes()[..])<span class="question-mark">?</span>;
 				}
 				wh.write(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..len])<span class="question-mark">?</span>;
-				<span class="kw">if </span>http_version_clone == HttpVersion::Http11 {
+				<span class="kw">if </span>http_version_clone == HttpVersion::Http11 &amp;&amp; !config.debug_no_chunks {
 					wh.write(<span class="string">b"\r\n"</span>)<span class="question-mark">?</span>;
 				}
 			}
 
-			<span class="kw">if </span>http_version_clone == HttpVersion::Http11 {
+			<span class="kw">if </span>http_version_clone == HttpVersion::Http11 &amp;&amp; !config.debug_no_chunks {
 				wh.write(<span class="string">b"0\r\n\r\n"</span>)<span class="question-mark">?</span>;
 			}
 

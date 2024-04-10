@@ -524,6 +524,8 @@
 <a href="#522" id="522">522</a>
 <a href="#523" id="523">523</a>
 <a href="#524" id="524">524</a>
+<a href="#525" id="525">525</a>
+<a href="#526" id="526">526</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -969,6 +971,7 @@
 	Host,
 	BaseDir,
 	ServerName,
+	DebugNoChunks,
 	Debug,
 	DebugLargeSlabCount,
 }
@@ -1033,6 +1036,7 @@
 	Host(String),
 	BaseDir(String),
 	ServerName(String),
+	DebugNoChunks(bool),
 	Debug(bool),
 	DebugLargeSlabCount(bool),
 }
