@@ -271,6 +271,7 @@ pub struct Connection {
 	pub(crate) tx: Option<SyncSender<()>>,
 	pub(crate) ctype: ConnectionType,
 	pub(crate) debug_info: DebugInfo,
+	pub(crate) origin_id: u128,
 }
 
 /// Builder struct for the crate. All implementations are created through this struct.

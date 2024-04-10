@@ -620,16 +620,32 @@ impl Connection {
 		let wh = WriteHandle::new(self, self.debug_info.clone())?;
 		Ok(wh)
 	}
+
+	/// Returns the `origin_id` for a [`crate::Connection`]. The origin_id is the id of the
+	/// connection if it is a client or server connection that was added to this
+	/// [`crate::EventHandler`]. If it is an accepted connection, it is the id of the
+	/// [`crate::Connection`] that it was accepted on.
+	pub fn origin_id(&self) -> u128 {
+		self.origin_id
+	}
+
 	pub(crate) fn new(
 		handle: Handle,
 		wakeup: Option<Wakeup>,
 		state: Option<Box<dyn LockBox<EventHandlerState>>>,
 		ctype: ConnectionType,
 		debug_info: DebugInfo,
+		origin_id: Option<u128>,
 	) -> Result<Self, Error> {
+		let id = random();
+		// if it's None, it's either a server or client connection and this should be their id
+		let origin_id = match origin_id {
+			Some(origin_id) => origin_id,
+			None => id,
+		};
 		Ok(Self {
 			handle,
-			id: random(),
+			id,
 			first_slab: usize::MAX,
 			last_slab: usize::MAX,
 			slab_offset: 0,
@@ -639,6 +655,7 @@ impl Connection {
 			tx: None,
 			ctype,
 			debug_info,
+			origin_id,
 		})
 	}
 	pub(crate) fn handle(&self) -> Handle {
@@ -1763,7 +1780,7 @@ where
 	}
 
 	fn process_accepted_connections(
-		accepted: Vec<Handle>,
+		accepted: Vec<(Handle, u128)>,
 		config: &EventHandlerConfig,
 		state: &mut Array<Box<dyn LockBox<EventHandlerState>>>,
 		wakeups: &mut Array<Wakeup>,
@@ -1771,12 +1788,20 @@ where
 	) -> Result<(), Error> {
 		debug!("accepted connections = {:?}", accepted)?;
 		for a in accepted {
-			let accept_usize: usize = try_into!(a)?;
+			let accept_usize: usize = try_into!(a.0)?;
 			let tid = accept_usize % config.threads;
 			let wakeup = Some(wakeups[tid].clone());
 			let cstate = Some(state[tid].clone());
 			let ctype = ConnectionType::Connection;
-			let connection = Connection::new(a, wakeup, cstate, ctype, debug_info.clone())?;
+			let origin_id = a.1;
+			let connection = Connection::new(
+				a.0,
+				wakeup,
+				cstate,
+				ctype,
+				debug_info.clone(),
+				Some(origin_id),
+			)?;
 
 			{
 				let mut state = state[tid].wlock()?;
@@ -2065,7 +2090,7 @@ where
 
 	pub(crate) fn process_accept(
 		conn: &Connection,
-		accepted: &mut Vec<Handle>,
+		accepted: &mut Vec<(Handle, u128)>,
 		debug_info: &DebugInfo,
 		_callbacks: &mut EventHandlerCallbacks<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>,
 	) -> Result<(), Error> {
@@ -2078,7 +2103,7 @@ where
 			if accept_res.is_ok() {
 				let next = accept_res.unwrap();
 				cbreak!(next.is_none());
-				accepted.push(next.unwrap());
+				accepted.push((next.unwrap(), conn.id()));
 			} else {
 				let e = accept_res.unwrap_err();
 				warn!("accept generated error: {}", e)?;

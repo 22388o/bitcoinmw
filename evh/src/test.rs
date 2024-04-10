@@ -1681,6 +1681,7 @@ mod test {
 			tx: None,
 			ctype: ConnectionType::Connection,
 			debug_info: DebugInfo::default(),
+			origin_id: 0,
 		};
 		assert!(WriteHandle::new(&connection, DebugInfo::default()).is_err());
 
@@ -1699,6 +1700,7 @@ mod test {
 			tx: None,
 			ctype: ConnectionType::Connection,
 			debug_info: DebugInfo::default(),
+			origin_id: 0,
 		};
 		assert!(WriteHandle::new(&connection, DebugInfo::default()).is_err());
 		Ok(())

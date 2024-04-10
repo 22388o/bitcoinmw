@@ -96,6 +96,7 @@ impl EvhBuilder {
 			None,
 			ConnectionType::Server,
 			DebugInfo::default(),
+			None,
 		)?)
 	}
 
@@ -118,6 +119,7 @@ impl EvhBuilder {
 			None,
 			ConnectionType::Client,
 			DebugInfo::default(),
+			None,
 		)?)
 	}
 }
