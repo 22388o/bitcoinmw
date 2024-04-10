@@ -385,7 +385,16 @@ impl HttpClientImpl {
 			let bytes_str = from_utf8(&bytes_slice)?;
 			debug!("bytes_str='{}'", bytes_str)?;
 			debug!("full data = '{}'", from_utf8(data).unwrap_or("utf8err"))?;
-			let bytes_len = usize::from_str_radix(bytes_str, 16)?;
+			let bytes_len = match usize::from_str_radix(bytes_str, 16) {
+				Ok(b) => b,
+				Err(e) => {
+					warn!(
+						"Error trying to parse bytes_slice = {:?}, bytes_str='{}'",
+						bytes_slice, bytes_str
+					);
+					return Err(e.into());
+				}
+			};
 
 			debug!("len='{}'", bytes_len)?;
 

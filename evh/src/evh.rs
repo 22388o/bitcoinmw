@@ -1570,7 +1570,7 @@ where
 					if close && !pending {
 						close_list.push(conn.handle());
 					}
-					if trigger_on_read {
+					if trigger_on_read && !close {
 						ctx.trigger_on_read_list.push(conn.handle());
 					}
 
