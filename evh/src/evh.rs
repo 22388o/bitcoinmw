@@ -1598,7 +1598,7 @@ where
 				ConnectionVariant::Wakeup(_wakeup) => {}
 			}
 		} else {
-			warn!("none1 in process_write_id")?;
+			debug!("none1 in process_write_id")?;
 		}
 
 		for handle in close_list {
