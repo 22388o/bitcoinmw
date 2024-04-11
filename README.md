@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/github/license/cgilliard/bitcoinmw.svg)](https://github.com/cgilliard/bitcoinmw/blob/master/LICENSE)
 
 <p align="center">
-<img src="https://user-images.githubusercontent.com/7232183/183282880-e3fac338-7ea6-44ab-b7f2-40c605d297c2.jpeg"/>
+<img src="https://raw.githubusercontent.com/cgilliard/bitcoinmw/main/.github/images/bmw_logo.jpg"/>
 </p>
 
 <p align="center"> Core libraries for Bitcoin Mimblewimble (BMW).</p>
