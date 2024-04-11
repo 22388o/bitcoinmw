@@ -90,3 +90,5 @@ pub(crate) const HTTP_SERVER_500_CONTENT: &str =
 	"A 500 (internal server error) error occurred. See server logs for further details.\n";
 pub(crate) const HTTP_SERVER_405_CONTENT: &str =
 	"A 405 (method not allowed) error occurred. See server logs for further details.\n";
+pub(crate) const HTTP_SERVER_503_CONTENT: &str =
+	"A 503 (Service Unavailable) error occurred. See server logs for further details.\n";

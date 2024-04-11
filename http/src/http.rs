@@ -127,9 +127,20 @@ impl HttpServer for HttpServerImpl {
 		let config_clone = self.config.clone();
 		let mut matches = [tmatch!()?; 1_000];
 
+		let date = Self::build_date();
+		let msg = HTTP_SERVER_503_CONTENT;
+		let oos_msg = format!(
+                                "HTTP/1.1 503 Service Unavailable\r\nServer: {}\r\nDate: {}\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
+                                self.config.server,
+                                date,
+                                msg.len(),
+                                msg,
+                        );
+
 		let mut evh = evh!(
 			EvhReadSlabSize(self.config.evh_slab_size),
 			EvhReadSlabCount(self.config.evh_slab_count),
+			EvhOutOfSlabsMessage(oos_msg),
 		)?;
 
 		let mut conns_to_add = vec![];
