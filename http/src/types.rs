@@ -70,8 +70,8 @@ pub struct HttpInstance {
 pub struct WebSocketMessage {}
 
 pub type HttpCallback = fn(
-	headers: &Box<dyn HttpHeaders>,
-	content_reader: &mut Box<dyn LockBox<HttpContentReader>>,
+	headers: &Box<dyn HttpHeaders + '_>,
+	content_reader: &mut Option<Box<dyn LockBox<HttpContentReader>>>,
 	write_handle: &mut WriteHandle,
 	instance: &HttpInstance,
 ) -> Result<(), Error>;
@@ -144,7 +144,9 @@ pub trait HttpResponse {
 
 pub trait WSClient {}
 
-pub trait HttpHeaders {}
+pub trait HttpHeaders {
+	fn path(&self) -> String;
+}
 
 pub struct HttpStats {}
 

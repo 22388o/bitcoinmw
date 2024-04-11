@@ -102,6 +102,9 @@ pub enum ErrorKind {
 	/// Http 403 Error
 	#[fail(display = "http403_error: {}", _0)]
 	Http403(String),
+	/// Http 400 Error
+	#[fail(display = "http400_error: {}", _0)]
+	Http400(String),
 	/// Rustlet Error
 	#[fail(display = "rustlet_error: {}", _0)]
 	Rustlet(String),
@@ -161,6 +164,8 @@ pub enum ErrKind {
 	Http404,
 	/// Http 403 error
 	Http403,
+	/// Http 400 error
+	Http400,
 	/// Rustlet error
 	Rustlet,
 }

@@ -21,8 +21,8 @@ use crate::types::{
 	HttpRequestImpl, HttpResponseImpl, HttpServerConfig, HttpServerContext, HttpServerImpl,
 };
 use crate::{
-	HttpCallback, HttpConnectionType, HttpMethod, HttpRequest, HttpResponse, HttpServer, HttpStats,
-	HttpVersion, WebSocketCallback,
+	HttpCallback, HttpConnectionType, HttpHeaders, HttpMethod, HttpRequest, HttpResponse,
+	HttpServer, HttpStats, HttpVersion, WebSocketCallback,
 };
 use bmw_conf::ConfigOption::*;
 use bmw_conf::ConfigOptionName as CN;
@@ -310,11 +310,22 @@ impl HttpServerImpl {
 						Self::clear_custom(clear_point, ctx, connection, chunk_ids, config)?;
 					}
 				}
-				Err(_e) => {
+				Err(e) => {
 					// handle error here. If we get here, we have to close the
-					// connection because we don't know what the clear point is
+					// connection because we don't know what the clear point
+					// is
+
+					warn!("unexpected error: {}", e)?;
 					let mut write_handle = connection.write_handle()?;
-					Self::process_400(&mut write_handle, config)?;
+					match e.kind() {
+						ErrorKind::Http400(_) => Self::process_400(&mut write_handle, config)?,
+						ErrorKind::Http404(_) => Self::process_404(
+							&mut write_handle,
+							config,
+							&HttpConnectionType::Close,
+						)?,
+						_ => Self::process_500(&mut write_handle, config)?,
+					}
 				}
 			}
 		}
@@ -399,6 +410,39 @@ impl HttpServerImpl {
 		}
 	}
 
+	fn try_mappings(
+		headers: &HttpHeadersImpl,
+		instance: &HttpInstance,
+		write_handle: &mut WriteHandle,
+		config: &HttpServerConfig,
+	) -> Result<bool, Error> {
+		let path = headers.path();
+		if instance.callback_mappings.contains(&path) {
+			// this is a callback
+
+			match instance.callback {
+				Some(callback) => {
+					let headers: Box<dyn HttpHeaders + '_> = Box::new(headers);
+					match callback(&headers, &mut None, write_handle, instance) {
+						Ok(_) => {}
+						Err(e) => {
+							// we don't really know what state we're in so we return a 500 error and close the connection
+							warn!("http callback generated error: {}", e)?;
+							Self::process_500(write_handle, config)?;
+						}
+					}
+				}
+				None => {
+					return Err(err!(ErrKind::Http404, "callback not found"));
+				}
+			}
+
+			Ok(true)
+		} else {
+			Ok(false)
+		}
+	}
+
 	fn process_headers(
 		headers: &HttpHeadersImpl,
 		connection: &mut Connection,
@@ -408,35 +452,43 @@ impl HttpServerImpl {
 	) -> Result<usize, Error> {
 		debug!("in process headers: {:?}", headers)?;
 		let mut write_handle = connection.write_handle()?;
-		let base_dir = Self::find_base_dir(instance, headers)?;
 
-		let path = headers.path();
-		match canonicalize_base_path(&base_dir, &path) {
-			Ok(file_path) => {
-				debug!("file requested = {}", file_path)?;
+		if !Self::try_mappings(headers, instance, &mut write_handle, config)? {
+			if headers.method != HttpMethod::Get && headers.method != HttpMethod::Head {
+				// not allowed return 405 error
+				Self::process_405(&mut write_handle, config, &headers.connection_type)?;
+			} else {
+				let base_dir = Self::find_base_dir(instance, headers)?;
 
-				// check cache here
+				let path = headers.path();
+				match canonicalize_base_path(&base_dir, &path) {
+					Ok(file_path) => {
+						debug!("file requested = {}", file_path)?;
 
-				Self::send_file(
-					file_path,
-					&mut write_handle,
-					config,
-					conn_state,
-					&headers.connection_type,
-					&headers.version,
-				)?;
+						// check cache here
+
+						Self::send_file(
+							file_path,
+							&mut write_handle,
+							config,
+							conn_state,
+							&headers.connection_type,
+							&headers.version,
+						)?;
+					}
+					Err(e) => match e.kind() {
+						ErrorKind::Http404(_s) => {
+							Self::process_404(&mut write_handle, config, &headers.connection_type)?;
+						}
+						ErrorKind::Http403(_s) => {
+							Self::process_403(&mut write_handle, config, &headers.connection_type)?;
+						}
+						// we don't know how to handle this so return an error and close
+						// connection
+						_ => return Err(e),
+					},
+				}
 			}
-			Err(e) => match e.kind() {
-				ErrorKind::Http404(_s) => {
-					Self::process_404(&mut write_handle, config, &headers.connection_type)?;
-				}
-				ErrorKind::Http403(_s) => {
-					Self::process_403(&mut write_handle, config, &headers.connection_type)?;
-				}
-				// we don't know how to handle this so return an error and close
-				// connection
-				_ => return Err(e),
-			},
 		}
 
 		Ok(headers.end_headers)
@@ -445,6 +497,24 @@ impl HttpServerImpl {
 	fn build_date() -> String {
 		let dt = Utc::now();
 		dt.format("%a, %d %h %C%y %H:%M:%S GMT").to_string()
+	}
+
+	fn process_500(wh: &mut WriteHandle, config: &HttpServerConfig) -> Result<(), Error> {
+		debug!("in process 500")?;
+		let msg = &HTTP_SERVER_500_CONTENT;
+		let date = Self::build_date();
+		wh.write(
+                        format!(
+                                "HTTP/1.1 500 Internal Server Error\r\nServer: {}\r\nDate: {}\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
+                                config.server,
+                                date,
+                                msg.len(),
+                                msg,
+                        )
+                        .as_bytes(),
+                )?;
+		wh.close()?;
+		Ok(())
 	}
 
 	fn process_400(wh: &mut WriteHandle, config: &HttpServerConfig) -> Result<(), Error> {
@@ -462,6 +532,31 @@ impl HttpServerImpl {
                         .as_bytes(),
                 )?;
 		wh.close()?;
+		Ok(())
+	}
+
+	fn process_405(
+		wh: &mut WriteHandle,
+		config: &HttpServerConfig,
+		connection_type: &HttpConnectionType,
+	) -> Result<(), Error> {
+		debug!("in process 405")?;
+		let msg = &HTTP_SERVER_405_CONTENT;
+		let date = Self::build_date();
+		wh.write(
+                        format!(
+                                "HTTP/1.1 405 Method Not Allowed\r\nServer: {}\r\nDate: {}\r\nConnection: {}\r\nContent-Length: {}\r\n\r\n{}",
+                                config.server,
+                                date,
+                                if connection_type == &HttpConnectionType::KeepAlive { "keep-alive" } else { "close" },
+                                msg.len(),
+                                msg,
+                        )
+                        .as_bytes(),
+                )?;
+		if connection_type != &HttpConnectionType::KeepAlive {
+			wh.close()?;
+		}
 		Ok(())
 	}
 
@@ -659,7 +754,7 @@ impl HttpServerImpl {
 
 		if term {
 			if headers.method == HttpMethod::Unknown {
-				return Err(err!(ErrKind::Http, "bad request"));
+				return Err(err!(ErrKind::Http400, "bad request"));
 			}
 			// get uri and version
 			let start = if headers.method == HttpMethod::Get {

@@ -845,7 +845,11 @@ impl HttpClientContext {
 	}
 }
 
-impl HttpHeaders for HttpHeadersImpl {}
+impl HttpHeaders for &HttpHeadersImpl {
+	fn path(&self) -> String {
+		self.uri_path()
+	}
+}
 
 impl HttpHeadersImpl {
 	pub(crate) fn new() -> Self {
@@ -864,7 +868,7 @@ impl HttpHeadersImpl {
 		}
 	}
 
-	pub(crate) fn path(&self) -> String {
+	pub(crate) fn uri_path(&self) -> String {
 		match self.uri.find('?') {
 			Some(i) => (&self.uri[0..i]).to_string(),
 			None => (&self.uri[..]).to_string(),

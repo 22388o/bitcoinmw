@@ -21,6 +21,7 @@ mod test {
 	use crate::types::*;
 	use bmw_conf::ConfigOption;
 	use bmw_err::*;
+	use bmw_evh::*;
 	use bmw_log::*;
 	use bmw_test::*;
 	use bmw_util::*;
@@ -172,6 +173,50 @@ mod test {
 		let mut s = String::new();
 		response.read_to_string(&mut s)?;
 		assert_eq!(s, "test".to_string());
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_http_404() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let directory = test_info.directory();
+
+		let port = test_info.port();
+
+		let mut server =
+			HttpBuilder::build_http_server(vec![ConfigOption::ServerName("myserver".to_string())])?;
+		let instance = HttpBuilder::build_instance(vec![
+			ConfigOption::Port(port),
+			ConfigOption::BaseDir(directory.clone()),
+		])?;
+		server.add_instance(instance)?;
+		server.start()?;
+		let mut client =
+			HttpBuilder::build_http_client(vec![ConfigOption::BaseDir(directory.clone())])?;
+		let request = HttpBuilder::build_http_request(vec![ConfigOption::HttpRequestUrl(
+			format!("http://127.0.0.1:{}/test.html", port),
+		)])?;
+
+		let mut l = lock_box!(false)?;
+		let lc = l.clone();
+
+		let (tx, rx) = test_info.sync_channel();
+
+		let handler: HttpResponseHandler =
+			Box::pin(move |_request, response| -> Result<(), Error> {
+				let mut s = String::new();
+				response.read_to_string(&mut s)?;
+				info!("response = {}", s)?;
+				assert_eq!(response.code(), 404);
+				wlock!(l) = true;
+				tx.send(())?;
+				Ok(())
+			});
+
+		client.send(&request, handler)?;
+		rx.recv()?;
+		assert!(rlock!(lc));
 
 		Ok(())
 	}
@@ -671,6 +716,117 @@ mod test {
 
 		assert_eq!(rlock!(recv), 1);
 
+		Ok(())
+	}
+
+	fn callback(
+		headers: &Box<dyn HttpHeaders + '_>,
+		_content_reader: &mut Option<Box<dyn LockBox<HttpContentReader>>>,
+		wh: &mut WriteHandle,
+		_instance: &HttpInstance,
+	) -> Result<(), Error> {
+		if headers.path() == "/error" {
+			Err(err!(ErrKind::Test, "simulate internal server errror"))
+		} else {
+			wh.write(b"HTTP/1.1 200 OK\r\nContent-Length: 10\r\n\r\n012345\r\n\r\n")?;
+			Ok(())
+		}
+	}
+
+	#[test]
+	fn test_http_callback() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let directory = test_info.directory();
+
+		let port = test_info.port();
+
+		info!("port={}", port)?;
+
+		let mut server =
+			HttpBuilder::build_http_server(vec![ConfigOption::ServerName("myserver".to_string())])?;
+		let mut instance = HttpBuilder::build_instance(vec![
+			ConfigOption::Port(port),
+			ConfigOption::BaseDir(directory.clone()),
+		])?;
+		instance.add_callback_mapping("/test.html".to_string())?;
+		instance.add_callback_mapping("/error".to_string())?;
+		instance.set_callback(Some(callback))?;
+		server.add_instance(instance)?;
+		server.start()?;
+		let mut client =
+			HttpBuilder::build_http_client(vec![ConfigOption::BaseDir(directory.clone())])?;
+		let request = HttpBuilder::build_http_request(vec![ConfigOption::HttpRequestUrl(
+			format!("http://127.0.0.1:{}/test.html", port),
+		)])?;
+
+		let mut l = lock_box!(false)?;
+		let lc = l.clone();
+
+		let (tx, rx) = test_info.sync_channel();
+
+		let handler: HttpResponseHandler =
+			Box::pin(move |_request, response| -> Result<(), Error> {
+				let mut s = String::new();
+				response.read_to_string(&mut s)?;
+				info!("response = {}", s)?;
+				assert_eq!(response.code(), 200);
+				wlock!(l) = true;
+				tx.send(())?;
+				Ok(())
+			});
+
+		client.send(&request, handler)?;
+		rx.recv()?;
+		assert!(rlock!(lc));
+
+		let request = HttpBuilder::build_http_request(vec![ConfigOption::HttpRequestUrl(
+			format!("http://127.0.0.1:{}/error", port),
+		)])?;
+
+		let mut l = lock_box!(false)?;
+		let lc = l.clone();
+
+		let (tx, rx) = test_info.sync_channel();
+
+		let handler: HttpResponseHandler =
+			Box::pin(move |_request, response| -> Result<(), Error> {
+				let mut s = String::new();
+				response.read_to_string(&mut s)?;
+				info!("response = {}", s)?;
+				assert_eq!(response.code(), 500);
+				wlock!(l) = true;
+				tx.send(())?;
+				Ok(())
+			});
+
+		client.send(&request, handler)?;
+		rx.recv()?;
+		assert!(rlock!(lc));
+
+		let request = HttpBuilder::build_http_request(vec![
+			ConfigOption::HttpMeth("POST".to_string()),
+			ConfigOption::HttpRequestUrl(format!("http://127.0.0.1:{}/test", port)),
+		])?;
+
+		let mut l = lock_box!(false)?;
+		let lc = l.clone();
+
+		let (tx, rx) = test_info.sync_channel();
+
+		let handler: HttpResponseHandler =
+			Box::pin(move |_request, response| -> Result<(), Error> {
+				let mut s = String::new();
+				response.read_to_string(&mut s)?;
+				info!("response = {}", s)?;
+				assert_eq!(response.code(), 405);
+				wlock!(l) = true;
+				tx.send(())?;
+				Ok(())
+			});
+
+		client.send(&request, handler)?;
+		rx.recv()?;
+		assert!(rlock!(lc));
 		Ok(())
 	}
 }
