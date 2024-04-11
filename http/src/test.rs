@@ -217,7 +217,6 @@ mod test {
 		client.send(&request, handler)?;
 		rx.recv()?;
 		assert!(rlock!(lc));
-
 		Ok(())
 	}
 
@@ -241,8 +240,10 @@ mod test {
 
 		let port = test_info.port();
 		info!("port={}", port)?;
-		let mut server =
-			HttpBuilder::build_http_server(vec![ConfigOption::ServerName("myserver".to_string())])?;
+		let mut server = HttpBuilder::build_http_server(vec![
+			ConfigOption::ServerName("myserver".to_string()),
+			ConfigOption::HttpTimeoutMillis(10_000),
+		])?;
 		let instance = HttpBuilder::build_instance(vec![
 			ConfigOption::Port(port),
 			ConfigOption::BaseDir(directory.clone()),
@@ -344,6 +345,7 @@ mod test {
 		rx.recv()?;
 
 		assert_eq!(rlock!(recv_clone), 2);
+
 		Ok(())
 	}
 
@@ -478,7 +480,7 @@ mod test {
 
 	#[test]
 	fn test_http_multi_directory() -> Result<(), Error> {
-		let test_info = test_info!(true)?;
+		let test_info = test_info!()?;
 		let directory = test_info.directory();
 		let port1 = test_info.port();
 		let port2 = pick_free_port()?;
@@ -715,6 +717,60 @@ mod test {
 		rx.recv()?;
 
 		assert_eq!(rlock!(recv), 1);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_http_413_error() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let directory = test_info.directory();
+
+		let mut path_buf = PathBuf::new();
+		path_buf.push(directory);
+		path_buf.push("test.html");
+		let mut file = File::create(path_buf)?;
+		let buf = [b'x'; 100];
+		file.write_all(&buf)?;
+
+		let port = test_info.port();
+
+		let mut server = HttpBuilder::build_http_server(vec![
+			ConfigOption::ServerName("myserver".to_string()),
+			ConfigOption::MaxHeadersLen(30),
+			ConfigOption::SlabSize(25),
+		])?;
+		let instance = HttpBuilder::build_instance(vec![
+			ConfigOption::Port(port),
+			ConfigOption::BaseDir(directory.clone()),
+		])?;
+		server.add_instance(instance)?;
+		server.start()?;
+		let mut client =
+			HttpBuilder::build_http_client(vec![ConfigOption::BaseDir(directory.clone())])?;
+		let request = HttpBuilder::build_http_request(vec![ConfigOption::HttpRequestUrl(
+			format!("http://127.0.0.1:{}/test.html", port),
+		)])?;
+
+		let mut l = lock_box!(false)?;
+		let lc = l.clone();
+
+		let (tx, rx) = test_info.sync_channel();
+
+		let handler: HttpResponseHandler =
+			Box::pin(move |_request, response| -> Result<(), Error> {
+				let mut s = String::new();
+				response.read_to_string(&mut s)?;
+				info!("response = {}", s)?;
+				assert_eq!(response.code(), 413);
+				wlock!(l) = true;
+				tx.send(())?;
+				Ok(())
+			});
+
+		client.send(&request, handler)?;
+		rx.recv()?;
+		assert!(rlock!(lc));
 
 		Ok(())
 	}

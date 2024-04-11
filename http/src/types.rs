@@ -177,7 +177,11 @@ pub(crate) struct HttpServerConfig {
 	pub(crate) server: String,
 	pub(crate) evh_slab_size: usize,
 	pub(crate) evh_slab_count: usize,
+	pub(crate) evh_housekeeping_frequency: usize,
+	pub(crate) http_timeout_millis: u64,
 	pub(crate) debug_no_chunks: bool,
+	pub(crate) max_headers_len: usize,
+	pub(crate) http_mime_map: HashMap<String, String>,
 }
 
 #[derive(Clone)]
@@ -256,4 +260,6 @@ pub(crate) struct HttpServerContext {
 pub(crate) struct HttpConnectionState {
 	pub(crate) is_async: Box<dyn LockBox<bool>>,
 	pub(crate) offset: usize,
+	pub(crate) last_request: u64,
+	pub(crate) write_handle: WriteHandle,
 }

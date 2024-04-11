@@ -70,10 +70,12 @@ pub(crate) const HTTP_SERVER_DEFAULT_PORT: u16 = 8080;
 pub(crate) const HTTP_SERVER_DEFAULT_ADDR: &str = "127.0.0.1";
 pub(crate) const HTTP_SERVER_DEFAULT_BASE_DIR: &str = "~/.bmw/www";
 pub(crate) const HTTP_SERVER_DEFAULT_LISTEN_QUEUE_SIZE: usize = 1_000;
-
-pub(crate) const HTTP_SERVER_FILE_BUFFER_SIZE: usize = 1_000;
+pub(crate) const HTTP_SERVER_DEFAULT_MAX_HEADERS_LEN: usize = 8_192; // 8 Kb
+pub(crate) const HTTP_SERVER_DEFAULT_EVH_HOUSEKEEPING_FREQUENCY_MILLIS: usize = 5_000; // 5 seconds
+pub(crate) const HTTP_SERVER_DEFAULT_TIMEOUT_MILLIS: u64 = 60_000; // 60 seconds
 pub(crate) const HTTP_SERVER_DEFAULT_EVH_SLAB_COUNT: usize = 10_000;
 pub(crate) const HTTP_SERVER_DEFAULT_EVH_SLAB_SIZE: usize = 512;
+pub(crate) const HTTP_SERVER_FILE_BUFFER_SIZE: usize = 10_000;
 
 pub(crate) const HTTP_CLIENT_DEFAULT_BASE_DIR: &str = "~/.bmw";
 pub(crate) const HTTP_CLIENT_DEFAULT_EVH_SLAB_SIZE: usize = 512;
@@ -92,3 +94,7 @@ pub(crate) const HTTP_SERVER_405_CONTENT: &str =
 	"A 405 (method not allowed) error occurred. See server logs for further details.\n";
 pub(crate) const HTTP_SERVER_503_CONTENT: &str =
 	"A 503 (Service Unavailable) error occurred. See server logs for further details.\n";
+pub(crate) const HTTP_SERVER_413_CONTENT: &str =
+	"A 413 (Payload Too Large) error occurred. See server logs for further details.\n";
+pub(crate) const HTTP_SERVER_408_CONTENT: &str =
+	"A 408 (Request Timeout) error occurred. See server logs for further details.\n";

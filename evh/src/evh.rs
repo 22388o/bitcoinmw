@@ -1520,6 +1520,7 @@ where
 		debug!("in process state tid={}", ctx.tid)?;
 
 		Self::process_write_pending(ctx, callbacks, user_context, state)?;
+		Self::process_housekeeper(ctx, callbacks, user_context, config)?;
 
 		let mut state = state.wlock()?;
 		let guard = state.guard()?;
@@ -1529,7 +1530,6 @@ where
 			Self::close_handles(ctx, &(**guard).nconnections, callbacks)?;
 			Ok(true)
 		} else {
-			Self::process_housekeeper(ctx, callbacks, user_context, config)?;
 			debug!("nconnections.size={}", (**guard).nconnections.len())?;
 			loop {
 				let next = (**guard).nconnections.pop_front();
