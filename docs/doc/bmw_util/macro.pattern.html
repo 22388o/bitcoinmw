@@ -24,13 +24,13 @@ pattern. Otherwise, case-insensitive matches are also returned.
 If not specified, this is false.</li>
 </ul>
 <h2 id="return"><a class="doc-anchor" href="#return">§</a>Return</h2>
-<p>Returns <code>Ok(Pattern)</code> on success and on error a [<code>bmw_err::Error</code>] is returned.</p>
+<p>Returns <code>Ok(Pattern)</code> on success and on error a <a href="../bmw_err/types/struct.Error.html" title="struct bmw_err::types::Error"><code>bmw_err::Error</code></a> is returned.</p>
 <h2 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h2>
 <ul>
-<li>[<code>bmw_err::ErrKind::Configuration</code>] - If any other options are specified or if there are
+<li><a href="../bmw_err/types/enum.ErrKind.html#variant.Configuration" title="variant bmw_err::types::ErrKind::Configuration"><code>bmw_err::ErrKind::Configuration</code></a> - If any other options are specified or if there are
 duplicates.</li>
-<li>[<code>bmw_err::ErrKind::Configuration</code>] - If a Regex or PatternId is not specified.</li>
-<li>[<code>bmw_err::ErrKind::Configuration</code>] - If both IsCaseSensitive and IsTerminationPattern are
+<li><a href="../bmw_err/types/enum.ErrKind.html#variant.Configuration" title="variant bmw_err::types::ErrKind::Configuration"><code>bmw_err::ErrKind::Configuration</code></a> - If a Regex or PatternId is not specified.</li>
+<li><a href="../bmw_err/types/enum.ErrKind.html#variant.Configuration" title="variant bmw_err::types::ErrKind::Configuration"><code>bmw_err::ErrKind::Configuration</code></a> - If both IsCaseSensitive and IsTerminationPattern are
 specified. (not currently supported)</li>
 </ul>
 <h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2>

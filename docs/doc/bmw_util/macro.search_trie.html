@@ -11,10 +11,10 @@ will use to match.</li>
 <li>MaxWildCardLength (<a href="https://doc.rust-lang.org/1.77.1/std/primitive.usize.html" title="primitive usize"><code>usize</code></a>) (optional) - The maximum length in bytes of a wild card match.</li>
 </ul>
 <h2 id="return"><a class="doc-anchor" href="#return">§</a>Return</h2>
-<p>Returns <code>Ok(impl SearchTrie + Send + Sync)</code> on success and on error a [<code>bmw_err::Error</code>] is returned.</p>
+<p>Returns <code>Ok(impl SearchTrie + Send + Sync)</code> on success and on error a <a href="../bmw_err/types/struct.Error.html" title="struct bmw_err::types::Error"><code>bmw_err::Error</code></a> is returned.</p>
 <h2 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h2>
 <ul>
-<li>[<code>bmw_err::ErrKind::IllegalArgument</code>] - If one of the regular expressions is invalid.
+<li><a href="../bmw_err/types/enum.ErrKind.html#variant.IllegalArgument" title="variant bmw_err::types::ErrKind::IllegalArgument"><code>bmw_err::ErrKind::IllegalArgument</code></a> - If one of the regular expressions is invalid.
 or the length of the patterns list is 0.</li>
 </ul>
 <h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2>

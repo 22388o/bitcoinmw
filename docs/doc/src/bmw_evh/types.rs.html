@@ -532,6 +532,10 @@
 <a href="#530" id="530">530</a>
 <a href="#531" id="531">531</a>
 <a href="#532" id="532">532</a>
+<a href="#533" id="533">533</a>
+<a href="#534" id="534">534</a>
+<a href="#535" id="535">535</a>
+<a href="#536" id="536">536</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -805,6 +809,9 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) tx: <span class="prelude-ty">Option</span>&lt;SyncSender&lt;()&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) ctype: ConnectionType,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) debug_info: DebugInfo,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) origin_id: u128,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) write_final: bool,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) disable_write_final: bool,
 }
 
 <span class="doccomment">/// Builder struct for the crate. All implementations are created through this struct.
@@ -859,7 +866,7 @@
 	</span><span class="kw">pub </span>bytes_delay_write: u128,
 }
 
-<span class="attr">#[derive(Clone)]
+<span class="attr">#[derive(Clone, Debug)]
 </span><span class="kw">pub struct </span>DebugInfo {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) pending: Box&lt;<span class="kw">dyn </span>LockBox&lt;bool&gt;&gt;,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) write_err: Box&lt;<span class="kw">dyn </span>LockBox&lt;bool&gt;&gt;,
@@ -918,6 +925,7 @@
 	<span class="kw">pub</span>(<span class="kw">crate</span>) read_slab_count: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) housekeeping_frequency_millis: usize,
 	<span class="kw">pub</span>(<span class="kw">crate</span>) stats_update_frequency_millis: usize,
+	<span class="kw">pub</span>(<span class="kw">crate</span>) out_of_slabs_message: String,
 }
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>EventHandlerImpl&lt;OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic&gt;
 <span class="kw">where

@@ -24,17 +24,17 @@ with this <a href="trait.Hashset.html" title="trait bmw_util::Hashset"><code>cra
 GlobalSlabAllocator is false.</li>
 </ul>
 <h2 id="returns"><a class="doc-anchor" href="#returns">§</a>Returns</h2>
-<p>A Ok(<code>Box&lt;dyn Hashset&lt;K&gt;&gt;</code>) on success or a [<code>bmw_err::Error</code>] on failure.</p>
+<p>A Ok(<code>Box&lt;dyn Hashset&lt;K&gt;&gt;</code>) on success or a <a href="../bmw_err/types/struct.Error.html" title="struct bmw_err::types::Error"><code>bmw_err::Error</code></a> on failure.</p>
 <h2 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h2>
 <ul>
-<li>[<code>bmw_err::ErrKind::Configuration</code>] - If any values are specified other than the allowed
+<li><a href="../bmw_err/types/enum.ErrKind.html#variant.Configuration" title="variant bmw_err::types::ErrKind::Configuration"><code>bmw_err::ErrKind::Configuration</code></a> - If any values are specified other than the allowed
 values mentioned above or if there are any duplicate parameters specified.</li>
-<li>[<code>bmw_err::ErrKind::Configuration</code>] - If only one of SlabSize and SlabCount are specified.</li>
-<li>[<code>bmw_err::ErrKind::Configuration</code>] - If GlobalSlabAllocator is true and SlabSize or
+<li><a href="../bmw_err/types/enum.ErrKind.html#variant.Configuration" title="variant bmw_err::types::ErrKind::Configuration"><code>bmw_err::ErrKind::Configuration</code></a> - If only one of SlabSize and SlabCount are specified.</li>
+<li><a href="../bmw_err/types/enum.ErrKind.html#variant.Configuration" title="variant bmw_err::types::ErrKind::Configuration"><code>bmw_err::ErrKind::Configuration</code></a> - If GlobalSlabAllocator is true and SlabSize or
 SlabCount are specified.</li>
-<li>[<code>bmw_err::ErrKind::Configuration</code>] - If GlobalSlabAllocator is false and SlabSize or
+<li><a href="../bmw_err/types/enum.ErrKind.html#variant.Configuration" title="variant bmw_err::types::ErrKind::Configuration"><code>bmw_err::ErrKind::Configuration</code></a> - If GlobalSlabAllocator is false and SlabSize or
 SlabCount are not specified.</li>
-<li>[<code>bmw_err::ErrKind::IllegalArgument</code>] - If the parameters specified for the SlabSize or
+<li><a href="../bmw_err/types/enum.ErrKind.html#variant.IllegalArgument" title="variant bmw_err::types::ErrKind::IllegalArgument"><code>bmw_err::ErrKind::IllegalArgument</code></a> - If the parameters specified for the SlabSize or
 SlabCount are not valid. See <a href="trait.SlabAllocator.html" title="trait bmw_util::SlabAllocator"><code>crate::SlabAllocator</code></a>.</li>
 </ul>
 <h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2>

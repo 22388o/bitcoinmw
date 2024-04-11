@@ -526,6 +526,12 @@
 <a href="#524" id="524">524</a>
 <a href="#525" id="525">525</a>
 <a href="#526" id="526">526</a>
+<a href="#527" id="527">527</a>
+<a href="#528" id="528">528</a>
+<a href="#529" id="529">529</a>
+<a href="#530" id="530">530</a>
+<a href="#531" id="531">531</a>
+<a href="#532" id="532">532</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -956,6 +962,7 @@
 	EvhTimeout,
 	EvhReadSlabSize,
 	EvhReadSlabCount,
+	EvhOutOfSlabsMessage,
 	HttpContentFile,
 	HttpContentData,
 	HttpAccept,
@@ -969,8 +976,10 @@
 	HttpUserAgent,
 	Port,
 	Host,
+	Address,
 	BaseDir,
 	ServerName,
+	ListenQueueSize,
 	DebugNoChunks,
 	Debug,
 	DebugLargeSlabCount,
@@ -1021,6 +1030,7 @@
 	EvhTimeout(u16),
 	EvhReadSlabSize(usize),
 	EvhReadSlabCount(usize),
+	EvhOutOfSlabsMessage(String),
 	HttpContentFile(PathBuf),
 	HttpContentData(Vec&lt;u8&gt;),
 	HttpAccept(String),
@@ -1034,8 +1044,10 @@
 	HttpUserAgent(String),
 	Port(u16),
 	Host(String),
+	Address(String),
 	BaseDir(String),
 	ServerName(String),
+	ListenQueueSize(usize),
 	DebugNoChunks(bool),
 	Debug(bool),
 	DebugLargeSlabCount(bool),

@@ -262,6 +262,11 @@
 <a href="#260" id="260">260</a>
 <a href="#261" id="261">261</a>
 <a href="#262" id="262">262</a>
+<a href="#263" id="263">263</a>
+<a href="#264" id="264">264</a>
+<a href="#265" id="265">265</a>
+<a href="#266" id="266">266</a>
+<a href="#267" id="267">267</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -430,6 +435,10 @@
                                 <span class="kw">let </span>error: Error = ErrorKind::Http403(<span class="macro-nonterminal">$msg</span>.to_string()).into();
                                 error
                         }
+                        ErrKind::Http400 =&gt; {
+                                <span class="kw">let </span>error: Error = ErrorKind::Http400(<span class="macro-nonterminal">$msg</span>.to_string()).into();
+                                error
+                        }
 		}
 	}};
 }
@@ -509,6 +518,7 @@
 				ErrKind::Http =&gt; ErrorKind::Http(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
 				ErrKind::Http404 =&gt; ErrorKind::Http404(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
 				ErrKind::Http403 =&gt; ErrorKind::Http403(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
+				ErrKind::Http400 =&gt; ErrorKind::Http400(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
 				ErrKind::Rustlet =&gt; ErrorKind::Rustlet(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
 			}
 		})

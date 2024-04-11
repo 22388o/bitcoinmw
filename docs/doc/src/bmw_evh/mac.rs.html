@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `evh/src/linux.rs`."><title>linux.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_evh" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `evh/src/mac.rs`."><title>mac.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_evh" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.1 (7cf61ebde 2024-03-27)" data-channel="1.77.1" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
             <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../bmw_evh/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
@@ -319,8 +319,6 @@
 <a href="#317" id="317">317</a>
 <a href="#318" id="318">318</a>
 <a href="#319" id="319">319</a>
-<a href="#320" id="320">320</a>
-<a href="#321" id="321">321</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -342,42 +340,34 @@
 <span class="kw">use </span><span class="kw">crate</span>::types::{
 	DebugInfo, Event, EventHandlerConfig, EventHandlerContext, EventType, EventTypeIn,
 };
-<span class="kw">use </span>bmw_deps::bitvec::vec::BitVec;
 <span class="kw">use </span>bmw_deps::errno::{errno, set_errno, Errno};
+<span class="kw">use </span>bmw_deps::kqueue_sys::{kevent, kqueue, EventFilter, EventFlag, FilterFlag};
 <span class="kw">use </span>bmw_deps::libc::{
-	<span class="self">self</span>, accept, c_int, c_void, close, fcntl, listen, pipe, read, sockaddr, socket, write,
-	F_SETFL, O_NONBLOCK,
+	<span class="self">self</span>, accept, c_int, c_void, close, fcntl, listen, pipe, read, sockaddr, socket, timespec,
+	write, F_SETFL, O_NONBLOCK,
 };
-<span class="kw">use </span>bmw_deps::nix::sys::epoll::{Epoll, EpollCreateFlags, EpollEvent, EpollFlags};
 <span class="kw">use </span>bmw_deps::nix::sys::socket::{bind, SockaddrIn, SockaddrIn6};
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
 <span class="kw">use </span>std::mem::{size_of, zeroed};
 <span class="kw">use </span>std::net::TcpStream;
 <span class="kw">use </span>std::os::fd::IntoRawFd;
-<span class="kw">use </span>std::os::fd::{BorrowedFd, RawFd};
+<span class="kw">use </span>std::os::fd::RawFd;
 <span class="kw">use </span>std::str::FromStr;
-<span class="kw">use </span>std::sync::Arc;
+<span class="kw">use </span>std::time::Duration;
 
 <span class="macro">info!</span>();
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">type </span>Handle = RawFd;
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>LinuxContext {
-	selector: Arc&lt;Epoll&gt;,
-	epoll_events: [EpollEvent; MAX_RET_HANDLES],
-	filter_set: BitVec,
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>MacosContext {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) selector: Handle,
 }
 
-<span class="kw">impl </span>LinuxContext {
+<span class="kw">impl </span>MacosContext {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new() -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
-		<span class="kw">let </span>selector = Arc::new(Epoll::new(EpollCreateFlags::empty())<span class="question-mark">?</span>);
-		<span class="kw">let </span>epoll_events: [EpollEvent; MAX_RET_HANDLES] = [EpollEvent::empty(); MAX_RET_HANDLES];
-		<span class="kw">let </span>filter_set = BitVec::new();
 		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
-			selector,
-			epoll_events,
-			filter_set,
+			selector: <span class="kw">unsafe </span>{ kqueue() },
 		})
 	}
 }
@@ -407,17 +397,10 @@
 	<span class="prelude-val">Ok</span>(())
 }
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>close_impl_ctx(handle: Handle, ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>close_impl_ctx(handle: Handle, _ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 	set_errno(Errno(<span class="number">0</span>));
 	<span class="macro">debug!</span>(<span class="string">"close_impl_ctx handle = {}"</span>, handle)<span class="question-mark">?</span>;
 	close_impl(handle)<span class="question-mark">?</span>;
-	<span class="kw">let </span>handle_as_usize = <span class="macro">try_into!</span>(handle)<span class="question-mark">?</span>;
-	<span class="kw">if </span>handle_as_usize &gt;= ctx.linux_ctx.filter_set.len() {
-		ctx.linux_ctx
-			.filter_set
-			.resize(handle_as_usize + <span class="number">100</span>, <span class="bool-val">false</span>);
-	}
-	ctx.linux_ctx.filter_set.replace(handle_as_usize, <span class="bool-val">false</span>);
 	<span class="prelude-val">Ok</span>(())
 }
 
@@ -436,7 +419,10 @@
 			<span class="macro">debug!</span>(<span class="string">"--------------------EAGAIN------------------"</span>)<span class="question-mark">?</span>;
 			<span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
 		} <span class="kw">else </span>{
-			<span class="kw">let </span>text = <span class="macro">format!</span>(<span class="string">"I/O error handle={}. Error msg: {}"</span>, handle, errno);
+			<span class="kw">let </span>text = <span class="macro">format!</span>(
+				<span class="string">"I/O error occurred while reading handle {}. Error msg: {}"</span>,
+				handle, errno
+			);
 			<span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IO, text))
 		}
 	} <span class="kw">else </span>{
@@ -476,6 +462,7 @@
 	<span class="kw">let </span>strm = TcpStream::connect(<span class="macro">format!</span>(<span class="string">"{}:{}"</span>, host, port))<span class="question-mark">?</span>;
 	strm.set_nonblocking(<span class="bool-val">true</span>)<span class="question-mark">?</span>;
 	<span class="kw">let </span>fd = strm.into_raw_fd();
+
 	<span class="prelude-val">Ok</span>(fd)
 }
 
@@ -545,101 +532,110 @@
 	config: <span class="kw-2">&amp;</span>EventHandlerConfig,
 	ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-	get_events_in(config, ctx)<span class="question-mark">?</span>;
-	get_events_out(config, ctx)<span class="question-mark">?</span>;
+	<span class="kw">let </span>kevs = get_events_in(config, ctx)<span class="question-mark">?</span>;
+	get_events_out(config, ctx, kevs)<span class="question-mark">?</span>;
 	<span class="prelude-val">Ok</span>(())
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_events_in(
 	_config: <span class="kw-2">&amp;</span>EventHandlerConfig,
 	ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
-) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;kevent&gt;, Error&gt; {
+	<span class="kw">let </span><span class="kw-2">mut </span>kevs = <span class="macro">vec!</span>[];
 	<span class="kw">for </span>evt <span class="kw">in </span><span class="kw-2">&amp;</span>ctx.in_events {
-		<span class="kw">let </span>fd_usize: usize = <span class="macro">try_into!</span>(evt.handle)<span class="question-mark">?</span>;
-		<span class="kw">let </span>fd_u64: u64 = <span class="macro">try_into!</span>(evt.handle)<span class="question-mark">?</span>;
-		<span class="kw">let </span>filter_len = ctx.linux_ctx.filter_set.len();
-		<span class="kw">let </span><span class="kw-2">mut </span>interest = EpollFlags::empty();
-		<span class="kw">if </span>fd_usize &gt;= filter_len {
-			ctx.linux_ctx.filter_set.resize(fd_usize + <span class="number">100</span>, <span class="bool-val">false</span>);
+		<span class="kw">match </span>evt.etype {
+			EventTypeIn::Read =&gt; {
+				kevs.push(kevent::new(
+					evt.handle.try_into()<span class="question-mark">?</span>,
+					EventFilter::EVFILT_READ,
+					EventFlag::EV_ADD | EventFlag::EV_CLEAR,
+					FilterFlag::empty(),
+				));
+			}
+			EventTypeIn::Write =&gt; {
+				kevs.push(kevent::new(
+					evt.handle.try_into()<span class="question-mark">?</span>,
+					EventFilter::EVFILT_WRITE,
+					EventFlag::EV_ADD | EventFlag::EV_CLEAR,
+					FilterFlag::empty(),
+				));
+			}
 		}
-		<span class="kw">if </span>evt.etype == EventTypeIn::Read {
-			<span class="macro">debug!</span>(<span class="string">"proc handle adding read to {}"</span>, evt.handle)<span class="question-mark">?</span>;
-			interest |= EpollFlags::EPOLLIN;
-			interest |= EpollFlags::EPOLLET;
-			interest |= EpollFlags::EPOLLRDHUP;
-			<span class="kw">let </span><span class="kw-2">mut </span>event = EpollEvent::new(interest, fd_u64);
-			<span class="kw">if </span><span class="kw-2">*</span>ctx.linux_ctx.filter_set.get(fd_usize).unwrap() {
-				(<span class="kw-2">*</span>ctx.linux_ctx.selector)
-					.modify(<span class="kw">unsafe </span>{ BorrowedFd::borrow_raw(evt.handle) }, <span class="kw-2">&amp;mut </span>event)<span class="question-mark">?</span>;
-			} <span class="kw">else </span>{
-				(<span class="kw-2">*</span>ctx.linux_ctx.selector)
-					.add(<span class="kw">unsafe </span>{ BorrowedFd::borrow_raw(evt.handle) }, event)<span class="question-mark">?</span>;
-			};
+	}
+	<span class="prelude-val">Ok</span>(kevs)
+}
 
-			ctx.linux_ctx.filter_set.replace(fd_usize, <span class="bool-val">true</span>);
-		} <span class="kw">else if </span>evt.etype == EventTypeIn::Write {
-			interest |= EpollFlags::EPOLLOUT;
-			interest |= EpollFlags::EPOLLIN;
-			interest |= EpollFlags::EPOLLRDHUP;
-			interest |= EpollFlags::EPOLLET;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_events_out(
+	config: <span class="kw-2">&amp;</span>EventHandlerConfig,
+	ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
+	kevs: Vec&lt;kevent&gt;,
+) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">let </span><span class="kw-2">mut </span>ret_kevs = <span class="macro">vec!</span>[];
+	<span class="kw">for _ in </span><span class="number">0</span>..MAX_RET_HANDLES {
+		ret_kevs.push(kevent::new(
+			<span class="number">0</span>,
+			EventFilter::EVFILT_SYSCOUNT,
+			EventFlag::empty(),
+			FilterFlag::empty(),
+		));
+	}
+	<span class="kw">let </span>results = {
+		set_errno(Errno(<span class="number">0</span>));
+		<span class="kw">let </span>(requested, _lock) = ctx.wakeups[ctx.tid].pre_block()<span class="question-mark">?</span>;
+		<span class="kw">let </span>timeout = Duration::from_millis(<span class="kw">if </span>requested { <span class="number">0 </span>} <span class="kw">else </span>{ config.timeout.into() });
+		<span class="kw">unsafe </span>{
+			kevent(
+				ctx.macos_ctx.selector,
+				kevs.as_ptr(),
+				kevs.len().try_into()<span class="question-mark">?</span>,
+				ret_kevs.as_mut_ptr(),
+				ret_kevs.len().try_into()<span class="question-mark">?</span>,
+				<span class="kw-2">&amp;</span>duration_to_timespec(timeout),
+			)
+		}
+	};
 
-			<span class="kw">let </span><span class="kw-2">mut </span>event = EpollEvent::new(interest, fd_u64);
+	ctx.wakeups[ctx.tid].post_block()<span class="question-mark">?</span>;
 
-			<span class="kw">let </span>bfd = <span class="kw">unsafe </span>{ BorrowedFd::borrow_raw(evt.handle) };
-			<span class="kw">if </span><span class="kw-2">*</span>ctx.linux_ctx.filter_set.get(fd_usize).unwrap() {
-				(<span class="kw-2">*</span>ctx.linux_ctx.selector).modify(bfd, <span class="kw-2">&amp;mut </span>event)<span class="question-mark">?</span>;
-			} <span class="kw">else </span>{
-				(<span class="kw-2">*</span>ctx.linux_ctx.selector).add(bfd, event)<span class="question-mark">?</span>;
-			};
+	<span class="kw">if </span>results &lt; <span class="number">0 </span>{
+		<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
+			ErrKind::IO,
+			<span class="macro">format!</span>(<span class="string">"kqueue selector had an error: {}"</span>, errno())
+		));
+	}
 
-			ctx.linux_ctx.filter_set.replace(fd_usize, <span class="bool-val">true</span>);
+	<span class="kw">let </span>results: usize = <span class="macro">try_into!</span>(results)<span class="question-mark">?</span>;
+
+	ctx.ret_event_count = <span class="number">0</span>;
+	<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..results {
+		<span class="kw">let </span>is_write = ret_kevs[i].filter == EventFilter::EVFILT_WRITE;
+		<span class="kw">let </span>is_read = ret_kevs[i].filter == EventFilter::EVFILT_READ;
+		<span class="kw">if </span>is_write {
+			ctx.ret_events[ctx.ret_event_count] =
+				Event::new(<span class="macro">try_into!</span>(ret_kevs[i].ident)<span class="question-mark">?</span>, EventType::ReadWrite);
+			ctx.ret_event_count += <span class="number">1</span>;
+		} <span class="kw">else if </span>is_read {
+			ctx.ret_events[ctx.ret_event_count] =
+				Event::new(<span class="macro">try_into!</span>(ret_kevs[i].ident)<span class="question-mark">?</span>, EventType::Read);
+			ctx.ret_event_count += <span class="number">1</span>;
 		}
 	}
 
 	<span class="prelude-val">Ok</span>(())
 }
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_events_out(
-	config: <span class="kw-2">&amp;</span>EventHandlerConfig,
-	ctx: <span class="kw-2">&amp;mut </span>EventHandlerContext,
-) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-	<span class="kw">let </span>results = {
-		<span class="kw">let </span>(requested, _lock) = ctx.wakeups[ctx.tid].pre_block()<span class="question-mark">?</span>;
+<span class="kw">fn </span>duration_to_timespec(d: Duration) -&gt; timespec {
+	<span class="kw">let </span>tv_sec = d.as_secs() <span class="kw">as </span>i64;
+	<span class="kw">let </span>tv_nsec = d.subsec_nanos() <span class="kw">as </span>i64;
 
-		Epoll::wait(
-			<span class="kw-2">&amp;*</span>ctx.linux_ctx.selector,
-			<span class="kw-2">&amp;mut </span>ctx.linux_ctx.epoll_events,
-			<span class="kw">if </span>requested { <span class="number">0 </span>} <span class="kw">else </span>{ config.timeout },
-		)<span class="question-mark">?
-	</span>};
-
-	ctx.wakeups[ctx.tid].post_block()<span class="question-mark">?</span>;
-
-	ctx.ret_event_count = <span class="number">0</span>;
-	<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..results {
-		<span class="kw">let </span>is_write = !(ctx.linux_ctx.epoll_events[i].events() &amp; EpollFlags::EPOLLOUT).is_empty();
-		<span class="kw">let </span>is_read = !(ctx.linux_ctx.epoll_events[i].events() &amp; EpollFlags::EPOLLIN).is_empty();
-		<span class="kw">if </span>is_read &amp;&amp; is_write {
-			ctx.ret_events[ctx.ret_event_count] = Event::new(
-				ctx.linux_ctx.epoll_events[i].data() <span class="kw">as </span>Handle,
-				EventType::ReadWrite,
-			);
-			ctx.ret_event_count += <span class="number">1</span>;
-		} <span class="kw">else if </span>is_read {
-			ctx.ret_events[ctx.ret_event_count] = Event::new(
-				ctx.linux_ctx.epoll_events[i].data() <span class="kw">as </span>Handle,
-				EventType::Read,
-			);
-			ctx.ret_event_count += <span class="number">1</span>;
-		} <span class="kw">else if </span>is_write {
-			ctx.ret_events[ctx.ret_event_count] = Event::new(
-				ctx.linux_ctx.epoll_events[i].data() <span class="kw">as </span>Handle,
-				EventType::Write,
-			);
-			ctx.ret_event_count += <span class="number">1</span>;
-		}
+	<span class="kw">if </span>tv_sec.is_negative() {
+		<span class="macro">panic!</span>(<span class="string">"Duration seconds is negative"</span>);
 	}
 
-	<span class="prelude-val">Ok</span>(())
+	<span class="kw">if </span>tv_nsec.is_negative() {
+		<span class="macro">panic!</span>(<span class="string">"Duration nsecs is negative"</span>);
+	}
+
+	timespec { tv_sec, tv_nsec }
 }
 </code></pre></div></section></main></body></html>

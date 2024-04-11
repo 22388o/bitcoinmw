@@ -6,15 +6,15 @@ with the specified parameters. The queue is returned as a <code>Box&lt;dyn Queue
 <h2 id="input-parameters"><a class="doc-anchor" href="#input-parameters">§</a>Input Parameters</h2>
 <ul>
 <li>size (<a href="https://doc.rust-lang.org/1.77.1/std/primitive.usize.html" title="primitive usize"><code>usize</code></a>) (required) - the size of the underlying array</li>
-<li>default ([<code>bmw_ser::Serializable</code>]) (required) - a reference to the value to initialize the array with
+<li>default (<a href="../bmw_ser/types/trait.Serializable.html" title="trait bmw_ser::types::Serializable"><code>bmw_ser::Serializable</code></a>) (required) - a reference to the value to initialize the array with
 for the queue, these values are never used, but a default is needed to initialize the
 underlying array.</li>
 </ul>
 <h2 id="return"><a class="doc-anchor" href="#return">§</a>Return</h2>
-<p>Returns <code>Ok(Box&lt;dyn Queue&lt;T&gt;&gt;)</code> on success and a [<code>bmw_err::Error</code>] on failure.</p>
+<p>Returns <code>Ok(Box&lt;dyn Queue&lt;T&gt;&gt;)</code> on success and a <a href="../bmw_err/types/struct.Error.html" title="struct bmw_err::types::Error"><code>bmw_err::Error</code></a> on failure.</p>
 <h2 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h2>
 <ul>
-<li>[<code>bmw_err::ErrKind::IllegalArgument</code>] - if the size is 0.</li>
+<li><a href="../bmw_err/types/enum.ErrKind.html#variant.IllegalArgument" title="variant bmw_err::types::ErrKind::IllegalArgument"><code>bmw_err::ErrKind::IllegalArgument</code></a> - if the size is 0.</li>
 </ul>
 <h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2>
 <div class="example-wrap"><pre class="rust rust-example-rendered"><code> <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;

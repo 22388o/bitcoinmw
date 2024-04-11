@@ -873,6 +873,13 @@
 <a href="#871" id="871">871</a>
 <a href="#872" id="872">872</a>
 <a href="#873" id="873">873</a>
+<a href="#874" id="874">874</a>
+<a href="#875" id="875">875</a>
+<a href="#876" id="876">876</a>
+<a href="#877" id="877">877</a>
+<a href="#878" id="878">878</a>
+<a href="#879" id="879">879</a>
+<a href="#880" id="880">880</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -893,11 +900,11 @@
 </span><span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
 <span class="kw">use </span><span class="kw">crate</span>::types::{
 	HttpClientConfig, HttpClientContext, HttpClientData, HttpClientImpl, HttpClientState,
-	HttpConnectionImpl, HttpHeaders, HttpResponseImpl,
+	HttpConnectionImpl, HttpHeadersImpl, HttpResponseImpl,
 };
 <span class="kw">use crate</span>::{
-	HttpClient, HttpConnection, HttpConnectionType, HttpMethod, HttpRequest, HttpResponse,
-	HttpResponseHandler, HttpVersion,
+	HttpClient, HttpConnection, HttpConnectionType, HttpHeaders, HttpMethod, HttpRequest,
+	HttpResponse, HttpResponseHandler, HttpVersion,
 };
 <span class="kw">use </span>bmw_conf::ConfigOption;
 <span class="kw">use </span>bmw_conf::ConfigOptionName <span class="kw">as </span>CN;
@@ -916,7 +923,7 @@
 <span class="kw">use </span>std::path::PathBuf;
 <span class="kw">use </span>std::str::from_utf8;
 
-<span class="macro">debug!</span>();
+<span class="macro">info!</span>();
 
 <span class="kw">impl </span>Display <span class="kw">for </span>HttpMethod {
 	<span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), std::fmt::Error&gt; {
@@ -1189,7 +1196,7 @@
 	}
 
 	<span class="kw">fn </span>process_headers(
-		headers: <span class="kw-2">&amp;mut </span>HttpHeaders,
+		headers: <span class="kw-2">&amp;mut </span>HttpHeadersImpl,
 		connection: <span class="kw-2">&amp;mut </span>Connection,
 		data: <span class="kw-2">&amp;</span>[u8],
 		state: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>LockBox&lt;HashMap&lt;u128, HttpClientState&gt;&gt;&gt;,
@@ -1227,7 +1234,7 @@
 
 	<span class="kw">fn </span>process_chunked(
 		data: <span class="kw-2">&amp;</span>[u8],
-		headers: <span class="kw-2">&amp;mut </span>HttpHeaders,
+		headers: <span class="kw-2">&amp;mut </span>HttpHeadersImpl,
 		connection: <span class="kw-2">&amp;mut </span>Connection,
 		state: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>LockBox&lt;HashMap&lt;u128, HttpClientState&gt;&gt;&gt;,
 		config: <span class="kw-2">&amp;</span>HttpClientConfig,
@@ -1316,7 +1323,7 @@
 	<span class="kw">fn </span>process_complete(
 		state: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>LockBox&lt;HashMap&lt;u128, HttpClientState&gt;&gt;&gt;,
 		ndata: <span class="kw-2">&amp;</span>[u8],
-		headers: <span class="kw-2">&amp;</span>HttpHeaders,
+		headers: <span class="kw-2">&amp;</span>HttpHeadersImpl,
 		id: u128,
 		config: <span class="kw-2">&amp;</span>HttpClientConfig,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
@@ -1346,7 +1353,7 @@
 	<span class="kw">fn </span>process_incomplete(
 		state: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>LockBox&lt;HashMap&lt;u128, HttpClientState&gt;&gt;&gt;,
 		content: <span class="kw-2">&amp;</span>[u8],
-		headers: <span class="kw-2">&amp;</span>HttpHeaders,
+		headers: <span class="kw-2">&amp;</span>HttpHeadersImpl,
 		config: <span class="kw-2">&amp;</span>HttpClientConfig,
 		connection: <span class="kw-2">&amp;mut </span>Connection,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
@@ -1387,7 +1394,7 @@
 	<span class="kw">fn </span>call_handler(
 		state: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>LockBox&lt;HashMap&lt;u128, HttpClientState&gt;&gt;&gt;,
 		content: <span class="kw-2">&amp;</span>[u8],
-		headers: <span class="kw-2">&amp;</span>HttpHeaders,
+		headers: <span class="kw-2">&amp;</span>HttpHeadersImpl,
 		path_buf: <span class="prelude-ty">Option</span>&lt;PathBuf&gt;,
 		id: u128,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
@@ -1454,7 +1461,7 @@
 		matches: <span class="kw-2">&amp;mut </span>[Match],
 		state: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>LockBox&lt;HashMap&lt;u128, HttpClientState&gt;&gt;&gt;,
 		id: u128,
-	) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;(HttpHeaders, usize)&gt;, Error&gt; {
+	) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;(HttpHeadersImpl, usize)&gt;, Error&gt; {
 		<span class="comment">// check if we already have headers
 		</span>{
 			<span class="kw">let </span>state = state.rlock()<span class="question-mark">?</span>;
@@ -1484,7 +1491,7 @@
 
 		<span class="kw">let </span>count = ctx.trie.tmatch(data, matches)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>term = <span class="bool-val">false</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>headers = HttpHeaders::new();
+		<span class="kw">let </span><span class="kw-2">mut </span>headers = HttpHeadersImpl::new();
 		<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..count {
 			<span class="kw">let </span>id = matches[i].id();
 			<span class="kw">if </span>id == HTTP_SEARCH_TRIE_PATTERN_TERMINATION {
@@ -1720,7 +1727,13 @@
 	}
 }
 
-<span class="kw">impl </span>HttpHeaders {
+<span class="kw">impl </span>HttpHeaders <span class="kw">for </span><span class="kw-2">&amp;</span>HttpHeadersImpl {
+	<span class="kw">fn </span>path(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+		<span class="self">self</span>.uri_path()
+	}
+}
+
+<span class="kw">impl </span>HttpHeadersImpl {
 	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new() -&gt; <span class="self">Self </span>{
 		<span class="self">Self </span>{
 			headers: <span class="macro">vec!</span>[],
@@ -1733,10 +1746,11 @@
 			status_message: <span class="string">""</span>.to_string(),
 			status_code: <span class="number">0</span>,
 			connection_type: HttpConnectionType::Unknown,
+			host: <span class="string">""</span>.to_string(),
 		}
 	}
 
-	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>path(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>uri_path(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
 		<span class="kw">match </span><span class="self">self</span>.uri.find(<span class="string">'?'</span>) {
 			<span class="prelude-val">Some</span>(i) =&gt; (<span class="kw-2">&amp;</span><span class="self">self</span>.uri[<span class="number">0</span>..i]).to_string(),
 			<span class="prelude-val">None </span>=&gt; (<span class="kw-2">&amp;</span><span class="self">self</span>.uri[..]).to_string(),
