@@ -26,7 +26,7 @@ mod types;
 mod ws;
 
 pub use crate::types::{
-	HttpBuilder, HttpCallback, HttpClient, HttpConnection, HttpConnectionType, HttpHeaders,
-	HttpMethod, HttpRequest, HttpResponse, HttpResponseHandler, HttpServer, HttpStats, HttpVersion,
-	WSClient, WebSocketCallback,
+	HttpBuilder, HttpCallback, HttpClient, HttpConnection, HttpConnectionType, HttpContentReader,
+	HttpHeaders, HttpInstance, HttpMethod, HttpRequest, HttpResponse, HttpResponseHandler,
+	HttpServer, HttpStats, HttpVersion, WSClient, WebSocketCallback,
 };

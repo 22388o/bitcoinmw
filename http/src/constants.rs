@@ -82,6 +82,9 @@ pub(crate) const HTTP_CLIENT_DEFAULT_EVH_SLAB_SIZE: usize = 512;
 pub(crate) const HTTP_CLIENT_DEFAULT_EVH_SLAB_COUNT: usize = 10_000;
 pub(crate) const HTTP_CLIENT_MAX_MATCHES: usize = 1_000;
 
+pub(crate) const SEPARATOR: &str =
+	"------------------------------------------------------------------------------------------------------------------------";
+
 pub(crate) const HTTP_SERVER_404_CONTENT: &str =
 	"A 404 (not found) error occurred. See server logs for further details.\n";
 pub(crate) const HTTP_SERVER_403_CONTENT: &str =

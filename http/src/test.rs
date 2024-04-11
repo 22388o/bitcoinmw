@@ -883,6 +883,7 @@ mod test {
 		client.send(&request, handler)?;
 		rx.recv()?;
 		assert!(rlock!(lc));
+
 		Ok(())
 	}
 

@@ -849,6 +849,18 @@ impl HttpHeaders for &HttpHeadersImpl {
 	fn path(&self) -> String {
 		self.uri_path()
 	}
+	fn version(&self) -> &HttpVersion {
+		&self.version
+	}
+	fn method(&self) -> &HttpMethod {
+		&self.method
+	}
+	fn query(&self) -> String {
+		self.uri_query()
+	}
+	fn headers(&self) -> &Vec<(String, String)> {
+		&self.headers
+	}
 }
 
 impl HttpHeadersImpl {
@@ -868,10 +880,17 @@ impl HttpHeadersImpl {
 		}
 	}
 
-	pub(crate) fn uri_path(&self) -> String {
+	fn uri_path(&self) -> String {
 		match self.uri.find('?') {
 			Some(i) => (&self.uri[0..i]).to_string(),
 			None => (&self.uri[..]).to_string(),
+		}
+	}
+
+	fn uri_query(&self) -> String {
+		match self.uri.find('?') {
+			Some(i) => (&self.uri[1 + i..]).to_string(),
+			None => "".to_string(),
 		}
 	}
 }

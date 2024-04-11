@@ -36,6 +36,7 @@ use bmw_log::*;
 use bmw_util::*;
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
+use std::fmt::{Display, Formatter};
 use std::fs::{create_dir_all, metadata, remove_dir, remove_file, File};
 use std::io::{BufReader, Read};
 use std::path::PathBuf;
@@ -47,6 +48,15 @@ info!();
 // include build information
 pub mod built_info {
 	include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}
+
+impl Display for HttpVersion {
+	fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+		match self {
+			HttpVersion::Http11 => write!(f, "HTTP/1.1"),
+			_ => write!(f, "HTTP/1.0"),
+		}
+	}
 }
 
 impl From<String> for HttpVersion {
@@ -132,7 +142,7 @@ impl HttpServer for HttpServerImpl {
 		let date = Self::build_date();
 		let msg = HTTP_SERVER_503_CONTENT;
 		let oos_msg = format!(
-                                "HTTP/1.1 503 Service Unavailable\r\nServer: {}\r\nDate: {}\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
+                                "HTTP/1.0 503 Service Unavailable\r\nServer: {}\r\nDate: {}\r\nContent-Type: text/html\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
                                 self.config.server,
                                 date,
                                 msg.len(),
@@ -236,7 +246,7 @@ impl HttpServerImpl {
 		}
 
 		for mut wh in close_conns {
-			match Self::process_408(&mut wh, config) {
+			match Self::process_408(&mut wh, config, &HttpVersion::Http10) {
 				Ok(_) => {}
 				Err(e) => warn!("error closing write handle: {}", e)?,
 			}
@@ -257,6 +267,7 @@ impl HttpServerImpl {
 				CN::HttpTimeoutMillis,
 				CN::EvhHouseKeeperFrequencyMillis,
 				CN::HttpMimeMap,
+				CN::HttpShowRequest,
 			],
 			vec![],
 		)?;
@@ -272,6 +283,7 @@ impl HttpServerImpl {
 			&CN::ServerName,
 			format!("BitcoinMW/{}", built_info::PKG_VERSION.to_string()),
 		);
+		let http_show_request = config.get_or_bool(&CN::HttpShowRequest, false);
 		let max_headers_len =
 			config.get_or_usize(&CN::MaxHeadersLen, HTTP_SERVER_DEFAULT_MAX_HEADERS_LEN);
 
@@ -297,6 +309,7 @@ impl HttpServerImpl {
 			max_headers_len,
 			http_timeout_millis,
 			http_mime_map,
+			http_show_request,
 		})
 	}
 
@@ -574,13 +587,16 @@ impl HttpServerImpl {
 					warn!("unexpected error: {}", e)?;
 					let mut write_handle = connection.write_handle()?;
 					match e.kind() {
-						ErrorKind::Http400(_) => Self::process_400(&mut write_handle, config)?,
+						ErrorKind::Http400(_) => {
+							Self::process_400(&mut write_handle, config, &HttpVersion::Http10)?
+						}
 						ErrorKind::Http404(_) => Self::process_404(
 							&mut write_handle,
 							config,
 							&HttpConnectionType::Close,
+							&HttpVersion::Http10,
 						)?,
-						_ => Self::process_500(&mut write_handle, config)?,
+						_ => Self::process_500(&mut write_handle, config, &HttpVersion::Http10)?,
 					}
 				}
 			}
@@ -641,6 +657,9 @@ impl HttpServerImpl {
 		debug!("headers={:?}", headers)?;
 		match headers {
 			Some(headers) => {
+				if config.http_show_request {
+					Self::show_request(&headers)?;
+				}
 				// update conn state last request time since we now have a request
 				conn_state.update_last_request_time()?;
 				debug!("found headers with conn_state.offset={}", conn_state.offset)?;
@@ -651,11 +670,44 @@ impl HttpServerImpl {
 			None => {
 				if data.len() > config.max_headers_len {
 					let mut wh = connection.write_handle()?;
-					Self::process_413(&mut wh, config)?;
+					Self::process_413(&mut wh, config, &HttpVersion::Http10)?;
 				}
 				Ok(0)
 			}
 		}
+	}
+
+	fn print_header(name: &String, value: &String, min_len: usize) -> Result<(), Error> {
+		let mut name_suffix = vec![];
+		name_suffix.resize(min_len.saturating_sub(name.len()), b' ');
+		let name_suffix = from_utf8(&name_suffix[..])?;
+		info_plain!("['{}'{}]: ['{}']", name, name_suffix, value)?;
+		Ok(())
+	}
+
+	fn show_request(headers: &HttpHeadersImpl) -> Result<(), Error> {
+		info!(
+			"path='{}',query='{}',http_version={},http_method={}",
+			headers.path(),
+			headers.query(),
+			headers.version(),
+			headers.method(),
+		)?;
+		info_plain!(SEPARATOR)?;
+
+		let mut max_name_len = 0;
+		for header in headers.headers() {
+			let len = header.0.len();
+			if len > max_name_len {
+				max_name_len = len;
+			}
+		}
+		for header in headers.headers() {
+			Self::print_header(&header.0, &header.1, max_name_len + 1)?;
+		}
+		info_plain!(SEPARATOR)?;
+
+		Ok(())
 	}
 
 	fn find_base_dir<'a>(
@@ -692,7 +744,7 @@ impl HttpServerImpl {
 						Err(e) => {
 							// we don't really know what state we're in so we return a 500 error and close the connection
 							warn!("http callback generated error: {}", e)?;
-							Self::process_500(write_handle, config)?;
+							Self::process_500(write_handle, config, headers.version())?;
 						}
 					}
 				}
@@ -720,7 +772,12 @@ impl HttpServerImpl {
 		if !Self::try_mappings(headers, instance, &mut write_handle, config)? {
 			if headers.method != HttpMethod::Get && headers.method != HttpMethod::Head {
 				// not allowed return 405 error
-				Self::process_405(&mut write_handle, config, &headers.connection_type)?;
+				Self::process_405(
+					&mut write_handle,
+					config,
+					&headers.connection_type,
+					&headers.version,
+				)?;
 			} else {
 				let base_dir = Self::find_base_dir(instance, headers)?;
 
@@ -742,10 +799,20 @@ impl HttpServerImpl {
 					}
 					Err(e) => match e.kind() {
 						ErrorKind::Http404(_s) => {
-							Self::process_404(&mut write_handle, config, &headers.connection_type)?;
+							Self::process_404(
+								&mut write_handle,
+								config,
+								&headers.connection_type,
+								&headers.version,
+							)?;
 						}
 						ErrorKind::Http403(_s) => {
-							Self::process_403(&mut write_handle, config, &headers.connection_type)?;
+							Self::process_403(
+								&mut write_handle,
+								config,
+								&headers.connection_type,
+								&headers.version,
+							)?;
 						}
 						// we don't know how to handle this so return an error and close
 						// connection
@@ -763,13 +830,18 @@ impl HttpServerImpl {
 		dt.format("%a, %d %h %C%y %H:%M:%S GMT").to_string()
 	}
 
-	fn process_413(wh: &mut WriteHandle, config: &HttpServerConfig) -> Result<(), Error> {
+	fn process_413(
+		wh: &mut WriteHandle,
+		config: &HttpServerConfig,
+		http_version: &HttpVersion,
+	) -> Result<(), Error> {
 		debug!("in process 413")?;
 		let msg = &HTTP_SERVER_413_CONTENT;
 		let date = Self::build_date();
 		wh.write(
                         format!(
-                                "HTTP/1.1 413 Payload Too Large\r\nServer: {}\r\nDate: {}\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
+                                "{} 413 Payload Too Large\r\nServer: {}\r\nDate: {}\r\nContent-Type: text/html\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
+                                http_version,
                                 config.server,
                                 date,
                                 msg.len(),
@@ -781,13 +853,18 @@ impl HttpServerImpl {
 		Ok(())
 	}
 
-	fn process_500(wh: &mut WriteHandle, config: &HttpServerConfig) -> Result<(), Error> {
+	fn process_500(
+		wh: &mut WriteHandle,
+		config: &HttpServerConfig,
+		http_version: &HttpVersion,
+	) -> Result<(), Error> {
 		debug!("in process 500")?;
 		let msg = &HTTP_SERVER_500_CONTENT;
 		let date = Self::build_date();
 		wh.write(
                         format!(
-                                "HTTP/1.1 500 Internal Server Error\r\nServer: {}\r\nDate: {}\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
+                                "{} 500 Internal Server Error\r\nServer: {}\r\nDate: {}\r\nContent-Type: text/html\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
+                                http_version,
                                 config.server,
                                 date,
                                 msg.len(),
@@ -799,13 +876,18 @@ impl HttpServerImpl {
 		Ok(())
 	}
 
-	fn process_400(wh: &mut WriteHandle, config: &HttpServerConfig) -> Result<(), Error> {
+	fn process_400(
+		wh: &mut WriteHandle,
+		config: &HttpServerConfig,
+		http_version: &HttpVersion,
+	) -> Result<(), Error> {
 		debug!("in process 400")?;
 		let msg = &HTTP_SERVER_400_CONTENT;
 		let date = Self::build_date();
 		wh.write(
                         format!(
-                                "HTTP/1.1 400 Bad Request\r\nServer: {}\r\nDate: {}\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
+                                "{} 400 Bad Request\r\nServer: {}\r\nDate: {}\r\nContent-Type: text/html\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
+                                http_version,
                                 config.server,
                                 date,
                                 msg.len(),
@@ -817,13 +899,18 @@ impl HttpServerImpl {
 		Ok(())
 	}
 
-	fn process_408(wh: &mut WriteHandle, config: &HttpServerConfig) -> Result<(), Error> {
+	fn process_408(
+		wh: &mut WriteHandle,
+		config: &HttpServerConfig,
+		http_version: &HttpVersion,
+	) -> Result<(), Error> {
 		debug!("in process 408")?;
 		let msg = &HTTP_SERVER_408_CONTENT;
 		let date = Self::build_date();
 		wh.write(
                         format!(
-                                "HTTP/1.1 408 Request Timeout\r\nServer: {}\r\nDate: {}\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
+                                "{} 408 Request Timeout\r\nServer: {}\r\nDate: {}\r\nContent-Type: text/html\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
+                                http_version,
                                 config.server,
                                 date,
                                 msg.len(),
@@ -839,13 +926,15 @@ impl HttpServerImpl {
 		wh: &mut WriteHandle,
 		config: &HttpServerConfig,
 		connection_type: &HttpConnectionType,
+		http_version: &HttpVersion,
 	) -> Result<(), Error> {
 		debug!("in process 405")?;
 		let msg = &HTTP_SERVER_405_CONTENT;
 		let date = Self::build_date();
 		wh.write(
                         format!(
-                                "HTTP/1.1 405 Method Not Allowed\r\nServer: {}\r\nDate: {}\r\nConnection: {}\r\nContent-Length: {}\r\n\r\n{}",
+                                "{} 405 Method Not Allowed\r\nServer: {}\r\nDate: {}\r\nContent-Type: text/html\r\nConnection: {}\r\nContent-Length: {}\r\n\r\n{}",
+                                http_version,
                                 config.server,
                                 date,
                                 if connection_type == &HttpConnectionType::KeepAlive { "keep-alive" } else { "close" },
@@ -864,13 +953,15 @@ impl HttpServerImpl {
 		wh: &mut WriteHandle,
 		config: &HttpServerConfig,
 		connection_type: &HttpConnectionType,
+		http_version: &HttpVersion,
 	) -> Result<(), Error> {
 		debug!("in process 403")?;
 		let msg = &HTTP_SERVER_403_CONTENT;
 		let date = Self::build_date();
 		wh.write(
 			format!(
-				"HTTP/1.1 403 Forbidden\r\nServer: {}\r\nDate: {}\r\nConnection: {}\r\nContent-Length: {}\r\n\r\n{}",
+				"{} 403 Forbidden\r\nServer: {}\r\nDate: {}\r\nContent-Type: text/html\r\nConnection: {}\r\nContent-Length: {}\r\n\r\n{}",
+                                http_version,
 				config.server,
 				date,
                                 if connection_type == &HttpConnectionType::KeepAlive { "keep-alive" } else { "close" },
@@ -889,13 +980,15 @@ impl HttpServerImpl {
 		wh: &mut WriteHandle,
 		config: &HttpServerConfig,
 		connection_type: &HttpConnectionType,
+		http_version: &HttpVersion,
 	) -> Result<(), Error> {
 		debug!("in process 404")?;
 		let msg = &HTTP_SERVER_404_CONTENT;
 		let date = Self::build_date();
 		wh.write(
 			format!(
-				"HTTP/1.1 404 Not Found\r\nServer: {}\r\nDate: {}\r\nConnection: {}\r\nContent-Length: {}\r\n\r\n{}",
+				"{} 404 Not Found\r\nServer: {}\r\nDate: {}\r\nContent-Type: text/html\r\nConnection: {}\r\nContent-Length: {}\r\n\r\n{}",
+                                http_version,
 				config.server,
 				date,
                                 if connection_type == &HttpConnectionType::KeepAlive { "keep-alive" } else { "close" },
@@ -932,7 +1025,8 @@ impl HttpServerImpl {
 			let content_length = metadata(path)?.len();
 			wh.write(
                                 format!(
-                                        "HTTP/1.1 200 OK\r\nServer: {}\r\nDate: {}\r\n{}Connection: {}\r\nContent-Length: {}\r\n\r\n",
+                                        "{} 200 OK\r\nServer: {}\r\nDate: {}\r\n{}Connection: {}\r\nContent-Length: {}\r\n\r\n",
+                                        http_version,
                                         config.server,
                                         date,
                                         match mime_type {
@@ -947,7 +1041,8 @@ impl HttpServerImpl {
 		} else {
 			wh.write(
                         format!(
-                                "HTTP/1.1 200 OK\r\nServer: {}\r\nDate: {}\r\n{}Connection: {}\r\nTransfer-Encoding: chunked\r\n\r\n",
+                                "{} 200 OK\r\nServer: {}\r\nDate: {}\r\n{}Connection: {}\r\nTransfer-Encoding: chunked\r\n\r\n",
+                                http_version,
                                 config.server,
                                 date,
                                 match mime_type {
@@ -973,7 +1068,7 @@ impl HttpServerImpl {
 		let file = match File::open(path.clone()) {
 			Ok(file) => file,
 			Err(_e) => {
-				return Self::process_403(wh, config, connection_type);
+				return Self::process_403(wh, config, connection_type, http_version);
 			}
 		};
 		let mut buf_reader = BufReader::new(file);

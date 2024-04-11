@@ -146,6 +146,10 @@ pub trait WSClient {}
 
 pub trait HttpHeaders {
 	fn path(&self) -> String;
+	fn version(&self) -> &HttpVersion;
+	fn method(&self) -> &HttpMethod;
+	fn query(&self) -> String;
+	fn headers(&self) -> &Vec<(String, String)>;
 }
 
 pub struct HttpStats {}
@@ -182,6 +186,7 @@ pub(crate) struct HttpServerConfig {
 	pub(crate) debug_no_chunks: bool,
 	pub(crate) max_headers_len: usize,
 	pub(crate) http_mime_map: HashMap<String, String>,
+	pub(crate) http_show_request: bool,
 }
 
 #[derive(Clone)]

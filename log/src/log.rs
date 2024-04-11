@@ -23,6 +23,7 @@ use bmw_deps::backtrace;
 use bmw_deps::backtrace::{Backtrace, Symbol};
 use bmw_deps::chrono::{DateTime, Local};
 use bmw_deps::colored::Colorize;
+use bmw_deps::dirs;
 use bmw_deps::rand::random;
 use bmw_err::*;
 use std::fmt::{Display, Formatter};
@@ -451,6 +452,7 @@ impl LogImpl {
 				level,
 				max_len,
 				line,
+				logging_type,
 			)?;
 		}
 		Ok(())
@@ -468,6 +470,7 @@ impl LogImpl {
 		level: LogLevel,
 		max_len: u64,
 		line: &str,
+		logging_type: LoggingType,
 	) -> Result<(), Error> {
 		// if timestamp needs to be shown we print/write it here
 		if show_timestamp {
@@ -528,22 +531,22 @@ impl LogImpl {
 					// specific colors for each level
 					match level {
 						LogLevel::Trace => {
-							print!("({}) ", format!("{}", level).magenta());
+							print!("({})", format!("{}", level).magenta());
 						}
 						LogLevel::Debug => {
-							print!("({}) ", format!("{}", level).cyan());
+							print!("({})", format!("{}", level).cyan());
 						}
 						LogLevel::Info => {
-							print!("({})  ", format!("{}", level).green());
+							print!(" ({})", format!("{}", level).green());
 						}
 						LogLevel::Warn => {
-							print!("({})  ", format!("{}", level).yellow());
+							print!(" ({})", format!("{}", level).yellow());
 						}
 						LogLevel::Error => {
-							print!("({}) ", format!("{}", level).bright_blue());
+							print!("({})", format!("{}", level).bright_blue());
 						}
 						LogLevel::Fatal => {
-							print!("({}) ", format!("{}", level).red());
+							print!("({})", format!("{}", level).red());
 						}
 					}
 				} else {
@@ -600,11 +603,15 @@ impl LogImpl {
 			// if we're showing stdout, do so here
 			if show_stdout {
 				if show_colors {
-					print!("[{}]: ", logged_from_file.yellow());
+					print!(" [{}]", logged_from_file.yellow());
 				} else {
-					print!("[{}]: ", logged_from_file);
+					print!(" [{}]", logged_from_file);
 				}
 			}
+		}
+
+		if show_stdout && logging_type != LoggingType::Plain {
+			print!(": ");
 		}
 
 		// write the line to the file (if it exists)
@@ -804,6 +811,23 @@ impl LogConfig {
 		let max_size_bytes = config.get_or_u64(&CN::MaxSizeBytes, u64::MAX);
 		let value = DEFAULT_LINE_NUM_DATA_MAX_LEN;
 		let line_num_data_max_len = config.get_or_u64(&CN::LineNumDataMaxLen, value);
+
+		// insert the home directory for ~
+		let home_dir = match dirs::home_dir() {
+			Some(p) => p,
+			None => PathBuf::new(),
+		}
+		.as_path()
+		.display()
+		.to_string();
+
+		let file_path = match file_path {
+			Some(file_path) => {
+				let file_path_string = file_path.display().to_string().replace("~", &home_dir);
+				Some(PathBuf::from(file_path_string))
+			}
+			None => None,
+		};
 
 		if max_age_millis < MINIMUM_MAX_AGE_MILLIS {
 			let text = format!("MaxAgeMillis must be at least {}", MINIMUM_MAX_AGE_MILLIS);
