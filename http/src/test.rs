@@ -900,7 +900,7 @@ mod test {
 		let mut client =
 			HttpBuilder::build_http_client(vec![ConfigOption::BaseDir(directory.clone())])?;
 		let request = HttpBuilder::build_http_request(vec![ConfigOption::HttpRequestUrl(
-			format!("http://127.0.0.1:{}/test2.html", port),
+			format!("http://127.0.0.1:{}/test2.html?012345678901234567890123456789012345678901234567890123456789", port),
 		)])?;
 
 		let mut l = lock_box!(false)?;

@@ -1,5 +1,5 @@
 var srcIndex = new Map(JSON.parse('[\
-["bmw",["",[],["lib.rs"]]],\
+["bitcoinmw",["",[],["lib.rs"]]],\
 ["bmw_conf",["",[],["builder.rs","config.rs","lib.rs","macros.rs","test.rs","types.rs"]]],\
 ["bmw_deps",["",[],["lib.rs"]]],\
 ["bmw_derive",["",[],["derive.rs","lib.rs","types.rs"]]],\

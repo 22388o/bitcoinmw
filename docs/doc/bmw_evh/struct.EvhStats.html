@@ -23,7 +23,7 @@ event that the operating system cannot complete the write of data fully, the
 </div><span id="structfield.event_loops" class="structfield section-header"><a href="#structfield.event_loops" class="anchor field">§</a><code>event_loops: <a class="primitive" href="https://doc.rust-lang.org/1.77.1/std/primitive.usize.html">usize</a></code></span><div class="docblock"><p>The  number of event loops that occured by the <a href="trait.EventHandler.html" title="trait bmw_evh::EventHandler"><code>crate::EventHandler</code></a> in the last
 statistical interval. See <a href="trait.EventHandler.html#tymethod.wait_for_stats" title="method bmw_evh::EventHandler::wait_for_stats"><code>crate::EventHandler::wait_for_stats</code></a>. This is the number
 of times the event handler has gone through it’s main loop. This can be controlled
-by specifying the <a href="../bmw_conf/types/enum.ConfigOption.html#variant.EvhTimeout" title="variant bmw_conf::types::ConfigOption::EvhTimeout"><code>bmw_conf::ConfigOption::EvhTimeout</code></a> parameter on instantiation as
+by specifying the [<code>bmw_conf::ConfigOption::EvhTimeout</code>] parameter on instantiation as
 that will affect the number of times the loop occurs. However, a loop will always
 occur if the server needs to read/write. So, the number will be higher for servers
 with a lot of I/O happening.</p>

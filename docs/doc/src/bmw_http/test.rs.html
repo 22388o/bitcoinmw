@@ -1855,7 +1855,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>client =
 			HttpBuilder::build_http_client(<span class="macro">vec!</span>[ConfigOption::BaseDir(directory.clone())])<span class="question-mark">?</span>;
 		<span class="kw">let </span>request = HttpBuilder::build_http_request(<span class="macro">vec!</span>[ConfigOption::HttpRequestUrl(
-			<span class="macro">format!</span>(<span class="string">"http://127.0.0.1:{}/test2.html"</span>, port),
+			<span class="macro">format!</span>(<span class="string">"http://127.0.0.1:{}/test2.html?012345678901234567890123456789012345678901234567890123456789"</span>, port),
 		)])<span class="question-mark">?</span>;
 
 		<span class="kw">let </span><span class="kw-2">mut </span>l = <span class="macro">lock_box!</span>(<span class="bool-val">false</span>)<span class="question-mark">?</span>;

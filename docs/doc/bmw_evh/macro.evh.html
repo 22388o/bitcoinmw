@@ -3,7 +3,7 @@
     ($(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; { ... };
 }</pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>The <a href="macro.evh.html" title="macro bmw_evh::evh"><code>crate::evh!</code></a> macro builds a <a href="trait.EventHandler.html" title="trait bmw_evh::EventHandler"><code>crate::EventHandler</code></a> implementation. It is returned as a
 <code>Box&lt;dyn EventHandler&lt;OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic&gt; + Send + Sync&gt;</code>. If an
-error occurs, a <a href="../bmw_err/types/struct.Error.html" title="struct bmw_err::types::Error"><code>bmw_err::Error</code></a> is rerurned.</p>
+error occurs, a [<code>bmw_err::Error</code>] is rerurned.</p>
 <h2 id="input-parameters"><a class="doc-anchor" href="#input-parameters">§</a>Input Parameters</h2>
 <ul>
 <li>EvhThreads (<a href="https://doc.rust-lang.org/1.77.1/std/primitive.usize.html" title="primitive usize"><code>usize</code></a>) (optional) - The number of threads for this
@@ -33,15 +33,15 @@ logged. This parameter must NOT be set in a production configuration.</li>
 </ul>
 <h2 id="returns"><a class="doc-anchor" href="#returns">§</a>Returns</h2>
 <p>A <code>Ok(Box&lt;dyn EventHandler&lt;OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic&gt; + Send + Sync&gt;)</code>
-is returned on success. A <a href="../bmw_err/types/struct.Error.html" title="struct bmw_err::types::Error"><code>bmw_err::Error</code></a> is returned on failure.</p>
+is returned on success. A [<code>bmw_err::Error</code>] is returned on failure.</p>
 <h2 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h2>
 <ul>
-<li><a href="../bmw_err/types/enum.ErrKind.html#variant.Configuration" title="variant bmw_err::types::ErrKind::Configuration"><code>bmw_err::ErrKind::Configuration</code></a> - If any values are specified other than the allowed
+<li>[<code>bmw_err::ErrKind::Configuration</code>] - If any values are specified other than the allowed
 values mentioned above or if there are any duplicate parameters specified.</li>
-<li><a href="../bmw_err/types/enum.ErrKind.html#variant.Configuration" title="variant bmw_err::types::ErrKind::Configuration"><code>bmw_err::ErrKind::Configuration</code></a> - If EvhReadSlabCount is 0.</li>
-<li><a href="../bmw_err/types/enum.ErrKind.html#variant.Configuration" title="variant bmw_err::types::ErrKind::Configuration"><code>bmw_err::ErrKind::Configuration</code></a> - If EvhReadSlabSize is less than 25.</li>
-<li><a href="../bmw_err/types/enum.ErrKind.html#variant.Configuration" title="variant bmw_err::types::ErrKind::Configuration"><code>bmw_err::ErrKind::Configuration</code></a> - If EvhTimeout is 0.</li>
-<li><a href="../bmw_err/types/enum.ErrKind.html#variant.Configuration" title="variant bmw_err::types::ErrKind::Configuration"><code>bmw_err::ErrKind::Configuration</code></a> - If EvhHouseKeeperFrequencyMillis is 0.</li>
+<li>[<code>bmw_err::ErrKind::Configuration</code>] - If EvhReadSlabCount is 0.</li>
+<li>[<code>bmw_err::ErrKind::Configuration</code>] - If EvhReadSlabSize is less than 25.</li>
+<li>[<code>bmw_err::ErrKind::Configuration</code>] - If EvhTimeout is 0.</li>
+<li>[<code>bmw_err::ErrKind::Configuration</code>] - If EvhHouseKeeperFrequencyMillis is 0.</li>
 </ul>
 <h2 id="see-also"><a class="doc-anchor" href="#see-also">§</a>See also</h2>
 <p>See the <a href="index.html" title="mod bmw_evh"><code>crate</code></a> documentation as well for the background information and motivation

@@ -6,13 +6,13 @@ SortableList.</p>
 <h2 id="input-parameters"><a class="doc-anchor" href="#input-parameters">§</a>Input Parameters</h2>
 <ul>
 <li>size (<a href="https://doc.rust-lang.org/1.77.1/std/primitive.usize.html" title="primitive usize"><code>usize</code></a>) (required) - the size of the array</li>
-<li>default (<a href="../bmw_ser/types/trait.Serializable.html" title="trait bmw_ser::types::Serializable"><code>bmw_ser::Serializable</code></a>) (required) - a reference to the value to initialize the array with</li>
+<li>default ([<code>bmw_ser::Serializable</code>]) (required) - a reference to the value to initialize the array with</li>
 </ul>
 <h2 id="return"><a class="doc-anchor" href="#return">§</a>Return</h2>
-<p>Returns <a href="trait.SortableList.html" title="trait bmw_util::SortableList"><code>crate::SortableList</code></a> on success and a <a href="../bmw_err/types/struct.Error.html" title="struct bmw_err::types::Error"><code>bmw_err::Error</code></a> on failure.</p>
+<p>Returns <a href="trait.SortableList.html" title="trait bmw_util::SortableList"><code>crate::SortableList</code></a> on success and a [<code>bmw_err::Error</code>] on failure.</p>
 <h2 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h2>
 <ul>
-<li><a href="../bmw_err/types/enum.ErrKind.html#variant.IllegalArgument" title="variant bmw_err::types::ErrKind::IllegalArgument"><code>bmw_err::ErrKind::IllegalArgument</code></a> - if the size is 0.</li>
+<li>[<code>bmw_err::ErrKind::IllegalArgument</code>] - if the size is 0.</li>
 </ul>
 <h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2>
 <div class="example-wrap"><pre class="rust rust-example-rendered"><code> <span class="comment">// create an array_list and iterate through it

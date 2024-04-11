@@ -15,18 +15,18 @@ allocator. If not specified, the default value of
 </li>
 </ul>
 <h2 id="return"><a class="doc-anchor" href="#return">§</a>Return</h2>
-<p>Return <code>Ok(Rc&lt;RefCell&lt;dyn SlabAllocator&gt;&gt;)</code> on success or <a href="../bmw_err/types/struct.Error.html" title="struct bmw_err::types::Error"><code>bmw_err::Error</code></a> on failure.</p>
+<p>Return <code>Ok(Rc&lt;RefCell&lt;dyn SlabAllocator&gt;&gt;)</code> on success or [<code>bmw_err::Error</code>] on failure.</p>
 <h2 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h2>
 <ul>
 <li>
-<p><a href="../bmw_err/types/enum.ErrKind.html#variant.Configuration" title="variant bmw_err::types::ErrKind::Configuration"><code>bmw_err::ErrKind::Configuration</code></a> - Is returned if a
+<p>[<code>bmw_err::ErrKind::Configuration</code>] - Is returned if a
 ConfigOption other than
 ConfigOption::SlabSize or
 ConfigOption::SlabCount is
 specified.</p>
 </li>
 <li>
-<p><a href="../bmw_err/types/enum.ErrKind.html#variant.IllegalArgument" title="variant bmw_err::types::ErrKind::IllegalArgument"><code>bmw_err::ErrKind::IllegalArgument</code></a> - Is returned if the SlabSize is 0 or the SlabCount
+<p>[<code>bmw_err::ErrKind::IllegalArgument</code>] - Is returned if the SlabSize is 0 or the SlabCount
 is 0.</p>
 </li>
 </ul>
