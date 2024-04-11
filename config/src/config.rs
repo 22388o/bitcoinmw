@@ -145,6 +145,7 @@ impl Config for ConfigImpl {
 			Some(v) => match v {
 				ConfigOption::FileHeader(v) => v.to_string(),
 				ConfigOption::Regex(v) => v.to_string(),
+				ConfigOption::EvhOutOfSlabsMessage(v) => v.to_string(),
 				ConfigOption::HttpAccept(v) => v.to_string(),
 				ConfigOption::HttpMeth(v) => v.to_string(),
 				ConfigOption::HttpVers(v) => v.to_string(),
@@ -237,6 +238,7 @@ impl ConfigImpl {
 				EvhTimeout(_) => hash.insert(CN::EvhTimeout, config.clone()),
 				EvhReadSlabSize(_) => hash.insert(CN::EvhReadSlabSize, config.clone()),
 				EvhReadSlabCount(_) => hash.insert(CN::EvhReadSlabCount, config.clone()),
+				EvhOutOfSlabsMessage(_) => hash.insert(CN::EvhOutOfSlabsMessage, config.clone()),
 				Port(_) => hash.insert(CN::Port, config.clone()),
 				Host(_) => hash.insert(CN::Host, config.clone()),
 				Address(_) => hash.insert(CN::Address, config.clone()),
@@ -327,6 +329,7 @@ impl ConfigImpl {
 				EvhTimeout(_) => cc!(self, t, &mut s, CN::EvhTimeout, d),
 				EvhReadSlabSize(_) => cc!(self, t, &mut s, CN::EvhReadSlabSize, d),
 				EvhReadSlabCount(_) => cc!(self, t, &mut s, CN::EvhReadSlabCount, d),
+				EvhOutOfSlabsMessage(_) => cc!(self, t, &mut s, CN::EvhOutOfSlabsMessage, d),
 				Port(_) => cc!(self, t, &mut s, CN::Port, d),
 				Host(_) => cc!(self, t, &mut s, CN::Host, d),
 				Address(_) => cc!(self, t, &mut s, CN::Address, d),

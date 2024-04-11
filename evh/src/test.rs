@@ -1682,6 +1682,8 @@ mod test {
 			ctype: ConnectionType::Connection,
 			debug_info: DebugInfo::default(),
 			origin_id: 0,
+			write_final: false,
+			disable_write_final: false,
 		};
 		assert!(WriteHandle::new(&connection, DebugInfo::default()).is_err());
 
@@ -1701,6 +1703,8 @@ mod test {
 			ctype: ConnectionType::Connection,
 			debug_info: DebugInfo::default(),
 			origin_id: 0,
+			write_final: false,
+			disable_write_final: false,
 		};
 		assert!(WriteHandle::new(&connection, DebugInfo::default()).is_err());
 		Ok(())
@@ -1746,6 +1750,7 @@ mod test {
 			timeout: 1_000,
 			read_slab_count: 1,
 			read_slab_size: 100,
+			out_of_slabs_message: "".to_string(),
 		};
 		let debug_info = DebugInfo {
 			get_events_error: lock_box!(true)?,
@@ -1927,6 +1932,7 @@ mod test {
 			timeout: 1_000,
 			read_slab_count: 1,
 			read_slab_size: 100,
+			out_of_slabs_message: "".to_string(),
 		};
 		let mut state = array!(config.threads, &lock_box!(EventHandlerState::new()?)?)?;
 		let debug_info = DebugInfo::default();
@@ -2109,6 +2115,7 @@ mod test {
 			timeout: 1_000,
 			read_slab_count: 1,
 			read_slab_size: 100,
+			out_of_slabs_message: "".to_string(),
 		};
 		let debug_info = DebugInfo {
 			internal_panic: lock_box!(true)?,
@@ -2501,6 +2508,360 @@ mod test {
 		assert!(rlock!(recv_msg_clone));
 		rx2.recv()?;
 		assert!(rlock!(origin_assertion_ok_clone));
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_pending_write_on_close() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut evh = evh!(
+			Debug(false),
+			EvhTimeout(100),
+			EvhThreads(1),
+			EvhReadSlabSize(250),
+			EvhReadSlabCount(100_000),
+			EvhStatsUpdateMillis(5000),
+			EvhOutOfSlabsMessage("12345".to_string())
+		)?;
+
+		let debug_info = DebugInfo {
+			pending: lock_box!(true)?,
+			..Default::default()
+		};
+		evh.set_debug_info(debug_info)?;
+
+		let mut client_id = lock_box!(0)?;
+
+		let mut client_recv = lock_box!(false)?;
+		let mut server_recv = lock_box!(false)?;
+		let client_recv_clone = client_recv.clone();
+		let server_recv_clone = server_recv.clone();
+		let (tx, rx) = test_info.sync_channel();
+		let client_id_clone = client_id.clone();
+
+		let message = "0123456789";
+		let ret_message = [b'p'; 100_000];
+		let ret_message = from_utf8(&ret_message).unwrap().to_string();
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			info!("onRead")?;
+			let mut data: Vec<u8> = vec![];
+
+			loop {
+				let next_chunk = ctx.next_chunk(connection)?;
+				cbreak!(next_chunk.is_none());
+				let next_chunk = next_chunk.unwrap();
+				data.extend(next_chunk.data());
+			}
+
+			let dstring = from_utf8(&data)?;
+
+			if dstring != message && rlock!(client_id_clone) != connection.id() {
+				return Ok(());
+			} else if dstring != ret_message && rlock!(client_id_clone) == connection.id() {
+				return Ok(());
+			} else {
+				info!("equal")?;
+			}
+
+			let mut wh = connection.write_handle()?;
+
+			// respond
+			if rlock!(client_id_clone) != connection.id() {
+				info!("wh write and close")?;
+				wh.write_and_close(ret_message.as_bytes())?;
+				wlock!(server_recv) = true;
+			} else {
+				wlock!(client_recv) = true;
+			}
+
+			if rlock!(client_recv) && rlock!(server_recv) {
+				tx.send(())?;
+			}
+
+			ctx.clear_all(connection)?;
+			Ok(())
+		})?;
+
+		evh.set_on_accept(move |connection, _ctx| -> Result<(), Error> {
+			info!(
+				"onAccept: handle={},id={}",
+				connection.handle(),
+				connection.id()
+			)?;
+			Ok(())
+		})?;
+
+		evh.set_on_close(move |_connection, _ctx| -> Result<(), Error> {
+			info!("onClose")?;
+			Ok(())
+		})?;
+
+		evh.set_on_housekeeper(move |_ctx| -> Result<(), Error> {
+			info!("onHousekeeper")?;
+			Ok(())
+		})?;
+
+		evh.set_on_panic(move |_ctx, _e| -> Result<(), Error> {
+			info!("onPanic")?;
+			Ok(())
+		})?;
+
+		evh.start()?;
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		info!("connecting to addr {}", addr)?;
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+
+		info!("adding connection now")?;
+		evh.add_server_connection(conn)?;
+		let mut conn2 = EvhBuilder::build_client_connection("127.0.0.1", port)?;
+		conn2.debug_info = DebugInfo {
+			pending: lock_box!(true)?,
+			..Default::default()
+		};
+		wlock!(client_id) = conn2.id();
+
+		let mut wh = evh.add_client_connection(conn2)?;
+		wh.write(message.as_bytes())?;
+
+		rx.recv()?;
+		assert!(rlock!(client_recv_clone));
+		assert!(rlock!(server_recv_clone));
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_out_of_slabs_message() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut evh = evh!(
+			Debug(false),
+			EvhTimeout(100),
+			EvhThreads(1),
+			EvhReadSlabSize(25),
+			EvhReadSlabCount(1),
+			EvhStatsUpdateMillis(5000),
+			EvhOutOfSlabsMessage("outofslabs".to_string())
+		)?;
+
+		let debug_info = DebugInfo {
+			pending: lock_box!(true)?,
+			..Default::default()
+		};
+		evh.set_debug_info(debug_info)?;
+
+		let client_id = lock_box!(0)?;
+
+		let mut client_recv = lock_box!(false)?;
+		let mut server_recv = lock_box!(false)?;
+		let client_id_clone = client_id.clone();
+
+		let message = "012345678901234567890123456789";
+		let ret_message = "0123456789";
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			info!("onRead")?;
+			let mut data: Vec<u8> = vec![];
+
+			loop {
+				let next_chunk = ctx.next_chunk(connection)?;
+				cbreak!(next_chunk.is_none());
+				let next_chunk = next_chunk.unwrap();
+				data.extend(next_chunk.data());
+			}
+
+			let dstring = from_utf8(&data)?;
+
+			if dstring != message && rlock!(client_id_clone) != connection.id() {
+				info!("not equal server = {}", dstring)?;
+				return Ok(());
+			} else if dstring != "outofslabs" && rlock!(client_id_clone) == connection.id() {
+				info!("not equal client = {}", dstring)?;
+				return Ok(());
+			} else {
+				info!(
+					"equal {}",
+					if rlock!(client_id_clone) == connection.id() {
+						"client"
+					} else {
+						"server"
+					}
+				)?;
+			}
+
+			let mut wh = connection.write_handle()?;
+
+			// respond
+			if rlock!(client_id_clone) != connection.id() {
+				info!("wh write and close")?;
+				wh.write_and_close(ret_message.as_bytes())?;
+				wlock!(server_recv) = true;
+			} else {
+				wlock!(client_recv) = true;
+			}
+
+			ctx.clear_all(connection)?;
+			Ok(())
+		})?;
+
+		evh.set_on_accept(move |connection, _ctx| -> Result<(), Error> {
+			info!(
+				"onAccept: handle={},id={}",
+				connection.handle(),
+				connection.id()
+			)?;
+			Ok(())
+		})?;
+
+		evh.set_on_close(move |connection, _ctx| -> Result<(), Error> {
+			info!("onClose: {}", connection.id())?;
+			Ok(())
+		})?;
+
+		evh.set_on_housekeeper(move |_ctx| -> Result<(), Error> {
+			info!("onHousekeeper")?;
+			Ok(())
+		})?;
+
+		evh.set_on_panic(move |_ctx, _e| -> Result<(), Error> {
+			info!("onPanic")?;
+			Ok(())
+		})?;
+
+		evh.start()?;
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		info!("connecting to addr {}", addr)?;
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+
+		info!("adding connection now")?;
+		evh.add_server_connection(conn)?;
+		let mut strm = TcpStream::connect(addr)?;
+
+		strm.write(message.as_bytes())?;
+		let mut buf = [0u8; 100];
+		info!("about to read")?;
+		let len = strm.read(&mut buf)?;
+		info!("read complete")?;
+
+		assert_eq!(&buf[0..len], b"outofslabs");
+		Ok(())
+	}
+
+	#[test]
+	fn test_evh_disabled_out_of_slabs_message() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut evh = evh!(
+			Debug(false),
+			EvhTimeout(100),
+			EvhThreads(1),
+			EvhReadSlabSize(25),
+			EvhReadSlabCount(1),
+			EvhStatsUpdateMillis(5000),
+			EvhOutOfSlabsMessage("outofslabs".to_string())
+		)?;
+
+		let debug_info = DebugInfo {
+			pending: lock_box!(true)?,
+			..Default::default()
+		};
+		evh.set_debug_info(debug_info)?;
+
+		let client_id = lock_box!(0)?;
+
+		let mut client_recv = lock_box!(false)?;
+		let mut server_recv = lock_box!(false)?;
+		let client_id_clone = client_id.clone();
+
+		let message = "012345678901234567890123456789";
+		let ret_message = "0123456789";
+
+		evh.set_on_read(move |connection, ctx| -> Result<(), Error> {
+			info!("onRead")?;
+			let mut data: Vec<u8> = vec![];
+
+			loop {
+				let next_chunk = ctx.next_chunk(connection)?;
+				cbreak!(next_chunk.is_none());
+				let next_chunk = next_chunk.unwrap();
+				data.extend(next_chunk.data());
+			}
+
+			let dstring = from_utf8(&data)?;
+
+			if dstring != message && rlock!(client_id_clone) != connection.id() {
+				info!("not equal server = {}", dstring)?;
+				return Ok(());
+			} else if dstring != "outofslabs" && rlock!(client_id_clone) == connection.id() {
+				info!("not equal client = {}", dstring)?;
+				return Ok(());
+			} else {
+				info!(
+					"equal {}",
+					if rlock!(client_id_clone) == connection.id() {
+						"client"
+					} else {
+						"server"
+					}
+				)?;
+			}
+
+			let mut wh = connection.write_handle()?;
+
+			// respond
+			if rlock!(client_id_clone) != connection.id() {
+				info!("wh write and close")?;
+				wh.write_and_close(ret_message.as_bytes())?;
+				wlock!(server_recv) = true;
+			} else {
+				wlock!(client_recv) = true;
+			}
+
+			ctx.clear_all(connection)?;
+			Ok(())
+		})?;
+
+		evh.set_on_accept(move |connection, _ctx| -> Result<(), Error> {
+			connection.disable_write_final();
+			info!(
+				"onAccept: handle={},id={}",
+				connection.handle(),
+				connection.id()
+			)?;
+			Ok(())
+		})?;
+
+		evh.set_on_close(move |connection, _ctx| -> Result<(), Error> {
+			info!("onClose: {}", connection.id())?;
+			Ok(())
+		})?;
+
+		evh.set_on_housekeeper(move |_ctx| -> Result<(), Error> {
+			info!("onHousekeeper")?;
+			Ok(())
+		})?;
+
+		evh.set_on_panic(move |_ctx, _e| -> Result<(), Error> {
+			info!("onPanic")?;
+			Ok(())
+		})?;
+
+		evh.start()?;
+		let port = test_info.port();
+		let addr = format!("127.0.0.1:{}", port);
+		info!("connecting to addr {}", addr)?;
+		let conn = EvhBuilder::build_server_connection(&addr, 10_000)?;
+
+		info!("adding connection now")?;
+		evh.add_server_connection(conn)?;
+		let mut strm = TcpStream::connect(addr)?;
+
+		strm.write(message.as_bytes())?;
+		let mut buf = [0u8; 100];
+		info!("about to read")?;
+		assert!(strm.read(&mut buf).is_err());
 
 		Ok(())
 	}

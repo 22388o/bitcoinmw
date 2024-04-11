@@ -475,7 +475,6 @@ impl WriteHandle {
 			let text = format!("write I/O error handle {}: {}", self.handle, errno());
 			return Err(err!(ErrKind::IO, text));
 		}
-
 		let wlen: usize = try_into!(wlen)?;
 		if wlen < data_len {
 			self.queue_data(&data[wlen..])?;
@@ -541,6 +540,25 @@ impl WriteHandle {
 		}
 		self.wakeup.wakeup()?;
 
+		Ok(())
+	}
+
+	// test the specific case where we're closing and have a pending write
+	#[cfg(test)]
+	pub(crate) fn write_and_close(&mut self, data: &[u8]) -> Result<(), Error> {
+		{
+			let mut write_state = self.write_state.wlock()?;
+			let guard = write_state.guard()?;
+			(**guard).set_flag(WRITE_STATE_FLAG_CLOSE);
+			(**guard).set_flag(WRITE_STATE_FLAG_PENDING);
+			(**guard).write_buffer.extend(data);
+		}
+
+		{
+			wlock!(self.state).write_queue.push_back(self.id);
+		}
+
+		self.wakeup.wakeup()?;
 		Ok(())
 	}
 
@@ -629,6 +647,12 @@ impl Connection {
 		self.origin_id
 	}
 
+	/// Disable the message that is sent by configuring EvhOutOfSlabsMessage for the
+	/// [`crate::EventHandler`] that this connection is associated with.
+	pub fn disable_write_final(&mut self) {
+		self.disable_write_final = true;
+	}
+
 	pub(crate) fn new(
 		handle: Handle,
 		wakeup: Option<Wakeup>,
@@ -656,6 +680,8 @@ impl Connection {
 			ctype,
 			debug_info,
 			origin_id,
+			write_final: false,
+			disable_write_final: false,
 		})
 	}
 	pub(crate) fn handle(&self) -> Handle {
@@ -1202,6 +1228,7 @@ where
 				CN::EvhThreads,
 				CN::EvhHouseKeeperFrequencyMillis,
 				CN::EvhStatsUpdateMillis,
+				CN::EvhOutOfSlabsMessage,
 				CN::Debug,
 			],
 			vec![],
@@ -1219,6 +1246,8 @@ where
 		let evhsum = &CN::EvhStatsUpdateMillis;
 		let default = EVH_DEFAULT_STATS_UPDATE_MILLIS;
 		let stats_update_frequency_millis = config.get_or_usize(evhsum, default);
+		let default = EVH_DEFAULT_OUT_OF_SLABS_MESSAGE.to_string();
+		let out_of_slabs_message = config.get_or_string(&CN::EvhOutOfSlabsMessage, default);
 
 		if read_slab_count == 0 {
 			let text = "EvhReadSlabCount count must not be 0";
@@ -1248,6 +1277,7 @@ where
 			read_slab_count,
 			housekeeping_frequency_millis,
 			stats_update_frequency_millis,
+			out_of_slabs_message,
 		};
 		Ok(evhc)
 	}
@@ -1582,7 +1612,6 @@ where
 				ConnectionVariant::ClientConnection(conn) => {
 					let handle = conn.handle();
 					let (close, trigger_on_read, pending) = Self::write_conn(conn)?;
-
 					// if data is pending complete the write first
 					if close && !pending {
 						close_list.push(conn.handle());
@@ -1686,12 +1715,14 @@ where
 			let h = ctx.ret_events[ctx.ret_event_itt].handle;
 			let mut need_read_update = false;
 			let mut need_write_update = false;
+
 			if ctx.ret_events[ctx.ret_event_itt].etype == EventType::Read
 				|| ctx.ret_events[ctx.ret_event_itt].etype == EventType::ReadWrite
 			{
 				need_read_update =
 					Self::process_read_event(config, ctx, callbacks, h, state, u, d)?;
 			}
+
 			if ctx.ret_events[ctx.ret_event_itt].etype == EventType::Write
 				|| ctx.ret_events[ctx.ret_event_itt].etype == EventType::ReadWrite
 			{
@@ -1736,14 +1767,28 @@ where
 						ret = true;
 					}
 					ConnectionVariant::ClientConnection(conn) => {
-						(close, read_count, read_sum) =
-							Self::process_read(conn, config, callbacks, user_context, debug_info)?;
-						ret = !close;
+						if !conn.write_final {
+							(close, read_count, read_sum) = Self::process_read(
+								conn,
+								config,
+								callbacks,
+								user_context,
+								debug_info,
+							)?;
+							ret = !close;
+						}
 					}
 					ConnectionVariant::Connection(conn) => {
-						(close, read_count, read_sum) =
-							Self::process_read(conn, config, callbacks, user_context, debug_info)?;
-						ret = !close;
+						if !conn.write_final {
+							(close, read_count, read_sum) = Self::process_read(
+								conn,
+								config,
+								callbacks,
+								user_context,
+								debug_info,
+							)?;
+							ret = !close;
+						}
 					}
 					ConnectionVariant::Wakeup(_wakeup) => {
 						let mut buf = [0u8; 1000];
@@ -1815,6 +1860,17 @@ where
 		Ok(())
 	}
 
+	fn write_final(conn: &mut Connection, config: &EventHandlerConfig) -> Result<bool, Error> {
+		if config.out_of_slabs_message.len() > 0 && !conn.disable_write_final {
+			let mut wh = conn.write_handle()?;
+			wh.write(config.out_of_slabs_message.as_bytes())?;
+			wh.close()?;
+			Ok(false)
+		} else {
+			Ok(true)
+		}
+	}
+
 	fn process_read(
 		conn: &mut Connection,
 		config: &EventHandlerConfig,
@@ -1828,7 +1884,6 @@ where
 		let mut read_sum = 0u128;
 		let handle = conn.handle();
 		// loop through and read as many slabs as we can
-
 		while TRUE {
 			let last_slab = conn.get_last_slab();
 			let slab_offset = conn.get_slab_offset();
@@ -1839,7 +1894,14 @@ where
 					Ok(slab) => Some(slab),
 					Err(e) => {
 						warn!("cannot allocate any more slabs1 due to: {}", e)?;
-						close = true;
+						close = match Self::write_final(conn, config) {
+							Ok(close) => close,
+							Err(e) => {
+								warn!("write_final generated error: {}", e)?;
+								true
+							}
+						};
+						conn.write_final = true;
 						None
 					}
 				};
@@ -1863,7 +1925,14 @@ where
 					Ok(slab) => Some(slab),
 					Err(e) => {
 						warn!("cannot allocate any more slabs2 due to: {}", e)?;
-						close = true;
+						close = match Self::write_final(conn, config) {
+							Ok(close) => close,
+							Err(e) => {
+								warn!("write_final generated error: {}", e)?;
+								true
+							}
+						};
+						conn.write_final = true;
 						None
 					}
 				};

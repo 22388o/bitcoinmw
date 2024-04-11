@@ -272,6 +272,8 @@ pub struct Connection {
 	pub(crate) ctype: ConnectionType,
 	pub(crate) debug_info: DebugInfo,
 	pub(crate) origin_id: u128,
+	pub(crate) write_final: bool,
+	pub(crate) disable_write_final: bool,
 }
 
 /// Builder struct for the crate. All implementations are created through this struct.
@@ -326,7 +328,7 @@ pub struct EvhStats {
 	pub bytes_delay_write: u128,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DebugInfo {
 	pub(crate) pending: Box<dyn LockBox<bool>>,
 	pub(crate) write_err: Box<dyn LockBox<bool>>,
@@ -385,6 +387,7 @@ pub(crate) struct EventHandlerConfig {
 	pub(crate) read_slab_count: usize,
 	pub(crate) housekeeping_frequency_millis: usize,
 	pub(crate) stats_update_frequency_millis: usize,
+	pub(crate) out_of_slabs_message: String,
 }
 pub(crate) struct EventHandlerImpl<OnRead, OnAccept, OnClose, OnHousekeeper, OnPanic>
 where
