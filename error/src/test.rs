@@ -117,6 +117,9 @@ mod test {
 			ErrorKind::Configuration(ss.clone()).into(),
 		)?;
 		test_kind(ErrKind::Rustlet, s, ErrorKind::Rustlet(ss.clone()).into())?;
+		test_kind(ErrKind::Http404, s, ErrorKind::Http404(ss.clone()).into())?;
+		test_kind(ErrKind::Http400, s, ErrorKind::Http400(ss.clone()).into())?;
+		test_kind(ErrKind::Http403, s, ErrorKind::Http403(ss.clone()).into())?;
 
 		Ok(())
 	}
@@ -212,6 +215,9 @@ mod test {
 		test_map(ErrKind::Rustls, ErrorKind::Rustls(s.clone()).into())?;
 		test_map(ErrKind::Crypt, ErrorKind::Crypt(s.clone()).into())?;
 		test_map(ErrKind::Rustlet, ErrorKind::Rustlet(s.clone()).into())?;
+		test_map(ErrKind::Http400, ErrorKind::Http400(s.clone()).into())?;
+		test_map(ErrKind::Http403, ErrorKind::Http403(s.clone()).into())?;
+		test_map(ErrKind::Http404, ErrorKind::Http404(s.clone()).into())?;
 
 		Ok(())
 	}
