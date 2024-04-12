@@ -467,12 +467,37 @@ impl WriteHandle {
 			{
 				0
 			} else {
-				write_impl(self.handle, data)?
+				match write_impl(self.handle, data) {
+					Ok(len) => len,
+					Err(e) => {
+						let err = errno().0;
+						if err == EAGAIN || err == ETEMPUNAVAILABLE || err == WINNONBLOCKING {
+							0
+						} else {
+							let text = format!(
+								"write I/O error handle {}: {}: {}",
+								self.handle,
+								errno().0,
+								e
+							);
+							return Err(err!(ErrKind::IO, text));
+						}
+					}
+				}
 			}
 		};
 
 		if wlen < 0 || self.debug_info.is_write_handle_err() {
-			let text = format!("write I/O error handle {}: {}", self.handle, errno());
+			let err = errno().0;
+			if err == EAGAIN || err == ETEMPUNAVAILABLE || err == WINNONBLOCKING {
+				// would block so queue all data
+				self.queue_data(&data)?;
+				return Ok(());
+			}
+			let text = format!(
+				"write I/O error handle {}: {},eagain={}",
+				self.handle, err, EAGAIN
+			);
 			return Err(err!(ErrKind::IO, text));
 		}
 		let wlen: usize = try_into!(wlen)?;
@@ -2207,7 +2232,7 @@ where
 				},
 				None => warn!("id hash lookup failed for id: {}, handle: {}", id, handle)?,
 			},
-			None => warn!("handle lookup failed for  handle: {}", handle)?,
+			None => debug!("handle lookup failed for  handle: {}", handle)?,
 		}
 
 		let ret = if close {
