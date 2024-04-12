@@ -16,16 +16,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Macro to map the try_from error into an appropriate error.
-#[macro_export]
-macro_rules! try_into {
-	($v:expr) => {{
-		use bmw_err::{map_err, ErrKind};
-		use std::convert::TryInto;
-		map_err!($v.try_into(), ErrKind::Misc, "TryInto Error")
-	}};
-}
-
 /// Build the specified [`crate::ErrorKind`] and convert it into an [`crate::Error`]. The desired
 /// [`crate::ErrorKind`] is specified using the [`crate::ErrKind`] name enum.
 ///
@@ -56,120 +46,38 @@ macro_rules! err {
                 let msg = &format!($msg, $($param)*)[..];
                 err!($kind, msg)
         }};
-	($kind:expr, $msg:expr) => {{
-            use bmw_err::{ErrKind, ErrorKind, Error};
+	($kind:expr, $m:expr) => {{
+                #[allow(unused_imports)]
+                use bmw_err::{ErrKind, ErrorKind, Error, impl_err};
+                use bmw_err::ErrKind::*;
 		match $kind {
-			ErrKind::Configuration => {
-				let error: Error = ErrorKind::Configuration($msg.to_string()).into();
-				error
-			}
-			ErrKind::IO => {
-				let error: Error = ErrorKind::IO($msg.to_string()).into();
-				error
-			}
-			ErrKind::Log => {
-				let error: Error = ErrorKind::Log($msg.to_string()).into();
-				error
-			}
-			ErrKind::Utf8 => {
-				let error: Error = ErrorKind::Utf8($msg.to_string()).into();
-				error
-			}
-			ErrKind::ArrayIndexOutOfBounds => {
-				let error: Error = ErrorKind::ArrayIndexOutOfBounds($msg.to_string()).into();
-				error
-			}
-			ErrKind::Poison => {
-				let error: Error = ErrorKind::Poison($msg.to_string()).into();
-				error
-			}
-			ErrKind::CorruptedData => {
-				let error: Error =
-					ErrorKind::CorruptedData($msg.to_string()).into();
-				error
-			}
-			ErrKind::Timeout => {
-				let error: Error = ErrorKind::Timeout($msg.to_string()).into();
-				error
-			}
-			ErrKind::CapacityExceeded => {
-				let error: Error =
-					ErrorKind::CapacityExceeded($msg.to_string()).into();
-				error
-			}
-			ErrKind::UnexpectedEof => {
-				let error: Error =
-					ErrorKind::UnexpectedEof($msg.to_string()).into();
-				error
-			}
-			ErrKind::IllegalArgument => {
-				let error: Error = ErrorKind::IllegalArgument($msg.to_string()).into();
-                                error
-			}
-			ErrKind::Misc => {
-				let error: Error = ErrorKind::Misc($msg.to_string()).into();
-				error
-			}
-			ErrKind::IllegalState => {
-				let error: Error = ErrorKind::IllegalState($msg.to_string()).into();
-				error
-			}
-			ErrKind::Test => {
-				let error: Error = ErrorKind::Test($msg.to_string()).into();
-				error
-			}
-			ErrKind::Overflow => {
-				let error: Error = ErrorKind::Overflow($msg.to_string()).into();
-				error
-			}
-			ErrKind::ThreadPanic => {
-				let error: Error = ErrorKind::ThreadPanic($msg.to_string()).into();
-				error
-			}
-			ErrKind::Alloc => {
-				let error: Error = ErrorKind::Alloc($msg.to_string()).into();
-				error
-			}
-			ErrKind::OperationNotSupported => {
-				let error: Error = ErrorKind::OperationNotSupported($msg.to_string()).into();
-				error
-			}
-			ErrKind::SystemTime => {
-				let error: Error = ErrorKind::SystemTime($msg.to_string()).into();
-				error
-			}
-			ErrKind::Errno => {
-				let error: Error = ErrorKind::Errno($msg.to_string()).into();
-				error
-			}
-			ErrKind::Rustls => {
-				let error: Error = ErrorKind::Rustls($msg.to_string()).into();
-				error
-			}
-			ErrKind::Crypt => {
-				let error: Error = ErrorKind::Crypt($msg.to_string()).into();
-				error
-			}
-			ErrKind::Http => {
-				let error: Error = ErrorKind::Http($msg.to_string()).into();
-				error
-			}
-			ErrKind::Rustlet => {
-				let error: Error = ErrorKind::Rustlet($msg.to_string()).into();
-				error
-			}
-                        ErrKind::Http404 => {
-                                let error: Error = ErrorKind::Http404($msg.to_string()).into();
-                                error
-                        }
-                        ErrKind::Http403 => {
-                                let error: Error = ErrorKind::Http403($msg.to_string()).into();
-                                error
-                        }
-                        ErrKind::Http400 => {
-                                let error: Error = ErrorKind::Http400($msg.to_string()).into();
-                                error
-                        }
+                        IO => impl_err!(IO, $m),
+                        Log=> impl_err!(Log, $m),
+                        Utf8 => impl_err!(Utf8, $m),
+                        ArrayIndexOutOfBounds => impl_err!(ArrayIndexOutOfBounds, $m),
+                        Configuration => impl_err!(Configuration, $m),
+                        Poison => impl_err!(Poison, $m),
+                        CorruptedData => impl_err!(CorruptedData, $m),
+                        Timeout => impl_err!(Timeout, $m),
+                        CapacityExceeded => impl_err!(CapacityExceeded, $m),
+                        UnexpectedEof=> impl_err!(UnexpectedEof, $m),
+                        IllegalArgument => impl_err!(IllegalArgument, $m),
+                        Misc => impl_err!(Misc, $m),
+                        IllegalState => impl_err!(IllegalState, $m),
+                        Overflow => impl_err!(Overflow, $m),
+                        Test => impl_err!(Test, $m),
+                        ThreadPanic => impl_err!(ThreadPanic, $m),
+                        Alloc => impl_err!(Alloc, $m),
+                        OperationNotSupported => impl_err!(OperationNotSupported, $m),
+                        SystemTime => impl_err!(SystemTime, $m),
+                        Errno => impl_err!(Errno, $m),
+                        Rustls => impl_err!(Rustls, $m),
+                        Crypt => impl_err!(Crypt, $m),
+                        Http => impl_err!(Http, $m),
+                        Http404 => impl_err!(Http404, $m),
+                        Http403 => impl_err!(Http403, $m),
+                        Http400 => impl_err!(Http400, $m),
+                        Rustlet => impl_err!(Rustlet, $m),
 		}
 	}};
 }
@@ -205,52 +113,40 @@ macro_rules! map_err {
 		use bmw_err::map_err;
 		map_err!($in_err, $kind, "")
 	}};
-	($in_err:expr, $kind:expr, $msg:expr) => {{
-		use bmw_err::{ErrKind, Error, ErrorKind};
+	($in_err:expr, $kind:expr, $m:expr) => {{
+		use bmw_err::ErrKind::*;
+		#[allow(unused_imports)]
+		use bmw_err::{impl_map_err, ErrKind, Error, ErrorKind};
 		$in_err.map_err(|e| -> Error {
 			let k = $kind;
 			match k {
-				ErrKind::Configuration => {
-					ErrorKind::Configuration(format!("{}: {}", $msg, e)).into()
-				}
-				ErrKind::IO => ErrorKind::IO(format!("{}: {}", $msg, e)).into(),
-				ErrKind::Log => ErrorKind::Log(format!("{}: {}", $msg, e)).into(),
-				ErrKind::UnexpectedEof => {
-					ErrorKind::UnexpectedEof(format!("{}: {}", $msg, e)).into()
-				}
-				ErrKind::Utf8 => ErrorKind::Utf8(format!("{}: {}", $msg, e)).into(),
-				ErrKind::ArrayIndexOutOfBounds => {
-					ErrorKind::ArrayIndexOutOfBounds(format!("{}: {}", $msg, e)).into()
-				}
-				ErrKind::Timeout => ErrorKind::Timeout(format!("{}: {}", $msg, e)).into(),
-				ErrKind::CapacityExceeded => {
-					ErrorKind::CapacityExceeded(format!("{}: {}", $msg, e)).into()
-				}
-				ErrKind::IllegalArgument => {
-					ErrorKind::IllegalArgument(format!("{}: {}", $msg, e)).into()
-				}
-				ErrKind::Poison => ErrorKind::Poison(format!("{}: {}", $msg, e)).into(),
-				ErrKind::Misc => ErrorKind::Misc(format!("{}: {}", $msg, e)).into(),
-				ErrKind::CorruptedData => {
-					ErrorKind::CorruptedData(format!("{}: {}", $msg, e)).into()
-				}
-				ErrKind::IllegalState => ErrorKind::IllegalState(format!("{}: {}", $msg, e)).into(),
-				ErrKind::Test => ErrorKind::Test(format!("{}: {}", $msg, e)).into(),
-				ErrKind::Overflow => ErrorKind::Overflow(format!("{}: {}", $msg, e)).into(),
-				ErrKind::ThreadPanic => ErrorKind::ThreadPanic(format!("{}: {}", $msg, e)).into(),
-				ErrKind::Alloc => ErrorKind::Alloc(format!("{}: {}", $msg, e)).into(),
-				ErrKind::OperationNotSupported => {
-					ErrorKind::OperationNotSupported(format!("{}: {}", $msg, e)).into()
-				}
-				ErrKind::SystemTime => ErrorKind::SystemTime(format!("{}: {}", $msg, e)).into(),
-				ErrKind::Errno => ErrorKind::Errno(format!("{}: {}", $msg, e)).into(),
-				ErrKind::Rustls => ErrorKind::Rustls(format!("{}: {}", $msg, e)).into(),
-				ErrKind::Crypt => ErrorKind::Crypt(format!("{}: {}", $msg, e)).into(),
-				ErrKind::Http => ErrorKind::Http(format!("{}: {}", $msg, e)).into(),
-				ErrKind::Http404 => ErrorKind::Http404(format!("{}: {}", $msg, e)).into(),
-				ErrKind::Http403 => ErrorKind::Http403(format!("{}: {}", $msg, e)).into(),
-				ErrKind::Http400 => ErrorKind::Http400(format!("{}: {}", $msg, e)).into(),
-				ErrKind::Rustlet => ErrorKind::Rustlet(format!("{}: {}", $msg, e)).into(),
+				Configuration => impl_map_err!(Configuration, $m, e),
+				IO => impl_map_err!(IO, $m, e),
+				Log => impl_map_err!(Log, $m, e),
+				UnexpectedEof => impl_map_err!(UnexpectedEof, $m, e),
+				Utf8 => impl_map_err!(Utf8, $m, e),
+				ArrayIndexOutOfBounds => impl_map_err!(ArrayIndexOutOfBounds, $m, e),
+				Timeout => impl_map_err!(Timeout, $m, e),
+				CapacityExceeded => impl_map_err!(CapacityExceeded, $m, e),
+				IllegalArgument => impl_map_err!(IllegalArgument, $m, e),
+				Poison => impl_map_err!(Poison, $m, e),
+				Misc => impl_map_err!(Misc, $m, e),
+				CorruptedData => impl_map_err!(CorruptedData, $m, e),
+				IllegalState => impl_map_err!(IllegalState, $m, e),
+				Test => impl_map_err!(Test, $m, e),
+				Overflow => impl_map_err!(Overflow, $m, e),
+				ThreadPanic => impl_map_err!(ThreadPanic, $m, e),
+				Alloc => impl_map_err!(Alloc, $m, e),
+				OperationNotSupported => impl_map_err!(OperationNotSupported, $m, e),
+				SystemTime => impl_map_err!(SystemTime, $m, e),
+				Errno => impl_map_err!(Errno, $m, e),
+				Rustls => impl_map_err!(Rustls, $m, e),
+				Crypt => impl_map_err!(Crypt, $m, e),
+				Http => impl_map_err!(Http, $m, e),
+				Http404 => impl_map_err!(Http404, $m, e),
+				Http403 => impl_map_err!(Http403, $m, e),
+				Http400 => impl_map_err!(Http400, $m, e),
+				Rustlet => impl_map_err!(Rustlet, $m, e),
 			}
 		})
 	}};
@@ -264,4 +160,33 @@ macro_rules! cbreak {
 			break;
 		}
 	}};
+}
+
+/// Macro to map the try_from error into an appropriate error.
+#[macro_export]
+macro_rules! try_into {
+	($v:expr) => {{
+		use bmw_err::{map_err, ErrKind};
+		use std::convert::TryInto;
+		map_err!($v.try_into(), ErrKind::Misc, "TryInto Error")
+	}};
+}
+
+// helper to do err
+#[doc(hidden)]
+#[macro_export]
+macro_rules! impl_err {
+	($error_kind:ident, $msg:expr) => {{
+		let error: Error = ErrorKind::$error_kind($msg.to_string()).into();
+		error
+	}};
+}
+
+// helper to do mapping
+#[doc(hidden)]
+#[macro_export]
+macro_rules! impl_map_err {
+	($error_kind:ident, $msg:expr, $e:expr) => {
+		ErrorKind::$error_kind(format!("{}: {}", $msg, $e)).into()
+	};
 }

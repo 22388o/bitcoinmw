@@ -210,9 +210,8 @@ pub fn slice_to_u32(slice: &[u8]) -> Result<u32, Error> {
 
 /// Get the time since the Unix Epoch in u64
 pub fn time_since_epoch() -> Result<u64, Error> {
-	Ok(try_into!(SystemTime::now()
-		.duration_since(UNIX_EPOCH)?
-		.as_millis())?)
+	let now = SystemTime::now();
+	Ok(try_into!(now.duration_since(UNIX_EPOCH)?.as_millis())?)
 }
 
 /// Set the maximum possible value in this slice

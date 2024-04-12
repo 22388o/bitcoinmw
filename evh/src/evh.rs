@@ -1496,7 +1496,8 @@ where
 		user_context: &mut UserContextImpl,
 		config: &EventHandlerConfig,
 	) -> Result<(), Error> {
-		let now: usize = try_into!(SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis())?;
+		let now = SystemTime::now();
+		let now: usize = try_into!(now.duration_since(UNIX_EPOCH)?.as_millis())?;
 		if now.saturating_sub(ctx.last_housekeeping) > config.housekeeping_frequency_millis {
 			Self::call_on_housekeeper(user_context, &mut callbacks.on_housekeeper)?;
 			ctx.last_housekeeping = now;
