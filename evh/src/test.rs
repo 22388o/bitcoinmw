@@ -1353,7 +1353,8 @@ mod test {
 
 		let mut buf = [0u8; 100];
 		// this will be an error because the connection is closed when there's a read error
-		assert!(strm.read(&mut buf).is_err());
+		//assert!(strm.read(&mut buf).is_err());
+		assert_eq!(strm.read(&mut buf)?, 0);
 		assert!(!rlock!(recv_msg_clone));
 
 		evh.set_debug_info(DebugInfo::default())?;
@@ -2232,8 +2233,8 @@ mod test {
 
 		let mut buf = [0u8; 100];
 
-		// the stream gets closed by the server because there's no more slabs
-		assert!(strm.read(&mut buf).is_err());
+		let len = strm.read(&mut buf)?;
+		assert_eq!(len, 0);
 
 		// we should have only gotten a single request (second one causes the allocation
 		// error)
@@ -2251,7 +2252,8 @@ mod test {
 		strm2.write(b"test")?;
 
 		// stream 2 gets closed, but 1 is ok
-		assert!(strm2.read(&mut buf).is_err());
+		let len = strm2.read(&mut buf)?;
+		assert_eq!(len, 0);
 		assert_eq!(strm1.read(&mut buf)?, 8);
 		assert_eq!(&buf[0..8], b"response");
 		assert_eq!(rlock!(counter_clone), 2);
@@ -2861,7 +2863,7 @@ mod test {
 		strm.write(message.as_bytes())?;
 		let mut buf = [0u8; 100];
 		info!("about to read")?;
-		assert!(strm.read(&mut buf).is_err());
+		assert_eq!(strm.read(&mut buf)?, 0);
 
 		Ok(())
 	}

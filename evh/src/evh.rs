@@ -1810,7 +1810,9 @@ where
 				warn!("none1")?;
 			}
 		} else {
-			warn!("none2")?;
+			// connection has been removed from the hashes and shutdown, now a read occurs
+			// and we can close the underlying handle
+			close_impl(handle)?;
 		}
 		debug!("close was {}", close)?;
 		if close {

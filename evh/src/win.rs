@@ -28,7 +28,7 @@ use bmw_deps::wepoll_sys::{
 	EPOLLOUT, EPOLLRDHUP, EPOLL_CTL_ADD, EPOLL_CTL_DEL, EPOLL_CTL_MOD,
 };
 use bmw_deps::windows_sys::Win32::Networking::WinSock::{
-	accept, closesocket, ioctlsocket, recv, send, setsockopt, SOCKADDR,
+	accept, closesocket, ioctlsocket, recv, send, setsockopt, shutdown, SD_SEND, SOCKADDR,
 };
 use bmw_err::*;
 use bmw_log::*;
@@ -89,6 +89,13 @@ pub(crate) fn wakeup_impl() -> Result<(Handle, Handle), Error> {
 	Ok((listener_handle, stream_handle))
 }
 
+pub(crate) fn shutdown_impl(handle: Handle) -> Result<(), Error> {
+	unsafe {
+		shutdown(handle, SD_SEND);
+	}
+	Ok(())
+}
+
 pub(crate) fn close_impl(handle: Handle) -> Result<(), Error> {
 	unsafe {
 		closesocket(handle);
@@ -131,7 +138,7 @@ pub(crate) fn close_impl_ctx(handle: Handle, ctx: &mut EventHandlerContext) -> R
 		)?;
 	}
 
-	close_impl(handle)?;
+	shutdown_impl(handle)?;
 
 	Ok(())
 }

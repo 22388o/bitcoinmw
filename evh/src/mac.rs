@@ -22,8 +22,8 @@ use crate::types::{
 use bmw_deps::errno::{errno, set_errno, Errno};
 use bmw_deps::kqueue_sys::{kevent, kqueue, EventFilter, EventFlag, FilterFlag};
 use bmw_deps::libc::{
-	self, accept, c_int, c_void, close, fcntl, listen, pipe, read, sockaddr, socket, timespec,
-	write, F_SETFL, O_NONBLOCK,
+	self, accept, c_int, c_void, close, fcntl, listen, pipe, read, shutdown, sockaddr, socket,
+	timespec, write, F_SETFL, O_NONBLOCK,
 };
 use bmw_deps::nix::sys::socket::{bind, SockaddrIn, SockaddrIn6};
 use bmw_err::*;
@@ -67,6 +67,13 @@ pub(crate) fn wakeup_impl() -> Result<(Handle, Handle), Error> {
 	Ok((retfds[0], retfds[1]))
 }
 
+pub(crate) fn shutdown_impl(handle: Handle) -> Result<(), Error> {
+	unsafe {
+		shutdown(handle, 1);
+	}
+	Ok(())
+}
+
 pub(crate) fn close_impl(handle: Handle) -> Result<(), Error> {
 	debug!("closing {}", handle)?;
 	set_errno(Errno(0));
@@ -79,7 +86,7 @@ pub(crate) fn close_impl(handle: Handle) -> Result<(), Error> {
 pub(crate) fn close_impl_ctx(handle: Handle, _ctx: &mut EventHandlerContext) -> Result<(), Error> {
 	set_errno(Errno(0));
 	debug!("close_impl_ctx handle = {}", handle)?;
-	close_impl(handle)?;
+	shutdown_impl(handle)?;
 	Ok(())
 }
 
