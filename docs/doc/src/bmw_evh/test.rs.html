@@ -2868,6 +2868,8 @@
 <a href="#2866" id="2866">2866</a>
 <a href="#2867" id="2867">2867</a>
 <a href="#2868" id="2868">2868</a>
+<a href="#2869" id="2869">2869</a>
+<a href="#2870" id="2870">2870</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -4223,7 +4225,8 @@
 
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">100</span>];
 		<span class="comment">// this will be an error because the connection is closed when there's a read error
-		</span><span class="macro">assert!</span>(strm.read(<span class="kw-2">&amp;mut </span>buf).is_err());
+		//assert!(strm.read(&amp;mut buf).is_err());
+		</span><span class="macro">assert_eq!</span>(strm.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>, <span class="number">0</span>);
 		<span class="macro">assert!</span>(!<span class="macro">rlock!</span>(recv_msg_clone));
 
 		evh.set_debug_info(DebugInfo::default())<span class="question-mark">?</span>;
@@ -5102,8 +5105,8 @@
 
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">100</span>];
 
-		<span class="comment">// the stream gets closed by the server because there's no more slabs
-		</span><span class="macro">assert!</span>(strm.read(<span class="kw-2">&amp;mut </span>buf).is_err());
+		<span class="kw">let </span>len = strm.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+		<span class="macro">assert_eq!</span>(len, <span class="number">0</span>);
 
 		<span class="comment">// we should have only gotten a single request (second one causes the allocation
 		// error)
@@ -5121,7 +5124,8 @@
 		strm2.write(<span class="string">b"test"</span>)<span class="question-mark">?</span>;
 
 		<span class="comment">// stream 2 gets closed, but 1 is ok
-		</span><span class="macro">assert!</span>(strm2.read(<span class="kw-2">&amp;mut </span>buf).is_err());
+		</span><span class="kw">let </span>len = strm2.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+		<span class="macro">assert_eq!</span>(len, <span class="number">0</span>);
 		<span class="macro">assert_eq!</span>(strm1.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>, <span class="number">8</span>);
 		<span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>buf[<span class="number">0</span>..<span class="number">8</span>], <span class="string">b"response"</span>);
 		<span class="macro">assert_eq!</span>(<span class="macro">rlock!</span>(counter_clone), <span class="number">2</span>);
@@ -5731,7 +5735,7 @@
 		strm.write(message.as_bytes())<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">100</span>];
 		<span class="macro">info!</span>(<span class="string">"about to read"</span>)<span class="question-mark">?</span>;
-		<span class="macro">assert!</span>(strm.read(<span class="kw-2">&amp;mut </span>buf).is_err());
+		<span class="macro">assert_eq!</span>(strm.read(<span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>, <span class="number">0</span>);
 
 		<span class="prelude-val">Ok</span>(())
 	}
