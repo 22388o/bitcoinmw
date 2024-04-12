@@ -174,6 +174,8 @@ pub(crate) struct HttpHeadersImpl {
 	pub(crate) status_code: u16,
 	pub(crate) connection_type: HttpConnectionType,
 	pub(crate) host: String,
+	pub(crate) if_none_match: Option<String>,
+	pub(crate) if_modified_since: Option<String>,
 }
 
 #[derive(Clone)]
@@ -183,7 +185,6 @@ pub(crate) struct HttpServerConfig {
 	pub(crate) evh_slab_count: usize,
 	pub(crate) evh_housekeeping_frequency: usize,
 	pub(crate) http_timeout_millis: u64,
-	pub(crate) debug_no_chunks: bool,
 	pub(crate) max_headers_len: usize,
 	pub(crate) http_mime_map: HashMap<String, String>,
 	pub(crate) http_show_request: bool,

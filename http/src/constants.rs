@@ -64,6 +64,8 @@ pub(crate) const HTTP_SEARCH_TRIE_PATTERN_HTTP10: usize = 15;
 pub(crate) const HTTP_SEARCH_TRIE_PATTERN_CONNECTION_KEEP_ALIVE: usize = 16;
 pub(crate) const HTTP_SEARCH_TRIE_PATTERN_CONNECTION_CLOSE: usize = 17;
 pub(crate) const HTTP_SEARCH_TRIE_PATTERN_HOST: usize = 18;
+pub(crate) const HTTP_SEARCH_TRIE_PATTERN_IF_MODIFIED_SINCE: usize = 19;
+pub(crate) const HTTP_SEARCH_TRIE_PATTERN_IF_NONE_MATCH: usize = 20;
 
 // Http Server defaults
 pub(crate) const HTTP_SERVER_DEFAULT_PORT: u16 = 8080;

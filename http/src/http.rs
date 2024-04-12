@@ -27,7 +27,7 @@ use crate::{
 use bmw_conf::ConfigOption::*;
 use bmw_conf::ConfigOptionName as CN;
 use bmw_conf::*;
-use bmw_deps::chrono::Utc;
+use bmw_deps::chrono::{DateTime, Utc};
 use bmw_deps::dirs;
 use bmw_deps::rand::random;
 use bmw_err::*;
@@ -42,6 +42,7 @@ use std::io::{BufReader, Read};
 use std::path::PathBuf;
 use std::str::from_utf8;
 use std::thread::spawn;
+use std::time::UNIX_EPOCH;
 
 info!();
 
@@ -139,7 +140,7 @@ impl HttpServer for HttpServerImpl {
 		let config_clone2 = self.config.clone();
 		let mut matches = [tmatch!()?; 1_000];
 
-		let date = Self::build_date();
+		let date = Self::build_date(None);
 		let msg = HTTP_SERVER_503_CONTENT;
 		let oos_msg = format!(
                                 "HTTP/1.0 503 Service Unavailable\r\nServer: {}\r\nDate: {}\r\nContent-Type: text/html\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
@@ -262,7 +263,6 @@ impl HttpServerImpl {
 				CN::SlabCount,
 				CN::SlabSize,
 				CN::ServerName,
-				CN::DebugNoChunks,
 				CN::MaxHeadersLen,
 				CN::HttpTimeoutMillis,
 				CN::EvhHouseKeeperFrequencyMillis,
@@ -298,14 +298,11 @@ impl HttpServerImpl {
 		};
 		let http_mime_map = Self::mime_map_to_hashmap(http_mime_map);
 
-		let debug_no_chunks = config.get_or_bool(&CN::DebugNoChunks, false);
-
 		Ok(HttpServerConfig {
 			server,
 			evh_slab_size,
 			evh_slab_count,
 			evh_housekeeping_frequency,
-			debug_no_chunks,
 			max_headers_len,
 			http_timeout_millis,
 			http_mime_map,
@@ -795,6 +792,8 @@ impl HttpServerImpl {
 							conn_state,
 							&headers.connection_type,
 							&headers.version,
+							&headers.if_none_match,
+							&headers.if_modified_since,
 						)?;
 					}
 					Err(e) => match e.kind() {
@@ -825,8 +824,11 @@ impl HttpServerImpl {
 		Ok(headers.end_headers)
 	}
 
-	fn build_date() -> String {
-		let dt = Utc::now();
+	fn build_date(date: Option<DateTime<Utc>>) -> String {
+		let dt = match date {
+			Some(dt) => dt,
+			None => Utc::now(),
+		};
 		dt.format("%a, %d %h %C%y %H:%M:%S GMT").to_string()
 	}
 
@@ -837,7 +839,7 @@ impl HttpServerImpl {
 	) -> Result<(), Error> {
 		debug!("in process 413")?;
 		let msg = &HTTP_SERVER_413_CONTENT;
-		let date = Self::build_date();
+		let date = Self::build_date(None);
 		wh.write(
                         format!(
                                 "{} 413 Payload Too Large\r\nServer: {}\r\nDate: {}\r\nContent-Type: text/html\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
@@ -860,7 +862,7 @@ impl HttpServerImpl {
 	) -> Result<(), Error> {
 		debug!("in process 500")?;
 		let msg = &HTTP_SERVER_500_CONTENT;
-		let date = Self::build_date();
+		let date = Self::build_date(None);
 		wh.write(
                         format!(
                                 "{} 500 Internal Server Error\r\nServer: {}\r\nDate: {}\r\nContent-Type: text/html\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
@@ -883,7 +885,7 @@ impl HttpServerImpl {
 	) -> Result<(), Error> {
 		debug!("in process 400")?;
 		let msg = &HTTP_SERVER_400_CONTENT;
-		let date = Self::build_date();
+		let date = Self::build_date(None);
 		wh.write(
                         format!(
                                 "{} 400 Bad Request\r\nServer: {}\r\nDate: {}\r\nContent-Type: text/html\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
@@ -906,7 +908,7 @@ impl HttpServerImpl {
 	) -> Result<(), Error> {
 		debug!("in process 408")?;
 		let msg = &HTTP_SERVER_408_CONTENT;
-		let date = Self::build_date();
+		let date = Self::build_date(None);
 		wh.write(
                         format!(
                                 "{} 408 Request Timeout\r\nServer: {}\r\nDate: {}\r\nContent-Type: text/html\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
@@ -930,7 +932,7 @@ impl HttpServerImpl {
 	) -> Result<(), Error> {
 		debug!("in process 405")?;
 		let msg = &HTTP_SERVER_405_CONTENT;
-		let date = Self::build_date();
+		let date = Self::build_date(None);
 		wh.write(
                         format!(
                                 "{} 405 Method Not Allowed\r\nServer: {}\r\nDate: {}\r\nContent-Type: text/html\r\nConnection: {}\r\nContent-Length: {}\r\n\r\n{}",
@@ -957,7 +959,7 @@ impl HttpServerImpl {
 	) -> Result<(), Error> {
 		debug!("in process 403")?;
 		let msg = &HTTP_SERVER_403_CONTENT;
-		let date = Self::build_date();
+		let date = Self::build_date(None);
 		wh.write(
 			format!(
 				"{} 403 Forbidden\r\nServer: {}\r\nDate: {}\r\nContent-Type: text/html\r\nConnection: {}\r\nContent-Length: {}\r\n\r\n{}",
@@ -984,7 +986,7 @@ impl HttpServerImpl {
 	) -> Result<(), Error> {
 		debug!("in process 404")?;
 		let msg = &HTTP_SERVER_404_CONTENT;
-		let date = Self::build_date();
+		let date = Self::build_date(None);
 		wh.write(
 			format!(
 				"{} 404 Not Found\r\nServer: {}\r\nDate: {}\r\nContent-Type: text/html\r\nConnection: {}\r\nContent-Length: {}\r\n\r\n{}",
@@ -1009,7 +1011,11 @@ impl HttpServerImpl {
 		config: &HttpServerConfig,
 		http_version: &HttpVersion,
 		connection_type: &HttpConnectionType,
-	) -> Result<(), Error> {
+		if_none_match: &Option<String>,
+		if_modified_since: &Option<String>,
+	) -> Result<bool, Error> {
+		let mut ret = true;
+		let mut code_and_status = "200 OK";
 		let extension = PathBuf::from(path.clone())
 			.as_path()
 			.extension()
@@ -1020,41 +1026,84 @@ impl HttpServerImpl {
 			.to_lowercase();
 
 		let mime_type = config.http_mime_map.get(&extension);
-		let date = Self::build_date();
-		if http_version != &HttpVersion::Http11 || config.debug_no_chunks {
-			let content_length = metadata(path)?.len();
-			wh.write(
-                                format!(
-                                        "{} 200 OK\r\nServer: {}\r\nDate: {}\r\n{}Connection: {}\r\nContent-Length: {}\r\n\r\n",
-                                        http_version,
-                                        config.server,
-                                        date,
-                                        match mime_type {
-                                                Some(m) => format!("Content-Type: {}\r\n", m),
-                                                None => "".to_string(),
-                                        },
-                                        if connection_type == &HttpConnectionType::KeepAlive { "keep-alive" } else { "close" },
-                                        content_length,
-                                )
-                                .as_bytes(),
-                        )?;
-		} else {
-			wh.write(
-                        format!(
-                                "{} 200 OK\r\nServer: {}\r\nDate: {}\r\n{}Connection: {}\r\nTransfer-Encoding: chunked\r\n\r\n",
-                                http_version,
-                                config.server,
-                                date,
-                                match mime_type {
-                                        Some(m) => format!("Content-Type: {}\r\n", m),
-                                        None => "".to_string(),
-                                },
-                                if connection_type == &HttpConnectionType::KeepAlive { "keep-alive" } else { "close" }
-                        )
-                        .as_bytes(),
-                        )?;
+		let date = Self::build_date(None);
+		let meta_data = metadata(path)?;
+		let content_length = meta_data.len();
+		let last_modified_secs = meta_data.modified()?.duration_since(UNIX_EPOCH)?.as_secs();
+		let etag = format!("\"{:x}-{:01x}\"", last_modified_secs, content_length);
+		let last_modified = DateTime::from_timestamp(try_into!(last_modified_secs)?, 0)
+			.unwrap_or(UNIX_EPOCH.into())
+			.format("%a, %d %h %C%y %H:%M:%S GMT")
+			.to_string();
+
+		match if_modified_since {
+			Some(if_modified_since) => {
+				if if_modified_since.len() > 0 && &last_modified == if_modified_since {
+					ret = false;
+					code_and_status = "304 Not Modified";
+				}
+			}
+			None => {}
 		}
-		Ok(())
+
+		if ret {
+			// only bother checking if it's not a if_modified_since match
+			match if_none_match {
+				Some(if_none_match) => {
+					if if_none_match.len() > 0 && if_none_match == &etag {
+						ret = false;
+						code_and_status = "304 Not Modified";
+					}
+				}
+				None => {}
+			}
+		}
+
+		let mime_type = match mime_type {
+			Some(m) => {
+				if ret {
+					format!("Content-Type: {}\r\n", m)
+				} else {
+					"".to_string()
+				}
+			}
+			None => "".to_string(),
+		};
+		let connection = if connection_type == &HttpConnectionType::KeepAlive {
+			"keep-alive"
+		} else {
+			"close"
+		};
+
+		let content_length_str = if ret {
+			format!("Content-Length: {}\r\n", content_length)
+		} else {
+			"".to_string()
+		};
+
+		let fmt = format!(
+			"{} {}\r\n\
+Server: {}\r\n\
+Date: {}\r\n\
+{}\
+Connection: {}\r\n\
+{}\
+Last-Modified: {}\r\n\
+ETag: {}\r\n\r\n",
+			http_version,
+			code_and_status,
+			config.server,
+			date,
+			mime_type,
+			connection,
+			content_length_str,
+			last_modified,
+			etag,
+		);
+
+		wh.write(fmt.as_bytes())?;
+
+		Ok(ret)
 	}
 
 	fn send_file(
@@ -1064,6 +1113,8 @@ impl HttpServerImpl {
 		conn_state: &mut HttpConnectionState,
 		connection_type: &HttpConnectionType,
 		http_version: &HttpVersion,
+		if_none_match: &Option<String>,
+		if_modified_since: &Option<String>,
 	) -> Result<(), Error> {
 		let file = match File::open(path.clone()) {
 			Ok(file) => file,
@@ -1072,43 +1123,42 @@ impl HttpServerImpl {
 			}
 		};
 		let mut buf_reader = BufReader::new(file);
-		Self::write_headers(path, wh, config, http_version, connection_type)?;
-		let mut wh = wh.clone();
-		conn_state.set_async(true)?;
+		let need_file = Self::write_headers(
+			path,
+			wh,
+			config,
+			http_version,
+			connection_type,
+			if_none_match,
+			if_modified_since,
+		)?;
 
-		let mut conn_state_clone = conn_state.clone();
-		let connection_type_clone = connection_type.clone();
-		let http_version_clone = http_version.clone();
-		let config = config.clone();
-		spawn(move || -> Result<(), Error> {
-			let mut buf = [0u8; HTTP_SERVER_FILE_BUFFER_SIZE];
-			let mut i = 0;
-			loop {
-				debug!("loop {} ", i)?;
-				i += 1;
-				let len = buf_reader.read(&mut buf)?;
-				cbreak!(len <= 0);
-				if http_version_clone == HttpVersion::Http11 && !config.debug_no_chunks {
-					wh.write(&format!("{:X}\r\n", len).as_bytes()[..])?;
+		if need_file {
+			let mut wh = wh.clone();
+			conn_state.set_async(true)?;
+
+			let mut conn_state_clone = conn_state.clone();
+			let connection_type_clone = connection_type.clone();
+			spawn(move || -> Result<(), Error> {
+				let mut buf = [0u8; HTTP_SERVER_FILE_BUFFER_SIZE];
+				let mut i = 0;
+				loop {
+					debug!("loop {} ", i)?;
+					i += 1;
+					let len = buf_reader.read(&mut buf)?;
+					cbreak!(len <= 0);
+					wh.write(&buf[0..len])?;
 				}
-				wh.write(&buf[0..len])?;
-				if http_version_clone == HttpVersion::Http11 && !config.debug_no_chunks {
-					wh.write(b"\r\n")?;
+
+				conn_state_clone.set_async(false)?;
+				if connection_type_clone == HttpConnectionType::KeepAlive {
+					wh.trigger_on_read()?;
+				} else {
+					wh.close()?;
 				}
-			}
-
-			if http_version_clone == HttpVersion::Http11 && !config.debug_no_chunks {
-				wh.write(b"0\r\n\r\n")?;
-			}
-
-			conn_state_clone.set_async(false)?;
-			if connection_type_clone == HttpConnectionType::KeepAlive {
-				wh.trigger_on_read()?;
-			} else {
-				wh.close()?;
-			}
-			Ok(())
-		});
+				Ok(())
+			});
+		}
 
 		Ok(())
 	}
@@ -1173,6 +1223,18 @@ impl HttpServerImpl {
 				headers.connection_type = HttpConnectionType::KeepAlive;
 			} else if id == HTTP_SEARCH_TRIE_PATTERN_CONNECTION_CLOSE {
 				headers.connection_type = HttpConnectionType::Close;
+			} else if id == HTTP_SEARCH_TRIE_PATTERN_IF_MODIFIED_SINCE {
+				headers.if_modified_since = Some(
+					Self::header_value(data, matches[i])?
+						.unwrap_or("")
+						.to_string(),
+				);
+			} else if id == HTTP_SEARCH_TRIE_PATTERN_IF_NONE_MATCH {
+				headers.if_none_match = Some(
+					Self::header_value(data, matches[i])?
+						.unwrap_or("")
+						.to_string(),
+				);
 			}
 		}
 
@@ -1605,6 +1667,16 @@ impl HttpServerContext {
 				pattern!(
 					Regex("\r\nTransfer-Encoding: ".to_string()),
 					PatternId(HTTP_SEARCH_TRIE_PATTERN_TRANSFER_ENCODING),
+					IsCaseSensitive(true)
+				)?,
+				pattern!(
+					Regex("\r\nIf-None-Match: ".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_IF_NONE_MATCH),
+					IsCaseSensitive(true)
+				)?,
+				pattern!(
+					Regex("\r\nIf-Modified-Since: ".to_string()),
+					PatternId(HTTP_SEARCH_TRIE_PATTERN_IF_MODIFIED_SINCE),
 					IsCaseSensitive(true)
 				)?,
 				pattern!(

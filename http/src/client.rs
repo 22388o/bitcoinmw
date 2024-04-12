@@ -877,6 +877,8 @@ impl HttpHeadersImpl {
 			status_code: 0,
 			connection_type: HttpConnectionType::Unknown,
 			host: "".to_string(),
+			if_modified_since: None,
+			if_none_match: None,
 		}
 	}
 
