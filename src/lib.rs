@@ -19,7 +19,7 @@
 //!
 //! &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[![Build Status](https://dev.azure.com/mwc-project/bitcoinmw/_apis/build/status/cgilliard.bitcoinmw?branchName=main)](https://dev.azure.com/mwc-project/bitcoinmw/_build?definitionId=13)
 //! [![Release Version](https://img.shields.io/github/v/release/cgilliard/bitcoinmw.svg)](https://github.com/cgilliard/bitcoinmw/releases)
-//! [![Code Coverage](https://img.shields.io/static/v1?label=Code%20Coverage&message=92.76%&color=purple)](https://cgilliard.github.io/bitcoinmw/code_coverage.html)
+//! [![Code Coverage](https://img.shields.io/static/v1?label=Code%20Coverage&message=92.62%&color=purple)](https://cgilliard.github.io/bitcoinmw/code_coverage.html)
 //! [![Docmentation](https://img.shields.io/static/v1?label=Documentation&message=Rustdoc&color=red)](https://cgilliard.github.io/bitcoinmw/doc/bmw/index.html)
 //! [![License](https://img.shields.io/github/license/cgilliard/bitcoinmw.svg)](https://github.com/cgilliard/bitcoinmw/blob/master/LICENSE)
 //!
