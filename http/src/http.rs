@@ -794,6 +794,7 @@ impl HttpServerImpl {
 							&headers.version,
 							&headers.if_none_match,
 							&headers.if_modified_since,
+							&headers.method,
 						)?;
 					}
 					Err(e) => match e.kind() {
@@ -1115,6 +1116,7 @@ ETag: {}\r\n\r\n",
 		http_version: &HttpVersion,
 		if_none_match: &Option<String>,
 		if_modified_since: &Option<String>,
+		method: &HttpMethod,
 	) -> Result<(), Error> {
 		let file = match File::open(path.clone()) {
 			Ok(file) => file,
@@ -1133,7 +1135,7 @@ ETag: {}\r\n\r\n",
 			if_modified_since,
 		)?;
 
-		if need_file {
+		if need_file && method != &HttpMethod::Head {
 			let mut wh = wh.clone();
 			conn_state.set_async(true)?;
 
@@ -1158,6 +1160,8 @@ ETag: {}\r\n\r\n",
 				}
 				Ok(())
 			});
+		} else if connection_type == &HttpConnectionType::Close {
+			wh.close()?;
 		}
 
 		Ok(())
@@ -1219,6 +1223,8 @@ ETag: {}\r\n\r\n",
 				headers.method = HttpMethod::Get;
 			} else if id == HTTP_SEARCH_TRIE_PATTERN_POST {
 				headers.method = HttpMethod::Post;
+			} else if id == HTTP_SEARCH_TRIE_PATTERN_HEAD {
+				headers.method = HttpMethod::Head;
 			} else if id == HTTP_SEARCH_TRIE_PATTERN_CONNECTION_KEEP_ALIVE {
 				headers.connection_type = HttpConnectionType::KeepAlive;
 			} else if id == HTTP_SEARCH_TRIE_PATTERN_CONNECTION_CLOSE {
