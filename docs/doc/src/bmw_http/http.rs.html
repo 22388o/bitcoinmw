@@ -1880,6 +1880,12 @@
 <a href="#1878" id="1878">1878</a>
 <a href="#1879" id="1879">1879</a>
 <a href="#1880" id="1880">1880</a>
+<a href="#1881" id="1881">1881</a>
+<a href="#1882" id="1882">1882</a>
+<a href="#1883" id="1883">1883</a>
+<a href="#1884" id="1884">1884</a>
+<a href="#1885" id="1885">1885</a>
+<a href="#1886" id="1886">1886</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2676,6 +2682,7 @@
 							<span class="kw-2">&amp;</span>headers.version,
 							<span class="kw-2">&amp;</span>headers.if_none_match,
 							<span class="kw-2">&amp;</span>headers.if_modified_since,
+							<span class="kw-2">&amp;</span>headers.method,
 						)<span class="question-mark">?</span>;
 					}
 					<span class="prelude-val">Err</span>(e) =&gt; <span class="kw">match </span>e.kind() {
@@ -2997,6 +3004,7 @@ ETag: {}\r\n\r\n"</span>,
 		http_version: <span class="kw-2">&amp;</span>HttpVersion,
 		if_none_match: <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;String&gt;,
 		if_modified_since: <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;String&gt;,
+		method: <span class="kw-2">&amp;</span>HttpMethod,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>file = <span class="kw">match </span>File::open(path.clone()) {
 			<span class="prelude-val">Ok</span>(file) =&gt; file,
@@ -3015,7 +3023,7 @@ ETag: {}\r\n\r\n"</span>,
 			if_modified_since,
 		)<span class="question-mark">?</span>;
 
-		<span class="kw">if </span>need_file {
+		<span class="kw">if </span>need_file &amp;&amp; method != <span class="kw-2">&amp;</span>HttpMethod::Head {
 			<span class="kw">let </span><span class="kw-2">mut </span>wh = wh.clone();
 			conn_state.set_async(<span class="bool-val">true</span>)<span class="question-mark">?</span>;
 
@@ -3040,6 +3048,8 @@ ETag: {}\r\n\r\n"</span>,
 				}
 				<span class="prelude-val">Ok</span>(())
 			});
+		} <span class="kw">else if </span>connection_type == <span class="kw-2">&amp;</span>HttpConnectionType::Close {
+			wh.close()<span class="question-mark">?</span>;
 		}
 
 		<span class="prelude-val">Ok</span>(())
@@ -3101,6 +3111,8 @@ ETag: {}\r\n\r\n"</span>,
 				headers.method = HttpMethod::Get;
 			} <span class="kw">else if </span>id == HTTP_SEARCH_TRIE_PATTERN_POST {
 				headers.method = HttpMethod::Post;
+			} <span class="kw">else if </span>id == HTTP_SEARCH_TRIE_PATTERN_HEAD {
+				headers.method = HttpMethod::Head;
 			} <span class="kw">else if </span>id == HTTP_SEARCH_TRIE_PATTERN_CONNECTION_KEEP_ALIVE {
 				headers.connection_type = HttpConnectionType::KeepAlive;
 			} <span class="kw">else if </span>id == HTTP_SEARCH_TRIE_PATTERN_CONNECTION_CLOSE {

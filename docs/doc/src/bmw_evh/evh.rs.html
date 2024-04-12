@@ -2396,6 +2396,33 @@
 <a href="#2394" id="2394">2394</a>
 <a href="#2395" id="2395">2395</a>
 <a href="#2396" id="2396">2396</a>
+<a href="#2397" id="2397">2397</a>
+<a href="#2398" id="2398">2398</a>
+<a href="#2399" id="2399">2399</a>
+<a href="#2400" id="2400">2400</a>
+<a href="#2401" id="2401">2401</a>
+<a href="#2402" id="2402">2402</a>
+<a href="#2403" id="2403">2403</a>
+<a href="#2404" id="2404">2404</a>
+<a href="#2405" id="2405">2405</a>
+<a href="#2406" id="2406">2406</a>
+<a href="#2407" id="2407">2407</a>
+<a href="#2408" id="2408">2408</a>
+<a href="#2409" id="2409">2409</a>
+<a href="#2410" id="2410">2410</a>
+<a href="#2411" id="2411">2411</a>
+<a href="#2412" id="2412">2412</a>
+<a href="#2413" id="2413">2413</a>
+<a href="#2414" id="2414">2414</a>
+<a href="#2415" id="2415">2415</a>
+<a href="#2416" id="2416">2416</a>
+<a href="#2417" id="2417">2417</a>
+<a href="#2418" id="2418">2418</a>
+<a href="#2419" id="2419">2419</a>
+<a href="#2420" id="2420">2420</a>
+<a href="#2421" id="2421">2421</a>
+<a href="#2422" id="2422">2422</a>
+<a href="#2423" id="2423">2423</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -2865,12 +2892,39 @@
 			{
 				<span class="number">0
 			</span>} <span class="kw">else </span>{
-				write_impl(<span class="self">self</span>.handle, data)<span class="question-mark">?
-			</span>}
+				<span class="kw">match </span>write_impl(<span class="self">self</span>.handle, data) {
+					<span class="prelude-val">Ok</span>(len) =&gt; len,
+					<span class="prelude-val">Err</span>(e) =&gt; {
+						<span class="kw">let </span>err = errno().<span class="number">0</span>;
+						<span class="kw">if </span>err == EAGAIN || err == ETEMPUNAVAILABLE || err == WINNONBLOCKING {
+							<span class="number">0
+						</span>} <span class="kw">else </span>{
+							<span class="kw">let </span>text = <span class="macro">format!</span>(
+								<span class="string">"write I/O error handle (1) {}: {}: {}"</span>,
+								<span class="self">self</span>.handle,
+								errno(),
+								e
+							);
+							<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IO, text));
+						}
+					}
+				}
+			}
 		};
 
 		<span class="kw">if </span>wlen &lt; <span class="number">0 </span>|| <span class="self">self</span>.debug_info.is_write_handle_err() {
-			<span class="kw">let </span>text = <span class="macro">format!</span>(<span class="string">"write I/O error handle {}: {}"</span>, <span class="self">self</span>.handle, errno());
+			<span class="kw">let </span>err = errno().<span class="number">0</span>;
+			<span class="kw">if </span>err == EAGAIN || err == ETEMPUNAVAILABLE || err == WINNONBLOCKING {
+				<span class="comment">// would block so queue all data
+				</span><span class="self">self</span>.queue_data(<span class="kw-2">&amp;</span>data)<span class="question-mark">?</span>;
+				<span class="kw">return </span><span class="prelude-val">Ok</span>(());
+			}
+			<span class="kw">let </span>text = <span class="macro">format!</span>(
+				<span class="string">"write I/O error handle (2) {}: {}: {}"</span>,
+				<span class="self">self</span>.handle,
+				err,
+				errno()
+			);
 			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::IO, text));
 		}
 		<span class="kw">let </span>wlen: usize = <span class="macro">try_into!</span>(wlen)<span class="question-mark">?</span>;
@@ -4605,7 +4659,7 @@
 				},
 				<span class="prelude-val">None </span>=&gt; <span class="macro">warn!</span>(<span class="string">"id hash lookup failed for id: {}, handle: {}"</span>, id, handle)<span class="question-mark">?</span>,
 			},
-			<span class="prelude-val">None </span>=&gt; <span class="macro">warn!</span>(<span class="string">"handle lookup failed for  handle: {}"</span>, handle)<span class="question-mark">?</span>,
+			<span class="prelude-val">None </span>=&gt; <span class="macro">debug!</span>(<span class="string">"handle lookup failed for  handle: {}"</span>, handle)<span class="question-mark">?</span>,
 		}
 
 		<span class="kw">let </span>ret = <span class="kw">if </span>close {
