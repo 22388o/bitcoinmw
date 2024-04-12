@@ -475,9 +475,9 @@ impl WriteHandle {
 							0
 						} else {
 							let text = format!(
-								"write I/O error handle {}: {}: {}",
+								"write I/O error handle (1) {}: {}: {}",
 								self.handle,
-								errno().0,
+								errno(),
 								e
 							);
 							return Err(err!(ErrKind::IO, text));
@@ -495,8 +495,10 @@ impl WriteHandle {
 				return Ok(());
 			}
 			let text = format!(
-				"write I/O error handle {}: {},eagain={}",
-				self.handle, err, EAGAIN
+				"write I/O error handle (2) {}: {}: {}",
+				self.handle,
+				err,
+				errno()
 			);
 			return Err(err!(ErrKind::IO, text));
 		}

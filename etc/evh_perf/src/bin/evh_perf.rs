@@ -161,7 +161,14 @@ fn run_eventhandler(
 			cbreak!(next_chunk.is_none());
 			let next_chunk = next_chunk.unwrap();
 			let data = next_chunk.data();
-			wh.write(data)?;
+			match wh.write(data) {
+				Ok(_) => {}
+				Err(e) => {
+					warn!("write err: {}", e)?;
+					let _ = wh.close();
+					return Ok(());
+				}
+			}
 			len_sum += data.len();
 		}
 
