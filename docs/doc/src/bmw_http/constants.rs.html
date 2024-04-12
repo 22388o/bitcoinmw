@@ -94,6 +94,17 @@
 <a href="#92" id="92">92</a>
 <a href="#93" id="93">93</a>
 <a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -160,21 +171,28 @@
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_CONNECTION_KEEP_ALIVE: usize = <span class="number">16</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_CONNECTION_CLOSE: usize = <span class="number">17</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_HOST: usize = <span class="number">18</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_IF_MODIFIED_SINCE: usize = <span class="number">19</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SEARCH_TRIE_PATTERN_IF_NONE_MATCH: usize = <span class="number">20</span>;
 
 <span class="comment">// Http Server defaults
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_DEFAULT_PORT: u16 = <span class="number">8080</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_DEFAULT_ADDR: <span class="kw-2">&amp;</span>str = <span class="string">"127.0.0.1"</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_DEFAULT_BASE_DIR: <span class="kw-2">&amp;</span>str = <span class="string">"~/.bmw/www"</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_DEFAULT_LISTEN_QUEUE_SIZE: usize = <span class="number">1_000</span>;
-
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_FILE_BUFFER_SIZE: usize = <span class="number">1_000</span>;
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_DEFAULT_EVH_SLAB_COUNT: usize = <span class="number">10_000</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_DEFAULT_MAX_HEADERS_LEN: usize = <span class="number">8_192</span>; <span class="comment">// 8 Kb
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_DEFAULT_EVH_HOUSEKEEPING_FREQUENCY_MILLIS: usize = <span class="number">5_000</span>; <span class="comment">// 5 seconds
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_DEFAULT_TIMEOUT_MILLIS: u64 = <span class="number">60_000</span>; <span class="comment">// 60 seconds
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_DEFAULT_EVH_SLAB_COUNT: usize = <span class="number">10_000</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_DEFAULT_EVH_SLAB_SIZE: usize = <span class="number">512</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_FILE_BUFFER_SIZE: usize = <span class="number">10_000</span>;
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_CLIENT_DEFAULT_BASE_DIR: <span class="kw-2">&amp;</span>str = <span class="string">"~/.bmw"</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_CLIENT_DEFAULT_EVH_SLAB_SIZE: usize = <span class="number">512</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_CLIENT_DEFAULT_EVH_SLAB_COUNT: usize = <span class="number">10_000</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_CLIENT_MAX_MATCHES: usize = <span class="number">1_000</span>;
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>SEPARATOR: <span class="kw-2">&amp;</span>str =
+	<span class="string">"------------------------------------------------------------------------------------------------------------------------"</span>;
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_404_CONTENT: <span class="kw-2">&amp;</span>str =
 	<span class="string">"A 404 (not found) error occurred. See server logs for further details.\n"</span>;
@@ -188,4 +206,8 @@
 	<span class="string">"A 405 (method not allowed) error occurred. See server logs for further details.\n"</span>;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_503_CONTENT: <span class="kw-2">&amp;</span>str =
 	<span class="string">"A 503 (Service Unavailable) error occurred. See server logs for further details.\n"</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_413_CONTENT: <span class="kw-2">&amp;</span>str =
+	<span class="string">"A 413 (Payload Too Large) error occurred. See server logs for further details.\n"</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>HTTP_SERVER_408_CONTENT: <span class="kw-2">&amp;</span>str =
+	<span class="string">"A 408 (Request Timeout) error occurred. See server logs for further details.\n"</span>;
 </code></pre></div></section></main></body></html>

@@ -858,6 +858,30 @@
 <a href="#856" id="856">856</a>
 <a href="#857" id="857">857</a>
 <a href="#858" id="858">858</a>
+<a href="#859" id="859">859</a>
+<a href="#860" id="860">860</a>
+<a href="#861" id="861">861</a>
+<a href="#862" id="862">862</a>
+<a href="#863" id="863">863</a>
+<a href="#864" id="864">864</a>
+<a href="#865" id="865">865</a>
+<a href="#866" id="866">866</a>
+<a href="#867" id="867">867</a>
+<a href="#868" id="868">868</a>
+<a href="#869" id="869">869</a>
+<a href="#870" id="870">870</a>
+<a href="#871" id="871">871</a>
+<a href="#872" id="872">872</a>
+<a href="#873" id="873">873</a>
+<a href="#874" id="874">874</a>
+<a href="#875" id="875">875</a>
+<a href="#876" id="876">876</a>
+<a href="#877" id="877">877</a>
+<a href="#878" id="878">878</a>
+<a href="#879" id="879">879</a>
+<a href="#880" id="880">880</a>
+<a href="#881" id="881">881</a>
+<a href="#882" id="882">882</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -883,6 +907,7 @@
 <span class="kw">use </span>bmw_deps::backtrace::{Backtrace, Symbol};
 <span class="kw">use </span>bmw_deps::chrono::{DateTime, Local};
 <span class="kw">use </span>bmw_deps::colored::Colorize;
+<span class="kw">use </span>bmw_deps::dirs;
 <span class="kw">use </span>bmw_deps::rand::random;
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>std::fmt::{Display, Formatter};
@@ -1311,6 +1336,7 @@
 				level,
 				max_len,
 				line,
+				logging_type,
 			)<span class="question-mark">?</span>;
 		}
 		<span class="prelude-val">Ok</span>(())
@@ -1328,6 +1354,7 @@
 		level: LogLevel,
 		max_len: u64,
 		line: <span class="kw-2">&amp;</span>str,
+		logging_type: LoggingType,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="comment">// if timestamp needs to be shown we print/write it here
 		</span><span class="kw">if </span>show_timestamp {
@@ -1388,22 +1415,22 @@
 					<span class="comment">// specific colors for each level
 					</span><span class="kw">match </span>level {
 						LogLevel::Trace =&gt; {
-							<span class="macro">print!</span>(<span class="string">"({}) "</span>, <span class="macro">format!</span>(<span class="string">"{}"</span>, level).magenta());
+							<span class="macro">print!</span>(<span class="string">"({})"</span>, <span class="macro">format!</span>(<span class="string">"{}"</span>, level).magenta());
 						}
 						LogLevel::Debug =&gt; {
-							<span class="macro">print!</span>(<span class="string">"({}) "</span>, <span class="macro">format!</span>(<span class="string">"{}"</span>, level).cyan());
+							<span class="macro">print!</span>(<span class="string">"({})"</span>, <span class="macro">format!</span>(<span class="string">"{}"</span>, level).cyan());
 						}
 						LogLevel::Info =&gt; {
-							<span class="macro">print!</span>(<span class="string">"({})  "</span>, <span class="macro">format!</span>(<span class="string">"{}"</span>, level).green());
+							<span class="macro">print!</span>(<span class="string">" ({})"</span>, <span class="macro">format!</span>(<span class="string">"{}"</span>, level).green());
 						}
 						LogLevel::Warn =&gt; {
-							<span class="macro">print!</span>(<span class="string">"({})  "</span>, <span class="macro">format!</span>(<span class="string">"{}"</span>, level).yellow());
+							<span class="macro">print!</span>(<span class="string">" ({})"</span>, <span class="macro">format!</span>(<span class="string">"{}"</span>, level).yellow());
 						}
 						LogLevel::Error =&gt; {
-							<span class="macro">print!</span>(<span class="string">"({}) "</span>, <span class="macro">format!</span>(<span class="string">"{}"</span>, level).bright_blue());
+							<span class="macro">print!</span>(<span class="string">"({})"</span>, <span class="macro">format!</span>(<span class="string">"{}"</span>, level).bright_blue());
 						}
 						LogLevel::Fatal =&gt; {
-							<span class="macro">print!</span>(<span class="string">"({}) "</span>, <span class="macro">format!</span>(<span class="string">"{}"</span>, level).red());
+							<span class="macro">print!</span>(<span class="string">"({})"</span>, <span class="macro">format!</span>(<span class="string">"{}"</span>, level).red());
 						}
 					}
 				} <span class="kw">else </span>{
@@ -1460,11 +1487,15 @@
 			<span class="comment">// if we're showing stdout, do so here
 			</span><span class="kw">if </span>show_stdout {
 				<span class="kw">if </span>show_colors {
-					<span class="macro">print!</span>(<span class="string">"[{}]: "</span>, logged_from_file.yellow());
+					<span class="macro">print!</span>(<span class="string">" [{}]"</span>, logged_from_file.yellow());
 				} <span class="kw">else </span>{
-					<span class="macro">print!</span>(<span class="string">"[{}]: "</span>, logged_from_file);
+					<span class="macro">print!</span>(<span class="string">" [{}]"</span>, logged_from_file);
 				}
 			}
+		}
+
+		<span class="kw">if </span>show_stdout &amp;&amp; logging_type != LoggingType::Plain {
+			<span class="macro">print!</span>(<span class="string">": "</span>);
 		}
 
 		<span class="comment">// write the line to the file (if it exists)
@@ -1664,6 +1695,23 @@
 		<span class="kw">let </span>max_size_bytes = config.get_or_u64(<span class="kw-2">&amp;</span>CN::MaxSizeBytes, u64::MAX);
 		<span class="kw">let </span>value = DEFAULT_LINE_NUM_DATA_MAX_LEN;
 		<span class="kw">let </span>line_num_data_max_len = config.get_or_u64(<span class="kw-2">&amp;</span>CN::LineNumDataMaxLen, value);
+
+		<span class="comment">// insert the home directory for ~
+		</span><span class="kw">let </span>home_dir = <span class="kw">match </span>dirs::home_dir() {
+			<span class="prelude-val">Some</span>(p) =&gt; p,
+			<span class="prelude-val">None </span>=&gt; PathBuf::new(),
+		}
+		.as_path()
+		.display()
+		.to_string();
+
+		<span class="kw">let </span>file_path = <span class="kw">match </span>file_path {
+			<span class="prelude-val">Some</span>(file_path) =&gt; {
+				<span class="kw">let </span>file_path_string = file_path.display().to_string().replace(<span class="string">"~"</span>, <span class="kw-2">&amp;</span>home_dir);
+				<span class="prelude-val">Some</span>(PathBuf::from(file_path_string))
+			}
+			<span class="prelude-val">None </span>=&gt; <span class="prelude-val">None</span>,
+		};
 
 		<span class="kw">if </span>max_age_millis &lt; MINIMUM_MAX_AGE_MILLIS {
 			<span class="kw">let </span>text = <span class="macro">format!</span>(<span class="string">"MaxAgeMillis must be at least {}"</span>, MINIMUM_MAX_AGE_MILLIS);

@@ -532,6 +532,12 @@
 <a href="#530" id="530">530</a>
 <a href="#531" id="531">531</a>
 <a href="#532" id="532">532</a>
+<a href="#533" id="533">533</a>
+<a href="#534" id="534">534</a>
+<a href="#535" id="535">535</a>
+<a href="#536" id="536">536</a>
+<a href="#537" id="537">537</a>
+<a href="#538" id="538">538</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -974,6 +980,9 @@
 	HttpRequestUri,
 	HttpRequestUrl,
 	HttpUserAgent,
+	HttpMimeMap,
+	HttpShowRequest,
+	MaxHeadersLen,
 	Port,
 	Host,
 	Address,
@@ -1042,6 +1051,9 @@
 	HttpRequestUri(String),
 	HttpRequestUrl(String),
 	HttpUserAgent(String),
+	HttpMimeMap(Vec&lt;(String, String)&gt;),
+	HttpShowRequest(bool),
+	MaxHeadersLen(usize),
 	Port(u16),
 	Host(String),
 	Address(String),
