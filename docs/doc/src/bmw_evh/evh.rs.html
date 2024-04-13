@@ -2423,6 +2423,7 @@
 <a href="#2421" id="2421">2421</a>
 <a href="#2422" id="2422">2422</a>
 <a href="#2423" id="2423">2423</a>
+<a href="#2424" id="2424">2424</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -3921,7 +3922,8 @@
 		user_context: <span class="kw-2">&amp;mut </span>UserContextImpl,
 		config: <span class="kw-2">&amp;</span>EventHandlerConfig,
 	) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>now: usize = <span class="macro">try_into!</span>(SystemTime::now().duration_since(UNIX_EPOCH)<span class="question-mark">?</span>.as_millis())<span class="question-mark">?</span>;
+		<span class="kw">let </span>now = SystemTime::now();
+		<span class="kw">let </span>now: usize = <span class="macro">try_into!</span>(now.duration_since(UNIX_EPOCH)<span class="question-mark">?</span>.as_millis())<span class="question-mark">?</span>;
 		<span class="kw">if </span>now.saturating_sub(ctx.last_housekeeping) &gt; config.housekeeping_frequency_millis {
 			<span class="self">Self</span>::call_on_housekeeper(user_context, <span class="kw-2">&amp;mut </span>callbacks.on_housekeeper)<span class="question-mark">?</span>;
 			ctx.last_housekeeping = now;

@@ -192,81 +192,6 @@
 <a href="#190" id="190">190</a>
 <a href="#191" id="191">191</a>
 <a href="#192" id="192">192</a>
-<a href="#193" id="193">193</a>
-<a href="#194" id="194">194</a>
-<a href="#195" id="195">195</a>
-<a href="#196" id="196">196</a>
-<a href="#197" id="197">197</a>
-<a href="#198" id="198">198</a>
-<a href="#199" id="199">199</a>
-<a href="#200" id="200">200</a>
-<a href="#201" id="201">201</a>
-<a href="#202" id="202">202</a>
-<a href="#203" id="203">203</a>
-<a href="#204" id="204">204</a>
-<a href="#205" id="205">205</a>
-<a href="#206" id="206">206</a>
-<a href="#207" id="207">207</a>
-<a href="#208" id="208">208</a>
-<a href="#209" id="209">209</a>
-<a href="#210" id="210">210</a>
-<a href="#211" id="211">211</a>
-<a href="#212" id="212">212</a>
-<a href="#213" id="213">213</a>
-<a href="#214" id="214">214</a>
-<a href="#215" id="215">215</a>
-<a href="#216" id="216">216</a>
-<a href="#217" id="217">217</a>
-<a href="#218" id="218">218</a>
-<a href="#219" id="219">219</a>
-<a href="#220" id="220">220</a>
-<a href="#221" id="221">221</a>
-<a href="#222" id="222">222</a>
-<a href="#223" id="223">223</a>
-<a href="#224" id="224">224</a>
-<a href="#225" id="225">225</a>
-<a href="#226" id="226">226</a>
-<a href="#227" id="227">227</a>
-<a href="#228" id="228">228</a>
-<a href="#229" id="229">229</a>
-<a href="#230" id="230">230</a>
-<a href="#231" id="231">231</a>
-<a href="#232" id="232">232</a>
-<a href="#233" id="233">233</a>
-<a href="#234" id="234">234</a>
-<a href="#235" id="235">235</a>
-<a href="#236" id="236">236</a>
-<a href="#237" id="237">237</a>
-<a href="#238" id="238">238</a>
-<a href="#239" id="239">239</a>
-<a href="#240" id="240">240</a>
-<a href="#241" id="241">241</a>
-<a href="#242" id="242">242</a>
-<a href="#243" id="243">243</a>
-<a href="#244" id="244">244</a>
-<a href="#245" id="245">245</a>
-<a href="#246" id="246">246</a>
-<a href="#247" id="247">247</a>
-<a href="#248" id="248">248</a>
-<a href="#249" id="249">249</a>
-<a href="#250" id="250">250</a>
-<a href="#251" id="251">251</a>
-<a href="#252" id="252">252</a>
-<a href="#253" id="253">253</a>
-<a href="#254" id="254">254</a>
-<a href="#255" id="255">255</a>
-<a href="#256" id="256">256</a>
-<a href="#257" id="257">257</a>
-<a href="#258" id="258">258</a>
-<a href="#259" id="259">259</a>
-<a href="#260" id="260">260</a>
-<a href="#261" id="261">261</a>
-<a href="#262" id="262">262</a>
-<a href="#263" id="263">263</a>
-<a href="#264" id="264">264</a>
-<a href="#265" id="265">265</a>
-<a href="#266" id="266">266</a>
-<a href="#267" id="267">267</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -285,17 +210,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="doccomment">/// Macro to map the try_from error into an appropriate error.
-</span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>try_into {
-	(<span class="macro-nonterminal">$v</span>:expr) =&gt; {{
-		<span class="kw">use </span>bmw_err::{map_err, ErrKind};
-		<span class="kw">use </span>std::convert::TryInto;
-		<span class="macro">map_err!</span>(<span class="macro-nonterminal">$v</span>.try_into(), ErrKind::Misc, <span class="string">"TryInto Error"</span>)
-	}};
-}
-
-<span class="doccomment">/// Build the specified [`crate::ErrorKind`] and convert it into an [`crate::Error`]. The desired
+</span><span class="doccomment">/// Build the specified [`crate::ErrorKind`] and convert it into an [`crate::Error`]. The desired
 /// [`crate::ErrorKind`] is specified using the [`crate::ErrKind`] name enum.
 ///
 /// Example:
@@ -325,120 +240,38 @@
                 <span class="kw">let </span>msg = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="macro-nonterminal">$msg</span>, $(<span class="macro-nonterminal">$param</span>)<span class="kw-2">*</span>)[..];
                 <span class="macro">err!</span>(<span class="macro-nonterminal">$kind</span>, msg)
         }};
-	(<span class="macro-nonterminal">$kind</span>:expr, <span class="macro-nonterminal">$msg</span>:expr) =&gt; {{
-            <span class="kw">use </span>bmw_err::{ErrKind, ErrorKind, Error};
+	(<span class="macro-nonterminal">$kind</span>:expr, <span class="macro-nonterminal">$m</span>:expr) =&gt; {{
+                <span class="attr">#[allow(unused_imports)]
+                </span><span class="kw">use </span>bmw_err::{ErrKind, ErrorKind, Error, impl_err};
+                <span class="kw">use </span>bmw_err::ErrKind::<span class="kw-2">*</span>;
 		<span class="kw">match </span><span class="macro-nonterminal">$kind </span>{
-			ErrKind::Configuration =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::Configuration(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::IO =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::IO(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::Log =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::Log(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::Utf8 =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::Utf8(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::ArrayIndexOutOfBounds =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::ArrayIndexOutOfBounds(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::Poison =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::Poison(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::CorruptedData =&gt; {
-				<span class="kw">let </span>error: Error =
-					ErrorKind::CorruptedData(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::Timeout =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::Timeout(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::CapacityExceeded =&gt; {
-				<span class="kw">let </span>error: Error =
-					ErrorKind::CapacityExceeded(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::UnexpectedEof =&gt; {
-				<span class="kw">let </span>error: Error =
-					ErrorKind::UnexpectedEof(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::IllegalArgument =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::IllegalArgument(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-                                error
-			}
-			ErrKind::Misc =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::Misc(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::IllegalState =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::IllegalState(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::Test =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::Test(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::Overflow =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::Overflow(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::ThreadPanic =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::ThreadPanic(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::Alloc =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::Alloc(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::OperationNotSupported =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::OperationNotSupported(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::SystemTime =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::SystemTime(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::Errno =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::Errno(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::Rustls =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::Rustls(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::Crypt =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::Crypt(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::Http =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::Http(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-			ErrKind::Rustlet =&gt; {
-				<span class="kw">let </span>error: Error = ErrorKind::Rustlet(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-				error
-			}
-                        ErrKind::Http404 =&gt; {
-                                <span class="kw">let </span>error: Error = ErrorKind::Http404(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-                                error
-                        }
-                        ErrKind::Http403 =&gt; {
-                                <span class="kw">let </span>error: Error = ErrorKind::Http403(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-                                error
-                        }
-                        ErrKind::Http400 =&gt; {
-                                <span class="kw">let </span>error: Error = ErrorKind::Http400(<span class="macro-nonterminal">$msg</span>.to_string()).into();
-                                error
-                        }
+                        IO =&gt; <span class="macro">impl_err!</span>(IO, <span class="macro-nonterminal">$m</span>),
+                        Log=&gt; <span class="macro">impl_err!</span>(Log, <span class="macro-nonterminal">$m</span>),
+                        Utf8 =&gt; <span class="macro">impl_err!</span>(Utf8, <span class="macro-nonterminal">$m</span>),
+                        ArrayIndexOutOfBounds =&gt; <span class="macro">impl_err!</span>(ArrayIndexOutOfBounds, <span class="macro-nonterminal">$m</span>),
+                        Configuration =&gt; <span class="macro">impl_err!</span>(Configuration, <span class="macro-nonterminal">$m</span>),
+                        Poison =&gt; <span class="macro">impl_err!</span>(Poison, <span class="macro-nonterminal">$m</span>),
+                        CorruptedData =&gt; <span class="macro">impl_err!</span>(CorruptedData, <span class="macro-nonterminal">$m</span>),
+                        Timeout =&gt; <span class="macro">impl_err!</span>(Timeout, <span class="macro-nonterminal">$m</span>),
+                        CapacityExceeded =&gt; <span class="macro">impl_err!</span>(CapacityExceeded, <span class="macro-nonterminal">$m</span>),
+                        UnexpectedEof=&gt; <span class="macro">impl_err!</span>(UnexpectedEof, <span class="macro-nonterminal">$m</span>),
+                        IllegalArgument =&gt; <span class="macro">impl_err!</span>(IllegalArgument, <span class="macro-nonterminal">$m</span>),
+                        Misc =&gt; <span class="macro">impl_err!</span>(Misc, <span class="macro-nonterminal">$m</span>),
+                        IllegalState =&gt; <span class="macro">impl_err!</span>(IllegalState, <span class="macro-nonterminal">$m</span>),
+                        Overflow =&gt; <span class="macro">impl_err!</span>(Overflow, <span class="macro-nonterminal">$m</span>),
+                        Test =&gt; <span class="macro">impl_err!</span>(Test, <span class="macro-nonterminal">$m</span>),
+                        ThreadPanic =&gt; <span class="macro">impl_err!</span>(ThreadPanic, <span class="macro-nonterminal">$m</span>),
+                        Alloc =&gt; <span class="macro">impl_err!</span>(Alloc, <span class="macro-nonterminal">$m</span>),
+                        OperationNotSupported =&gt; <span class="macro">impl_err!</span>(OperationNotSupported, <span class="macro-nonterminal">$m</span>),
+                        SystemTime =&gt; <span class="macro">impl_err!</span>(SystemTime, <span class="macro-nonterminal">$m</span>),
+                        Errno =&gt; <span class="macro">impl_err!</span>(Errno, <span class="macro-nonterminal">$m</span>),
+                        Rustls =&gt; <span class="macro">impl_err!</span>(Rustls, <span class="macro-nonterminal">$m</span>),
+                        Crypt =&gt; <span class="macro">impl_err!</span>(Crypt, <span class="macro-nonterminal">$m</span>),
+                        Http =&gt; <span class="macro">impl_err!</span>(Http, <span class="macro-nonterminal">$m</span>),
+                        Http404 =&gt; <span class="macro">impl_err!</span>(Http404, <span class="macro-nonterminal">$m</span>),
+                        Http403 =&gt; <span class="macro">impl_err!</span>(Http403, <span class="macro-nonterminal">$m</span>),
+                        Http400 =&gt; <span class="macro">impl_err!</span>(Http400, <span class="macro-nonterminal">$m</span>),
+                        Rustlet =&gt; <span class="macro">impl_err!</span>(Rustlet, <span class="macro-nonterminal">$m</span>),
 		}
 	}};
 }
@@ -474,52 +307,40 @@
 		<span class="kw">use </span>bmw_err::map_err;
 		<span class="macro">map_err!</span>(<span class="macro-nonterminal">$in_err</span>, <span class="macro-nonterminal">$kind</span>, <span class="string">""</span>)
 	}};
-	(<span class="macro-nonterminal">$in_err</span>:expr, <span class="macro-nonterminal">$kind</span>:expr, <span class="macro-nonterminal">$msg</span>:expr) =&gt; {{
-		<span class="kw">use </span>bmw_err::{ErrKind, Error, ErrorKind};
+	(<span class="macro-nonterminal">$in_err</span>:expr, <span class="macro-nonterminal">$kind</span>:expr, <span class="macro-nonterminal">$m</span>:expr) =&gt; {{
+		<span class="kw">use </span>bmw_err::ErrKind::<span class="kw-2">*</span>;
+		<span class="attr">#[allow(unused_imports)]
+		</span><span class="kw">use </span>bmw_err::{impl_map_err, ErrKind, Error, ErrorKind};
 		<span class="macro-nonterminal">$in_err</span>.map_err(|e| -&gt; Error {
 			<span class="kw">let </span>k = <span class="macro-nonterminal">$kind</span>;
 			<span class="kw">match </span>k {
-				ErrKind::Configuration =&gt; {
-					ErrorKind::Configuration(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into()
-				}
-				ErrKind::IO =&gt; ErrorKind::IO(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
-				ErrKind::Log =&gt; ErrorKind::Log(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
-				ErrKind::UnexpectedEof =&gt; {
-					ErrorKind::UnexpectedEof(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into()
-				}
-				ErrKind::Utf8 =&gt; ErrorKind::Utf8(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
-				ErrKind::ArrayIndexOutOfBounds =&gt; {
-					ErrorKind::ArrayIndexOutOfBounds(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into()
-				}
-				ErrKind::Timeout =&gt; ErrorKind::Timeout(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
-				ErrKind::CapacityExceeded =&gt; {
-					ErrorKind::CapacityExceeded(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into()
-				}
-				ErrKind::IllegalArgument =&gt; {
-					ErrorKind::IllegalArgument(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into()
-				}
-				ErrKind::Poison =&gt; ErrorKind::Poison(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
-				ErrKind::Misc =&gt; ErrorKind::Misc(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
-				ErrKind::CorruptedData =&gt; {
-					ErrorKind::CorruptedData(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into()
-				}
-				ErrKind::IllegalState =&gt; ErrorKind::IllegalState(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
-				ErrKind::Test =&gt; ErrorKind::Test(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
-				ErrKind::Overflow =&gt; ErrorKind::Overflow(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
-				ErrKind::ThreadPanic =&gt; ErrorKind::ThreadPanic(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
-				ErrKind::Alloc =&gt; ErrorKind::Alloc(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
-				ErrKind::OperationNotSupported =&gt; {
-					ErrorKind::OperationNotSupported(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into()
-				}
-				ErrKind::SystemTime =&gt; ErrorKind::SystemTime(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
-				ErrKind::Errno =&gt; ErrorKind::Errno(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
-				ErrKind::Rustls =&gt; ErrorKind::Rustls(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
-				ErrKind::Crypt =&gt; ErrorKind::Crypt(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
-				ErrKind::Http =&gt; ErrorKind::Http(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
-				ErrKind::Http404 =&gt; ErrorKind::Http404(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
-				ErrKind::Http403 =&gt; ErrorKind::Http403(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
-				ErrKind::Http400 =&gt; ErrorKind::Http400(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
-				ErrKind::Rustlet =&gt; ErrorKind::Rustlet(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, e)).into(),
+				Configuration =&gt; <span class="macro">impl_map_err!</span>(Configuration, <span class="macro-nonterminal">$m</span>, e),
+				IO =&gt; <span class="macro">impl_map_err!</span>(IO, <span class="macro-nonterminal">$m</span>, e),
+				Log =&gt; <span class="macro">impl_map_err!</span>(Log, <span class="macro-nonterminal">$m</span>, e),
+				UnexpectedEof =&gt; <span class="macro">impl_map_err!</span>(UnexpectedEof, <span class="macro-nonterminal">$m</span>, e),
+				Utf8 =&gt; <span class="macro">impl_map_err!</span>(Utf8, <span class="macro-nonterminal">$m</span>, e),
+				ArrayIndexOutOfBounds =&gt; <span class="macro">impl_map_err!</span>(ArrayIndexOutOfBounds, <span class="macro-nonterminal">$m</span>, e),
+				Timeout =&gt; <span class="macro">impl_map_err!</span>(Timeout, <span class="macro-nonterminal">$m</span>, e),
+				CapacityExceeded =&gt; <span class="macro">impl_map_err!</span>(CapacityExceeded, <span class="macro-nonterminal">$m</span>, e),
+				IllegalArgument =&gt; <span class="macro">impl_map_err!</span>(IllegalArgument, <span class="macro-nonterminal">$m</span>, e),
+				Poison =&gt; <span class="macro">impl_map_err!</span>(Poison, <span class="macro-nonterminal">$m</span>, e),
+				Misc =&gt; <span class="macro">impl_map_err!</span>(Misc, <span class="macro-nonterminal">$m</span>, e),
+				CorruptedData =&gt; <span class="macro">impl_map_err!</span>(CorruptedData, <span class="macro-nonterminal">$m</span>, e),
+				IllegalState =&gt; <span class="macro">impl_map_err!</span>(IllegalState, <span class="macro-nonterminal">$m</span>, e),
+				Test =&gt; <span class="macro">impl_map_err!</span>(Test, <span class="macro-nonterminal">$m</span>, e),
+				Overflow =&gt; <span class="macro">impl_map_err!</span>(Overflow, <span class="macro-nonterminal">$m</span>, e),
+				ThreadPanic =&gt; <span class="macro">impl_map_err!</span>(ThreadPanic, <span class="macro-nonterminal">$m</span>, e),
+				Alloc =&gt; <span class="macro">impl_map_err!</span>(Alloc, <span class="macro-nonterminal">$m</span>, e),
+				OperationNotSupported =&gt; <span class="macro">impl_map_err!</span>(OperationNotSupported, <span class="macro-nonterminal">$m</span>, e),
+				SystemTime =&gt; <span class="macro">impl_map_err!</span>(SystemTime, <span class="macro-nonterminal">$m</span>, e),
+				Errno =&gt; <span class="macro">impl_map_err!</span>(Errno, <span class="macro-nonterminal">$m</span>, e),
+				Rustls =&gt; <span class="macro">impl_map_err!</span>(Rustls, <span class="macro-nonterminal">$m</span>, e),
+				Crypt =&gt; <span class="macro">impl_map_err!</span>(Crypt, <span class="macro-nonterminal">$m</span>, e),
+				Http =&gt; <span class="macro">impl_map_err!</span>(Http, <span class="macro-nonterminal">$m</span>, e),
+				Http404 =&gt; <span class="macro">impl_map_err!</span>(Http404, <span class="macro-nonterminal">$m</span>, e),
+				Http403 =&gt; <span class="macro">impl_map_err!</span>(Http403, <span class="macro-nonterminal">$m</span>, e),
+				Http400 =&gt; <span class="macro">impl_map_err!</span>(Http400, <span class="macro-nonterminal">$m</span>, e),
+				Rustlet =&gt; <span class="macro">impl_map_err!</span>(Rustlet, <span class="macro-nonterminal">$m</span>, e),
 			}
 		})
 	}};
@@ -533,5 +354,34 @@
 			<span class="kw">break</span>;
 		}
 	}};
+}
+
+<span class="doccomment">/// Macro to map the try_from error into an appropriate error.
+</span><span class="attr">#[macro_export]
+</span><span class="macro">macro_rules! </span>try_into {
+	(<span class="macro-nonterminal">$v</span>:expr) =&gt; {{
+		<span class="kw">use </span>bmw_err::{map_err, ErrKind};
+		<span class="kw">use </span>std::convert::TryInto;
+		<span class="macro">map_err!</span>(<span class="macro-nonterminal">$v</span>.try_into(), ErrKind::Misc, <span class="string">"TryInto Error"</span>)
+	}};
+}
+
+<span class="comment">// helper to do err
+</span><span class="attr">#[doc(hidden)]
+#[macro_export]
+</span><span class="macro">macro_rules! </span>impl_err {
+	(<span class="macro-nonterminal">$error_kind</span>:ident, <span class="macro-nonterminal">$msg</span>:expr) =&gt; {{
+		<span class="kw">let </span>error: Error = ErrorKind::<span class="macro-nonterminal">$error_kind</span>(<span class="macro-nonterminal">$msg</span>.to_string()).into();
+		error
+	}};
+}
+
+<span class="comment">// helper to do mapping
+</span><span class="attr">#[doc(hidden)]
+#[macro_export]
+</span><span class="macro">macro_rules! </span>impl_map_err {
+	(<span class="macro-nonterminal">$error_kind</span>:ident, <span class="macro-nonterminal">$msg</span>:expr, <span class="macro-nonterminal">$e</span>:expr) =&gt; {
+		ErrorKind::<span class="macro-nonterminal">$error_kind</span>(<span class="macro">format!</span>(<span class="string">"{}: {}"</span>, <span class="macro-nonterminal">$msg</span>, <span class="macro-nonterminal">$e</span>)).into()
+	};
 }
 </code></pre></div></section></main></body></html>

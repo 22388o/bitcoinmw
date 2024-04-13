@@ -381,6 +381,12 @@
 <a href="#379" id="379">379</a>
 <a href="#380" id="380">380</a>
 <a href="#381" id="381">381</a>
+<a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
+<a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -500,6 +506,9 @@
 			ErrorKind::Configuration(ss.clone()).into(),
 		)<span class="question-mark">?</span>;
 		test_kind(ErrKind::Rustlet, s, ErrorKind::Rustlet(ss.clone()).into())<span class="question-mark">?</span>;
+		test_kind(ErrKind::Http404, s, ErrorKind::Http404(ss.clone()).into())<span class="question-mark">?</span>;
+		test_kind(ErrKind::Http400, s, ErrorKind::Http400(ss.clone()).into())<span class="question-mark">?</span>;
+		test_kind(ErrKind::Http403, s, ErrorKind::Http403(ss.clone()).into())<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -595,6 +604,9 @@
 		test_map(ErrKind::Rustls, ErrorKind::Rustls(s.clone()).into())<span class="question-mark">?</span>;
 		test_map(ErrKind::Crypt, ErrorKind::Crypt(s.clone()).into())<span class="question-mark">?</span>;
 		test_map(ErrKind::Rustlet, ErrorKind::Rustlet(s.clone()).into())<span class="question-mark">?</span>;
+		test_map(ErrKind::Http400, ErrorKind::Http400(s.clone()).into())<span class="question-mark">?</span>;
+		test_map(ErrKind::Http403, ErrorKind::Http403(s.clone()).into())<span class="question-mark">?</span>;
+		test_map(ErrKind::Http404, ErrorKind::Http404(s.clone()).into())<span class="question-mark">?</span>;
 
 		<span class="prelude-val">Ok</span>(())
 	}
