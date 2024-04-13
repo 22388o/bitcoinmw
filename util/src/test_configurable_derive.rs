@@ -246,7 +246,7 @@ mod test {
 	}
 
 	#[derive(Configurable, PartialEq, Debug)]
-	pub struct ConfigAll {
+	struct ConfigAll {
 		a1: u8,
 		b1: u16,
 		c1: u32,
@@ -435,6 +435,83 @@ mod test {
 				("x".to_string(), "y".to_string()),
 				("a".to_string(), "b".to_string())
 			]
+		);
+
+		Ok(())
+	}
+
+	#[derive(Configurable, PartialEq, Debug)]
+	pub struct Required1 {
+		#[required]
+		r1: u8,
+		r2: u16,
+		r3: String,
+	}
+
+	#[derive(Configurable, PartialEq, Debug)]
+	pub struct Required2 {
+		r1: u8,
+		#[required]
+		pub r2: u16,
+		pub(crate) r3: String,
+	}
+
+	#[derive(Configurable, PartialEq, Debug)]
+	pub struct Required3 {
+		r1: u8,
+		pub r2: u16,
+		#[required]
+		pub(crate) r3: String,
+	}
+
+	impl Default for Required1 {
+		fn default() -> Self {
+			Self {
+				r1: 0,
+				r2: 0,
+				r3: "".to_string(),
+			}
+		}
+	}
+
+	impl Default for Required2 {
+		fn default() -> Self {
+			Self {
+				r1: 0,
+				r2: 0,
+				r3: "".to_string(),
+			}
+		}
+	}
+
+	impl Default for Required3 {
+		fn default() -> Self {
+			Self {
+				r1: 0,
+				r2: 0,
+				r3: "".to_string(),
+			}
+		}
+	}
+
+	#[test]
+	fn test_derive_configuration_required() -> Result<(), Error> {
+		assert!(config!(Required1, Required1_Options, vec![]).is_err());
+		assert_eq!(
+			config!(Required1, Required1_Options, vec![r1(0)])?,
+			Required1::default()
+		);
+
+		assert!(config!(Required2, Required2_Options, vec![]).is_err());
+		assert_eq!(
+			config!(Required2, Required2_Options, vec![r2(0)])?,
+			Required2::default()
+		);
+
+		assert!(config!(Required3, Required3_Options, vec![]).is_err());
+		assert_eq!(
+			config!(Required3, Required3_Options, vec![r3("")])?,
+			Required3::default()
 		);
 
 		Ok(())
