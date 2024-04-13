@@ -94,6 +94,7 @@ mod search_trie;
 mod ser;
 mod slabs;
 mod test;
+mod test_configurable_derive;
 mod test_serializable_derive;
 mod threadpool;
 mod types;

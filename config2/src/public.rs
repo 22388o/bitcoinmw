@@ -16,25 +16,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub(crate) struct SerMacroState {
-	pub(crate) ret_read: String,
-	pub(crate) ret_write: String,
-	pub(crate) expect_name: bool,
-	pub(crate) name: String,
-	pub(crate) field_names: Vec<String>,
-	pub(crate) is_enum: bool,
-}
+use std::collections::HashSet;
 
-pub(crate) struct ConfMacroState {
-	pub(crate) count: usize,
-	pub(crate) name: Option<String>,
-	pub(crate) u8_configs: Vec<(String, bool, bool)>,
-	pub(crate) u16_configs: Vec<(String, bool, bool)>,
-	pub(crate) u32_configs: Vec<(String, bool, bool)>,
-	pub(crate) u64_configs: Vec<(String, bool, bool)>,
-	pub(crate) u128_configs: Vec<(String, bool, bool)>,
-	pub(crate) usize_configs: Vec<(String, bool, bool)>,
-	pub(crate) string_configs: Vec<(String, bool, bool)>,
-	pub(crate) bool_configs: Vec<(String, bool, bool)>,
-	pub(crate) string_tuple_configs: Vec<(String, bool, bool)>,
+pub trait Configurable {
+	fn set_u8(&mut self, name: &str, value: u8);
+	fn set_u16(&mut self, name: &str, value: u16);
+	fn set_u32(&mut self, name: &str, value: u32);
+	fn set_u64(&mut self, name: &str, value: u64);
+	fn set_u128(&mut self, name: &str, value: u128);
+	fn set_usize(&mut self, name: &str, value: usize);
+	fn set_string(&mut self, name: &str, value: String);
+	fn set_bool(&mut self, name: &str, value: bool);
+	fn set_string_tuple(&mut self, name: &str, value: (String, String));
+	fn allow_dupes(&self) -> HashSet<String>;
 }

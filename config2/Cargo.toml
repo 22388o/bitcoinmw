@@ -1,0 +1,16 @@
+[package]
+name = "bmw_conf2"
+version = "0.0.3-beta.2"
+authors = ["The BitcoinMW Developers"]
+description = "Configuration Library"
+license = "Apache-2.0"
+repository = "https://github.com/cgilliard/bitcoinmw"
+keywords = [ "crypto", "bitcoinmw"]
+readme = "README.md"
+exclude = ["**/*.bmw", "**/*.bmw"]
+edition = "2021"
+
+[dependencies]
+
+bmw_err  = { path = "../error" }
+

@@ -127,6 +127,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bmw_conf2"
+version = "0.0.3-beta.2"
+dependencies = [
+ "bmw_err",
+]
+
+[[package]]
 name = "bmw_deps"
 version = "0.0.3-beta.2"
 dependencies = [
@@ -160,6 +167,7 @@ dependencies = [
  "sha-1",
  "substring",
  "url",
+ "url_path",
  "wepoll-sys",
  "windows-sys 0.52.0",
 ]
@@ -168,6 +176,7 @@ dependencies = [
 name = "bmw_derive"
 version = "0.0.3-beta.2"
 dependencies = [
+ "bmw_conf2",
  "bmw_deps",
  "bmw_err",
  "bmw_log",
@@ -204,6 +213,7 @@ name = "bmw_util"
 version = "0.0.3-beta.2"
 dependencies = [
  "bmw_conf",
+ "bmw_conf2",
  "bmw_deps",
  "bmw_derive",
  "bmw_err",
@@ -1177,6 +1187,12 @@ dependencies = [
  "idna",
  "percent-encoding",
 ]
+
+[[package]]
+name = "url_path"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10477a8879b7fc3bb4fb54fa6adcfd6191de561b13d5413fec9cc0239fd1c882"
 
 [[package]]
 name = "util_perf"

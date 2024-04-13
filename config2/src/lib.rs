@@ -16,25 +16,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub(crate) struct SerMacroState {
-	pub(crate) ret_read: String,
-	pub(crate) ret_write: String,
-	pub(crate) expect_name: bool,
-	pub(crate) name: String,
-	pub(crate) field_names: Vec<String>,
-	pub(crate) is_enum: bool,
-}
+mod macros;
+mod public;
+mod test;
 
-pub(crate) struct ConfMacroState {
-	pub(crate) count: usize,
-	pub(crate) name: Option<String>,
-	pub(crate) u8_configs: Vec<(String, bool, bool)>,
-	pub(crate) u16_configs: Vec<(String, bool, bool)>,
-	pub(crate) u32_configs: Vec<(String, bool, bool)>,
-	pub(crate) u64_configs: Vec<(String, bool, bool)>,
-	pub(crate) u128_configs: Vec<(String, bool, bool)>,
-	pub(crate) usize_configs: Vec<(String, bool, bool)>,
-	pub(crate) string_configs: Vec<(String, bool, bool)>,
-	pub(crate) bool_configs: Vec<(String, bool, bool)>,
-	pub(crate) string_tuple_configs: Vec<(String, bool, bool)>,
-}
+pub use crate::public::*;

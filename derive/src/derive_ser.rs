@@ -16,7 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::types::MacroState;
+use crate::types::SerMacroState as MacroState;
 use bmw_err::{err, Error};
 use bmw_log::*;
 use proc_macro::TokenStream;

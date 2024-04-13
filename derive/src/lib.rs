@@ -61,7 +61,8 @@
 //! generics, currenly you must build your own bmw_ser::Serializable implementation.
 
 extern crate proc_macro;
-use crate::derive::do_derive_serialize;
+use crate::derive_conf::do_derive_configurable;
+use crate::derive_ser::do_derive_serialize;
 use proc_macro::TokenStream;
 
 /// This is a proc macro for implementing the bmw_ser::Serializable trait. See the [`crate`]
@@ -72,5 +73,12 @@ pub fn derive_serialize(strm: TokenStream) -> TokenStream {
 	do_derive_serialize(strm)
 }
 
-mod derive;
+#[proc_macro_derive(Configurable, attributes(required))]
+#[cfg(not(tarpaulin_include))]
+pub fn derive_configurable(strm: TokenStream) -> TokenStream {
+	do_derive_configurable(strm)
+}
+
+mod derive_conf;
+mod derive_ser;
 mod types;

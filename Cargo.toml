@@ -37,6 +37,7 @@ bmw_derive  = { path = "./derive"      }
 bmw_ser     = { path = "./ser"         }
 bmw_evh     = { path = "./evh"         }
 bmw_http    = { path = "./http"        }
+bmw_conf2   = { path = "./config2"     }
 
 [dev-dependencies]
 bmw_test    = { path = "./test"        }
