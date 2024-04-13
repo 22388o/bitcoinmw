@@ -179,7 +179,6 @@ dependencies = [
  "bmw_conf2",
  "bmw_deps",
  "bmw_err",
- "bmw_log",
  "bmw_ser",
 ]
 
@@ -225,6 +224,7 @@ name = "bmw_log"
 version = "0.0.3-beta.2"
 dependencies = [
  "bmw_conf",
+ "bmw_conf2",
  "bmw_deps",
  "bmw_err",
  "bmw_test",
@@ -236,8 +236,6 @@ version = "0.0.3-beta.2"
 dependencies = [
  "bmw_deps",
  "bmw_err",
- "bmw_log",
- "bmw_test",
 ]
 
 [[package]]

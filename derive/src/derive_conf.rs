@@ -17,12 +17,40 @@
 // limitations under the License.
 
 use crate::types::ConfMacroState as MacroState;
-use bmw_err::Error;
-use bmw_log::*;
+use bmw_err::{err, Error};
 use proc_macro::TokenTree::*;
 use proc_macro::{Group, TokenStream, TokenTree};
 
-info!();
+const DEBUG: bool = false;
+
+// use a makeshift log because we want to use this as a dependency in the logging crate
+macro_rules! debug {
+        ($line:expr) => {{
+                if DEBUG {
+                        println!($line);
+                }
+                if true {
+                        Ok(())
+                } else {
+                        Err(err!(ErrKind::Log, "impossible logging error"))
+                }
+        }};
+        ($line:expr, $($values:tt)*) => {{
+                if DEBUG {
+                        println!($line, $($values)*);
+                }
+                if true {
+                        Ok(())
+                } else {
+                        Err(err!(ErrKind::Log, "impossible logging error"))
+                }
+        }};
+}
+macro_rules! error {
+        ($line:expr, $($values:tt)*) => {{
+                println!($line, $($values)*);
+        }};
+}
 
 impl MacroState {
 	fn new() -> Self {

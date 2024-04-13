@@ -18,7 +18,6 @@
 
 use crate::types::SerMacroState as MacroState;
 use bmw_err::{err, Error};
-use bmw_log::*;
 use proc_macro::TokenStream;
 use proc_macro::TokenTree;
 use proc_macro::TokenTree::{Group, Ident, Literal, Punct};
@@ -26,7 +25,36 @@ use proc_macro::TokenTree::{Group, Ident, Literal, Punct};
 // Note about tarpaulin. Tarpaulin doesn't cover proc_macros so we disable it throughout this
 // library.
 
-info!();
+const DEBUG: bool = false;
+
+// use a makeshift log because we want to use this as a dependency in the logging crate
+macro_rules! debug {
+        ($line:expr) => {{
+                if DEBUG {
+                        println!($line);
+                }
+                if true {
+                        Ok(())
+                } else {
+                        Err(err!(ErrKind::Log, "impossible logging error"))
+                }
+        }};
+	($line:expr, $($values:tt)*) => {{
+		if DEBUG {
+			println!($line, $($values)*);
+		}
+                if true {
+                        Ok(())
+                } else {
+                        Err(err!(ErrKind::Log, "impossible logging error"))
+                }
+	}};
+}
+macro_rules! error {
+        ($line:expr, $($values:tt)*) => {{
+                println!($line, $($values)*);
+        }};
+}
 
 #[cfg(not(tarpaulin_include))]
 impl MacroState {
