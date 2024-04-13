@@ -12,10 +12,11 @@ edition = "2021"
 
 [dependencies]
 
-bmw_deps  = { path = "../deps"    }
-bmw_err   = { path = "../error"   }
-bmw_conf  = { path = "../config"  }
-bmw_conf2 = { path = "../config2" }
+bmw_deps   = { path = "../deps"    }
+bmw_err    = { path = "../error"   }
+bmw_conf   = { path = "../config"  }
+bmw_conf2  = { path = "../config2" }
+bmw_derive = { path = "../derive"  }
 
 [dev-dependencies]
 bmw_test = { path = "../test"   }

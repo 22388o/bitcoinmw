@@ -311,7 +311,9 @@ impl MacroState {
 			None => {}
 		}
 
-		ret = format!("{} \n\t\t}}\n", ret);
+		if ret != "None".to_string() {
+			ret = format!("{} \n\t\t}}\n", ret);
+		}
 
 		ret
 	}
@@ -351,8 +353,9 @@ impl MacroState {
 			None => {}
 		}
 
-		ret = format!("{} \n\t\t}}\n", ret);
-
+		if ret != "None".to_string() {
+			ret = format!("{} \n\t\t}}\n", ret);
+		}
 		ret
 	}
 
@@ -391,8 +394,9 @@ impl MacroState {
 			None => {}
 		}
 
-		ret = format!("{} \n\t\t}}\n", ret);
-
+		if ret != "None".to_string() {
+			ret = format!("{} \n\t\t}}\n", ret);
+		}
 		ret
 	}
 
@@ -431,7 +435,9 @@ impl MacroState {
 			None => {}
 		}
 
-		ret = format!("{} \n\t\t}}\n", ret);
+		if ret != "None".to_string() {
+			ret = format!("{} \n\t\t}}\n", ret);
+		}
 
 		ret
 	}
@@ -471,7 +477,9 @@ impl MacroState {
 			None => {}
 		}
 
-		ret = format!("{} \n\t\t}}\n", ret);
+		if ret != "None".to_string() {
+			ret = format!("{} \n\t\t}}\n", ret);
+		}
 
 		ret
 	}
@@ -511,8 +519,9 @@ impl MacroState {
 			None => {}
 		}
 
-		ret = format!("{} \n\t\t}}\n", ret);
-
+		if ret != "None".to_string() {
+			ret = format!("{} \n\t\t}}\n", ret);
+		}
 		ret
 	}
 
@@ -551,8 +560,9 @@ impl MacroState {
 			None => {}
 		}
 
-		ret = format!("{} \n\t\t}}\n", ret);
-
+		if ret != "None".to_string() {
+			ret = format!("{} \n\t\t}}\n", ret);
+		}
 		ret
 	}
 
@@ -591,7 +601,9 @@ impl MacroState {
 			None => {}
 		}
 
-		ret = format!("{} \n\t\t}}\n", ret);
+		if ret != "None".to_string() {
+			ret = format!("{} \n\t\t}}\n", ret);
+		}
 
 		ret
 	}
@@ -631,8 +643,9 @@ impl MacroState {
 			None => {}
 		}
 
-		ret = format!("{} \n\t\t}}\n", ret);
-
+		if ret != "None".to_string() {
+			ret = format!("{} \n\t\t}}\n", ret);
+		}
 		ret
 	}
 

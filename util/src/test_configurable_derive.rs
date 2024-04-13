@@ -235,4 +235,208 @@ mod test {
 
 		Ok(())
 	}
+
+	#[derive(Configurable, PartialEq, Debug)]
+	pub struct Empty {}
+
+	impl Default for Empty {
+		fn default() -> Self {
+			Self {}
+		}
+	}
+
+	#[derive(Configurable, PartialEq, Debug)]
+	pub struct ConfigAll {
+		a1: u8,
+		b1: u16,
+		c1: u32,
+		d1: u64,
+		e1: u128,
+		f1: usize,
+		g1: String,
+		h1: bool,
+		i1: (String, String),
+		j1: Vec<u8>,
+		k1: Vec<u16>,
+		l1: Vec<u32>,
+		m1: Vec<u64>,
+		n1: Vec<u128>,
+		o1: Vec<usize>,
+		p1: Vec<String>,
+		q1: Vec<bool>,
+		r1: Vec<(String, String)>,
+	}
+
+	impl Default for ConfigAll {
+		fn default() -> Self {
+			let a1 = 1;
+			let b1 = 2;
+			let c1 = 3;
+			let d1 = 4;
+			let e1 = 5;
+			let f1 = 6;
+			let g1 = "default".to_string();
+			let h1 = false;
+			let i1 = ("def1".to_string(), "def2".to_string());
+			let j1 = vec![];
+			let k1 = vec![];
+			let l1 = vec![];
+			let m1 = vec![];
+			let n1 = vec![];
+			let o1 = vec![];
+			let p1 = vec![];
+			let q1 = vec![];
+			let r1 = vec![];
+
+			Self {
+				a1,
+				b1,
+				c1,
+				d1,
+				e1,
+				f1,
+				g1,
+				h1,
+				i1,
+				j1,
+				k1,
+				l1,
+				m1,
+				n1,
+				o1,
+				p1,
+				q1,
+				r1,
+			}
+		}
+	}
+
+	#[test]
+	fn test_derive_configuration_exhaustive() -> Result<(), Error> {
+		let empty = config!(Empty, Empty_Options, vec![])?;
+		assert_eq!(empty, Empty {});
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![])?;
+		assert_eq!(all, ConfigAll::default());
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![a1(0)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.a1, 0);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![b1(0)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.b1, 0);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![c1(0)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.c1, 0);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![d1(0)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.d1, 0);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![e1(0)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.e1, 0);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![f1(0)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.f1, 0);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![g1("nondefault")])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.g1, "nondefault".to_string());
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![h1(true)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.h1, true);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![i1(("a", "b"))])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.i1, ("a".to_string(), "b".to_string()));
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![j1(0)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.j1, vec![0]);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![j1(0), j1(1)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.j1, vec![0, 1]);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![k1(0)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.k1, vec![0]);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![k1(0), k1(1)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.k1, vec![0, 1]);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![l1(0)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.l1, vec![0]);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![l1(0), l1(1)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.l1, vec![0, 1]);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![m1(0)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.m1, vec![0]);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![m1(0), m1(1)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.m1, vec![0, 1]);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![n1(0)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.n1, vec![0]);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![n1(0), n1(1)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.n1, vec![0, 1]);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![o1(0)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.o1, vec![0]);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![o1(0), o1(1)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.o1, vec![0, 1]);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![p1("1")])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.p1, vec!["1".to_string()]);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![p1("1"), p1("2")])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.p1, vec!["1".to_string(), "2".to_string()]);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![q1(false)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.q1, vec![false]);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![q1(true), q1(false)])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.q1, vec![true, false]);
+
+		let all = config!(ConfigAll, ConfigAll_Options, vec![r1(("x", "y"))])?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(all.r1, vec![("x".to_string(), "y".to_string())]);
+
+		let all = config!(
+			ConfigAll,
+			ConfigAll_Options,
+			vec![r1(("x", "y")), r1(("a", "b"))]
+		)?;
+		assert_ne!(all, ConfigAll::default());
+		assert_eq!(
+			all.r1,
+			vec![
+				("x".to_string(), "y".to_string()),
+				("a".to_string(), "b".to_string())
+			]
+		);
+
+		Ok(())
+	}
 }

@@ -226,6 +226,7 @@ dependencies = [
  "bmw_conf",
  "bmw_conf2",
  "bmw_deps",
+ "bmw_derive",
  "bmw_err",
  "bmw_test",
 ]

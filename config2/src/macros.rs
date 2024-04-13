@@ -27,8 +27,9 @@ macro_rules! config {
 
 		let mut name_set: HashSet<String> = HashSet::new();
 		let mut err = None;
+		let options: Vec<$enum_name> = $vec;
 
-		for cfg in $vec {
+		for cfg in options {
 			let name = cfg.name();
 			if name_set.contains(name.clone()) && !ret.allow_dupes().contains(name.clone()) {
 				let text = format!("config option ({}) was specified more than once", name);
