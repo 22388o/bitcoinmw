@@ -143,6 +143,7 @@ dependencies = [
  "byteorder",
  "chrono",
  "colored",
+ "convert_case",
  "dirs",
  "downcast",
  "dyn-clone",
@@ -179,7 +180,6 @@ dependencies = [
  "bmw_conf2",
  "bmw_deps",
  "bmw_err",
- "bmw_log",
  "bmw_ser",
 ]
 
@@ -194,8 +194,9 @@ dependencies = [
 name = "bmw_log"
 version = "0.0.3-beta.2"
 dependencies = [
- "bmw_conf",
+ "bmw_conf2",
  "bmw_deps",
+ "bmw_derive",
  "bmw_err",
 ]
 
@@ -205,7 +206,6 @@ version = "0.0.3-beta.2"
 dependencies = [
  "bmw_deps",
  "bmw_err",
- "bmw_log",
 ]
 
 [[package]]
@@ -302,6 +302,15 @@ checksum = "cbf2150cce219b664a8a70df7a1f933836724b503f8a413af9365b4dcc4d90b8"
 dependencies = [
  "lazy_static",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "convert_case"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
+dependencies = [
+ "unicode-segmentation",
 ]
 
 [[package]]
@@ -1160,6 +1169,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "unicode-segmentation"
+version = "1.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4c87d22b6e3f4a18d4d40ef354e97c90fcb14dd91d7dc0aa9d8a1172ebf7202"
+
+[[package]]
 name = "unicode-width"
 version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1198,6 +1213,7 @@ checksum = "10477a8879b7fc3bb4fb54fa6adcfd6191de561b13d5413fec9cc0239fd1c882"
 name = "util_perf"
 version = "0.0.3-beta.2"
 dependencies = [
+ "bmw_conf",
  "bmw_deps",
  "bmw_err",
  "bmw_log",

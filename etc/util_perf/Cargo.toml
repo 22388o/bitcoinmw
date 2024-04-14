@@ -17,6 +17,7 @@ bmw_deps = { path = "../../deps" }
 bmw_log = { path = "../../log" }
 bmw_util = { path = "../../util" }
 bmw_err = { path = "../../error" }
+bmw_conf = { path = "../../config" }
 
 clap = { version = "2.33", features = ["yaml"] }
 num-format = "0.4.4"
