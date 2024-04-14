@@ -31,6 +31,7 @@ fn main() {
 		PathBuf::from("./.hooks").to_str().unwrap()
 	);
 
+	// execute git_hooks
 	if cfg!(target_os = "windows") {
 		Command::new("cmd")
 			.args(&["/C", &git_hooks])
@@ -43,10 +44,15 @@ fn main() {
 			.expect("failed to execute git config for hooks");
 	}
 
+	// set our output directory
 	let out_dir_path = format!("{}{}", env::var("OUT_DIR").unwrap(), "/built.rs");
-	// don't fail the build if something's missing, may just be cargo release
-	let _ = built::write_built_file_with_opts(
+
+	// write built file with options
+	match built::write_built_file_with_opts(
 		Some(Path::new(env!("CARGO_MANIFEST_DIR"))),
 		Path::new(&out_dir_path),
-	);
+	) {
+		Ok(_) => {}
+		Err(e) => panic!("Build Error: {}", e),
+	}
 }

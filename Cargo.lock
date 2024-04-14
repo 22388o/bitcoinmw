@@ -72,6 +72,7 @@ dependencies = [
  "bmw_conf",
  "bmw_deps",
  "bmw_err",
+ "bmw_ser",
  "bmw_test",
  "built",
  "jemallocator",
@@ -162,6 +163,14 @@ name = "bmw_err"
 version = "0.0.3-beta.2"
 dependencies = [
  "bmw_deps",
+]
+
+[[package]]
+name = "bmw_ser"
+version = "0.0.3-beta.2"
+dependencies = [
+ "bmw_deps",
+ "bmw_err",
 ]
 
 [[package]]
