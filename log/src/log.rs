@@ -185,11 +185,8 @@ impl LogImpl {
 			path_buf.pop();
 			let path_buf_str = path_buf.display().to_string();
 			let url_path = UrlPath::new(&path_buf_str).normalize();
-			println!("normalized_path = {}", url_path);
-			let canon_path = PathBuf::from(url_path).as_path().canonicalize()?;
-			if !canon_path.is_dir() {
-				return Err(err!(ErrKind::Log, "parent is not a directory"));
-			}
+			// make sure we can canonicalize the path
+			PathBuf::from(url_path).as_path().canonicalize()?;
 		}
 
 		if config.max_age_millis < MINIMUM_MAX_AGE_MILLIS {
