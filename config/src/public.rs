@@ -18,6 +18,11 @@
 
 use std::collections::HashSet;
 
+/// The configurable trait, when implemented allows structs to be configured.
+/// Currently, u8, u16, u32, u64, u128, usize, string and a string tuple (String, String) are
+/// supported. Also Vec of any of these types are supported. This should generally be used with the
+/// proc-macro Configurable, but that is done at a higher level crate so see it's documentation
+/// there in the `derive` crate.
 pub trait Configurable {
 	fn set_u8(&mut self, name: &str, value: u8);
 	fn set_u16(&mut self, name: &str, value: u16);
