@@ -25,7 +25,7 @@ if [ "$3" == "Schedule" ] || [ "$3" == "Manual" ]; then
     echo "number ok $cur"
     IFS=' ';
     echo "$timestamp ${splitIFS[0]}" >> docs/tarpaulin_summary.txt
-    cp README.md.template README.md
+    cp ./docs/templates/README.md.template README.md
     export ccvalue=${splitIFS[0]}
     perl -pi -e 's/CODECOVERAGE/$ENV{ccvalue}/g' README.md
     chmod 755 ./.ci/make_cc_graph.sh

@@ -16,22 +16,21 @@ members = [
 	"error",
 	"deps",
 	"test",
-	"config2"
+	"config"
 ]
 exclude = ["etc"]
 
 [dependencies]
-
-bmw_deps    = { path = "./deps"        }
-bmw_err     = { path = "./error"       }
-bmw_conf2   = { path = "./config2"     }
+bmw_deps = { path = "./deps"   }
+bmw_err  = { path = "./error"  }
+bmw_conf = { path = "./config" }
 
 [dev-dependencies]
-bmw_test    = { path = "./test"        }
+bmw_test = { path = "./test"   }
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 jemallocator = "0.5.4"
 
 [build-dependencies]
-built = { version = "0.7.1", features = ["git2"]}
+built = { version = "0.7.2", features = ["git2"]}
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-cp docs/code_coverage.html.template docs/code_coverage.html;
-cp lib.rs.template src/lib.rs;
+cp docs/templates/code_coverage.html.template docs/code_coverage.html;
+cp docs/templates/lib.rs.template src/lib.rs;
 # copy tarpaulin output into template
 export tarpaulin_output=`cat /tmp/tarpaulin.out`;
 perl -pi -e 's/REPLACETARPAULINOUTPUT/$ENV{tarpaulin_output}/g' docs/code_coverage.html

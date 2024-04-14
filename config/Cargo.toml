@@ -1,5 +1,5 @@
 [package]
-name = "bmw_conf2"
+name = "bmw_conf"
 version = "0.0.3-beta.2"
 authors = ["The BitcoinMW Developers"]
 description = "Configuration Library"

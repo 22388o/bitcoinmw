@@ -19,7 +19,7 @@
 #[cfg(unix)]
 use bmw_deps::nix::errno::Errno as NixErrno;
 
-use crate::types::{Error, ErrorKind};
+use crate::public::{Error, ErrorKind};
 use bmw_deps::failure::{Backtrace, Context, Fail};
 use bmw_deps::url::ParseError;
 use std::alloc::LayoutError;
