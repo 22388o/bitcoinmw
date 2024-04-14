@@ -19,7 +19,7 @@
 #[macro_export]
 macro_rules! config {
 	( $configurable:ident, $enum_name:ident, $vec:expr ) => {{
-		use bmw_conf2::Configurable;
+		use bmw_conf::Configurable;
 		use bmw_err::*;
 		use std::collections::HashSet;
 		use $enum_name::*;

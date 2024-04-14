@@ -18,7 +18,7 @@
 
 #[cfg(test)]
 mod test {
-	use crate as bmw_conf2;
+	use crate as bmw_conf;
 	use crate::*;
 	use bmw_err::*;
 	use std::collections::HashSet;
