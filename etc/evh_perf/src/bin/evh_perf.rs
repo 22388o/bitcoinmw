@@ -22,7 +22,6 @@ use bmw_deps::num_format::{Locale, ToFormattedString};
 use bmw_deps::rand::random;
 use bmw_err::*;
 use bmw_evh::*;
-use bmw_log::bmw_conf::ConfigOption;
 use bmw_log::*;
 use bmw_util::*;
 use clap::{load_yaml, App, ArgMatches};
@@ -140,7 +139,7 @@ fn run_eventhandler(
 	configs.insert("stats".to_string(), stats.to_string());
 	print_configs(configs)?;
 
-	set_log_option!(ConfigOption::DisplayLogLevel(true))?;
+	set_log_option!(DisplayLogLevel(true))?;
 
 	let addr = &format!("{}:{}", host, port)[..];
 
@@ -422,7 +421,7 @@ fn run_client(args: ArgMatches, start: Instant) -> Result<(), Error> {
 		})?);
 	}
 
-	set_log_option!(ConfigOption::DisplayLogLevel(true))?;
+	set_log_option!(DisplayLogLevel(true))?;
 
 	info!(
 		"{}",
@@ -897,7 +896,7 @@ fn main() -> Result<(), Error> {
 
 	global_slab_allocator!()?;
 	log_init!(
-		DisplayBackTrace(false),
+		DisplayBacktrace(false),
 		DisplayLineNum(false),
 		DisplayLogLevel(false)
 	)?;
@@ -934,7 +933,7 @@ fn main() -> Result<(), Error> {
 		let start = Instant::now();
 		run_client(args, start)?;
 	} else if client && args.is_present("reuse_port") {
-		set_log_option!(ConfigOption::DisplayLogLevel(true))?;
+		set_log_option!(DisplayLogLevel(true))?;
 		error!("--reuse_port must only be used with the -e option")?;
 		exit(-1);
 	} else if client {
@@ -944,39 +943,39 @@ fn main() -> Result<(), Error> {
 		)?;
 		run_client(args, start)?;
 	} else if eventhandler && args.is_present("histo_delta_micros") {
-		set_log_option!(ConfigOption::DisplayLogLevel(true))?;
+		set_log_option!(DisplayLogLevel(true))?;
 		error!("--histo_delta_micros must only be used with the -c option")?;
 		exit(-1);
 	} else if eventhandler && args.is_present("histo") {
-		set_log_option!(ConfigOption::DisplayLogLevel(true))?;
+		set_log_option!(DisplayLogLevel(true))?;
 		error!("--histo must only be used with the -c option")?;
 		exit(-1);
 	} else if eventhandler && args.is_present("reconns") {
-		set_log_option!(ConfigOption::DisplayLogLevel(true))?;
+		set_log_option!(DisplayLogLevel(true))?;
 		error!("--reconns must only be used with the -c option")?;
 		exit(-1);
 	} else if eventhandler && args.is_present("clients") {
-		set_log_option!(ConfigOption::DisplayLogLevel(true))?;
+		set_log_option!(DisplayLogLevel(true))?;
 		error!("--clients must only be used with the -c option")?;
 		exit(-1);
 	} else if eventhandler && args.is_present("count") {
-		set_log_option!(ConfigOption::DisplayLogLevel(true))?;
+		set_log_option!(DisplayLogLevel(true))?;
 		error!("--count must only be used with the -c option")?;
 		exit(-1);
 	} else if eventhandler && args.is_present("itt") {
-		set_log_option!(ConfigOption::DisplayLogLevel(true))?;
+		set_log_option!(DisplayLogLevel(true))?;
 		error!("--itt must only be used with the -c option")?;
 		exit(-1);
 	} else if eventhandler && args.is_present("max") {
-		set_log_option!(ConfigOption::DisplayLogLevel(true))?;
+		set_log_option!(DisplayLogLevel(true))?;
 		error!("--min must only be used with the -c option")?;
 		exit(-1);
 	} else if eventhandler && args.is_present("min") {
-		set_log_option!(ConfigOption::DisplayLogLevel(true))?;
+		set_log_option!(DisplayLogLevel(true))?;
 		error!("--min must only be used with the -c option")?;
 		exit(-1);
 	} else if eventhandler && args.is_present("sleep") {
-		set_log_option!(ConfigOption::DisplayLogLevel(true))?;
+		set_log_option!(DisplayLogLevel(true))?;
 		error!("--sleep must only be used with the -c option")?;
 		exit(-1);
 	} else if eventhandler {

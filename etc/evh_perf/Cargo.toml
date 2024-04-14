@@ -18,6 +18,7 @@ bmw_log = { path = "../../log" }
 bmw_util = { path = "../../util" }
 bmw_err = { path = "../../error" }
 bmw_evh = { path = "../../evh" }
+bmw_conf = { path = "../../config" }
 
 clap = { version = "2.33", features = ["yaml"] }
 
