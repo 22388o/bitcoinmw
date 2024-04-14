@@ -517,7 +517,6 @@ macro_rules! fatal_all {
 /// use bmw_err::Error;
 /// use bmw_log::*;
 /// use bmw_test::*;
-/// use bmw_conf::ConfigOption::*;
 /// use std::path::PathBuf;
 ///
 /// debug!();
@@ -528,12 +527,13 @@ macro_rules! fatal_all {
 ///     let mut buf = PathBuf::new();
 ///     buf.push(test_info.directory());
 ///     buf.push("./main.log");
+///     let buf = buf.display().to_string();
 ///
 ///     // init the global logger
 ///     log_init!(
-///         DisplayBackTrace(false),
+///         DisplayBacktrace(false),
 ///         DisplayMillis(false),
-///         LogFilePath(Some(buf))
+///         LogFilePath(&buf)
 ///     )?;
 ///
 ///     info!("Startup complete!")?;
@@ -564,9 +564,8 @@ macro_rules! fatal_all {
 macro_rules! log_init {
 	($($config:tt)*) => {{
 		use bmw_log::GlobalLogContainer;
-                use bmw_conf::ConfigOption::*;
-                use bmw_conf::ConfigOption;
-                let v: Vec<ConfigOption> = vec![$($config)*];
+                use bmw_log::LogConfig2_Options::*;
+                let v: Vec<LogConfig2_Options> = vec![$($config)*];
                 GlobalLogContainer::init(v)
 	}};
 }
@@ -578,45 +577,9 @@ macro_rules! log_init {
 #[macro_export]
 macro_rules! set_log_option {
 	($option:expr) => {{
-		use bmw_conf::ConfigOption::*;
 		use bmw_log::GlobalLogContainer;
+		use bmw_log::LogConfig2_Options::*;
 		GlobalLogContainer::set_log_option($option)
-	}};
-}
-
-/// Get the current value of the specified log option for the global log. The single parameter
-/// must be of the type ConfigOptionName. The macro returns a ConfigOption
-/// on success and Error on error. See [`crate::Log::get_config_option`] which
-/// is the underlying function call for full details.
-///
-/// # Examples
-///
-///```
-/// use bmw_err::Error;
-/// use bmw_log::*;
-/// use bmw_conf::*;
-///
-/// debug!();
-///
-/// fn main() -> Result<(), Error> {
-///
-///     // first init the logger
-///     log_init!(DisplayColors(true))?;
-///     // get the configured value for FilePath
-///     let v = get_log_option!(ConfigOptionName::LogFilePath)?;
-///     // It should be the default value which is None
-///     assert_eq!(v, ConfigOption::LogFilePath(None));
-///     info!("file_path={:?}", v)?;
-///
-///     Ok(())
-/// }
-///```
-#[macro_export]
-macro_rules! get_log_option {
-	($option:expr) => {{
-		use bmw_conf::ConfigOptionName::*;
-		use bmw_log::GlobalLogContainer;
-		GlobalLogContainer::get_log_option($option)
 	}};
 }
 
@@ -657,6 +620,7 @@ macro_rules! need_rotate {
 ///     let mut buf = PathBuf::new();
 ///     buf.push(test_info.directory());
 ///     buf.push("test.log");
+///     let buf = buf.display().to_string();
 ///
 ///     // these are all the legal configurations to use.
 ///     // most of these are the defaults. The only exceptions are:
@@ -673,12 +637,12 @@ macro_rules! need_rotate {
 ///         DisplayLogLevel(true), // whether or not to display the log level
 ///         DisplayLineNum(true), // whether or not to display the code line number
 ///         DisplayMillis(true), // whether or not to display millisecond precision
-///         LogFilePath(Some(buf)), // path to the log file or None if no file logging
+///         LogFilePath(&buf), // path to the log file or None if no file logging
 ///         AutoRotate(true), // whether or not to automatically rotate the log file
-///         DisplayBackTrace(false), // whether or not to display a backtrace on error/fatal
+///         DisplayBacktrace(false), // whether or not to display a backtrace on error/fatal
 ///         LineNumDataMaxLen(30), // maximum length of line num data
 ///         DeleteRotation(false), // whether or not to delete the rotated log file (test only)
-///         FileHeader("my_header".to_string()), // header to place at the top of each file
+///         FileHeader("my_header"), // header to place at the top of each file
 ///     )?;
 ///
 ///     logger.init()?;
@@ -700,9 +664,8 @@ macro_rules! need_rotate {
 #[macro_export]
 macro_rules! logger {
         ($($config:tt)*) => {{
-                use bmw_conf::ConfigOption::*;
-                use bmw_conf::ConfigOption;
-                let v: Vec<ConfigOption> = vec![$($config)*];
+                use bmw_log::LogConfig2_Options::*;
+                let v: Vec<LogConfig2_Options> = vec![$($config)*];
                 LogBuilder::build_log(v)
         }};
 }

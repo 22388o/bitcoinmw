@@ -16,15 +16,19 @@
 // limitations under the License.
 
 use crate::constants::*;
-use crate::types::{LogConfig, LogImpl};
-use crate::{u64, GlobalLogContainer, Log, LogBuilder, LogLevel, LoggingType, BMW_GLOBAL_LOG};
-use bmw_conf::*;
+use crate::public::*;
+use crate::types::*;
+use crate::u64;
+use bmw_conf2::config;
+use bmw_conf2::Configurable;
 use bmw_deps::backtrace;
 use bmw_deps::backtrace::{Backtrace, Symbol};
 use bmw_deps::chrono::{DateTime, Local};
 use bmw_deps::colored::Colorize;
 use bmw_deps::dirs;
+use bmw_deps::dyn_clone::clone_trait_object;
 use bmw_deps::rand::random;
+use bmw_deps::url_path::UrlPath;
 use bmw_err::*;
 use std::fmt::{Display, Formatter};
 use std::fs::{remove_file, rename, File, OpenOptions};
@@ -53,6 +57,32 @@ macro_rules! none_or_err {
 			None => Ok(()),
 		}
 	}};
+}
+
+clone_trait_object!(Log);
+
+impl Default for LogConfig2 {
+	fn default() -> Self {
+		Self {
+			max_size_bytes: u64::MAX,
+			max_age_millis: u64::MAX,
+			line_num_data_max_len: DEFAULT_LINE_NUM_DATA_MAX_LEN,
+			display_colors: true,
+			display_stdout: true,
+			display_timestamp: true,
+			display_log_level: true,
+			display_line_num: true,
+			display_millis: true,
+			display_backtrace: false,
+			log_file_path: "".to_string(),
+			delete_rotation: false,
+			auto_rotate: false,
+			file_header: "".to_string(),
+			debug_invalid_metadata: false,
+			debug_lineno_is_none: false,
+			debug_process_resolve_frame_error: false,
+		}
+	}
 }
 
 impl Display for LogLevel {
@@ -90,7 +120,7 @@ impl GlobalLogContainer {
 		Ok(())
 	}
 
-	pub fn init(values: Vec<ConfigOption>) -> Result<(), Error> {
+	pub fn init(values: Vec<LogConfig2_Options>) -> Result<(), Error> {
 		let mut log = BMW_GLOBAL_LOG.write()?;
 		let mut logger = LogBuilder::build_log(values)?;
 		logger.set_log_level(LogLevel::Trace);
@@ -99,24 +129,12 @@ impl GlobalLogContainer {
 		Ok(())
 	}
 
-	pub fn set_log_option(option: ConfigOption) -> Result<(), Error> {
+	pub fn set_log_option(option: LogConfig2_Options) -> Result<(), Error> {
 		let mut log = BMW_GLOBAL_LOG.write()?;
 		match (*log).as_mut() {
 			Some(logger) => logger.set_config_option(option),
 			None => {
 				let text = "global logger has not been initalized";
-				let err = err!(ErrKind::Configuration, text);
-				Err(err)
-			}
-		}
-	}
-
-	pub fn get_log_option(option: ConfigOptionName) -> Result<ConfigOption, Error> {
-		let log = BMW_GLOBAL_LOG.read()?;
-		match (*log).as_ref() {
-			Some(logger) => logger.get_config_option(option),
-			None => {
-				let text = "global logger has not been initialized";
 				let err = err!(ErrKind::Configuration, text);
 				Err(err)
 			}
@@ -204,13 +222,11 @@ impl Log for LogImpl {
 		// standard rotation string format
 		let rotation_string = now.format(".r_%m_%d_%Y_%T").to_string().replace(":", "-");
 
-		let ekind = ErrKind::IllegalArgument;
-		let text = "log file cannot be rotated. There is no file associated with this logger";
-
 		// get the original file path
-		let original_file_path = some_or_err!(self.config.file_path.clone(), ekind, text)?;
+		let original_file_path = PathBuf::from(self.config.log_file_path.clone());
 
 		// get the parent directory and the file name
+		let ekind = ErrKind::IllegalArgument;
 		let text = "file_path has an unexpected illegal value of None for parent";
 		let parent = some_or_err!(original_file_path.parent(), ekind, text)?;
 
@@ -282,24 +298,22 @@ impl Log for LogImpl {
 			none_or_err!((*file).as_ref(), errkind, text)?;
 		}
 
-		match self.config.file_path.clone().as_ref() {
-			Some(path) => {
-				let mut f = match File::options().append(true).open(path.as_path()) {
-					Ok(f) => {
-						// already exists just return file here
-						f
-					}
-					Err(_) => {
-						// try to create it
-						File::create(path.as_path())?
-					}
-				};
-				self.check_open(&mut f, path)?;
+		if self.config.log_file_path != "" {
+			let path = PathBuf::from(self.config.log_file_path.clone());
+			let mut f = match File::options().append(true).open(path.as_path()) {
+				Ok(f) => {
+					// already exists just return file here
+					f
+				}
+				Err(_) => {
+					// try to create it
+					File::create(path.as_path())?
+				}
+			};
+			self.check_open(&mut f, &path)?;
 
-				let mut file = self.file.write()?;
-				*file = Some(f);
-			}
-			None => {}
+			let mut file = self.file.write()?;
+			*file = Some(f);
 		}
 		self.is_init = true;
 
@@ -316,51 +330,64 @@ impl Log for LogImpl {
 		*file = None;
 		Ok(())
 	}
-	fn set_config_option(&mut self, value: ConfigOption) -> Result<(), Error> {
-		// set the specified option, LogFilePath results in an error.
-		use bmw_conf::ConfigOption as CO;
-		let errkind = ErrKind::Configuration;
-		let text = "cannot set LogFilePath after logging has been started";
-		match value {
-			CO::DisplayColors(v) => self.config.colors = v,
-			CO::DisplayTimestamp(v) => self.config.timestamp = v,
-			CO::MaxSizeBytes(v) => self.config.max_size_bytes = v,
-			CO::MaxAgeMillis(v) => self.config.max_age_millis = v,
-			CO::DisplayStdout(v) => self.config.stdout = v,
-			CO::DisplayLogLevel(v) => self.config.level = v,
-			CO::DisplayLineNum(v) => self.config.line_num = v,
-			CO::DisplayMillis(v) => self.config.show_millis = v,
-			CO::AutoRotate(v) => self.config.auto_rotate = v,
-			CO::DisplayBackTrace(v) => self.config.show_backtrace = v,
-			CO::LineNumDataMaxLen(v) => self.config.line_num_data_max_len = v,
-			CO::DeleteRotation(v) => self.config.delete_rotation = v,
-			CO::FileHeader(v) => self.config.file_header = v.to_string(),
-			CO::LogFilePath(_) => return Err(err!(errkind, text)),
-			_ => return Err(err!(ErrKind::Configuration, "unknown config option")),
+	fn set_config_option(&mut self, value: LogConfig2_Options) -> Result<(), Error> {
+		if !self.is_init {
+			let ekind = ErrKind::Log;
+			let text = "log file options cannot be set because init() was never called";
+			return Err(err!(ekind, text));
 		}
+
+		let name = value.name();
+
+		if name == "LogFilePath" {
+			return Err(err!(ErrKind::Log, "cannot modify log file path after init"));
+		}
+
+		match value.value_u8() {
+			Some(v) => self.config.set_u8(name, v),
+			None => {}
+		}
+		match value.value_u16() {
+			Some(v) => self.config.set_u16(name, v),
+			None => {}
+		}
+
+		match value.value_u32() {
+			Some(v) => self.config.set_u32(name, v),
+			None => {}
+		}
+
+		match value.value_u64() {
+			Some(v) => self.config.set_u64(name, v),
+			None => {}
+		}
+
+		match value.value_u128() {
+			Some(v) => self.config.set_u128(name, v),
+			None => {}
+		}
+
+		match value.value_usize() {
+			Some(v) => self.config.set_usize(name, v),
+			None => {}
+		}
+
+		match value.value_bool() {
+			Some(v) => self.config.set_bool(name, v),
+			None => {}
+		}
+
+		match value.value_string() {
+			Some(v) => self.config.set_string(name, v),
+			None => {}
+		}
+
+		match value.value_string_tuple() {
+			Some(v) => self.config.set_string_tuple(name, v),
+			None => {}
+		}
+
 		Ok(())
-	}
-	fn get_config_option(&self, option: ConfigOptionName) -> Result<ConfigOption, Error> {
-		// get any specified options
-		use bmw_conf::ConfigOption as CO;
-		use bmw_conf::ConfigOptionName as CN;
-		Ok(match option {
-			CN::DisplayColors => CO::DisplayColors(self.config.colors),
-			CN::DisplayTimestamp => CO::DisplayTimestamp(self.config.timestamp),
-			CN::MaxSizeBytes => CO::MaxSizeBytes(self.config.max_size_bytes),
-			CN::MaxAgeMillis => CO::MaxAgeMillis(self.config.max_age_millis),
-			CN::DisplayStdout => CO::DisplayStdout(self.config.stdout),
-			CN::DisplayLogLevel => CO::DisplayLogLevel(self.config.level),
-			CN::DisplayLineNum => CO::DisplayLineNum(self.config.line_num),
-			CN::DisplayMillis => CO::DisplayMillis(self.config.show_millis),
-			CN::LogFilePath => CO::LogFilePath(self.config.file_path.clone()),
-			CN::AutoRotate => CO::AutoRotate(self.config.auto_rotate),
-			CN::DisplayBackTrace => CO::DisplayBackTrace(self.config.show_backtrace),
-			CN::LineNumDataMaxLen => CO::LineNumDataMaxLen(self.config.line_num_data_max_len),
-			CN::DeleteRotation => CO::DeleteRotation(self.config.delete_rotation),
-			CN::FileHeader => CO::FileHeader(self.config.file_header.clone()),
-			_ => return Err(err!(ErrKind::Configuration, "unknown config option")),
-		})
 	}
 
 	#[cfg(test)]
@@ -380,8 +407,49 @@ impl Log for LogImpl {
 }
 
 impl LogImpl {
-	pub(crate) fn new(configs: Vec<ConfigOption>) -> Result<Self, Error> {
-		let config = LogConfig::new(configs)?;
+	pub(crate) fn new(configs: Vec<LogConfig2_Options>) -> Result<Self, Error> {
+		let mut config = config!(LogConfig2, LogConfig2_Options, configs)?;
+
+		// insert the home directory for ~
+		let home_dir = match dirs::home_dir() {
+			Some(p) => p,
+			None => PathBuf::new(),
+		}
+		.as_path()
+		.display()
+		.to_string();
+
+		config.log_file_path = config.log_file_path.replace("~", &home_dir);
+
+		// to check if the file is ok we try to canonicalize its parent, but only if a file
+		// is specified (len > 0). If there is no parent directory, canonicalize will fail
+		if config.log_file_path.len() > 0 {
+			let mut path_buf = PathBuf::from(&config.log_file_path);
+			path_buf.pop();
+			let path_buf_str = path_buf.display().to_string();
+			let url_path = UrlPath::new(&path_buf_str).normalize();
+			println!("normalized_path = {}", url_path);
+			let canon_path = PathBuf::from(url_path).as_path().canonicalize()?;
+			if !canon_path.is_dir() {
+				return Err(err!(ErrKind::Log, "parent is not a directory"));
+			}
+		}
+
+		if config.max_age_millis < MINIMUM_MAX_AGE_MILLIS {
+			let text = format!("MaxAgeMillis must be at least {}", MINIMUM_MAX_AGE_MILLIS);
+			return Err(err!(ErrKind::Configuration, text));
+		}
+
+		if config.max_size_bytes < MINIMUM_MAX_SIZE_BYTES {
+			let text = format!("MaxSizeBytes must be at least {}", MINIMUM_MAX_SIZE_BYTES);
+			return Err(err!(ErrKind::Configuration, text));
+		}
+
+		if config.line_num_data_max_len < MINIMUM_LNDML {
+			let text = format!("LineNumDataMaxLen must be at least {}", MINIMUM_LNDML);
+			return Err(err!(ErrKind::Configuration, text));
+		}
+
 		let log_level = LogLevel::Info;
 		let cur_size = 0;
 		let file = Arc::new(RwLock::new(None));
@@ -431,13 +499,16 @@ impl LogImpl {
 
 		if level as usize >= self.log_level as usize {
 			self.rotate_if_needed()?;
-			let show_stdout = self.config.stdout || logging_type == LoggingType::All;
-			let show_timestamp = self.config.timestamp && logging_type != LoggingType::Plain;
-			let show_colors = self.config.colors;
-			let show_log_level = self.config.level && logging_type != LoggingType::Plain;
-			let show_line_num = self.config.line_num && logging_type != LoggingType::Plain;
-			let show_millis = self.config.show_millis && logging_type != LoggingType::Plain;
-			let show_bt = self.config.show_backtrace && level as usize >= LogLevel::Error as usize;
+			let show_stdout = self.config.display_stdout || logging_type == LoggingType::All;
+			let show_timestamp =
+				self.config.display_timestamp && logging_type != LoggingType::Plain;
+			let show_colors = self.config.display_colors;
+			let show_log_level =
+				self.config.display_log_level && logging_type != LoggingType::Plain;
+			let show_line_num = self.config.display_line_num && logging_type != LoggingType::Plain;
+			let show_millis = self.config.display_millis && logging_type != LoggingType::Plain;
+			let show_bt =
+				self.config.display_backtrace && level as usize >= LogLevel::Error as usize;
 			let max_len = self.config.line_num_data_max_len;
 
 			// call the main logging function with the specified params
@@ -653,7 +724,7 @@ impl LogImpl {
 	}
 
 	fn process_resolve_frame(
-		config: &LogConfig,
+		config: &LogConfig2,
 		symbol: &Symbol,
 		found_logger: &mut bool,
 		logged_from_file: &mut String,
@@ -754,129 +825,5 @@ impl LogImpl {
 
 		self.last_rotation = Instant::now();
 		Ok(())
-	}
-}
-
-impl LogConfig {
-	pub(crate) fn get_config_path_buf(
-		option: ConfigOptionName,
-		config: &Box<dyn Config>,
-		default: Option<PathBuf>,
-	) -> Option<PathBuf> {
-		match config.get(&option) {
-			Some(v) => match v {
-				ConfigOption::LogFilePath(v) => v,
-				_ => default,
-			},
-			None => default,
-		}
-	}
-
-	// create the log config based on the specified data
-	pub(crate) fn new(configs: Vec<ConfigOption>) -> Result<Self, Error> {
-		use bmw_conf::ConfigOptionName as CN;
-		let config = ConfigBuilder::build_config(configs);
-		config.check_config(
-			vec![
-				ConfigOptionName::MaxSizeBytes,
-				ConfigOptionName::MaxAgeMillis,
-				ConfigOptionName::DisplayColors,
-				ConfigOptionName::DisplayStdout,
-				ConfigOptionName::DisplayTimestamp,
-				ConfigOptionName::DisplayLogLevel,
-				ConfigOptionName::DisplayLineNum,
-				ConfigOptionName::DisplayMillis,
-				ConfigOptionName::DisplayBackTrace,
-				ConfigOptionName::LogFilePath,
-				ConfigOptionName::LineNumDataMaxLen,
-				ConfigOptionName::DeleteRotation,
-				ConfigOptionName::FileHeader,
-				ConfigOptionName::AutoRotate,
-			],
-			vec![],
-		)?;
-
-		let auto_rotate = config.get_or_bool(&CN::AutoRotate, false);
-		let colors = config.get_or_bool(&CN::DisplayColors, true);
-		let delete_rotation = config.get_or_bool(&CN::DeleteRotation, false);
-		let file_header = config.get_or_string(&CN::FileHeader, "".to_string());
-		let file_path = Self::get_config_path_buf(CN::LogFilePath, &config, None);
-		let level = config.get_or_bool(&CN::DisplayLogLevel, true);
-		let line_num = config.get_or_bool(&CN::DisplayLineNum, true);
-		let show_backtrace = config.get_or_bool(&CN::DisplayBackTrace, false);
-		let show_millis = config.get_or_bool(&CN::DisplayMillis, true);
-		let stdout = config.get_or_bool(&CN::DisplayStdout, true);
-		let timestamp = config.get_or_bool(&CN::DisplayTimestamp, true);
-		let max_age_millis = config.get_or_u64(&CN::MaxAgeMillis, u64::MAX);
-		let max_size_bytes = config.get_or_u64(&CN::MaxSizeBytes, u64::MAX);
-		let value = DEFAULT_LINE_NUM_DATA_MAX_LEN;
-		let line_num_data_max_len = config.get_or_u64(&CN::LineNumDataMaxLen, value);
-
-		// insert the home directory for ~
-		let home_dir = match dirs::home_dir() {
-			Some(p) => p,
-			None => PathBuf::new(),
-		}
-		.as_path()
-		.display()
-		.to_string();
-
-		let file_path = match file_path {
-			Some(file_path) => {
-				let file_path_string = file_path.display().to_string().replace("~", &home_dir);
-				Some(PathBuf::from(file_path_string))
-			}
-			None => None,
-		};
-
-		if max_age_millis < MINIMUM_MAX_AGE_MILLIS {
-			let text = format!("MaxAgeMillis must be at least {}", MINIMUM_MAX_AGE_MILLIS);
-			return Err(err!(ErrKind::Configuration, text));
-		}
-
-		if max_size_bytes < MINIMUM_MAX_SIZE_BYTES {
-			let text = format!("MaxSizeBytes must be at least {}", MINIMUM_MAX_SIZE_BYTES);
-			return Err(err!(ErrKind::Configuration, text));
-		}
-
-		if line_num_data_max_len < MINIMUM_LNDML {
-			let text = format!("LineNumDataMaxLen must be at least {}", MINIMUM_LNDML);
-			return Err(err!(ErrKind::Configuration, text));
-		}
-
-		match file_path {
-			Some(ref file_path) => {
-				let parent = file_path.as_path().parent();
-				let parent = some_or_err!(parent, ErrKind::Log, "parent did not exist")?;
-				if !parent.exists() {
-					let ekind = ErrKind::Log;
-					let x = file_path.as_path().to_str().unwrap_or("");
-					let text = format!("parent directory filepath ({}) does not exist", x);
-					return Err(err!(ekind, text));
-				}
-			}
-			None => {}
-		}
-
-		Ok(Self {
-			auto_rotate,
-			colors,
-			delete_rotation,
-			file_header,
-			file_path,
-			level,
-			line_num,
-			line_num_data_max_len,
-			max_age_millis,
-			max_size_bytes,
-			show_backtrace,
-			show_millis,
-			stdout,
-			timestamp,
-			debug_process_resolve_frame_error: false,
-			debug_invalid_metadata: false,
-			#[cfg(debug_assertions)]
-			debug_lineno_is_none: false,
-		})
 	}
 }

@@ -69,12 +69,13 @@
 //!     let mut buf = PathBuf::new();
 //!     buf.push(test_info.directory());
 //!     buf.push("mylog.log");
+//!     let buf = buf.display().to_string();
 //!
 //!     // init the log. Important to do this before any logging takes place or a default log
 //!     // config will be applied
 //!     log_init!(
 //!         AutoRotate(true), // turn on autorotation
-//!         LogFilePath(Some(buf)), // log to our log file
+//!         LogFilePath(&buf), // log to our log file
 //!         MaxSizeBytes(1024 * 1024), // do a rotation when the log file reaches 1mb
 //!         MaxAgeMillis(60 * 60 * 1000) // do a rotation when the log file is over 1 hour old
 //!     )?;
@@ -96,13 +97,14 @@
 //!     let mut buf = PathBuf::new();
 //!     buf.push(test_info.directory());
 //!     buf.push("some_log.log");
+//!     let buf = buf.display().to_string();
 //!
 //!     // create the logger with the logger macro.
 //!     let mut logger = logger!(
-//!         LogFilePath(Some(buf)), // our path
+//!         LogFilePath(&buf), // our path
 //!         MaxAgeMillis(1000 * 30 * 60), // log max age before rotation
 //!         DisplayColors(false), // don't display colors
-//!         DisplayBackTrace(false) // don't show the backtrace on error/fatal log lines
+//!         DisplayBacktrace(false) // don't show the backtrace on error/fatal log lines
 //!     )?;
 //!
 //!     logger.init()?;
@@ -171,13 +173,9 @@ mod builder;
 mod constants;
 mod log;
 mod macros;
+mod public;
 mod test;
 mod types;
 
-pub use crate::types::{Log, LogBuilder, LogLevel, LoggingType};
-
-#[doc(hidden)]
-pub use crate::types::{GlobalLogContainer, BMW_GLOBAL_LOG};
-
-#[doc(hidden)]
-pub use bmw_conf;
+pub use crate::public::*;
+pub use crate::types::LogConfig2_Options;

@@ -17,6 +17,7 @@
 // limitations under the License.
 
 use crate::types::ConfMacroState as MacroState;
+use bmw_deps::convert_case::{Case, Casing};
 use bmw_err::{err, Error};
 use proc_macro::TokenTree::*;
 use proc_macro::{Group, TokenStream, TokenTree};
@@ -78,12 +79,14 @@ impl MacroState {
 				if config.2 {
 					format!(
 						"\n\t\tif name == \"{}\" {{ self.{}.push(value); }}",
-						config.0, config.0
+						config.0.to_case(Case::Pascal),
+						config.0
 					)
 				} else {
 					format!(
 						"\n\t\tif name == \"{}\" {{ self.{} = value; }}",
-						config.0, config.0
+						config.0.to_case(Case::Pascal),
+						config.0
 					)
 				}
 			);
@@ -101,12 +104,14 @@ impl MacroState {
 				if config.2 {
 					format!(
 						"\n\t\tif name == \"{}\" {{ self.{}.push(value); }}",
-						config.0, config.0
+						config.0.to_case(Case::Pascal),
+						config.0
 					)
 				} else {
 					format!(
 						"\n\t\tif name == \"{}\" {{ self.{} = value; }}",
-						config.0, config.0
+						config.0.to_case(Case::Pascal),
+						config.0
 					)
 				}
 			);
@@ -124,12 +129,14 @@ impl MacroState {
 				if config.2 {
 					format!(
 						"\n\t\tif name == \"{}\" {{ self.{}.push(value); }}",
-						config.0, config.0
+						config.0.to_case(Case::Pascal),
+						config.0
 					)
 				} else {
 					format!(
 						"\n\t\tif name == \"{}\" {{ self.{} = value; }}",
-						config.0, config.0
+						config.0.to_case(Case::Pascal),
+						config.0
 					)
 				}
 			);
@@ -147,12 +154,14 @@ impl MacroState {
 				if config.2 {
 					format!(
 						"\n\t\tif name == \"{}\" {{ self.{}.push(value); }}",
-						config.0, config.0
+						config.0.to_case(Case::Pascal),
+						config.0
 					)
 				} else {
 					format!(
 						"\n\t\tif name == \"{}\" {{ self.{} = value; }}",
-						config.0, config.0
+						config.0.to_case(Case::Pascal),
+						config.0
 					)
 				}
 			);
@@ -170,12 +179,14 @@ impl MacroState {
 				if config.2 {
 					format!(
 						"\n\t\tif name == \"{}\" {{ self.{}.push(value); }}",
-						config.0, config.0
+						config.0.to_case(Case::Pascal),
+						config.0
 					)
 				} else {
 					format!(
 						"\n\t\tif name == \"{}\" {{ self.{} = value; }}",
-						config.0, config.0
+						config.0.to_case(Case::Pascal),
+						config.0
 					)
 				}
 			);
@@ -193,12 +204,14 @@ impl MacroState {
 				if config.2 {
 					format!(
 						"\n\t\tif name == \"{}\" {{ self.{}.push(value); }}",
-						config.0, config.0
+						config.0.to_case(Case::Pascal),
+						config.0
 					)
 				} else {
 					format!(
 						"\n\t\tif name == \"{}\" {{ self.{} = value; }}",
-						config.0, config.0
+						config.0.to_case(Case::Pascal),
+						config.0
 					)
 				}
 			);
@@ -216,12 +229,14 @@ impl MacroState {
 				if config.2 {
 					format!(
 						"\n\t\tif name == \"{}\" {{ self.{}.push(value.clone()); }}",
-						config.0, config.0
+						config.0.to_case(Case::Pascal),
+						config.0
 					)
 				} else {
 					format!(
 						"\n\t\tif name == \"{}\" {{ self.{} = value.clone(); }}",
-						config.0, config.0
+						config.0.to_case(Case::Pascal),
+						config.0
 					)
 				}
 			);
@@ -239,12 +254,14 @@ impl MacroState {
 				if config.2 {
 					format!(
 						"\n\t\tif name == \"{}\" {{ self.{}.push(value.clone()); }}",
-						config.0, config.0
+						config.0.to_case(Case::Pascal),
+						config.0
 					)
 				} else {
 					format!(
 						"\n\t\tif name == \"{}\" {{ self.{} = value.clone(); }}",
-						config.0, config.0
+						config.0.to_case(Case::Pascal),
+						config.0
 					)
 				}
 			);
@@ -262,12 +279,14 @@ impl MacroState {
 				if config.2 {
 					format!(
 						"\n\t\tif name == \"{}\" {{ self.{}.push(value); }}",
-						config.0, config.0
+						config.0.to_case(Case::Pascal),
+						config.0
 					)
 				} else {
 					format!(
 						"\n\t\tif name == \"{}\" {{ self.{} = value; }}",
-						config.0, config.0
+						config.0.to_case(Case::Pascal),
+						config.0
 					)
 				}
 			);
@@ -287,7 +306,9 @@ impl MacroState {
 					}
 					ret = format!(
 						"{}\n\t\t\t{}_Options::{}(v) => Some(*v),",
-						ret, name, config.0
+						ret,
+						name,
+						config.0.to_case(Case::Pascal)
 					);
 				}
 				for config_vec in vec![
@@ -304,7 +325,12 @@ impl MacroState {
 						if ret == "None".to_string() {
 							ret = "\n\t\tmatch self {".to_string();
 						}
-						ret = format!("{}\n\t\t\t{}_Options::{}(_v) => None,", ret, name, config.0);
+						ret = format!(
+							"{}\n\t\t\t{}_Options::{}(_v) => None,",
+							ret,
+							name,
+							config.0.to_case(Case::Pascal)
+						);
 					}
 				}
 			}
@@ -329,7 +355,9 @@ impl MacroState {
 					}
 					ret = format!(
 						"{}\n\t\t\t{}_Options::{}(v) => Some(*v),",
-						ret, name, config.0
+						ret,
+						name,
+						config.0.to_case(Case::Pascal)
 					);
 				}
 				for config_vec in vec![
@@ -346,7 +374,12 @@ impl MacroState {
 						if ret == "None".to_string() {
 							ret = "\n\t\tmatch self {".to_string();
 						}
-						ret = format!("{}\n\t\t\t{}_Options::{}(_v) => None,", ret, name, config.0);
+						ret = format!(
+							"{}\n\t\t\t{}_Options::{}(_v) => None,",
+							ret,
+							name,
+							config.0.to_case(Case::Pascal)
+						);
 					}
 				}
 			}
@@ -370,7 +403,9 @@ impl MacroState {
 					}
 					ret = format!(
 						"{}\n\t\t\t{}_Options::{}(v) => Some(*v),",
-						ret, name, config.0
+						ret,
+						name,
+						config.0.to_case(Case::Pascal)
 					);
 				}
 				for config_vec in vec![
@@ -387,7 +422,12 @@ impl MacroState {
 						if ret == "None".to_string() {
 							ret = "\n\t\tmatch self {".to_string();
 						}
-						ret = format!("{}\n\t\t\t{}_Options::{}(_v) => None,", ret, name, config.0);
+						ret = format!(
+							"{}\n\t\t\t{}_Options::{}(_v) => None,",
+							ret,
+							name,
+							config.0.to_case(Case::Pascal)
+						);
 					}
 				}
 			}
@@ -411,7 +451,9 @@ impl MacroState {
 					}
 					ret = format!(
 						"{}\n\t\t\t{}_Options::{}(v) => Some(*v),",
-						ret, name, config.0
+						ret,
+						name,
+						config.0.to_case(Case::Pascal)
 					);
 				}
 				for config_vec in vec![
@@ -428,7 +470,12 @@ impl MacroState {
 						if ret == "None".to_string() {
 							ret = "\n\t\tmatch self {".to_string();
 						}
-						ret = format!("{}\n\t\t\t{}_Options::{}(_v) => None,", ret, name, config.0);
+						ret = format!(
+							"{}\n\t\t\t{}_Options::{}(_v) => None,",
+							ret,
+							name,
+							config.0.to_case(Case::Pascal)
+						);
 					}
 				}
 			}
@@ -453,7 +500,9 @@ impl MacroState {
 					}
 					ret = format!(
 						"{}\n\t\t\t{}_Options::{}(v) => Some(*v),",
-						ret, name, config.0
+						ret,
+						name,
+						config.0.to_case(Case::Pascal)
 					);
 				}
 				for config_vec in vec![
@@ -470,7 +519,12 @@ impl MacroState {
 						if ret == "None".to_string() {
 							ret = "\n\t\tmatch self {".to_string();
 						}
-						ret = format!("{}\n\t\t\t{}_Options::{}(_v) => None,", ret, name, config.0);
+						ret = format!(
+							"{}\n\t\t\t{}_Options::{}(_v) => None,",
+							ret,
+							name,
+							config.0.to_case(Case::Pascal)
+						);
 					}
 				}
 			}
@@ -495,7 +549,9 @@ impl MacroState {
 					}
 					ret = format!(
 						"{}\n\t\t\t{}_Options::{}(v) => Some(*v),",
-						ret, name, config.0
+						ret,
+						name,
+						config.0.to_case(Case::Pascal)
 					);
 				}
 				for config_vec in vec![
@@ -512,7 +568,12 @@ impl MacroState {
 						if ret == "None".to_string() {
 							ret = "\n\t\tmatch self {".to_string();
 						}
-						ret = format!("{}\n\t\t\t{}_Options::{}(_v) => None,", ret, name, config.0);
+						ret = format!(
+							"{}\n\t\t\t{}_Options::{}(_v) => None,",
+							ret,
+							name,
+							config.0.to_case(Case::Pascal)
+						);
 					}
 				}
 			}
@@ -536,7 +597,9 @@ impl MacroState {
 					}
 					ret = format!(
 						"{}\n\t\t\t{}_Options::{}(v) => Some(v.to_string()),",
-						ret, name, config.0
+						ret,
+						name,
+						config.0.to_case(Case::Pascal)
 					);
 				}
 				for config_vec in vec![
@@ -553,7 +616,12 @@ impl MacroState {
 						if ret == "None".to_string() {
 							ret = "\n\t\tmatch self {".to_string();
 						}
-						ret = format!("{}\n\t\t\t{}_Options::{}(_v) => None,", ret, name, config.0);
+						ret = format!(
+							"{}\n\t\t\t{}_Options::{}(_v) => None,",
+							ret,
+							name,
+							config.0.to_case(Case::Pascal)
+						);
 					}
 				}
 			}
@@ -577,7 +645,9 @@ impl MacroState {
 					}
 					ret = format!(
 						"{}\n\t\t\t{}_Options::{}(v) => Some(*v),",
-						ret, name, config.0
+						ret,
+						name,
+						config.0.to_case(Case::Pascal)
 					);
 				}
 				for config_vec in vec![
@@ -594,7 +664,12 @@ impl MacroState {
 						if ret == "None".to_string() {
 							ret = "\n\t\tmatch self {".to_string();
 						}
-						ret = format!("{}\n\t\t\t{}_Options::{}(_v) => None,", ret, name, config.0);
+						ret = format!(
+							"{}\n\t\t\t{}_Options::{}(_v) => None,",
+							ret,
+							name,
+							config.0.to_case(Case::Pascal)
+						);
 					}
 				}
 			}
@@ -617,9 +692,10 @@ impl MacroState {
 					if ret == "None".to_string() {
 						ret = "\n\t\tmatch self {".to_string();
 					}
-					ret = format!(
+					ret =
+						format!(
 						"{}\n\t\t\t{}_Options::{}(v) => Some((v.0.to_string(), v.1.to_string())),",
-						ret, name, config.0
+						ret, name, config.0.to_case(Case::Pascal)
 					);
 				}
 				for config_vec in vec![
@@ -636,7 +712,12 @@ impl MacroState {
 						if ret == "None".to_string() {
 							ret = "\n\t\tmatch self {".to_string();
 						}
-						ret = format!("{}\n\t\t\t{}_Options::{}(_v) => None,", ret, name, config.0);
+						ret = format!(
+							"{}\n\t\t\t{}_Options::{}(_v) => None,",
+							ret,
+							name,
+							config.0.to_case(Case::Pascal)
+						);
 					}
 				}
 			}
@@ -652,34 +733,69 @@ impl MacroState {
 	fn build_options_enum(&self) -> String {
 		let mut ret = "".to_string();
 		for config in &self.u8_configs {
-			ret = format!("{}{}", ret, format!("\n\t{}(u8),", config.0));
+			ret = format!(
+				"{}{}",
+				ret,
+				format!("\n\t{}(u8),", config.0.to_case(Case::Pascal))
+			);
 		}
 		for config in &self.u16_configs {
-			ret = format!("{}{}", ret, format!("\n\t{}(u16),", config.0));
+			ret = format!(
+				"{}{}",
+				ret,
+				format!("\n\t{}(u16),", config.0.to_case(Case::Pascal))
+			);
 		}
 		for config in &self.u32_configs {
-			ret = format!("{}{}", ret, format!("\n\t{}(u32),", config.0));
+			ret = format!(
+				"{}{}",
+				ret,
+				format!("\n\t{}(u32),", config.0.to_case(Case::Pascal))
+			);
 		}
 		for config in &self.u64_configs {
-			ret = format!("{}{}", ret, format!("\n\t{}(u64),", config.0));
+			ret = format!(
+				"{}{}",
+				ret,
+				format!("\n\t{}(u64),", config.0.to_case(Case::Pascal))
+			);
 		}
 		for config in &self.u128_configs {
-			ret = format!("{}{}", ret, format!("\n\t{}(u128),", config.0));
+			ret = format!(
+				"{}{}",
+				ret,
+				format!("\n\t{}(u128),", config.0.to_case(Case::Pascal))
+			);
 		}
 		for config in &self.usize_configs {
-			ret = format!("{}{}", ret, format!("\n\t{}(usize),", config.0));
+			ret = format!(
+				"{}{}",
+				ret,
+				format!("\n\t{}(usize),", config.0.to_case(Case::Pascal))
+			);
 		}
 		for config in &self.string_configs {
-			ret = format!("{}{}", ret, format!("\n\t{}(&'a str),", config.0));
+			ret = format!(
+				"{}{}",
+				ret,
+				format!("\n\t{}(&'a str),", config.0.to_case(Case::Pascal))
+			);
 		}
 		for config in &self.bool_configs {
-			ret = format!("{}{}", ret, format!("\n\t{}(bool),", config.0));
+			ret = format!(
+				"{}{}",
+				ret,
+				format!("\n\t{}(bool),", config.0.to_case(Case::Pascal))
+			);
 		}
 		for config in &self.string_tuple_configs {
 			ret = format!(
 				"{}{}",
 				ret,
-				format!("\n\t{}((&'a str, &'a str)),", config.0)
+				format!(
+					"\n\t{}((&'a str, &'a str)),",
+					config.0.to_case(Case::Pascal)
+				)
 			);
 		}
 		ret
@@ -704,7 +820,12 @@ impl MacroState {
 				] {
 					for config in config_vec {
 						total += 1;
-						let n = format!("{}_Options::{}(_) => \"{}\",", name, config.0, config.0);
+						let n = format!(
+							"{}_Options::{}(_) => \"{}\",",
+							name,
+							config.0.to_case(Case::Pascal),
+							config.0.to_case(Case::Pascal)
+						);
 						ret = format!("{}\n\t\t\t{}", ret, n);
 					}
 				}
@@ -739,7 +860,11 @@ impl MacroState {
 				] {
 					for config in config_vec {
 						if config.1 {
-							ret = format!("{}\n\t\t\t\"{}\".to_string(),", ret, config.0);
+							ret = format!(
+								"{}\n\t\t\t\"{}\".to_string(),",
+								ret,
+								config.0.to_case(Case::Pascal)
+							);
 						}
 					}
 				}
@@ -770,7 +895,10 @@ impl MacroState {
 							"{}{}",
 							ret,
 							if config.2 {
-								format!("\n\t\td.insert(\"{}\".to_string());", config.0)
+								format!(
+									"\n\t\td.insert(\"{}\".to_string());",
+									config.0.to_case(Case::Pascal)
+								)
 							} else {
 								format!("")
 							}
@@ -787,7 +915,7 @@ impl MacroState {
 	}
 
 	fn anon_lifetime(&self) -> String {
-		if self.string_configs.len() > 0 {
+		if self.string_configs.len() > 0 || self.string_tuple_configs.len() > 0 {
 			"<'_>".to_string()
 		} else {
 			"".to_string()
@@ -795,7 +923,7 @@ impl MacroState {
 	}
 
 	fn named_lifetime(&self) -> String {
-		if self.string_configs.len() > 0 {
+		if self.string_configs.len() > 0 || self.string_tuple_configs.len() > 0 {
 			"<'a>".to_string()
 		} else {
 			"".to_string()
@@ -807,13 +935,14 @@ impl MacroState {
 			Some(name) => format!(
 				"\n\
                                 impl {} {{\n\
-                                \tfn new() -> Self {{ Self::default() }}\n\
-				\tfn required() -> Vec<String> {{\n\
+                                \tpub fn new() -> Self {{ Self::default() }}\n\
+				\tpub fn required() -> Vec<String> {{\n\
 					\t\tvec![{}\n\t\t]\n\
 				\t}}\n\
 			}}\n\
 			\n\
-			enum {}_Options {} {{ {}\n}}\n\
+                        #[derive(PartialEq, Debug)]\n\
+			pub enum {}_Options {} {{ {}\n}}\n\
 			\n\
 			impl Configurable for {} {{\n\
 			\n\
@@ -830,21 +959,21 @@ impl MacroState {
 			}}\n\
 			\n\
 		        impl {}_Options {} {{\n\
-			        \tfn name(&self) -> &str {{ {}\t}}\n\
-                                \tfn value_u8(&self) -> Option<u8> {{ {}\t}}\n\
-                                \tfn value_u16(&self) -> Option<u16> {{ {}\t}}\n\
-                                \tfn value_u32(&self) -> Option<u32> {{ {}\t}}\n\
-                                \tfn value_u64(&self) -> Option<u64> {{ {}\t}}\n\
-                                \tfn value_u128(&self) -> Option<u128> {{ {}\t}}\n\
-                                \tfn value_usize(&self) -> Option<usize> {{ {}\t}}\n\
-                                \tfn value_string(&self) -> Option<String> {{ {}\t}}\n\
-                                \tfn value_bool(&self) -> Option<bool> {{ {}\t}}\n\
-                                \tfn value_string_tuple(&self) -> Option<(String, String)> {{ {}\t}}\n\
+			        \tpub fn name(&self) -> &str {{ {}\t}}\n\
+                                \tpub fn value_u8(&self) -> Option<u8> {{ {}\t}}\n\
+                                \tpub fn value_u16(&self) -> Option<u16> {{ {}\t}}\n\
+                                \tpub fn value_u32(&self) -> Option<u32> {{ {}\t}}\n\
+                                \tpub fn value_u64(&self) -> Option<u64> {{ {}\t}}\n\
+                                \tpub fn value_u128(&self) -> Option<u128> {{ {}\t}}\n\
+                                \tpub fn value_usize(&self) -> Option<usize> {{ {}\t}}\n\
+                                \tpub fn value_string(&self) -> Option<String> {{ {}\t}}\n\
+                                \tpub fn value_bool(&self) -> Option<bool> {{ {}\t}}\n\
+                                \tpub fn value_string_tuple(&self) -> Option<(String, String)> {{ {}\t}}\n\
 			}}\n\
 			",
 				name,
                                 self.build_required(),
-				name,
+                                name,
                                 self.named_lifetime(),
                                 self.build_options_enum(),
                                 name,

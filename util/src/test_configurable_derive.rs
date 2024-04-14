@@ -47,22 +47,22 @@ mod test {
 	fn test_derive_configurable1() -> Result<(), Error> {
 		info!("testing derive configurable")?;
 
-		let my = config!(MyConfig2, MyConfig2_Options, vec![v1(10)])?;
+		let my = config!(MyConfig2, MyConfig2_Options, vec![V1(10)])?;
 		assert_eq!(my.v1, 10);
 		assert_eq!(my.v2, 3);
 		assert_eq!(my.v3, 100);
 
-		let my = config!(MyConfig2, MyConfig2_Options, vec![v1(10), v2(20)])?;
+		let my = config!(MyConfig2, MyConfig2_Options, vec![V1(10), V2(20)])?;
 		assert_eq!(my.v1, 10);
 		assert_eq!(my.v2, 20);
 		assert_eq!(my.v3, 100);
 
-		let my = config!(MyConfig2, MyConfig2_Options, vec![v1(10), v3(20)])?;
+		let my = config!(MyConfig2, MyConfig2_Options, vec![V1(10), V3(20)])?;
 		assert_eq!(my.v1, 10);
 		assert_eq!(my.v2, 3);
 		assert_eq!(my.v3, 20);
 
-		assert!(config!(MyConfig2, MyConfig2_Options, vec![v2(10), v3(0)]).is_err());
+		assert!(config!(MyConfig2, MyConfig2_Options, vec![V2(10), V3(0)]).is_err());
 		Ok(())
 	}
 
@@ -157,7 +157,7 @@ mod test {
 
 	#[test]
 	fn test_derive_configurable_evh() -> Result<(), Error> {
-		let mut evh = evh!(threads(10), port(8081), server_name("abc"), debug(true))?;
+		let mut evh = evh!(Threads(10), Port(8081), ServerName("abc"), Debug(true))?;
 
 		info!("evh.config.port={}", evh.config().port)?;
 
@@ -169,11 +169,11 @@ mod test {
 		assert_eq!(evh.config().debug, true);
 
 		let mut evh = evh!(
-			port(1234),
-			x32(u32::MAX),
-			timeout(1_000_000_000_000),
-			test_vec(7u32),
-			test_vec(3u32)
+			Port(1234),
+			X32(u32::MAX),
+			Timeout(1_000_000_000_000),
+			TestVec(7u32),
+			TestVec(3u32)
 		)?;
 
 		assert_eq!(evh.config().port, 1234);
@@ -185,13 +185,13 @@ mod test {
 		assert_eq!(evh.config().test_vec, vec![7u32, 3u32]);
 
 		let mut evh = evh!(
-			port(1234),
-			test_vec2("hi"),
-			test_vec2("there"),
-			test_vec2("next"),
-			other_ports(90),
-			other_ports(100),
-			other_ports(110),
+			Port(1234),
+			TestVec2("hi"),
+			TestVec2("there"),
+			TestVec2("next"),
+			OtherPorts(90),
+			OtherPorts(100),
+			OtherPorts(110),
 		)?;
 
 		assert_eq!(
@@ -201,11 +201,11 @@ mod test {
 
 		assert_eq!(evh.config().other_ports, vec![90, 100, 110]);
 
-		let mut evh = evh!(port(5555),)?;
+		let mut evh = evh!(Port(5555),)?;
 
 		assert_eq!(evh.config().default_not_empty, vec![1, 2, 3]);
 
-		let mut evh = evh!(port(5678), default_not_empty(8))?;
+		let mut evh = evh!(Port(5678), DefaultNotEmpty(8))?;
 
 		// note that the 8 is appended to the default. That might not be what users expect,
 		// but not a lot of use cases that I can think for having these kind of non-empty
@@ -213,15 +213,15 @@ mod test {
 		// though.
 		assert_eq!(evh.config().default_not_empty, vec![1, 2, 3, 8]);
 
-		let mut evh = evh!(port(4444), header(("abc", "def")),)?;
+		let mut evh = evh!(Port(4444), Header(("abc", "def")),)?;
 
 		assert_eq!(evh.config().header, ("abc".to_string(), "def".to_string()));
 
 		let mut evh = evh!(
-			port(6666),
-			headers(("xyz", "ghi")),
-			headers(("zzz", "aaab")),
-			headers(("zzz2", "aaa2")),
+			Port(6666),
+			Headers(("xyz", "ghi")),
+			Headers(("zzz", "aaab")),
+			Headers(("zzz2", "aaa2")),
 		)?;
 
 		assert_eq!(
@@ -319,114 +319,114 @@ mod test {
 		let all = config!(ConfigAll, ConfigAll_Options, vec![])?;
 		assert_eq!(all, ConfigAll::default());
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![a1(0)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![A1(0)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.a1, 0);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![b1(0)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![B1(0)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.b1, 0);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![c1(0)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![C1(0)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.c1, 0);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![d1(0)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![D1(0)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.d1, 0);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![e1(0)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![E1(0)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.e1, 0);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![f1(0)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![F1(0)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.f1, 0);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![g1("nondefault")])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![G1("nondefault")])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.g1, "nondefault".to_string());
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![h1(true)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![H1(true)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.h1, true);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![i1(("a", "b"))])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![I1(("a", "b"))])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.i1, ("a".to_string(), "b".to_string()));
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![j1(0)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![J1(0)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.j1, vec![0]);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![j1(0), j1(1)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![J1(0), J1(1)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.j1, vec![0, 1]);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![k1(0)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![K1(0)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.k1, vec![0]);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![k1(0), k1(1)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![K1(0), K1(1)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.k1, vec![0, 1]);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![l1(0)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![L1(0)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.l1, vec![0]);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![l1(0), l1(1)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![L1(0), L1(1)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.l1, vec![0, 1]);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![m1(0)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![M1(0)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.m1, vec![0]);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![m1(0), m1(1)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![M1(0), M1(1)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.m1, vec![0, 1]);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![n1(0)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![N1(0)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.n1, vec![0]);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![n1(0), n1(1)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![N1(0), N1(1)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.n1, vec![0, 1]);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![o1(0)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![O1(0)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.o1, vec![0]);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![o1(0), o1(1)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![O1(0), O1(1)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.o1, vec![0, 1]);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![p1("1")])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![P1("1")])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.p1, vec!["1".to_string()]);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![p1("1"), p1("2")])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![P1("1"), P1("2")])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.p1, vec!["1".to_string(), "2".to_string()]);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![q1(false)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![Q1(false)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.q1, vec![false]);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![q1(true), q1(false)])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![Q1(true), Q1(false)])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.q1, vec![true, false]);
 
-		let all = config!(ConfigAll, ConfigAll_Options, vec![r1(("x", "y"))])?;
+		let all = config!(ConfigAll, ConfigAll_Options, vec![R1(("x", "y"))])?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(all.r1, vec![("x".to_string(), "y".to_string())]);
 
 		let all = config!(
 			ConfigAll,
 			ConfigAll_Options,
-			vec![r1(("x", "y")), r1(("a", "b"))]
+			vec![R1(("x", "y")), R1(("a", "b"))]
 		)?;
 		assert_ne!(all, ConfigAll::default());
 		assert_eq!(
@@ -458,7 +458,7 @@ mod test {
 
 	#[derive(Configurable, PartialEq, Debug)]
 	pub struct Required3 {
-		r1: u8,
+		pub(crate) r1: u8,
 		pub r2: u16,
 		#[required]
 		pub(crate) r3: String,
@@ -498,19 +498,19 @@ mod test {
 	fn test_derive_configuration_required() -> Result<(), Error> {
 		assert!(config!(Required1, Required1_Options, vec![]).is_err());
 		assert_eq!(
-			config!(Required1, Required1_Options, vec![r1(0)])?,
+			config!(Required1, Required1_Options, vec![R1(0)])?,
 			Required1::default()
 		);
 
 		assert!(config!(Required2, Required2_Options, vec![]).is_err());
 		assert_eq!(
-			config!(Required2, Required2_Options, vec![r2(0)])?,
+			config!(Required2, Required2_Options, vec![R2(0)])?,
 			Required2::default()
 		);
 
 		assert!(config!(Required3, Required3_Options, vec![]).is_err());
 		assert_eq!(
-			config!(Required3, Required3_Options, vec![r3("")])?,
+			config!(Required3, Required3_Options, vec![R3("")])?,
 			Required3::default()
 		);
 

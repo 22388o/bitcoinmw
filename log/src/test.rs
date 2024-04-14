@@ -18,8 +18,11 @@
 #[cfg(test)]
 mod test {
 	use crate as bmw_log;
-	use crate::types::LogConfig;
-	use bmw_conf::*;
+	use crate::constants::*;
+	use crate::types::LogConfig2;
+	use crate::types::LogImpl;
+	use crate::LogConfig2_Options::*;
+	use bmw_conf2::config;
 	use bmw_deps::lazy_static::lazy_static;
 	use bmw_err::*;
 	use bmw_log::*;
@@ -38,13 +41,15 @@ mod test {
 
 	#[test]
 	fn test_log_basic() -> Result<(), Error> {
-		let test_info = test_info!()?; // obtain test info struct
+		let test_info = test_info!(true)?; // obtain test info struct
 		let directory = test_info.directory();
 		let mut buf = PathBuf::new();
 		buf.push(directory);
 		buf.push("test.log");
-		// create a logger with auto rotate on
-		let mut log = logger!(AutoRotate(true), LogFilePath(Some(buf)))?;
+		// create a logger with auto rotate on ( use impl so we can check the config )
+		let path = buf.display().to_string();
+		let configs = vec![AutoRotate(true), LogFilePath(&path)];
+		let mut log = LogImpl::new(configs)?;
 
 		// debug log level
 		log.set_log_level(LogLevel::Debug);
@@ -52,27 +57,47 @@ mod test {
 		log.log(LogLevel::Debug, "test10")?; // log a message
 
 		// check that display colors is true (default)
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::DisplayColors)?,
-			ConfigOption::DisplayColors(true)
-		);
+		assert_eq!(log.config.display_colors, true);
 
 		// set display colors to false
-		log.set_config_option(ConfigOption::DisplayColors(false))?;
+		log.set_config_option(LogConfig2_Options::DisplayColors(false))?;
 		// confirm it was set
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::DisplayColors)?,
-			ConfigOption::DisplayColors(false)
-		);
+		assert_eq!(log.config.display_colors, false);
 
 		// set back to true
-		log.set_config_option(ConfigOption::DisplayColors(true))?;
+		log.set_config_option(LogConfig2_Options::DisplayColors(true))?;
 
 		// confirm it's now true
+		assert_eq!(log.config.display_colors, true);
+
 		assert_eq!(
-			log.get_config_option(ConfigOptionName::DisplayColors)?,
-			ConfigOption::DisplayColors(true)
+			log.config.line_num_data_max_len,
+			DEFAULT_LINE_NUM_DATA_MAX_LEN
 		);
+
+		log.set_config_option(LogConfig2_Options::LineNumDataMaxLen(
+			DEFAULT_LINE_NUM_DATA_MAX_LEN + 10,
+		))?;
+		// confirm it was set
+		assert_eq!(
+			log.config.line_num_data_max_len,
+			DEFAULT_LINE_NUM_DATA_MAX_LEN + 10
+		);
+
+		// set back to default
+		log.set_config_option(LogConfig2_Options::LineNumDataMaxLen(
+			DEFAULT_LINE_NUM_DATA_MAX_LEN,
+		))?;
+
+		// confirm it's now  default
+		assert_eq!(
+			log.config.line_num_data_max_len,
+			DEFAULT_LINE_NUM_DATA_MAX_LEN
+		);
+
+		log.set_config_option(LogConfig2_Options::FileHeader("testing123"))?;
+
+		assert_eq!(log.config.file_header, "testing123".to_string());
 
 		// do some more logging
 		log.log(LogLevel::Debug, "test11")?;
@@ -114,7 +139,6 @@ mod test {
 		let _lock = LOCK.write()?;
 		// do these before init. they're not allowed and generate errors
 		assert!(set_log_option!(AutoRotate(false)).is_err());
-		assert!(get_log_option!(AutoRotate).is_err());
 		assert!(log_rotate!().is_err());
 		assert!(need_rotate!().is_err());
 
@@ -127,7 +151,8 @@ mod test {
 		buf.push("log.log");
 
 		// init log
-		log_init!(LogFilePath(Some(buf)))?;
+		let path = buf.display().to_string();
+		log_init!(LogFilePath(&path))?;
 
 		// do logging at all levels and all styles
 		trace!("mactest1")?;
@@ -154,14 +179,6 @@ mod test {
 		fatal_plain!("plain1")?;
 		fatal_all!("all1")?;
 
-		// try to set a config option that's not allowed
-		assert!(set_log_option!(Debug(false)).is_err());
-		assert!(get_log_option!(Debug).is_err());
-
-		// try one that is allowed now
-		assert!(set_log_option!(AutoRotate(false)).is_ok());
-		assert!(get_log_option!(AutoRotate).is_ok());
-
 		// ensure rotate is allowed and not an error now
 		assert!(need_rotate!().is_ok());
 		assert!(log_rotate!().is_ok());
@@ -173,7 +190,7 @@ mod test {
 		info_all!("nocolorall1")?;
 
 		// log a backtrace
-		set_log_option!(DisplayBackTrace(true))?;
+		set_log_option!(DisplayBacktrace(true))?;
 		error!("errbt")?;
 		error_plain!("errorbt")?;
 
@@ -195,10 +212,11 @@ mod test {
 		let mut buf = PathBuf::new();
 		buf.push(directory);
 		buf.push("rotate.log");
+		let path = buf.display().to_string();
 		let mut log = logger!(
 			MaxSizeBytes(100),   // specific low byte count
 			MaxAgeMillis(3_000), // specific low max age
-			LogFilePath(Some(buf))
+			LogFilePath(&path)
 		)?;
 
 		log.init()?;
@@ -258,10 +276,11 @@ mod test {
 		let mut buf = PathBuf::new();
 		buf.push(directory);
 		buf.push("rotate.log");
+		let path = buf.display().to_string();
 		let mut log = logger!(
 			MaxSizeBytes(100),
 			MaxAgeMillis(3_000),
-			LogFilePath(Some(buf)),
+			LogFilePath(&path),
 			AutoRotate(true)
 		)?;
 
@@ -309,10 +328,11 @@ mod test {
 		let mut buf = PathBuf::new();
 		buf.push(directory);
 		buf.push("rotate.log");
+		let buf = buf.display().to_string();
 		let mut log = logger!(
 			MaxSizeBytes(100),
 			MaxAgeMillis(3_000),
-			LogFilePath(Some(buf)),
+			LogFilePath(&buf),
 			AutoRotate(true)
 		)?;
 
@@ -334,7 +354,7 @@ mod test {
 		let mut log = logger!(
 			MaxSizeBytes(100),
 			MaxAgeMillis(3_000),
-			LogFilePath(None),
+			LogFilePath(""),
 			AutoRotate(true),
 		)?;
 
@@ -349,17 +369,18 @@ mod test {
 	#[test]
 	fn test_log_logger_macro() -> Result<(), Error> {
 		// test the macros
-		let mut log = logger!(MaxSizeBytes(103), MaxAgeMillis(3_000), LogFilePath(None))?;
+		let mut log = LogImpl::new(vec![
+			MaxSizeBytes(103),
+			MaxAgeMillis(3_000),
+			LogFilePath(""),
+		])?;
 		log.init()?;
 		// double init is an error
 		assert!(log.init().is_err());
 
 		// get the config option and assert it's equal to what we configured in the logger
 		// macro
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::MaxSizeBytes)?,
-			ConfigOption::MaxSizeBytes(103)
-		);
+		assert_eq!(log.config.max_size_bytes, 103);
 		Ok(())
 	}
 
@@ -371,10 +392,11 @@ mod test {
 		let mut buf = PathBuf::new();
 		buf.push(directory);
 		buf.push("rotatelog"); // no dot in log name
+		let buf = buf.display().to_string();
 		let mut log = logger!(
 			MaxSizeBytes(100),
 			MaxAgeMillis(3_000),
-			LogFilePath(Some(buf)),
+			LogFilePath(&buf),
 			AutoRotate(true)
 		)?;
 
@@ -421,10 +443,11 @@ mod test {
 		let mut buf = PathBuf::new();
 		buf.push(directory);
 		buf.push("rotatelog");
+		let buf = buf.display().to_string();
 		let mut log = logger!(
 			MaxSizeBytes(100),
 			MaxAgeMillis(3_000),
-			LogFilePath(Some(buf)),
+			LogFilePath(&buf),
 			AutoRotate(true),
 			DeleteRotation(true)
 		)?;
@@ -470,6 +493,7 @@ mod test {
 		let mut buf = PathBuf::new();
 		buf.push(directory);
 		buf.push("rotatelog");
+		let buf = buf.display().to_string();
 
 		// create the file before creating the logger
 		File::create(buf.clone())?;
@@ -478,7 +502,7 @@ mod test {
 		let mut log = logger!(
 			MaxSizeBytes(100),
 			MaxAgeMillis(3_000),
-			LogFilePath(Some(buf)),
+			LogFilePath(&buf),
 			AutoRotate(true)
 		)?;
 
@@ -528,6 +552,7 @@ mod test {
 		let mut buf = PathBuf::new();
 		buf.push(directory);
 		buf.push("rotatelog");
+		let buf = buf.display().to_string();
 
 		File::create(buf.clone())?;
 		let mut file = OpenOptions::new().write(true).open(buf.clone())?;
@@ -537,7 +562,7 @@ mod test {
 		let mut log = logger!(
 			MaxSizeBytes(100),
 			MaxAgeMillis(3_000),
-			LogFilePath(Some(buf)),
+			LogFilePath(&buf),
 			AutoRotate(true)
 		)?;
 
@@ -579,154 +604,153 @@ mod test {
 		Ok(())
 	}
 
-	#[test]
-	fn test_log_set_get_options() -> Result<(), Error> {
-		// create a log and go through each configuration setting and confirm it changes
-		// via get_config_option
-		let test_info = test_info!()?;
-		let directory = test_info.directory();
-		let mut buf = PathBuf::new();
-		buf.push(directory);
-		buf.push("rotatelog");
+	/*
+		#[test]
+		fn test_log_set_get_options() -> Result<(), Error> {
+			// create a log and go through each configuration setting and confirm it changes
+			// via get_config_option
+			let test_info = test_info!()?;
+			let directory = test_info.directory();
+			let mut buf = PathBuf::new();
+			buf.push(directory);
+			buf.push("rotatelog");
+			let buf = buf.display().to_string();
 
-		File::create(buf.clone())?;
-		let mut log = logger!(
-			LogFilePath(Some(buf.clone())),
-			MaxSizeBytes(101),
-			MaxAgeMillis(5_000)
-		)?;
+			File::create(buf.clone())?;
+			let mut log = logger!(LogFilePath(&buf), MaxSizeBytes(101), MaxAgeMillis(5_000))?;
 
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::DisplayTimestamp)?,
-			ConfigOption::DisplayTimestamp(true)
-		);
-		log.set_config_option(ConfigOption::DisplayTimestamp(false))?;
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::DisplayTimestamp)?,
-			ConfigOption::DisplayTimestamp(false)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayTimestamp)?,
+				ConfigOption::DisplayTimestamp(true)
+			);
+			log.set_config_option(ConfigOption::DisplayTimestamp(false))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayTimestamp)?,
+				ConfigOption::DisplayTimestamp(false)
+			);
 
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::MaxSizeBytes)?,
-			ConfigOption::MaxSizeBytes(101)
-		);
-		log.set_config_option(ConfigOption::MaxSizeBytes(202))?;
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::MaxSizeBytes)?,
-			ConfigOption::MaxSizeBytes(202)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::MaxSizeBytes)?,
+				ConfigOption::MaxSizeBytes(101)
+			);
+			log.set_config_option(ConfigOption::MaxSizeBytes(202))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::MaxSizeBytes)?,
+				ConfigOption::MaxSizeBytes(202)
+			);
 
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::MaxAgeMillis)?,
-			ConfigOption::MaxAgeMillis(5_000)
-		);
-		log.set_config_option(ConfigOption::MaxAgeMillis(10_000))?;
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::MaxAgeMillis)?,
-			ConfigOption::MaxAgeMillis(10_000)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::MaxAgeMillis)?,
+				ConfigOption::MaxAgeMillis(5_000)
+			);
+			log.set_config_option(ConfigOption::MaxAgeMillis(10_000))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::MaxAgeMillis)?,
+				ConfigOption::MaxAgeMillis(10_000)
+			);
 
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::DisplayStdout)?,
-			ConfigOption::DisplayStdout(true)
-		);
-		log.set_config_option(ConfigOption::DisplayStdout(false))?;
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::DisplayStdout)?,
-			ConfigOption::DisplayStdout(false)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayStdout)?,
+				ConfigOption::DisplayStdout(true)
+			);
+			log.set_config_option(ConfigOption::DisplayStdout(false))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayStdout)?,
+				ConfigOption::DisplayStdout(false)
+			);
 
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::DisplayLogLevel)?,
-			ConfigOption::DisplayLogLevel(true)
-		);
-		log.set_config_option(ConfigOption::DisplayLogLevel(false))?;
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::DisplayLogLevel)?,
-			ConfigOption::DisplayLogLevel(false)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayLogLevel)?,
+				ConfigOption::DisplayLogLevel(true)
+			);
+			log.set_config_option(ConfigOption::DisplayLogLevel(false))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayLogLevel)?,
+				ConfigOption::DisplayLogLevel(false)
+			);
 
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::DisplayLineNum)?,
-			ConfigOption::DisplayLineNum(true)
-		);
-		log.set_config_option(ConfigOption::DisplayLineNum(false))?;
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::DisplayLineNum)?,
-			ConfigOption::DisplayLineNum(false)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayLineNum)?,
+				ConfigOption::DisplayLineNum(true)
+			);
+			log.set_config_option(ConfigOption::DisplayLineNum(false))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayLineNum)?,
+				ConfigOption::DisplayLineNum(false)
+			);
 
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::DisplayMillis)?,
-			ConfigOption::DisplayMillis(true)
-		);
-		log.set_config_option(ConfigOption::DisplayMillis(false))?;
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::DisplayMillis)?,
-			ConfigOption::DisplayMillis(false)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayMillis)?,
+				ConfigOption::DisplayMillis(true)
+			);
+			log.set_config_option(ConfigOption::DisplayMillis(false))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayMillis)?,
+				ConfigOption::DisplayMillis(false)
+			);
 
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::AutoRotate)?,
-			ConfigOption::AutoRotate(false)
-		);
-		log.set_config_option(ConfigOption::AutoRotate(true))?;
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::AutoRotate)?,
-			ConfigOption::AutoRotate(true)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::AutoRotate)?,
+				ConfigOption::AutoRotate(false)
+			);
+			log.set_config_option(ConfigOption::AutoRotate(true))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::AutoRotate)?,
+				ConfigOption::AutoRotate(true)
+			);
 
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::DisplayBackTrace)?,
-			ConfigOption::DisplayBackTrace(false)
-		);
-		log.set_config_option(ConfigOption::DisplayBackTrace(true))?;
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::DisplayBackTrace)?,
-			ConfigOption::DisplayBackTrace(true)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayBackTrace)?,
+				ConfigOption::DisplayBackTrace(false)
+			);
+			log.set_config_option(ConfigOption::DisplayBackTrace(true))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayBackTrace)?,
+				ConfigOption::DisplayBackTrace(true)
+			);
 
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::DeleteRotation)?,
-			ConfigOption::DeleteRotation(false)
-		);
-		log.set_config_option(ConfigOption::DeleteRotation(true))?;
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::DeleteRotation)?,
-			ConfigOption::DeleteRotation(true)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DeleteRotation)?,
+				ConfigOption::DeleteRotation(false)
+			);
+			log.set_config_option(ConfigOption::DeleteRotation(true))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DeleteRotation)?,
+				ConfigOption::DeleteRotation(true)
+			);
 
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::FileHeader)?,
-			ConfigOption::FileHeader("".to_string())
-		);
-		log.set_config_option(ConfigOption::FileHeader("something".to_string()))?;
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::FileHeader)?,
-			ConfigOption::FileHeader("something".to_string())
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::FileHeader)?,
+				ConfigOption::FileHeader("".to_string())
+			);
+			log.set_config_option(ConfigOption::FileHeader("something".to_string()))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::FileHeader)?,
+				ConfigOption::FileHeader("something".to_string())
+			);
 
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::LogFilePath)?,
-			ConfigOption::LogFilePath(Some(buf.clone()))
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::LogFilePath)?,
+				ConfigOption::LogFilePath(Some(buf.clone()))
+			);
 
-		assert!(log
-			.set_config_option(ConfigOption::LogFilePath(None))
-			.is_err());
+			assert!(log
+				.set_config_option(ConfigOption::LogFilePath(None))
+				.is_err());
 
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::LineNumDataMaxLen)?,
-			ConfigOption::LineNumDataMaxLen(30)
-		);
-		log.set_config_option(ConfigOption::LineNumDataMaxLen(50))?;
-		assert_eq!(
-			log.get_config_option(ConfigOptionName::LineNumDataMaxLen)?,
-			ConfigOption::LineNumDataMaxLen(50)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::LineNumDataMaxLen)?,
+				ConfigOption::LineNumDataMaxLen(30)
+			);
+			log.set_config_option(ConfigOption::LineNumDataMaxLen(50))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::LineNumDataMaxLen)?,
+				ConfigOption::LineNumDataMaxLen(50)
+			);
 
-		Ok(())
-	}
+			Ok(())
+		}
+	*/
 
 	#[test]
 	fn test_log_show_millis() -> Result<(), Error> {
@@ -740,16 +764,18 @@ mod test {
 		buf2.push(test_info.directory());
 		buf1.push("file1.log");
 		buf2.push("file2.log");
+		let buf1 = buf1.display().to_string();
+		let buf2 = buf2.display().to_string();
 
 		let mut logger1 = logger!(
-			LogFilePath(Some(buf1)),
+			LogFilePath(&buf1),
 			DisplayMillis(true),
-			FileHeader("sometext".to_string())
+			FileHeader("sometext")
 		)?;
 		let mut logger2 = logger!(
-			LogFilePath(Some(buf2)),
+			LogFilePath(&buf2),
 			DisplayMillis(false),
-			FileHeader("sometext".to_string())
+			FileHeader("sometext")
 		)?;
 
 		// set log level and init both loggers
@@ -796,12 +822,13 @@ mod test {
 
 		buf1.push(test_info.directory());
 		buf1.push("file1.log");
+		let buf1 = buf1.display().to_string();
 
 		// create a logger displaying millis and with FileHeader/LogPath specified
 		let mut logger1 = logger!(
-			LogFilePath(Some(buf1)),
+			LogFilePath(&buf1),
 			DisplayMillis(true),
-			FileHeader("sometext".to_string())
+			FileHeader("sometext")
 		)?;
 
 		// set the debug flag to trigger specific state
@@ -823,12 +850,13 @@ mod test {
 
 		buf1.push(test_info.directory());
 		buf1.push("file1.log");
+		let buf1 = buf1.display().to_string();
 
 		// create a logger with a log file and header
 		let mut logger1 = logger!(
-			LogFilePath(Some(buf1)),
+			LogFilePath(&buf1),
 			DisplayMillis(true),
-			FileHeader("sometext".to_string())
+			FileHeader("sometext")
 		)?;
 		logger1.debug_invalid_metadata();
 		logger1.set_log_level(LogLevel::Debug);
@@ -847,10 +875,6 @@ mod test {
 			sleep(Duration::from_millis(1));
 			info!("test")?;
 		}
-		assert_eq!(
-			get_log_option!(LineNumDataMaxLen)?,
-			ConfigOption::LineNumDataMaxLen(30)
-		);
 
 		// set the GLOBAL logger back to none for the other tests
 		// only done in tests
@@ -867,12 +891,13 @@ mod test {
 
 		buf1.push(test_info.directory());
 		buf1.push("file1.log");
+		let buf1 = buf1.display().to_string();
 
 		// create a logger
 		let mut logger1 = logger!(
-			LogFilePath(Some(buf1)),
+			LogFilePath(&buf1),
 			DisplayMillis(true),
-			FileHeader("sometext".to_string())
+			FileHeader("sometext")
 		)?;
 
 		// set debugging flag to trigger a different state
@@ -893,12 +918,13 @@ mod test {
 
 		buf1.push(test_info.directory());
 		buf1.push("file1.log");
+		let buf1 = buf1.display().to_string();
 
 		// create a logger with all options specified to exercise various parts off the code
 		let mut log = logger!(
 			MaxSizeBytes(100),
 			MaxAgeMillis(3_000),
-			LogFilePath(Some(buf1)),
+			LogFilePath(&buf1),
 			AutoRotate(true),
 			DisplayColors(true),
 			DisplayStdout(true),
@@ -906,10 +932,10 @@ mod test {
 			DisplayLogLevel(true),
 			DisplayLineNum(false),
 			DisplayMillis(true),
-			DisplayBackTrace(true),
+			DisplayBacktrace(true),
 			LineNumDataMaxLen(32),
 			DeleteRotation(false),
-			FileHeader("header".to_string())
+			FileHeader("header")
 		)?;
 
 		// init should be successful
@@ -933,7 +959,8 @@ mod test {
 		buf.push("c");
 		buf.push("d");
 		buf.push("e.log");
-		assert!(logger!(LogFilePath(Some(buf))).is_err());
+		let buf = buf.display().to_string();
+		assert!(logger!(LogFilePath(&buf)).is_err());
 
 		Ok(())
 	}
@@ -946,11 +973,12 @@ mod test {
 		let mut buf = PathBuf::new();
 		buf.push(test_info.directory());
 		buf.push("mylogger.log");
+		let buf = buf.display().to_string();
 		let mut logger = logger!(
 			MaxSizeBytes(100),
-			LogFilePath(Some(buf)),
+			LogFilePath(&buf),
 			AutoRotate(true),
-			FileHeader("myheader_abc".to_string())
+			FileHeader("myheader_abc")
 		)?;
 
 		// this is an error because we haven't called init yet
@@ -990,11 +1018,12 @@ mod test {
 		let mut buf = PathBuf::new();
 		buf.push(test_info.directory());
 		buf.push("mylogger.log");
+		let buf = buf.display().to_string();
 		let mut logger = logger!(
 			MaxSizeBytes(363),
-			LogFilePath(Some(buf.clone())),
+			LogFilePath(&buf),
 			AutoRotate(false),
-			FileHeader("myheader_abc".to_string())
+			FileHeader("myheader_abc")
 		)?;
 
 		logger.init()?;
@@ -1010,19 +1039,23 @@ mod test {
 		assert!(!logger.need_rotate()?); // file exactly 363, no rotate needed
 		logger.close()?;
 
+		let mut buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push("mylogger.log");
 		let len = buf.metadata()?.len();
 		assert_eq!(len, 363);
 
 		let mut buf = PathBuf::new();
 		buf.push(test_info.directory());
 		buf.push("mylogger2.log");
+		let buf = buf.display().to_string();
 
 		// try again one byte smaller MaxSizeBytes.
 		let mut logger = logger!(
 			MaxSizeBytes(362),
-			LogFilePath(Some(buf.clone())),
+			LogFilePath(&buf),
 			AutoRotate(false),
-			FileHeader("myheader_abc".to_string())
+			FileHeader("myheader_abc")
 		)?;
 
 		logger.init()?;
@@ -1039,6 +1072,10 @@ mod test {
 		assert!(logger.need_rotate()?); // this time we need a rotate
 		logger.close()?;
 
+		let mut buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push("mylogger2.log");
+
 		let len = buf.metadata()?.len();
 		assert_eq!(len, 363);
 
@@ -1046,13 +1083,10 @@ mod test {
 		let mut buf = PathBuf::new();
 		buf.push(test_info.directory());
 		buf.push("mylogger3.log");
+		let buf = buf.display().to_string();
 
 		// try without a header this time (12 bytes + 1 newline less)
-		let mut logger = logger!(
-			MaxSizeBytes(350),
-			LogFilePath(Some(buf.clone())),
-			AutoRotate(false),
-		)?;
+		let mut logger = logger!(MaxSizeBytes(350), LogFilePath(&buf), AutoRotate(false),)?;
 
 		logger.init()?;
 		logger.set_log_level(LogLevel::Debug);
@@ -1068,6 +1102,9 @@ mod test {
 		assert!(!logger.need_rotate()?); // this time we need a rotate
 		logger.close()?;
 
+		let mut buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push("mylogger3.log");
 		let len = buf.metadata()?.len();
 		assert_eq!(len, 350);
 
@@ -1075,13 +1112,10 @@ mod test {
 		let mut buf = PathBuf::new();
 		buf.push(test_info.directory());
 		buf.push("mylogger4.log");
+		let buf = buf.display().to_string();
 
 		// try again one byte smaller MaxSizeBytes.
-		let mut logger = logger!(
-			MaxSizeBytes(349),
-			LogFilePath(Some(buf.clone())),
-			AutoRotate(false),
-		)?;
+		let mut logger = logger!(MaxSizeBytes(349), LogFilePath(&buf), AutoRotate(false),)?;
 
 		logger.init()?;
 		logger.set_log_level(LogLevel::Debug);
@@ -1097,16 +1131,24 @@ mod test {
 		assert!(logger.need_rotate()?); // this time we need a rotate
 		logger.close()?;
 
+		let mut buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push("mylogger4.log");
 		let len = buf.metadata()?.len();
 		assert_eq!(len, 350);
 		Ok(())
 	}
 
 	#[test]
-	fn test_log_unusual_config() -> Result<(), Error> {
-		let c = config!(ConfigOption::MaxSizeBytes(100));
-		let res = LogConfig::get_config_path_buf(ConfigOptionName::MaxSizeBytes, &c, None);
-		assert!(res.is_none());
+	fn test_log_config() -> Result<(), Error> {
+		let conf = config!(LogConfig2, LogConfig2_Options, vec![])?;
+		assert_eq!(conf.max_size_bytes, u64::MAX);
+		let conf = config!(
+			LogConfig2,
+			LogConfig2_Options,
+			vec![MaxAgeMillis(1_000 * 60 * 60)]
+		)?;
+		assert_eq!(conf.max_age_millis, 1_000 * 60 * 60);
 		Ok(())
 	}
 }

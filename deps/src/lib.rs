@@ -43,6 +43,7 @@ pub use bitvec;
 pub use byteorder;
 pub use chrono;
 pub use colored;
+pub use convert_case;
 pub use dirs;
 pub use downcast;
 pub use dyn_clone;

@@ -14,7 +14,6 @@ edition = "2021"
 
 bmw_deps   = { path = "../deps"    }
 bmw_err    = { path = "../error"   }
-bmw_conf   = { path = "../config"  }
 bmw_conf2  = { path = "../config2" }
 bmw_derive = { path = "../derive"  }
 

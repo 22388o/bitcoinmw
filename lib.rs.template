@@ -163,19 +163,20 @@
 //! info!(); // set the log level of the global logger to 'info'.
 //!
 //! fn global_logger() -> Result<(), Error> {
-//!     // get test_info for a uniqe test directory
+//!     // get test_info for a unique test directory
 //!     let test_info = test_info!()?;
 //!
 //!     // create a path_buf
 //!     let mut buf = PathBuf::new();
 //!     buf.push(test_info.directory());
 //!     buf.push("mylog.log");
+//!     let buf = buf.display().to_string();
 //!
 //!     // init the log. Important to do this before any logging takes place or a default log
 //!     // config will be applied
 //!     log_init!(
 //!         AutoRotate(true), // turn on autorotation
-//!         LogFilePath(Some(buf)), // log to our log file
+//!         LogFilePath(&buf), // log to our log file
 //!         MaxSizeBytes(1024 * 1024), // do a rotation when the log file reaches 1mb
 //!         MaxAgeMillis(60 * 60 * 1000) // do a rotation when the log file is over 1 hour old
 //!     )?;
@@ -197,13 +198,14 @@
 //!     let mut buf = PathBuf::new();
 //!     buf.push(test_info.directory());
 //!     buf.push("some_log.log");
+//!     let buf = buf.display().to_string();
 //!
 //!     // create the logger with the logger macro.
 //!     let mut logger = logger!(
-//!         LogFilePath(Some(buf)), // our path
+//!         LogFilePath(&buf), // our path
 //!         MaxAgeMillis(1000 * 30 * 60), // log max age before rotation
 //!         DisplayColors(false), // don't display colors
-//!         DisplayBackTrace(false) // don't show the backtrace on error/fatal log lines
+//!         DisplayBacktrace(false) // don't show the backtrace on error/fatal log lines
 //!     )?;
 //!
 //!     logger.init()?;
