@@ -68,6 +68,17 @@ impl MacroState {
 			string_configs: vec![],
 			bool_configs: vec![],
 			string_tuple_configs: vec![],
+			options_name: None,
+		}
+	}
+
+	fn enum_name(&self) -> String {
+		match &self.options_name {
+			Some(options_name) => options_name.to_string(),
+			None => format!(
+				"{}Options",
+				self.name.as_ref().unwrap_or(&"".to_string()).to_string()
+			),
 		}
 	}
 
@@ -300,15 +311,15 @@ impl MacroState {
 		let mut ret = "None".to_string();
 
 		match &self.name {
-			Some(name) => {
+			Some(_name) => {
 				for config in &self.u8_configs {
 					if ret == "None".to_string() {
 						ret = "\n\t\tmatch self {".to_string();
 					}
 					ret = format!(
-						"{}\n\t\t\t{}_Options::{}(v) => Some(*v),",
+						"{}\n\t\t\t{}::{}(v) => Some(*v),",
 						ret,
-						name,
+						self.enum_name(),
 						config.0.to_case(Case::Pascal)
 					);
 				}
@@ -327,9 +338,9 @@ impl MacroState {
 							ret = "\n\t\tmatch self {".to_string();
 						}
 						ret = format!(
-							"{}\n\t\t\t{}_Options::{}(_v) => None,",
+							"{}\n\t\t\t{}::{}(_v) => None,",
 							ret,
-							name,
+							self.enum_name(),
 							config.0.to_case(Case::Pascal)
 						);
 					}
@@ -349,15 +360,15 @@ impl MacroState {
 		let mut ret = "None".to_string();
 
 		match &self.name {
-			Some(name) => {
+			Some(_name) => {
 				for config in &self.u16_configs {
 					if ret == "None".to_string() {
 						ret = "\n\t\tmatch self {".to_string();
 					}
 					ret = format!(
-						"{}\n\t\t\t{}_Options::{}(v) => Some(*v),",
+						"{}\n\t\t\t{}::{}(v) => Some(*v),",
 						ret,
-						name,
+						self.enum_name(),
 						config.0.to_case(Case::Pascal)
 					);
 				}
@@ -376,9 +387,9 @@ impl MacroState {
 							ret = "\n\t\tmatch self {".to_string();
 						}
 						ret = format!(
-							"{}\n\t\t\t{}_Options::{}(_v) => None,",
+							"{}\n\t\t\t{}::{}(_v) => None,",
 							ret,
-							name,
+							self.enum_name(),
 							config.0.to_case(Case::Pascal)
 						);
 					}
@@ -397,15 +408,15 @@ impl MacroState {
 		let mut ret = "None".to_string();
 
 		match &self.name {
-			Some(name) => {
+			Some(_name) => {
 				for config in &self.u32_configs {
 					if ret == "None".to_string() {
 						ret = "\n\t\tmatch self {".to_string();
 					}
 					ret = format!(
-						"{}\n\t\t\t{}_Options::{}(v) => Some(*v),",
+						"{}\n\t\t\t{}::{}(v) => Some(*v),",
 						ret,
-						name,
+						self.enum_name(),
 						config.0.to_case(Case::Pascal)
 					);
 				}
@@ -424,9 +435,9 @@ impl MacroState {
 							ret = "\n\t\tmatch self {".to_string();
 						}
 						ret = format!(
-							"{}\n\t\t\t{}_Options::{}(_v) => None,",
+							"{}\n\t\t\t{}::{}(_v) => None,",
 							ret,
-							name,
+							self.enum_name(),
 							config.0.to_case(Case::Pascal)
 						);
 					}
@@ -445,15 +456,15 @@ impl MacroState {
 		let mut ret = "None".to_string();
 
 		match &self.name {
-			Some(name) => {
+			Some(_name) => {
 				for config in &self.u64_configs {
 					if ret == "None".to_string() {
 						ret = "\n\t\tmatch self {".to_string();
 					}
 					ret = format!(
-						"{}\n\t\t\t{}_Options::{}(v) => Some(*v),",
+						"{}\n\t\t\t{}::{}(v) => Some(*v),",
 						ret,
-						name,
+						self.enum_name(),
 						config.0.to_case(Case::Pascal)
 					);
 				}
@@ -472,9 +483,9 @@ impl MacroState {
 							ret = "\n\t\tmatch self {".to_string();
 						}
 						ret = format!(
-							"{}\n\t\t\t{}_Options::{}(_v) => None,",
+							"{}\n\t\t\t{}::{}(_v) => None,",
 							ret,
-							name,
+							self.enum_name(),
 							config.0.to_case(Case::Pascal)
 						);
 					}
@@ -494,15 +505,15 @@ impl MacroState {
 		let mut ret = "None".to_string();
 
 		match &self.name {
-			Some(name) => {
+			Some(_name) => {
 				for config in &self.u128_configs {
 					if ret == "None".to_string() {
 						ret = "\n\t\tmatch self {".to_string();
 					}
 					ret = format!(
-						"{}\n\t\t\t{}_Options::{}(v) => Some(*v),",
+						"{}\n\t\t\t{}::{}(v) => Some(*v),",
 						ret,
-						name,
+						self.enum_name(),
 						config.0.to_case(Case::Pascal)
 					);
 				}
@@ -521,9 +532,9 @@ impl MacroState {
 							ret = "\n\t\tmatch self {".to_string();
 						}
 						ret = format!(
-							"{}\n\t\t\t{}_Options::{}(_v) => None,",
+							"{}\n\t\t\t{}::{}(_v) => None,",
 							ret,
-							name,
+							self.enum_name(),
 							config.0.to_case(Case::Pascal)
 						);
 					}
@@ -543,15 +554,15 @@ impl MacroState {
 		let mut ret = "None".to_string();
 
 		match &self.name {
-			Some(name) => {
+			Some(_name) => {
 				for config in &self.usize_configs {
 					if ret == "None".to_string() {
 						ret = "\n\t\tmatch self {".to_string();
 					}
 					ret = format!(
-						"{}\n\t\t\t{}_Options::{}(v) => Some(*v),",
+						"{}\n\t\t\t{}::{}(v) => Some(*v),",
 						ret,
-						name,
+						self.enum_name(),
 						config.0.to_case(Case::Pascal)
 					);
 				}
@@ -570,9 +581,9 @@ impl MacroState {
 							ret = "\n\t\tmatch self {".to_string();
 						}
 						ret = format!(
-							"{}\n\t\t\t{}_Options::{}(_v) => None,",
+							"{}\n\t\t\t{}::{}(_v) => None,",
 							ret,
-							name,
+							self.enum_name(),
 							config.0.to_case(Case::Pascal)
 						);
 					}
@@ -591,15 +602,15 @@ impl MacroState {
 		let mut ret = "None".to_string();
 
 		match &self.name {
-			Some(name) => {
+			Some(_name) => {
 				for config in &self.string_configs {
 					if ret == "None".to_string() {
 						ret = "\n\t\tmatch self {".to_string();
 					}
 					ret = format!(
-						"{}\n\t\t\t{}_Options::{}(v) => Some(v.to_string()),",
+						"{}\n\t\t\t{}::{}(v) => Some(v.to_string()),",
 						ret,
-						name,
+						self.enum_name(),
 						config.0.to_case(Case::Pascal)
 					);
 				}
@@ -618,9 +629,9 @@ impl MacroState {
 							ret = "\n\t\tmatch self {".to_string();
 						}
 						ret = format!(
-							"{}\n\t\t\t{}_Options::{}(_v) => None,",
+							"{}\n\t\t\t{}::{}(_v) => None,",
 							ret,
-							name,
+							self.enum_name(),
 							config.0.to_case(Case::Pascal)
 						);
 					}
@@ -639,15 +650,15 @@ impl MacroState {
 		let mut ret = "None".to_string();
 
 		match &self.name {
-			Some(name) => {
+			Some(_name) => {
 				for config in &self.bool_configs {
 					if ret == "None".to_string() {
 						ret = "\n\t\tmatch self {".to_string();
 					}
 					ret = format!(
-						"{}\n\t\t\t{}_Options::{}(v) => Some(*v),",
+						"{}\n\t\t\t{}::{}(v) => Some(*v),",
 						ret,
-						name,
+						self.enum_name(),
 						config.0.to_case(Case::Pascal)
 					);
 				}
@@ -666,9 +677,9 @@ impl MacroState {
 							ret = "\n\t\tmatch self {".to_string();
 						}
 						ret = format!(
-							"{}\n\t\t\t{}_Options::{}(_v) => None,",
+							"{}\n\t\t\t{}::{}(_v) => None,",
 							ret,
-							name,
+							self.enum_name(),
 							config.0.to_case(Case::Pascal)
 						);
 					}
@@ -688,15 +699,16 @@ impl MacroState {
 		let mut ret = "None".to_string();
 
 		match &self.name {
-			Some(name) => {
+			Some(_name) => {
 				for config in &self.string_tuple_configs {
 					if ret == "None".to_string() {
 						ret = "\n\t\tmatch self {".to_string();
 					}
-					ret =
-						format!(
-						"{}\n\t\t\t{}_Options::{}(v) => Some((v.0.to_string(), v.1.to_string())),",
-						ret, name, config.0.to_case(Case::Pascal)
+					ret = format!(
+						"{}\n\t\t\t{}::{}(v) => Some((v.0.to_string(), v.1.to_string())),",
+						ret,
+						self.enum_name(),
+						config.0.to_case(Case::Pascal)
 					);
 				}
 				for config_vec in vec![
@@ -714,9 +726,9 @@ impl MacroState {
 							ret = "\n\t\tmatch self {".to_string();
 						}
 						ret = format!(
-							"{}\n\t\t\t{}_Options::{}(_v) => None,",
+							"{}\n\t\t\t{}::{}(_v) => None,",
 							ret,
-							name,
+							self.enum_name(),
 							config.0.to_case(Case::Pascal)
 						);
 					}
@@ -805,7 +817,7 @@ impl MacroState {
 	fn build_name_fn(&self) -> String {
 		let mut ret = "\n\t\tmatch self {".to_string();
 		match &self.name {
-			Some(name) => {
+			Some(_name) => {
 				let mut total = 0;
 
 				for config_vec in vec![
@@ -822,8 +834,8 @@ impl MacroState {
 					for config in config_vec {
 						total += 1;
 						let n = format!(
-							"{}_Options::{}(_) => \"{}\",",
-							name,
+							"{}::{}(_) => \"{}\",",
+							self.enum_name(),
 							config.0.to_case(Case::Pascal),
 							config.0.to_case(Case::Pascal)
 						);
@@ -943,7 +955,7 @@ impl MacroState {
 			}}\n\
 			\n\
                         #[derive(PartialEq, Debug)]\n\
-			pub enum {}_Options {} {{ {}\n}}\n\
+			pub enum {} {} {{ {}\n}}\n\
 			\n\
 			impl Configurable for {} {{\n\
 			\n\
@@ -959,7 +971,7 @@ impl MacroState {
 				\tfn allow_dupes(&self) -> std::collections::HashSet<String> {{ {}\t}}\n\
 			}}\n\
 			\n\
-		        impl {}_Options {} {{\n\
+		        impl {} {} {{\n\
 			        \tpub fn name(&self) -> &str {{ {}\t}}\n\
                                 \tpub fn value_u8(&self) -> Option<u8> {{ {}\t}}\n\
                                 \tpub fn value_u16(&self) -> Option<u16> {{ {}\t}}\n\
@@ -974,7 +986,7 @@ impl MacroState {
 			",
 				name,
                                 self.build_required(),
-                                name,
+                                self.enum_name(),
                                 self.named_lifetime(),
                                 self.build_options_enum(),
                                 name,
@@ -988,7 +1000,7 @@ impl MacroState {
                                 self.build_set_string_tuple(),
                                 self.build_set_bool(),
                                 self.build_allow_dupes(),
-				name,
+				self.enum_name(),
                                 self.anon_lifetime(),
                                 self.build_name_fn(),
                                 self.build_value_u8(),
@@ -1067,11 +1079,18 @@ fn process_group(group: Group, state: &mut MacroState) -> Result<(), Error> {
 	let mut last_name: Option<(String, bool)> = None;
 	let mut required = false;
 	let mut in_vec = false;
+	let mut in_options = false;
 	for item in group.stream() {
 		match item {
 			Ident(ref ident) => {
 				let ident_str = ident.to_string();
 				debug!("ident: {}", ident_str)?;
+				if ident_str == "options" {
+					in_options = true;
+				} else {
+					in_options = false;
+				}
+
 				if ident_str != "pub"
 					&& ident_str != "u8" && ident_str != "u16"
 					&& ident_str != "u32"
@@ -1081,6 +1100,7 @@ fn process_group(group: Group, state: &mut MacroState) -> Result<(), Error> {
 					&& ident_str != "String"
 					&& ident_str != "bool"
 					&& ident_str != "Vec"
+					&& ident_str != "options"
 				{
 					debug!("name: {}", ident)?;
 					last_name = Some((ident_str.clone(), required));
@@ -1142,14 +1162,16 @@ fn process_group(group: Group, state: &mut MacroState) -> Result<(), Error> {
 			_ => {
 				debug!("other={}", item)?;
 				let item_str = item.to_string();
-				if item_str == "[required]" {
+
+				if in_options && item_str != "=" {
+					debug!("found an options name: {}", item_str)?;
+					state.options_name = Some(item_str.replace("\"", ""));
+				} else if item_str == "[required]" {
 					debug!("found a required")?;
 					required = true;
-				}
-				if item_str == ">" {
+				} else if item_str == ">" {
 					in_vec = false;
-				}
-				if item_str == "(String, String)" {
+				} else if item_str == "(String, String)" {
 					match last_name {
 						Some(ref v) => state.string_tuple_configs.push((v.0.clone(), v.1, in_vec)),
 						None => {}

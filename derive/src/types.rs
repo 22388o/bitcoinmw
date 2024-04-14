@@ -37,4 +37,5 @@ pub(crate) struct ConfMacroState {
 	pub(crate) string_configs: Vec<(String, bool, bool)>,
 	pub(crate) bool_configs: Vec<(String, bool, bool)>,
 	pub(crate) string_tuple_configs: Vec<(String, bool, bool)>,
+	pub(crate) options_name: Option<String>,
 }

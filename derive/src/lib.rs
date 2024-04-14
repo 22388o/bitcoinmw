@@ -72,6 +72,9 @@
 //! // String, and (String, String). Vec of each of these types also are supported.
 //! // (e.g. 'headers' below.)
 //! #[derive(Configurable)]
+//! #[options = "ConfigOptions"] // The name of the Options enum for this struct. (default
+//!                              // {StructName}Options. Note that this will be a 'pub' enum
+//!                              // so it can be exported and used in other crates, etc.
 //! struct MyStruct {
 //!     // the 'required' helper attribute indicates this field must always be specified in the
 //!     // config macro.
@@ -104,8 +107,9 @@
 //!     // crate for details on this.
 //!     let my_config = config!(
 //!         MyStruct, // name of your struct
-//!         MyStruct_Options, // name of the auto-generated Options enum. This is always called
-//!         // {struct_name}_Options
+//!         ConfigOptions, // name of the options enum. This would be called
+//!         // {struct_name}Options if the #[options = "ConfigOptions"] attribute was not
+//!         // specified above.
 //!         vec![
 //!             Threads(6), // for non-vec, a single value is specified
 //!             Headers(("Content-Type", "text/html")), // vec's may have multiple entries
@@ -137,10 +141,10 @@
 //!     // some errors
 //!
 //!     // error because required field (Threads) is not specified.
-//!     assert!(config!(MyStruct, MyStruct_Options, vec![Timeout(5_000)]).is_err());
+//!     assert!(config!(MyStruct, ConfigOptions, vec![Timeout(5_000)]).is_err());
 //!
 //!     // error because Threads is specified twice.
-//!     assert!(config!(MyStruct, MyStruct_Options, vec![Threads(10), Threads(20)]).is_err());
+//!     assert!(config!(MyStruct, ConfigOptions, vec![Threads(10), Threads(20)]).is_err());
 //! }
 //!
 //!```
@@ -164,7 +168,7 @@ pub fn derive_serialize(strm: TokenStream) -> TokenStream {
 
 /// This is a proc macro for implementing the bmw_conf::Configurable trait. See the [`crate`]
 /// documentation for examples.
-#[proc_macro_derive(Configurable, attributes(required))]
+#[proc_macro_derive(Configurable, attributes(required, options))]
 #[cfg(not(tarpaulin_include))]
 pub fn derive_configurable(strm: TokenStream) -> TokenStream {
 	do_derive_configurable(strm)
