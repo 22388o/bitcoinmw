@@ -168,13 +168,11 @@ impl LogImpl {
 		let mut config = config!(LogConfig, LogConfigOptions, configs)?;
 
 		// insert the home directory for ~
-		let home_dir = match dirs::home_dir() {
-			Some(p) => p,
-			None => PathBuf::new(),
-		}
-		.as_path()
-		.display()
-		.to_string();
+		let home_dir = dirs::home_dir()
+			.unwrap_or(PathBuf::new())
+			.as_path()
+			.display()
+			.to_string();
 
 		config.log_file_path = config.log_file_path.replace("~", &home_dir);
 
@@ -778,32 +776,8 @@ impl Log for LogImpl {
 			return Err(err!(ErrKind::Log, "cannot modify log file path after init"));
 		}
 
-		match value.value_u8() {
-			Some(v) => self.config.set_u8(name, v),
-			None => {}
-		}
-		match value.value_u16() {
-			Some(v) => self.config.set_u16(name, v),
-			None => {}
-		}
-
-		match value.value_u32() {
-			Some(v) => self.config.set_u32(name, v),
-			None => {}
-		}
-
 		match value.value_u64() {
 			Some(v) => self.config.set_u64(name, v),
-			None => {}
-		}
-
-		match value.value_u128() {
-			Some(v) => self.config.set_u128(name, v),
-			None => {}
-		}
-
-		match value.value_usize() {
-			Some(v) => self.config.set_usize(name, v),
 			None => {}
 		}
 
@@ -814,11 +788,6 @@ impl Log for LogImpl {
 
 		match value.value_string() {
 			Some(v) => self.config.set_string(name, v),
-			None => {}
-		}
-
-		match value.value_string_tuple() {
-			Some(v) => self.config.set_string_tuple(name, v),
 			None => {}
 		}
 
