@@ -15,28 +15,15 @@ edition = "2021"
 members = [
 	"error",
 	"deps",
-	"log",
 	"test",
-	"util",
-	"derive",
-	"ser",
-	"config",
-	"evh",
-	"http"
+	"config2"
 ]
 exclude = ["etc"]
 
 [dependencies]
 
 bmw_deps    = { path = "./deps"        }
-bmw_conf    = { path = "./config"      }
 bmw_err     = { path = "./error"       }
-bmw_log     = { path = "./log"         }
-bmw_util    = { path = "./util"        }
-bmw_derive  = { path = "./derive"      }
-bmw_ser     = { path = "./ser"         }
-bmw_evh     = { path = "./evh"         }
-bmw_http    = { path = "./http"        }
 bmw_conf2   = { path = "./config2"     }
 
 [dev-dependencies]

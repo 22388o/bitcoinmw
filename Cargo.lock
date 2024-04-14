@@ -69,17 +69,10 @@ checksum = "9475866fec1451be56a3c2400fd081ff546538961565ccb5b7142cbd22bc7a51"
 name = "bitcoinmw"
 version = "0.0.3-beta.2"
 dependencies = [
- "bmw_conf",
  "bmw_conf2",
  "bmw_deps",
- "bmw_derive",
  "bmw_err",
- "bmw_evh",
- "bmw_http",
- "bmw_log",
- "bmw_ser",
  "bmw_test",
- "bmw_util",
  "built",
  "jemallocator",
 ]
@@ -115,15 +108,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
 dependencies = [
  "generic-array",
-]
-
-[[package]]
-name = "bmw_conf"
-version = "0.0.3-beta.2"
-dependencies = [
- "bmw_deps",
- "bmw_err",
- "bmw_test",
 ]
 
 [[package]]
@@ -174,69 +158,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "bmw_derive"
-version = "0.0.3-beta.2"
-dependencies = [
- "bmw_conf2",
- "bmw_deps",
- "bmw_err",
- "bmw_ser",
-]
-
-[[package]]
 name = "bmw_err"
 version = "0.0.3-beta.2"
 dependencies = [
  "bmw_deps",
-]
-
-[[package]]
-name = "bmw_evh"
-version = "0.0.3-beta.2"
-dependencies = [
- "bmw_conf",
- "bmw_deps",
- "bmw_derive",
- "bmw_err",
- "bmw_log",
- "bmw_ser",
- "bmw_test",
- "bmw_util",
-]
-
-[[package]]
-name = "bmw_http"
-version = "0.0.3-beta.2"
-dependencies = [
- "bmw_conf",
- "bmw_deps",
- "bmw_derive",
- "bmw_err",
- "bmw_evh",
- "bmw_log",
- "bmw_ser",
- "bmw_test",
- "bmw_util",
- "built",
-]
-
-[[package]]
-name = "bmw_log"
-version = "0.0.3-beta.2"
-dependencies = [
- "bmw_conf2",
- "bmw_deps",
- "bmw_derive",
- "bmw_err",
- "bmw_test",
-]
-
-[[package]]
-name = "bmw_ser"
-version = "0.0.3-beta.2"
-dependencies = [
- "bmw_deps",
- "bmw_err",
 ]
 
 [[package]]
@@ -245,20 +170,6 @@ version = "0.0.3-beta.2"
 dependencies = [
  "bmw_deps",
  "bmw_err",
-]
-
-[[package]]
-name = "bmw_util"
-version = "0.0.3-beta.2"
-dependencies = [
- "bmw_conf",
- "bmw_conf2",
- "bmw_deps",
- "bmw_derive",
- "bmw_err",
- "bmw_log",
- "bmw_ser",
- "bmw_test",
 ]
 
 [[package]]
