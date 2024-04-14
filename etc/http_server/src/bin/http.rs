@@ -46,9 +46,9 @@ fn callback(
 fn main() -> Result<(), Error> {
 	log_init!(
 		DisplayLineNum(false),
-		DisplayBackTrace(false),
+		DisplayBacktrace(false),
 		DisplayMillis(false),
-		LogFilePath(Some("~/.bmw/main.log".into()))
+		LogFilePath("~/.bmw/main.log")
 	)?;
 
 	let directory = "~/.bmw/www".to_string();
