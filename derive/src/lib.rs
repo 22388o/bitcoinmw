@@ -99,7 +99,9 @@
 //!
 //! fn main() {
 //!     // call the config macro to build your struct with the specified values that
-//!     // overwrite the default values.
+//!     // overwrite the default values. Note that the names of the configurations are
+//!     // the names in the struct converted to 'Pascal' case. See the 'convert_case'
+//!     // crate for details on this.
 //!     let my_config = config!(
 //!         MyStruct, // name of your struct
 //!         MyStruct_Options, // name of the auto-generated Options enum. This is always called
