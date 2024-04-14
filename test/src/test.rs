@@ -22,6 +22,7 @@ mod test {
 	use crate::types::TestInfoImpl;
 	use crate::{test_info, TestInfo};
 	use bmw_err::Error;
+	use std::thread::spawn;
 
 	#[test]
 	fn test_test_info_macro() -> Result<(), Error> {
@@ -46,6 +47,20 @@ mod test {
 		let (_tx, rx) = test_info.sync_channel_impl(1_000);
 		assert!(rx.recv().is_ok());
 
+		Ok(())
+	}
+
+	#[test]
+	fn test_sync_channel() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let (tx, rx) = test_info.sync_channel();
+
+		spawn(move || -> Result<(), Error> {
+			tx.send(())?;
+			Ok(())
+		});
+
+		rx.recv()?;
 		Ok(())
 	}
 }
