@@ -71,6 +71,7 @@ version = "0.0.3-beta.2"
 dependencies = [
  "bmw_conf",
  "bmw_deps",
+ "bmw_derive",
  "bmw_err",
  "bmw_ser",
  "bmw_test",
@@ -156,6 +157,16 @@ dependencies = [
  "url_path",
  "wepoll-sys",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "bmw_derive"
+version = "0.0.3-beta.2"
+dependencies = [
+ "bmw_conf",
+ "bmw_deps",
+ "bmw_err",
+ "bmw_ser",
 ]
 
 [[package]]
