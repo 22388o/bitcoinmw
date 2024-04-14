@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"derive":["Serializable"]};
+window.SIDEBAR_ITEMS = {"derive":["Configurable","Serializable"]};

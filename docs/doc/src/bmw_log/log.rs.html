@@ -829,59 +829,6 @@
 <a href="#827" id="827">827</a>
 <a href="#828" id="828">828</a>
 <a href="#829" id="829">829</a>
-<a href="#830" id="830">830</a>
-<a href="#831" id="831">831</a>
-<a href="#832" id="832">832</a>
-<a href="#833" id="833">833</a>
-<a href="#834" id="834">834</a>
-<a href="#835" id="835">835</a>
-<a href="#836" id="836">836</a>
-<a href="#837" id="837">837</a>
-<a href="#838" id="838">838</a>
-<a href="#839" id="839">839</a>
-<a href="#840" id="840">840</a>
-<a href="#841" id="841">841</a>
-<a href="#842" id="842">842</a>
-<a href="#843" id="843">843</a>
-<a href="#844" id="844">844</a>
-<a href="#845" id="845">845</a>
-<a href="#846" id="846">846</a>
-<a href="#847" id="847">847</a>
-<a href="#848" id="848">848</a>
-<a href="#849" id="849">849</a>
-<a href="#850" id="850">850</a>
-<a href="#851" id="851">851</a>
-<a href="#852" id="852">852</a>
-<a href="#853" id="853">853</a>
-<a href="#854" id="854">854</a>
-<a href="#855" id="855">855</a>
-<a href="#856" id="856">856</a>
-<a href="#857" id="857">857</a>
-<a href="#858" id="858">858</a>
-<a href="#859" id="859">859</a>
-<a href="#860" id="860">860</a>
-<a href="#861" id="861">861</a>
-<a href="#862" id="862">862</a>
-<a href="#863" id="863">863</a>
-<a href="#864" id="864">864</a>
-<a href="#865" id="865">865</a>
-<a href="#866" id="866">866</a>
-<a href="#867" id="867">867</a>
-<a href="#868" id="868">868</a>
-<a href="#869" id="869">869</a>
-<a href="#870" id="870">870</a>
-<a href="#871" id="871">871</a>
-<a href="#872" id="872">872</a>
-<a href="#873" id="873">873</a>
-<a href="#874" id="874">874</a>
-<a href="#875" id="875">875</a>
-<a href="#876" id="876">876</a>
-<a href="#877" id="877">877</a>
-<a href="#878" id="878">878</a>
-<a href="#879" id="879">879</a>
-<a href="#880" id="880">880</a>
-<a href="#881" id="881">881</a>
-<a href="#882" id="882">882</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -900,15 +847,19 @@
 // limitations under the License.
 
 </span><span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
-<span class="kw">use </span><span class="kw">crate</span>::types::{LogConfig, LogImpl};
-<span class="kw">use crate</span>::{u64, GlobalLogContainer, Log, LogBuilder, LogLevel, LoggingType, BMW_GLOBAL_LOG};
-<span class="kw">use </span>bmw_conf::<span class="kw-2">*</span>;
+<span class="kw">use </span><span class="kw">crate</span>::public::<span class="kw-2">*</span>;
+<span class="kw">use </span><span class="kw">crate</span>::types::<span class="kw-2">*</span>;
+<span class="kw">use </span><span class="kw">crate</span>::u64;
+<span class="kw">use </span>bmw_conf2::config;
+<span class="kw">use </span>bmw_conf2::Configurable;
 <span class="kw">use </span>bmw_deps::backtrace;
 <span class="kw">use </span>bmw_deps::backtrace::{Backtrace, Symbol};
 <span class="kw">use </span>bmw_deps::chrono::{DateTime, Local};
 <span class="kw">use </span>bmw_deps::colored::Colorize;
 <span class="kw">use </span>bmw_deps::dirs;
+<span class="kw">use </span>bmw_deps::dyn_clone::clone_trait_object;
 <span class="kw">use </span>bmw_deps::rand::random;
+<span class="kw">use </span>bmw_deps::url_path::UrlPath;
 <span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 <span class="kw">use </span>std::fmt::{Display, Formatter};
 <span class="kw">use </span>std::fs::{remove_file, rename, File, OpenOptions};
@@ -937,6 +888,32 @@
 			<span class="prelude-val">None </span>=&gt; <span class="prelude-val">Ok</span>(()),
 		}
 	}};
+}
+
+<span class="macro">clone_trait_object!</span>(Log);
+
+<span class="kw">impl </span>Default <span class="kw">for </span>LogConfig2 {
+	<span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
+		<span class="self">Self </span>{
+			max_size_bytes: u64::MAX,
+			max_age_millis: u64::MAX,
+			line_num_data_max_len: DEFAULT_LINE_NUM_DATA_MAX_LEN,
+			display_colors: <span class="bool-val">true</span>,
+			display_stdout: <span class="bool-val">true</span>,
+			display_timestamp: <span class="bool-val">true</span>,
+			display_log_level: <span class="bool-val">true</span>,
+			display_line_num: <span class="bool-val">true</span>,
+			display_millis: <span class="bool-val">true</span>,
+			display_backtrace: <span class="bool-val">false</span>,
+			log_file_path: <span class="string">""</span>.to_string(),
+			delete_rotation: <span class="bool-val">false</span>,
+			auto_rotate: <span class="bool-val">false</span>,
+			file_header: <span class="string">""</span>.to_string(),
+			debug_invalid_metadata: <span class="bool-val">false</span>,
+			debug_lineno_is_none: <span class="bool-val">false</span>,
+			debug_process_resolve_frame_error: <span class="bool-val">false</span>,
+		}
+	}
 }
 
 <span class="kw">impl </span>Display <span class="kw">for </span>LogLevel {
@@ -974,7 +951,7 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">pub fn </span>init(values: Vec&lt;ConfigOption&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">pub fn </span>init(values: Vec&lt;LogConfig2_Options&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>log = BMW_GLOBAL_LOG.write()<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>logger = LogBuilder::build_log(values)<span class="question-mark">?</span>;
 		logger.set_log_level(LogLevel::Trace);
@@ -983,24 +960,12 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="kw">pub fn </span>set_log_option(option: ConfigOption) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+	<span class="kw">pub fn </span>set_log_option(option: LogConfig2_Options) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span><span class="kw-2">mut </span>log = BMW_GLOBAL_LOG.write()<span class="question-mark">?</span>;
 		<span class="kw">match </span>(<span class="kw-2">*</span>log).as_mut() {
 			<span class="prelude-val">Some</span>(logger) =&gt; logger.set_config_option(option),
 			<span class="prelude-val">None </span>=&gt; {
 				<span class="kw">let </span>text = <span class="string">"global logger has not been initalized"</span>;
-				<span class="kw">let </span>err = <span class="macro">err!</span>(ErrKind::Configuration, text);
-				<span class="prelude-val">Err</span>(err)
-			}
-		}
-	}
-
-	<span class="kw">pub fn </span>get_log_option(option: ConfigOptionName) -&gt; <span class="prelude-ty">Result</span>&lt;ConfigOption, Error&gt; {
-		<span class="kw">let </span>log = BMW_GLOBAL_LOG.read()<span class="question-mark">?</span>;
-		<span class="kw">match </span>(<span class="kw-2">*</span>log).as_ref() {
-			<span class="prelude-val">Some</span>(logger) =&gt; logger.get_config_option(option),
-			<span class="prelude-val">None </span>=&gt; {
-				<span class="kw">let </span>text = <span class="string">"global logger has not been initialized"</span>;
 				<span class="kw">let </span>err = <span class="macro">err!</span>(ErrKind::Configuration, text);
 				<span class="prelude-val">Err</span>(err)
 			}
@@ -1088,14 +1053,12 @@
 		<span class="comment">// standard rotation string format
 		</span><span class="kw">let </span>rotation_string = now.format(<span class="string">".r_%m_%d_%Y_%T"</span>).to_string().replace(<span class="string">":"</span>, <span class="string">"-"</span>);
 
-		<span class="kw">let </span>ekind = ErrKind::IllegalArgument;
-		<span class="kw">let </span>text = <span class="string">"log file cannot be rotated. There is no file associated with this logger"</span>;
-
 		<span class="comment">// get the original file path
-		</span><span class="kw">let </span>original_file_path = <span class="macro">some_or_err!</span>(<span class="self">self</span>.config.file_path.clone(), ekind, text)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>original_file_path = PathBuf::from(<span class="self">self</span>.config.log_file_path.clone());
 
 		<span class="comment">// get the parent directory and the file name
-		</span><span class="kw">let </span>text = <span class="string">"file_path has an unexpected illegal value of None for parent"</span>;
+		</span><span class="kw">let </span>ekind = ErrKind::IllegalArgument;
+		<span class="kw">let </span>text = <span class="string">"file_path has an unexpected illegal value of None for parent"</span>;
 		<span class="kw">let </span>parent = <span class="macro">some_or_err!</span>(original_file_path.parent(), ekind, text)<span class="question-mark">?</span>;
 
 		<span class="kw">let </span>text = <span class="string">"file_path has an unexpected illegal value of None for file_name"</span>;
@@ -1166,24 +1129,22 @@
 			<span class="macro">none_or_err!</span>((<span class="kw-2">*</span>file).as_ref(), errkind, text)<span class="question-mark">?</span>;
 		}
 
-		<span class="kw">match </span><span class="self">self</span>.config.file_path.clone().as_ref() {
-			<span class="prelude-val">Some</span>(path) =&gt; {
-				<span class="kw">let </span><span class="kw-2">mut </span>f = <span class="kw">match </span>File::options().append(<span class="bool-val">true</span>).open(path.as_path()) {
-					<span class="prelude-val">Ok</span>(f) =&gt; {
-						<span class="comment">// already exists just return file here
-						</span>f
-					}
-					<span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; {
-						<span class="comment">// try to create it
-						</span>File::create(path.as_path())<span class="question-mark">?
-					</span>}
-				};
-				<span class="self">self</span>.check_open(<span class="kw-2">&amp;mut </span>f, path)<span class="question-mark">?</span>;
+		<span class="kw">if </span><span class="self">self</span>.config.log_file_path != <span class="string">"" </span>{
+			<span class="kw">let </span>path = PathBuf::from(<span class="self">self</span>.config.log_file_path.clone());
+			<span class="kw">let </span><span class="kw-2">mut </span>f = <span class="kw">match </span>File::options().append(<span class="bool-val">true</span>).open(path.as_path()) {
+				<span class="prelude-val">Ok</span>(f) =&gt; {
+					<span class="comment">// already exists just return file here
+					</span>f
+				}
+				<span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; {
+					<span class="comment">// try to create it
+					</span>File::create(path.as_path())<span class="question-mark">?
+				</span>}
+			};
+			<span class="self">self</span>.check_open(<span class="kw-2">&amp;mut </span>f, <span class="kw-2">&amp;</span>path)<span class="question-mark">?</span>;
 
-				<span class="kw">let </span><span class="kw-2">mut </span>file = <span class="self">self</span>.file.write()<span class="question-mark">?</span>;
-				<span class="kw-2">*</span>file = <span class="prelude-val">Some</span>(f);
-			}
-			<span class="prelude-val">None </span>=&gt; {}
+			<span class="kw">let </span><span class="kw-2">mut </span>file = <span class="self">self</span>.file.write()<span class="question-mark">?</span>;
+			<span class="kw-2">*</span>file = <span class="prelude-val">Some</span>(f);
 		}
 		<span class="self">self</span>.is_init = <span class="bool-val">true</span>;
 
@@ -1200,51 +1161,64 @@
 		</span><span class="kw-2">*</span>file = <span class="prelude-val">None</span>;
 		<span class="prelude-val">Ok</span>(())
 	}
-	<span class="kw">fn </span>set_config_option(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: ConfigOption) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="comment">// set the specified option, LogFilePath results in an error.
-		</span><span class="kw">use </span>bmw_conf::ConfigOption <span class="kw">as </span>CO;
-		<span class="kw">let </span>errkind = ErrKind::Configuration;
-		<span class="kw">let </span>text = <span class="string">"cannot set LogFilePath after logging has been started"</span>;
-		<span class="kw">match </span>value {
-			CO::DisplayColors(v) =&gt; <span class="self">self</span>.config.colors = v,
-			CO::DisplayTimestamp(v) =&gt; <span class="self">self</span>.config.timestamp = v,
-			CO::MaxSizeBytes(v) =&gt; <span class="self">self</span>.config.max_size_bytes = v,
-			CO::MaxAgeMillis(v) =&gt; <span class="self">self</span>.config.max_age_millis = v,
-			CO::DisplayStdout(v) =&gt; <span class="self">self</span>.config.stdout = v,
-			CO::DisplayLogLevel(v) =&gt; <span class="self">self</span>.config.level = v,
-			CO::DisplayLineNum(v) =&gt; <span class="self">self</span>.config.line_num = v,
-			CO::DisplayMillis(v) =&gt; <span class="self">self</span>.config.show_millis = v,
-			CO::AutoRotate(v) =&gt; <span class="self">self</span>.config.auto_rotate = v,
-			CO::DisplayBackTrace(v) =&gt; <span class="self">self</span>.config.show_backtrace = v,
-			CO::LineNumDataMaxLen(v) =&gt; <span class="self">self</span>.config.line_num_data_max_len = v,
-			CO::DeleteRotation(v) =&gt; <span class="self">self</span>.config.delete_rotation = v,
-			CO::FileHeader(v) =&gt; <span class="self">self</span>.config.file_header = v.to_string(),
-			CO::LogFilePath(<span class="kw">_</span>) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(errkind, text)),
-			<span class="kw">_ </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Configuration, <span class="string">"unknown config option"</span>)),
+	<span class="kw">fn </span>set_config_option(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: LogConfig2_Options) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">if </span>!<span class="self">self</span>.is_init {
+			<span class="kw">let </span>ekind = ErrKind::Log;
+			<span class="kw">let </span>text = <span class="string">"log file options cannot be set because init() was never called"</span>;
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ekind, text));
 		}
+
+		<span class="kw">let </span>name = value.name();
+
+		<span class="kw">if </span>name == <span class="string">"LogFilePath" </span>{
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Log, <span class="string">"cannot modify log file path after init"</span>));
+		}
+
+		<span class="kw">match </span>value.value_u8() {
+			<span class="prelude-val">Some</span>(v) =&gt; <span class="self">self</span>.config.set_u8(name, v),
+			<span class="prelude-val">None </span>=&gt; {}
+		}
+		<span class="kw">match </span>value.value_u16() {
+			<span class="prelude-val">Some</span>(v) =&gt; <span class="self">self</span>.config.set_u16(name, v),
+			<span class="prelude-val">None </span>=&gt; {}
+		}
+
+		<span class="kw">match </span>value.value_u32() {
+			<span class="prelude-val">Some</span>(v) =&gt; <span class="self">self</span>.config.set_u32(name, v),
+			<span class="prelude-val">None </span>=&gt; {}
+		}
+
+		<span class="kw">match </span>value.value_u64() {
+			<span class="prelude-val">Some</span>(v) =&gt; <span class="self">self</span>.config.set_u64(name, v),
+			<span class="prelude-val">None </span>=&gt; {}
+		}
+
+		<span class="kw">match </span>value.value_u128() {
+			<span class="prelude-val">Some</span>(v) =&gt; <span class="self">self</span>.config.set_u128(name, v),
+			<span class="prelude-val">None </span>=&gt; {}
+		}
+
+		<span class="kw">match </span>value.value_usize() {
+			<span class="prelude-val">Some</span>(v) =&gt; <span class="self">self</span>.config.set_usize(name, v),
+			<span class="prelude-val">None </span>=&gt; {}
+		}
+
+		<span class="kw">match </span>value.value_bool() {
+			<span class="prelude-val">Some</span>(v) =&gt; <span class="self">self</span>.config.set_bool(name, v),
+			<span class="prelude-val">None </span>=&gt; {}
+		}
+
+		<span class="kw">match </span>value.value_string() {
+			<span class="prelude-val">Some</span>(v) =&gt; <span class="self">self</span>.config.set_string(name, v),
+			<span class="prelude-val">None </span>=&gt; {}
+		}
+
+		<span class="kw">match </span>value.value_string_tuple() {
+			<span class="prelude-val">Some</span>(v) =&gt; <span class="self">self</span>.config.set_string_tuple(name, v),
+			<span class="prelude-val">None </span>=&gt; {}
+		}
+
 		<span class="prelude-val">Ok</span>(())
-	}
-	<span class="kw">fn </span>get_config_option(<span class="kw-2">&amp;</span><span class="self">self</span>, option: ConfigOptionName) -&gt; <span class="prelude-ty">Result</span>&lt;ConfigOption, Error&gt; {
-		<span class="comment">// get any specified options
-		</span><span class="kw">use </span>bmw_conf::ConfigOption <span class="kw">as </span>CO;
-		<span class="kw">use </span>bmw_conf::ConfigOptionName <span class="kw">as </span>CN;
-		<span class="prelude-val">Ok</span>(<span class="kw">match </span>option {
-			CN::DisplayColors =&gt; CO::DisplayColors(<span class="self">self</span>.config.colors),
-			CN::DisplayTimestamp =&gt; CO::DisplayTimestamp(<span class="self">self</span>.config.timestamp),
-			CN::MaxSizeBytes =&gt; CO::MaxSizeBytes(<span class="self">self</span>.config.max_size_bytes),
-			CN::MaxAgeMillis =&gt; CO::MaxAgeMillis(<span class="self">self</span>.config.max_age_millis),
-			CN::DisplayStdout =&gt; CO::DisplayStdout(<span class="self">self</span>.config.stdout),
-			CN::DisplayLogLevel =&gt; CO::DisplayLogLevel(<span class="self">self</span>.config.level),
-			CN::DisplayLineNum =&gt; CO::DisplayLineNum(<span class="self">self</span>.config.line_num),
-			CN::DisplayMillis =&gt; CO::DisplayMillis(<span class="self">self</span>.config.show_millis),
-			CN::LogFilePath =&gt; CO::LogFilePath(<span class="self">self</span>.config.file_path.clone()),
-			CN::AutoRotate =&gt; CO::AutoRotate(<span class="self">self</span>.config.auto_rotate),
-			CN::DisplayBackTrace =&gt; CO::DisplayBackTrace(<span class="self">self</span>.config.show_backtrace),
-			CN::LineNumDataMaxLen =&gt; CO::LineNumDataMaxLen(<span class="self">self</span>.config.line_num_data_max_len),
-			CN::DeleteRotation =&gt; CO::DeleteRotation(<span class="self">self</span>.config.delete_rotation),
-			CN::FileHeader =&gt; CO::FileHeader(<span class="self">self</span>.config.file_header.clone()),
-			<span class="kw">_ </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Configuration, <span class="string">"unknown config option"</span>)),
-		})
 	}
 
 	<span class="attr">#[cfg(test)]
@@ -1264,8 +1238,49 @@
 }
 
 <span class="kw">impl </span>LogImpl {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(configs: Vec&lt;ConfigOption&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
-		<span class="kw">let </span>config = LogConfig::new(configs)<span class="question-mark">?</span>;
+	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(configs: Vec&lt;LogConfig2_Options&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
+		<span class="kw">let </span><span class="kw-2">mut </span>config = <span class="macro">config!</span>(LogConfig2, LogConfig2_Options, configs)<span class="question-mark">?</span>;
+
+		<span class="comment">// insert the home directory for ~
+		</span><span class="kw">let </span>home_dir = <span class="kw">match </span>dirs::home_dir() {
+			<span class="prelude-val">Some</span>(p) =&gt; p,
+			<span class="prelude-val">None </span>=&gt; PathBuf::new(),
+		}
+		.as_path()
+		.display()
+		.to_string();
+
+		config.log_file_path = config.log_file_path.replace(<span class="string">"~"</span>, <span class="kw-2">&amp;</span>home_dir);
+
+		<span class="comment">// to check if the file is ok we try to canonicalize its parent, but only if a file
+		// is specified (len &gt; 0). If there is no parent directory, canonicalize will fail
+		</span><span class="kw">if </span>config.log_file_path.len() &gt; <span class="number">0 </span>{
+			<span class="kw">let </span><span class="kw-2">mut </span>path_buf = PathBuf::from(<span class="kw-2">&amp;</span>config.log_file_path);
+			path_buf.pop();
+			<span class="kw">let </span>path_buf_str = path_buf.display().to_string();
+			<span class="kw">let </span>url_path = UrlPath::new(<span class="kw-2">&amp;</span>path_buf_str).normalize();
+			<span class="macro">println!</span>(<span class="string">"normalized_path = {}"</span>, url_path);
+			<span class="kw">let </span>canon_path = PathBuf::from(url_path).as_path().canonicalize()<span class="question-mark">?</span>;
+			<span class="kw">if </span>!canon_path.is_dir() {
+				<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Log, <span class="string">"parent is not a directory"</span>));
+			}
+		}
+
+		<span class="kw">if </span>config.max_age_millis &lt; MINIMUM_MAX_AGE_MILLIS {
+			<span class="kw">let </span>text = <span class="macro">format!</span>(<span class="string">"MaxAgeMillis must be at least {}"</span>, MINIMUM_MAX_AGE_MILLIS);
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Configuration, text));
+		}
+
+		<span class="kw">if </span>config.max_size_bytes &lt; MINIMUM_MAX_SIZE_BYTES {
+			<span class="kw">let </span>text = <span class="macro">format!</span>(<span class="string">"MaxSizeBytes must be at least {}"</span>, MINIMUM_MAX_SIZE_BYTES);
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Configuration, text));
+		}
+
+		<span class="kw">if </span>config.line_num_data_max_len &lt; MINIMUM_LNDML {
+			<span class="kw">let </span>text = <span class="macro">format!</span>(<span class="string">"LineNumDataMaxLen must be at least {}"</span>, MINIMUM_LNDML);
+			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Configuration, text));
+		}
+
 		<span class="kw">let </span>log_level = LogLevel::Info;
 		<span class="kw">let </span>cur_size = <span class="number">0</span>;
 		<span class="kw">let </span>file = Arc::new(RwLock::new(<span class="prelude-val">None</span>));
@@ -1315,13 +1330,16 @@
 
 		<span class="kw">if </span>level <span class="kw">as </span>usize &gt;= <span class="self">self</span>.log_level <span class="kw">as </span>usize {
 			<span class="self">self</span>.rotate_if_needed()<span class="question-mark">?</span>;
-			<span class="kw">let </span>show_stdout = <span class="self">self</span>.config.stdout || logging_type == LoggingType::All;
-			<span class="kw">let </span>show_timestamp = <span class="self">self</span>.config.timestamp &amp;&amp; logging_type != LoggingType::Plain;
-			<span class="kw">let </span>show_colors = <span class="self">self</span>.config.colors;
-			<span class="kw">let </span>show_log_level = <span class="self">self</span>.config.level &amp;&amp; logging_type != LoggingType::Plain;
-			<span class="kw">let </span>show_line_num = <span class="self">self</span>.config.line_num &amp;&amp; logging_type != LoggingType::Plain;
-			<span class="kw">let </span>show_millis = <span class="self">self</span>.config.show_millis &amp;&amp; logging_type != LoggingType::Plain;
-			<span class="kw">let </span>show_bt = <span class="self">self</span>.config.show_backtrace &amp;&amp; level <span class="kw">as </span>usize &gt;= LogLevel::Error <span class="kw">as </span>usize;
+			<span class="kw">let </span>show_stdout = <span class="self">self</span>.config.display_stdout || logging_type == LoggingType::All;
+			<span class="kw">let </span>show_timestamp =
+				<span class="self">self</span>.config.display_timestamp &amp;&amp; logging_type != LoggingType::Plain;
+			<span class="kw">let </span>show_colors = <span class="self">self</span>.config.display_colors;
+			<span class="kw">let </span>show_log_level =
+				<span class="self">self</span>.config.display_log_level &amp;&amp; logging_type != LoggingType::Plain;
+			<span class="kw">let </span>show_line_num = <span class="self">self</span>.config.display_line_num &amp;&amp; logging_type != LoggingType::Plain;
+			<span class="kw">let </span>show_millis = <span class="self">self</span>.config.display_millis &amp;&amp; logging_type != LoggingType::Plain;
+			<span class="kw">let </span>show_bt =
+				<span class="self">self</span>.config.display_backtrace &amp;&amp; level <span class="kw">as </span>usize &gt;= LogLevel::Error <span class="kw">as </span>usize;
 			<span class="kw">let </span>max_len = <span class="self">self</span>.config.line_num_data_max_len;
 
 			<span class="comment">// call the main logging function with the specified params
@@ -1537,7 +1555,7 @@
 	}
 
 	<span class="kw">fn </span>process_resolve_frame(
-		config: <span class="kw-2">&amp;</span>LogConfig,
+		config: <span class="kw-2">&amp;</span>LogConfig2,
 		symbol: <span class="kw-2">&amp;</span>Symbol,
 		found_logger: <span class="kw-2">&amp;mut </span>bool,
 		logged_from_file: <span class="kw-2">&amp;mut </span>String,
@@ -1638,130 +1656,6 @@
 
 		<span class="self">self</span>.last_rotation = Instant::now();
 		<span class="prelude-val">Ok</span>(())
-	}
-}
-
-<span class="kw">impl </span>LogConfig {
-	<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_config_path_buf(
-		option: ConfigOptionName,
-		config: <span class="kw-2">&amp;</span>Box&lt;<span class="kw">dyn </span>Config&gt;,
-		default: <span class="prelude-ty">Option</span>&lt;PathBuf&gt;,
-	) -&gt; <span class="prelude-ty">Option</span>&lt;PathBuf&gt; {
-		<span class="kw">match </span>config.get(<span class="kw-2">&amp;</span>option) {
-			<span class="prelude-val">Some</span>(v) =&gt; <span class="kw">match </span>v {
-				ConfigOption::LogFilePath(v) =&gt; v,
-				<span class="kw">_ </span>=&gt; default,
-			},
-			<span class="prelude-val">None </span>=&gt; default,
-		}
-	}
-
-	<span class="comment">// create the log config based on the specified data
-	</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(configs: Vec&lt;ConfigOption&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
-		<span class="kw">use </span>bmw_conf::ConfigOptionName <span class="kw">as </span>CN;
-		<span class="kw">let </span>config = ConfigBuilder::build_config(configs);
-		config.check_config(
-			<span class="macro">vec!</span>[
-				ConfigOptionName::MaxSizeBytes,
-				ConfigOptionName::MaxAgeMillis,
-				ConfigOptionName::DisplayColors,
-				ConfigOptionName::DisplayStdout,
-				ConfigOptionName::DisplayTimestamp,
-				ConfigOptionName::DisplayLogLevel,
-				ConfigOptionName::DisplayLineNum,
-				ConfigOptionName::DisplayMillis,
-				ConfigOptionName::DisplayBackTrace,
-				ConfigOptionName::LogFilePath,
-				ConfigOptionName::LineNumDataMaxLen,
-				ConfigOptionName::DeleteRotation,
-				ConfigOptionName::FileHeader,
-				ConfigOptionName::AutoRotate,
-			],
-			<span class="macro">vec!</span>[],
-		)<span class="question-mark">?</span>;
-
-		<span class="kw">let </span>auto_rotate = config.get_or_bool(<span class="kw-2">&amp;</span>CN::AutoRotate, <span class="bool-val">false</span>);
-		<span class="kw">let </span>colors = config.get_or_bool(<span class="kw-2">&amp;</span>CN::DisplayColors, <span class="bool-val">true</span>);
-		<span class="kw">let </span>delete_rotation = config.get_or_bool(<span class="kw-2">&amp;</span>CN::DeleteRotation, <span class="bool-val">false</span>);
-		<span class="kw">let </span>file_header = config.get_or_string(<span class="kw-2">&amp;</span>CN::FileHeader, <span class="string">""</span>.to_string());
-		<span class="kw">let </span>file_path = <span class="self">Self</span>::get_config_path_buf(CN::LogFilePath, <span class="kw-2">&amp;</span>config, <span class="prelude-val">None</span>);
-		<span class="kw">let </span>level = config.get_or_bool(<span class="kw-2">&amp;</span>CN::DisplayLogLevel, <span class="bool-val">true</span>);
-		<span class="kw">let </span>line_num = config.get_or_bool(<span class="kw-2">&amp;</span>CN::DisplayLineNum, <span class="bool-val">true</span>);
-		<span class="kw">let </span>show_backtrace = config.get_or_bool(<span class="kw-2">&amp;</span>CN::DisplayBackTrace, <span class="bool-val">false</span>);
-		<span class="kw">let </span>show_millis = config.get_or_bool(<span class="kw-2">&amp;</span>CN::DisplayMillis, <span class="bool-val">true</span>);
-		<span class="kw">let </span>stdout = config.get_or_bool(<span class="kw-2">&amp;</span>CN::DisplayStdout, <span class="bool-val">true</span>);
-		<span class="kw">let </span>timestamp = config.get_or_bool(<span class="kw-2">&amp;</span>CN::DisplayTimestamp, <span class="bool-val">true</span>);
-		<span class="kw">let </span>max_age_millis = config.get_or_u64(<span class="kw-2">&amp;</span>CN::MaxAgeMillis, u64::MAX);
-		<span class="kw">let </span>max_size_bytes = config.get_or_u64(<span class="kw-2">&amp;</span>CN::MaxSizeBytes, u64::MAX);
-		<span class="kw">let </span>value = DEFAULT_LINE_NUM_DATA_MAX_LEN;
-		<span class="kw">let </span>line_num_data_max_len = config.get_or_u64(<span class="kw-2">&amp;</span>CN::LineNumDataMaxLen, value);
-
-		<span class="comment">// insert the home directory for ~
-		</span><span class="kw">let </span>home_dir = <span class="kw">match </span>dirs::home_dir() {
-			<span class="prelude-val">Some</span>(p) =&gt; p,
-			<span class="prelude-val">None </span>=&gt; PathBuf::new(),
-		}
-		.as_path()
-		.display()
-		.to_string();
-
-		<span class="kw">let </span>file_path = <span class="kw">match </span>file_path {
-			<span class="prelude-val">Some</span>(file_path) =&gt; {
-				<span class="kw">let </span>file_path_string = file_path.display().to_string().replace(<span class="string">"~"</span>, <span class="kw-2">&amp;</span>home_dir);
-				<span class="prelude-val">Some</span>(PathBuf::from(file_path_string))
-			}
-			<span class="prelude-val">None </span>=&gt; <span class="prelude-val">None</span>,
-		};
-
-		<span class="kw">if </span>max_age_millis &lt; MINIMUM_MAX_AGE_MILLIS {
-			<span class="kw">let </span>text = <span class="macro">format!</span>(<span class="string">"MaxAgeMillis must be at least {}"</span>, MINIMUM_MAX_AGE_MILLIS);
-			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Configuration, text));
-		}
-
-		<span class="kw">if </span>max_size_bytes &lt; MINIMUM_MAX_SIZE_BYTES {
-			<span class="kw">let </span>text = <span class="macro">format!</span>(<span class="string">"MaxSizeBytes must be at least {}"</span>, MINIMUM_MAX_SIZE_BYTES);
-			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Configuration, text));
-		}
-
-		<span class="kw">if </span>line_num_data_max_len &lt; MINIMUM_LNDML {
-			<span class="kw">let </span>text = <span class="macro">format!</span>(<span class="string">"LineNumDataMaxLen must be at least {}"</span>, MINIMUM_LNDML);
-			<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ErrKind::Configuration, text));
-		}
-
-		<span class="kw">match </span>file_path {
-			<span class="prelude-val">Some</span>(<span class="kw-2">ref </span>file_path) =&gt; {
-				<span class="kw">let </span>parent = file_path.as_path().parent();
-				<span class="kw">let </span>parent = <span class="macro">some_or_err!</span>(parent, ErrKind::Log, <span class="string">"parent did not exist"</span>)<span class="question-mark">?</span>;
-				<span class="kw">if </span>!parent.exists() {
-					<span class="kw">let </span>ekind = ErrKind::Log;
-					<span class="kw">let </span>x = file_path.as_path().to_str().unwrap_or(<span class="string">""</span>);
-					<span class="kw">let </span>text = <span class="macro">format!</span>(<span class="string">"parent directory filepath ({}) does not exist"</span>, x);
-					<span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(ekind, text));
-				}
-			}
-			<span class="prelude-val">None </span>=&gt; {}
-		}
-
-		<span class="prelude-val">Ok</span>(<span class="self">Self </span>{
-			auto_rotate,
-			colors,
-			delete_rotation,
-			file_header,
-			file_path,
-			level,
-			line_num,
-			line_num_data_max_len,
-			max_age_millis,
-			max_size_bytes,
-			show_backtrace,
-			show_millis,
-			stdout,
-			timestamp,
-			debug_process_resolve_frame_error: <span class="bool-val">false</span>,
-			debug_invalid_metadata: <span class="bool-val">false</span>,
-			<span class="attr">#[cfg(debug_assertions)]
-			</span>debug_lineno_is_none: <span class="bool-val">false</span>,
-		})
 	}
 }
 </code></pre></div></section></main></body></html>

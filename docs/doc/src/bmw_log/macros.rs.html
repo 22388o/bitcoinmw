@@ -671,43 +671,6 @@
 <a href="#669" id="669">669</a>
 <a href="#670" id="670">670</a>
 <a href="#671" id="671">671</a>
-<a href="#672" id="672">672</a>
-<a href="#673" id="673">673</a>
-<a href="#674" id="674">674</a>
-<a href="#675" id="675">675</a>
-<a href="#676" id="676">676</a>
-<a href="#677" id="677">677</a>
-<a href="#678" id="678">678</a>
-<a href="#679" id="679">679</a>
-<a href="#680" id="680">680</a>
-<a href="#681" id="681">681</a>
-<a href="#682" id="682">682</a>
-<a href="#683" id="683">683</a>
-<a href="#684" id="684">684</a>
-<a href="#685" id="685">685</a>
-<a href="#686" id="686">686</a>
-<a href="#687" id="687">687</a>
-<a href="#688" id="688">688</a>
-<a href="#689" id="689">689</a>
-<a href="#690" id="690">690</a>
-<a href="#691" id="691">691</a>
-<a href="#692" id="692">692</a>
-<a href="#693" id="693">693</a>
-<a href="#694" id="694">694</a>
-<a href="#695" id="695">695</a>
-<a href="#696" id="696">696</a>
-<a href="#697" id="697">697</a>
-<a href="#698" id="698">698</a>
-<a href="#699" id="699">699</a>
-<a href="#700" id="700">700</a>
-<a href="#701" id="701">701</a>
-<a href="#702" id="702">702</a>
-<a href="#703" id="703">703</a>
-<a href="#704" id="704">704</a>
-<a href="#705" id="705">705</a>
-<a href="#706" id="706">706</a>
-<a href="#707" id="707">707</a>
-<a href="#708" id="708">708</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1227,7 +1190,6 @@
 /// use bmw_err::Error;
 /// use bmw_log::*;
 /// use bmw_test::*;
-/// use bmw_conf::ConfigOption::*;
 /// use std::path::PathBuf;
 ///
 /// debug!();
@@ -1238,12 +1200,13 @@
 ///     let mut buf = PathBuf::new();
 ///     buf.push(test_info.directory());
 ///     buf.push("./main.log");
+///     let buf = buf.display().to_string();
 ///
 ///     // init the global logger
 ///     log_init!(
-///         DisplayBackTrace(false),
+///         DisplayBacktrace(false),
 ///         DisplayMillis(false),
-///         LogFilePath(Some(buf))
+///         LogFilePath(&amp;buf)
 ///     )?;
 ///
 ///     info!("Startup complete!")?;
@@ -1274,9 +1237,8 @@
 </span><span class="macro">macro_rules! </span>log_init {
 	($(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; {{
 		<span class="kw">use </span>bmw_log::GlobalLogContainer;
-                <span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
-                <span class="kw">use </span>bmw_conf::ConfigOption;
-                <span class="kw">let </span>v: Vec&lt;ConfigOption&gt; = <span class="macro">vec!</span>[$(<span class="macro-nonterminal">$config</span>)<span class="kw-2">*</span>];
+                <span class="kw">use </span>bmw_log::LogConfig2_Options::<span class="kw-2">*</span>;
+                <span class="kw">let </span>v: Vec&lt;LogConfig2_Options&gt; = <span class="macro">vec!</span>[$(<span class="macro-nonterminal">$config</span>)<span class="kw-2">*</span>];
                 GlobalLogContainer::init(v)
 	}};
 }
@@ -1288,45 +1250,9 @@
 </span><span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>set_log_option {
 	(<span class="macro-nonterminal">$option</span>:expr) =&gt; {{
-		<span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
 		<span class="kw">use </span>bmw_log::GlobalLogContainer;
+		<span class="kw">use </span>bmw_log::LogConfig2_Options::<span class="kw-2">*</span>;
 		GlobalLogContainer::set_log_option(<span class="macro-nonterminal">$option</span>)
-	}};
-}
-
-<span class="doccomment">/// Get the current value of the specified log option for the global log. The single parameter
-/// must be of the type ConfigOptionName. The macro returns a ConfigOption
-/// on success and Error on error. See [`crate::Log::get_config_option`] which
-/// is the underlying function call for full details.
-///
-/// # Examples
-///
-///```
-/// use bmw_err::Error;
-/// use bmw_log::*;
-/// use bmw_conf::*;
-///
-/// debug!();
-///
-/// fn main() -&gt; Result&lt;(), Error&gt; {
-///
-///     // first init the logger
-///     log_init!(DisplayColors(true))?;
-///     // get the configured value for FilePath
-///     let v = get_log_option!(ConfigOptionName::LogFilePath)?;
-///     // It should be the default value which is None
-///     assert_eq!(v, ConfigOption::LogFilePath(None));
-///     info!("file_path={:?}", v)?;
-///
-///     Ok(())
-/// }
-///```
-</span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>get_log_option {
-	(<span class="macro-nonterminal">$option</span>:expr) =&gt; {{
-		<span class="kw">use </span>bmw_conf::ConfigOptionName::<span class="kw-2">*</span>;
-		<span class="kw">use </span>bmw_log::GlobalLogContainer;
-		GlobalLogContainer::get_log_option(<span class="macro-nonterminal">$option</span>)
 	}};
 }
 
@@ -1367,6 +1293,7 @@
 ///     let mut buf = PathBuf::new();
 ///     buf.push(test_info.directory());
 ///     buf.push("test.log");
+///     let buf = buf.display().to_string();
 ///
 ///     // these are all the legal configurations to use.
 ///     // most of these are the defaults. The only exceptions are:
@@ -1383,12 +1310,12 @@
 ///         DisplayLogLevel(true), // whether or not to display the log level
 ///         DisplayLineNum(true), // whether or not to display the code line number
 ///         DisplayMillis(true), // whether or not to display millisecond precision
-///         LogFilePath(Some(buf)), // path to the log file or None if no file logging
+///         LogFilePath(&amp;buf), // path to the log file or None if no file logging
 ///         AutoRotate(true), // whether or not to automatically rotate the log file
-///         DisplayBackTrace(false), // whether or not to display a backtrace on error/fatal
+///         DisplayBacktrace(false), // whether or not to display a backtrace on error/fatal
 ///         LineNumDataMaxLen(30), // maximum length of line num data
 ///         DeleteRotation(false), // whether or not to delete the rotated log file (test only)
-///         FileHeader("my_header".to_string()), // header to place at the top of each file
+///         FileHeader("my_header"), // header to place at the top of each file
 ///     )?;
 ///
 ///     logger.init()?;
@@ -1410,9 +1337,8 @@
 </span><span class="attr">#[macro_export]
 </span><span class="macro">macro_rules! </span>logger {
         ($(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; {{
-                <span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
-                <span class="kw">use </span>bmw_conf::ConfigOption;
-                <span class="kw">let </span>v: Vec&lt;ConfigOption&gt; = <span class="macro">vec!</span>[$(<span class="macro-nonterminal">$config</span>)<span class="kw-2">*</span>];
+                <span class="kw">use </span>bmw_log::LogConfig2_Options::<span class="kw-2">*</span>;
+                <span class="kw">let </span>v: Vec&lt;LogConfig2_Options&gt; = <span class="macro">vec!</span>[$(<span class="macro-nonterminal">$config</span>)<span class="kw-2">*</span>];
                 LogBuilder::build_log(v)
         }};
 }

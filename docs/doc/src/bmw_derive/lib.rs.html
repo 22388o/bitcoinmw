@@ -76,6 +76,14 @@
 <a href="#74" id="74">74</a>
 <a href="#75" id="75">75</a>
 <a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
+<a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -139,7 +147,8 @@
 //! generics, currenly you must build your own bmw_ser::Serializable implementation.
 
 </span><span class="kw">extern crate </span>proc_macro;
-<span class="kw">use </span><span class="kw">crate</span>::derive::do_derive_serialize;
+<span class="kw">use </span><span class="kw">crate</span>::derive_conf::do_derive_configurable;
+<span class="kw">use </span><span class="kw">crate</span>::derive_ser::do_derive_serialize;
 <span class="kw">use </span>proc_macro::TokenStream;
 
 <span class="doccomment">/// This is a proc macro for implementing the bmw_ser::Serializable trait. See the [`crate`]
@@ -150,6 +159,13 @@
 	do_derive_serialize(strm)
 }
 
-<span class="kw">mod </span>derive;
+<span class="attr">#[proc_macro_derive(Configurable, attributes(required))]
+#[cfg(not(tarpaulin_include))]
+</span><span class="kw">pub fn </span>derive_configurable(strm: TokenStream) -&gt; TokenStream {
+	do_derive_configurable(strm)
+}
+
+<span class="kw">mod </span>derive_conf;
+<span class="kw">mod </span>derive_ser;
 <span class="kw">mod </span>types;
 </code></pre></div></section></main></body></html>

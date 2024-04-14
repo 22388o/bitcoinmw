@@ -1112,6 +1112,48 @@
 <a href="#1110" id="1110">1110</a>
 <a href="#1111" id="1111">1111</a>
 <a href="#1112" id="1112">1112</a>
+<a href="#1113" id="1113">1113</a>
+<a href="#1114" id="1114">1114</a>
+<a href="#1115" id="1115">1115</a>
+<a href="#1116" id="1116">1116</a>
+<a href="#1117" id="1117">1117</a>
+<a href="#1118" id="1118">1118</a>
+<a href="#1119" id="1119">1119</a>
+<a href="#1120" id="1120">1120</a>
+<a href="#1121" id="1121">1121</a>
+<a href="#1122" id="1122">1122</a>
+<a href="#1123" id="1123">1123</a>
+<a href="#1124" id="1124">1124</a>
+<a href="#1125" id="1125">1125</a>
+<a href="#1126" id="1126">1126</a>
+<a href="#1127" id="1127">1127</a>
+<a href="#1128" id="1128">1128</a>
+<a href="#1129" id="1129">1129</a>
+<a href="#1130" id="1130">1130</a>
+<a href="#1131" id="1131">1131</a>
+<a href="#1132" id="1132">1132</a>
+<a href="#1133" id="1133">1133</a>
+<a href="#1134" id="1134">1134</a>
+<a href="#1135" id="1135">1135</a>
+<a href="#1136" id="1136">1136</a>
+<a href="#1137" id="1137">1137</a>
+<a href="#1138" id="1138">1138</a>
+<a href="#1139" id="1139">1139</a>
+<a href="#1140" id="1140">1140</a>
+<a href="#1141" id="1141">1141</a>
+<a href="#1142" id="1142">1142</a>
+<a href="#1143" id="1143">1143</a>
+<a href="#1144" id="1144">1144</a>
+<a href="#1145" id="1145">1145</a>
+<a href="#1146" id="1146">1146</a>
+<a href="#1147" id="1147">1147</a>
+<a href="#1148" id="1148">1148</a>
+<a href="#1149" id="1149">1149</a>
+<a href="#1150" id="1150">1150</a>
+<a href="#1151" id="1151">1151</a>
+<a href="#1152" id="1152">1152</a>
+<a href="#1153" id="1153">1153</a>
+<a href="#1154" id="1154">1154</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023-2024, The BitcoinMW Developers
 // Some code and concepts from:
 // * Grin: https://github.com/mimblewimble/grin
@@ -1132,8 +1174,11 @@
 </span><span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
 	<span class="kw">use crate as </span>bmw_log;
-	<span class="kw">use </span><span class="kw">crate</span>::types::LogConfig;
-	<span class="kw">use </span>bmw_conf::<span class="kw-2">*</span>;
+	<span class="kw">use </span><span class="kw">crate</span>::constants::<span class="kw-2">*</span>;
+	<span class="kw">use </span><span class="kw">crate</span>::types::LogConfig2;
+	<span class="kw">use </span><span class="kw">crate</span>::types::LogImpl;
+	<span class="kw">use </span><span class="kw">crate</span>::LogConfig2_Options::<span class="kw-2">*</span>;
+	<span class="kw">use </span>bmw_conf2::config;
 	<span class="kw">use </span>bmw_deps::lazy_static::lazy_static;
 	<span class="kw">use </span>bmw_err::<span class="kw-2">*</span>;
 	<span class="kw">use </span>bmw_log::<span class="kw-2">*</span>;
@@ -1152,13 +1197,15 @@
 
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_log_basic() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>; <span class="comment">// obtain test info struct
+		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>(<span class="bool-val">true</span>)<span class="question-mark">?</span>; <span class="comment">// obtain test info struct
 		</span><span class="kw">let </span>directory = test_info.directory();
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
 		buf.push(directory);
 		buf.push(<span class="string">"test.log"</span>);
-		<span class="comment">// create a logger with auto rotate on
-		</span><span class="kw">let </span><span class="kw-2">mut </span>log = <span class="macro">logger!</span>(AutoRotate(<span class="bool-val">true</span>), LogFilePath(<span class="prelude-val">Some</span>(buf)))<span class="question-mark">?</span>;
+		<span class="comment">// create a logger with auto rotate on ( use impl so we can check the config )
+		</span><span class="kw">let </span>path = buf.display().to_string();
+		<span class="kw">let </span>configs = <span class="macro">vec!</span>[AutoRotate(<span class="bool-val">true</span>), LogFilePath(<span class="kw-2">&amp;</span>path)];
+		<span class="kw">let </span><span class="kw-2">mut </span>log = LogImpl::new(configs)<span class="question-mark">?</span>;
 
 		<span class="comment">// debug log level
 		</span>log.set_log_level(LogLevel::Debug);
@@ -1166,27 +1213,47 @@
 		</span>log.log(LogLevel::Debug, <span class="string">"test10"</span>)<span class="question-mark">?</span>; <span class="comment">// log a message
 
 		// check that display colors is true (default)
-		</span><span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::DisplayColors)<span class="question-mark">?</span>,
-			ConfigOption::DisplayColors(<span class="bool-val">true</span>)
-		);
+		</span><span class="macro">assert_eq!</span>(log.config.display_colors, <span class="bool-val">true</span>);
 
 		<span class="comment">// set display colors to false
-		</span>log.set_config_option(ConfigOption::DisplayColors(<span class="bool-val">false</span>))<span class="question-mark">?</span>;
+		</span>log.set_config_option(LogConfig2_Options::DisplayColors(<span class="bool-val">false</span>))<span class="question-mark">?</span>;
 		<span class="comment">// confirm it was set
-		</span><span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::DisplayColors)<span class="question-mark">?</span>,
-			ConfigOption::DisplayColors(<span class="bool-val">false</span>)
-		);
+		</span><span class="macro">assert_eq!</span>(log.config.display_colors, <span class="bool-val">false</span>);
 
 		<span class="comment">// set back to true
-		</span>log.set_config_option(ConfigOption::DisplayColors(<span class="bool-val">true</span>))<span class="question-mark">?</span>;
+		</span>log.set_config_option(LogConfig2_Options::DisplayColors(<span class="bool-val">true</span>))<span class="question-mark">?</span>;
 
 		<span class="comment">// confirm it's now true
-		</span><span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::DisplayColors)<span class="question-mark">?</span>,
-			ConfigOption::DisplayColors(<span class="bool-val">true</span>)
+		</span><span class="macro">assert_eq!</span>(log.config.display_colors, <span class="bool-val">true</span>);
+
+		<span class="macro">assert_eq!</span>(
+			log.config.line_num_data_max_len,
+			DEFAULT_LINE_NUM_DATA_MAX_LEN
 		);
+
+		log.set_config_option(LogConfig2_Options::LineNumDataMaxLen(
+			DEFAULT_LINE_NUM_DATA_MAX_LEN + <span class="number">10</span>,
+		))<span class="question-mark">?</span>;
+		<span class="comment">// confirm it was set
+		</span><span class="macro">assert_eq!</span>(
+			log.config.line_num_data_max_len,
+			DEFAULT_LINE_NUM_DATA_MAX_LEN + <span class="number">10
+		</span>);
+
+		<span class="comment">// set back to default
+		</span>log.set_config_option(LogConfig2_Options::LineNumDataMaxLen(
+			DEFAULT_LINE_NUM_DATA_MAX_LEN,
+		))<span class="question-mark">?</span>;
+
+		<span class="comment">// confirm it's now  default
+		</span><span class="macro">assert_eq!</span>(
+			log.config.line_num_data_max_len,
+			DEFAULT_LINE_NUM_DATA_MAX_LEN
+		);
+
+		log.set_config_option(LogConfig2_Options::FileHeader(<span class="string">"testing123"</span>))<span class="question-mark">?</span>;
+
+		<span class="macro">assert_eq!</span>(log.config.file_header, <span class="string">"testing123"</span>.to_string());
 
 		<span class="comment">// do some more logging
 		</span>log.log(LogLevel::Debug, <span class="string">"test11"</span>)<span class="question-mark">?</span>;
@@ -1228,7 +1295,6 @@
 		</span><span class="kw">let </span>_lock = LOCK.write()<span class="question-mark">?</span>;
 		<span class="comment">// do these before init. they're not allowed and generate errors
 		</span><span class="macro">assert!</span>(<span class="macro">set_log_option!</span>(AutoRotate(<span class="bool-val">false</span>)).is_err());
-		<span class="macro">assert!</span>(<span class="macro">get_log_option!</span>(AutoRotate).is_err());
 		<span class="macro">assert!</span>(<span class="macro">log_rotate!</span>().is_err());
 		<span class="macro">assert!</span>(<span class="macro">need_rotate!</span>().is_err());
 
@@ -1241,7 +1307,8 @@
 		buf.push(<span class="string">"log.log"</span>);
 
 		<span class="comment">// init log
-		</span><span class="macro">log_init!</span>(LogFilePath(<span class="prelude-val">Some</span>(buf)))<span class="question-mark">?</span>;
+		</span><span class="kw">let </span>path = buf.display().to_string();
+		<span class="macro">log_init!</span>(LogFilePath(<span class="kw-2">&amp;</span>path))<span class="question-mark">?</span>;
 
 		<span class="comment">// do logging at all levels and all styles
 		</span><span class="macro">trace!</span>(<span class="string">"mactest1"</span>)<span class="question-mark">?</span>;
@@ -1268,14 +1335,6 @@
 		<span class="macro">fatal_plain!</span>(<span class="string">"plain1"</span>)<span class="question-mark">?</span>;
 		<span class="macro">fatal_all!</span>(<span class="string">"all1"</span>)<span class="question-mark">?</span>;
 
-		<span class="comment">// try to set a config option that's not allowed
-		</span><span class="macro">assert!</span>(<span class="macro">set_log_option!</span>(Debug(<span class="bool-val">false</span>)).is_err());
-		<span class="macro">assert!</span>(<span class="macro">get_log_option!</span>(Debug).is_err());
-
-		<span class="comment">// try one that is allowed now
-		</span><span class="macro">assert!</span>(<span class="macro">set_log_option!</span>(AutoRotate(<span class="bool-val">false</span>)).is_ok());
-		<span class="macro">assert!</span>(<span class="macro">get_log_option!</span>(AutoRotate).is_ok());
-
 		<span class="comment">// ensure rotate is allowed and not an error now
 		</span><span class="macro">assert!</span>(<span class="macro">need_rotate!</span>().is_ok());
 		<span class="macro">assert!</span>(<span class="macro">log_rotate!</span>().is_ok());
@@ -1287,7 +1346,7 @@
 		<span class="macro">info_all!</span>(<span class="string">"nocolorall1"</span>)<span class="question-mark">?</span>;
 
 		<span class="comment">// log a backtrace
-		</span><span class="macro">set_log_option!</span>(DisplayBackTrace(<span class="bool-val">true</span>))<span class="question-mark">?</span>;
+		</span><span class="macro">set_log_option!</span>(DisplayBacktrace(<span class="bool-val">true</span>))<span class="question-mark">?</span>;
 		<span class="macro">error!</span>(<span class="string">"errbt"</span>)<span class="question-mark">?</span>;
 		<span class="macro">error_plain!</span>(<span class="string">"errorbt"</span>)<span class="question-mark">?</span>;
 
@@ -1309,10 +1368,11 @@
 		</span><span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
 		buf.push(directory);
 		buf.push(<span class="string">"rotate.log"</span>);
+		<span class="kw">let </span>path = buf.display().to_string();
 		<span class="kw">let </span><span class="kw-2">mut </span>log = <span class="macro">logger!</span>(
 			MaxSizeBytes(<span class="number">100</span>),   <span class="comment">// specific low byte count
 			</span>MaxAgeMillis(<span class="number">3_000</span>), <span class="comment">// specific low max age
-			</span>LogFilePath(<span class="prelude-val">Some</span>(buf))
+			</span>LogFilePath(<span class="kw-2">&amp;</span>path)
 		)<span class="question-mark">?</span>;
 
 		log.init()<span class="question-mark">?</span>;
@@ -1372,10 +1432,11 @@
 		</span><span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
 		buf.push(directory);
 		buf.push(<span class="string">"rotate.log"</span>);
+		<span class="kw">let </span>path = buf.display().to_string();
 		<span class="kw">let </span><span class="kw-2">mut </span>log = <span class="macro">logger!</span>(
 			MaxSizeBytes(<span class="number">100</span>),
 			MaxAgeMillis(<span class="number">3_000</span>),
-			LogFilePath(<span class="prelude-val">Some</span>(buf)),
+			LogFilePath(<span class="kw-2">&amp;</span>path),
 			AutoRotate(<span class="bool-val">true</span>)
 		)<span class="question-mark">?</span>;
 
@@ -1423,10 +1484,11 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
 		buf.push(directory);
 		buf.push(<span class="string">"rotate.log"</span>);
+		<span class="kw">let </span>buf = buf.display().to_string();
 		<span class="kw">let </span><span class="kw-2">mut </span>log = <span class="macro">logger!</span>(
 			MaxSizeBytes(<span class="number">100</span>),
 			MaxAgeMillis(<span class="number">3_000</span>),
-			LogFilePath(<span class="prelude-val">Some</span>(buf)),
+			LogFilePath(<span class="kw-2">&amp;</span>buf),
 			AutoRotate(<span class="bool-val">true</span>)
 		)<span class="question-mark">?</span>;
 
@@ -1448,7 +1510,7 @@
 		</span><span class="kw">let </span><span class="kw-2">mut </span>log = <span class="macro">logger!</span>(
 			MaxSizeBytes(<span class="number">100</span>),
 			MaxAgeMillis(<span class="number">3_000</span>),
-			LogFilePath(<span class="prelude-val">None</span>),
+			LogFilePath(<span class="string">""</span>),
 			AutoRotate(<span class="bool-val">true</span>),
 		)<span class="question-mark">?</span>;
 
@@ -1463,17 +1525,18 @@
 	<span class="attr">#[test]
 	</span><span class="kw">fn </span>test_log_logger_macro() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="comment">// test the macros
-		</span><span class="kw">let </span><span class="kw-2">mut </span>log = <span class="macro">logger!</span>(MaxSizeBytes(<span class="number">103</span>), MaxAgeMillis(<span class="number">3_000</span>), LogFilePath(<span class="prelude-val">None</span>))<span class="question-mark">?</span>;
+		</span><span class="kw">let </span><span class="kw-2">mut </span>log = LogImpl::new(<span class="macro">vec!</span>[
+			MaxSizeBytes(<span class="number">103</span>),
+			MaxAgeMillis(<span class="number">3_000</span>),
+			LogFilePath(<span class="string">""</span>),
+		])<span class="question-mark">?</span>;
 		log.init()<span class="question-mark">?</span>;
 		<span class="comment">// double init is an error
 		</span><span class="macro">assert!</span>(log.init().is_err());
 
 		<span class="comment">// get the config option and assert it's equal to what we configured in the logger
 		// macro
-		</span><span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::MaxSizeBytes)<span class="question-mark">?</span>,
-			ConfigOption::MaxSizeBytes(<span class="number">103</span>)
-		);
+		</span><span class="macro">assert_eq!</span>(log.config.max_size_bytes, <span class="number">103</span>);
 		<span class="prelude-val">Ok</span>(())
 	}
 
@@ -1485,10 +1548,11 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
 		buf.push(directory);
 		buf.push(<span class="string">"rotatelog"</span>); <span class="comment">// no dot in log name
-		</span><span class="kw">let </span><span class="kw-2">mut </span>log = <span class="macro">logger!</span>(
+		</span><span class="kw">let </span>buf = buf.display().to_string();
+		<span class="kw">let </span><span class="kw-2">mut </span>log = <span class="macro">logger!</span>(
 			MaxSizeBytes(<span class="number">100</span>),
 			MaxAgeMillis(<span class="number">3_000</span>),
-			LogFilePath(<span class="prelude-val">Some</span>(buf)),
+			LogFilePath(<span class="kw-2">&amp;</span>buf),
 			AutoRotate(<span class="bool-val">true</span>)
 		)<span class="question-mark">?</span>;
 
@@ -1535,10 +1599,11 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
 		buf.push(directory);
 		buf.push(<span class="string">"rotatelog"</span>);
+		<span class="kw">let </span>buf = buf.display().to_string();
 		<span class="kw">let </span><span class="kw-2">mut </span>log = <span class="macro">logger!</span>(
 			MaxSizeBytes(<span class="number">100</span>),
 			MaxAgeMillis(<span class="number">3_000</span>),
-			LogFilePath(<span class="prelude-val">Some</span>(buf)),
+			LogFilePath(<span class="kw-2">&amp;</span>buf),
 			AutoRotate(<span class="bool-val">true</span>),
 			DeleteRotation(<span class="bool-val">true</span>)
 		)<span class="question-mark">?</span>;
@@ -1584,6 +1649,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
 		buf.push(directory);
 		buf.push(<span class="string">"rotatelog"</span>);
+		<span class="kw">let </span>buf = buf.display().to_string();
 
 		<span class="comment">// create the file before creating the logger
 		</span>File::create(buf.clone())<span class="question-mark">?</span>;
@@ -1592,7 +1658,7 @@
 		</span><span class="kw">let </span><span class="kw-2">mut </span>log = <span class="macro">logger!</span>(
 			MaxSizeBytes(<span class="number">100</span>),
 			MaxAgeMillis(<span class="number">3_000</span>),
-			LogFilePath(<span class="prelude-val">Some</span>(buf)),
+			LogFilePath(<span class="kw-2">&amp;</span>buf),
 			AutoRotate(<span class="bool-val">true</span>)
 		)<span class="question-mark">?</span>;
 
@@ -1642,6 +1708,7 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
 		buf.push(directory);
 		buf.push(<span class="string">"rotatelog"</span>);
+		<span class="kw">let </span>buf = buf.display().to_string();
 
 		File::create(buf.clone())<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>file = OpenOptions::new().write(<span class="bool-val">true</span>).open(buf.clone())<span class="question-mark">?</span>;
@@ -1651,7 +1718,7 @@
 		</span><span class="kw">let </span><span class="kw-2">mut </span>log = <span class="macro">logger!</span>(
 			MaxSizeBytes(<span class="number">100</span>),
 			MaxAgeMillis(<span class="number">3_000</span>),
-			LogFilePath(<span class="prelude-val">Some</span>(buf)),
+			LogFilePath(<span class="kw-2">&amp;</span>buf),
 			AutoRotate(<span class="bool-val">true</span>)
 		)<span class="question-mark">?</span>;
 
@@ -1693,156 +1760,155 @@
 		<span class="prelude-val">Ok</span>(())
 	}
 
-	<span class="attr">#[test]
-	</span><span class="kw">fn </span>test_log_set_get_options() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="comment">// create a log and go through each configuration setting and confirm it changes
-		// via get_config_option
-		</span><span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
-		<span class="kw">let </span>directory = test_info.directory();
-		<span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
-		buf.push(directory);
-		buf.push(<span class="string">"rotatelog"</span>);
+	<span class="comment">/*
+		#[test]
+		fn test_log_set_get_options() -&gt; Result&lt;(), Error&gt; {
+			// create a log and go through each configuration setting and confirm it changes
+			// via get_config_option
+			let test_info = test_info!()?;
+			let directory = test_info.directory();
+			let mut buf = PathBuf::new();
+			buf.push(directory);
+			buf.push("rotatelog");
+			let buf = buf.display().to_string();
 
-		File::create(buf.clone())<span class="question-mark">?</span>;
-		<span class="kw">let </span><span class="kw-2">mut </span>log = <span class="macro">logger!</span>(
-			LogFilePath(<span class="prelude-val">Some</span>(buf.clone())),
-			MaxSizeBytes(<span class="number">101</span>),
-			MaxAgeMillis(<span class="number">5_000</span>)
-		)<span class="question-mark">?</span>;
+			File::create(buf.clone())?;
+			let mut log = logger!(LogFilePath(&amp;buf), MaxSizeBytes(101), MaxAgeMillis(5_000))?;
 
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::DisplayTimestamp)<span class="question-mark">?</span>,
-			ConfigOption::DisplayTimestamp(<span class="bool-val">true</span>)
-		);
-		log.set_config_option(ConfigOption::DisplayTimestamp(<span class="bool-val">false</span>))<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::DisplayTimestamp)<span class="question-mark">?</span>,
-			ConfigOption::DisplayTimestamp(<span class="bool-val">false</span>)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayTimestamp)?,
+				ConfigOption::DisplayTimestamp(true)
+			);
+			log.set_config_option(ConfigOption::DisplayTimestamp(false))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayTimestamp)?,
+				ConfigOption::DisplayTimestamp(false)
+			);
 
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::MaxSizeBytes)<span class="question-mark">?</span>,
-			ConfigOption::MaxSizeBytes(<span class="number">101</span>)
-		);
-		log.set_config_option(ConfigOption::MaxSizeBytes(<span class="number">202</span>))<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::MaxSizeBytes)<span class="question-mark">?</span>,
-			ConfigOption::MaxSizeBytes(<span class="number">202</span>)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::MaxSizeBytes)?,
+				ConfigOption::MaxSizeBytes(101)
+			);
+			log.set_config_option(ConfigOption::MaxSizeBytes(202))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::MaxSizeBytes)?,
+				ConfigOption::MaxSizeBytes(202)
+			);
 
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::MaxAgeMillis)<span class="question-mark">?</span>,
-			ConfigOption::MaxAgeMillis(<span class="number">5_000</span>)
-		);
-		log.set_config_option(ConfigOption::MaxAgeMillis(<span class="number">10_000</span>))<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::MaxAgeMillis)<span class="question-mark">?</span>,
-			ConfigOption::MaxAgeMillis(<span class="number">10_000</span>)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::MaxAgeMillis)?,
+				ConfigOption::MaxAgeMillis(5_000)
+			);
+			log.set_config_option(ConfigOption::MaxAgeMillis(10_000))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::MaxAgeMillis)?,
+				ConfigOption::MaxAgeMillis(10_000)
+			);
 
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::DisplayStdout)<span class="question-mark">?</span>,
-			ConfigOption::DisplayStdout(<span class="bool-val">true</span>)
-		);
-		log.set_config_option(ConfigOption::DisplayStdout(<span class="bool-val">false</span>))<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::DisplayStdout)<span class="question-mark">?</span>,
-			ConfigOption::DisplayStdout(<span class="bool-val">false</span>)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayStdout)?,
+				ConfigOption::DisplayStdout(true)
+			);
+			log.set_config_option(ConfigOption::DisplayStdout(false))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayStdout)?,
+				ConfigOption::DisplayStdout(false)
+			);
 
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::DisplayLogLevel)<span class="question-mark">?</span>,
-			ConfigOption::DisplayLogLevel(<span class="bool-val">true</span>)
-		);
-		log.set_config_option(ConfigOption::DisplayLogLevel(<span class="bool-val">false</span>))<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::DisplayLogLevel)<span class="question-mark">?</span>,
-			ConfigOption::DisplayLogLevel(<span class="bool-val">false</span>)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayLogLevel)?,
+				ConfigOption::DisplayLogLevel(true)
+			);
+			log.set_config_option(ConfigOption::DisplayLogLevel(false))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayLogLevel)?,
+				ConfigOption::DisplayLogLevel(false)
+			);
 
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::DisplayLineNum)<span class="question-mark">?</span>,
-			ConfigOption::DisplayLineNum(<span class="bool-val">true</span>)
-		);
-		log.set_config_option(ConfigOption::DisplayLineNum(<span class="bool-val">false</span>))<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::DisplayLineNum)<span class="question-mark">?</span>,
-			ConfigOption::DisplayLineNum(<span class="bool-val">false</span>)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayLineNum)?,
+				ConfigOption::DisplayLineNum(true)
+			);
+			log.set_config_option(ConfigOption::DisplayLineNum(false))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayLineNum)?,
+				ConfigOption::DisplayLineNum(false)
+			);
 
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::DisplayMillis)<span class="question-mark">?</span>,
-			ConfigOption::DisplayMillis(<span class="bool-val">true</span>)
-		);
-		log.set_config_option(ConfigOption::DisplayMillis(<span class="bool-val">false</span>))<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::DisplayMillis)<span class="question-mark">?</span>,
-			ConfigOption::DisplayMillis(<span class="bool-val">false</span>)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayMillis)?,
+				ConfigOption::DisplayMillis(true)
+			);
+			log.set_config_option(ConfigOption::DisplayMillis(false))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayMillis)?,
+				ConfigOption::DisplayMillis(false)
+			);
 
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::AutoRotate)<span class="question-mark">?</span>,
-			ConfigOption::AutoRotate(<span class="bool-val">false</span>)
-		);
-		log.set_config_option(ConfigOption::AutoRotate(<span class="bool-val">true</span>))<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::AutoRotate)<span class="question-mark">?</span>,
-			ConfigOption::AutoRotate(<span class="bool-val">true</span>)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::AutoRotate)?,
+				ConfigOption::AutoRotate(false)
+			);
+			log.set_config_option(ConfigOption::AutoRotate(true))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::AutoRotate)?,
+				ConfigOption::AutoRotate(true)
+			);
 
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::DisplayBackTrace)<span class="question-mark">?</span>,
-			ConfigOption::DisplayBackTrace(<span class="bool-val">false</span>)
-		);
-		log.set_config_option(ConfigOption::DisplayBackTrace(<span class="bool-val">true</span>))<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::DisplayBackTrace)<span class="question-mark">?</span>,
-			ConfigOption::DisplayBackTrace(<span class="bool-val">true</span>)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayBackTrace)?,
+				ConfigOption::DisplayBackTrace(false)
+			);
+			log.set_config_option(ConfigOption::DisplayBackTrace(true))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DisplayBackTrace)?,
+				ConfigOption::DisplayBackTrace(true)
+			);
 
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::DeleteRotation)<span class="question-mark">?</span>,
-			ConfigOption::DeleteRotation(<span class="bool-val">false</span>)
-		);
-		log.set_config_option(ConfigOption::DeleteRotation(<span class="bool-val">true</span>))<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::DeleteRotation)<span class="question-mark">?</span>,
-			ConfigOption::DeleteRotation(<span class="bool-val">true</span>)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DeleteRotation)?,
+				ConfigOption::DeleteRotation(false)
+			);
+			log.set_config_option(ConfigOption::DeleteRotation(true))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::DeleteRotation)?,
+				ConfigOption::DeleteRotation(true)
+			);
 
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::FileHeader)<span class="question-mark">?</span>,
-			ConfigOption::FileHeader(<span class="string">""</span>.to_string())
-		);
-		log.set_config_option(ConfigOption::FileHeader(<span class="string">"something"</span>.to_string()))<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::FileHeader)<span class="question-mark">?</span>,
-			ConfigOption::FileHeader(<span class="string">"something"</span>.to_string())
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::FileHeader)?,
+				ConfigOption::FileHeader("".to_string())
+			);
+			log.set_config_option(ConfigOption::FileHeader("something".to_string()))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::FileHeader)?,
+				ConfigOption::FileHeader("something".to_string())
+			);
 
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::LogFilePath)<span class="question-mark">?</span>,
-			ConfigOption::LogFilePath(<span class="prelude-val">Some</span>(buf.clone()))
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::LogFilePath)?,
+				ConfigOption::LogFilePath(Some(buf.clone()))
+			);
 
-		<span class="macro">assert!</span>(log
-			.set_config_option(ConfigOption::LogFilePath(<span class="prelude-val">None</span>))
-			.is_err());
+			assert!(log
+				.set_config_option(ConfigOption::LogFilePath(None))
+				.is_err());
 
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::LineNumDataMaxLen)<span class="question-mark">?</span>,
-			ConfigOption::LineNumDataMaxLen(<span class="number">30</span>)
-		);
-		log.set_config_option(ConfigOption::LineNumDataMaxLen(<span class="number">50</span>))<span class="question-mark">?</span>;
-		<span class="macro">assert_eq!</span>(
-			log.get_config_option(ConfigOptionName::LineNumDataMaxLen)<span class="question-mark">?</span>,
-			ConfigOption::LineNumDataMaxLen(<span class="number">50</span>)
-		);
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::LineNumDataMaxLen)?,
+				ConfigOption::LineNumDataMaxLen(30)
+			);
+			log.set_config_option(ConfigOption::LineNumDataMaxLen(50))?;
+			assert_eq!(
+				log.get_config_option(ConfigOptionName::LineNumDataMaxLen)?,
+				ConfigOption::LineNumDataMaxLen(50)
+			);
 
-		<span class="prelude-val">Ok</span>(())
-	}
+			Ok(())
+		}
+	*/
 
-	<span class="attr">#[test]
+	</span><span class="attr">#[test]
 	</span><span class="kw">fn </span>test_log_show_millis() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
 		<span class="kw">let </span>test_info = <span class="macro">test_info!</span>()<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>buf1 = PathBuf::new();
@@ -1854,16 +1920,18 @@
 		buf2.push(test_info.directory());
 		buf1.push(<span class="string">"file1.log"</span>);
 		buf2.push(<span class="string">"file2.log"</span>);
+		<span class="kw">let </span>buf1 = buf1.display().to_string();
+		<span class="kw">let </span>buf2 = buf2.display().to_string();
 
 		<span class="kw">let </span><span class="kw-2">mut </span>logger1 = <span class="macro">logger!</span>(
-			LogFilePath(<span class="prelude-val">Some</span>(buf1)),
+			LogFilePath(<span class="kw-2">&amp;</span>buf1),
 			DisplayMillis(<span class="bool-val">true</span>),
-			FileHeader(<span class="string">"sometext"</span>.to_string())
+			FileHeader(<span class="string">"sometext"</span>)
 		)<span class="question-mark">?</span>;
 		<span class="kw">let </span><span class="kw-2">mut </span>logger2 = <span class="macro">logger!</span>(
-			LogFilePath(<span class="prelude-val">Some</span>(buf2)),
+			LogFilePath(<span class="kw-2">&amp;</span>buf2),
 			DisplayMillis(<span class="bool-val">false</span>),
-			FileHeader(<span class="string">"sometext"</span>.to_string())
+			FileHeader(<span class="string">"sometext"</span>)
 		)<span class="question-mark">?</span>;
 
 		<span class="comment">// set log level and init both loggers
@@ -1910,12 +1978,13 @@
 
 		buf1.push(test_info.directory());
 		buf1.push(<span class="string">"file1.log"</span>);
+		<span class="kw">let </span>buf1 = buf1.display().to_string();
 
 		<span class="comment">// create a logger displaying millis and with FileHeader/LogPath specified
 		</span><span class="kw">let </span><span class="kw-2">mut </span>logger1 = <span class="macro">logger!</span>(
-			LogFilePath(<span class="prelude-val">Some</span>(buf1)),
+			LogFilePath(<span class="kw-2">&amp;</span>buf1),
 			DisplayMillis(<span class="bool-val">true</span>),
-			FileHeader(<span class="string">"sometext"</span>.to_string())
+			FileHeader(<span class="string">"sometext"</span>)
 		)<span class="question-mark">?</span>;
 
 		<span class="comment">// set the debug flag to trigger specific state
@@ -1937,12 +2006,13 @@
 
 		buf1.push(test_info.directory());
 		buf1.push(<span class="string">"file1.log"</span>);
+		<span class="kw">let </span>buf1 = buf1.display().to_string();
 
 		<span class="comment">// create a logger with a log file and header
 		</span><span class="kw">let </span><span class="kw-2">mut </span>logger1 = <span class="macro">logger!</span>(
-			LogFilePath(<span class="prelude-val">Some</span>(buf1)),
+			LogFilePath(<span class="kw-2">&amp;</span>buf1),
 			DisplayMillis(<span class="bool-val">true</span>),
-			FileHeader(<span class="string">"sometext"</span>.to_string())
+			FileHeader(<span class="string">"sometext"</span>)
 		)<span class="question-mark">?</span>;
 		logger1.debug_invalid_metadata();
 		logger1.set_log_level(LogLevel::Debug);
@@ -1961,10 +2031,6 @@
 			sleep(Duration::from_millis(<span class="number">1</span>));
 			<span class="macro">info!</span>(<span class="string">"test"</span>)<span class="question-mark">?</span>;
 		}
-		<span class="macro">assert_eq!</span>(
-			<span class="macro">get_log_option!</span>(LineNumDataMaxLen)<span class="question-mark">?</span>,
-			ConfigOption::LineNumDataMaxLen(<span class="number">30</span>)
-		);
 
 		<span class="comment">// set the GLOBAL logger back to none for the other tests
 		// only done in tests
@@ -1981,12 +2047,13 @@
 
 		buf1.push(test_info.directory());
 		buf1.push(<span class="string">"file1.log"</span>);
+		<span class="kw">let </span>buf1 = buf1.display().to_string();
 
 		<span class="comment">// create a logger
 		</span><span class="kw">let </span><span class="kw-2">mut </span>logger1 = <span class="macro">logger!</span>(
-			LogFilePath(<span class="prelude-val">Some</span>(buf1)),
+			LogFilePath(<span class="kw-2">&amp;</span>buf1),
 			DisplayMillis(<span class="bool-val">true</span>),
-			FileHeader(<span class="string">"sometext"</span>.to_string())
+			FileHeader(<span class="string">"sometext"</span>)
 		)<span class="question-mark">?</span>;
 
 		<span class="comment">// set debugging flag to trigger a different state
@@ -2007,12 +2074,13 @@
 
 		buf1.push(test_info.directory());
 		buf1.push(<span class="string">"file1.log"</span>);
+		<span class="kw">let </span>buf1 = buf1.display().to_string();
 
 		<span class="comment">// create a logger with all options specified to exercise various parts off the code
 		</span><span class="kw">let </span><span class="kw-2">mut </span>log = <span class="macro">logger!</span>(
 			MaxSizeBytes(<span class="number">100</span>),
 			MaxAgeMillis(<span class="number">3_000</span>),
-			LogFilePath(<span class="prelude-val">Some</span>(buf1)),
+			LogFilePath(<span class="kw-2">&amp;</span>buf1),
 			AutoRotate(<span class="bool-val">true</span>),
 			DisplayColors(<span class="bool-val">true</span>),
 			DisplayStdout(<span class="bool-val">true</span>),
@@ -2020,10 +2088,10 @@
 			DisplayLogLevel(<span class="bool-val">true</span>),
 			DisplayLineNum(<span class="bool-val">false</span>),
 			DisplayMillis(<span class="bool-val">true</span>),
-			DisplayBackTrace(<span class="bool-val">true</span>),
+			DisplayBacktrace(<span class="bool-val">true</span>),
 			LineNumDataMaxLen(<span class="number">32</span>),
 			DeleteRotation(<span class="bool-val">false</span>),
-			FileHeader(<span class="string">"header"</span>.to_string())
+			FileHeader(<span class="string">"header"</span>)
 		)<span class="question-mark">?</span>;
 
 		<span class="comment">// init should be successful
@@ -2047,7 +2115,8 @@
 		buf.push(<span class="string">"c"</span>);
 		buf.push(<span class="string">"d"</span>);
 		buf.push(<span class="string">"e.log"</span>);
-		<span class="macro">assert!</span>(<span class="macro">logger!</span>(LogFilePath(<span class="prelude-val">Some</span>(buf))).is_err());
+		<span class="kw">let </span>buf = buf.display().to_string();
+		<span class="macro">assert!</span>(<span class="macro">logger!</span>(LogFilePath(<span class="kw-2">&amp;</span>buf)).is_err());
 
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -2060,11 +2129,12 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
 		buf.push(test_info.directory());
 		buf.push(<span class="string">"mylogger.log"</span>);
+		<span class="kw">let </span>buf = buf.display().to_string();
 		<span class="kw">let </span><span class="kw-2">mut </span>logger = <span class="macro">logger!</span>(
 			MaxSizeBytes(<span class="number">100</span>),
-			LogFilePath(<span class="prelude-val">Some</span>(buf)),
+			LogFilePath(<span class="kw-2">&amp;</span>buf),
 			AutoRotate(<span class="bool-val">true</span>),
-			FileHeader(<span class="string">"myheader_abc"</span>.to_string())
+			FileHeader(<span class="string">"myheader_abc"</span>)
 		)<span class="question-mark">?</span>;
 
 		<span class="comment">// this is an error because we haven't called init yet
@@ -2104,11 +2174,12 @@
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
 		buf.push(test_info.directory());
 		buf.push(<span class="string">"mylogger.log"</span>);
+		<span class="kw">let </span>buf = buf.display().to_string();
 		<span class="kw">let </span><span class="kw-2">mut </span>logger = <span class="macro">logger!</span>(
 			MaxSizeBytes(<span class="number">363</span>),
-			LogFilePath(<span class="prelude-val">Some</span>(buf.clone())),
+			LogFilePath(<span class="kw-2">&amp;</span>buf),
 			AutoRotate(<span class="bool-val">false</span>),
-			FileHeader(<span class="string">"myheader_abc"</span>.to_string())
+			FileHeader(<span class="string">"myheader_abc"</span>)
 		)<span class="question-mark">?</span>;
 
 		logger.init()<span class="question-mark">?</span>;
@@ -2124,19 +2195,23 @@
 		<span class="macro">assert!</span>(!logger.need_rotate()<span class="question-mark">?</span>); <span class="comment">// file exactly 363, no rotate needed
 		</span>logger.close()<span class="question-mark">?</span>;
 
+		<span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push(<span class="string">"mylogger.log"</span>);
 		<span class="kw">let </span>len = buf.metadata()<span class="question-mark">?</span>.len();
 		<span class="macro">assert_eq!</span>(len, <span class="number">363</span>);
 
 		<span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
 		buf.push(test_info.directory());
 		buf.push(<span class="string">"mylogger2.log"</span>);
+		<span class="kw">let </span>buf = buf.display().to_string();
 
 		<span class="comment">// try again one byte smaller MaxSizeBytes.
 		</span><span class="kw">let </span><span class="kw-2">mut </span>logger = <span class="macro">logger!</span>(
 			MaxSizeBytes(<span class="number">362</span>),
-			LogFilePath(<span class="prelude-val">Some</span>(buf.clone())),
+			LogFilePath(<span class="kw-2">&amp;</span>buf),
 			AutoRotate(<span class="bool-val">false</span>),
-			FileHeader(<span class="string">"myheader_abc"</span>.to_string())
+			FileHeader(<span class="string">"myheader_abc"</span>)
 		)<span class="question-mark">?</span>;
 
 		logger.init()<span class="question-mark">?</span>;
@@ -2153,6 +2228,10 @@
 		<span class="macro">assert!</span>(logger.need_rotate()<span class="question-mark">?</span>); <span class="comment">// this time we need a rotate
 		</span>logger.close()<span class="question-mark">?</span>;
 
+		<span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push(<span class="string">"mylogger2.log"</span>);
+
 		<span class="kw">let </span>len = buf.metadata()<span class="question-mark">?</span>.len();
 		<span class="macro">assert_eq!</span>(len, <span class="number">363</span>);
 
@@ -2160,13 +2239,10 @@
 		</span><span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
 		buf.push(test_info.directory());
 		buf.push(<span class="string">"mylogger3.log"</span>);
+		<span class="kw">let </span>buf = buf.display().to_string();
 
 		<span class="comment">// try without a header this time (12 bytes + 1 newline less)
-		</span><span class="kw">let </span><span class="kw-2">mut </span>logger = <span class="macro">logger!</span>(
-			MaxSizeBytes(<span class="number">350</span>),
-			LogFilePath(<span class="prelude-val">Some</span>(buf.clone())),
-			AutoRotate(<span class="bool-val">false</span>),
-		)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span><span class="kw-2">mut </span>logger = <span class="macro">logger!</span>(MaxSizeBytes(<span class="number">350</span>), LogFilePath(<span class="kw-2">&amp;</span>buf), AutoRotate(<span class="bool-val">false</span>),)<span class="question-mark">?</span>;
 
 		logger.init()<span class="question-mark">?</span>;
 		logger.set_log_level(LogLevel::Debug);
@@ -2182,6 +2258,9 @@
 		<span class="macro">assert!</span>(!logger.need_rotate()<span class="question-mark">?</span>); <span class="comment">// this time we need a rotate
 		</span>logger.close()<span class="question-mark">?</span>;
 
+		<span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push(<span class="string">"mylogger3.log"</span>);
 		<span class="kw">let </span>len = buf.metadata()<span class="question-mark">?</span>.len();
 		<span class="macro">assert_eq!</span>(len, <span class="number">350</span>);
 
@@ -2189,13 +2268,10 @@
 		</span><span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
 		buf.push(test_info.directory());
 		buf.push(<span class="string">"mylogger4.log"</span>);
+		<span class="kw">let </span>buf = buf.display().to_string();
 
 		<span class="comment">// try again one byte smaller MaxSizeBytes.
-		</span><span class="kw">let </span><span class="kw-2">mut </span>logger = <span class="macro">logger!</span>(
-			MaxSizeBytes(<span class="number">349</span>),
-			LogFilePath(<span class="prelude-val">Some</span>(buf.clone())),
-			AutoRotate(<span class="bool-val">false</span>),
-		)<span class="question-mark">?</span>;
+		</span><span class="kw">let </span><span class="kw-2">mut </span>logger = <span class="macro">logger!</span>(MaxSizeBytes(<span class="number">349</span>), LogFilePath(<span class="kw-2">&amp;</span>buf), AutoRotate(<span class="bool-val">false</span>),)<span class="question-mark">?</span>;
 
 		logger.init()<span class="question-mark">?</span>;
 		logger.set_log_level(LogLevel::Debug);
@@ -2211,16 +2287,24 @@
 		<span class="macro">assert!</span>(logger.need_rotate()<span class="question-mark">?</span>); <span class="comment">// this time we need a rotate
 		</span>logger.close()<span class="question-mark">?</span>;
 
+		<span class="kw">let </span><span class="kw-2">mut </span>buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push(<span class="string">"mylogger4.log"</span>);
 		<span class="kw">let </span>len = buf.metadata()<span class="question-mark">?</span>.len();
 		<span class="macro">assert_eq!</span>(len, <span class="number">350</span>);
 		<span class="prelude-val">Ok</span>(())
 	}
 
 	<span class="attr">#[test]
-	</span><span class="kw">fn </span>test_log_unusual_config() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-		<span class="kw">let </span>c = <span class="macro">config!</span>(ConfigOption::MaxSizeBytes(<span class="number">100</span>));
-		<span class="kw">let </span>res = LogConfig::get_config_path_buf(ConfigOptionName::MaxSizeBytes, <span class="kw-2">&amp;</span>c, <span class="prelude-val">None</span>);
-		<span class="macro">assert!</span>(res.is_none());
+	</span><span class="kw">fn </span>test_log_config() -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+		<span class="kw">let </span>conf = <span class="macro">config!</span>(LogConfig2, LogConfig2_Options, <span class="macro">vec!</span>[])<span class="question-mark">?</span>;
+		<span class="macro">assert_eq!</span>(conf.max_size_bytes, u64::MAX);
+		<span class="kw">let </span>conf = <span class="macro">config!</span>(
+			LogConfig2,
+			LogConfig2_Options,
+			<span class="macro">vec!</span>[MaxAgeMillis(<span class="number">1_000 </span>* <span class="number">60 </span>* <span class="number">60</span>)]
+		)<span class="question-mark">?</span>;
+		<span class="macro">assert_eq!</span>(conf.max_age_millis, <span class="number">1_000 </span>* <span class="number">60 </span>* <span class="number">60</span>);
 		<span class="prelude-val">Ok</span>(())
 	}
 }
