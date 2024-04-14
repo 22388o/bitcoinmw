@@ -74,10 +74,19 @@ mod test {
 		let configs = vec![AutoRotate(true), LogFilePath(&path)];
 		let mut log = LogImpl::new(configs)?;
 
+		// set this before init. It is an error.
+		assert!(log
+			.set_config_option(LogConfigOptions::DisplayColors(false))
+			.is_err());
+
 		// debug log level
 		log.set_log_level(LogLevel::Debug);
 		log.init()?; // in logger
 		log.log(LogLevel::Debug, "test10")?; // log a message
+
+		assert!(log
+			.set_config_option(LogConfigOptions::LogFilePath(&path))
+			.is_err());
 
 		// check that display colors is true (default)
 		assert_eq!(log.config.display_colors, true);
