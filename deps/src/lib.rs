@@ -41,6 +41,7 @@ pub use backtrace;
 pub use base64;
 pub use bitvec;
 pub use byteorder;
+pub use calm_io;
 pub use chrono;
 pub use colored;
 pub use convert_case;
