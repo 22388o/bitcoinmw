@@ -313,7 +313,7 @@ impl LogImpl {
 				let mut file = self.file.write()?;
 				match (*file).as_mut() {
 					Some(file) => {
-						let formatted_timestamp = format!("[{}]: ", formatted_timestamp);
+						let formatted_timestamp = format!("[{}]", formatted_timestamp);
 						let formatted_timestamp = formatted_timestamp.as_bytes();
 						file.write(formatted_timestamp)?;
 						let formatted_len: u64 = try_into!(formatted_timestamp.len())?;
@@ -325,23 +325,24 @@ impl LogImpl {
 
 			if show_stdout {
 				if show_colors {
-					print!("[{}]: ", formatted_timestamp.to_string().dimmed());
+					print!("[{}]", formatted_timestamp.to_string().dimmed());
 				} else {
-					print!("[{}]: ", formatted_timestamp);
+					print!("[{}]", formatted_timestamp);
 				}
 			}
 		}
 		// if log level needs to be shown we print/write it here
 		if show_log_level {
+			let tsp = if show_timestamp { " " } else { "" };
 			{
 				let mut file = self.file.write()?;
 				match (*file).as_mut() {
 					Some(file) => {
 						let formatted_level = if level == LogLevel::Info || level == LogLevel::Warn
 						{
-							format!("({})  ", level)
+							format!("{}({}) ", tsp, level)
 						} else {
-							format!("({}) ", level)
+							format!("{}({})", tsp, level,)
 						};
 						let formatted_level = formatted_level.as_bytes();
 						file.write(formatted_level)?;
@@ -357,31 +358,40 @@ impl LogImpl {
 					// specific colors for each level
 					match level {
 						LogLevel::Trace => {
-							print!("({})", format!("{}", level).magenta());
+							print!("{}({})", tsp, format!("{}", level).magenta());
 						}
 						LogLevel::Debug => {
-							print!("({})", format!("{}", level).cyan());
+							print!("{}({})", tsp, format!("{}", level).cyan());
 						}
 						LogLevel::Info => {
-							print!(" ({})", format!("{}", level).green());
+							print!("{}({}) ", tsp, format!("{}", level).green());
 						}
 						LogLevel::Warn => {
-							print!(" ({})", format!("{}", level).yellow());
+							print!("{}({}) ", tsp, format!("{}", level).yellow());
 						}
 						LogLevel::Error => {
-							print!("({})", format!("{}", level).bright_blue());
+							print!("{}({})", tsp, format!("{}", level).bright_blue());
 						}
 						LogLevel::Fatal => {
-							print!("({})", format!("{}", level).red());
+							print!("{}({})", tsp, format!("{}", level).red());
 						}
 					}
 				} else {
 					// without color
-					print!("({}) ", level);
+					if level == LogLevel::Info || level == LogLevel::Warn {
+						print!("{}({}) ", tsp, level);
+					} else {
+						print!("{}({}))", tsp, level);
+					}
 				}
 			}
 		}
 		if show_line_num {
+			let slp = if show_timestamp || show_log_level {
+				" "
+			} else {
+				""
+			};
 			let mut found_logger = false;
 			let mut found_frame = false;
 			let mut logged_from_file = "*********unknown**********".to_string();
@@ -416,7 +426,7 @@ impl LogImpl {
 				let mut file = self.file.write()?;
 				match (*file).as_mut() {
 					Some(file) => {
-						let logged_from_file = format!("[{}]: ", logged_from_file);
+						let logged_from_file = format!("{}[{}]", slp, logged_from_file);
 						let logged_from_file = logged_from_file.as_bytes();
 						file.write(logged_from_file)?;
 						let logged_from_file_len: u64 = try_into!(logged_from_file.len())?;
@@ -429,15 +439,11 @@ impl LogImpl {
 			// if we're showing stdout, do so here
 			if show_stdout {
 				if show_colors {
-					print!(" [{}]", logged_from_file.yellow());
+					print!("{}[{}]", slp, logged_from_file.yellow());
 				} else {
-					print!(" [{}]", logged_from_file);
+					print!("{}[{}]", slp, logged_from_file);
 				}
 			}
-		}
-
-		if show_stdout && logging_type != LoggingType::Plain {
-			print!(": ");
 		}
 
 		// write the line to the file (if it exists)
@@ -445,7 +451,12 @@ impl LogImpl {
 			let mut file = self.file.write()?;
 			match (*file).as_mut() {
 				Some(file) => {
-					let line_bytes = line.as_bytes();
+					let file_line = if logging_type != LoggingType::Plain {
+						format!(": {}", line)
+					} else {
+						line.to_string()
+					};
+					let line_bytes = file_line.as_bytes();
 
 					file.write(line_bytes)?;
 					file.write(NEWLINE)?;
@@ -468,7 +479,11 @@ impl LogImpl {
 
 		// finally print the actual line
 		if show_stdout {
-			println!("{}", line);
+			if logging_type != LoggingType::Plain {
+				println!(": {}", line);
+			} else {
+				println!("{}", line);
+			}
 			if show_bt {
 				let bt = Backtrace::new();
 				let bt_text = format!("{:?}", bt);

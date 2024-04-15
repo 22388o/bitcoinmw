@@ -604,12 +604,31 @@ macro_rules! need_rotate {
 ///
 ///     logger1.set_log_level(LogLevel::Info);
 ///     logger2.set_log_level(LogLevel::Debug);
-///     logger3.set_log_level(LogLevel::Warn);
+///     logger3.set_log_level(LogLevel::Trace);
 ///
-///     logger1.log(LogLevel::Warn, "this is a test")?;
-///     logger2.log(LogLevel::Warn, "this is a test")?;
-///     logger3.log(LogLevel::Warn, "this is a test")?;
+///     logger1.log(LogLevel::Trace, "test")?;
+///     logger2.log(LogLevel::Trace, "test")?;
+///     logger3.log(LogLevel::Trace, "test")?;
 ///
+///     logger1.log(LogLevel::Debug, "test")?;
+///     logger2.log(LogLevel::Debug, "test")?;
+///     logger3.log(LogLevel::Debug, "test")?;
+///
+///     logger1.log(LogLevel::Info, "test")?;
+///     logger2.log(LogLevel::Info, "test")?;
+///     logger3.log(LogLevel::Info, "test")?;
+///
+///     logger1.log(LogLevel::Warn, "test")?;
+///     logger2.log(LogLevel::Warn, "test")?;
+///     logger3.log(LogLevel::Warn, "test")?;
+///
+///     logger1.log(LogLevel::Error, "test")?;
+///     logger2.log(LogLevel::Error, "test")?;
+///     logger3.log(LogLevel::Error, "test")?;
+///
+///     logger1.log(LogLevel::Fatal, "test")?;
+///     logger2.log(LogLevel::Fatal, "test")?;
+///     logger3.log(LogLevel::Fatal, "test")?;
 ///
 ///     Ok(())
 /// }

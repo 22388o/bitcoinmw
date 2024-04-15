@@ -64,7 +64,7 @@ mod test {
 
 	#[test]
 	fn test_log_basic() -> Result<(), Error> {
-		let test_info = test_info!(true)?; // obtain test info struct
+		let test_info = test_info!()?; // obtain test info struct
 		let directory = test_info.directory();
 		let mut buf = PathBuf::new();
 		buf.push(directory);
@@ -919,7 +919,7 @@ mod test {
 
 		logger.log(LogLevel::Debug, "0123456789")?;
 		logger.log_plain(LogLevel::Debug, "0123456789")?;
-		logger.log_all(LogLevel::Debug, "0123456789")?;
+		logger.log_all(LogLevel::Debug, "01234567890123")?;
 		assert!(!logger.need_rotate()?); // file exactly 363, no rotate needed
 		logger.close()?;
 
@@ -951,7 +951,7 @@ mod test {
 
 		logger.log(LogLevel::Debug, "0123456789")?;
 		logger.log_plain(LogLevel::Debug, "0123456789")?;
-		logger.log_all(LogLevel::Debug, "0123456789")?;
+		logger.log_all(LogLevel::Debug, "01234567890123")?;
 
 		assert!(logger.need_rotate()?); // this time we need a rotate
 		logger.close()?;
@@ -981,9 +981,9 @@ mod test {
 
 		logger.log(LogLevel::Debug, "0123456789")?;
 		logger.log_plain(LogLevel::Debug, "0123456789")?;
-		logger.log_all(LogLevel::Debug, "0123456789")?;
+		logger.log_all(LogLevel::Debug, "01234567890123")?;
 
-		assert!(!logger.need_rotate()?); // this time we need a rotate
+		assert!(!logger.need_rotate()?); // this time we don't need a rotate
 		logger.close()?;
 
 		let mut buf = PathBuf::new();
@@ -1011,7 +1011,7 @@ mod test {
 
 		logger.log(LogLevel::Debug, "0123456789")?;
 		logger.log_plain(LogLevel::Debug, "0123456789")?;
-		logger.log_all(LogLevel::Debug, "0123456789")?;
+		logger.log_all(LogLevel::Debug, "01234567890123")?;
 
 		assert!(logger.need_rotate()?); // this time we need a rotate
 		logger.close()?;
@@ -1034,6 +1034,69 @@ mod test {
 			vec![MaxAgeMillis(1_000 * 60 * 60)]
 		)?;
 		assert_eq!(conf.max_age_millis, 1_000 * 60 * 60);
+		Ok(())
+	}
+
+	#[test]
+	fn test_multi_loggers() -> Result<(), Error> {
+		let test_info = test_info!(true)?;
+		let directory = test_info.directory();
+
+		let mut path1 = PathBuf::from(directory);
+		let mut path2 = path1.clone();
+		let mut path3 = path1.clone();
+
+		path1.push("log1.log");
+		path2.push("log2.log");
+		path3.push("log3.log");
+
+		let path1 = path1.display().to_string();
+		let path2 = path2.display().to_string();
+		let path3 = path3.display().to_string();
+
+		let mut logger1 = logger!(
+			LogFilePath(&path1),
+			DisplayColors(true),
+			DisplayLineNum(false),
+			DisplayLogLevel(false),
+			DisplayTimestamp(true),
+			DisplayMillis(false)
+		)?;
+		let mut logger2 = logger!(LogFilePath(&path2), DisplayStdout(false))?;
+		let mut logger3 = logger!(LogFilePath(&path3), DisplayStdout(false))?;
+
+		logger1.init()?;
+		logger2.init()?;
+		logger3.init()?;
+
+		logger1.set_log_level(LogLevel::Info);
+		logger2.set_log_level(LogLevel::Debug);
+		logger3.set_log_level(LogLevel::Warn);
+
+		logger1.log(LogLevel::Trace, "test")?;
+		logger2.log(LogLevel::Trace, "test")?;
+		logger3.log(LogLevel::Trace, "test")?;
+
+		logger1.log(LogLevel::Debug, "test")?;
+		logger2.log(LogLevel::Debug, "test")?;
+		logger3.log(LogLevel::Debug, "test")?;
+
+		logger1.log(LogLevel::Info, "test")?;
+		logger2.log(LogLevel::Info, "test")?;
+		logger3.log(LogLevel::Info, "test")?;
+
+		logger1.log_plain(LogLevel::Warn, "test plain")?;
+		logger2.log_plain(LogLevel::Warn, "test plain")?;
+		logger3.log_plain(LogLevel::Warn, "test plain")?;
+
+		logger1.log(LogLevel::Error, "test")?;
+		logger2.log(LogLevel::Error, "test")?;
+		logger3.log(LogLevel::Error, "test")?;
+
+		logger1.log(LogLevel::Fatal, "test")?;
+		logger2.log(LogLevel::Fatal, "test")?;
+		logger3.log(LogLevel::Fatal, "test")?;
+
 		Ok(())
 	}
 }
