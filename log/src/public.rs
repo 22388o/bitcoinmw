@@ -17,8 +17,29 @@
 
 use bmw_deps::dyn_clone::DynClone;
 use bmw_deps::lazy_static::lazy_static;
+use bmw_derive::{add_doc, document};
 use bmw_err::*;
 use std::sync::{Arc, RwLock};
+
+/// Log2 trait description
+#[document]
+#[add_doc(see: crate::LogLevel)]
+pub trait Log2 {
+	/// Some doc in regular style
+	#[add_doc(input: level - logging level to log at)]
+	#[add_doc(input: level - more about the level here)]
+	#[add_doc(input: line - line to log)]
+	#[add_doc(return: this is a very interesting return)]
+	#[add_doc(error: bmw_err::ErrKind::Log - if the stream closes)]
+	#[add_doc(error: bmw_err::ErrKind::IO - if an i/o error occurs)]
+	#[add_doc(error: more about the i/o error)]
+	#[add_doc(see: crate::Log::log_all)]
+	fn log(&mut self, level: LogLevel, line: &str) -> Result<(), Error>;
+
+	#[add_doc(see: crate::Log::log)]
+	#[add_doc(return: cool bool value returned)]
+	fn ok(&self) -> Result<bool, Error>;
+}
 
 pub use crate::types::LogConfigOptions;
 

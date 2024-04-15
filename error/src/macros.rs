@@ -88,6 +88,7 @@ macro_rules! err {
                         Http403 => impl_err!(Http403, m),
                         Http400 => impl_err!(Http400, m),
                         Rustlet => impl_err!(Rustlet, m),
+                        Parse => impl_err!(Parse, m),
 		}
 	}};
 }
@@ -161,6 +162,7 @@ macro_rules! map_err {
 				Http403 => impl_map_err!(Http403, $m, e),
 				Http400 => impl_map_err!(Http400, $m, e),
 				Rustlet => impl_map_err!(Rustlet, $m, e),
+				Parse => impl_map_err!(Parse, $m, e),
 			}
 		})
 	}};

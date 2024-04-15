@@ -157,11 +157,13 @@
 //!```
 
 mod config;
+mod document;
 mod ser;
 mod types;
 
 extern crate proc_macro;
 use crate::config::do_derive_configurable;
+use crate::document::do_derive_document;
 use crate::ser::do_derive_serialize;
 use proc_macro::TokenStream;
 
@@ -179,4 +181,25 @@ pub fn derive_serialize(strm: TokenStream) -> TokenStream {
 #[cfg(not(tarpaulin_include))]
 pub fn derive_configurable(strm: TokenStream) -> TokenStream {
 	do_derive_configurable(strm)
+}
+
+#[proc_macro_attribute]
+pub fn document(attr: TokenStream, item: TokenStream) -> TokenStream {
+	match do_derive_document(attr, item.clone()) {
+		Ok(stream) => stream,
+		Err(e) => {
+			println!(
+				"WARNING: do_derive_document generated error, cannot produce documentation: {}",
+				e
+			);
+			item
+		}
+	}
+}
+
+#[proc_macro_attribute]
+pub fn add_doc(_attr: TokenStream, item: TokenStream) -> TokenStream {
+	// add doc doesn't actually change anything, it's just a marker used by the document attribute
+	// which modifies the TokenStream. So, we just return the input token stream unchanged.
+	item
 }

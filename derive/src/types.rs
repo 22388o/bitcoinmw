@@ -39,3 +39,10 @@ pub(crate) struct ConfMacroState {
 	pub(crate) string_tuple_configs: Vec<(String, bool, bool)>,
 	pub(crate) options_name: Option<String>,
 }
+
+pub(crate) struct DocMacroState {
+	pub(crate) counter: usize,
+	pub(crate) ret: String,
+	pub(crate) in_hash: bool,
+	pub(crate) in_trait: bool,
+}

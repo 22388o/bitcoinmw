@@ -108,6 +108,9 @@ pub enum ErrorKind {
 	/// Rustlet Error
 	#[fail(display = "rustlet_error: {}", _0)]
 	Rustlet(String),
+	/// Parse Error
+	#[fail(display = "parse_error: {}", _0)]
+	Parse(String),
 }
 
 /// The kinds of errors in this crate. This enum is used to map to error
@@ -168,4 +171,6 @@ pub enum ErrKind {
 	Http400,
 	/// Rustlet error
 	Rustlet,
+	/// Parse error
+	Parse,
 }
