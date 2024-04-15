@@ -33,6 +33,7 @@ use std::fs::{remove_file, rename, File, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
+use std::time::Duration;
 use std::time::Instant;
 
 clone_trait_object!(Log);
@@ -227,7 +228,10 @@ impl LogImpl {
 		let max_size_bytes = self.config.max_size_bytes;
 
 		// if the file is too old or too big we rotate
-		if now.duration_since(self.last_rotation).as_millis() > max_age_millis.into()
+		if now
+			.checked_duration_since(self.last_rotation)
+			.unwrap_or(Duration::new(0, 0))
+			.as_millis() > max_age_millis.into()
 			|| self.cur_size > max_size_bytes
 		{
 			self.rotate()?;
@@ -244,7 +248,7 @@ impl LogImpl {
 	) -> Result<(), Error> {
 		if !self.is_init {
 			let ekind = ErrKind::Log;
-			let text = "log file has not been initalized. Call init() first.";
+			let text = "logger has not been initalized. Call init() first.";
 			return Err(err!(ekind, text));
 		}
 
@@ -708,7 +712,10 @@ impl Log for LogImpl {
 		let max_size_bytes = self.config.max_size_bytes;
 
 		// if the file is either too old or too big we need to rotate
-		if now.duration_since(self.last_rotation).as_millis() > max_age_millis.into()
+		if now
+			.checked_duration_since(self.last_rotation)
+			.unwrap_or(Duration::new(0, 0))
+			.as_millis() > max_age_millis.into()
 			|| self.cur_size > max_size_bytes
 		{
 			Ok(true)
