@@ -1057,8 +1057,8 @@ mod test {
 		let mut logger1 = logger!(
 			LogFilePath(&path1),
 			DisplayColors(true),
-			DisplayLineNum(false),
-			DisplayLogLevel(false),
+			DisplayLineNum(true),
+			DisplayLogLevel(true),
 			DisplayTimestamp(true),
 			DisplayMillis(false)
 		)?;

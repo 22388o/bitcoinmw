@@ -594,9 +594,25 @@ macro_rules! need_rotate {
 ///     let path2 = path2.display().to_string();
 ///     let path3 = path3.display().to_string();
 ///
-///     let mut logger1 = logger!(LogFilePath(&path1))?;
-///     let mut logger2 = logger!(LogFilePath(&path2))?;
-///     let mut logger3 = logger!(LogFilePath(&path3))?;
+///     let mut logger1 = logger!(
+///         LogFilePath(&path1),
+///         DisplayMillis(false),
+///         DisplayTimestamp(true),
+///         DisplayLineNum(true),
+///         DisplayLogLevel(true)
+///     )?;
+///     let mut logger2 = logger!(
+///         LogFilePath(&path2),
+///         DisplayTimestamp(true),
+///         DisplayLineNum(true),
+///         DisplayLogLevel(false)
+///     )?;
+///     let mut logger3 = logger!(
+///         LogFilePath(&path3),
+///         DisplayTimestamp(true),
+///         DisplayLineNum(false),
+///         DisplayLogLevel(true)
+///     )?;
 ///
 ///     logger1.init()?;
 ///     logger2.init()?;
@@ -618,9 +634,9 @@ macro_rules! need_rotate {
 ///     logger2.log(LogLevel::Info, "test")?;
 ///     logger3.log(LogLevel::Info, "test")?;
 ///
-///     logger1.log(LogLevel::Warn, "test")?;
-///     logger2.log(LogLevel::Warn, "test")?;
-///     logger3.log(LogLevel::Warn, "test")?;
+///     logger1.log_plain(LogLevel::Warn, "test")?;
+///     logger2.log_plain(LogLevel::Warn, "test")?;
+///     logger3.log_plain(LogLevel::Warn, "test")?;
 ///
 ///     logger1.log(LogLevel::Error, "test")?;
 ///     logger2.log(LogLevel::Error, "test")?;
@@ -634,6 +650,13 @@ macro_rules! need_rotate {
 /// }
 ///```
 /// # Output of the above example
+/// The output of log1.log may look something like this:
+///```text
+/// [2024-04-14 23:36:28] (INFO)  [..bitcoinmw/log/src/test.rs:1084]: test
+/// test plain
+/// [2024-04-14 23:36:28] (ERROR) [..bitcoinmw/log/src/test.rs:1092]: test
+/// [2024-04-14 23:36:28] (FATAL) [..bitcoinmw/log/src/test.rs:1096]: test
+///```
 #[macro_export]
 macro_rules! logger {
         ($($config:tt)*) => {{
