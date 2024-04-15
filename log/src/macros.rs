@@ -77,13 +77,10 @@ macro_rules! trace {
                 #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Trace;
         };
-        ($line:expr) => {{
+        ($($values:tt)*) => {{
                 use bmw_log::*;
-                GlobalLogFunctions::log(LogLevel::Trace, $line, BMW_GLOBAL_LOG_LEVEL, LoggingType::Standard)
+                GlobalLogFunctions::log(LogLevel::Trace, &format!($($values)*)[..], BMW_GLOBAL_LOG_LEVEL, LoggingType::Standard)
         }};
-        ($line:expr,$($values:tt)*) => {
-                trace!(&format!($line, $($values)*)[..])
-        };
 }
 
 /// The [`crate::trace_plain`] macro is identical to the [`crate::trace`] macro except that just
@@ -151,13 +148,10 @@ macro_rules! trace_plain {
                 #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Trace;
         };
-        ($line:expr) => {{
+        ($($values:tt)*) => {{
                 use bmw_log::*;
-                GlobalLogFunctions::log(LogLevel::Trace, $line, BMW_GLOBAL_LOG_LEVEL, LoggingType::Plain)
+                GlobalLogFunctions::log(LogLevel::Trace, &format!($($values)*)[..], BMW_GLOBAL_LOG_LEVEL, LoggingType::Plain)
         }};
-        ($line:expr,$($values:tt)*) => {
-                trace_plain!(&format!($line, $($values)*)[..])
-        };
 }
 
 /// The [`crate::trace_all`] macro is identical to the [`crate::trace`] macro except that data are
@@ -243,13 +237,10 @@ macro_rules! trace_all {
                  #[doc(hidden)]
                  const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Trace;
         };
-        ($line:expr) => {{
+        ($($values:tt)*) => {{
                 use bmw_log::*;
-                GlobalLogFunctions::log(LogLevel::Trace, $line, BMW_GLOBAL_LOG_LEVEL, LoggingType::All)
+                GlobalLogFunctions::log(LogLevel::Trace, &format!($($values)*)[..], BMW_GLOBAL_LOG_LEVEL, LoggingType::All)
         }};
-        ($line:expr,$($values:tt)*) => {
-                trace_all!(&format!($line, $($values)*)[..])
-        };
 }
 
 #[macro_export]
@@ -258,13 +249,10 @@ macro_rules! debug {
                 #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Debug;
         };
-        ($line:expr) => {{
+        ($($values:tt)*) => {{
                 use bmw_log::*;
-                GlobalLogFunctions::log(LogLevel::Debug, $line, BMW_GLOBAL_LOG_LEVEL, LoggingType::Standard)
+                GlobalLogFunctions::log(LogLevel::Debug, &format!($($values)*)[..], BMW_GLOBAL_LOG_LEVEL, LoggingType::Standard)
         }};
-        ($line:expr,$($values:tt)*) => {
-                debug!(&format!($line, $($values)*)[..])
-        };
 }
 
 #[macro_export]
@@ -273,13 +261,10 @@ macro_rules! debug_plain {
                 #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Debug;
         };
-        ($line:expr) => {{
+        ($($values:tt)*) => {{
                 use bmw_log::*;
-                GlobalLogFunctions::log(LogLevel::Debug, $line, BMW_GLOBAL_LOG_LEVEL, LoggingType::Plain)
+                GlobalLogFunctions::log(LogLevel::Debug, &format!($($values)*)[..], BMW_GLOBAL_LOG_LEVEL, LoggingType::Plain)
         }};
-        ($line:expr,$($values:tt)*) => {
-                debug_plain!(&format!($line, $($values)*)[..])
-        };
 }
 
 #[macro_export]
@@ -288,28 +273,22 @@ macro_rules! debug_all {
                 #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Debug;
         };
-        ($line:expr) => {{
+        ($($values:tt)*) => {{
                 use bmw_log::*;
-                GlobalLogFunctions::log(LogLevel::Debug, $line, BMW_GLOBAL_LOG_LEVEL, LoggingType::All)
+                GlobalLogFunctions::log(LogLevel::Debug, &format!($($values)*)[..], BMW_GLOBAL_LOG_LEVEL, LoggingType::All)
         }};
-        ($line:expr,$($values:tt)*) => {
-                debug_all!(&format!($line, $($values)*)[..])
-        };
 }
 
 #[macro_export]
 macro_rules! info {
-        () => {
-                #[doc(hidden)]
-                const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Info;
-        };
-        ($line:expr) => {{
+	() => {
+		#[doc(hidden)]
+		const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Info;
+	};
+	($($values:tt)*) => {{
                 use bmw_log::*;
-                GlobalLogFunctions::log(LogLevel::Info, $line, BMW_GLOBAL_LOG_LEVEL, LoggingType::Standard)
+                GlobalLogFunctions::log(LogLevel::Info, &format!($($values)*)[..], BMW_GLOBAL_LOG_LEVEL, LoggingType::Standard)
         }};
-        ($line:expr,$($values:tt)*) => {
-                info!(&format!($line, $($values)*)[..])
-        };
 }
 
 #[macro_export]
@@ -318,13 +297,10 @@ macro_rules! info_plain {
                 #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Info;
         };
-        ($line:expr) => {{
+        ($($values:tt)*) => {{
                 use bmw_log::*;
-                GlobalLogFunctions::log(LogLevel::Info, $line, BMW_GLOBAL_LOG_LEVEL, LoggingType::Plain)
+                GlobalLogFunctions::log(LogLevel::Info, &format!($($values)*)[..], BMW_GLOBAL_LOG_LEVEL, LoggingType::Plain)
         }};
-        ($line:expr,$($values:tt)*) => {
-                info_plain!(&format!($line, $($values)*)[..])
-        };
 }
 
 #[macro_export]
@@ -333,13 +309,10 @@ macro_rules! info_all {
                 #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Info;
         };
-        ($line:expr) => {{
+        ($($values:tt)*) => {{
                 use bmw_log::*;
-                GlobalLogFunctions::log(LogLevel::Info, $line, BMW_GLOBAL_LOG_LEVEL, LoggingType::All)
+                GlobalLogFunctions::log(LogLevel::Info, &format!($($values)*)[..], BMW_GLOBAL_LOG_LEVEL, LoggingType::All)
         }};
-        ($line:expr,$($values:tt)*) => {
-                info_all!(&format!($line, $($values)*)[..])
-        };
 }
 
 #[macro_export]
@@ -348,13 +321,10 @@ macro_rules! warn {
                 #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Warn;
         };
-        ($line:expr) => {{
+        ($($values:tt)*) => {{
                 use bmw_log::*;
-                GlobalLogFunctions::log(LogLevel::Warn, $line, BMW_GLOBAL_LOG_LEVEL, LoggingType::Standard)
+                GlobalLogFunctions::log(LogLevel::Warn, &format!($($values)*)[..], BMW_GLOBAL_LOG_LEVEL, LoggingType::Standard)
         }};
-        ($line:expr,$($values:tt)*) => {
-                warn!(&format!($line, $($values)*)[..])
-        };
 }
 
 #[macro_export]
@@ -363,13 +333,10 @@ macro_rules! warn_plain {
                 #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Warn;
         };
-        ($line:expr) => {{
+        ($($values:tt)*) => {{
                 use bmw_log::*;
-                GlobalLogFunctions::log(LogLevel::Warn, $line, BMW_GLOBAL_LOG_LEVEL, LoggingType::Plain)
+                GlobalLogFunctions::log(LogLevel::Warn, &format!($($values)*)[..], BMW_GLOBAL_LOG_LEVEL, LoggingType::Plain)
         }};
-        ($line:expr,$($values:tt)*) => {
-                warn_plain!(&format!($line, $($values)*)[..])
-        };
 }
 
 #[macro_export]
@@ -378,13 +345,10 @@ macro_rules! warn_all {
                 #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Warn;
         };
-        ($line:expr) => {{
+        ($($values:tt)*) => {{
                 use bmw_log::*;
-                GlobalLogFunctions::log(LogLevel::Warn, $line, BMW_GLOBAL_LOG_LEVEL, LoggingType::All)
+                GlobalLogFunctions::log(LogLevel::Warn, &format!($($values)*)[..], BMW_GLOBAL_LOG_LEVEL, LoggingType::All)
         }};
-        ($line:expr,$($values:tt)*) => {
-                warn_all!(&format!($line, $($values)*)[..])
-        };
 }
 
 #[macro_export]
@@ -393,13 +357,10 @@ macro_rules! error {
                 #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Error;
         };
-        ($line:expr) => {{
+        ($($values:tt)*) => {{
                 use bmw_log::*;
-                GlobalLogFunctions::log(LogLevel::Error, $line, BMW_GLOBAL_LOG_LEVEL, LoggingType::Standard)
+                GlobalLogFunctions::log(LogLevel::Error, &format!($($values)*)[..], BMW_GLOBAL_LOG_LEVEL, LoggingType::Standard)
         }};
-        ($line:expr,$($values:tt)*) => {
-                error!(&format!($line, $($values)*)[..])
-        };
 }
 
 #[macro_export]
@@ -408,13 +369,10 @@ macro_rules! error_plain {
                 #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Error;
         };
-        ($line:expr) => {{
+        ($($values:tt)*) => {{
                 use bmw_log::*;
-                GlobalLogFunctions::log(LogLevel::Error, $line, BMW_GLOBAL_LOG_LEVEL, LoggingType::Plain)
+                GlobalLogFunctions::log(LogLevel::Error, &format!($($values)*)[..], BMW_GLOBAL_LOG_LEVEL, LoggingType::Plain)
         }};
-        ($line:expr,$($values:tt)*) => {
-                error_plain!(&format!($line, $($values)*)[..])
-        };
 }
 
 #[macro_export]
@@ -423,13 +381,10 @@ macro_rules! error_all {
                 #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Error;
         };
-        ($line:expr) => {{
+        ($($values:tt)*) => {{
                 use bmw_log::*;
-                GlobalLogFunctions::log(LogLevel::Error, $line, BMW_GLOBAL_LOG_LEVEL, LoggingType::All)
+                GlobalLogFunctions::log(LogLevel::Error, &format!($($values)*)[..], BMW_GLOBAL_LOG_LEVEL, LoggingType::All)
         }};
-        ($line:expr,$($values:tt)*) => {
-                error_all!(&format!($line, $($values)*)[..])
-        };
 }
 
 #[macro_export]
@@ -438,13 +393,10 @@ macro_rules! fatal {
                 #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Fatal;
         };
-        ($line:expr) => {{
+        ($($values:tt)*) => {{
                 use bmw_log::*;
-                GlobalLogFunctions::log(LogLevel::Fatal, $line, BMW_GLOBAL_LOG_LEVEL, LoggingType::Standard)
+                GlobalLogFunctions::log(LogLevel::Fatal, &format!($($values)*)[..], BMW_GLOBAL_LOG_LEVEL, LoggingType::Standard)
         }};
-        ($line:expr,$($values:tt)*) => {
-                fatal!(&format!($line, $($values)*)[..])
-        };
 }
 
 #[macro_export]
@@ -453,13 +405,10 @@ macro_rules! fatal_plain {
                 #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Fatal;
         };
-        ($line:expr) => {{
+        ($($values:tt)*) => {{
                 use bmw_log::*;
-                GlobalLogFunctions::log(LogLevel::Fatal, $line, BMW_GLOBAL_LOG_LEVEL, LoggingType::Plain)
+                GlobalLogFunctions::log(LogLevel::Fatal, &format!($($values)*)[..], BMW_GLOBAL_LOG_LEVEL, LoggingType::Plain)
         }};
-        ($line:expr,$($values:tt)*) => {
-                fatal_plain!(&format!($line, $($values)*)[..])
-        };
 }
 
 #[macro_export]
@@ -468,13 +417,10 @@ macro_rules! fatal_all {
                 #[doc(hidden)]
                 const BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Fatal;
         };
-        ($line:expr) => {{
+        ($($values:tt)*) => {{
                 use bmw_log::*;
-                GlobalLogFunctions::log(LogLevel::Fatal, $line, BMW_GLOBAL_LOG_LEVEL, LoggingType::All)
+                GlobalLogFunctions::log(LogLevel::Fatal, &format!($($values)*)[..], BMW_GLOBAL_LOG_LEVEL, LoggingType::All)
         }};
-        ($line:expr,$($values:tt)*) => {
-                fatal_all!(&format!($line, $($values)*)[..])
-        };
 }
 
 #[macro_export]
@@ -518,41 +464,41 @@ macro_rules! need_rotate {
 /// # Input Parameters
 /// The input parameters to this macro may be any value in the [`crate::LogConfigOptions`]
 /// enumeration. These are:
-/// * MaxSizeBytes(u64) - The maximum size, in bytes, at which this log's log file will be rotated.
+/// * `MaxSizeBytes(u64)` - The maximum size, in bytes, at which this log's log file will be rotated.
 /// The default value is u64::MAX.
-/// * MaxAgeMillis(u64) - The maximum age, in milliseconds, at which this log's log file will be
+/// * `MaxAgeMillis(u64)` - The maximum age, in milliseconds, at which this log's log file will be
 /// rotated. The default value is u64::MAX.
-/// * LineNumDataMaxLen(u64) - The maximum length, in bytes, of the line number data which, if
+/// * `LineNumDataMaxLen(u64)` - The maximum length, in bytes, of the line number data which, if
 /// enabled, is included in the log line. The default value is 30.
-/// * LogFilePath(&str) - The path of log file. If this value is set to "", file logging is
+/// * `LogFilePath(&str)` - The path of log file. If this value is set to "", file logging is
 /// disabled. The default value is "".
-/// * FileHeader(&str) - The header to include at the top of all log files. The default value is
+/// * `FileHeader(&str)` - The header to include at the top of all log files. The default value is
 /// "".
-/// * DisplayColors(bool) - If set to true, colors are displayed to make the log lines easier to
+/// * `DisplayColors(bool)` - If set to true, colors are displayed to make the log lines easier to
 /// read. Not that colors are only enabled on stdout.
-/// * DisplayStdout(bool) - If set to true, data are logged to stdout. The defaule value is true.
-/// * DisplayTimestamp(bool) - If set to tru, timestamps are displayed on each log line. The
+/// * `DisplayStdout(bool)` - If set to true, data are logged to stdout. The defaule value is true.
+/// * `DisplayTimestamp(bool)` - If set to tru, timestamps are displayed on each log line. The
 /// default value is true.
-/// * DisplayLogLevel(bool) - If set to true, log level is displayed on each log line. The default
+/// * `DisplayLogLevel(bool)` - If set to true, log level is displayed on each log line. The default
 /// value is true.
-/// * DisplayLineNum(bool) - If set to true, line number data are displayed on each log line. The
+/// * `DisplayLineNum(bool)` - If set to true, line number data are displayed on each log line. The
 /// default value is true.
-/// * DisplayMillis(bool) - If set to true, millisecond data are displayed on each log line. The
+/// * `DisplayMillis(bool)` - If set to true, millisecond data are displayed on each log line. The
 /// default value is true.
-/// * DisplayBacktrace(bool) - If set to true, a backtrace will be logged when data are logged at
+/// * `DisplayBacktrace(bool)` - If set to true, a backtrace will be logged when data are logged at
 /// the [`crate::LogLevel::Error`] or [`crate::LogLevel::Fatal`] level. The default value is false.
-/// * DeleteRotation(bool) - If set to true, log files are immidately deleted upon log rotation.
+/// * `DeleteRotation(bool)` - If set to true, log files are immidately deleted upon log rotation.
 /// This option is useful for long running tests where logging to disk may result in running out of
 /// disk space. This value _MUST_ be set to false in a production environment. The default value is
 /// false.
-/// * AutoRotate(bool) - If set to true, log files are automatically rotated, but the rotation is
+/// * `AutoRotate(bool)` - If set to true, log files are automatically rotated, but the rotation is
 /// only checked at the time that data are logged. See [`crate::Log::rotate`] for further details.
 /// The default value is false.
-/// * DebugResolveFrameError(bool) - this is an option used in testing. This option _MUST_ be set to
+/// * `DebugResolveFrameError(bool)` - this is an option used in testing. This option _MUST_ be set to
 /// false in a production environment. The default value is false.
-/// * DebugInvalidMetadata(bool) - this is an option used in testing. This option _MUST_ be set to
+/// * `DebugInvalidMetadata(bool)` - this is an option used in testing. This option _MUST_ be set to
 /// false in a production environment. The default value is false.
-/// * DebugLinenoIsNone(bool) - this is an option used in testing. This option _MUST_ be set to
+/// * `DebugLinenoIsNone(bool)` - this is an option used in testing. This option _MUST_ be set to
 /// false in a production environment. The default value is false.
 /// # Return
 /// The macro calls [`crate::LogBuilder::build_log`]. So, the returned value is a `Box<dyn Log +

@@ -18,7 +18,18 @@
 
 /// Build a configuration based on the specified input parameters. Checks for duplicates and
 /// returns and error if any are specified.
-/// # Example
+/// # Input Parameters
+/// * `$configurable` - The name of the [`crate::Configurable`] struct to configure.
+/// * `$enum_name` - The name of the enum that coresponds to this struct.
+/// * `$vec` - A vector of variants from the $enum_name to configure this instance with.
+/// # Return
+/// An instance of the [`crate::Configurable`] struct with the specified values. Anything not
+/// specified will take on the default value.
+/// # Errors
+/// [`bmw_err::ErrKind::Configuration`] - if a duplicate value is specified.
+/// # Also see
+/// [`crate::Configurable`]
+/// # Examples
 ///```
 /// use bmw_err::*;
 /// use bmw_conf::*;

@@ -88,11 +88,10 @@ pub struct LogBuilder {}
 pub trait Log: DynClone {
 	/// Log data to this logger.
 	/// # Input Parameters
-	/// `level` - The [`crate::LogLevel`] to log at. If the level is equal to or above the level
+	/// * `level` - The [`crate::LogLevel`] to log at. If the level is equal to or above the level
 	/// set by [`crate::Log::set_log_level`], the data will be logged. Otherwise, the function
 	/// call will be ignored.
-	///
-	/// `line` - line to log.
+	/// * `line` - line to log.
 	/// # Return
 	/// [`unit`]
 	/// # Errors
@@ -137,11 +136,11 @@ pub trait Log: DynClone {
 	/// The same as [`Log::log`], but this function will always log to standard output even if
 	/// standard output logging is currently disabled by the underlying logger.
 	/// # Input Parameters
-	/// `level` - The [`crate::LogLevel`] to log at. If the level is equal to or above the level
+	/// * `level` - The [`crate::LogLevel`] to log at. If the level is equal to or above the level
 	/// set by [`crate::Log::set_log_level`], the data will be logged. Otherwise, the function
 	/// call will be ignored.
 	///
-	/// `line` - line to log.
+	/// * `line` - line to log.
 	/// # Return
 	/// [`unit`]
 	/// # Errors
@@ -188,11 +187,11 @@ pub trait Log: DynClone {
 	/// The same as [`Log::log`], but Log without any of the header details. No timestamp,
 	/// logging level, or line numbers data are logged.
 	/// # Input Parameters
-	/// `level` - The [`crate::LogLevel`] to log at. If the level is equal to or above the level
+	/// * `level` - The [`crate::LogLevel`] to log at. If the level is equal to or above the level
 	/// set by [`crate::Log::set_log_level`], the data will be logged. Otherwise, the function
 	/// call will be ignored.
 	///
-	/// `line` - line to log.
+	/// * `line` - line to log.
 	/// # Return
 	/// [`unit`]
 	/// # Errors
@@ -284,7 +283,7 @@ pub trait Log: DynClone {
 	/// Sets the log level threshold. Logging only occurs if the logged line is logged at at
 	/// least this level.
 	/// # Input Parameters
-	/// `level` - the threshold level to set for this logger. Any level set during a call to
+	/// * `level` - the threshold level to set for this logger. Any level set during a call to
 	/// [`crate::Log::log`] that is equal to or greater than this level will be logged.
 	/// Anything lower than this level will be ignored.
 	/// # Return
@@ -329,7 +328,7 @@ pub trait Log: DynClone {
 	/// Set the specified LogConfigOption. Attempting to set LogFilePath will result in an error.
 	/// Note that this function must be called after [`crate::Log::init`] has been called.
 	/// # Input ParametersA
-	/// `value` - The [`crate::LogConfigOptions`] to set. After initialization, most of the
+	/// * `value` - The [`crate::LogConfigOptions`] to set. After initialization, most of the
 	/// configuration settings may be changed. The only exception is
 	/// [`crate::LogConfigOptions::LogFilePath`]. Attempting to set this option will result in
 	/// an error.
