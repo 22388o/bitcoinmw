@@ -62,7 +62,14 @@
 //! It's important to note that generics are not currently supported and will result in an error. If you need
 //! generics, currenly you must build your own bmw_ser::Serializable implementation.
 //!
-//! # Config example
+//! # Configurable
+//! The configurable derive macro is used to allow for fast and easy configuration of specified structs.
+//! Configurations can be of the following types: [`u8`], [`u16`], [`u32`], [`u64`], [`u128`],
+//! [`usize`], [`bool`], [`std::string::String`], `(String, String)`. [`std::vec::Vec`] of any of
+//! these types are also configurable. See the detailed example below for further details on how to
+//! use this derive macro.
+//!
+//! # Configurable example
 //!```
 //! use bmw_derive::Configurable; // derive proc-macro
 //! use bmw_conf::{Configurable, config}; // Configurable trait and the config macro

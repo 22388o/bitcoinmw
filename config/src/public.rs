@@ -18,20 +18,32 @@
 
 use std::collections::HashSet;
 
-/// The configurable trait, when implemented allows structs to be configured.
-/// Currently, u8, u16, u32, u64, u128, usize, string and a string tuple (String, String) are
-/// supported. Also Vec of any of these types are supported. This should generally be used with the
-/// proc-macro Configurable, but that is done at a higher level crate so see it's documentation
+/// The [`crate::Configurable`] trait, when implemented, allows structs to be configured.
+/// Currently, [`u8`], [`u16`], [`u32`], [`u64`], [`u128`], [`usize`], [`std::string::String`] and a string tuple `(String, String)` are
+/// supported. Also, a [`std::vec::Vec`] of any of these types are supported. This should generally be used with the
+/// proc-macro Configurable, but that is done at a higher level crate so see its documentation
 /// there in the `derive` crate.
 pub trait Configurable {
+	/// sets the configuration with the specified `name` to the specified [`prim@u8`] value
 	fn set_u8(&mut self, name: &str, value: u8);
+	/// sets the configuration with the specified `name` to the specified [`prim@u16`] value
 	fn set_u16(&mut self, name: &str, value: u16);
+	/// sets the configuration with the specified `name` to the specified [`prim@u32`] value
 	fn set_u32(&mut self, name: &str, value: u32);
+	/// sets the configuration with the specified `name` to the specified [`prim@u64`] value
 	fn set_u64(&mut self, name: &str, value: u64);
+	/// sets the configuration with the specified `name` to the specified [`prim@u128`] value
 	fn set_u128(&mut self, name: &str, value: u128);
+	/// sets the configuration with the specified `name` to the specified [`prim@usize`] value
 	fn set_usize(&mut self, name: &str, value: usize);
+	/// sets the configuration with the specified `name` to the specified [`std::string::String`] value
 	fn set_string(&mut self, name: &str, value: String);
+	/// sets the configuration with the specified `name` to the specified [`prim@bool`] value
 	fn set_bool(&mut self, name: &str, value: bool);
+	/// sets the configuration with the specified `name` to the specified `(String, String)` value
 	fn set_string_tuple(&mut self, name: &str, value: (String, String));
+	/// returns a [`std::collections::HashSet`] with the configurations that allow duplicates.
+	/// This is used by the [`crate::config`] macro when [`std::vec::Vec`] configuration
+	/// options are used.
 	fn allow_dupes(&self) -> HashSet<String>;
 }

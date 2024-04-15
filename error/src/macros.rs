@@ -18,19 +18,28 @@
 
 /// Build the specified [`crate::ErrorKind`] and convert it into an [`crate::Error`]. The desired
 /// [`crate::ErrorKind`] is specified using the [`crate::ErrKind`] name enum.
+/// # Input Parameters
+/// * `$kind` - The [`crate::ErrKind`] of this error.
+/// * `$msg` - The message to display with this error.
+/// * `$($param)*` - The formatting parameters as in with [`std::format`].
+/// # Return
+/// [`crate::Error`] of the coresponding [`crate::ErrorKind`] and message.
+/// # Also See
+/// [`crate::Error`]
 ///
-/// Example:
+/// [`crate::map_err`]
+/// # Examples
 ///
 ///```
 /// use bmw_err::{Error, ErrorKind, ErrKind, err};
 ///
 /// fn main() -> Result<(), Error> {
-///     show_err_kind(false)?;
+///     show_err_kind(false, "something")?;
 ///     Ok(())
 /// }
 ///
-/// fn show_err_kind(do_error: bool) -> Result<(), Error> {
-///     let e = err!(ErrKind::Configuration, "invalid parameter name");
+/// fn show_err_kind(do_error: bool, name: &str) -> Result<(), Error> {
+///     let e = err!(ErrKind::Configuration, "invalid parameter name: {}", name);
 ///
 ///     if do_error {
 ///         return Err(e);
@@ -47,46 +56,51 @@ macro_rules! err {
                 err!($kind, msg)
         }};
 	($kind:expr, $m:expr) => {{
+                let m = $m;
                 #[allow(unused_imports)]
                 use bmw_err::{ErrKind, ErrorKind, Error, impl_err};
                 use bmw_err::ErrKind::*;
 		match $kind {
-                        IO => impl_err!(IO, $m),
-                        Log=> impl_err!(Log, $m),
-                        Utf8 => impl_err!(Utf8, $m),
-                        ArrayIndexOutOfBounds => impl_err!(ArrayIndexOutOfBounds, $m),
-                        Configuration => impl_err!(Configuration, $m),
-                        Poison => impl_err!(Poison, $m),
-                        CorruptedData => impl_err!(CorruptedData, $m),
-                        Timeout => impl_err!(Timeout, $m),
-                        CapacityExceeded => impl_err!(CapacityExceeded, $m),
-                        UnexpectedEof=> impl_err!(UnexpectedEof, $m),
-                        IllegalArgument => impl_err!(IllegalArgument, $m),
-                        Misc => impl_err!(Misc, $m),
-                        IllegalState => impl_err!(IllegalState, $m),
-                        Overflow => impl_err!(Overflow, $m),
-                        Test => impl_err!(Test, $m),
-                        ThreadPanic => impl_err!(ThreadPanic, $m),
-                        Alloc => impl_err!(Alloc, $m),
-                        OperationNotSupported => impl_err!(OperationNotSupported, $m),
-                        SystemTime => impl_err!(SystemTime, $m),
-                        Errno => impl_err!(Errno, $m),
-                        Rustls => impl_err!(Rustls, $m),
-                        Crypt => impl_err!(Crypt, $m),
-                        Http => impl_err!(Http, $m),
-                        Http404 => impl_err!(Http404, $m),
-                        Http403 => impl_err!(Http403, $m),
-                        Http400 => impl_err!(Http400, $m),
-                        Rustlet => impl_err!(Rustlet, $m),
+                        IO => impl_err!(IO, m),
+                        Log=> impl_err!(Log, m),
+                        Utf8 => impl_err!(Utf8, m),
+                        ArrayIndexOutOfBounds => impl_err!(ArrayIndexOutOfBounds, m),
+                        Configuration => impl_err!(Configuration, m),
+                        Poison => impl_err!(Poison, m),
+                        CorruptedData => impl_err!(CorruptedData, m),
+                        Timeout => impl_err!(Timeout, m),
+                        CapacityExceeded => impl_err!(CapacityExceeded, m),
+                        UnexpectedEof=> impl_err!(UnexpectedEof, m),
+                        IllegalArgument => impl_err!(IllegalArgument, m),
+                        Misc => impl_err!(Misc, m),
+                        IllegalState => impl_err!(IllegalState, m),
+                        Overflow => impl_err!(Overflow, m),
+                        Test => impl_err!(Test, m),
+                        ThreadPanic => impl_err!(ThreadPanic, m),
+                        Alloc => impl_err!(Alloc, m),
+                        OperationNotSupported => impl_err!(OperationNotSupported, m),
+                        SystemTime => impl_err!(SystemTime, m),
+                        Errno => impl_err!(Errno, m),
+                        Rustls => impl_err!(Rustls, m),
+                        Crypt => impl_err!(Crypt, m),
+                        Http => impl_err!(Http, m),
+                        Http404 => impl_err!(Http404, m),
+                        Http403 => impl_err!(Http403, m),
+                        Http400 => impl_err!(Http400, m),
+                        Rustlet => impl_err!(Rustlet, m),
 		}
 	}};
 }
 
 /// Map the specified error into the [`crate::ErrKind`] enum name from this crate.
 /// Optionally specify an additional message to be included in the error.
-///
-/// Example:
-///
+/// # Input Parameters
+/// * `$in_err` - The error that we are mapping.
+/// * `$kind` - The [`crate::ErrKind`] to map this error to.
+/// * `$msg` - The message to display with this error.
+/// # Return
+/// [`crate::Error`] with the specified $kind and $msg.
+/// # Examples
 ///```
 /// use bmw_err::{Error, ErrorKind, ErrKind, map_err};
 /// use std::fs::File;
@@ -101,7 +115,7 @@ macro_rules! err {
 ///     let file = map_err!(File::open("/path/to/something"), ErrKind::IO, "file open failed")?;
 ///     println!("file_type={:?}", file.metadata()?.file_type());
 ///
-///     let mut x = map_err!(File::open("/invalid/log/path.log"), ErrKind::Log)?;
+///     let mut x = map_err!(File::open("/invalid/log/path.log"), ErrKind::Log, "file open error")?;
 ///     x.write(b"test")?;
 ///
 ///     Ok(())
