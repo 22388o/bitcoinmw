@@ -21,50 +21,6 @@ use bmw_derive::{add_doc, document};
 use bmw_err::*;
 use std::sync::{Arc, RwLock};
 
-/// Log2 trait description
-/// another line of description
-/// yet another
-///
-#[document]
-#[add_doc(see: "crate::LogLevel")]
-pub trait Log2 {
-	/// Some doc in regular style
-	/// more regular style doc
-	/// even more here!
-	///
-	/// Ok 123
-	#[add_doc(doc_point)]
-	/// # more stuff
-	/// hmmm
-	///
-	/// # test
-	///```
-	/// use bmw_err::*;
-	///
-	/// fn main() -> Result<(), Error> {
-	///     println!("test");
-	///     Ok(())
-	/// }
-	///```
-	#[add_doc(input: level - "logging level to log( at")]
-	#[add_doc(input: level - "more about the level here   ok" )    ]
-	#[add_doc(input: line - "line to log")]
-	#[add_doc(error: "bmw_err::ErrKind::Log" - "if the stream closes")]
-	#[add_doc(error: "bmw_err::ErrKind::IO" - "if an i/o error occurs ")]
-	#[add_doc(error: "bmw_err::ErrKind::Configuration" )]
-	#[add_doc(see: "crate::Log::log_all")]
-	#[add_doc(see: "crate::Log::log_plain")]
-	fn log(&mut self, level: LogLevel, line: &str) -> Result<(), Error>;
-
-	#[add_doc(see: "crate::Log::log")]
-	#[add_doc(return: "cool value returned")]
-	#[add_doc(return: "more data to doc")]
-	fn ok(&self) -> Result<bool, Error>;
-
-	#[add_doc(input: name - "various options for the name")]
-	fn test(&self, name: &mut usize, x: bool) -> Box<dyn Log + Send + Sync>;
-}
-
 pub use crate::types::LogConfigOptions;
 
 /// Standard 6 log levels.
