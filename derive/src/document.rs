@@ -72,6 +72,7 @@ impl MacroState {
 			expect_doc_line: false,
 			expect_name: false,
 			name: "".to_string(),
+			in_macro_rules: false,
 		}
 	}
 }
@@ -125,6 +126,9 @@ fn process_punct(punct: Punct, state: &mut MacroState) -> Result<(), Error> {
 	if punct == '#' {
 		debug!("setting in hash = true")?;
 		state.in_hash = true;
+	} else if punct == '!' {
+		// handle the macro_rules! case
+		state.ret = format!("{}{}", state.ret, punct.to_string(),);
 	} else {
 		state.ret = format!("{}\n{}", state.ret, punct.to_string(),);
 	}
@@ -141,9 +145,13 @@ fn process_literal(literal: Literal, state: &mut MacroState) -> Result<(), Error
 
 fn process_group(group: Group, state: &mut MacroState) -> Result<(), Error> {
 	let is_trait = state.in_trait;
-	if is_trait {
+	let is_macro_rules = state.in_macro_rules;
+
+	if is_trait || is_macro_rules {
 		state.ret = format!("{}{}", state.ret, "\n{");
 	}
+
+	state.in_macro_rules = false;
 	state.in_trait = false;
 	debug!("begin group {}", state.counter)?;
 	for item in group.stream() {
@@ -152,7 +160,7 @@ fn process_group(group: Group, state: &mut MacroState) -> Result<(), Error> {
 
 	debug!("==============================end group {}", state.counter)?;
 
-	if is_trait {
+	if is_trait || is_macro_rules {
 		state.ret = format!("{}{}", state.ret, "\n}");
 	}
 	Ok(())
@@ -236,13 +244,16 @@ fn process_group_item(item: TokenTree, state: &mut MacroState) -> Result<(), Err
 				let value =
 					map_err!(litrs::StringLit::parse(v.clone()), ErrKind::Parse)?.to_string();
 				process_doc(value, state)?;
+			} else if item_str == "macro_export" {
+				mark_doc(state)?;
+				state.ret = format!("{}\n#[macro_export]", state.ret);
 			}
 		} else if item_str == "add_doc" {
 			state.expect_add_doc = true;
 		}
 	} else {
 		debug!("out of hash counter = {}", state.counter)?;
-		if item_str == "-" {
+		if item_str == "-" || item_str == "=" {
 			// special case handling for ->
 			state.ret = format!("{}{}", state.ret, item);
 			state.last_dash = true;
@@ -535,13 +546,31 @@ fn process_add_doc(line: String, state: &mut MacroState) -> Result<(), Error> {
 
 	if elems[0] == "input" {
 		let name = elems[2].clone();
-		if elems.len() != 5 {
+		if elems.len() < 5 {
 			return Err(err!(
 				ErrKind::Parse,
 				"Illegal error line (inputs must have 5 tokens): '{}'",
 				line
 			));
 		}
+
+		let type_str = if elems.len() >= 7 {
+			// the type is specified (i.e. for macros)
+			let value =
+				map_err!(litrs::StringLit::parse(elems[6].clone()), ErrKind::Parse)?.to_string();
+			if value.len() < 3 {
+				return Err(err!(
+					ErrKind::Parse,
+					"Illegal error line (length of string must be 3 or greater): '{}'",
+					line
+				));
+			}
+			let start = 1;
+			let end = value.len() - 1;
+			value.substring(start, end).to_string()
+		} else {
+			"".to_string()
+		};
 		let value =
 			map_err!(litrs::StringLit::parse(elems[4].clone()), ErrKind::Parse)?.to_string();
 		if value.len() < 3 {
@@ -569,7 +598,7 @@ fn process_add_doc(line: String, state: &mut MacroState) -> Result<(), Error> {
 				name.clone(),
 				Input {
 					text: value.to_string(),
-					type_str: "".to_string(),
+					type_str,
 					is_mut: false,
 					is_ref: false,
 					seqno: 0,
@@ -609,6 +638,16 @@ fn process_add_doc(line: String, state: &mut MacroState) -> Result<(), Error> {
 		if start >= end {
 			return Err(err!(ErrKind::Parse, "Illegal return line: '{}'", line));
 		}
+		if elems.len() >= 5 {
+			let return_type_str =
+				map_err!(litrs::StringLit::parse(elems[4].clone()), ErrKind::Parse)?.to_string();
+			let start = 1;
+			let end = return_type_str.len().saturating_sub(1);
+			if start >= end {
+				return Err(err!(ErrKind::Parse, "Illegal return line: '{}'", line));
+			}
+			state.docs.return_type_str = return_type_str.substring(start, end).to_string();
+		}
 		state.docs.return_str = format!(
 			"{}{} ",
 			state.docs.return_str,
@@ -635,7 +674,7 @@ fn process_add_doc(line: String, state: &mut MacroState) -> Result<(), Error> {
 }
 
 fn process_ident(ident: Ident, state: &mut MacroState) -> Result<(), Error> {
-	debug!("ident[{}='{}'", state.counter, ident)?;
+	debug!("ident[{}]='{}'", state.counter, ident)?;
 	let ident_str = ident.to_string();
 
 	if ident_str == "pub" {
@@ -644,7 +683,13 @@ fn process_ident(ident: Ident, state: &mut MacroState) -> Result<(), Error> {
 		debug!("--------------doc point opportunity-----------------")?;
 	}
 
-	state.ret = format!("{}\n{} ", state.ret, ident);
+	if ident_str == "macro_rules" {
+		// special handling for macro_rules
+		state.ret = format!("{}\n{}", state.ret, ident);
+		state.in_macro_rules = true;
+	} else {
+		state.ret = format!("{}\n{} ", state.ret, ident);
+	}
 	if ident_str == "trait" {
 		state.in_trait = true;
 		state.expect_name = true;

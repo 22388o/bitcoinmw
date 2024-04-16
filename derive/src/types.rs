@@ -57,6 +57,7 @@ pub(crate) struct DocMacroState {
 	pub(crate) expect_doc_equal: bool,
 	pub(crate) expect_doc_line: bool,
 	pub(crate) expect_name: bool,
+	pub(crate) in_macro_rules: bool,
 	pub(crate) name: String,
 }
 

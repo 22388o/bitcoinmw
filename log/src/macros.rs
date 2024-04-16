@@ -15,6 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bmw_derive::*;
+
 /// The [`crate::trace`] macro is used to set the global logging level at the current scope to the
 /// [`crate::LogLevel::Trace`] level _or_ to log at the [`crate::LogLevel::Trace`] level depending on
 /// which arguments are passed to the macro. If no arguments are supplied, it is the equivalent to
@@ -433,6 +435,16 @@ macro_rules! log_init {
         }};
 }
 
+#[document]
+/// The [`crate::set_log_option`] macro calls the [`crate::Log::set_config_option`] function on the
+/// global logger.
+#[add_doc(input: option - "The LogConfigOptions to set. After initialization, most of the", " crate::LogConfigOptions ")]
+#[add_doc(input: option - "configuration settings may be changed. The only exception is")]
+#[add_doc(input: option - "[`crate::LogConfigOptions::LogFilePath`]. Attempting to set this option will result in an error")]
+#[add_doc(error: "bmw_err::ErrKind::Log" - "if the log is not initialized.")]
+#[add_doc(error: "bmw_err::ErrKind::Log" - "if `option` is a [`crate::LogConfigOptions::LogFilePath`].")]
+#[add_doc(see: "crate::logger")]
+#[add_doc(see: "crate::LogConfigOptions")]
 #[macro_export]
 macro_rules! set_log_option {
 	($option:expr) => {{
@@ -450,6 +462,22 @@ macro_rules! log_rotate {
 	}};
 }
 
+#[document]
+/// The [`crate::need_rotate`] macro calls the [`crate::Log::need_rotate`] function on the
+/// underlying global logger and returns the [`bool`] value returned by that function.
+#[add_doc(error: "bmw_err::ErrKind::Configuration" - "test")]
+#[add_doc(return: "[`true`] if the global logger needs to be rotated. Otherwise, returns [`false`].", " bool ")]
+#[add_doc(see: "crate::log_rotate")]
+#[add_doc(see: "crate::logger")]
+#[add_doc(doc_point)]
+/// # Examples
+///```
+/// use bmw_err::*;
+///
+/// fn main() -> Result<(), Error> {
+///     Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! need_rotate {
 	() => {{
@@ -477,7 +505,7 @@ macro_rules! need_rotate {
 /// * `DisplayColors(bool)` - If set to true, colors are displayed to make the log lines easier to
 /// read. Not that colors are only enabled on stdout.
 /// * `DisplayStdout(bool)` - If set to true, data are logged to stdout. The defaule value is true.
-/// * `DisplayTimestamp(bool)` - If set to tru, timestamps are displayed on each log line. The
+/// * `DisplayTimestamp(bool)` - If set to true, timestamps are displayed on each log line. The
 /// default value is true.
 /// * `DisplayLogLevel(bool)` - If set to true, log level is displayed on each log line. The default
 /// value is true.
