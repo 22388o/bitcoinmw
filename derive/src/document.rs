@@ -329,6 +329,7 @@ fn print_doc(state: &mut MacroState) -> Result<(), Error> {
 			state.ret.substring(state.doc_point, state.ret.len())
 		);
 		state.docs.return_str = "".to_string();
+		state.docs.return_type_str = "".to_string();
 	}
 	if state.docs.input_hash.len() > 0 {
 		let mut input_parameter_str = "".to_string();
@@ -486,6 +487,7 @@ fn add_name_value(
 			input.type_str = value.clone();
 			input.is_ref = is_ref;
 			input.is_mut = is_mut;
+			input.seqno = seqno;
 		}
 		None => {
 			found = false;
@@ -652,4 +654,34 @@ fn process_ident(ident: Ident, state: &mut MacroState) -> Result<(), Error> {
 	}
 	state.counter += 1;
 	Ok(())
+}
+
+impl PartialEq for Input {
+	fn eq(&self, cmp: &Input) -> bool {
+		cmp.seqno == self.seqno
+	}
+}
+
+impl PartialOrd for Input {
+	fn partial_cmp(&self, cmp: &Input) -> Option<std::cmp::Ordering> {
+		if self.seqno < cmp.seqno {
+			Some(std::cmp::Ordering::Less)
+		} else if self.seqno > cmp.seqno {
+			Some(std::cmp::Ordering::Greater)
+		} else {
+			Some(std::cmp::Ordering::Equal)
+		}
+	}
+}
+
+impl Ord for Input {
+	fn cmp(&self, cmp: &Self) -> std::cmp::Ordering {
+		if self.seqno < cmp.seqno {
+			std::cmp::Ordering::Less
+		} else if self.seqno > cmp.seqno {
+			std::cmp::Ordering::Greater
+		} else {
+			std::cmp::Ordering::Equal
+		}
+	}
 }

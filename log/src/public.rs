@@ -175,23 +175,15 @@ pub trait Log: DynClone {
 	fn log(&mut self, level: LogLevel, line: &str) -> Result<(), Error>;
 	/// The same as [`Log::log`], but this function will always log to standard output even if
 	/// standard output logging is currently disabled by the underlying logger.
-	///
-	/// # Input Parameters
-	/// * `level` - The [`crate::LogLevel`] to log at. If the level is equal to or above the level
-	/// set by [`crate::Log::set_log_level`], the data will be logged. Otherwise, the function
-	/// call will be ignored.
-	///
-	/// * `line` - line to log.
-	/// # Return
-	/// [`unit`]
-	/// # Errors
-	/// [`bmw_err::ErrKind::Log`] - if the logger has not been initialized.
-	///
-	/// [`bmw_err::ErrKind::IO`] - if an i/o error occurs.
-	/// # Also see
-	/// [`crate::Log::log`]
-	///
-	/// [`crate::Log::log_plain`]
+	#[add_doc(input: level - "The level to log at. If the level is equal to or above the level")]
+	#[add_doc(input: level - "set by [`Log::set_log_level`], the data will be logged. Otherwise, the function")]
+	#[add_doc(input: level - "call will be ignored.")]
+	#[add_doc(input: line - "line to log.")]
+	#[add_doc(error: "bmw_err::ErrKind::Log" - "if the logger has not been initialized.")]
+	#[add_doc(error: "bmw_err::ErrKind::IO" - "if an i/o error occurs.")]
+	#[add_doc(see: "crate::Log::log")]
+	#[add_doc(see: "crate::Log::log_plain")]
+	#[add_doc(doc_point)]
 	/// # Examples
 	///```
 	/// use bmw_err::*;
@@ -227,22 +219,15 @@ pub trait Log: DynClone {
 	fn log_all(&mut self, level: LogLevel, line: &str) -> Result<(), Error>;
 	/// The same as [`Log::log`], but Log without any of the header details. No timestamp,
 	/// logging level, or line numbers data are logged.
-	/// # Input Parameters
-	/// * `level` - The [`crate::LogLevel`] to log at. If the level is equal to or above the level
-	/// set by [`crate::Log::set_log_level`], the data will be logged. Otherwise, the function
-	/// call will be ignored.
-	///
-	/// * `line` - line to log.
-	/// # Return
-	/// [`unit`]
-	/// # Errors
-	/// [`bmw_err::ErrKind::Log`] - if the logger has not been initialized.
-	///
-	/// [`bmw_err::ErrKind::IO`] - if an i/o error occurs.
-	/// # Also see
-	/// [`crate::Log::log`]
-	///
-	/// [`crate::Log::log_all`]
+	#[add_doc(input: level - "The level to log at. If the level is equal to or above the level")]
+	#[add_doc(input: level - "set by [`Log::set_log_level`], the data will be logged. Otherwise, the function")]
+	#[add_doc(input: level - "call will be ignored.")]
+	#[add_doc(input: line - "line to log.")]
+	#[add_doc(error: "bmw_err::ErrKind::Log" - "if the logger has not been initialized.")]
+	#[add_doc(error: "bmw_err::ErrKind::IO" - "if an i/o error occurs.")]
+	#[add_doc(see: "crate::Log::log")]
+	#[add_doc(see: "crate::Log::log_all")]
+	#[add_doc(doc_point)]
 	/// # Examples
 	///```
 	/// use bmw_err::*;
@@ -297,92 +282,48 @@ pub trait Log: DynClone {
 	/// If auto rotation is enabled, then this function does not need to be called, however it
 	/// still may be called manually. Note that auto-rotation only occurs when the logger is
 	/// called so it might take some time to happen unless called manually.
-	/// # Input Parameters
-	/// n/a
-	/// # Return
-	/// [`unit`]
-	/// # Errors
-	/// [`bmw_err::ErrKind::Log`] - if the log is not initialized.
-	///
-	/// [`bmw_err::ErrKind::Log`] - if the log is not configured to log to a file.
-	///
-	/// [`bmw_err::ErrKind::IO`] - if an i/o error occurs while rotating the log file.
-	/// # Also see
-	/// [`crate::Log::need_rotate`]
+	#[add_doc(error: "bmw_err::ErrKind::Log" - "if the log is not initialized.")]
+	#[add_doc(error: "bmw_err::ErrKind::Log" - "if the log is not configured to log to a file..")]
+	#[add_doc(error: "bmw_err::ErrKind::IO" - "if an i/o error occurs while rotating the log file.")]
+	#[add_doc(see: "crate::Log::need_rotate")]
 	fn rotate(&mut self) -> Result<(), Error>;
 	/// This function checks if a log rotation is needed. It returns true if it is needed and
 	/// false otherwise.
-	/// # Input Parameters
-	/// n/a
-	/// # Return
-	/// [`true`] if a log rotation is needed. Otherwise [`false`].
-	/// # Errors
-	/// [`bmw_err::ErrKind::Log`] - if the log is not initialized.
-	/// # Also see
-	/// [`crate::Log::rotate`]
+	#[add_doc(return: "[`prim@true`] if a log rotation is needed. Otherwise return [`prim@false`].")]
+	#[add_doc(error: "bmw_err::ErrKind::Log" - "if the log is not initialized.")]
+	#[add_doc(see: "crate::Log::rotate")]
 	fn need_rotate(&self) -> Result<bool, Error>;
 	/// Sets the log level threshold. Logging only occurs if the logged line is logged at at
 	/// least this level.
-	/// # Input Parameters
-	/// * `level` - the threshold level to set for this logger. Any level set during a call to
-	/// [`crate::Log::log`] that is equal to or greater than this level will be logged.
-	/// Anything lower than this level will be ignored.
-	/// # Return
-	/// n/a
-	/// # Errors
-	/// n/a
-	/// # Also see
-	/// [`crate::Log::log`]
-	///
-	/// [`crate::Log::log_all`]
-	///
-	/// [`crate::Log::log_plain`]
+	#[add_doc(input: level - "the threshold level to set for this logger. Any level set during a call to")]
+	#[add_doc(input: level - "[`crate::Log::log`] that is equal to or greater than this level will be logged.")]
+	#[add_doc(input: level - "Anything lower than this level will be ignored.")]
+	#[add_doc(see: "crate::Log::log")]
+	#[add_doc(see: "crate::Log::log_all")]
+	#[add_doc(see: "crate::Log::log_plain")]
 	fn set_log_level(&mut self, level: LogLevel);
 	/// Initialize the log. The function does any needed i/o operations to secure the file
 	/// handle. It may only be called once and must be called before any logging or rotations
 	/// occur.
-	/// # Input Parameters
-	/// n/a
-	/// # Return
-	/// [`unit`]
-	/// # Errors
-	/// [`bmw_err::ErrKind::Log`] - if [`crate::Log::init`] has already been called.
-	///
-	/// [`bmw_err::ErrKind::IO`] - if an i/o error occurs.
-	/// # Also see
-	/// [`crate::logger`]
-	///
-	/// [`crate::log_init`]
+	#[add_doc(error: "bmw_err::ErrKind::Log" - "if [`Log::init`] has already been called.")]
+	#[add_doc(error: "bmw_err::ErrKind::IO" - "if an i/o error occurs.")]
+	#[add_doc(see: "crate::logger")]
+	#[add_doc(see: "crate::log_init")]
 	fn init(&mut self) -> Result<(), Error>;
 	/// Close the log file.
-	/// # Input Parameters
-	/// n/a
-	/// # Return
-	/// [`unit`]
-	/// # Errors
-	/// [`bmw_err::ErrKind::Log`] - if [`crate::Log::init`] has not been called.
-	///
-	/// [`bmw_err::ErrKind::IO`] - if an i/o error occurs.
-	/// # Also see
-	/// [`crate::Log::init`]
+	#[add_doc(error: "bmw_err::ErrKind::Log" - "if the log is not initialized.")]
+	#[add_doc(error: "bmw_err::ErrKind::IO" - "if an i/o error occurs.")]
+	#[add_doc(see: "crate::Log::init")]
 	fn close(&mut self) -> Result<(), Error>;
 	/// Set the specified LogConfigOption. Attempting to set LogFilePath will result in an error.
 	/// Note that this function must be called after [`crate::Log::init`] has been called.
-	/// # Input ParametersA
-	/// * `value` - The [`crate::LogConfigOptions`] to set. After initialization, most of the
-	/// configuration settings may be changed. The only exception is
-	/// [`crate::LogConfigOptions::LogFilePath`]. Attempting to set this option will result in
-	/// an error.
-	/// # Return
-	/// [`unit`]
-	/// # Errors
-	/// [`bmw_err::ErrKind::Log`] - if value is a [`crate::LogConfigOptions::LogFilePath`].
-	///
-	/// [`bmw_err::ErrKind::Log`] - if [`crate::Log::init`] has not been called.
-	/// # Also see
-	/// [`crate::logger`]
-	///
-	/// [`crate::LogConfigOptions`]
+	#[add_doc(input: value - "The [`LogConfigOptions`] to set. After initialization, most of the")]
+	#[add_doc(input: value - "configuration settings may be changed. The only exception is")]
+	#[add_doc(input: value - "[`LogConfigOptions::LogFilePath`]. Attempting to set this option will result in an error")]
+	#[add_doc(error: "bmw_err::ErrKind::Log" - "if the log is not initialized.")]
+	#[add_doc(error: "bmw_err::ErrKind::Log" - "if `value` is a [`LogConfigOptions::LogFilePath`].")]
+	#[add_doc(see: "crate::logger")]
+	#[add_doc(see: "LogConfigOptions")]
 	fn set_config_option(&mut self, value: LogConfigOptions) -> Result<(), Error>;
 }
 
