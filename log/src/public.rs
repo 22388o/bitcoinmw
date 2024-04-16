@@ -41,6 +41,7 @@ pub enum LogLevel {
 	Fatal,
 }
 
+#[doc(hidden)]
 /// Builder struct used to build [`crate::Log`] implementations.
 pub struct LogBuilder {}
 

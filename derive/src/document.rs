@@ -288,6 +288,7 @@ fn process_doc(mut value: String, state: &mut MacroState) -> Result<(), Error> {
 	}
 	debug!("value='{}'", value)?;
 	let value = value.replace("\\\"", "\"");
+	let value = value.replace("\\\'", "\'");
 	state.ret = format!("{}\n///{}", state.ret, value);
 	Ok(())
 }

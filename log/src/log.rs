@@ -99,6 +99,11 @@ impl GlobalLogFunctions {
 
 	pub fn init(values: Vec<LogConfigOptions>) -> Result<(), Error> {
 		let mut log = BMW_GLOBAL_LOG.write()?;
+		if (*log).is_some() {
+			let text = "global logger has already been initialized";
+			let err = err!(ErrKind::Log, text);
+			return Err(err);
+		}
 		let mut logger = LogBuilder::build_log(values)?;
 		logger.set_log_level(LogLevel::Trace);
 		logger.init()?;
