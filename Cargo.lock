@@ -128,7 +128,6 @@ dependencies = [
  "base64",
  "bitvec",
  "byteorder",
- "calm_io",
  "chrono",
  "colored",
  "convert_case",
@@ -145,6 +144,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "libmath",
+ "litrs",
  "nix",
  "num-format",
  "path-clean",
@@ -225,25 +225,6 @@ name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
-
-[[package]]
-name = "calm_io"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ea0608700fe42d90ec17ad0f86335cf229b67df2e34e7f463e8241ce7b8fa5f"
-dependencies = [
- "calmio_filters",
-]
-
-[[package]]
-name = "calmio_filters"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "846501f4575cd66766a40bb7ab6d8e960adc7eb49f753c8232bd8e0e09cf6ca2"
-dependencies = [
- "quote",
- "syn 1.0.109",
-]
 
 [[package]]
 name = "cc"
@@ -742,6 +723,15 @@ dependencies = [
  "libc",
  "pkg-config",
  "vcpkg",
+]
+
+[[package]]
+name = "litrs"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4ce301924b7887e9d637144fdade93f9dfff9b60981d4ac161db09720d39aa5"
+dependencies = [
+ "proc-macro2",
 ]
 
 [[package]]

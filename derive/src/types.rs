@@ -16,6 +16,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashMap;
+
 pub(crate) struct SerMacroState {
 	pub(crate) ret_read: String,
 	pub(crate) ret_write: String,
@@ -45,4 +47,28 @@ pub(crate) struct DocMacroState {
 	pub(crate) ret: String,
 	pub(crate) in_hash: bool,
 	pub(crate) in_trait: bool,
+	pub(crate) expect_add_doc: bool,
+	pub(crate) docs: DocItem,
+	pub(crate) last_dash: bool,
+	pub(crate) expect_return_type: bool,
+	pub(crate) doc_point: usize,
+	pub(crate) expect_fn_name: bool,
+	pub(crate) expect_parameters: bool,
+	pub(crate) expect_doc_equal: bool,
+	pub(crate) expect_doc_line: bool,
+}
+
+pub(crate) struct DocItem {
+	pub(crate) input_hash: HashMap<String, Input>,
+	pub(crate) error_str: String,
+	pub(crate) return_str: String,
+	pub(crate) see_str: String,
+	pub(crate) return_type_str: String,
+}
+
+pub(crate) struct Input {
+	pub(crate) text: String,
+	pub(crate) type_str: String,
+	pub(crate) is_ref: bool,
+	pub(crate) is_mut: bool,
 }

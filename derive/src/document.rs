@@ -16,12 +16,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::constants::*;
 use crate::types::DocMacroState as MacroState;
+use crate::types::{DocItem, Input};
 use bmw_deps::lazy_static::lazy_static;
+use bmw_deps::litrs;
 use bmw_deps::rand::random;
+use bmw_deps::substring::Substring;
 use bmw_err::*;
 use proc_macro::TokenTree::*;
 use proc_macro::{Group, Ident, Literal, Punct, TokenStream, TokenTree};
+use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 use std::thread::sleep;
 use std::time::Duration;
@@ -63,6 +69,27 @@ impl MacroState {
 			ret: "".to_string(),
 			in_hash: false,
 			in_trait: false,
+			expect_add_doc: false,
+			docs: DocItem::new(),
+			expect_return_type: false,
+			last_dash: false,
+			doc_point: 0,
+			expect_fn_name: false,
+			expect_parameters: false,
+			expect_doc_equal: false,
+			expect_doc_line: false,
+		}
+	}
+}
+
+impl DocItem {
+	fn new() -> Self {
+		Self {
+			input_hash: HashMap::new(),
+			error_str: "".to_string(),
+			see_str: "".to_string(),
+			return_str: "".to_string(),
+			return_type_str: "".to_string(),
 		}
 	}
 }
@@ -78,7 +105,9 @@ pub(crate) fn do_derive_document(
 	let _lock = LOCK.write()?;
 	debug!("in do_derive_document")?;
 	let mut state = MacroState::new();
-	state.ret = "/// do_derive_document generated comment".to_string();
+	// add a add_doc in to avoid the warning since we strip out all of them in our return value
+
+	state.ret = "#[add_doc(empty)]\n".to_string();
 
 	for tree in item.clone() {
 		match tree {
@@ -99,7 +128,6 @@ pub(crate) fn do_derive_document(
 
 	debug!("ret='{}'", state.ret)?;
 
-	//Ok(item)
 	map_err!(state.ret.parse(), ErrKind::Parse)
 }
 
@@ -132,7 +160,8 @@ fn process_group(group: Group, state: &mut MacroState) -> Result<(), Error> {
 	for item in group.stream() {
 		process_group_item(item, state)?;
 	}
-	debug!("end group {}", state.counter)?;
+
+	debug!("==============================end group {}", state.counter)?;
 
 	if is_trait {
 		state.ret = format!("{}{}", state.ret, "\n}");
@@ -143,38 +172,457 @@ fn process_group(group: Group, state: &mut MacroState) -> Result<(), Error> {
 fn process_group_item(item: TokenTree, state: &mut MacroState) -> Result<(), Error> {
 	debug!("group_item[{}]='{}'", state.counter, item)?;
 	let item_str = item.to_string();
-	if item_str == "#" {
+
+	if item_str == "doc" {
+		state.expect_doc_equal = true;
+	} else if state.expect_doc_equal {
+		if item_str != "=" {
+			return Err(err!(ErrKind::Parse, "expected an equal symbol here"));
+		}
+		state.expect_doc_equal = false;
+		state.expect_doc_line = true;
+	} else if state.expect_doc_line {
+		state.expect_doc_line = false;
+		let value =
+			map_err!(litrs::StringLit::parse(item_str.clone()), ErrKind::Parse)?.to_string();
+		process_doc(value, state)?;
+	} else if item_str == "fn" {
+		state.expect_fn_name = true;
+		mark_doc(state)?;
+		debug!("--------------doc point opportunity-----------------")?;
+	} else if state.expect_fn_name {
+		state.expect_fn_name = false;
+		state.expect_parameters = true;
+	} else if state.expect_parameters {
+		// in parameter list
+		debug!("=================the parameters are {}", item_str)?;
+		process_parameters(item_str.clone(), state)?;
+		state.expect_parameters = false;
+	}
+
+	if item_str != ";" && state.expect_return_type {
+		state.docs.return_type_str = format!("{} {} ", state.docs.return_type_str, item_str);
+	} else if item_str == ";" {
+		print_doc(state)?;
+	}
+
+	if state.expect_add_doc {
+		let start = 1;
+		let end = item_str.len().saturating_sub(1);
+		if start >= end {
+			return Err(err!(
+				ErrKind::Parse,
+				"unexpected syntax in add_doc '{}'",
+				item_str
+			));
+		}
+		process_add_doc(item_str.substring(start, end).to_string(), state)?;
+		state.expect_add_doc = false;
+	} else if item_str == "#" {
 		debug!("setting in hash = true")?;
 		state.in_hash = true;
 	} else if state.in_hash {
-		debug!("checking item str = {}", item_str)?;
 		if item_str != "=" && item_str != "doc" && item_str != "add_doc" {
-			debug!("setting out of hash")?;
+			debug!("======================setting out of hash")?;
 			state.in_hash = false;
 			if item_str.find("[add_doc(") == Some(0) {
-				state.ret = format!("{}\n/// add_doc comment2 added\n///\n", state.ret);
+				let start = 9;
+				let end = item_str.len().saturating_sub(2);
+				if start >= end {
+					return Err(err!(
+						ErrKind::Parse,
+						"invalid syntax in add_doc '{}'",
+						item_str
+					));
+				}
+				process_add_doc(item_str.substring(start, end).to_string(), state)?;
+			} else if item_str.find("[doc = ") == Some(0) {
+				debug!("============---------------========Found a doc")?;
+				let start = 7;
+				let end = item_str.len().saturating_sub(1);
+				if start >= end {
+					return Err(err!(ErrKind::Parse, "invalid syntax in doc '{}'", item_str));
+				}
+				let v = item_str.substring(start, end).to_string();
+				let value =
+					map_err!(litrs::StringLit::parse(v.clone()), ErrKind::Parse)?.to_string();
+				process_doc(value, state)?;
 			}
 		} else if item_str == "add_doc" {
-			state.ret = format!("{}\n///\n/// add_doc comment added\n", state.ret);
+			state.expect_add_doc = true;
 		}
 	} else {
 		if item_str == "-" {
 			// special case handling for ->
 			state.ret = format!("{}{}", state.ret, item);
+			state.last_dash = true;
 		} else if item_str == ">" {
+			if state.last_dash {
+				state.expect_return_type = true;
+				state.docs.return_type_str = "".to_string();
+			}
 			// special case can't prepend newline for ->
 			state.ret = format!("{}{} ", state.ret, item);
 		} else {
 			state.ret = format!("{}\n{} ", state.ret, item);
 		}
 	}
+
+	if item_str != "-" {
+		state.last_dash = false;
+	}
+	if item_str == ";" {
+		state.expect_return_type = false;
+	}
 	state.counter += 1;
+	Ok(())
+}
+
+fn process_doc(mut value: String, state: &mut MacroState) -> Result<(), Error> {
+	debug!("value='{}'", value)?;
+	if value.len() > 2 {
+		value = value.substring(1, value.len() - 1).to_string();
+	} else {
+		value = "".to_string();
+	}
+	debug!("value='{}'", value)?;
+	let value = value.replace("\\\"", "\"");
+	state.ret = format!("{}\n///{}", state.ret, value);
+	Ok(())
+}
+
+fn mark_doc(state: &mut MacroState) -> Result<(), Error> {
+	if state.doc_point == 0 {
+		state.doc_point = state.ret.len();
+	}
+	Ok(())
+}
+
+fn print_doc(state: &mut MacroState) -> Result<(), Error> {
+	let mut return_type_str = state.docs.return_type_str.clone();
+	debug!("return_type_str = '{}'", return_type_str)?;
+	for rep_str in DOC_REPLACEMENTS {
+		return_type_str = return_type_str.replace(rep_str.0, rep_str.1);
+	}
+
+	if state.docs.see_str.len() > 0 {
+		state.ret = format!(
+			"{}\n///\n/// # Also See\n///{}{}\n",
+			state.ret.substring(0, state.doc_point),
+			state.docs.see_str,
+			state.ret.substring(state.doc_point, state.ret.len())
+		);
+
+		state.docs.see_str = "".to_string();
+	}
+	if state.docs.error_str.len() > 0 {
+		state.ret = format!(
+			"{}\n///\n/// # Errors\n///{}{}",
+			state.ret.substring(0, state.doc_point),
+			state.docs.error_str,
+			state.ret.substring(state.doc_point, state.ret.len())
+		);
+
+		state.docs.error_str = "".to_string();
+	}
+	if state.docs.return_str.len() > 0 || return_type_str.len() > 0 {
+		state.ret = format!(
+			"{}\n///\n/// # Return\n/// `{}` {}{}{}",
+			state.ret.substring(0, state.doc_point),
+			return_type_str,
+			if state.docs.return_str.len() > 0 {
+				" - "
+			} else {
+				""
+			},
+			state.docs.return_str,
+			state.ret.substring(state.doc_point, state.ret.len())
+		);
+		state.docs.return_str = "".to_string();
+	}
+	if state.docs.input_hash.len() > 0 {
+		let mut input_parameter_str = "".to_string();
+		for (k, v) in &state.docs.input_hash {
+			input_parameter_str = format!(
+				"{}\n/// * `{}` - [{}{}[{}]] {} {}",
+				input_parameter_str,
+				k,
+				if v.is_ref { "&" } else { "" },
+				if v.is_mut { "mut " } else { "" },
+				v.type_str,
+				if v.text.len() > 0 { "-" } else { "" },
+				v.text
+			);
+		}
+
+		state.ret = format!(
+			"{}/// # Input Parameters\n///{}{}",
+			state.ret.substring(0, state.doc_point),
+			input_parameter_str,
+			state.ret.substring(state.doc_point, state.ret.len())
+		);
+
+		state.docs.input_hash.clear();
+	}
+
+	state.doc_point = 0;
+
+	Ok(())
+}
+
+fn process_parameters(line: String, state: &mut MacroState) -> Result<(), Error> {
+	if line.len() < 3 {
+		return Ok(());
+	}
+
+	let line = line.substring(1, line.len() - 1);
+	let strm = map_err!(TokenStream::from_str(&line), ErrKind::Parse)?;
+
+	let mut elems = vec![];
+	for elem in strm {
+		debug!("fn param={}", elem)?;
+		elems.push(elem.to_string());
+	}
+
+	let mut itt = 0;
+	if elems[0] == "&" {
+		itt += 1;
+		if elems.len() <= 1 {
+			return Err(err!(
+				ErrKind::Parse,
+				"expected at least 2 elements in fn params",
+			));
+		}
+
+		loop {
+			if itt >= elems.len() {
+				break;
+			}
+
+			if elems[itt] == "," {
+				break;
+			}
+			itt += 1;
+		}
+	}
+
+	let mut name: Option<String> = None;
+	let mut is_mut = false;
+	let mut is_ref = false;
+	let mut type_str: String = "".to_string();
+	// we should be at either the end (no params) or at the first comma
+	loop {
+		if itt >= elems.len() {
+			break;
+		}
+
+		if elems[itt] != "," && name.is_none() {
+			name = Some(elems[itt].clone());
+		} else if elems[itt] == "," {
+			if name.is_some() {
+				add_name_value(
+					name.as_ref().unwrap().clone(),
+					type_str.clone(),
+					state,
+					is_ref,
+					is_mut,
+				)?;
+				debug!("name='{:?}',value='{}'", name, type_str)?;
+			}
+			name = None;
+			type_str = "".to_string();
+			is_mut = false;
+			is_ref = false;
+		} else if name.is_some() && type_str == "" && elems[itt] == "&" {
+			debug!("found an is_ref")?;
+			is_ref = true;
+		} else if name.is_some() && type_str == "" && elems[itt] == "mut" {
+			is_mut = true;
+		} else if name.is_some() && elems[itt] != ":" {
+			type_str = format!("{} {}", type_str, elems[itt]);
+		}
+
+		itt += 1;
+	}
+
+	if name.is_some() {
+		add_name_value(
+			name.as_ref().unwrap().clone(),
+			type_str.clone(),
+			state,
+			is_ref,
+			is_mut,
+		)?;
+		debug!("name='{:?}',value='{}'", name, type_str)?;
+	}
+
+	Ok(())
+}
+
+fn add_name_value(
+	name: String,
+	value: String,
+	state: &mut MacroState,
+	is_ref: bool,
+	is_mut: bool,
+) -> Result<(), Error> {
+	let mut found = true;
+	match state.docs.input_hash.get_mut(&name) {
+		Some(input) => {
+			input.type_str = value.clone();
+			input.is_ref = is_ref;
+			input.is_mut = is_mut;
+		}
+		None => {
+			found = false;
+		}
+	}
+
+	if !found {
+		state.docs.input_hash.insert(
+			name,
+			Input {
+				text: "".to_string(),
+				type_str: value,
+				is_mut,
+				is_ref,
+			},
+		);
+	}
+
+	Ok(())
+}
+
+fn process_add_doc(line: String, state: &mut MacroState) -> Result<(), Error> {
+	let strm = map_err!(TokenStream::from_str(&line), ErrKind::Parse)?;
+
+	let mut elems = vec![];
+	for elem in strm {
+		debug!("elem={}", elem)?;
+		elems.push(elem.to_string());
+	}
+
+	if elems.len() > 0 && elems[0] == "doc_point" {
+		mark_doc(state)?;
+		return Ok(());
+	}
+
+	if elems.len() < 3 {
+		return Err(err!(
+			ErrKind::Parse,
+			"expected at least 3 elements in add_doc: {}",
+			line
+		));
+	}
+
+	if elems[0] == "input" {
+		let name = elems[2].clone();
+		if elems.len() != 5 {
+			return Err(err!(
+				ErrKind::Parse,
+				"Illegal error line (inputs must have 5 tokens): '{}'",
+				line
+			));
+		}
+		let value =
+			map_err!(litrs::StringLit::parse(elems[4].clone()), ErrKind::Parse)?.to_string();
+		if value.len() < 3 {
+			return Err(err!(
+				ErrKind::Parse,
+				"Illegal error line (length of string must be 3 or greater): '{}'",
+				line
+			));
+		}
+
+		let start = 1;
+		let end = value.len() - 1;
+		let value = value.substring(start, end);
+		let mut found = true;
+
+		match state.docs.input_hash.get_mut(&name) {
+			Some(input) => input.text = format!("{} {}", input.text, value),
+			None => {
+				found = false;
+			}
+		}
+
+		if !found {
+			state.docs.input_hash.insert(
+				name,
+				Input {
+					text: value.to_string(),
+					type_str: "".to_string(),
+					is_mut: false,
+					is_ref: false,
+				},
+			);
+		}
+	} else if elems[0] == "error" {
+		let error_val =
+			map_err!(litrs::StringLit::parse(elems[2].clone()), ErrKind::Parse)?.to_string();
+		let start = 1;
+		let end = error_val.len().saturating_sub(1);
+		if start >= end {
+			return Err(err!(ErrKind::Parse, "Illegal error line: '{}'", line));
+		}
+		state.docs.error_str = format!(
+			"{}\n///\n/// * [`{}`] {}",
+			state.docs.error_str,
+			error_val.substring(start, end),
+			if elems.len() >= 5 {
+				let mut value =
+					map_err!(litrs::StringLit::parse(elems[4].clone()), ErrKind::Parse)?
+						.to_string();
+				if value.len() > 3 {
+					value = value.substring(1, value.len() - 1).to_string();
+				}
+				format!(" - {}", value)
+			} else {
+				"".to_string()
+			}
+		);
+	} else if elems[0] == "return" {
+		let return_val =
+			map_err!(litrs::StringLit::parse(elems[2].clone()), ErrKind::Parse)?.to_string();
+		let start = 1;
+		let end = return_val.len().saturating_sub(1);
+		if start >= end {
+			return Err(err!(ErrKind::Parse, "Illegal return line: '{}'", line));
+		}
+		state.docs.return_str = format!(
+			"{}{} ",
+			state.docs.return_str,
+			return_val.substring(start, end)
+		);
+	} else if elems[0] == "see" {
+		let see_val =
+			map_err!(litrs::StringLit::parse(elems[2].clone()), ErrKind::Parse)?.to_string();
+		let start = 1;
+		let end = see_val.len().saturating_sub(1);
+		if start >= end {
+			return Err(err!(ErrKind::Parse, "Illegal see line: '{}'", line));
+		}
+		state.docs.see_str = format!(
+			"{}\n///\n/// * [`{}`] ",
+			state.docs.see_str,
+			see_val.substring(start, end)
+		);
+	} else {
+		return Err(err!(ErrKind::Parse, "Unknown add_doc command: {}", line));
+	}
+
 	Ok(())
 }
 
 fn process_ident(ident: Ident, state: &mut MacroState) -> Result<(), Error> {
 	debug!("ident[{}='{}'", state.counter, ident)?;
 	let ident_str = ident.to_string();
+
+	if ident_str == "pub" {
+		mark_doc(state)?;
+		print_doc(state)?;
+		debug!("--------------doc point opportunity-----------------")?;
+	}
 
 	state.ret = format!("{}\n{} ", state.ret, ident);
 	if ident_str == "trait" {

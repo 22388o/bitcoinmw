@@ -157,6 +157,7 @@
 //!```
 
 mod config;
+mod constants;
 mod document;
 mod ser;
 mod types;
