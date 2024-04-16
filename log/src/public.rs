@@ -133,21 +133,15 @@ pub struct LogBuilder {}
 ///```
 pub trait Log: DynClone {
 	/// Log data to this logger.
-	/// # Input Parameters
-	/// * `level` - The [`crate::LogLevel`] to log at. If the level is equal to or above the level
-	/// set by [`crate::Log::set_log_level`], the data will be logged. Otherwise, the function
-	/// call will be ignored.
-	/// * `line` - line to log.
-	/// # Return
-	/// [`unit`]
-	/// # Errors
-	/// [`bmw_err::ErrKind::Log`] - if the logger has not been initialized.
-	///
-	/// [`bmw_err::ErrKind::IO`] - if an i/o error occurs.
-	/// # Also see
-	/// [`crate::Log::log_all`]
-	///
-	/// [`crate::Log::log_plain`]
+	#[add_doc(input: level - "The level to log at. If the level is equal to or above the level")]
+	#[add_doc(input: level - "set by [`Log::set_log_level`], the data will be logged. Otherwise, the function")]
+	#[add_doc(input: level - "call will be ignored.")]
+	#[add_doc(input: line - "line to log.")]
+	#[add_doc(error: "bmw_err::ErrKind::Log" - "if the logger has not been initialized.")]
+	#[add_doc(error: "bmw_err::ErrKind::IO" - "if an i/o error occurs.")]
+	#[add_doc(see: "crate::Log::log_all")]
+	#[add_doc(see: "crate::Log::log_plain")]
+	#[add_doc(doc_point)]
 	/// # Examples
 	///```
 	/// use bmw_err::*;
@@ -181,6 +175,7 @@ pub trait Log: DynClone {
 	fn log(&mut self, level: LogLevel, line: &str) -> Result<(), Error>;
 	/// The same as [`Log::log`], but this function will always log to standard output even if
 	/// standard output logging is currently disabled by the underlying logger.
+	///
 	/// # Input Parameters
 	/// * `level` - The [`crate::LogLevel`] to log at. If the level is equal to or above the level
 	/// set by [`crate::Log::set_log_level`], the data will be logged. Otherwise, the function

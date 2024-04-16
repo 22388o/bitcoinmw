@@ -56,6 +56,8 @@ pub(crate) struct DocMacroState {
 	pub(crate) expect_parameters: bool,
 	pub(crate) expect_doc_equal: bool,
 	pub(crate) expect_doc_line: bool,
+	pub(crate) expect_name: bool,
+	pub(crate) name: String,
 }
 
 pub(crate) struct DocItem {
@@ -66,9 +68,42 @@ pub(crate) struct DocItem {
 	pub(crate) return_type_str: String,
 }
 
+impl PartialEq for Input {
+	fn eq(&self, cmp: &Input) -> bool {
+		cmp.seqno == self.seqno
+	}
+}
+
+impl PartialOrd for Input {
+	fn partial_cmp(&self, cmp: &Input) -> Option<std::cmp::Ordering> {
+		if self.seqno < cmp.seqno {
+			Some(std::cmp::Ordering::Less)
+		} else if self.seqno > cmp.seqno {
+			Some(std::cmp::Ordering::Greater)
+		} else {
+			Some(std::cmp::Ordering::Equal)
+		}
+	}
+}
+
+impl Ord for Input {
+	fn cmp(&self, cmp: &Self) -> std::cmp::Ordering {
+		if self.seqno < cmp.seqno {
+			std::cmp::Ordering::Less
+		} else if self.seqno > cmp.seqno {
+			std::cmp::Ordering::Greater
+		} else {
+			std::cmp::Ordering::Equal
+		}
+	}
+}
+
+#[derive(Eq)]
 pub(crate) struct Input {
+	pub(crate) name: String,
 	pub(crate) text: String,
 	pub(crate) type_str: String,
 	pub(crate) is_ref: bool,
 	pub(crate) is_mut: bool,
+	pub(crate) seqno: usize,
 }

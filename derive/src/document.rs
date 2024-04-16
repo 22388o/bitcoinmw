@@ -19,23 +19,15 @@
 use crate::constants::*;
 use crate::types::DocMacroState as MacroState;
 use crate::types::{DocItem, Input};
-use bmw_deps::lazy_static::lazy_static;
 use bmw_deps::litrs;
-use bmw_deps::rand::random;
 use bmw_deps::substring::Substring;
 use bmw_err::*;
 use proc_macro::TokenTree::*;
 use proc_macro::{Group, Ident, Literal, Punct, TokenStream, TokenTree};
 use std::collections::HashMap;
 use std::str::FromStr;
-use std::sync::{Arc, RwLock};
-use std::thread::sleep;
-use std::time::Duration;
 
 const DEBUG: bool = false;
-lazy_static! {
-	pub static ref LOCK: Arc<RwLock<usize>> = Arc::new(RwLock::new(0));
-}
 
 // use a makeshift log because we want to use this as a dependency in the logging crate
 macro_rules! debug {
@@ -78,6 +70,8 @@ impl MacroState {
 			expect_parameters: false,
 			expect_doc_equal: false,
 			expect_doc_line: false,
+			expect_name: false,
+			name: "".to_string(),
 		}
 	}
 }
@@ -98,11 +92,6 @@ pub(crate) fn do_derive_document(
 	_attr: TokenStream,
 	item: TokenStream,
 ) -> Result<TokenStream, Error> {
-	let rand: u64 = random();
-	let rand = rand % 3_000;
-	sleep(Duration::from_millis(rand));
-
-	let _lock = LOCK.write()?;
 	debug!("in do_derive_document")?;
 	let mut state = MacroState::new();
 	// add a add_doc in to avoid the warning since we strip out all of them in our return value
@@ -343,11 +332,17 @@ fn print_doc(state: &mut MacroState) -> Result<(), Error> {
 	}
 	if state.docs.input_hash.len() > 0 {
 		let mut input_parameter_str = "".to_string();
-		for (k, v) in &state.docs.input_hash {
+		let mut vec = vec![];
+		for (_, v) in &state.docs.input_hash {
+			vec.push(v);
+		}
+		vec.sort();
+
+		for v in &vec {
 			input_parameter_str = format!(
-				"{}\n/// * `{}` - [{}{}[{}]] {} {}",
+				"{}\n/// * `{}` - [{}{}[`{}`]] {} {}",
 				input_parameter_str,
-				k,
+				v.name,
 				if v.is_ref { "&" } else { "" },
 				if v.is_mut { "mut " } else { "" },
 				v.type_str,
@@ -386,6 +381,8 @@ fn process_parameters(line: String, state: &mut MacroState) -> Result<(), Error>
 	}
 
 	let mut itt = 0;
+	let mut is_mut = false;
+	let mut seqno = 0;
 	if elems[0] == "&" {
 		itt += 1;
 		if elems.len() <= 1 {
@@ -402,6 +399,18 @@ fn process_parameters(line: String, state: &mut MacroState) -> Result<(), Error>
 
 			if elems[itt] == "," {
 				break;
+			} else if elems[itt] == "mut" {
+				is_mut = true;
+			} else if elems[itt] == "self" {
+				add_name_value(
+					"self".to_string(),
+					state.name.clone(),
+					state,
+					true,
+					is_mut,
+					seqno,
+				)?;
+				seqno += 1;
 			}
 			itt += 1;
 		}
@@ -427,7 +436,9 @@ fn process_parameters(line: String, state: &mut MacroState) -> Result<(), Error>
 					state,
 					is_ref,
 					is_mut,
+					seqno,
 				)?;
+				seqno += 1;
 				debug!("name='{:?}',value='{}'", name, type_str)?;
 			}
 			name = None;
@@ -453,6 +464,7 @@ fn process_parameters(line: String, state: &mut MacroState) -> Result<(), Error>
 			state,
 			is_ref,
 			is_mut,
+			seqno,
 		)?;
 		debug!("name='{:?}',value='{}'", name, type_str)?;
 	}
@@ -466,6 +478,7 @@ fn add_name_value(
 	state: &mut MacroState,
 	is_ref: bool,
 	is_mut: bool,
+	seqno: usize,
 ) -> Result<(), Error> {
 	let mut found = true;
 	match state.docs.input_hash.get_mut(&name) {
@@ -481,12 +494,14 @@ fn add_name_value(
 
 	if !found {
 		state.docs.input_hash.insert(
-			name,
+			name.clone(),
 			Input {
 				text: "".to_string(),
 				type_str: value,
 				is_mut,
 				is_ref,
+				seqno,
+				name,
 			},
 		);
 	}
@@ -549,12 +564,14 @@ fn process_add_doc(line: String, state: &mut MacroState) -> Result<(), Error> {
 
 		if !found {
 			state.docs.input_hash.insert(
-				name,
+				name.clone(),
 				Input {
 					text: value.to_string(),
 					type_str: "".to_string(),
 					is_mut: false,
 					is_ref: false,
+					seqno: 0,
+					name,
 				},
 			);
 		}
@@ -628,6 +645,10 @@ fn process_ident(ident: Ident, state: &mut MacroState) -> Result<(), Error> {
 	state.ret = format!("{}\n{} ", state.ret, ident);
 	if ident_str == "trait" {
 		state.in_trait = true;
+		state.expect_name = true;
+	} else if state.expect_name {
+		state.expect_name = false;
+		state.name = ident_str;
 	}
 	state.counter += 1;
 	Ok(())
