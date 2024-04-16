@@ -32,7 +32,7 @@ use std::sync::{Arc, RwLock};
 use std::thread::sleep;
 use std::time::Duration;
 
-const DEBUG: bool = true;
+const DEBUG: bool = false;
 lazy_static! {
 	pub static ref LOCK: Arc<RwLock<usize>> = Arc::new(RwLock::new(0));
 }
@@ -236,7 +236,7 @@ fn process_group_item(item: TokenTree, state: &mut MacroState) -> Result<(), Err
 					));
 				}
 				process_add_doc(item_str.substring(start, end).to_string(), state)?;
-			} else if item_str.find("[doc = ") == Some(0) {
+			} else if item_str.find("[doc =") == Some(0) {
 				debug!("============---------------========Found a doc")?;
 				let start = 7;
 				let end = item_str.len().saturating_sub(1);
@@ -252,6 +252,7 @@ fn process_group_item(item: TokenTree, state: &mut MacroState) -> Result<(), Err
 			state.expect_add_doc = true;
 		}
 	} else {
+		debug!("out of hash counter = {}", state.counter)?;
 		if item_str == "-" {
 			// special case handling for ->
 			state.ret = format!("{}{}", state.ret, item);
@@ -356,7 +357,7 @@ fn print_doc(state: &mut MacroState) -> Result<(), Error> {
 		}
 
 		state.ret = format!(
-			"{}/// # Input Parameters\n///{}{}",
+			"{}\n/// # Input Parameters\n///{}{}",
 			state.ret.substring(0, state.doc_point),
 			input_parameter_str,
 			state.ret.substring(state.doc_point, state.ret.len())
