@@ -30,5 +30,4 @@ mod public;
 mod ser;
 mod test;
 
-pub use crate::functions::*;
 pub use crate::public::*;

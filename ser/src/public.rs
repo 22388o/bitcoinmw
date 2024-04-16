@@ -18,6 +18,8 @@
 use bmw_err::{err, Error};
 use std::io::{Read, Write};
 
+pub use crate::functions::*;
+
 /// Writer trait used for serializing data.
 pub trait Writer {
 	/// write a u8 to the stream
