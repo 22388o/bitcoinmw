@@ -984,34 +984,34 @@ impl MacroState {
 		        impl {} {} {{\n\
                                 \t/// Returns the name of this variant. This name is the Pascal\n\
                                 \t/// case version of the name in the original struct.\n\
-			        \tpub fn name(&self) -> &str {{ {}\t}}\n\
+			        \tpub(crate) fn name(&self) -> &str {{ {}\t}}\n\
                                 \t/// Returns the value of this option if it is a [`prim@u8`],\n\
                                 \t/// otherwise, returns [`std::option::Option::None`].\n\
-                                \tpub fn value_u8(&self) -> Option<u8> {{ {}\t}}\n\
+                                \tpub(crate) fn value_u8(&self) -> Option<u8> {{ {}\t}}\n\
                                 \t/// Returns the value of this option if it is a [`prim@u16`],\n\
                                 \t/// otherwise, returns [`std::option::Option::None`].\n\
-                                \tpub fn value_u16(&self) -> Option<u16> {{ {}\t}}\n\
+                                \tpub(crate) fn value_u16(&self) -> Option<u16> {{ {}\t}}\n\
                                 \t/// Returns the value of this option if it is a [`prim@u32`],\n\
                                 \t/// otherwise, returns [`std::option::Option::None`].\n\
-                                \tpub fn value_u32(&self) -> Option<u32> {{ {}\t}}\n\
+                                \tpub(crate) fn value_u32(&self) -> Option<u32> {{ {}\t}}\n\
                                 \t/// Returns the value of this option if it is a [`prim@u64`],\n\
                                 \t/// otherwise, returns [`std::option::Option::None`].\n\
-                                \tpub fn value_u64(&self) -> Option<u64> {{ {}\t}}\n\
+                                \tpub(crate) fn value_u64(&self) -> Option<u64> {{ {}\t}}\n\
                                 \t/// Returns the value of this option if it is a [`prim@u128`],\n\
                                 \t/// otherwise, returns [`std::option::Option::None`].\n\
-                                \tpub fn value_u128(&self) -> Option<u128> {{ {}\t}}\n\
+                                \tpub(crate) fn value_u128(&self) -> Option<u128> {{ {}\t}}\n\
                                 \t/// Returns the value of this option if it is a [`prim@usize`],\n\
                                 \t/// otherwise, returns [`std::option::Option::None`].\n\
-                                \tpub fn value_usize(&self) -> Option<usize> {{ {}\t}}\n\
+                                \tpub(crate) fn value_usize(&self) -> Option<usize> {{ {}\t}}\n\
                                 \t/// Returns the value of this option if it is a [`std::string::String`],\n\
                                 \t/// otherwise, returns [`std::option::Option::None`].\n\
-                                \tpub fn value_string(&self) -> Option<String> {{ {}\t}}\n\
+                                \tpub(crate) fn value_string(&self) -> Option<String> {{ {}\t}}\n\
                                 \t/// Returns the value of this option if it is a [`prim@bool`],\n\
                                 \t/// otherwise, returns [`std::option::Option::None`].\n\
-                                \tpub fn value_bool(&self) -> Option<bool> {{ {}\t}}\n\
+                                \tpub(crate) fn value_bool(&self) -> Option<bool> {{ {}\t}}\n\
                                 \t/// Returns the value of this option if it is a `(String, String)`,\n\
                                 \t/// otherwise, returns [`std::option::Option::None`].\n\
-                                \tpub fn value_string_tuple(&self) -> Option<(String, String)> {{ {}\t}}\n\
+                                \tpub(crate) fn value_string_tuple(&self) -> Option<(String, String)> {{ {}\t}}\n\
 			}}\n\
 			",
 				name,
