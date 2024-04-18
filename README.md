@@ -7,7 +7,4 @@
 <p align="center">
 <img src="https://raw.githubusercontent.com/cgilliard/bitcoinmw/main/.github/images/bmw_logo.jpg"/>
 </p>
-
 <p align="center"> Core libraries for Bitcoin Mimblewimble (BMW).</p>
-
-
