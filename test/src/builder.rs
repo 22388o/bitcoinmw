@@ -17,10 +17,10 @@
 // limitations under the License.
 
 use crate::types::TestInfoImpl;
-use crate::{Builder, TestInfo};
+use crate::{TestBuilder, TestInfo};
 use bmw_err::Error;
 
-impl Builder {
+impl TestBuilder {
 	/// Build a [`crate::TestInfo`] impl. This should generally be done by calling the
 	/// [`crate::test_info`] macro.
 	pub fn build_test_info(preserve: bool) -> Result<impl TestInfo, Error> {

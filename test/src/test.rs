@@ -22,6 +22,7 @@ mod test {
 	use crate::types::TestInfoImpl;
 	use crate::{test_info, TestInfo};
 	use bmw_err::Error;
+	use std::sync::{Arc, RwLock};
 	use std::thread::spawn;
 
 	#[test]
@@ -54,13 +55,18 @@ mod test {
 	fn test_sync_channel() -> Result<(), Error> {
 		let test_info = test_info!()?;
 		let (tx, rx) = test_info.sync_channel();
+		let v = Arc::new(RwLock::new(false));
+		let vc = v.clone();
 
 		spawn(move || -> Result<(), Error> {
+			let mut v = v.write()?;
+			*v = true;
 			tx.send(())?;
 			Ok(())
 		});
 
 		rx.recv()?;
+		assert!(*vc.read()?);
 		Ok(())
 	}
 }

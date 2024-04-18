@@ -23,6 +23,7 @@
 mod builder;
 mod impls;
 mod macros;
+mod public;
 mod test;
 mod types;
 
@@ -40,5 +41,4 @@ pub use std::time::Duration;
 /// sleep parameter, but it is needed in a few cases.
 pub const QA_SLEEP: u64 = 3_000;
 
-pub use crate::impls::pick_free_port;
-pub use crate::types::{Builder, TestInfo};
+pub use crate::public::*;
