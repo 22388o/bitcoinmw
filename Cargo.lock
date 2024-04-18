@@ -69,6 +69,7 @@ checksum = "9475866fec1451be56a3c2400fd081ff546538961565ccb5b7142cbd22bc7a51"
 name = "bitcoinmw"
 version = "0.0.3-beta.2"
 dependencies = [
+ "bmw_core",
  "bmw_deps",
  "bmw_err",
  "bmw_test",
@@ -107,6 +108,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
 dependencies = [
  "generic-array",
+]
+
+[[package]]
+name = "bmw_core"
+version = "0.0.3-beta.2"
+dependencies = [
+ "bmw_err",
 ]
 
 [[package]]
