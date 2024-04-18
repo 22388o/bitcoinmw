@@ -16,17 +16,12 @@ members = [
 	"error",
 	"deps",
 	"test",
-	"config"
 ]
 exclude = ["etc"]
 
 [dependencies]
 bmw_deps   = { path = "./deps"   }
 bmw_err    = { path = "./error"  }
-bmw_conf   = { path = "./config" }
-bmw_ser    = { path = "./ser"    }
-bmw_derive = { path = "./derive" }
-bmw_log    = { path = "./log"    }
 
 [dev-dependencies]
 bmw_test   = { path = "./test"   }

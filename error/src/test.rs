@@ -222,10 +222,12 @@ mod test {
 		Ok(())
 	}
 
+	// return the os string
 	fn get_os_string() -> Result<(), Error> {
 		Err(OsString::new().into())
 	}
 
+	// check some errors that might occur
 	fn check_error<T: Sized, Q>(r: Result<T, Q>, ematch: Error) -> Result<(), Error>
 	where
 		crate::Error: From<Q>,
@@ -255,6 +257,7 @@ mod test {
 		Ok(())
 	}
 
+	// hide invalid utf8 error by wrapping this in this fn
 	#[allow(invalid_from_utf8)]
 	fn get_utf8() -> Result<String, Error> {
 		Ok(from_utf8(&[0xC0])?.to_string())
