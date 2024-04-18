@@ -89,6 +89,7 @@ impl DocItem {
 	}
 }
 
+#[cfg(not(tarpaulin_include))]
 pub(crate) fn do_derive_document(attr: TokenStream, item: TokenStream) -> TokenStream {
 	match do_derive_document_impl(attr, &item) {
 		Ok(stream) => stream,
@@ -102,7 +103,8 @@ pub(crate) fn do_derive_document(attr: TokenStream, item: TokenStream) -> TokenS
 	}
 }
 
-pub(crate) fn do_derive_document_impl(
+#[cfg(not(tarpaulin_include))]
+pub fn do_derive_document_impl(
 	_attr: TokenStream,
 	item: &TokenStream,
 ) -> Result<TokenStream, Error> {
@@ -134,6 +136,7 @@ pub(crate) fn do_derive_document_impl(
 	map_err!(state.ret.parse(), ErrKind::Parse)
 }
 
+#[cfg(not(tarpaulin_include))]
 fn process_punct(punct: Punct, state: &mut MacroState) -> Result<(), Error> {
 	debug!("punct[{}]='{}'", state.counter, punct)?;
 	if punct == '#' {
@@ -149,6 +152,7 @@ fn process_punct(punct: Punct, state: &mut MacroState) -> Result<(), Error> {
 	Ok(())
 }
 
+#[cfg(not(tarpaulin_include))]
 fn process_literal(literal: Literal, state: &mut MacroState) -> Result<(), Error> {
 	debug!("literal[{}]='{}'", state.counter, literal)?;
 	state.ret = format!("{}\n{}", state.ret, literal.to_string(),);
@@ -156,6 +160,7 @@ fn process_literal(literal: Literal, state: &mut MacroState) -> Result<(), Error
 	Ok(())
 }
 
+#[cfg(not(tarpaulin_include))]
 fn process_group(group: Group, state: &mut MacroState) -> Result<(), Error> {
 	let is_trait = state.in_trait;
 	let is_macro_rules = state.in_macro_rules;
@@ -179,6 +184,7 @@ fn process_group(group: Group, state: &mut MacroState) -> Result<(), Error> {
 	Ok(())
 }
 
+#[cfg(not(tarpaulin_include))]
 fn process_group_item(item: TokenTree, state: &mut MacroState) -> Result<(), Error> {
 	debug!("group_item[{}]='{}'", state.counter, item)?;
 	let item_str = item.to_string();
@@ -292,6 +298,7 @@ fn process_group_item(item: TokenTree, state: &mut MacroState) -> Result<(), Err
 	Ok(())
 }
 
+#[cfg(not(tarpaulin_include))]
 fn process_doc(mut value: String, state: &mut MacroState) -> Result<(), Error> {
 	debug!("value='{}'", value)?;
 	if value.len() > 2 {
@@ -306,6 +313,7 @@ fn process_doc(mut value: String, state: &mut MacroState) -> Result<(), Error> {
 	Ok(())
 }
 
+#[cfg(not(tarpaulin_include))]
 fn mark_doc(state: &mut MacroState) -> Result<(), Error> {
 	if state.doc_point == 0 {
 		state.doc_point = state.ret.len();
@@ -313,6 +321,7 @@ fn mark_doc(state: &mut MacroState) -> Result<(), Error> {
 	Ok(())
 }
 
+#[cfg(not(tarpaulin_include))]
 fn print_doc(state: &mut MacroState) -> Result<(), Error> {
 	let mut return_type_str = state.docs.return_type_str.clone();
 	debug!("return_type_str = '{}'", return_type_str)?;
@@ -392,6 +401,7 @@ fn print_doc(state: &mut MacroState) -> Result<(), Error> {
 	Ok(())
 }
 
+#[cfg(not(tarpaulin_include))]
 fn process_parameters(line: String, state: &mut MacroState) -> Result<(), Error> {
 	if line.len() < 3 {
 		return Ok(());
@@ -498,6 +508,7 @@ fn process_parameters(line: String, state: &mut MacroState) -> Result<(), Error>
 	Ok(())
 }
 
+#[cfg(not(tarpaulin_include))]
 fn add_name_value(
 	name: String,
 	value: String,
@@ -536,6 +547,7 @@ fn add_name_value(
 	Ok(())
 }
 
+#[cfg(not(tarpaulin_include))]
 fn process_add_doc(line: String, state: &mut MacroState) -> Result<(), Error> {
 	let strm = map_err!(TokenStream::from_str(&line), ErrKind::Parse)?;
 
@@ -687,6 +699,7 @@ fn process_add_doc(line: String, state: &mut MacroState) -> Result<(), Error> {
 	Ok(())
 }
 
+#[cfg(not(tarpaulin_include))]
 fn process_ident(ident: Ident, state: &mut MacroState) -> Result<(), Error> {
 	debug!("ident[{}]='{}'", state.counter, ident)?;
 	let ident_str = ident.to_string();
@@ -715,12 +728,14 @@ fn process_ident(ident: Ident, state: &mut MacroState) -> Result<(), Error> {
 	Ok(())
 }
 
+#[cfg(not(tarpaulin_include))]
 impl PartialEq for Input {
 	fn eq(&self, cmp: &Input) -> bool {
 		cmp.seqno == self.seqno
 	}
 }
 
+#[cfg(not(tarpaulin_include))]
 impl PartialOrd for Input {
 	fn partial_cmp(&self, cmp: &Input) -> Option<std::cmp::Ordering> {
 		if self.seqno < cmp.seqno {
@@ -733,6 +748,7 @@ impl PartialOrd for Input {
 	}
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Ord for Input {
 	fn cmp(&self, cmp: &Self) -> std::cmp::Ordering {
 		if self.seqno < cmp.seqno {
