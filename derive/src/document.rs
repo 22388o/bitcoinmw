@@ -77,6 +77,7 @@ impl MacroState {
 	}
 }
 
+#[cfg(not(tarpaulin_include))]
 impl DocItem {
 	fn new() -> Self {
 		Self {

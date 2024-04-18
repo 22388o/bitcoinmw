@@ -230,6 +230,7 @@ pub fn derive_configurable(strm: TokenStream) -> TokenStream {
 ///```
 ///
 #[proc_macro_attribute]
+#[cfg(not(tarpaulin_include))]
 pub fn document(attr: TokenStream, item: TokenStream) -> TokenStream {
 	do_derive_document(attr, item)
 }
@@ -364,6 +365,7 @@ pub fn document(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// If the `doc_point` attribute were not placed there, the example would be above the generated
 /// documentation.
 #[proc_macro_attribute]
+#[cfg(not(tarpaulin_include))]
 pub fn add_doc(_attr: TokenStream, item: TokenStream) -> TokenStream {
 	// add doc doesn't actually change anything, it's just a marker used by the document attribute
 	// which modifies the TokenStream. So, we just return the input token stream unchanged.
