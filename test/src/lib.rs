@@ -27,18 +27,4 @@ mod public;
 mod test;
 mod types;
 
-// re-export a few useful things for tests
-#[doc(hidden)]
-pub use std::sync::mpsc::sync_channel;
-#[doc(hidden)]
-pub use std::thread::sleep;
-#[doc(hidden)]
-pub use std::thread::spawn;
-#[doc(hidden)]
-pub use std::time::Duration;
-
-/// A sleep time designed to allow execution of tests to run to completion. We avoid using this
-/// sleep parameter, but it is needed in a few cases.
-pub const QA_SLEEP: u64 = 3_000;
-
 pub use crate::public::*;
