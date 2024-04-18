@@ -21,6 +21,7 @@ mod log;
 mod macros;
 mod public;
 mod test;
+mod test_mvc;
 mod types;
 
 pub use crate::public::*;

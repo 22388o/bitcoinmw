@@ -16,6 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bmw_conf::InstanceType;
 use std::collections::HashMap;
 
 pub(crate) struct SerMacroState {
@@ -77,4 +78,63 @@ pub(crate) struct Input {
 	pub(crate) is_ref: bool,
 	pub(crate) is_mut: bool,
 	pub(crate) seqno: usize,
+}
+
+pub(crate) struct MvcAttrMacroState {
+	pub(crate) expect_comma: bool,
+	pub(crate) expect_equal: bool,
+	pub(crate) expect_command: bool,
+
+	pub(crate) counter: usize,
+	pub(crate) in_view_list: bool,
+	pub(crate) in_macro_list: bool,
+	pub(crate) in_add_list: bool,
+	pub(crate) in_config: bool,
+	pub(crate) config_text: String,
+
+	pub(crate) cur_view_is_pub: bool,
+	pub(crate) cur_view_is_pub_crate: bool,
+	pub(crate) views: Vec<ViewInfo>,
+	pub(crate) macro_list: Vec<InstanceType>,
+	pub(crate) add_list: Vec<String>,
+	pub(crate) is_builder: bool,
+	pub(crate) view_depth: usize,
+}
+
+pub(crate) struct MvcItemMacroState {
+	pub(crate) counter: usize,
+	pub(crate) config_text: String,
+}
+
+#[derive(Debug)]
+pub(crate) struct MvcAttrState {
+	pub(crate) views: Vec<ViewInfo>,
+	pub(crate) macros: Vec<InstanceType>,
+	pub(crate) adds: Vec<String>,
+	pub(crate) is_builder: bool,
+	pub(crate) config_text: String,
+}
+
+#[derive(Debug)]
+pub(crate) struct MvcItemState {
+	pub(crate) struct_name: String,
+	pub(crate) views: Vec<ViewInfo>,
+	pub(crate) macros: Vec<InstanceType>,
+	pub(crate) builder: String,
+	pub(crate) fn_list: HashMap<String, Vec<MvcFnInfo>>,
+	pub(crate) config_text: String,
+}
+
+#[derive(Debug)]
+pub(crate) struct MvcFnInfo {
+	pub(crate) fn_name: String,
+	pub(crate) trait_signature: String,
+	pub(crate) parameter_list: String,
+}
+
+#[derive(Debug)]
+pub(crate) struct ViewInfo {
+	pub(crate) name: String,
+	pub(crate) is_pub: bool,
+	pub(crate) is_pub_crate: bool,
 }

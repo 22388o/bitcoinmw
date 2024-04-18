@@ -1059,7 +1059,7 @@ pub(crate) fn do_derive_configurable(strm: TokenStream) -> TokenStream {
 			ret.parse().unwrap()
 		}
 		Err(e) => {
-			let _ = error!("parsing Serializable generated error: {}", e);
+			let _ = error!("parsing Configurable generated error: {}", e);
 			"".parse().unwrap()
 		}
 	}

@@ -159,12 +159,14 @@
 mod config;
 mod constants;
 mod document;
+mod mvc;
 mod ser;
 mod types;
 
 extern crate proc_macro;
 use crate::config::do_derive_configurable;
 use crate::document::do_derive_document;
+use crate::mvc::do_derive_mvc;
 use crate::ser::do_derive_serialize;
 use proc_macro::TokenStream;
 
@@ -377,4 +379,19 @@ pub fn add_doc(_attr: TokenStream, item: TokenStream) -> TokenStream {
 	// add doc doesn't actually change anything, it's just a marker used by the document attribute
 	// which modifies the TokenStream. So, we just return the input token stream unchanged.
 	item
+}
+
+#[proc_macro_attribute]
+pub fn mvc(attr: TokenStream, item: TokenStream) -> TokenStream {
+	match do_derive_mvc(&attr, &item) {
+		Ok(stream) => stream,
+		Err(e) => {
+			println!(
+				"ERROR: do_derive_mvc generated an error while parsing attr:\n'{}'\nCannot produce views due to: {}",
+                                attr,
+				e
+			);
+			item
+		}
+	}
 }

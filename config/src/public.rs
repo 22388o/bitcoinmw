@@ -47,3 +47,13 @@ pub trait Configurable {
 	/// options are used.
 	fn allow_dupes(&self) -> HashSet<String>;
 }
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub enum InstanceType {
+	Impl,
+	Box,
+	ImplSend,
+	ImplSync,
+	BoxSend,
+	BoxSync,
+}
