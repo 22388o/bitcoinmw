@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # Bitcoin Mimblewimble (BMW)
+//! # Bitcoin Mimblewimble
 //!
 //! &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[![Build Status](https://dev.azure.com/mwc-project/bitcoinmw/_apis/build/status/cgilliard.bitcoinmw?branchName=main)](https://dev.azure.com/mwc-project/bitcoinmw/_build?definitionId=13)
 //! [![Release Version](https://img.shields.io/github/v/release/cgilliard/bitcoinmw.svg)](https://github.com/cgilliard/bitcoinmw/releases)
@@ -26,9 +26,9 @@
 //! <p align="center">
 //! <img src="https://raw.githubusercontent.com/cgilliard/bitcoinmw/main/.github/images/bmw_logo.jpg"/>
 //! </p>
-//! <p align="center"> Core libraries for Bitcoin Mimblewimble (BMW).</p>
+//! <p align="center"> Core libraries for Bitcoin Mimblewimble.</p>
 //!
 //! # Development Status
 //!
-//! Bitcoin Mimblewimble (BMW) will eventually be a cryptocurrency. It will be based on these core libraries. As they are
+//! Bitcoin Mimblewimble will eventually be a cryptocurrency. It will be based on these core libraries. As they are
 //! available, we will document them here.

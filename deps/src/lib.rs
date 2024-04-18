@@ -16,8 +16,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # The BMW Dependency crate
-//! This is the dependency crate. All BMW dependencies are included in this crate as re-exports and
+//! # The BitcoinMW Dependency crate
+//! This is the dependency crate. All BitcoinMW dependencies are included in this crate as re-exports and
 //! used by the other crates within the repo.
 
 #[cfg(target_os = "windows")]

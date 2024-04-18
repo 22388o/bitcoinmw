@@ -16,9 +16,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # The BMW Error crate
+//! # The BitcoinMW Error crate
 //! This crate includes the main error structs, enums and macros used
-//! in BMW for building and mapping errors. This crate offers
+//! in BitcoinMW for building and mapping errors. This crate offers
 //! wrappers around the rust failure crate. The [`crate::map_err`]
 //! macro can be used to conveniently map errors from 3rd party crates
 //! into [`crate::ErrorKind`] in this crate. The [`crate::err`] macro

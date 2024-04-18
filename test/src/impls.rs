@@ -35,7 +35,7 @@ static GLOBAL_NEXT_PORT: AtomicU16 = AtomicU16::new(9000);
 const TIMEOUT: u64 = 60_000;
 
 /// Pick a free port that does not collide with recently assigned ports. This is used in tests
-/// throughout various BMW crates.
+/// throughout various BitcoinMW crates.
 pub fn pick_free_port() -> Result<u16, Error> {
 	loop {
 		let port = GLOBAL_NEXT_PORT.fetch_add(1, Ordering::SeqCst);

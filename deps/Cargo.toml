@@ -2,7 +2,7 @@
 name = "bmw_deps"
 version = "0.0.3-beta.2"
 authors = ["The BitcoinMW Developers"]
-description = "Dependencies used by BMW"
+description = "Dependencies used by BitcoinMW"
 license = "Apache-2.0"
 repository = "https://github.com/cgilliard/bitcoinmw"
 keywords = [ "crypto", "bitcoinmw"]

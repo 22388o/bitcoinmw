@@ -2,7 +2,7 @@
 name = "bitcoinmw"
 version = "0.0.3-beta.2"
 authors = ["The BitcoinMW Developers"]
-description = "Bitcoin Mimblewimble (BMW) core libraries"
+description = "BitcoinMW core libraries"
 license = "Apache-2.0"
 repository = "https://github.com/cgilliard/bitcoinmw"
 keywords = [ "crypto", "bitcoinmw"]
@@ -13,10 +13,12 @@ edition = "2021"
 
 [workspace]
 members = [
-	"error",
 	"deps",
-	"test",
+	"error",
 	"core",
+	"ser",
+	"derive",
+	"test",
 ]
 exclude = ["etc"]
 
@@ -24,6 +26,8 @@ exclude = ["etc"]
 bmw_deps   = { path = "./deps"   }
 bmw_err    = { path = "./error"  }
 bmw_core   = { path = "./core"   }
+bmw_ser    = { path = "./ser"    }
+bmw_derive = { path = "./derive" }
 
 [dev-dependencies]
 bmw_test   = { path = "./test"   }

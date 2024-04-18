@@ -16,15 +16,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # The BitcoinMW Test Utility crate
-//! This crate provides macros that are used in the tests in other crates
-//! within the BitcoinMW repo.
-
-mod builder;
-mod impls;
-mod macros;
-mod public;
-mod test;
-mod types;
-
-pub use crate::public::*;
+pub(crate) const DOC_REPLACEMENTS: [(&str, &str); 15] = [
+	(" bool ", " `[`prim@bool`]` "),
+	(" () ", " `[`unit`]` "),
+	(" Result ", " `[`Result`]` "),
+	(" Error ", " `[`Error`]` "),
+	(" usize ", " `[`prim@usize`]` "),
+	(" u8 ", " `[`prim@u8`]` "),
+	(" u16 ", " `[`prim@u16`]` "),
+	(" u32 ", " `[`prim@u32`]` "),
+	(" u64 ", " `[`prim@u64`]` "),
+	(" u128 ", " `[`prim@u128`]` "),
+	(" String ", " `[`String`]` "),
+	(" Vec ", " `[`Vec`]` "),
+	(" Box ", " `[`Box`]` "),
+	(" Send ", " `[`Send`]` "),
+	(" Sync ", " `[`Sync`]` "),
+];

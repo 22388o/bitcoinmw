@@ -18,7 +18,7 @@
 
 use bmw_deps::failure::{Context, Fail};
 
-/// Base Error struct which is used throughout BMW.
+/// Base Error struct which is used throughout BitcoinMW.
 #[derive(Debug, Fail)]
 pub struct Error {
 	pub(crate) inner: Context<ErrorKind>,
@@ -90,7 +90,7 @@ pub enum ErrorKind {
 	/// Rustls Error
 	#[fail(display = "rustls error: {}", _0)]
 	Rustls(String),
-	/// BMW Crypt Error
+	/// BitcoinMW Crypt Error
 	#[fail(display = "bmw_crypt error: {}", _0)]
 	Crypt(String),
 	/// Http Error
