@@ -218,6 +218,7 @@ mod test {
 		test_map(ErrKind::Http400, ErrorKind::Http400(s.clone()).into())?;
 		test_map(ErrKind::Http403, ErrorKind::Http403(s.clone()).into())?;
 		test_map(ErrKind::Http404, ErrorKind::Http404(s.clone()).into())?;
+		test_map(ErrKind::Parse, ErrorKind::Parse(s.clone()).into())?;
 
 		Ok(())
 	}
