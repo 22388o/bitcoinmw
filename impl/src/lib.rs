@@ -96,8 +96,8 @@ pub fn derive_configurable(strm: TokenStream) -> TokenStream {
 ///
 #[proc_macro_attribute]
 #[cfg(not(tarpaulin_include))]
-pub fn document(attr: TokenStream, item: TokenStream) -> TokenStream {
-	do_derive_document(attr, item)
+pub fn document(_attr: TokenStream, item: TokenStream) -> TokenStream {
+	do_derive_document(item)
 }
 
 /// The [`crate::add_doc()`] proc_macro_attribute is used as a marker to let the [`crate::document()`]

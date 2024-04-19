@@ -16,6 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use proc_macro::TokenStream;
 use std::collections::HashMap;
 
 pub(crate) struct SerMacroState {
@@ -43,22 +44,14 @@ pub(crate) struct ConfMacroState {
 }
 
 pub(crate) struct DocMacroState {
-	pub(crate) counter: usize,
-	pub(crate) ret: String,
-	pub(crate) in_hash: bool,
-	pub(crate) in_trait: bool,
-	pub(crate) expect_add_doc: bool,
-	pub(crate) docs: DocItem,
-	pub(crate) last_dash: bool,
-	pub(crate) expect_return_type: bool,
-	pub(crate) doc_point: usize,
-	pub(crate) expect_fn_name: bool,
-	pub(crate) expect_parameters: bool,
-	pub(crate) expect_doc_equal: bool,
-	pub(crate) expect_doc_line: bool,
-	pub(crate) expect_name: bool,
-	pub(crate) in_macro_rules: bool,
-	pub(crate) name: String,
+	pub(crate) ret: TokenStream,
+	pub(crate) in_add_doc: bool,
+	pub(crate) in_punct: bool,
+	pub(crate) ret_pre: TokenStream,
+	pub(crate) ret_post: TokenStream,
+	pub(crate) found_doc_point: bool,
+	pub(crate) insert: bool,
+	pub(crate) add_docs: Vec<String>,
 }
 
 pub(crate) struct DocItem {
@@ -69,7 +62,7 @@ pub(crate) struct DocItem {
 	pub(crate) return_type_str: String,
 }
 
-#[derive(Eq)]
+#[derive(Eq, PartialEq)]
 pub(crate) struct Input {
 	pub(crate) name: String,
 	pub(crate) text: String,

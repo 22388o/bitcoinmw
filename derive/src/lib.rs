@@ -20,7 +20,7 @@
 //! crates. Then the user can just do a "use bmw_derive::*;" and use the derive macros which will
 //! have all the needed items from core as well.
 
-//! # The BitcoinMW impl crate
+//! # The BitcoinMW Derive crate
 //! This crate is a proc_macro crate and it includes the Serializable macro and the Configurable
 //! macro.
 //! The serializable macro implements the bmw_ser::Serializable trait for any struct or enum.

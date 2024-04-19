@@ -20,6 +20,20 @@
 mod test {
 	use bmw_derive::*;
 	use bmw_err::*;
+	use std::any::Any;
+
+	#[derive(Serializable)]
+	struct MyStruct {
+		v1: usize,
+		v2: u8,
+		v3: u16,
+		v4: u32,
+	}
+
+	#[test]
+	fn test_serializable() -> Result<(), Error> {
+		Ok(())
+	}
 
 	#[derive(Configurable)]
 	struct ConfigMe {
@@ -31,6 +45,33 @@ mod test {
 		fn default() -> Self {
 			Self { v1: 0, v2: 1 }
 		}
+	}
+
+	#[document]
+	/// pre comment1
+	/// pre comment2
+	#[add_doc(see: "bmw_derive::Serializable")]
+	/// pre comment3
+	#[add_doc(doc_point)]
+	/// this is a regular comment (post)
+	/// another comment (post)
+	pub trait MyTrait {
+		#[document]
+		/// reg doc
+		#[add_doc(see: "std::fmt")]
+		#[add_doc(return: "anything here")]
+		/// ok doc too
+		fn test(&self, abc: usize) -> Result<(), Error>;
+		#[document]
+		/// abc
+		/// def
+		#[add_doc(input: "xyz" - "something unexpected")]
+		/// ghi
+		#[add_doc(doc_point)]
+		/// 123
+		/// 456
+		/// 789
+		fn test2(&mut self, xyz: Box<dyn Any + '_>) -> Result<(usize, ConfigMe), Error>;
 	}
 
 	#[test]
