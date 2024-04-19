@@ -24,7 +24,7 @@ use proc_macro::TokenTree::{Group, Ident, Literal, Punct};
 use std::str::from_utf8;
 
 // Note about tarpaulin. Tarpaulin doesn't cover proc_macros so we disable it throughout this
-// library.
+// crate.
 
 const DEBUG: bool = false;
 

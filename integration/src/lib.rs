@@ -16,9 +16,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! This crate is a convenience crate. It just re-exports both the [`bmw_core`] and [`bmw_impl`]
-//! crates. Then the user can just do a "use bmw_derive::*;" and use the derive macros which will
-//! have all the needed items from core as well.
+//! Integration testing crate
 
-pub use bmw_core::*;
-pub use bmw_impl::*;
+mod test;

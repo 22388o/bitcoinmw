@@ -23,14 +23,15 @@ members = [
 exclude = ["etc"]
 
 [dependencies]
-bmw_deps   = { path = "./deps"   }
-bmw_err    = { path = "./error"  }
-bmw_core   = { path = "./core"   }
-bmw_ser    = { path = "./ser"    }
-bmw_derive = { path = "./derive" }
+bmw_deps   = { path = "./deps"  }
+bmw_err    = { path = "./error" }
+bmw_core   = { path = "./core"  }
+bmw_ser    = { path = "./ser"   }
+bmw_impl   = { path = "./impl"  }
 
 [dev-dependencies]
-bmw_test   = { path = "./test"   }
+bmw_test   = { path = "./test"        }
+bmw_int    = { path = "./integration" }
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 jemallocator = "0.5.4"

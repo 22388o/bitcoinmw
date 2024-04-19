@@ -71,8 +71,9 @@ version = "0.0.3-beta.2"
 dependencies = [
  "bmw_core",
  "bmw_deps",
- "bmw_derive",
  "bmw_err",
+ "bmw_impl",
+ "bmw_int",
  "bmw_ser",
  "bmw_test",
  "built",
@@ -165,9 +166,7 @@ name = "bmw_derive"
 version = "0.0.3-beta.2"
 dependencies = [
  "bmw_core",
- "bmw_deps",
- "bmw_err",
- "bmw_ser",
+ "bmw_impl",
 ]
 
 [[package]]
@@ -175,6 +174,26 @@ name = "bmw_err"
 version = "0.0.3-beta.2"
 dependencies = [
  "bmw_deps",
+]
+
+[[package]]
+name = "bmw_impl"
+version = "0.0.3-beta.2"
+dependencies = [
+ "bmw_core",
+ "bmw_deps",
+ "bmw_err",
+ "bmw_ser",
+]
+
+[[package]]
+name = "bmw_int"
+version = "0.0.3-beta.2"
+dependencies = [
+ "bmw_deps",
+ "bmw_derive",
+ "bmw_err",
+ "bmw_test",
 ]
 
 [[package]]

@@ -78,3 +78,11 @@ pub(crate) struct Input {
 	pub(crate) is_mut: bool,
 	pub(crate) seqno: usize,
 }
+
+#[derive(Debug, PartialEq)]
+pub(crate) enum TokenType {
+	Ident,
+	GroupItem,
+	Literal,
+	Punct,
+}

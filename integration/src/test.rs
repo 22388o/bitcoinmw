@@ -16,9 +16,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! This crate is a convenience crate. It just re-exports both the [`bmw_core`] and [`bmw_impl`]
-//! crates. Then the user can just do a "use bmw_derive::*;" and use the derive macros which will
-//! have all the needed items from core as well.
+#[cfg(test)]
+mod test {
+	use bmw_derive::*;
+	use bmw_err::*;
 
-pub use bmw_core::*;
-pub use bmw_impl::*;
+	#[derive(Configurable)]
+	struct ConfigMe {
+		v1: usize,
+		v2: u8,
+	}
+
+	impl Default for ConfigMe {
+		fn default() -> Self {
+			Self { v1: 0, v2: 1 }
+		}
+	}
+
+	#[test]
+	fn test_config_proc_macro() -> Result<(), Error> {
+		Ok(())
+	}
+}
