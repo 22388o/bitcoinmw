@@ -13,7 +13,6 @@ edition = "2021"
 
 bmw_deps = { path = "../deps"  }
 bmw_err  = { path = "../error" }
-bmw_ser  = { path = "../ser"   }
 bmw_core = { path = "../core"  }
 
 [lib]

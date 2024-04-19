@@ -18,422 +18,10 @@
 
 #[cfg(test)]
 mod test {
-	use crate as bmw_core;
 	use crate::*;
+	use bmw_deps::rand;
 	use bmw_err::*;
-	use std::collections::HashSet;
-
-	// create something like what configurable derive proc macro would create
-	// we can't do that here, so comment it out and manually do it
-	//#[derive(Configurable)]
-	struct MyConfig {
-		//#[param(required)]
-		v1: u8,
-		v2: u16,
-		//#[param(required)]
-		v3: u32,
-		v4: u8,
-		v5: String,
-		v6: Vec<String>,
-		v7: Vec<(String, String)>,
-	}
-
-	impl Default for MyConfig {
-		fn default() -> Self {
-			let v1 = 0;
-			let v2 = 0;
-			let v3 = 20;
-			let v4 = 30;
-			let v5 = "".to_string();
-			let v6 = vec![];
-			let v7 = vec![];
-			Self {
-				v1,
-				v2,
-				v3,
-				v4,
-				v5,
-				v6,
-				v7,
-			}
-		}
-	}
-
-	// made by the Configrable proc macro
-	impl MyConfig {
-		fn new() -> Self {
-			Self::default()
-		}
-
-		fn required() -> Vec<String> {
-			vec!["v1".to_string(), "v3".to_string()]
-		}
-	}
-
-	// made by the Configurable proc macro
-	impl Configurable for MyConfig {
-		fn set_u8(&mut self, name: &str, value: u8) {
-			if name == "v1" {
-				self.v1 = value;
-			} else if name == "v4" {
-				self.v4 = value;
-			}
-		}
-		fn set_u16(&mut self, name: &str, value: u16) {
-			if name == "v2" {
-				self.v2 = value;
-			}
-		}
-		fn set_u32(&mut self, name: &str, value: u32) {
-			if name == "v3" {
-				self.v3 = value;
-			}
-		}
-		fn set_u64(&mut self, _name: &str, _value: u64) {}
-		fn set_u128(&mut self, _name: &str, _value: u128) {}
-		fn set_usize(&mut self, _name: &str, _value: usize) {}
-		fn set_string(&mut self, name: &str, value: String) {
-			if name == "v5" {
-				self.v5 = value.clone();
-			}
-			if name == "v6" {
-				self.v6.push(value);
-			}
-		}
-		fn set_bool(&mut self, _name: &str, _value: bool) {}
-		fn set_string_tuple(&mut self, name: &str, value: (String, String)) {
-			if name == "v7" {
-				self.v7.push(value);
-			}
-		}
-
-		fn allow_dupes(&self) -> HashSet<String> {
-			let mut ret = HashSet::new();
-			ret.insert("v6".to_string());
-			ret.insert("v7".to_string());
-			ret
-		}
-	}
-
-	// made by the Configurable proc macro
-	#[derive(Debug)]
-	#[allow(non_camel_case_types, dead_code)]
-	pub enum MyConfig_Options {
-		v1(u8),
-		v2(u16),
-		v3(u32),
-		v4(u8),
-		v5(String),
-		v6(String),
-		v7((String, String)),
-	}
-
-	// made by the Configurable proc macro
-	#[allow(dead_code)]
-	impl MyConfig_Options {
-		fn name(&self) -> &str {
-			match self {
-				MyConfig_Options::v1(_) => "v1",
-				MyConfig_Options::v2(_) => "v2",
-				MyConfig_Options::v3(_) => "v3",
-				MyConfig_Options::v4(_) => "v4",
-				MyConfig_Options::v5(_) => "v5",
-				MyConfig_Options::v6(_) => "v6",
-				MyConfig_Options::v7(_) => "v7",
-			}
-		}
-
-		fn value_u8(&self) -> Option<u8> {
-			match self {
-				MyConfig_Options::v1(v) => Some(*v),
-				MyConfig_Options::v2(_v) => None,
-				MyConfig_Options::v3(_v) => None,
-				MyConfig_Options::v4(v) => Some(*v),
-				MyConfig_Options::v5(_v) => None,
-				MyConfig_Options::v6(_v) => None,
-				MyConfig_Options::v7(_v) => None,
-			}
-		}
-
-		fn value_u16(&self) -> Option<u16> {
-			match self {
-				MyConfig_Options::v1(_v) => None,
-				MyConfig_Options::v2(v) => Some(*v),
-				MyConfig_Options::v3(_v) => None,
-				MyConfig_Options::v4(_v) => None,
-				MyConfig_Options::v5(_v) => None,
-				MyConfig_Options::v6(_v) => None,
-				MyConfig_Options::v7(_v) => None,
-			}
-		}
-
-		fn value_u32(&self) -> Option<u32> {
-			match self {
-				MyConfig_Options::v1(_v) => None,
-				MyConfig_Options::v2(_v) => None,
-				MyConfig_Options::v3(v) => Some(*v),
-				MyConfig_Options::v4(_v) => None,
-				MyConfig_Options::v5(_v) => None,
-				MyConfig_Options::v6(_v) => None,
-				MyConfig_Options::v7(_v) => None,
-			}
-		}
-
-		fn value_u64(&self) -> Option<u64> {
-			match self {
-				MyConfig_Options::v1(_v) => None,
-				MyConfig_Options::v2(_v) => None,
-				MyConfig_Options::v3(_v) => None,
-				MyConfig_Options::v4(_v) => None,
-				MyConfig_Options::v5(_v) => None,
-				MyConfig_Options::v6(_v) => None,
-				MyConfig_Options::v7(_v) => None,
-			}
-		}
-
-		fn value_u128(&self) -> Option<u128> {
-			match self {
-				MyConfig_Options::v1(_v) => None,
-				MyConfig_Options::v2(_v) => None,
-				MyConfig_Options::v3(_v) => None,
-				MyConfig_Options::v4(_v) => None,
-				MyConfig_Options::v5(_v) => None,
-				MyConfig_Options::v6(_v) => None,
-				MyConfig_Options::v7(_v) => None,
-			}
-		}
-
-		fn value_usize(&self) -> Option<usize> {
-			match self {
-				MyConfig_Options::v1(_v) => None,
-				MyConfig_Options::v2(_v) => None,
-				MyConfig_Options::v3(_v) => None,
-				MyConfig_Options::v4(_v) => None,
-				MyConfig_Options::v5(_v) => None,
-				MyConfig_Options::v6(_v) => None,
-				MyConfig_Options::v7(_v) => None,
-			}
-		}
-
-		fn value_string(&self) -> Option<String> {
-			match self {
-				MyConfig_Options::v1(_v) => None,
-				MyConfig_Options::v2(_v) => None,
-				MyConfig_Options::v3(_v) => None,
-				MyConfig_Options::v4(_v) => None,
-				MyConfig_Options::v5(v) => Some(v.clone()),
-				MyConfig_Options::v6(v) => Some(v.clone()),
-				MyConfig_Options::v7(_v) => None,
-			}
-		}
-
-		fn value_bool(&self) -> Option<bool> {
-			match self {
-				MyConfig_Options::v1(_v) => None,
-				MyConfig_Options::v2(_v) => None,
-				MyConfig_Options::v3(_v) => None,
-				MyConfig_Options::v4(_v) => None,
-				MyConfig_Options::v5(_v) => None,
-				MyConfig_Options::v6(_v) => None,
-				MyConfig_Options::v7(_v) => None,
-			}
-		}
-
-		fn value_string_tuple(&self) -> Option<(String, String)> {
-			match self {
-				MyConfig_Options::v1(_v) => None,
-				MyConfig_Options::v2(_v) => None,
-				MyConfig_Options::v3(_v) => None,
-				MyConfig_Options::v4(_v) => None,
-				MyConfig_Options::v5(_v) => None,
-				MyConfig_Options::v6(_v) => None,
-				MyConfig_Options::v7(v) => Some(v.clone()),
-			}
-		}
-	}
-
-	#[test]
-	fn test_multi_configs_same_struct() -> Result<(), Error> {
-		let my_config = config!(MyConfig, MyConfig_Options, vec![v1(100), v3(3), v4(50)])?;
-
-		assert_eq!(my_config.v1, 100);
-		assert_eq!(my_config.v2, 0);
-		assert_eq!(my_config.v3, 3);
-		assert_eq!(my_config.v4, 50);
-
-		// test a duplicate
-		assert!(config!(MyConfig, MyConfig_Options, vec![v1(100), v3(3), v1(50)]).is_err());
-
-		// required option v3 not specified
-		assert!(config!(MyConfig, MyConfig_Options, vec![v1(100)]).is_err());
-
-		let my_config = config!(
-			MyConfig,
-			MyConfig_Options,
-			vec![v1(100), v3(3), v4(50), v5("test".to_string())]
-		)?;
-
-		assert_eq!(my_config.v1, 100);
-		assert_eq!(my_config.v2, 0);
-		assert_eq!(my_config.v3, 3);
-		assert_eq!(my_config.v4, 50);
-		assert_eq!(my_config.v5, "test".to_string());
-		let empty: Vec<String> = vec![];
-		assert_eq!(my_config.v6, empty);
-
-		let my_config = config!(
-			MyConfig,
-			MyConfig_Options,
-			vec![
-				v1(100),
-				v3(3),
-				v4(50),
-				v5("test".to_string()),
-				v6("abc".to_string()),
-				v6("def".to_string())
-			]
-		)?;
-
-		assert_eq!(my_config.v6, vec!["abc".to_string(), "def".to_string()]);
-
-		let my_config = config!(
-			MyConfig,
-			MyConfig_Options,
-			vec![
-				v7(("z".to_string(), "Z".to_string())),
-				v1(10),
-				v3(20),
-				v7(("x".to_string(), "y".to_string()))
-			]
-		)?;
-
-		assert_eq!(
-			my_config.v7,
-			vec![
-				("z".to_string(), "Z".to_string()),
-				("x".to_string(), "y".to_string())
-			]
-		);
-
-		Ok(())
-	}
-
-	struct MyConfigStr {
-		v1: String,
-		v2: u8,
-	}
-
-	impl MyConfigStr {
-		fn new() -> Self {
-			Self::default()
-		}
-
-		fn required() -> Vec<String> {
-			vec![]
-		}
-	}
-
-	impl Default for MyConfigStr {
-		fn default() -> Self {
-			let v1 = "".to_string();
-			let v2 = 0;
-			Self { v1, v2 }
-		}
-	}
-
-	#[allow(non_camel_case_types)]
-	pub enum MyConfigStr_Options<'a> {
-		v1(&'a str),
-		v2(u8),
-	}
-
-	impl Configurable for MyConfigStr {
-		fn set_u8(&mut self, name: &str, value: u8) {
-			if name == "v2" {
-				self.v2 = value;
-			}
-		}
-		fn set_u16(&mut self, _name: &str, _value: u16) {}
-		fn set_u32(&mut self, _name: &str, _value: u32) {}
-		fn set_u64(&mut self, _name: &str, _value: u64) {}
-		fn set_u128(&mut self, _name: &str, _value: u128) {}
-		fn set_usize(&mut self, _name: &str, _value: usize) {}
-		fn set_string(&mut self, name: &str, value: String) {
-			if name == "v1" {
-				self.v1 = value;
-			}
-		}
-		fn set_bool(&mut self, _name: &str, _value: bool) {}
-		fn set_string_tuple(&mut self, _name: &str, _value: (String, String)) {}
-		fn allow_dupes(&self) -> HashSet<String> {
-			HashSet::new()
-		}
-	}
-
-	impl MyConfigStr_Options<'_> {
-		fn name(&self) -> &str {
-			match self {
-				MyConfigStr_Options::v1(_) => "v1",
-				MyConfigStr_Options::v2(_) => "v2",
-			}
-		}
-
-		fn value_u8(&self) -> Option<u8> {
-			match self {
-				MyConfigStr_Options::v2(v) => Some(*v),
-				_ => None,
-			}
-		}
-
-		fn value_u16(&self) -> Option<u16> {
-			None
-		}
-
-		fn value_u32(&self) -> Option<u32> {
-			None
-		}
-
-		fn value_u64(&self) -> Option<u64> {
-			None
-		}
-
-		fn value_u128(&self) -> Option<u128> {
-			None
-		}
-
-		fn value_usize(&self) -> Option<usize> {
-			None
-		}
-
-		fn value_string(&self) -> Option<String> {
-			match self {
-				MyConfigStr_Options::v1(v) => Some((*v).to_string()),
-				_ => None,
-			}
-		}
-
-		fn value_bool(&self) -> Option<bool> {
-			None
-		}
-
-		fn value_string_tuple(&self) -> Option<(String, String)> {
-			None
-		}
-	}
-
-	#[test]
-	fn test_config_str() -> Result<(), Error> {
-		let myconf = config!(MyConfigStr, MyConfigStr_Options, vec![v2(55)])?;
-
-		assert_eq!(myconf.v1, "".to_string());
-		assert_eq!(myconf.v2, 55);
-
-		let myconf = config!(MyConfigStr, MyConfigStr_Options, vec![v2(55), v1("test8")])?;
-
-		assert_eq!(myconf.v1, "test8".to_string());
-		assert_eq!(myconf.v2, 55);
-		Ok(())
-	}
+	use std::fmt::Debug;
 
 	#[test]
 	fn test_instance_enum() -> Result<(), Error> {
@@ -452,6 +40,231 @@ mod test {
 
 		let err: Result<InstanceType, Error> = try_into!("".to_string());
 		assert!(err.is_err());
+		Ok(())
+	}
+
+	// type that can be used to generate an error
+	#[derive(Debug, PartialEq)]
+	struct SerErr {
+		exp: u8,
+		empty: u8,
+	}
+
+	impl Serializable for SerErr {
+		fn read<R: Reader>(reader: &mut R) -> Result<Self, Error> {
+			// read data but return an error unless a specific value is set
+			reader.expect_u8(99)?;
+			reader.read_empty_bytes(1)?;
+			Ok(Self { exp: 99, empty: 0 })
+		}
+		fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
+			// write is regular with no errors
+			writer.write_u8(self.exp)?;
+			writer.write_u8(self.empty)?;
+			Ok(())
+		}
+	}
+
+	// helper function that serializes and deserializes a Serializable and tests them for
+	// equality
+	fn ser_helper<S: Serializable + Debug + PartialEq>(ser_out: S) -> Result<(), Error> {
+		let mut v: Vec<u8> = vec![];
+		serialize(&mut v, &ser_out)?;
+		let ser_in: S = deserialize(&mut &v[..])?;
+		assert_eq!(ser_in, ser_out);
+		Ok(())
+	}
+
+	// struct with all types
+	#[derive(Debug, PartialEq)]
+	struct SerAll {
+		a: u8,
+		b: i8,
+		c: u16,
+		d: i16,
+		e: u32,
+		f: i32,
+		g: u64,
+		h: i64,
+		i: u128,
+		j: i128,
+		k: usize,
+		l: bool,
+		m: f64,
+		n: char,
+		v: Vec<u8>,
+		o: Option<u8>,
+	}
+
+	// read/write with some added data to exercise all functions in the interface
+	impl Serializable for SerAll {
+		fn read<R: Reader>(reader: &mut R) -> Result<Self, Error> {
+			let a = reader.read_u8()?;
+			let b = reader.read_i8()?;
+			let c = reader.read_u16()?;
+			let d = reader.read_i16()?;
+			let e = reader.read_u32()?;
+			let f = reader.read_i32()?;
+			let g = reader.read_u64()?;
+			let h = reader.read_i64()?;
+			let i = reader.read_u128()?;
+			let j = reader.read_i128()?;
+			let k = reader.read_usize()?;
+			let l = bool::read(reader)?;
+			let m = f64::read(reader)?;
+			let n = char::read(reader)?;
+			let v = Vec::read(reader)?;
+			let o = Option::read(reader)?;
+			reader.expect_u8(100)?;
+			assert_eq!(reader.read_u64()?, 4);
+			reader.read_u8()?;
+			reader.read_u8()?;
+			reader.read_u8()?;
+			reader.read_u8()?;
+			reader.read_empty_bytes(10)?;
+
+			let ret = Self {
+				a,
+				b,
+				c,
+				d,
+				e,
+				f,
+				g,
+				h,
+				i,
+				j,
+				k,
+				l,
+				m,
+				n,
+				v,
+				o,
+			};
+
+			Ok(ret)
+		}
+		fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
+			writer.write_u8(self.a)?;
+			writer.write_i8(self.b)?;
+			writer.write_u16(self.c)?;
+			writer.write_i16(self.d)?;
+			writer.write_u32(self.e)?;
+			writer.write_i32(self.f)?;
+			writer.write_u64(self.g)?;
+			writer.write_i64(self.h)?;
+			writer.write_u128(self.i)?;
+			writer.write_i128(self.j)?;
+			writer.write_usize(self.k)?;
+			bool::write(&self.l, writer)?;
+			f64::write(&self.m, writer)?;
+			char::write(&self.n, writer)?;
+			Vec::write(&self.v, writer)?;
+			Option::write(&self.o, writer)?;
+			writer.write_u8(100)?;
+			writer.write_bytes([1, 2, 3, 4])?;
+			writer.write_empty_bytes(10)?;
+			Ok(())
+		}
+	}
+
+	#[test]
+	fn test_ser() -> Result<(), Error> {
+		// create a SerAll with random values
+		let rand_u8: u8 = rand::random();
+		let rand_ch: char = rand_u8 as char;
+		let ser_out = SerAll {
+			a: rand::random(),
+			b: rand::random(),
+			c: rand::random(),
+			d: rand::random(),
+			e: rand::random(),
+			f: rand::random(),
+			g: rand::random(),
+			h: rand::random(),
+			i: rand::random(),
+			j: rand::random(),
+			k: rand::random(),
+			l: false,
+			m: rand::random(),
+			n: rand_ch,
+			v: vec![rand::random(), rand::random(), rand::random()],
+			o: Some(rand::random()),
+		};
+
+		// test it
+		ser_helper(ser_out)?;
+
+		// create again with some other options
+		let rand_u8: u8 = rand::random();
+		let rand_ch: char = rand_u8 as char;
+		let ser_out = SerAll {
+			a: rand::random(),
+			b: rand::random(),
+			c: rand::random(),
+			d: rand::random(),
+			e: rand::random(),
+			f: rand::random(),
+			g: rand::random(),
+			h: rand::random(),
+			i: rand::random(),
+			j: rand::random(),
+			k: rand::random(),
+			l: true,
+			m: rand::random(),
+			n: rand_ch,
+			v: vec![rand::random(), rand::random(), rand::random()],
+			o: None,
+		};
+
+		// test it
+		ser_helper(ser_out)?;
+
+		// test with ()
+		ser_helper(())?;
+		// test with a tuple
+		ser_helper((rand::random::<u32>(), rand::random::<i128>()))?;
+
+		// test with a string
+		ser_helper(("hi there".to_string(), 123))?;
+
+		// test an array
+		let x = [3u8; 8];
+		ser_helper(x)?;
+
+		// test an error
+		let ser_out = SerErr { exp: 100, empty: 0 };
+		let mut v: Vec<u8> = vec![];
+		serialize(&mut v, &ser_out)?;
+		let ser_in: Result<SerErr, Error> = deserialize(&mut &v[..]);
+		assert!(ser_in.is_err());
+
+		// test with the values that do not generate an error
+		let ser_out = SerErr { exp: 99, empty: 0 };
+		let mut v: Vec<u8> = vec![];
+		serialize(&mut v, &ser_out)?;
+		let ser_in: Result<SerErr, Error> = deserialize(&mut &v[..]);
+		assert!(ser_in.is_ok());
+
+		// generate an error again
+		let ser_out = SerErr { exp: 99, empty: 1 };
+		let mut v: Vec<u8> = vec![];
+		serialize(&mut v, &ser_out)?;
+		let ser_in: Result<SerErr, Error> = deserialize(&mut &v[..]);
+		assert!(ser_in.is_err());
+
+		// test a vec of strings
+		let v = vec!["test1".to_string(), "a".to_string(), "okokok".to_string()];
+		ser_helper(v)?;
+
+		// test a ref to a string (read is an error beacuse we can't return a reference
+		// from read).
+		let s = "abc".to_string();
+		let mut v: Vec<u8> = vec![];
+		serialize(&mut v, &&s)?;
+		let s1: Result<&String, Error> = deserialize(&mut &v[..]);
+		assert!(s1.is_err());
+
 		Ok(())
 	}
 }

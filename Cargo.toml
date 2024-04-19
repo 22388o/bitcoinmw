@@ -16,9 +16,10 @@ members = [
 	"deps",
 	"error",
 	"core",
-	"ser",
+	"impl",
 	"derive",
 	"test",
+	"integration",
 ]
 exclude = ["etc"]
 
@@ -26,7 +27,6 @@ exclude = ["etc"]
 bmw_deps   = { path = "./deps"  }
 bmw_err    = { path = "./error" }
 bmw_core   = { path = "./core"  }
-bmw_ser    = { path = "./ser"   }
 bmw_impl   = { path = "./impl"  }
 
 [dev-dependencies]

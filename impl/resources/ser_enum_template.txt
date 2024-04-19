@@ -1,7 +1,7 @@
 // auto-generated impl for Serializable
-impl bmw_ser::Serializable for ${NAME} {
+impl bmw_core::Serializable for ${NAME} {
 	// read implementation
-	fn read<R>(reader: &mut R) -> Result<Self, bmw_err::Error> where R: bmw_ser::Reader {
+	fn read<R>(reader: &mut R) -> Result<Self, bmw_err::Error> where R: bmw_core::Reader {
 		Ok(match reader.read_u16()? {
 			${RET_READ}_ => {
 				let fmt = "unexpected type returned in reader";
@@ -12,7 +12,7 @@ impl bmw_ser::Serializable for ${NAME} {
 	}
 
 	// write implementation
-	fn write<W>(&self, writer: &mut W) -> Result<(), bmw_err::Error> where W: bmw_ser::Writer {
+	fn write<W>(&self, writer: &mut W) -> Result<(), bmw_err::Error> where W: bmw_core::Writer {
 		match self {
 			${RET_WRITE}}
 		Ok(())

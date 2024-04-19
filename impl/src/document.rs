@@ -18,7 +18,7 @@
 
 use crate::constants::*;
 use crate::types::DocMacroState as MacroState;
-use crate::types::{DocItem, Input};
+use crate::types::{DocItem, Input, TokenType};
 use bmw_deps::litrs;
 use bmw_deps::substring::Substring;
 use bmw_err::*;
@@ -118,16 +118,22 @@ pub fn do_derive_document_impl(
 	for tree in item.clone() {
 		match tree {
 			Ident(ident) => {
-				process_ident(ident, &mut state)?;
+				process_ident(ident.clone(), &mut state)?;
+				process_token(ident.to_string(), TokenType::Ident, &mut state)?;
 			}
 			Group(group) => {
 				process_group(group.clone(), &mut state)?;
+				for group_item in group.stream() {
+					process_token(group_item.to_string(), TokenType::GroupItem, &mut state)?;
+				}
 			}
 			Literal(literal) => {
-				process_literal(literal, &mut state)?;
+				process_literal(literal.clone(), &mut state)?;
+				process_token(literal.to_string(), TokenType::Literal, &mut state)?;
 			}
 			Punct(punct) => {
-				process_punct(punct, &mut state)?;
+				process_punct(punct.clone(), &mut state)?;
+				process_token(punct.to_string(), TokenType::Punct, &mut state)?;
 			}
 		}
 	}
@@ -135,6 +141,15 @@ pub fn do_derive_document_impl(
 	debug!("ret='{}'", state.ret)?;
 
 	map_err!(state.ret.parse(), ErrKind::Parse)
+}
+
+#[cfg(not(tarpaulin_include))]
+fn process_token(
+	_token: String,
+	_token_type: TokenType,
+	_state: &mut MacroState,
+) -> Result<bool, Error> {
+	Ok(false)
 }
 
 #[cfg(not(tarpaulin_include))]

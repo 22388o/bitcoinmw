@@ -35,6 +35,12 @@ mod test {
 
 	#[test]
 	fn test_config_proc_macro() -> Result<(), Error> {
+		let config = config!(ConfigMe, ConfigMeOptions, vec![V1(2), V2(3)])?;
+		assert_eq!(config.v1, 2);
+		assert_eq!(config.v2, 3);
+		let config = config!(ConfigMe, ConfigMeOptions, vec![])?;
+		assert_eq!(config.v1, 0);
+		assert_eq!(config.v2, 1);
 		Ok(())
 	}
 }

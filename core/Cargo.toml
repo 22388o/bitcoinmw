@@ -12,5 +12,5 @@ edition = "2021"
 
 [dependencies]
 
+bmw_deps = { path = "../deps"  }
 bmw_err  = { path = "../error" }
-

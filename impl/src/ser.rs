@@ -271,11 +271,14 @@ fn process_field(
 		}
 	} else {
 		state.append_read(
-			&format!("let {} = bmw_ser::Serializable::read(reader)?;\n\t\t", name)[..],
+			&format!(
+				"let {} = bmw_core::Serializable::read(reader)?;\n\t\t",
+				name
+			)[..],
 		);
 		state.append_write(
 			&format!(
-				"bmw_ser::Serializable::write(&self.{}, writer)?;\n\t\t",
+				"bmw_core::Serializable::write(&self.{}, writer)?;\n\t\t",
 				name
 			)[..],
 		);

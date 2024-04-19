@@ -74,7 +74,6 @@ dependencies = [
  "bmw_err",
  "bmw_impl",
  "bmw_int",
- "bmw_ser",
  "bmw_test",
  "built",
  "jemallocator",
@@ -117,6 +116,7 @@ dependencies = [
 name = "bmw_core"
 version = "0.0.3-beta.2"
 dependencies = [
+ "bmw_deps",
  "bmw_err",
 ]
 
@@ -166,6 +166,7 @@ name = "bmw_derive"
 version = "0.0.3-beta.2"
 dependencies = [
  "bmw_core",
+ "bmw_err",
  "bmw_impl",
 ]
 
@@ -183,7 +184,6 @@ dependencies = [
  "bmw_core",
  "bmw_deps",
  "bmw_err",
- "bmw_ser",
 ]
 
 [[package]]
@@ -194,14 +194,6 @@ dependencies = [
  "bmw_derive",
  "bmw_err",
  "bmw_test",
-]
-
-[[package]]
-name = "bmw_ser"
-version = "0.0.3-beta.2"
-dependencies = [
- "bmw_deps",
- "bmw_err",
 ]
 
 [[package]]

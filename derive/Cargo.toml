@@ -12,5 +12,6 @@ edition = "2021"
 
 [dependencies]
 
-bmw_impl = { path = "../impl" }
-bmw_core = { path = "../core" }
+bmw_impl = { path = "../impl"  }
+bmw_core = { path = "../core"  }
+bmw_err  = { path = "../error" }
