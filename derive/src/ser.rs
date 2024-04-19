@@ -21,6 +21,7 @@ use bmw_err::{err, Error};
 use proc_macro::TokenStream;
 use proc_macro::TokenTree;
 use proc_macro::TokenTree::{Group, Ident, Literal, Punct};
+use std::str::from_utf8;
 
 // Note about tarpaulin. Tarpaulin doesn't cover proc_macros so we disable it throughout this
 // library.
@@ -71,26 +72,32 @@ impl MacroState {
 
 	pub(crate) fn ret(&self) -> String {
 		let ret = if self.is_enum {
-			format!("impl bmw_ser::Serializable for {} {{ \n\
-                                        fn read<R>(reader: &mut R) -> Result<Self, bmw_err::Error> where R: bmw_ser::Reader {{\n\
-                                            Ok(match reader.read_u16()? {{ {} _ => {{\n\
-                                            let fmt = \"unexpected type returned in reader\";\n\
-                                            let e = bmw_err::err!(bmw_err::ErrKind::CorruptedData, fmt);\n\
-                                            return Err(e);\n\
-                                            }}\n\
-                                        }}) }} \n\
-                    fn write<W>(&self, writer: &mut W) -> Result<(), bmw_err::Error> where W: bmw_ser::Writer {{ match self {{ {} }} Ok(()) }}\n\
-                    }}", self.name, self.ret_read, self.ret_write)
+			let include_bytes = include_bytes!("../resources/ser_enum_template.txt");
+			// unwrap ok here because we control templates as they are in the binary
+			let template = from_utf8(include_bytes).unwrap();
+			let template = template.replace("${NAME}", &self.name);
+			let template = template.replace("${RET_READ}", &self.ret_read);
+			let template = template.replace("${RET_WRITE}", &self.ret_write);
+
+			template.to_string()
 		} else {
+			let include_bytes = include_bytes!("../resources/ser_struct_template.txt");
+			// unwrap ok here because we control templates as they are in the binary
+			let template = from_utf8(include_bytes).unwrap();
+
+			// concat field names
 			let mut field_name_return = "Ok(Self {".to_string();
 			for x in &self.field_names {
 				field_name_return = format!("{} {},", field_name_return, x);
 			}
 			field_name_return = format!("{} }})", field_name_return);
-			format!("impl bmw_ser::Serializable for {} {{ \n\
-                    fn read<R>(reader: &mut R) -> Result<Self, bmw_err::Error> where R: bmw_ser::Reader {{ {} {} }}\n\
-                    fn write<W>(&self, writer: &mut W) -> Result<(), bmw_err::Error> where W: bmw_ser::Writer {{ {} Ok(()) }}\n\
-                    }}", self.name, self.ret_read, field_name_return, self.ret_write)
+
+			let template = template.replace("${NAME}", &self.name);
+			let template = template.replace("${RET_READ}", &self.ret_read);
+			let template = template.replace("${FIELD_NAME_RETURN}", &field_name_return);
+			let template = template.replace("${RET_WRITE}", &self.ret_write);
+
+			template.to_string()
 		};
 
 		let _ = debug!("ret='{}'", ret);
@@ -235,7 +242,7 @@ fn process_field(
 		if has_inner {
 			state.append_read(
 				&format!(
-					"{} => {}::{}(Serializable::read(reader)?),\n",
+					"{} => {}::{}(Serializable::read(reader)?),\n\t\t\t",
 					state.field_names.len(),
 					state.name,
 					name,
@@ -243,7 +250,7 @@ fn process_field(
 			);
 			state.append_write(
 				&format!(
-					"{}::{}(x) => {{ writer.write_u16({})?; Serializable::write(x, writer)?; }},\n",
+					"{}::{}(x) => {{ writer.write_u16({})?; Serializable::write(x, writer)?; }},\n\t\t\t",
 					state.name,
 					name,
 					state.field_names.len()
@@ -263,9 +270,15 @@ fn process_field(
 			);
 		}
 	} else {
-		state.append_read(&format!("let {} = bmw_ser::Serializable::read(reader)?;\n", name)[..]);
-		state
-			.append_write(&format!("bmw_ser::Serializable::write(&self.{}, writer)?;\n", name)[..]);
+		state.append_read(
+			&format!("let {} = bmw_ser::Serializable::read(reader)?;\n\t\t", name)[..],
+		);
+		state.append_write(
+			&format!(
+				"bmw_ser::Serializable::write(&self.{}, writer)?;\n\t\t",
+				name
+			)[..],
+		);
 	}
 	state.field_names.push(name.clone());
 
