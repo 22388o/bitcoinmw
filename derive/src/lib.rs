@@ -21,10 +21,10 @@
 //! have all the needed items from core as well.
 
 //! # The BitcoinMW Derive crate
-//! This crate is a proc_macro crate and it includes the Serializable macro and the Configurable
+//! This crate imports the proc macro crate which includes the Serializable macro and the Configurable
 //! macro.
-//! The serializable macro implements the bmw_ser::Serializable trait for any struct or enum.
-//! The Configurable macro makes a struct configurable via the [`crate::config`] macro.
+//! The serializable macro implements the [`bmw_core::Serializable`] trait for any struct or enum.
+//! The [`crate::Configurable`] macro makes a struct configurable via the [`crate::config`] macro.
 //!
 //! # Serializable example
 //!

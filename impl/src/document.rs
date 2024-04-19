@@ -16,14 +16,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::constants::*;
 use crate::types::DocMacroState as MacroState;
 use crate::types::{DocItem, Input, TokenType};
-use bmw_deps::litrs;
 use bmw_deps::substring::Substring;
 use bmw_err::*;
+use proc_macro::TokenStream;
 use proc_macro::TokenTree::*;
-use proc_macro::{Group, Ident, Literal, Punct, TokenStream, TokenTree};
 use std::collections::HashMap;
 use std::str::FromStr;
 
@@ -64,7 +62,12 @@ impl MacroState {
 			in_punct: false,
 			insert: false,
 			in_add_doc: false,
+			in_fn_signature: false,
+			prev_single_tick: false,
+			prev_token: "".to_string(),
+			trait_name: None,
 			add_docs: vec![],
+			fn_str: "".to_string(),
 		}
 	}
 }
@@ -78,6 +81,7 @@ impl DocItem {
 			see_str: "".to_string(),
 			return_str: "".to_string(),
 			return_type_str: "".to_string(),
+			trait_name: None,
 		}
 	}
 }
@@ -108,6 +112,9 @@ pub fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error>
 				state.in_punct = false;
 			}
 			Group(group) => {
+				if state.in_fn_signature {
+					state.fn_str = format!("{} {}", state.fn_str, "(");
+				}
 				if state.found_doc_point {
 					state
 						.ret_post
@@ -120,6 +127,10 @@ pub fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error>
 
 				for group_item in group.stream() {
 					process_token(group_item.to_string(), TokenType::GroupItem, &mut state)?;
+				}
+
+				if state.in_fn_signature {
+					state.fn_str = format!("{} {}", state.fn_str, ")");
 				}
 
 				if state.in_add_doc {
@@ -147,19 +158,425 @@ pub fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error>
 
 	state.ret.extend(state.ret_pre);
 
+	match state.trait_name {
+		Some(name) => {
+			let updated = state.ret.to_string().replace(
+				"#[document]",
+				format!("#[document] #[add_doc(trait_name: \"{}\")]", name).as_str(),
+			);
+			debug!("updated='{}'", updated)?;
+			state.ret = map_err!(updated.parse::<TokenStream>(), ErrKind::Parse)?;
+		}
+		None => {}
+	}
 	debug!("ret='{}'", state.ret)?;
 
 	Ok(state.ret)
 }
 
 fn insert_docs(state: &mut MacroState) -> Result<(), Error> {
+	let mut docs = match process_parameters(state.fn_str.clone())? {
+		Some(docs) => docs,
+
+		None => DocItem::new(),
+	};
+
+	for doc in &state.add_docs {
+		process_doc(&doc, &mut docs)?;
+	}
+
+	let mut vec = vec![];
+	for (_, v) in docs.input_hash {
+		vec.push(v);
+	}
+	vec.sort();
+
+	let mut input_str = if vec.len() > 0 {
+		"#[doc = \"# Input Parameters\\n\"]\n".to_string()
+	} else {
+		"".to_string()
+	};
+
+	for v in vec {
+		input_str = format!(
+			"{}#[doc = \"\n* `{}` - [{}{}[`{}`]] - {}\"]\n",
+			input_str,
+			v.name,
+			if v.is_ref { "&" } else { "" },
+			if v.is_mut { "mut" } else { "" },
+			if v.name == "self" && docs.trait_name.is_some() {
+				docs.trait_name.clone().unwrap()
+			} else {
+				v.type_str
+			},
+			v.text
+		);
+	}
+	debug!("input_str='{}'", input_str)?;
+
+	if docs.return_str.len() > 0 {
+		docs.return_str = format!("#[doc = \"# Return\n\"] {}", docs.return_str);
+	}
+
+	if docs.error_str.len() > 0 {
+		docs.error_str = format!("#[doc = \"# Errors\n\"] {}", docs.error_str);
+	}
+
 	for doc in &state.add_docs {
 		debug!("inserting the following add doc: {}", doc)?;
 	}
+	state.ret.extend(input_str.parse::<TokenStream>());
+	state.ret.extend(docs.return_str.parse::<TokenStream>());
+	state.ret.extend(docs.error_str.parse::<TokenStream>());
+	state.ret.extend(docs.see_str.parse::<TokenStream>());
 	state
 		.ret
-		.extend("#[doc = \"********inserted doc here*******\"]".parse::<TokenStream>());
+		.extend("#[doc = \"<br/>\"]".parse::<TokenStream>());
 	Ok(())
+}
+
+fn process_doc(line: &String, docs: &mut DocItem) -> Result<(), Error> {
+	if line.find("[add_doc") != Some(0) {
+		return Err(err!(ErrKind::Parse, "Unexpected invalid add_doc: {}", line));
+	}
+	let line = line.substring(1, line.len() - 1);
+	let strm = map_err!(TokenStream::from_str(line), ErrKind::Parse)?;
+	let mut elems = vec![];
+	for elem in strm {
+		debug!("elem={}", elem)?;
+		elems.push(elem.to_string());
+	}
+
+	if elems.len() < 2 {
+		return Err(err!(
+			ErrKind::Parse,
+			"Unexpected empty add_doc: {}, len: {}",
+			line,
+			elems.len()
+		));
+	}
+
+	if elems[1].len() < 3 {
+		return Err(err!(ErrKind::Parse, "Unexpected invalid add_doc: {}", line));
+	}
+	let line = elems[1].substring(1, elems[1].len() - 1);
+	let strm = map_err!(TokenStream::from_str(&line), ErrKind::Parse)?;
+	let mut elems = vec![];
+	for elem in strm {
+		debug!("elem={}", elem)?;
+		elems.push(elem.to_string());
+	}
+
+	if elems.len() < 1 {
+		return Err(err!(ErrKind::Parse, "Unexpected invalid add_doc: {}", line));
+	}
+
+	if elems[0] == "input" {
+		if elems.len() != 5 || elems[2].len() < 3 || elems[4].len() < 3 {
+			return Err(err!(ErrKind::Parse, "Unexpected invalid add_doc: {}", line));
+		}
+
+		let elem = elems[2].substring(1, elems[2].len() - 1).to_string();
+		match docs.input_hash.get_mut(&elem) {
+			Some(ref mut input) => {
+				input.text = format!(
+					"{} {}",
+					input.text,
+					elems[4]
+						.substring(1, elems[4].len() - 1)
+						.to_string()
+						.clone()
+				);
+			}
+			None => {
+				return Err(err!(
+					ErrKind::IllegalArgument,
+					"unknown input '{}',line='{}'",
+					elems[2],
+					line
+				));
+			}
+		}
+	} else if elems[0] == "return" {
+		if elems.len() < 3 || elems[1] != ":" || elems[2].len() < 3 {
+			return Err(err!(ErrKind::Parse, "Unexpected invalid add_doc: {}", line));
+		}
+
+		if docs.return_str.len() == 0 {
+			docs.return_str = format!(
+				"{} #[doc = \"{} {}\"]\n",
+				docs.return_str,
+				if docs.return_type_str.len() > 0 {
+					format!("{} - ", docs.return_type_str)
+				} else {
+					"".to_string()
+				},
+				elems[2].substring(1, elems[2].len() - 1)
+			);
+		} else {
+			docs.return_str = format!(
+				"{} #[doc = \"{}\"]\n",
+				docs.return_str,
+				elems[2].substring(1, elems[2].len() - 1)
+			);
+		}
+	} else if elems[0] == "see" {
+		if elems.len() < 3 || elems[1] != ":" || elems[2].len() < 3 {
+			return Err(err!(ErrKind::Parse, "Unexpected invalid add_doc: {}", line));
+		}
+		if docs.see_str.len() == 0 {
+			docs.see_str = format!(
+				"#[doc = \"# Also see\n * [`{}`]\"]\n",
+				elems[2].substring(1, elems[2].len() - 1)
+			);
+		} else {
+			docs.see_str = format!(
+				"{} #[doc = \" * [`{}`]\"]\n",
+				docs.see_str,
+				elems[2].substring(1, elems[2].len() - 1)
+			);
+		}
+	} else if elems[0] == "error" {
+		if elems.len() < 3 || elems[1] != ":" || elems[2].len() < 3 {
+			return Err(err!(ErrKind::Parse, "Unexpected invalid add_doc: {}", line));
+		}
+
+		if elems.len() != 5 || (elems.len() == 5 && elems[3] != "-") || elems[4].len() < 3 {
+			return Err(err!(ErrKind::Parse, "Unexpected invalid add_doc: {}", line));
+		}
+
+		docs.error_str = format!(
+			"{} #[doc = \" * [`{}`] - {}\n\"]",
+			docs.error_str,
+			elems[2].substring(1, elems[2].len() - 1),
+			elems[4].substring(1, elems[4].len() - 1),
+		);
+	} else if elems[0] == "trait_name" {
+		if elems.len() < 3 || elems[1] != ":" || elems[2].len() < 3 {
+			return Err(err!(ErrKind::Parse, "Unexpected invalid add_doc: {}", line));
+		}
+
+		docs.trait_name = Some(elems[2].substring(1, elems[2].len() - 1).to_string());
+	} else {
+		return Err(err!(
+			ErrKind::Parse,
+			"Unexpected command in add_doc tag: '{}', command: {}",
+			line,
+			elems[0]
+		));
+	}
+
+	Ok(())
+}
+
+fn add_name_value(
+	name: String,
+	value: String,
+	is_ref: bool,
+	is_mut: bool,
+	seqno: usize,
+	docs: &mut DocItem,
+) -> Result<(), Error> {
+	debug!("add param name = {}", name)?;
+	let mut found = true;
+	match docs.input_hash.get_mut(&name) {
+		Some(input) => {
+			input.type_str = value.clone();
+			input.is_ref = is_ref;
+			input.is_mut = is_mut;
+			input.seqno = seqno;
+		}
+		None => {
+			found = false;
+		}
+	}
+
+	if !found {
+		docs.input_hash.insert(
+			name.clone(),
+			Input {
+				text: "".to_string(),
+				type_str: value,
+				is_mut,
+				is_ref,
+				seqno,
+				name,
+			},
+		);
+	}
+
+	Ok(())
+}
+
+fn process_parameters(line: String) -> Result<Option<DocItem>, Error> {
+	if line.len() < 3 {
+		return Ok(None);
+	}
+	let mut docs = DocItem::new();
+
+	let line = line.substring(1, line.len() - 1);
+	let strm = map_err!(TokenStream::from_str(&line), ErrKind::Parse)?;
+	let mut elems = vec![];
+	for elem in strm {
+		let ident = match elem {
+			Ident(_) => true,
+			_ => false,
+		};
+		debug!("fn param={},is_ident={}", elem, ident)?;
+		if ident {
+			elems.push(format!("[`{}`]", elem));
+		} else {
+			elems.push(elem.to_string());
+		}
+	}
+
+	if elems.len() < 2 {
+		return Err(err!(
+			ErrKind::Parse,
+			"unexpected function line (1): '{}'. Cannot parse.",
+			line
+		));
+	}
+
+	if elems[1] == "()" {
+		// empty function
+		for i in 2..elems.len() {
+			debug!("() elems[{}]='{}'", i, elems[i])?;
+		}
+	} else if elems[1].len() < 3 {
+		return Err(err!(
+			ErrKind::Parse,
+			"unexpected function line (2): '{}'. Cannot parse. elems[1] = '{}'",
+			line,
+			elems[1]
+		));
+	}
+
+	// everything after 1 is the return string
+	if elems.len() >= 3 && elems[2] == ";" {
+		docs.return_type_str = "[`unit`]".to_string();
+	} else if elems.len() >= 5 && elems[2] == "-" && elems[3] == ">" {
+		docs.return_type_str = "".to_string();
+		for i in 4..elems.len() {
+			docs.return_type_str = format!("{} {}", docs.return_type_str, elems[i]);
+		}
+	} else {
+		// empty with no return
+	}
+	debug!("return_type_str='{}'", docs.return_type_str)?;
+
+	if elems[1] == "()" {
+		// return because there are no params
+		return Ok(Some(docs));
+	}
+	// parameter line
+	let strm = map_err!(
+		TokenStream::from_str(&elems[1].substring(1, elems[1].len() - 1)),
+		ErrKind::Parse
+	)?;
+	let mut elems = vec![];
+	for elem in strm {
+		debug!("parameter param={}", elem)?;
+		elems.push(elem.to_string());
+	}
+	if elems.len() == 0 {
+		return Err(err!(
+			ErrKind::Parse,
+			"unexpected function line (3): '{}'. Cannot parse.",
+			line
+		));
+	}
+
+	let mut itt = 0;
+	let mut is_mut = false;
+	let mut seqno = 0;
+	if elems[0] == "&" {
+		itt += 1;
+		if elems.len() <= 1 {
+			return Err(err!(
+				ErrKind::Parse,
+				"expected at least 2 elements in fn params",
+			));
+		}
+
+		loop {
+			if itt >= elems.len() {
+				break;
+			}
+
+			if elems[itt] == "," {
+				break;
+			} else if elems[itt] == "mut" {
+				is_mut = true;
+			} else if elems[itt] == "self" {
+				add_name_value(
+					"self".to_string(),
+					"".to_string(),
+					true,
+					is_mut,
+					seqno,
+					&mut docs,
+				)?;
+				seqno += 1;
+			}
+			itt += 1;
+		}
+	}
+
+	let mut name: Option<String> = None;
+	let mut is_mut = false;
+	let mut is_ref = false;
+	let mut type_str: String = "".to_string();
+	// we should be at either the end (no params) or at the first comma
+	loop {
+		if itt >= elems.len() {
+			break;
+		}
+
+		if elems[itt] != "," && name.is_none() {
+			name = Some(elems[itt].clone());
+		} else if elems[itt] == "," {
+			if name.is_some() {
+				add_name_value(
+					name.as_ref().unwrap().clone(),
+					type_str.clone(),
+					is_ref,
+					is_mut,
+					seqno,
+					&mut docs,
+				)?;
+				seqno += 1;
+				debug!("name='{:?}',value='{}'", name, type_str)?;
+			}
+			name = None;
+			type_str = "".to_string();
+			is_mut = false;
+			is_ref = false;
+		} else if name.is_some() && type_str == "" && elems[itt] == "&" {
+			debug!("found an is_ref")?;
+			is_ref = true;
+		} else if name.is_some() && type_str == "" && elems[itt] == "mut" {
+			is_mut = true;
+		} else if name.is_some() && elems[itt] != ":" {
+			type_str = format!("{} {}", type_str, elems[itt]);
+		}
+
+		itt += 1;
+	}
+
+	if name.is_some() {
+		add_name_value(
+			name.as_ref().unwrap().clone(),
+			type_str.clone(),
+			is_ref,
+			is_mut,
+			seqno,
+			&mut docs,
+		)?;
+		debug!("name='{:?}',value='{}'", name, type_str)?;
+	}
+
+	Ok(Some(docs))
 }
 
 fn update_state(state: &mut MacroState) -> Result<(), Error> {
@@ -182,14 +599,43 @@ fn process_token(
 	token_type: TokenType,
 	state: &mut MacroState,
 ) -> Result<bool, Error> {
-	//debug!("token='{}',type={:?}", token, token_type)?;
+	if state.prev_token == "trait" {
+		state.trait_name = Some(token.clone());
+		debug!("trait_name={:?}", state.trait_name)?;
+	}
+	if state.in_fn_signature {
+		if token == ">" || state.prev_single_tick {
+			state.fn_str = format!("{}{}", state.fn_str, token);
+		} else {
+			state.fn_str = format!("{} {}", state.fn_str, token);
+		}
+		debug!("infnsig,token='{}',type='{:?}'", token, token_type)?;
+		if token == ";" && token_type == TokenType::Punct {
+			debug!("fn str = '{}',", state.fn_str)?;
+			update_state(state)?;
+			state.in_fn_signature = false;
+		}
+	}
+
+	if token == "\'" {
+		state.prev_single_tick = true;
+	} else {
+		state.prev_single_tick = false;
+	}
 
 	if token_type == TokenType::Punct {
 		state.in_punct = true;
 	}
 
-	if (token == "trait" || token == "pub" || token == "fn") && !state.insert {
-		update_state(state)?;
+	if (token == "trait" || token == "pub" || token == "fn" || token == "macro_rules")
+		&& !state.insert
+	{
+		state.found_doc_point = true;
+		if token != "fn" {
+			update_state(state)?;
+		} else {
+			state.in_fn_signature = true;
+		}
 	}
 
 	if token_type != TokenType::GroupItem {
@@ -214,6 +660,8 @@ fn process_token(
 		state.in_add_doc = true;
 	}
 
+	state.prev_token = token.clone();
+
 	Ok(false)
 }
 
@@ -221,4 +669,34 @@ fn extend(strm: &TokenStream, token: &String) -> Result<TokenStream, Error> {
 	let pre = strm.to_string();
 
 	map_err!(format!("{}{}", pre, token).parse(), ErrKind::Parse)
+}
+
+impl PartialEq for Input {
+	fn eq(&self, cmp: &Input) -> bool {
+		cmp.seqno == self.seqno
+	}
+}
+
+impl PartialOrd for Input {
+	fn partial_cmp(&self, cmp: &Input) -> Option<std::cmp::Ordering> {
+		if self.seqno < cmp.seqno {
+			Some(std::cmp::Ordering::Less)
+		} else if self.seqno > cmp.seqno {
+			Some(std::cmp::Ordering::Greater)
+		} else {
+			Some(std::cmp::Ordering::Equal)
+		}
+	}
+}
+
+impl Ord for Input {
+	fn cmp(&self, cmp: &Self) -> std::cmp::Ordering {
+		if self.seqno < cmp.seqno {
+			std::cmp::Ordering::Less
+		} else if self.seqno > cmp.seqno {
+			std::cmp::Ordering::Greater
+		} else {
+			std::cmp::Ordering::Equal
+		}
+	}
 }

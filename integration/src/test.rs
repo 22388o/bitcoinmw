@@ -22,6 +22,42 @@ mod test {
 	use bmw_err::*;
 	use std::any::Any;
 
+	//#[derive(Serializable)]
+	enum Other {
+		ABC(usize),
+		DEF(u8),
+	}
+
+	//#[derive(hibernate)]
+	//#[name(MyTestDB)] // optional default name would be the struct name.
+	struct TestUser {
+		v1: usize,
+		//#[unique]
+		name: String,
+		a: (Vec<String>, Option<Other>),
+		//#[unique]
+		email: String,
+		list: Vec<String>,
+	}
+
+	/*
+	impl default for TestUser {
+		...
+	}
+	fn test_hibernate() -> Result<(), Error> {
+		let mut hibernate = hibernate!(Host("127.0.0.1"), Port(1234))?;
+		// or let mut hibernate = hibernate!(File("/path/to/lmdbfile"))?;
+		let mut user = test_user!(Hibernate(&mut hibernate), V1(10))?;
+		if user.read(vec![Name("Joe"), Email("joe@example.com")])? {
+			user.setList(vec!["test1".to_string(), "test2".to_string()]);
+			user.update()?;
+		}
+
+		// drop for user calls commit or it can be called with user.commit()?;
+		Ok(())
+	}
+	 * */
+
 	#[derive(Serializable)]
 	struct MyStruct {
 		v1: usize,
@@ -52,6 +88,7 @@ mod test {
 	/// pre comment2
 	#[add_doc(see: "bmw_derive::Serializable")]
 	/// pre comment3
+	///
 	#[add_doc(doc_point)]
 	/// this is a regular comment (post)
 	/// another comment (post)
@@ -71,7 +108,13 @@ mod test {
 		/// 123
 		/// 456
 		/// 789
-		fn test2(&mut self, xyz: Box<dyn Any + '_>) -> Result<(usize, ConfigMe), Error>;
+		/// ok
+		fn test2(
+			&mut self,
+			v: &[u8],
+			b: [u8; 10],
+			xyz: Box<dyn Any + '_>,
+		) -> Result<(usize, ConfigMe), Error>;
 	}
 
 	#[test]

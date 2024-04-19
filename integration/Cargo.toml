@@ -10,7 +10,7 @@ readme = "README.md"
 exclude = ["**/*.bmw", "**/*.bmw"]
 edition = "2021"
 
-[dev-dependencies]
+[dependencies]
 
 bmw_deps   = { path = "../deps"   }
 bmw_err    = { path = "../error"  }

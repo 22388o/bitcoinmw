@@ -51,10 +51,16 @@ pub(crate) struct DocMacroState {
 	pub(crate) ret_post: TokenStream,
 	pub(crate) found_doc_point: bool,
 	pub(crate) insert: bool,
+	pub(crate) prev_single_tick: bool,
+	pub(crate) prev_token: String,
+	pub(crate) trait_name: Option<String>,
 	pub(crate) add_docs: Vec<String>,
+	pub(crate) in_fn_signature: bool,
+	pub(crate) fn_str: String,
 }
 
 pub(crate) struct DocItem {
+	pub(crate) trait_name: Option<String>,
 	pub(crate) input_hash: HashMap<String, Input>,
 	pub(crate) error_str: String,
 	pub(crate) return_str: String,
@@ -62,7 +68,7 @@ pub(crate) struct DocItem {
 	pub(crate) return_type_str: String,
 }
 
-#[derive(Eq, PartialEq)]
+#[derive(Eq)]
 pub(crate) struct Input {
 	pub(crate) name: String,
 	pub(crate) text: String,

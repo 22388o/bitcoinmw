@@ -22,7 +22,6 @@
 //! See `bmw_derive` for further details.
 
 mod config;
-mod constants;
 mod document;
 mod ser;
 mod types;
