@@ -23,17 +23,53 @@
 
 mod config;
 mod document;
+mod object;
 mod ser;
-mod traitify;
 mod types;
 mod utils;
 
 extern crate proc_macro;
 use crate::config::do_derive_configurable;
 use crate::document::do_derive_document;
+use crate::object::do_derive_object;
 use crate::ser::do_derive_serialize;
-use crate::traitify::do_derive_traitify;
 use proc_macro::TokenStream;
+
+#[proc_macro_attribute]
+#[cfg(not(tarpaulin_include))]
+pub fn object(attr: TokenStream, item: TokenStream) -> TokenStream {
+	do_derive_object(attr, item)
+}
+
+#[proc_macro_attribute]
+#[cfg(not(tarpaulin_include))]
+pub fn public(_attr: TokenStream, item: TokenStream) -> TokenStream {
+	item
+}
+
+#[proc_macro_attribute]
+#[cfg(not(tarpaulin_include))]
+pub fn protected(_attr: TokenStream, item: TokenStream) -> TokenStream {
+	item
+}
+
+#[proc_macro_attribute]
+#[cfg(not(tarpaulin_include))]
+pub fn no_send(_attr: TokenStream, item: TokenStream) -> TokenStream {
+	item
+}
+
+#[proc_macro_attribute]
+#[cfg(not(tarpaulin_include))]
+pub fn no_sync(_attr: TokenStream, item: TokenStream) -> TokenStream {
+	item
+}
+
+#[proc_macro_attribute]
+#[cfg(not(tarpaulin_include))]
+pub fn doc_hidden(_attr: TokenStream, item: TokenStream) -> TokenStream {
+	item
+}
 
 /// This is a proc macro for implementing the bmw_ser::Serializable trait. See the [`crate`]
 /// documentation for examples.
@@ -49,12 +85,6 @@ pub fn derive_serialize(strm: TokenStream) -> TokenStream {
 #[cfg(not(tarpaulin_include))]
 pub fn derive_configurable(strm: TokenStream) -> TokenStream {
 	do_derive_configurable(strm)
-}
-
-#[proc_macro_attribute]
-#[cfg(not(tarpaulin_include))]
-pub fn traitify(attr: TokenStream, item: TokenStream) -> TokenStream {
-	do_derive_traitify(attr, item)
 }
 
 /// The [`crate::document()`] proc_macro_attribute is used to document traits and macros. While the

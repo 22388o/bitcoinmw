@@ -130,166 +130,39 @@ mod test {
 		Ok(())
 	}
 
-	struct MyStruct {
-		config: MyStructConfig,
-		view: String,
-		trait_type: TraitType,
-		count: u128,
-		debug_bark: bool,
-	}
-
-	impl Default for MyStructConfig {
-		fn default() -> Self {
-			Self {
-				threads: 1,
-				timeout: 5_000,
-				server_name: "my_server".to_string(),
-				headers: vec![],
-				header: ("".to_string(), "".to_string()),
-				abc: vec![],
-				def: vec![],
-			}
-		}
-	}
-
-	#[traitify(
-                views=[
-                        pub Cat,
-                        pub Dog,
-                        pub(crate) Bird,
-                        TestMyStruct,
-                ],
-                type=[
-                        IMPL,
-                        DYN,
-                        IMPL_SEND,
-                        IMPL_SYNC,
-                        DYN_SEND,
-                        DYN_SYNC,
-                ],
-                config=[
-                        struct MyStructConfig {
-                                threads: usize,
-                                timeout: u64,
-                                server_name: String,
-                                headers: Vec<(String, String)>,
-                                header: (String, String),
-                                abc: Vec<usize>,
-                                def: Vec<String>,
-                        }
-                ],
-        )]
-	impl MyStruct {
-		#[traitify(builder)]
-		fn builder(
-			config: MyStructConfig,
-			view: String,
-			trait_type: TraitType,
-		) -> Result<Self, Error> {
-			Ok(Self {
-				config,
-				view,
-				trait_type,
-				count: 0,
-				debug_bark: false,
-			})
-		}
-
-		#[traitify(add=[Dog, TestMyStruct])]
-		fn bark(&self) -> Result<(), Error> {
-			if self.debug_bark {
-				println!("WOOF!");
-			} else {
-				println!("woof!");
-			}
-			Ok(())
-		}
-
-		#[traitify(add=[Dog])]
-		fn set_count(&mut self, value: u128) -> Result<u128, Error> {
-			let ret = self.count;
-			self.count = value;
-			Ok(ret)
-		}
-
-		#[traitify(add=[Cat, TestMyStruct])]
-		fn meow(&self) -> Result<(), Error> {
-			println!("meow!");
-			Ok(())
-		}
-
-		#[traitify(add=[Bird, TestMyStruct])]
-		fn chirp(&self) -> Result<(), Error> {
-			println!("chirp!");
-			Ok(())
-		}
-
-		#[traitify(add=[Dog, Cat, Bird, TestMyStruct])]
-		fn speak(&self) -> Result<(), Error> {
-			match self.view.as_str() {
-				"Dog" => self.bark(),
-				"Cat" => self.meow(),
-				"Bird" => self.chirp(),
-				"TestMyStruct" => {
-					self.bark()?;
-					self.meow()?;
-					self.chirp()?;
-					Ok(())
-				}
-				_ => Err(err!(ErrKind::IllegalState, "unknown trait type")),
-			}
-		}
-
-		#[traitify(add=[TestMyStruct])]
-		fn set_debug_bark(&mut self) {
-			self.debug_bark = true;
-		}
-	}
-
-	// generated stuff
-
-	/*
-	trait Dog {
-		fn bark(&self) -> Result<(), Error>;
-		fn speak(&self) -> Result<(), Error>;
-		fn set_count(&mut self, value: u128) -> Result<u128, Error>;
-	}
-
-	impl Dog for MyStruct {
-		fn bark(&self) -> Result<(), Error> {
-			MyStruct::bark(self)
-		}
-		fn speak(&self) -> Result<(), Error> {
-			MyStruct::speak(self)
-		}
-		fn set_count(&mut self, value: u128) -> Result<u128, Error> {
-			MyStruct::set_count(self, value)
-		}
-	}
-				*/
-
 	/*
 
-	#[objectify]
-	#[public(cat,dog)] // make dog and cat pub (optional) - default is private
-	#[protected(bird)] // make bird protected pub(crate) (optional) - default is private
+	#[object]
+	#[public(cat,dog)] // make dog and cat view pub (optional) - default is private
+	#[protected(bird)] // make bird view protected pub(crate) (optional) - default is private
 	#[no_send] // the send and sync builders will not be generated (optional)
 	#[no_sync] // the sync builders will not be generated (optional)
-	{
-			x: [usize, 0],
-			y: [String, "".to_string()],
-			z: String,
-			debug_bark: bool,
-			counter: u64,
+	#[doc_hidden(test)] // hide the docs for test (optional) all traits are public with public
+							// docs unless this is specified. Builder struct prevents building of
+							// non-public views.
+	public MyObject {
+			// user-initialized
+			let x: usize = 0;
+			let s: String = "".to_string();
+			let list: Vec<String> = vec!["".to_string(), "another".to_string()];
 
-			build {
+			// non user-initialised
+			z: String;
+			debug_bark: bool;
+			counter: u64;
+			arr: [i32; 3];
+
+			builder {
 					if config.x == 0 {
 							return Err(err!(ErrKind::Configuration, "0 not legal for x"));
 					}
+
+					// all non user-initialized values must be included here
 					Ok(Self {
 							z: "ok".to_string(),
 							debug_bark: false,
 							counter: 0,
+							arr: [0,0,0],
 					})
 			}
 
@@ -338,21 +211,145 @@ mod test {
 	let dog = dog!(X(1), Y("test"))?;
 	let dog = dog_dyn!(X(2))?;
 	let dog = dog_dyn_sync!()?;
+			*/
 
+	#[object{
+                 let threads: usize = 1;
+                 let timeout: usize = 10_000;
 
-		 */
+                 counter: u128;
+                 debug: bool;
+
+                 builder {
+                        if config.threads == 0 {
+                                return Err(err!(ErrKind::Configuration, "Threads must be at least 1"));
+                        }
+
+                        if config.timeout > 1_000_000 {
+                            return Err(err!(ErrKind::Configuration, "Timeout must be equal to or less than 1_000_000"));
+                        }
+
+                        Ok(Self {
+                                counter: 0,
+                                debug: false,
+                        })
+                 }
+
+                 [dog, test]
+                 fn bark(&mut self) -> Result<(), Error>;
+
+                 [cat, test]
+                 fn meow(&mut self) -> Result<(), Error>;
+
+                 [bird, test]
+                 fn chirp(&mut self) -> Result<(), Error>;
+
+                 fn speak(&mut self) -> Result<(), Error>;
+
+                 [test]
+                 fn set_debug(&mut self, value: bool) -> Result<(), Error>;
+        }]
+	#[public(dog, cat)]
+	#[protected(bird)]
+	#[doc_hidden(test)]
+	#[no_send]
+	#[no_sync]
+	impl Animal {
+		fn bark(&mut self) -> Result<(), Error> {
+			if self.debug {
+				println!("WOOF!");
+			} else {
+				println!("woof!");
+			}
+
+			self.update();
+			Ok(())
+		}
+
+		fn meow(&mut self) -> Result<(), Error> {
+			let now = Instant::now();
+			if self.debug {
+				println!("MEOW!");
+			} else {
+				println!("meow!");
+			}
+
+			if now.elapsed().as_millis() > self.config().timeout {
+				return Err(err!(ErrKind::Timeout, "timeout err"));
+			}
+
+			self.update();
+			Ok(())
+		}
+
+		fn chirp(&mut self) -> Result<(), Error> {
+			if self.debug {
+				println!("CHIRP!");
+			} else {
+				println!("chirp!");
+			}
+
+			self.update();
+			Ok(())
+		}
+
+		fn set_debug(&mut self, value: bool) -> Result<(), Error> {
+			self.get_mut_debug() = value;
+			Ok(())
+		}
+
+		fn speak(&mut self) -> Result<(), Error> {
+			self.show_config()?;
+			match self.trait_name() {
+				Animal::Dog => self.bark()?,
+				Animal::Cat => self.meow()?,
+				Animal::Bird => self.chirp()?,
+				Animal::Test => {
+					self.bark()?;
+					self.meow()?;
+					self.chirp()?;
+				}
+			}
+			Ok(())
+		}
+
+		fn show_config(&self) -> Result<(), Error> {
+			println!("self.config()={:?}", self.config());
+			println!("self.trait_type()={:?}", self.trait_type());
+			println!("self.trait_name=()={:?}", self.trait_name());
+			println!("counter={}", self.get_counter());
+		}
+
+		fn update(&mut self) {
+			self.get_mut_counter() += 1;
+		}
+	}
+
+	enum MyErrKind {
+		Dead,
+		AlmostDead,
+	}
+
+	trait SayHi {
+		fn say_hi(&self) -> String;
+	}
+
+	impl SayHi for MyErrKind {
+		fn say_hi(&self) -> String {
+			match self {
+				Self::Dead => "hi".to_string(),
+				_ => "hi2".to_string(),
+			}
+		}
+	}
 
 	#[test]
-	fn test_traitify() -> Result<(), Error> {
-		let my_str = config!(
-			MyStructConfig,
-			MyStructConfigOptions,
-			vec![Timeout(100), Threads(4)]
-		)?;
+	fn test_object() -> Result<(), Error> {
+		// let dog = dog!(Timeout(100), Threads(2))?;
+		// let dog_dyn = dog_dyn!(Timeout(100))?;
+		// let dog_dyn_send = dog_dyn_send(Threads(10))?;
+		// let cat = cat!()?;
 
-		assert_eq!(my_str.threads, 4);
-		assert_eq!(my_str.timeout, 100);
-		assert_eq!(my_str.server_name, "my_server".to_string());
 		Ok(())
 	}
 }
