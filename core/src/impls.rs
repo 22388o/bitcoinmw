@@ -16,26 +16,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::InstanceType;
+use crate::TraitType;
 use bmw_err::*;
 
-impl TryFrom<String> for InstanceType {
+impl TryFrom<String> for TraitType {
 	type Error = Error;
 	fn try_from(v: String) -> Result<Self, Error> {
 		Ok(if v == "IMPL" {
-			InstanceType::Impl
-		} else if v == "BOX" {
-			InstanceType::Box
+			TraitType::Impl
+		} else if v == "DYN" {
+			TraitType::Dyn
 		} else if v == "IMPL_SEND" {
-			InstanceType::ImplSend
+			TraitType::ImplSend
 		} else if v == "IMPL_SYNC" {
-			InstanceType::ImplSync
-		} else if v == "BOX_SEND" {
-			InstanceType::BoxSend
-		} else if v == "BOX_SYNC" {
-			InstanceType::BoxSync
+			TraitType::ImplSync
+		} else if v == "DYN_SEND" {
+			TraitType::DynSend
+		} else if v == "DYN_SYNC" {
+			TraitType::DynSync
 		} else {
-			return Err(err!(ErrKind::Parse, "'{}' is not a valid InstanceType", v));
+			return Err(err!(ErrKind::Parse, "'{}' is not a valid TraitType", v));
 		})
 	}
 }

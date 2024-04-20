@@ -43,6 +43,38 @@ pub(crate) struct ConfMacroState {
 	pub(crate) options_name: Option<String>,
 }
 
+pub(crate) struct TraitifyMacroState {
+	pub(crate) ret: TokenStream,
+
+	// attr pass
+	pub(crate) in_config: bool,
+	pub(crate) in_views: bool,
+	pub(crate) in_type: bool,
+	pub(crate) in_add: bool,
+	pub(crate) in_builder: bool,
+	pub(crate) expect_command: bool,
+	pub(crate) expect_equal: bool,
+	pub(crate) has_config: bool,
+
+	// item pass
+	pub(crate) expect_struct_name: bool,
+	pub(crate) expect_trait: bool,
+	pub(crate) expect_fn_name: bool,
+	pub(crate) expect_fn_signature: bool,
+	pub(crate) cur_fn_view_list: Vec<String>,
+	pub(crate) cur_fn_name: Option<String>,
+
+	pub(crate) struct_name: Option<String>,
+	pub(crate) views: HashMap<String, Vec<FnInfo>>,
+}
+
+pub(crate) struct FnInfo {
+	name: String,
+	signature_str: String,
+	return_str: String,
+	call_str: String,
+}
+
 pub(crate) struct DocMacroState {
 	pub(crate) ret: TokenStream,
 	pub(crate) in_add_doc: bool,

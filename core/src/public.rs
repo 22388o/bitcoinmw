@@ -52,22 +52,22 @@ pub trait Configurable {
 	fn allow_dupes(&self) -> HashSet<String>;
 }
 
-/// The instance type enum is used to indicate which kind of instance is to be built by the
+/// The trait type enum is used to indicate which kind of instance is to be built by the
 /// traitify macro in the derive crate. See the derive crate for further details.
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub enum InstanceType {
+pub enum TraitType {
 	/// anonymous implementation of the trait
 	Impl,
-	/// Boxed implementation of the trait
-	Box,
+	/// Box dyn implementation of the trait
+	Dyn,
 	/// anonymous implementation + Send marker
 	ImplSend,
 	/// anonymous implementation + Send + Sync markers
 	ImplSync,
-	/// Boxed implmentation of the trait + Send marker
-	BoxSend,
-	/// Boxed implmentation of the trait + Send + Sync markers
-	BoxSync,
+	/// Boxed dyn implmentation of the trait + Send marker
+	DynSend,
+	/// Boxed dyn implmentation of the trait + Send + Sync markers
+	DynSync,
 }
 
 /// Writer trait used for serializing data.

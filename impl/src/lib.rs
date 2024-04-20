@@ -24,12 +24,15 @@
 mod config;
 mod document;
 mod ser;
+mod traitify;
 mod types;
+mod utils;
 
 extern crate proc_macro;
 use crate::config::do_derive_configurable;
 use crate::document::do_derive_document;
 use crate::ser::do_derive_serialize;
+use crate::traitify::do_derive_traitify;
 use proc_macro::TokenStream;
 
 /// This is a proc macro for implementing the bmw_ser::Serializable trait. See the [`crate`]
@@ -46,6 +49,12 @@ pub fn derive_serialize(strm: TokenStream) -> TokenStream {
 #[cfg(not(tarpaulin_include))]
 pub fn derive_configurable(strm: TokenStream) -> TokenStream {
 	do_derive_configurable(strm)
+}
+
+#[proc_macro_attribute]
+#[cfg(not(tarpaulin_include))]
+pub fn traitify(attr: TokenStream, item: TokenStream) -> TokenStream {
+	do_derive_traitify(attr, item)
 }
 
 /// The [`crate::document()`] proc_macro_attribute is used to document traits and macros. While the

@@ -25,20 +25,14 @@ mod test {
 
 	#[test]
 	fn test_instance_enum() -> Result<(), Error> {
-		assert_eq!(try_into!("IMPL".to_string()), Ok(InstanceType::Impl));
-		assert_eq!(try_into!("BOX".to_string()), Ok(InstanceType::Box));
-		assert_eq!(try_into!("BOX_SEND".to_string()), Ok(InstanceType::BoxSend));
-		assert_eq!(try_into!("BOX_SYNC".to_string()), Ok(InstanceType::BoxSync));
-		assert_eq!(
-			try_into!("IMPL_SEND".to_string()),
-			Ok(InstanceType::ImplSend)
-		);
-		assert_eq!(
-			try_into!("IMPL_SYNC".to_string()),
-			Ok(InstanceType::ImplSync)
-		);
+		assert_eq!(try_into!("IMPL".to_string()), Ok(TraitType::Impl));
+		assert_eq!(try_into!("DYN".to_string()), Ok(TraitType::Dyn));
+		assert_eq!(try_into!("DYN_SEND".to_string()), Ok(TraitType::DynSend));
+		assert_eq!(try_into!("DYN_SYNC".to_string()), Ok(TraitType::DynSync));
+		assert_eq!(try_into!("IMPL_SEND".to_string()), Ok(TraitType::ImplSend));
+		assert_eq!(try_into!("IMPL_SYNC".to_string()), Ok(TraitType::ImplSync));
 
-		let err: Result<InstanceType, Error> = try_into!("".to_string());
+		let err: Result<TraitType, Error> = try_into!("".to_string());
 		assert!(err.is_err());
 		Ok(())
 	}
