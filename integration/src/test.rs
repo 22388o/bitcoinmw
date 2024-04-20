@@ -213,42 +213,30 @@ mod test {
 	let dog = dog_dyn_sync!()?;
 			*/
 
-	#[object{
-                 let threads: usize = 1;
-                 let timeout: usize = 10_000;
+	#[object]
+	#[config(threads: usize = 1)]
+	#[config(timeout: usize = 10_000)]
+	#[field(counter: u128)]
+	#[field(debug: bool)]
+	#[builder{
+                if config.threads == 0 {
+                        return Err(err!(ErrKind::Configuration, "Threads must be at least 1"));
+                }
 
-                 counter: u128;
-                 debug: bool;
+                if config.timeout > 1_000_000 {
+                        return Err(err!(ErrKind::Configuration, "Timeout must be equal to or less than 1_000_000"));
+                }
 
-                 builder {
-                        if config.threads == 0 {
-                                return Err(err!(ErrKind::Configuration, "Threads must be at least 1"));
-                        }
-
-                        if config.timeout > 1_000_000 {
-                            return Err(err!(ErrKind::Configuration, "Timeout must be equal to or less than 1_000_000"));
-                        }
-
-                        Ok(Self {
-                                counter: 0,
-                                debug: false,
-                        })
-                 }
-
-                 [dog, test]
-                 fn bark(&mut self) -> Result<(), Error>;
-
-                 [cat, test]
-                 fn meow(&mut self) -> Result<(), Error>;
-
-                 [bird, test]
-                 fn chirp(&mut self) -> Result<(), Error>;
-
-                 fn speak(&mut self) -> Result<(), Error>;
-
-                 [test]
-                 fn set_debug(&mut self, value: bool) -> Result<(), Error>;
+                Ok(Self {
+                        counter: 0,
+                        debug: false,
+                })
         }]
+	#[method(dog, test, [fn bark(&mut self) -> Result<(), Error>])]
+	#[method(cat, test, [fn meow(&mut self) -> Result<(), Error>])]
+	#[method(bird, test, [fn chirp(&mut self) -> Result<(), Error>])]
+	#[method(dog, cat, bird, test, [fn speak(&mut self) -> Result<(), Error>])]
+	#[method(test, [fn set_debug(&mut self, value: bool) -> Result<(), Error>])]
 	#[public(dog, cat)]
 	#[protected(bird)]
 	#[doc_hidden(test)]
