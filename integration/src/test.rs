@@ -22,6 +22,7 @@ mod test {
 	use bmw_err::*;
 	use std::any::Any;
 
+	/*
 	//#[derive(Serializable)]
 	enum Other {
 		ABC(usize),
@@ -40,7 +41,6 @@ mod test {
 		list: Vec<String>,
 	}
 
-	/*
 	impl default for TestUser {
 		...
 	}

@@ -272,11 +272,12 @@ fn process_doc(line: &String, docs: &mut DocItem) -> Result<(), Error> {
 	}
 
 	if elems[0] == "input" {
-		if elems.len() != 5 || elems[2].len() < 3 || elems[4].len() < 3 {
+		if elems.len() < 5 || elems[2].len() < 3 || elems[4].len() < 3 {
 			return Err(err!(ErrKind::Parse, "Unexpected invalid add_doc: {}", line));
 		}
 
 		let elem = elems[2].substring(1, elems[2].len() - 1).to_string();
+		let mut insert = false;
 		match docs.input_hash.get_mut(&elem) {
 			Some(ref mut input) => {
 				input.text = format!(
@@ -289,17 +290,49 @@ fn process_doc(line: &String, docs: &mut DocItem) -> Result<(), Error> {
 				);
 			}
 			None => {
-				return Err(err!(
-					ErrKind::IllegalArgument,
-					"unknown input '{}',line='{}'",
-					elems[2],
-					line
-				));
+				// allow this for macros only
+				match docs.trait_name {
+					Some(_) => {
+						return Err(err!(
+							ErrKind::IllegalArgument,
+							"unknown input '{}',line='{}'",
+							elems[2],
+							line
+						));
+					}
+					None => {
+						insert = true;
+					}
+				}
 			}
+		}
+
+		if insert {
+			let mut type_str = "".to_string();
+			let mut text = "".to_string();
+			if elems.len() >= 7 && elems[5] == "-" && elems[6].len() >= 3 {
+				type_str = elems[6].substring(1, elems[6].len() - 1).to_string();
+			}
+			if elems[4].len() >= 3 {
+				text = elems[4].substring(1, elems[4].len() - 1).to_string();
+			}
+			let input = Input {
+				is_mut: false,
+				is_ref: false,
+				name: elem.clone(),
+				text,
+				seqno: 0,
+				type_str,
+			};
+			docs.input_hash.insert(elem, input);
 		}
 	} else if elems[0] == "return" {
 		if elems.len() < 3 || elems[1] != ":" || elems[2].len() < 3 {
 			return Err(err!(ErrKind::Parse, "Unexpected invalid add_doc: {}", line));
+		}
+
+		if elems.len() == 5 && elems[4].len() >= 3 {
+			docs.return_type_str = elems[4].substring(1, elems[4].len() - 1).to_string();
 		}
 
 		if docs.return_str.len() == 0 {

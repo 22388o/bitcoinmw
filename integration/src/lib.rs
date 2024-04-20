@@ -77,12 +77,13 @@ pub trait TestDoc {
 ///
 /// ok post
 #[add_doc(see: "bmw_err::ErrKind")]
-#[add_doc(return: "Some return message")]
+#[add_doc(return: "Some return message2" - "[`Box`] < dyn [`std::any::Any`] + [`Send`] + [`Sync`]>")]
+#[add_doc(input: "xyz" - "this is the comment for xyz" - " u64 ")]
 #[add_doc(error: "bmw_err::ErrKind::Log" - "log err occurred")]
 #[add_doc(error: "bmw_err::ErrKind::Log" - "log err occurred2")]
 #[macro_export]
 macro_rules! test_macro {
-	() => {{
+	($xyz:expr) => {{
 		println!("ok");
 	}};
 }
