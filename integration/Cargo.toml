@@ -2,7 +2,7 @@
 name = "bmw_int"
 version = "0.0.3-beta.2"
 authors = ["The BitcoinMW Developers"]
-description = "Integration Tests"
+description = "Core Library for defining traits/enums/structs used in derive"
 license = "Apache-2.0"
 repository = "https://github.com/cgilliard/bitcoinmw"
 keywords = [ "crypto", "bitcoinmw"]
@@ -12,7 +12,5 @@ edition = "2021"
 
 [dependencies]
 
-bmw_deps   = { path = "../deps"   }
-bmw_err    = { path = "../error"  }
-bmw_derive = { path = "../derive" }
-bmw_test   = { path = "../test"   }
+bmw_deps = { path = "../deps" }
+bmw_impl = { path = "../impl" }

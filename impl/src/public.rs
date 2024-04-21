@@ -16,11 +16,69 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use bmw_err::*;
+use crate::err;
+use bmw_deps::failure::{Context, Fail};
 use std::collections::HashSet;
+use std::fmt::{Debug, Display};
 use std::io::{Read, Write};
 
 pub use crate::functions::*;
+
+/// Base Error struct which is used throughout BitcoinMW.
+#[derive(Debug, Fail)]
+pub struct Error {
+	pub(crate) inner: Context<Box<dyn ErrorKind>>,
+}
+
+pub trait ErrorKind: Send + Sync + Display + Debug {}
+
+pub trait ErrKind {}
+
+#[derive(Clone, Eq, PartialEq, Debug, Fail)]
+pub enum CoreErrorKind {
+	/// parse error
+	#[fail(display = "parse error: {}", _0)]
+	Parse(String),
+	/// corrupted data error
+	#[fail(display = "corrupted data error: {}", _0)]
+	CorruptedData(String),
+	/// Operation not supported Error
+	#[fail(display = "operation not supported error: {}", _0)]
+	OperationNotSupported(String),
+	/// TryInto error
+	#[fail(display = "try into error: {}", _0)]
+	TryInto(String),
+	/// Illegal state
+	#[fail(display = "illegal state: {}", _0)]
+	IllegalState(String),
+	/// I/O error
+	#[fail(display = "i/o error: {}", _0)]
+	IO(String),
+	/// TryFrom error
+	#[fail(display = "try/from error: {}", _0)]
+	TryFrom(String),
+	/// OsString error
+	#[fail(display = "osstring error: {}", _0)]
+	OsString(String),
+	/// Utf8 error
+	#[fail(display = "utf8 error: {}", _0)]
+	Utf8(String),
+	/// Poison error
+	#[fail(display = "poison error: {}", _0)]
+	Poison(String),
+	/// Alloc error
+	#[fail(display = "alloc error: {}", _0)]
+	Alloc(String),
+	/// Misc error
+	#[fail(display = "misc error: {}", _0)]
+	Misc(String),
+	/// SystemTime error
+	#[fail(display = "system time error: {}", _0)]
+	SystemTime(String),
+	/// Errno error
+	#[fail(display = "errno: {}", _0)]
+	Errno(String),
+}
 
 /// The [`crate::Configurable`] trait, when implemented, allows structs to be configured.
 /// Currently, [`u8`], [`u16`], [`u32`], [`u64`], [`u128`], [`usize`], [`std::string::String`] and a string tuple `(String, String)` are
@@ -179,7 +237,7 @@ pub trait Reader {
 	fn read_empty_bytes(&mut self, length: usize) -> Result<(), Error> {
 		for _ in 0..length {
 			if self.read_u8()? != 0u8 {
-				return Err(err!(ErrKind::CorruptedData, "expected 0u8"));
+				return err!(CoreErrorKind::CorruptedData, "expected 0u8");
 			}
 		}
 		Ok(())
@@ -194,8 +252,7 @@ pub trait Reader {
 /// # Examples
 ///
 ///```
-/// use bmw_err::*;
-/// use bmw_core::*;
+/// use bmw_impl::*;
 /// use std::fmt::Debug;
 ///
 /// #[derive(Debug, PartialEq)]

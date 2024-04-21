@@ -16,26 +16,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::TraitType;
-use bmw_err::*;
+use crate::IntErrorKind;
+use bmw_impl::{Error, ErrorKind};
 
-impl TryFrom<String> for TraitType {
-	type Error = Error;
-	fn try_from(v: String) -> Result<Self, Error> {
-		Ok(if v == "IMPL" {
-			TraitType::Impl
-		} else if v == "DYN" {
-			TraitType::Dyn
-		} else if v == "IMPL_SEND" {
-			TraitType::ImplSend
-		} else if v == "IMPL_SYNC" {
-			TraitType::ImplSync
-		} else if v == "DYN_SEND" {
-			TraitType::DynSend
-		} else if v == "DYN_SYNC" {
-			TraitType::DynSync
-		} else {
-			return Err(err!(ErrKind::Parse, "'{}' is not a valid TraitType", v));
-		})
+impl ErrorKind for IntErrorKind {}
+
+impl From<IntErrorKind> for Error {
+	fn from(kind: IntErrorKind) -> Error {
+		let kind: Box<dyn ErrorKind> = Box::new(kind);
+		Error::new(kind)
 	}
 }

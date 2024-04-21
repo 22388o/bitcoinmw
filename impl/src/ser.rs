@@ -7,7 +7,6 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-//
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
@@ -16,274 +15,296 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::types::SerMacroState as MacroState;
-use bmw_err::{err, Error};
-use proc_macro::TokenStream;
-use proc_macro::TokenTree;
-use proc_macro::TokenTree::{Group, Ident, Literal, Punct};
-use std::str::from_utf8;
+use crate::{err, BinReader, BinWriter, CoreErrorKind, Error, Reader, Serializable, Writer};
+use std::io::{Read, Write};
 
-// Note about tarpaulin. Tarpaulin doesn't cover proc_macros so we disable it throughout this
-// crate.
+/// implement Serializable for some commonly used types (primative and standard)
 
-const DEBUG: bool = false;
-
-// use a makeshift log because we want to use this as a dependency in the logging crate
-macro_rules! debug {
-        ($line:expr) => {{
-                if DEBUG {
-                        println!($line);
-                }
-                if true {
-                        Ok(())
-                } else {
-                        Err(err!(ErrKind::Log, "impossible logging error"))
-                }
-        }};
-	($line:expr, $($values:tt)*) => {{
-		if DEBUG {
-			println!($line, $($values)*);
+macro_rules! impl_int {
+	($int:ty, $w_fn:ident, $r_fn:ident) => {
+		impl Serializable for $int {
+			fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
+				writer.$w_fn(*self)
+			}
+			fn read<R: Reader>(reader: &mut R) -> Result<$int, Error> {
+				reader.$r_fn()
+			}
 		}
-                if true {
-                        Ok(())
-                } else {
-                        Err(err!(ErrKind::Log, "impossible logging error"))
-                }
-	}};
-}
-macro_rules! error {
-        ($line:expr, $($values:tt)*) => {{
-                println!($line, $($values)*);
-        }};
+	};
 }
 
-#[cfg(not(tarpaulin_include))]
-impl MacroState {
-	pub(crate) fn new() -> Self {
-		Self {
-			ret_read: "".to_string(),
-			ret_write: "".to_string(),
-			expect_name: false,
-			name: "".to_string(),
-			field_names: vec![],
-			is_enum: false,
-		}
-	}
+impl_int!(u8, write_u8, read_u8);
+impl_int!(u16, write_u16, read_u16);
+impl_int!(u32, write_u32, read_u32);
+impl_int!(i32, write_i32, read_i32);
+impl_int!(u64, write_u64, read_u64);
+impl_int!(i64, write_i64, read_i64);
+impl_int!(i8, write_i8, read_i8);
+impl_int!(i16, write_i16, read_i16);
+impl_int!(u128, write_u128, read_u128);
+impl_int!(i128, write_i128, read_i128);
+impl_int!(usize, write_usize, read_usize);
 
-	pub(crate) fn ret(&self) -> String {
-		let ret = if self.is_enum {
-			let include_bytes = include_bytes!("../resources/ser_enum_template.txt");
-			// unwrap ok here because we control templates as they are in the binary
-			let template = from_utf8(include_bytes).unwrap();
-			let template = template.replace("${NAME}", &self.name);
-			let template = template.replace("${RET_READ}", &self.ret_read);
-			let template = template.replace("${RET_WRITE}", &self.ret_write);
-
-			template.to_string()
+impl Serializable for bool {
+	fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
+		if *self {
+			writer.write_u8(1)?;
 		} else {
-			let include_bytes = include_bytes!("../resources/ser_struct_template.txt");
-			// unwrap ok here because we control templates as they are in the binary
-			let template = from_utf8(include_bytes).unwrap();
-
-			// concat field names
-			let mut field_name_return = "Ok(Self {".to_string();
-			for x in &self.field_names {
-				field_name_return = format!("{} {},", field_name_return, x);
-			}
-			field_name_return = format!("{} }})", field_name_return);
-
-			let template = template.replace("${NAME}", &self.name);
-			let template = template.replace("${RET_READ}", &self.ret_read);
-			let template = template.replace("${FIELD_NAME_RETURN}", &field_name_return);
-			let template = template.replace("${RET_WRITE}", &self.ret_write);
-
-			template.to_string()
-		};
-
-		let _ = debug!("ret='{}'", ret);
-
-		ret
+			writer.write_u8(0)?;
+		}
+		Ok(())
 	}
-
-	fn append_read(&mut self, s: &str) {
-		self.ret_read = format!("{}{}", self.ret_read, s);
-	}
-
-	fn append_write(&mut self, s: &str) {
-		self.ret_write = format!("{}{}", self.ret_write, s);
+	fn read<R: Reader>(reader: &mut R) -> Result<bool, Error> {
+		Ok(reader.read_u8()? != 0)
 	}
 }
 
-#[cfg(not(tarpaulin_include))]
-pub(crate) fn do_derive_serialize(strm: TokenStream) -> TokenStream {
-	let mut state = MacroState::new();
-	let _ = debug!("-----------------derive serialization----------------");
-	match process_strm(strm, &mut state) {
-		Ok(_) => state.ret().parse().unwrap(),
-		Err(e) => {
-			let _ = error!("parsing Serializable generated error: {}", e);
-			"".parse().unwrap()
-		}
+impl Serializable for f64 {
+	fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
+		writer.write_fixed_bytes(self.to_be_bytes())?;
+		Ok(())
+	}
+	fn read<R: Reader>(reader: &mut R) -> Result<f64, Error> {
+		let mut b = [0u8; 8];
+		reader.read_fixed_bytes(&mut b)?;
+		Ok(f64::from_be_bytes(b))
 	}
 }
 
-#[cfg(not(tarpaulin_include))]
-fn process_strm(strm: TokenStream, state: &mut MacroState) -> Result<(), Error> {
-	for tree in strm {
-		process_token_tree(tree, state)?;
+impl Serializable for char {
+	fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
+		writer.write_u8(*self as u8)
 	}
-	Ok(())
+	fn read<R: Reader>(reader: &mut R) -> Result<Self, Error> {
+		Ok(reader.read_u8()? as char)
+	}
 }
 
-#[cfg(not(tarpaulin_include))]
-fn process_token_tree(tree: TokenTree, state: &mut MacroState) -> Result<(), Error> {
-	match tree {
-		Ident(ident) => {
-			let ident = ident.to_string();
-			debug!("ident={}", ident)?;
-
-			if state.expect_name {
-				debug!("struct/enum name = {}", ident)?;
-				state.name = ident.clone();
-				state.expect_name = false;
-			} else if ident != "pub" && ident != "struct" && ident != "enum" {
-				let fmt = format!("error expected pub or struct. Found '{}'", ident);
-				let e = err!(ErrKind::IllegalState, fmt);
-				return Err(e);
-			}
-
-			if ident == "struct" || ident == "enum" {
-				state.expect_name = true;
-				if ident == "struct" {
-					state.is_enum = false;
-				} else {
-					state.is_enum = true;
-				}
-			}
-		}
-		Group(group) => {
-			process_group(group, state)?;
-		}
-		Literal(literal) => {
-			debug!("literal={}", literal)?;
-		}
-		Punct(punct) => {
-			debug!("punct={}", punct)?;
-		}
+impl Serializable for () {
+	fn write<W: Writer>(&self, _writer: &mut W) -> Result<(), Error> {
+		Ok(())
 	}
-	Ok(())
+	fn read<R: Reader>(_reader: &mut R) -> Result<(), Error> {
+		Ok(())
+	}
 }
 
-#[cfg(not(tarpaulin_include))]
-fn process_group(group: proc_macro::Group, state: &mut MacroState) -> Result<(), Error> {
-	debug!("group={}", group)?;
-
-	let mut expect_name = true;
-	let mut name = "".to_string();
-	let mut has_inner = false;
-
-	for item in group.stream() {
-		match item {
-			Ident(ident) => {
-				let ident = ident.to_string();
-				debug!("groupident={}", ident)?;
-				if expect_name && ident != "pub" && ident != "doc" && ident != "crate" {
-					expect_name = false;
-					has_inner = false;
-					name = ident.clone();
-				}
-			}
-			Group(group) => {
-				// we don't need to process the inner group because the read function
-				// only requires the name, we do use this to determine if there's
-				// an inner value
-				debug!("group={}", group)?;
-				has_inner = true;
-			}
-			Literal(literal) => {
-				debug!("groupliteral={}", literal)?;
-			}
-			Punct(punct) => {
-				debug!("grouppunct={}", punct)?;
-				if punct.to_string() == ",".to_string() {
-					debug!("end a name: {}", name)?;
-					process_field(&name, &group, state, has_inner)?;
-					expect_name = true;
-				}
-			}
-		}
+impl<A: Serializable, B: Serializable> Serializable for (A, B) {
+	fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
+		Serializable::write(&self.0, writer)?;
+		Serializable::write(&self.1, writer)
 	}
-
-	// if there's no trailing comma.
-	if !expect_name {
-		debug!("end name end loop: {}", name)?;
-		process_field(&name, &group, state, has_inner)?;
+	fn read<R: Reader>(reader: &mut R) -> Result<(A, B), Error> {
+		Ok((Serializable::read(reader)?, Serializable::read(reader)?))
 	}
-
-	Ok(())
 }
 
-#[cfg(not(tarpaulin_include))]
-fn process_field(
-	name: &String,
-	group: &proc_macro::Group,
-	state: &mut MacroState,
-	has_inner: bool,
-) -> Result<(), Error> {
-	if name.len() == 0 {
-		let fmt = format!("expected name for this group: {:?}", group);
-		let e = err!(ErrKind::IllegalState, fmt);
-		return Err(e);
+impl<S: Serializable> Serializable for Vec<S> {
+	fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
+		let len = self.len();
+		writer.write_usize(len)?;
+		for i in 0..len {
+			Serializable::write(&self[i], writer)?;
+		}
+		Ok(())
+	}
+	fn read<R: Reader>(reader: &mut R) -> Result<Vec<S>, Error> {
+		let len = reader.read_usize()?;
+		let mut v = Vec::with_capacity(len);
+		for _ in 0..len {
+			v.push(Serializable::read(reader)?);
+		}
+		Ok(v)
+	}
+}
+
+impl<S: Serializable> Serializable for Option<S> {
+	fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
+		writer.write_u8(if self.is_some() { 1 } else { 0 })?;
+		if self.is_some() {
+			// unwrap is ok because we called is_some as a condition
+			self.as_ref().unwrap().write(writer)?;
+		}
+		Ok(())
+	}
+	fn read<R: Reader>(reader: &mut R) -> Result<Option<S>, Error> {
+		Ok(match reader.read_u8()? {
+			0 => None,
+			_ => Some(S::read(reader)?),
+		})
+	}
+}
+
+impl Serializable for String {
+	fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
+		writer.write_usize(self.len())?;
+		writer.write_fixed_bytes(self.as_bytes())?;
+		Ok(())
+	}
+	fn read<R: Reader>(reader: &mut R) -> Result<String, Error> {
+		let mut ret = String::new();
+		let len = reader.read_usize()?;
+		for _ in 0..len {
+			ret.push(reader.read_u8()? as char);
+		}
+		Ok(ret)
+	}
+}
+
+impl<S> Serializable for &S
+where
+	S: Serializable,
+{
+	fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
+		S::write(self, writer)?;
+		Ok(())
+	}
+	fn read<R: Reader>(_reader: &mut R) -> Result<Self, Error> {
+		let fmt = "not implemented for reading";
+		err!(CoreErrorKind::OperationNotSupported, fmt)
+	}
+}
+
+macro_rules! impl_arr {
+	($count:expr) => {
+		impl Serializable for [u8; $count] {
+			fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
+				writer.write_fixed_bytes(self)?;
+				Ok(())
+			}
+			fn read<R: Reader>(reader: &mut R) -> Result<[u8; $count], Error> {
+				let mut r = [0u8; $count];
+				reader.read_fixed_bytes(&mut r)?;
+				Ok(r)
+			}
+		}
+	};
+}
+
+impl_arr!(1);
+impl_arr!(2);
+impl_arr!(3);
+impl_arr!(4);
+impl_arr!(5);
+impl_arr!(6);
+impl_arr!(7);
+impl_arr!(8);
+impl_arr!(9);
+impl_arr!(10);
+impl_arr!(11);
+impl_arr!(12);
+impl_arr!(13);
+impl_arr!(14);
+impl_arr!(15);
+impl_arr!(16);
+impl_arr!(17);
+impl_arr!(18);
+impl_arr!(19);
+impl_arr!(20);
+impl_arr!(21);
+impl_arr!(22);
+impl_arr!(23);
+impl_arr!(24);
+impl_arr!(25);
+impl_arr!(26);
+impl_arr!(27);
+impl_arr!(28);
+impl_arr!(29);
+impl_arr!(30);
+impl_arr!(31);
+impl_arr!(32);
+
+impl<'a> BinWriter<'a> {
+	/// Wraps a standard Write in a new BinWriter
+	pub fn new(sink: &'a mut dyn Write) -> BinWriter<'a> {
+		BinWriter { sink }
+	}
+}
+
+impl<'a> Writer for BinWriter<'a> {
+	fn write_fixed_bytes<T: AsRef<[u8]>>(&mut self, bytes: T) -> Result<(), Error> {
+		self.sink.write_all(bytes.as_ref())?;
+		Ok(())
+	}
+}
+
+impl<'a, R: Read> BinReader<'a, R> {
+	/// Constructor for a new BinReader for the provided source
+	pub fn new(source: &'a mut R) -> Self {
+		BinReader { source }
+	}
+}
+
+impl<'a, R: Read> Reader for BinReader<'a, R> {
+	fn read_u8(&mut self) -> Result<u8, Error> {
+		let mut b = [0u8; 1];
+		self.source.read_exact(&mut b)?;
+		Ok(b[0])
+	}
+	fn read_i8(&mut self) -> Result<i8, Error> {
+		let mut b = [0u8; 1];
+		self.source.read_exact(&mut b)?;
+		Ok(b[0] as i8)
+	}
+	fn read_i16(&mut self) -> Result<i16, Error> {
+		let mut b = [0u8; 2];
+		self.source.read_exact(&mut b)?;
+		Ok(i16::from_be_bytes(b))
+	}
+	fn read_u16(&mut self) -> Result<u16, Error> {
+		let mut b = [0u8; 2];
+		self.source.read_exact(&mut b)?;
+		Ok(u16::from_be_bytes(b))
+	}
+	fn read_u32(&mut self) -> Result<u32, Error> {
+		let mut b = [0u8; 4];
+		self.source.read_exact(&mut b)?;
+		Ok(u32::from_be_bytes(b))
+	}
+	fn read_i32(&mut self) -> Result<i32, Error> {
+		let mut b = [0u8; 4];
+		self.source.read_exact(&mut b)?;
+		Ok(i32::from_be_bytes(b))
+	}
+	fn read_u64(&mut self) -> Result<u64, Error> {
+		let mut b = [0u8; 8];
+		self.source.read_exact(&mut b)?;
+		Ok(u64::from_be_bytes(b))
+	}
+	fn read_i128(&mut self) -> Result<i128, Error> {
+		let mut b = [0u8; 16];
+		self.source.read_exact(&mut b)?;
+		Ok(i128::from_be_bytes(b))
+	}
+	fn read_usize(&mut self) -> Result<usize, Error> {
+		let mut b = [0u8; 8];
+		self.source.read_exact(&mut b)?;
+		Ok(usize::from_be_bytes(b))
 	}
 
-	debug!("state.is_enum={},has_inner={}", state.is_enum, has_inner)?;
-	if state.is_enum {
-		debug!("do an append enum")?;
-		if has_inner {
-			state.append_read(
-				&format!(
-					"{} => {}::{}(Serializable::read(reader)?),\n\t\t\t",
-					state.field_names.len(),
-					state.name,
-					name,
-				)[..],
-			);
-			state.append_write(
-				&format!(
-					"{}::{}(x) => {{ writer.write_u16({})?; Serializable::write(x, writer)?; }},\n\t\t\t",
-					state.name,
-					name,
-					state.field_names.len()
-				)[..],
-			);
+	fn read_u128(&mut self) -> Result<u128, Error> {
+		let mut b = [0u8; 16];
+		self.source.read_exact(&mut b)?;
+		Ok(u128::from_be_bytes(b))
+	}
+	fn read_i64(&mut self) -> Result<i64, Error> {
+		let mut b = [0u8; 8];
+		self.source.read_exact(&mut b)?;
+		Ok(i64::from_be_bytes(b))
+	}
+
+	fn read_fixed_bytes(&mut self, buf: &mut [u8]) -> Result<(), Error> {
+		self.source.read_exact(buf)?;
+		Ok(())
+	}
+
+	fn expect_u8(&mut self, val: u8) -> Result<u8, Error> {
+		let b = self.read_u8()?;
+		if b == val {
+			Ok(b)
 		} else {
-			state.append_read(
-				&format!("{} => {}::{},\n", state.field_names.len(), state.name, name)[..],
-			);
-			state.append_write(
-				&format!(
-					"{}::{} => {{ writer.write_u16({})?; }},\n",
-					state.name,
-					name,
-					state.field_names.len()
-				)[..],
-			);
+			let fmt = format!("expected: {:?}, received: {:?}", val, b);
+			err!(CoreErrorKind::CorruptedData, fmt)
 		}
-	} else {
-		state.append_read(
-			&format!(
-				"let {} = bmw_derive::Serializable::read(reader)?;\n\t\t",
-				name
-			)[..],
-		);
-		state.append_write(
-			&format!(
-				"bmw_derive::Serializable::write(&self.{}, writer)?;\n\t\t",
-				name
-			)[..],
-		);
 	}
-	state.field_names.push(name.clone());
-
-	Ok(())
 }

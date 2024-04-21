@@ -7,6 +7,7 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
@@ -15,18 +16,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{BinReader, BinWriter, Serializable};
-use bmw_err::Error;
-use std::io::{Read, Write};
+use bmw_deps::failure::Fail;
 
-/// Serializes a Serializable into any std::io::Write implementation.
-pub fn serialize<W: Serializable>(sink: &mut dyn Write, thing: &W) -> Result<(), Error> {
-	let mut writer = BinWriter::new(sink);
-	thing.write(&mut writer)
-}
-
-/// Deserializes a Serializable from any std::io::Read implementation.
-pub fn deserialize<T: Serializable, R: Read>(source: &mut R) -> Result<T, Error> {
-	let mut reader = BinReader::new(source);
-	T::read(&mut reader)
+#[derive(Clone, Eq, PartialEq, Debug, Fail)]
+pub enum IntErrorKind {
+	/// Test the integration of errors
+	#[fail(display = "integration error: {}", _0)]
+	Integration(String),
 }

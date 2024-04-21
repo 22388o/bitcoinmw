@@ -69,12 +69,8 @@ checksum = "9475866fec1451be56a3c2400fd081ff546538961565ccb5b7142cbd22bc7a51"
 name = "bitcoinmw"
 version = "0.0.3-beta.2"
 dependencies = [
- "bmw_core",
- "bmw_deps",
- "bmw_err",
  "bmw_impl",
  "bmw_int",
- "bmw_test",
  "built",
  "jemallocator",
 ]
@@ -110,14 +106,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
 dependencies = [
  "generic-array",
-]
-
-[[package]]
-name = "bmw_core"
-version = "0.0.3-beta.2"
-dependencies = [
- "bmw_deps",
- "bmw_err",
 ]
 
 [[package]]
@@ -162,28 +150,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "bmw_derive"
-version = "0.0.3-beta.2"
-dependencies = [
- "bmw_core",
- "bmw_err",
- "bmw_impl",
-]
-
-[[package]]
-name = "bmw_err"
-version = "0.0.3-beta.2"
-dependencies = [
- "bmw_deps",
-]
-
-[[package]]
 name = "bmw_impl"
 version = "0.0.3-beta.2"
 dependencies = [
- "bmw_core",
  "bmw_deps",
- "bmw_err",
 ]
 
 [[package]]
@@ -191,17 +161,7 @@ name = "bmw_int"
 version = "0.0.3-beta.2"
 dependencies = [
  "bmw_deps",
- "bmw_derive",
- "bmw_err",
- "bmw_test",
-]
-
-[[package]]
-name = "bmw_test"
-version = "0.0.3-beta.2"
-dependencies = [
- "bmw_deps",
- "bmw_err",
+ "bmw_impl",
 ]
 
 [[package]]
