@@ -18,20 +18,26 @@
 
 #[cfg(test)]
 mod test {
+	#[cfg(unix)]
+	use bmw_deps::nix::errno::Errno;
+
 	use crate::{
 		cbreak, deserialize, err, err_only, kind, map_err, serialize, try_into, CoreErrorKind,
 		Error, ErrorKind, Reader, Serializable, TraitType, Writer,
 	};
 	use bmw_deps::rand;
 	use bmw_deps::url::{ParseError, Url};
+	use std::alloc::{Layout, LayoutError};
 	use std::ffi::OsString;
 	use std::fmt::Debug;
+	use std::net::{AddrParseError, IpAddr};
 	use std::num::ParseIntError;
 	use std::num::TryFromIntError;
 	use std::str::from_utf8;
 	use std::sync::mpsc::sync_channel;
 	use std::sync::{Arc, Mutex, RwLock};
 	use std::thread::spawn;
+	use std::time::{Duration, SystemTime, SystemTimeError};
 
 	fn ret_err() -> Result<(), Error> {
 		err!(CoreErrorKind::Parse, "this is a test {}", 1)
@@ -524,6 +530,61 @@ mod test {
 		let guard = x_clone.read()?;
 		assert_eq!(*guard, true);
 
+		let now = SystemTime::now();
+		let err1: Result<Duration, SystemTimeError> = now
+			.checked_add(Duration::from_millis(1_000_000))
+			.unwrap()
+			.duration_since(now.checked_add(Duration::from_millis(2_000_000)).unwrap());
+
+		let err1 = err1.unwrap_err();
+		let err1: Error = err1.into();
+		let err2: Result<Duration, Error> = err!(
+			CoreErrorKind::SystemTime,
+			"second time provided was later than self"
+		);
+		let err2 = err2.unwrap_err();
+		assert_eq!(err1.kind(), err2.kind());
+
+		let err1: Result<IpAddr, AddrParseError> = "1234".parse();
+		let err1 = err1.unwrap_err();
+		let err1: Error = err1.into();
+		let err2: Result<Duration, Error> = err!(CoreErrorKind::Parse, "invalid IP address syntax");
+		let err2 = err2.unwrap_err();
+		assert_eq!(err1.kind(), err2.kind());
+
+		let err1: Result<Layout, LayoutError> = Layout::from_size_align(7, 7);
+		let err1 = err1.unwrap_err();
+		let err1: Error = err1.into();
+		let err2: Result<Duration, Error> = err!(
+			CoreErrorKind::Alloc,
+			"layout error: invalid parameters to Layout::from_size_align"
+		);
+		let err2 = err2.unwrap_err();
+		assert_eq!(err1.kind(), err2.kind());
+
+		let bytes = vec![0, 159];
+		let value = String::from_utf8(bytes);
+		let err1 = value.unwrap_err();
+		let err1: Error = err1.into();
+		let err2: Result<Duration, Error> = err!(
+			CoreErrorKind::Utf8,
+			"invalid utf-8 sequence of 1 bytes from index 1"
+		);
+		let err2 = err2.unwrap_err();
+		assert_eq!(err1.kind(), err2.kind());
+
+		Ok(())
+	}
+
+	#[test]
+	#[cfg(unix)]
+	fn test_nix() -> Result<(), Error> {
+		let err1: Result<(), Errno> = Err(Errno::EIO);
+		let err1 = err1.unwrap_err();
+		let err1: Error = err1.into();
+		let err2: Result<Duration, Error> = err!(CoreErrorKind::Errno, "EIO: I/O error");
+		let err2 = err2.unwrap_err();
+		assert_eq!(err1.kind(), err2.kind());
 		Ok(())
 	}
 }
