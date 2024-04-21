@@ -19,12 +19,63 @@ use crate::{BinReader, BinWriter, Error, Serializable};
 use std::io::{Read, Write};
 
 /// Serializes a [`crate::Serializable`] into any [`std::io::Write`] implementation.
+/// # Input Parameters
+/// * `sink` - &mut dyn [`Write`] - any implementation of [`Write`].
+/// * `thing` - [`crate::Serializable`] - anything that implements the [`crate::Serializable`]
+/// trait.
+/// # Errors
+/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+/// # Return
+/// * [`unit`]
+/// # Also see
+/// * [`crate::deserialize`]
+/// * [`crate::Serializable`]
+/// # Examples
+///```
+/// use bmw_base::*;
+///
+/// fn main() -> Result<(), Error> {
+///     let input = "this is a string which implements serializable".to_string();
+///     let mut v: Vec<u8> = vec![];
+///     serialize(&mut v, &input)?;
+///     let output: String = deserialize(&mut &v[..])?;
+///     assert_eq!(output, input);
+///     
+///     Ok(())
+/// }
+///```
 pub fn serialize<W: Serializable>(sink: &mut dyn Write, thing: &W) -> Result<(), Error> {
 	let mut writer = BinWriter::new(sink);
 	thing.write(&mut writer)
 }
 
 /// Deserializes a [`crate::Serializable`] from any [`std::io::Read`] implementation.
+/// # Input Parameters
+/// * `source` - &mut dyn [`Read`] - any implementation of [`Read`].
+/// # Errors
+/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+/// * [`crate::BaseErrorKind::OperationNotSupported`] - if the serialized data was from a data
+/// type that did not allow for it to be deserialized.
+/// * [`crate::BaseErrorKind::CorruptedData`] - if the data that was serialized was corrupted.
+/// # Return
+/// * [`Serializable`] - the serialized object.
+/// # Also see
+/// * [`crate::serialize`]
+/// * [`crate::Serializable`]
+/// # Examples
+///```
+/// use bmw_base::*;
+///
+/// fn main() -> Result<(), Error> {
+///     let input = "this is a string which implements serializable".to_string();
+///     let mut v: Vec<u8> = vec![];
+///     serialize(&mut v, &input)?;
+///     let output: String = deserialize(&mut &v[..])?;
+///     assert_eq!(output, input);
+///
+///     Ok(())
+/// }
+///```
 pub fn deserialize<T: Serializable, R: Read>(source: &mut R) -> Result<T, Error> {
 	let mut reader = BinReader::new(source);
 	T::read(&mut reader)

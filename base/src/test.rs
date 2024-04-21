@@ -22,7 +22,7 @@ mod test {
 	use bmw_deps::nix::errno::Errno;
 
 	use crate::{
-		cbreak, deserialize, err, err_only, kind, map_err, serialize, try_into, CoreErrorKind,
+		cbreak, deserialize, err, err_only, kind, map_err, serialize, try_into, BaseErrorKind,
 		Error, ErrorKind, Reader, Serializable, TraitType, Writer,
 	};
 	use bmw_deps::rand;
@@ -40,11 +40,11 @@ mod test {
 	use std::time::{Duration, SystemTime, SystemTimeError};
 
 	fn ret_err() -> Result<(), Error> {
-		err!(CoreErrorKind::Parse, "this is a test {}", 1)
+		err!(BaseErrorKind::Parse, "this is a test {}", 1)
 	}
 
 	fn ret_err2() -> Result<(), Error> {
-		err!(CoreErrorKind::Parse, "this is a test")
+		err!(BaseErrorKind::Parse, "this is a test")
 	}
 
 	fn ret_err3() -> Result<usize, ParseIntError> {
@@ -58,24 +58,24 @@ mod test {
 		let err: Error = ret_err().unwrap_err();
 		let kind = err.kind();
 
-		assert_eq!(kind, &kind!(CoreErrorKind::Parse, "this is a test 1"));
-		assert_ne!(kind, &kind!(CoreErrorKind::Parse, "this is a test 2"));
+		assert_eq!(kind, &kind!(BaseErrorKind::Parse, "this is a test 1"));
+		assert_ne!(kind, &kind!(BaseErrorKind::Parse, "this is a test 2"));
 
 		let err: Error = ret_err2().unwrap_err();
-		assert_eq!(err.kind(), &kind!(CoreErrorKind::Parse, "this is a test"));
+		assert_eq!(err.kind(), &kind!(BaseErrorKind::Parse, "this is a test"));
 
 		Ok(())
 	}
 
 	#[test]
 	fn test_map_err() -> Result<(), Error> {
-		let e = map_err!(ret_err3(), CoreErrorKind::Parse, "1").unwrap_err();
+		let e = map_err!(ret_err3(), BaseErrorKind::Parse, "1").unwrap_err();
 		let exp_text = "1: cannot parse integer from empty string";
-		assert_eq!(e.kind(), &kind!(CoreErrorKind::Parse, exp_text));
+		assert_eq!(e.kind(), &kind!(BaseErrorKind::Parse, exp_text));
 
-		let e = map_err!(ret_err3(), CoreErrorKind::Parse).unwrap_err();
+		let e = map_err!(ret_err3(), BaseErrorKind::Parse).unwrap_err();
 		let exp_text = "cannot parse integer from empty string";
-		assert_eq!(e.kind(), &kind!(CoreErrorKind::Parse, exp_text));
+		assert_eq!(e.kind(), &kind!(BaseErrorKind::Parse, exp_text));
 
 		Ok(())
 	}
@@ -103,7 +103,7 @@ mod test {
 		let exp_text = "out of range integral type conversion attempted";
 		assert_eq!(
 			x.unwrap_err().kind(),
-			&kind!(CoreErrorKind::TryInto, exp_text)
+			&kind!(BaseErrorKind::TryInto, exp_text)
 		);
 		Ok(())
 	}
@@ -360,8 +360,8 @@ mod test {
 
 	#[test]
 	fn test_error_conversions() -> Result<(), Error> {
-		let err1 = err_only!(CoreErrorKind::Parse, "test");
-		let err2: Error = CoreErrorKind::Parse("test".to_string()).into();
+		let err1 = err_only!(BaseErrorKind::Parse, "test");
+		let err2: Error = BaseErrorKind::Parse("test".to_string()).into();
 		assert_eq!(err1, err2);
 
 		assert!(err1.cause().is_none());
@@ -369,31 +369,31 @@ mod test {
 
 		assert_eq!(err1.inner(), err2.inner());
 
-		let kind: Box<dyn ErrorKind> = Box::new(CoreErrorKind::Misc("".to_string()));
+		let kind: Box<dyn ErrorKind> = Box::new(BaseErrorKind::Misc("".to_string()));
 		let err: Error = kind.into();
-		assert_eq!(err.kind(), &kind!(CoreErrorKind::Misc, ""));
+		assert_eq!(err.kind(), &kind!(BaseErrorKind::Misc, ""));
 
 		let ioe = std::io::Error::new(std::io::ErrorKind::NotFound, "uh oh");
 		let ioe: Error = ioe.into();
-		assert_eq!(ioe, err_only!(CoreErrorKind::IO, "uh oh"));
+		assert_eq!(ioe, err_only!(BaseErrorKind::IO, "uh oh"));
 
 		let err: Error = "".parse::<usize>().unwrap_err().into();
 		assert_eq!(
 			err,
 			err_only!(
-				CoreErrorKind::Parse,
+				BaseErrorKind::Parse,
 				"cannot parse integer from empty string"
 			)
 		);
 
 		let err1: Error = get_os_string().unwrap_err();
-		let err2: Result<OsString, Error> = err!(CoreErrorKind::OsString, "\"\"");
+		let err2: Result<OsString, Error> = err!(BaseErrorKind::OsString, "\"\"");
 		let err2 = err2.unwrap_err();
 		assert_eq!(err1.kind(), err2.kind());
 
 		let err1: Error = get_utf8().unwrap_err();
 		let err2: Result<String, Error> = err!(
-			CoreErrorKind::Utf8,
+			BaseErrorKind::Utf8,
 			"invalid utf-8 sequence of 1 bytes from index 0"
 		);
 		let err2 = err2.unwrap_err();
@@ -403,7 +403,7 @@ mod test {
 		let err1 = err1.unwrap_err();
 		let err1: Error = err1.into();
 		let err2: Result<u32, Error> = err!(
-			CoreErrorKind::TryFrom,
+			BaseErrorKind::TryFrom,
 			"out of range integral type conversion attempted"
 		);
 		let err2 = err2.unwrap_err();
@@ -412,14 +412,14 @@ mod test {
 		let err1: Result<i32, ParseIntError> = i32::from_str_radix("a12", 10);
 		let err1 = err1.unwrap_err();
 		let err1: Error = err1.into();
-		let err2: Result<u32, Error> = err!(CoreErrorKind::Parse, "invalid digit found in string");
+		let err2: Result<u32, Error> = err!(BaseErrorKind::Parse, "invalid digit found in string");
 		let err2 = err2.unwrap_err();
 		assert_eq!(err1.kind(), err2.kind());
 
 		let err1: Result<Url, ParseError> = Url::parse("http://[:::1]");
 		let err1 = err1.unwrap_err();
 		let err1: Error = err1.into();
-		let err2: Result<u32, Error> = err!(CoreErrorKind::Parse, "invalid IPv6 address");
+		let err2: Result<u32, Error> = err!(BaseErrorKind::Parse, "invalid IPv6 address");
 		let err2 = err2.unwrap_err();
 		assert_eq!(err1.kind(), err2.kind());
 
@@ -436,7 +436,7 @@ mod test {
 		let err1 = mutex.lock().unwrap_err();
 		let err1: Error = err1.into();
 		let err2: Result<u32, Error> = err!(
-			CoreErrorKind::Poison,
+			BaseErrorKind::Poison,
 			"poisoned lock: another task failed inside"
 		);
 		let err2 = err2.unwrap_err();
@@ -455,7 +455,7 @@ mod test {
 		let err1 = rwlock.write().unwrap_err();
 		let err1: Error = err1.into();
 		let err2: Result<u32, Error> = err!(
-			CoreErrorKind::Poison,
+			BaseErrorKind::Poison,
 			"poisoned lock: another task failed inside"
 		);
 		let err2 = err2.unwrap_err();
@@ -474,7 +474,7 @@ mod test {
 		let err1 = rwlock.read().unwrap_err();
 		let err1: Error = err1.into();
 		let err2: Result<u32, Error> = err!(
-			CoreErrorKind::Poison,
+			BaseErrorKind::Poison,
 			"poisoned lock: another task failed inside"
 		);
 		let err2 = err2.unwrap_err();
@@ -490,7 +490,7 @@ mod test {
 				let err1 = rx.recv().unwrap_err();
 				let err1: Error = err1.into();
 				let err2: Result<u32, Error> =
-					err!(CoreErrorKind::IllegalState, "receiving on a closed channel");
+					err!(BaseErrorKind::IllegalState, "receiving on a closed channel");
 				let err2 = err2.unwrap_err();
 				assert_eq!(err1.kind(), err2.kind());
 				let mut guard = x.write().unwrap();
@@ -516,7 +516,7 @@ mod test {
 				let err1 = err1.unwrap_err();
 				let err1: Error = err1.into();
 				let err2: Result<u32, Error> =
-					err!(CoreErrorKind::IllegalState, "sending on a closed channel");
+					err!(BaseErrorKind::IllegalState, "sending on a closed channel");
 				let err2 = err2.unwrap_err();
 				assert_eq!(err1.kind(), err2.kind());
 				let mut guard = x.write().unwrap();
@@ -539,7 +539,7 @@ mod test {
 		let err1 = err1.unwrap_err();
 		let err1: Error = err1.into();
 		let err2: Result<Duration, Error> = err!(
-			CoreErrorKind::SystemTime,
+			BaseErrorKind::SystemTime,
 			"second time provided was later than self"
 		);
 		let err2 = err2.unwrap_err();
@@ -548,7 +548,7 @@ mod test {
 		let err1: Result<IpAddr, AddrParseError> = "1234".parse();
 		let err1 = err1.unwrap_err();
 		let err1: Error = err1.into();
-		let err2: Result<Duration, Error> = err!(CoreErrorKind::Parse, "invalid IP address syntax");
+		let err2: Result<Duration, Error> = err!(BaseErrorKind::Parse, "invalid IP address syntax");
 		let err2 = err2.unwrap_err();
 		assert_eq!(err1.kind(), err2.kind());
 
@@ -556,7 +556,7 @@ mod test {
 		let err1 = err1.unwrap_err();
 		let err1: Error = err1.into();
 		let err2: Result<Duration, Error> = err!(
-			CoreErrorKind::Alloc,
+			BaseErrorKind::Alloc,
 			"layout error: invalid parameters to Layout::from_size_align"
 		);
 		let err2 = err2.unwrap_err();
@@ -567,7 +567,7 @@ mod test {
 		let err1 = value.unwrap_err();
 		let err1: Error = err1.into();
 		let err2: Result<Duration, Error> = err!(
-			CoreErrorKind::Utf8,
+			BaseErrorKind::Utf8,
 			"invalid utf-8 sequence of 1 bytes from index 1"
 		);
 		let err2 = err2.unwrap_err();
@@ -582,7 +582,7 @@ mod test {
 		let err1: Result<(), Errno> = Err(Errno::EIO);
 		let err1 = err1.unwrap_err();
 		let err1: Error = err1.into();
-		let err2: Result<Duration, Error> = err!(CoreErrorKind::Errno, "EIO: I/O error");
+		let err2: Result<Duration, Error> = err!(BaseErrorKind::Errno, "EIO: I/O error");
 		let err2 = err2.unwrap_err();
 		assert_eq!(err1.kind(), err2.kind());
 		Ok(())

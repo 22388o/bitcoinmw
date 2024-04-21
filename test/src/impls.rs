@@ -17,8 +17,8 @@
 // limitations under the License.
 
 use crate::types::TestInfoImpl;
-use crate::TestInfo;
-use bmw_base::Error;
+use crate::{TestErrorKind, TestInfo};
+use bmw_base::{Error, ErrorKind};
 use bmw_deps::backtrace;
 use bmw_deps::portpicker::is_free;
 use bmw_deps::rand::random;
@@ -123,5 +123,13 @@ impl Drop for TestInfoImpl {
 		if !self.preserve {
 			let _ = remove_dir_all(self.directory.clone());
 		}
+	}
+}
+
+impl ErrorKind for TestErrorKind {}
+
+impl From<TestErrorKind> for Error {
+	fn from(kind: TestErrorKind) -> Error {
+		Error::new(Box::new(kind))
 	}
 }

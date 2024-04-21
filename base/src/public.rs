@@ -36,14 +36,14 @@ pub use crate::functions::*;
 /// * [`crate::map_err`]
 /// # Examples
 ///```
-/// use bmw_base::{Error, map_err, CoreErrorKind};
+/// use bmw_base::{Error, map_err, BaseErrorKind};
 ///
 /// // return Error
 /// fn main() -> Result<(), Error> {
 ///     // this can actually be done with just a '?' because this error
 ///     // a convert implemented. But just for demonstration purposes, map_err
 ///     // can be used.
-///     let x: u32 = map_err!("1234".parse(), CoreErrorKind::Parse)?;
+///     let x: u32 = map_err!("1234".parse(), BaseErrorKind::Parse)?;
 ///     assert_eq!(x, 1234u32);
 ///
 ///     Ok(())
@@ -56,15 +56,49 @@ pub struct Error {
 
 /// The trait which needs to be implemented by each ErrorKind enum. Each crate can implement their
 /// own enum which implements this trait. The trait itself doesn't have any functions.
+/// # Examples
+///```
+/// use bmw_base::*;
+/// use bmw_deps::failure;
+/// use bmw_deps::failure::Fail;
+///
+/// #[derive(Clone, Eq, PartialEq, Debug, Fail)]
+/// enum NewCrateErrorKind {
+///     // blah error
+///     #[fail(display = "blah error: {}", _0)]
+///     Blah(String),
+/// }
+///
+/// // implement the ErrorKind trait
+/// impl ErrorKind for NewCrateErrorKind {}
+///
+/// // implement a From converter
+/// impl From<NewCrateErrorKind> for Error {
+///        fn from(kind: NewCrateErrorKind) -> Error {
+///                Error::new(Box::new(kind))
+///        }
+/// }
+///
+/// fn main() -> Result<(), Error> {
+///     let x = NewCrateErrorKind::Blah("blah error".to_string());
+///     let err: Error = x.into();
+///     assert_eq!(err.kind(), &kind!(NewCrateErrorKind::Blah, "blah error".to_string()));
+///
+///     Ok(())
+/// }
+///```
 /// # See Also
 /// * [`crate::Error`]
 pub trait ErrorKind: Send + Sync + Display + Debug {}
 
-/// The Base [`crate::ErrorKind`] implementation for BitcoinMW. All errors that are mapped from
-/// other crates are mapped to one of these errors. Each crate can implement their own errors using
+/// The Base [`crate::ErrorKind`] implementation for BitcoinMW. Errors in this crate
+/// are mapped to one of these errors. Each crate can implement their own errors using
 /// the [`crate::ErrorKind`] trait.
+/// # Also see
+/// * [`crate::Error`]
+/// * [`crate::ErrorKind`]
 #[derive(Clone, Eq, PartialEq, Debug, Fail)]
-pub enum CoreErrorKind {
+pub enum BaseErrorKind {
 	/// Parse error
 	#[fail(display = "parse error: {}", _0)]
 	Parse(String),
@@ -237,37 +271,197 @@ pub trait Writer {
 /// Reader trait used for deserializing data.
 pub trait Reader {
 	/// read a u8 from the reader and return the value
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`u8`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn read_u8(&mut self) -> Result<u8, Error>;
 	/// read an i8 from the reader and return the value
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`i8`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn read_i8(&mut self) -> Result<i8, Error>;
 	/// read an i16 from the reader and return the value
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`i16`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn read_i16(&mut self) -> Result<i16, Error>;
 	/// read a u16 from the reader and return the value
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`u16`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn read_u16(&mut self) -> Result<u16, Error>;
 	/// read a u32 from the reader and return the value
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`u32`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn read_u32(&mut self) -> Result<u32, Error>;
 	/// read a u64 from the reader and return the value
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`u64`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn read_u64(&mut self) -> Result<u64, Error>;
 	/// read a u128 from the reader and return the value
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`u128`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn read_u128(&mut self) -> Result<u128, Error>;
 	/// read an i128 from the reader and return the value
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`i128`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn read_i128(&mut self) -> Result<i128, Error>;
 	/// read an i32 from the reader and return the value
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`i32`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn read_i32(&mut self) -> Result<i32, Error>;
 	/// read an i64 from the reader and return the value
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`i64`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn read_i64(&mut self) -> Result<i64, Error>;
 	/// read a fixed length of bytes from the reader store them in `buf`
+	/// # Input Parameters
+	/// * `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// * `buf` - [&mut `[u8]`] - a mutable reference to a byte array to store the returned
+	/// data in.
+	/// # Return
+	/// [`unit`]
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn read_fixed_bytes(&mut self, buf: &mut [u8]) -> Result<(), Error>;
 	/// read usize from the Reader.
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`usize`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn read_usize(&mut self) -> Result<usize, Error>;
 	/// expect a specific byte, otherwise return an error
+	/// # Input Parameters
+	/// * `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// * `val` - [`u8`] - the expected value to be read.
+	/// # Return
+	/// The [`u8`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::BaseErrorKind::CorruptedData`] - if the byte read is not equal to `val`
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn expect_u8(&mut self, val: u8) -> Result<u8, Error>;
 
 	/// Read bytes, expect them all to be 0u8. Otherwise, reutrn an error.
+	/// # Input Parameters
+	/// * `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// * `length` - [`usize`] - the length to read.
+	/// # Return
+	/// [`unit`]
+	/// # Errors
+	/// * [`crate::BaseErrorKind::CorruptedData`] - if the byte read is not equal to `val`
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn read_empty_bytes(&mut self, length: usize) -> Result<(), Error> {
 		for _ in 0..length {
 			if self.read_u8()? != 0u8 {
-				return err!(CoreErrorKind::CorruptedData, "expected 0u8");
+				return err!(BaseErrorKind::CorruptedData, "expected 0u8");
 			}
 		}
 		Ok(())
@@ -312,11 +506,11 @@ pub trait Reader {
 ///
 /// // helper function that serializes and deserializes a Serializable and tests them for
 /// // equality
-/// fn ser_helper<S: Serializable + Debug + PartialEq>(ser_out: S) -> Result<(), Error> {
+/// fn ser_helper<S: Serializable + Debug + PartialEq>(input: S) -> Result<(), Error> {
 ///     let mut v: Vec<u8> = vec![];
-///     serialize(&mut v, &ser_out)?;
-///     let ser_in: S = deserialize(&mut &v[..])?;
-///     assert_eq!(ser_in, ser_out);
+///     serialize(&mut v, &input)?;
+///     let output: S = deserialize(&mut &v[..])?;
+///     assert_eq!(output, input);
 ///     Ok(())
 /// }
 ///
@@ -340,13 +534,15 @@ pub trait Serializable {
 }
 
 /// Utility wrapper for an underlying byte Writer. Defines higher level methods
-/// to write numbers, byte vectors, hashes, etc.
+/// to write numbers, byte vectors, hashes, etc by implementing the [`crate::Writer`]
+/// trait.
 pub struct BinWriter<'a> {
 	pub(crate) sink: &'a mut dyn Write,
 }
 
 /// Utility wrapper for an underlying byte Reader. Defines higher level methods
-/// to write numbers, byte vectors, hashes, etc.
+/// to write numbers, byte vectors, hashes, etc by implementing the [`crate::Reader`]
+/// trait.
 pub struct BinReader<'a, R: Read> {
 	pub(crate) source: &'a mut R,
 }

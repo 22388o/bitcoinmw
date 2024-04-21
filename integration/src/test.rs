@@ -18,8 +18,25 @@
 
 #[cfg(test)]
 mod test {
-	use crate::IntErrorKind;
 	use bmw_base::*;
+
+	use bmw_deps::failure::Fail;
+
+	#[derive(Clone, Eq, PartialEq, Debug, Fail)]
+	enum IntErrorKind {
+		/// Test the integration of errors
+		#[fail(display = "integration error: {}", _0)]
+		Integration(String),
+	}
+
+	impl ErrorKind for IntErrorKind {}
+
+	impl From<IntErrorKind> for Error {
+		fn from(kind: IntErrorKind) -> Error {
+			let kind: Box<dyn ErrorKind> = Box::new(kind);
+			Error::new(kind)
+		}
+	}
 
 	fn ret_err() -> Result<(), Error> {
 		err!(IntErrorKind::Integration, "this is a test {}", 1)

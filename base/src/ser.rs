@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{err, BinReader, BinWriter, CoreErrorKind, Error, Reader, Serializable, Writer};
+use crate::{err, BaseErrorKind, BinReader, BinWriter, Error, Reader, Serializable, Writer};
 use std::io::{Read, Write};
 
 /// implement Serializable for some commonly used types (primative and standard)
@@ -161,7 +161,7 @@ where
 	}
 	fn read<R: Reader>(_reader: &mut R) -> Result<Self, Error> {
 		let fmt = "not implemented for reading";
-		err!(CoreErrorKind::OperationNotSupported, fmt)
+		err!(BaseErrorKind::OperationNotSupported, fmt)
 	}
 }
 
@@ -304,7 +304,7 @@ impl<'a, R: Read> Reader for BinReader<'a, R> {
 			Ok(b)
 		} else {
 			let fmt = format!("expected: {:?}, received: {:?}", val, b);
-			err!(CoreErrorKind::CorruptedData, fmt)
+			err!(BaseErrorKind::CorruptedData, fmt)
 		}
 	}
 }

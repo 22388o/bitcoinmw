@@ -16,10 +16,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! The integration crate contains integration tests for other crates within BitcoinMW.
+
+#[cfg(test)]
 use bmw_deps::failure;
 
-mod impls;
-mod public;
 mod test;
-
-pub use crate::public::*;

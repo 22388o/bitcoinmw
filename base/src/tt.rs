@@ -16,7 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{err, CoreErrorKind, Error, TraitType};
+use crate::{err, BaseErrorKind, Error, TraitType};
 
 impl TryFrom<String> for TraitType {
 	type Error = Error;
@@ -34,7 +34,7 @@ impl TryFrom<String> for TraitType {
 		} else if v == "DYN_SYNC" {
 			TraitType::DynSync
 		} else {
-			return err!(CoreErrorKind::Parse, "'{}' is not a valid TraitType", v);
+			return err!(BaseErrorKind::Parse, "'{}' is not a valid TraitType", v);
 		})
 	}
 }

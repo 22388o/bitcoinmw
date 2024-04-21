@@ -20,6 +20,8 @@
 //! This crate provides macros that are used in the tests in other crates
 //! within the BitcoinMW repo.
 
+use bmw_deps::failure;
+
 mod builder;
 mod impls;
 mod macros;
