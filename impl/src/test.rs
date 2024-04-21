@@ -23,8 +23,11 @@ mod test {
 		Error, ErrorKind, Reader, Serializable, TraitType, Writer,
 	};
 	use bmw_deps::rand;
+	use std::ffi::OsString;
 	use std::fmt::Debug;
 	use std::num::ParseIntError;
+	use std::num::TryFromIntError;
+	use std::str::from_utf8;
 
 	fn ret_err() -> Result<(), Error> {
 		err!(CoreErrorKind::Parse, "this is a test {}", 1)
@@ -334,6 +337,17 @@ mod test {
 		Ok(())
 	}
 
+	// return the os string
+	fn get_os_string() -> Result<(), Error> {
+		Err(OsString::new().into())
+	}
+
+	// hide invalid utf8 error by wrapping this in this fn
+	#[allow(invalid_from_utf8)]
+	fn get_utf8() -> Result<String, Error> {
+		Ok(from_utf8(&[0xC0])?.to_string())
+	}
+
 	#[test]
 	fn test_error_conversions() -> Result<(), Error> {
 		let err1 = err_only!(CoreErrorKind::Parse, "test");
@@ -348,6 +362,50 @@ mod test {
 		let kind: Box<dyn ErrorKind> = Box::new(CoreErrorKind::Misc("".to_string()));
 		let err: Error = kind.into();
 		assert_eq!(err.kind(), &kind!(CoreErrorKind::Misc, ""));
+
+		let ioe = std::io::Error::new(std::io::ErrorKind::NotFound, "uh oh");
+		let ioe: Error = ioe.into();
+		assert_eq!(ioe, err_only!(CoreErrorKind::IO, "uh oh"));
+
+		let err: Error = "".parse::<usize>().unwrap_err().into();
+		assert_eq!(
+			err,
+			err_only!(
+				CoreErrorKind::Parse,
+				"cannot parse integer from empty string"
+			)
+		);
+
+		let err1: Error = get_os_string().unwrap_err();
+		let err2: Result<OsString, Error> = err!(CoreErrorKind::OsString, "\"\"");
+		let err2 = err2.unwrap_err();
+		assert_eq!(err1.kind(), err2.kind());
+
+		let err1: Error = get_utf8().unwrap_err();
+		let err2: Result<String, Error> = err!(
+			CoreErrorKind::Utf8,
+			"invalid utf-8 sequence of 1 bytes from index 0"
+		);
+		let err2 = err2.unwrap_err();
+		assert_eq!(err1.kind(), err2.kind());
+
+		let err1: Result<u32, TryFromIntError> = u64::MAX.try_into();
+		let err1 = err1.unwrap_err();
+		let err1: Error = err1.into();
+		let err2: Result<u32, Error> = err!(
+			CoreErrorKind::TryFrom,
+			"out of range integral type conversion attempted"
+		);
+		let err2 = err2.unwrap_err();
+		assert_eq!(err1.kind(), err2.kind());
+
+		let err1: Result<i32, ParseIntError> = i32::from_str_radix("a12", 10);
+		let err1 = err1.unwrap_err();
+		let err1: Error = err1.into();
+		let err2: Result<u32, Error> = err!(CoreErrorKind::Parse, "invalid digit found in string");
+		let err2 = err2.unwrap_err();
+		assert_eq!(err1.kind(), err2.kind());
+
 		Ok(())
 	}
 }
