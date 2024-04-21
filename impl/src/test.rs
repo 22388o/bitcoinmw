@@ -29,6 +29,7 @@ mod test {
 	use std::num::ParseIntError;
 	use std::num::TryFromIntError;
 	use std::str::from_utf8;
+	use std::sync::mpsc::sync_channel;
 	use std::sync::{Arc, Mutex, RwLock};
 	use std::thread::spawn;
 
@@ -472,6 +473,25 @@ mod test {
 		);
 		let err2 = err2.unwrap_err();
 		assert_eq!(err1.kind(), err2.kind());
+
+		let x = Arc::new(RwLock::new(false));
+		let x_clone = x.clone();
+		let (tx_outer, rx_outer) = sync_channel::<()>(1);
+		{
+			let (_tx, rx) = sync_channel::<()>(1);
+
+			let _ = spawn(move || {
+				assert!(rx.recv().is_err());
+				let mut guard = x.write().unwrap();
+				*guard = true;
+				let _ = tx_outer.send(());
+			});
+		}
+
+		rx_outer.recv()?;
+
+		let guard = x_clone.read()?;
+		assert_eq!(*guard, true);
 
 		Ok(())
 	}
