@@ -506,7 +506,13 @@ mod test {
 			let (tx, _rx) = sync_channel::<()>(1);
 			let _ = spawn(move || {
 				rx_outer.recv().unwrap();
-				assert!(tx.send(()).is_err());
+				let err1 = tx.send(());
+				let err1 = err1.unwrap_err();
+				let err1: Error = err1.into();
+				let err2: Result<u32, Error> =
+					err!(CoreErrorKind::IllegalState, "sending on a closed channel");
+				let err2 = err2.unwrap_err();
+				assert_eq!(err1.kind(), err2.kind());
 				let mut guard = x.write().unwrap();
 				*guard = true;
 				tx_outer_outer.send(()).unwrap();
