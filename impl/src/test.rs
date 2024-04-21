@@ -19,8 +19,8 @@
 #[cfg(test)]
 mod test {
 	use crate::{
-		cbreak, deserialize, err, kind, map_err, serialize, try_into, CoreErrorKind, Error,
-		ErrorKind, Reader, Serializable, TraitType, Writer,
+		cbreak, deserialize, err, err_only, kind, map_err, serialize, try_into, CoreErrorKind,
+		Error, ErrorKind, Reader, Serializable, TraitType, Writer,
 	};
 	use bmw_deps::rand;
 	use std::fmt::Debug;
@@ -331,6 +331,19 @@ mod test {
 		let s1: Result<&String, Error> = deserialize(&mut &v[..]);
 		assert!(s1.is_err());
 
+		Ok(())
+	}
+
+	#[test]
+	fn test_error_conversions() -> Result<(), Error> {
+		let err1 = err_only!(CoreErrorKind::Parse, "test");
+		let err2: Error = CoreErrorKind::Parse("test".to_string()).into();
+		assert_eq!(err1, err2);
+
+		assert!(err1.cause().is_none());
+		assert!(err1.backtrace().is_some());
+
+		assert_eq!(err1.inner(), err2.inner());
 		Ok(())
 	}
 }
