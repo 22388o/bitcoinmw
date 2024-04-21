@@ -29,6 +29,8 @@ mod test {
 	use std::num::ParseIntError;
 	use std::num::TryFromIntError;
 	use std::str::from_utf8;
+	use std::sync::{Arc, Mutex, RwLock};
+	use std::thread::spawn;
 
 	fn ret_err() -> Result<(), Error> {
 		err!(CoreErrorKind::Parse, "this is a test {}", 1)
@@ -411,6 +413,63 @@ mod test {
 		let err1 = err1.unwrap_err();
 		let err1: Error = err1.into();
 		let err2: Result<u32, Error> = err!(CoreErrorKind::Parse, "invalid IPv6 address");
+		let err2 = err2.unwrap_err();
+		assert_eq!(err1.kind(), err2.kind());
+
+		let mutex = Arc::new(Mutex::new(1));
+		// poison the mutex
+		let c_mutex = Arc::clone(&mutex);
+		let _ = spawn(move || {
+			let mut data = c_mutex.lock().unwrap();
+			*data = 2;
+			panic!();
+		})
+		.join();
+
+		let err1 = mutex.lock().unwrap_err();
+		let err1: Error = err1.into();
+		let err2: Result<u32, Error> = err!(
+			CoreErrorKind::Poison,
+			"poisoned lock: another task failed inside"
+		);
+		let err2 = err2.unwrap_err();
+		assert_eq!(err1.kind(), err2.kind());
+
+		let rwlock = Arc::new(RwLock::new(1));
+		// poison the rwlock
+		let c_rwlock = Arc::clone(&rwlock);
+		let _ = spawn(move || {
+			let mut data = c_rwlock.write().unwrap();
+			*data = 2;
+			panic!();
+		})
+		.join();
+
+		let err1 = rwlock.write().unwrap_err();
+		let err1: Error = err1.into();
+		let err2: Result<u32, Error> = err!(
+			CoreErrorKind::Poison,
+			"poisoned lock: another task failed inside"
+		);
+		let err2 = err2.unwrap_err();
+		assert_eq!(err1.kind(), err2.kind());
+
+		let rwlock = Arc::new(RwLock::new(1));
+		// poison the rwlock
+		let c_rwlock = Arc::clone(&rwlock);
+		let _ = spawn(move || {
+			let mut data = c_rwlock.write().unwrap();
+			*data = 2;
+			panic!();
+		})
+		.join();
+
+		let err1 = rwlock.read().unwrap_err();
+		let err1: Error = err1.into();
+		let err2: Result<u32, Error> = err!(
+			CoreErrorKind::Poison,
+			"poisoned lock: another task failed inside"
+		);
 		let err2 = err2.unwrap_err();
 		assert_eq!(err1.kind(), err2.kind());
 
