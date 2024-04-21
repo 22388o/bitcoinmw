@@ -23,6 +23,7 @@ mod test {
 		Error, ErrorKind, Reader, Serializable, TraitType, Writer,
 	};
 	use bmw_deps::rand;
+	use bmw_deps::url::{ParseError, Url};
 	use std::ffi::OsString;
 	use std::fmt::Debug;
 	use std::num::ParseIntError;
@@ -403,6 +404,13 @@ mod test {
 		let err1 = err1.unwrap_err();
 		let err1: Error = err1.into();
 		let err2: Result<u32, Error> = err!(CoreErrorKind::Parse, "invalid digit found in string");
+		let err2 = err2.unwrap_err();
+		assert_eq!(err1.kind(), err2.kind());
+
+		let err1: Result<Url, ParseError> = Url::parse("http://[:::1]");
+		let err1 = err1.unwrap_err();
+		let err1: Error = err1.into();
+		let err2: Result<u32, Error> = err!(CoreErrorKind::Parse, "invalid IPv6 address");
 		let err2 = err2.unwrap_err();
 		assert_eq!(err1.kind(), err2.kind());
 
