@@ -344,6 +344,10 @@ mod test {
 		assert!(err1.backtrace().is_some());
 
 		assert_eq!(err1.inner(), err2.inner());
+
+		let kind: Box<dyn ErrorKind> = Box::new(CoreErrorKind::Misc("".to_string()));
+		let err: Error = kind.into();
+		assert_eq!(err.kind(), &kind!(CoreErrorKind::Misc, ""));
 		Ok(())
 	}
 }
