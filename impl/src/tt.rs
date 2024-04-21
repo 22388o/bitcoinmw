@@ -16,14 +16,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use bmw_deps::failure;
+use crate::{err, CoreErrorKind, Error, TraitType};
 
-mod error;
-mod functions;
-mod macros;
-mod public;
-mod ser;
-mod test;
-mod tt;
-
-pub use crate::public::*;
+impl TryFrom<String> for TraitType {
+	type Error = Error;
+	fn try_from(v: String) -> Result<Self, Error> {
+		Ok(if v == "IMPL" {
+			TraitType::Impl
+		} else if v == "DYN" {
+			TraitType::Dyn
+		} else if v == "IMPL_SEND" {
+			TraitType::ImplSend
+		} else if v == "IMPL_SYNC" {
+			TraitType::ImplSync
+		} else if v == "DYN_SEND" {
+			TraitType::DynSend
+		} else if v == "DYN_SYNC" {
+			TraitType::DynSync
+		} else {
+			return err!(CoreErrorKind::Parse, "'{}' is not a valid TraitType", v);
+		})
+	}
+}

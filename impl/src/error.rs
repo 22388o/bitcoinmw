@@ -34,6 +34,13 @@ use std::sync::mpsc::{RecvError, SendError};
 use std::sync::{MutexGuard, PoisonError, RwLockReadGuard, RwLockWriteGuard};
 use std::time::SystemTimeError;
 
+// commpare errors by "kind" only
+impl PartialEq for Error {
+	fn eq(&self, r: &Error) -> bool {
+		r.kind() == self.kind()
+	}
+}
+
 impl Display for Error {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
 		let output = format!("{} \n Backtrace: {:?}", self.inner, self.backtrace());

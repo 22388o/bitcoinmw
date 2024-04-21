@@ -32,8 +32,6 @@ pub struct Error {
 
 pub trait ErrorKind: Send + Sync + Display + Debug {}
 
-pub trait ErrKind {}
-
 #[derive(Clone, Eq, PartialEq, Debug, Fail)]
 pub enum CoreErrorKind {
 	/// parse error
