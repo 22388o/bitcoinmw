@@ -31,7 +31,7 @@
 /// # Examples
 ///
 ///```
-/// use bmw_impl::{Error, err, CoreErrorKind, ErrorKind, kind};
+/// use bmw_base::{Error, err, CoreErrorKind, ErrorKind, kind};
 ///
 /// fn main() -> Result<(), Error> {
 ///     let err1: Result<(), Error> = err!(
@@ -75,7 +75,7 @@ macro_rules! err {
 /// # Examples
 ///
 ///```
-/// use bmw_impl::{Error, err_only, CoreErrorKind, ErrorKind, kind};
+/// use bmw_base::{Error, err_only, CoreErrorKind, ErrorKind, kind};
 ///
 /// fn main() -> Result<(), Error> {
 ///     let err1: Error = err_only!(
@@ -115,7 +115,7 @@ macro_rules! err_only {
 /// * [`crate::err_only`]
 /// # Examples
 ///```
-/// use bmw_impl::{Error, ErrorKind, map_err, CoreErrorKind, kind};
+/// use bmw_base::{Error, ErrorKind, map_err, CoreErrorKind, kind};
 /// use std::fs::File;
 /// use std::io::Write;
 ///
@@ -169,7 +169,7 @@ macro_rules! kind {
 /// [`unit`] - nothing is returned.
 /// # Examples
 ///```
-/// use bmw_impl::*;
+/// use bmw_base::*;
 ///
 /// fn main() -> Result<(), Error> {
 ///     let mut counter = 0;
@@ -198,7 +198,7 @@ macro_rules! cbreak {
 /// [`Result`] < [`TryInto`], [`crate::Error`] >
 /// # Examples
 ///```
-/// use bmw_impl::*;
+/// use bmw_base::*;
 ///
 /// fn main() -> Result<(), Error> {
 ///     let x: u32 = try_into!(100u64)?;

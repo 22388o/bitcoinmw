@@ -36,7 +36,7 @@ pub use crate::functions::*;
 /// * [`crate::map_err`]
 /// # Examples
 ///```
-/// use bmw_impl::{Error, map_err, CoreErrorKind};
+/// use bmw_base::{Error, map_err, CoreErrorKind};
 ///
 /// // return Error
 /// fn main() -> Result<(), Error> {
@@ -282,7 +282,7 @@ pub trait Reader {
 /// # Examples
 ///
 ///```
-/// use bmw_impl::*;
+/// use bmw_base::*;
 /// use std::fmt::Debug;
 ///
 /// #[derive(Debug, PartialEq)]

@@ -18,7 +18,7 @@
 
 use crate::types::TestInfoImpl;
 use crate::{TestBuilder, TestInfo};
-use bmw_impl::Error;
+use bmw_base::Error;
 
 impl TestBuilder {
 	/// Build a [`crate::TestInfo`] impl. This should generally be done by calling the

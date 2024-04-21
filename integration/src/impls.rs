@@ -17,7 +17,7 @@
 // limitations under the License.
 
 use crate::IntErrorKind;
-use bmw_impl::{Error, ErrorKind};
+use bmw_base::{Error, ErrorKind};
 
 impl ErrorKind for IntErrorKind {}
 

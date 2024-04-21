@@ -1,5 +1,5 @@
 [package]
-name = "bmw_impl"
+name = "bmw_base"
 version = "0.0.3-beta.2"
 authors = ["The BitcoinMW Developers"]
 description = "Core Library for defining traits/enums/structs used in derive"

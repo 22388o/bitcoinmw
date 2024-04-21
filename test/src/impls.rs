@@ -18,10 +18,10 @@
 
 use crate::types::TestInfoImpl;
 use crate::TestInfo;
+use bmw_base::Error;
 use bmw_deps::backtrace;
 use bmw_deps::portpicker::is_free;
 use bmw_deps::rand::random;
-use bmw_impl::Error;
 use std::fs::{create_dir_all, remove_dir_all};
 use std::sync::atomic::{AtomicU16, Ordering};
 use std::thread::{sleep, spawn};

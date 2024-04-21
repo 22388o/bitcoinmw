@@ -19,7 +19,7 @@
 #[cfg(test)]
 mod test {
 	use crate::IntErrorKind;
-	use bmw_impl::*;
+	use bmw_base::*;
 
 	fn ret_err() -> Result<(), Error> {
 		err!(IntErrorKind::Integration, "this is a test {}", 1)

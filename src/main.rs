@@ -16,7 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use bmw_impl::{err, CoreErrorKind, Error};
+use bmw_base::{err, CoreErrorKind, Error};
 use std::mem::size_of;
 
 // include build information
@@ -44,7 +44,7 @@ fn real_main(debug_startup_32: bool) -> Result<(), Error> {
 #[cfg(test)]
 mod test {
 	use crate::{main, real_main};
-	use bmw_impl::Error;
+	use bmw_base::Error;
 
 	#[test]
 	fn test_main() -> Result<(), Error> {

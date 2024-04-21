@@ -21,7 +21,7 @@ mod test {
 	use crate as bmw_test;
 	use crate::types::TestInfoImpl;
 	use crate::{test_info, TestInfo};
-	use bmw_impl::Error;
+	use bmw_base::Error;
 	use std::sync::{Arc, RwLock};
 	use std::thread::spawn;
 

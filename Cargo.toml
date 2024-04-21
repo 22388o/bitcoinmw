@@ -14,14 +14,14 @@ edition = "2021"
 [workspace]
 members = [
 	"deps",
-	"impl",
+	"base",
 	"test",
 	"integration",
 ]
 exclude = ["etc"]
 
 [dependencies]
-bmw_impl = { path = "./impl" }
+bmw_base = { path = "./base" }
 
 [dev-dependencies]
 bmw_test = { path = "./test"        }
