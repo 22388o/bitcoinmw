@@ -24,20 +24,51 @@ use std::io::{Read, Write};
 
 pub use crate::functions::*;
 
-/// Base Error struct which is used throughout BitcoinMW.
+/// Base Error struct which is used throughout BitcoinMW. This should be returned from most
+/// functions. Constructing a [`crate::Error`] should generally be done through the macros
+/// included in this crate.
+/// * [`crate::err`] (if the error is generated within this code base
+/// or if a [`std::convert::From`] has been implemented)
+/// or
+/// * [`crate::map_err`] otherwise.
+/// # See Also
+/// * [`crate::err`]
+/// * [`crate::map_err`]
+/// # Examples
+///```
+/// use bmw_impl::{Error, map_err, CoreErrorKind};
+///
+/// // return Error
+/// fn main() -> Result<(), Error> {
+///     // this can actually be done with just a '?' because this error
+///     // a convert implemented. But just for demonstration purposes, map_err
+///     // can be used.
+///     let x: u32 = map_err!("1234".parse(), CoreErrorKind::Parse)?;
+///     assert_eq!(x, 1234u32);
+///
+///     Ok(())
+/// }
+///```
 #[derive(Debug, Fail)]
 pub struct Error {
 	pub(crate) inner: Context<Box<dyn ErrorKind>>,
 }
 
+/// The trait which needs to be implemented by each ErrorKind enum. Each crate can implement their
+/// own enum which implements this trait. The trait itself doesn't have any functions.
+/// # See Also
+/// * [`crate::Error`]
 pub trait ErrorKind: Send + Sync + Display + Debug {}
 
+/// The Base [`crate::ErrorKind`] implementation for BitcoinMW. All errors that are mapped from
+/// other crates are mapped to one of these errors. Each crate can implement their own errors using
+/// the [`crate::ErrorKind`] trait.
 #[derive(Clone, Eq, PartialEq, Debug, Fail)]
 pub enum CoreErrorKind {
-	/// parse error
+	/// Parse error
 	#[fail(display = "parse error: {}", _0)]
 	Parse(String),
-	/// corrupted data error
+	/// Corrupted data error
 	#[fail(display = "corrupted data error: {}", _0)]
 	CorruptedData(String),
 	/// Operation not supported Error
@@ -108,21 +139,22 @@ pub trait Configurable {
 	fn allow_dupes(&self) -> HashSet<String>;
 }
 
-/// The trait type enum is used to indicate which kind of instance is to be built by the
-/// traitify macro in the derive crate. See the derive crate for further details.
+/// Enum to indicate the type of trait. Both `impl` and `dyn` traits can be implemented
+/// with or without the [`Send`] or [`Sync`] markers. This enum
+/// represents all possible combinations thereof.
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum TraitType {
 	/// anonymous implementation of the trait
 	Impl,
-	/// Box dyn implementation of the trait
+	/// Boxed dyn implementation of the trait
 	Dyn,
-	/// anonymous implementation + Send marker
+	/// anonymous implementation + [`Send`] marker
 	ImplSend,
-	/// anonymous implementation + Send + Sync markers
+	/// anonymous implementation + [`Send`] + [`Sync`] markers
 	ImplSync,
-	/// Boxed dyn implmentation of the trait + Send marker
+	/// Boxed dyn implmentation of the trait + [`Send`] marker
 	DynSend,
-	/// Boxed dyn implmentation of the trait + Send + Sync markers
+	/// Boxed dyn implmentation of the trait + [`Send`] + [`Sync`] markers
 	DynSync,
 }
 

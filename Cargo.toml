@@ -15,6 +15,7 @@ edition = "2021"
 members = [
 	"deps",
 	"impl",
+	"test",
 	"integration",
 ]
 exclude = ["etc"]
@@ -23,7 +24,8 @@ exclude = ["etc"]
 bmw_impl = { path = "./impl" }
 
 [dev-dependencies]
-bmw_int = { path = "./integration" }
+bmw_test = { path = "./test"        }
+bmw_int  = { path = "./integration" }
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 jemallocator = "0.5.4"

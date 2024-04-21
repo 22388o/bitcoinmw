@@ -18,13 +18,13 @@
 use crate::{BinReader, BinWriter, Error, Serializable};
 use std::io::{Read, Write};
 
-/// Serializes a Serializable into any std::io::Write implementation.
+/// Serializes a [`crate::Serializable`] into any [`std::io::Write`] implementation.
 pub fn serialize<W: Serializable>(sink: &mut dyn Write, thing: &W) -> Result<(), Error> {
 	let mut writer = BinWriter::new(sink);
 	thing.write(&mut writer)
 }
 
-/// Deserializes a Serializable from any std::io::Read implementation.
+/// Deserializes a [`crate::Serializable`] from any [`std::io::Read`] implementation.
 pub fn deserialize<T: Serializable, R: Read>(source: &mut R) -> Result<T, Error> {
 	let mut reader = BinReader::new(source);
 	T::read(&mut reader)

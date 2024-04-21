@@ -49,7 +49,16 @@ impl Display for Error {
 }
 
 impl Error {
-	/// create an error from the specified  error kind
+	/// create an error from the specified  error kind. This should be done through the
+	/// [`crate::err`] macro.
+	/// # Input Parameters
+	/// * `kind` - [`Box`] <dyn [`crate::ErrorKind`] > - creates an error with the specified
+	/// error kind.
+	/// # Return
+	/// An instance of [`crate::Error`] is returned.
+	/// # Also see
+	/// * [`crate::Error::kind`]
+	/// * [`crate::err`]
 	pub fn new(kind: Box<dyn ErrorKind>) -> Self {
 		Self {
 			inner: Context::new(kind),
@@ -57,21 +66,39 @@ impl Error {
 	}
 
 	/// get the kind of error that occurred.
+	/// # Input Parameters
+	/// * `self` - `&self`
+	/// # Return
+	/// An immutable reference to this error's [`crate::ErrorKind`].
 	pub fn kind(&self) -> &Box<dyn ErrorKind> {
 		self.inner.get_context()
 	}
 
 	/// get the cause (if available) of this error.
+	/// # Input Parameters
+	/// * `self` - `&self`
+	/// # Return
+	/// [`std::option::Option`] < & dyn [`Fail`] > - The cause of the error, if it can be
+	/// returned.
 	pub fn cause(&self) -> Option<&dyn Fail> {
 		self.inner.cause()
 	}
 
 	/// get the backtrace (if available) of this error.
+	/// # Input Parameters
+	/// * `self` - `&self`
+	/// # Return
+	/// [`std::option::Option`] < [`Backtrace`] > - The backtrace for this error, if it can be
+	/// returned.
 	pub fn backtrace(&self) -> Option<&Backtrace> {
 		self.inner.backtrace()
 	}
 
 	/// get the inner error as a string.
+	/// # Input Parameters
+	/// `self` - `&self`
+	/// # Return
+	/// [`std::string::String`] - The error as a string.
 	pub fn inner(&self) -> String {
 		self.inner.to_string()
 	}
