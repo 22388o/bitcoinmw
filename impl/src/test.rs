@@ -494,6 +494,26 @@ mod test {
 		}
 
 		rx_outer.recv()?;
+		let guard = x_clone.read()?;
+		assert_eq!(*guard, true);
+
+		let (tx_outer, rx_outer) = sync_channel::<()>(1);
+		let (tx_outer_outer, rx_outer_outer) = sync_channel::<()>(1);
+		let x = Arc::new(RwLock::new(false));
+		let x_clone = x.clone();
+
+		{
+			let (tx, _rx) = sync_channel::<()>(1);
+			let _ = spawn(move || {
+				rx_outer.recv().unwrap();
+				assert!(tx.send(()).is_err());
+				let mut guard = x.write().unwrap();
+				*guard = true;
+				tx_outer_outer.send(()).unwrap();
+			});
+		}
+		tx_outer.send(())?;
+		rx_outer_outer.recv()?;
 
 		let guard = x_clone.read()?;
 		assert_eq!(*guard, true);
