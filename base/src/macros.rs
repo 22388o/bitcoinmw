@@ -161,7 +161,7 @@ macro_rules! kind {
 	}};
 }
 
-/// Macro to do a conditional break
+/// Macro for implementing a conditional break.
 /// # Input Parameters
 /// * `cond` - [`bool`] - if [`true`], execute break statement. Otherwise continue in the loop's
 /// execution.
@@ -191,7 +191,7 @@ macro_rules! cbreak {
 	}};
 }
 
-/// Macro to call try_into and map the error to an appropriate [`crate::ErrorKind`].
+/// Macro for invoking `try_into` and mapping any errors to the corresponding [`crate::ErrorKind`].
 /// # Input parameters
 /// * `value` - [`TryInto`] - The value from which to attempt conversion.
 /// # Return
