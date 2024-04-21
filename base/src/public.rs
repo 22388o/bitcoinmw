@@ -193,73 +193,278 @@ pub enum TraitType {
 }
 
 /// Writer trait used for serializing data.
+/// # Examples
+///```
+/// use bmw_base::*;
+///
+///    // type that can be used to generate an error
+///    #[derive(Debug, PartialEq)]
+///    struct SerErr {
+///         exp: u8,
+///         empty: u8,
+///     }
+///
+///     // serializable trait requires both a Reader/Writer.
+///     impl Serializable for SerErr {
+///         fn read<R: Reader>(reader: &mut R) -> Result<Self, Error> {
+///         // read data but return an error unless a specific value is set
+///         reader.expect_u8(99)?;
+///         reader.read_empty_bytes(1)?;
+///         Ok(Self { exp: 99, empty: 0 })
+///     }
+///
+///     fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
+///         // write is regular with no errors
+///         writer.write_u8(self.exp)?;
+///         writer.write_u8(self.empty)?;
+///         Ok(())
+///     }
+///
+/// }
+///
+/// fn main() -> Result<(), Error> {
+///     // test an error
+///     let ser_out = SerErr { exp: 100, empty: 0 };
+///     let mut v: Vec<u8> = vec![];
+///     serialize(&mut v, &ser_out)?;
+///     let ser_in: Result<SerErr, Error> = deserialize(&mut &v[..]);
+///     assert!(ser_in.is_err());
+///
+///     // test with the values that do not generate an error
+///     let ser_out = SerErr { exp: 99, empty: 0 };
+///     let mut v: Vec<u8> = vec![];
+///     serialize(&mut v, &ser_out)?;
+///     let ser_in: Result<SerErr, Error> = deserialize(&mut &v[..]);
+///     assert!(ser_in.is_ok());
+///
+///     Ok(())
+/// }
+///```
+/// # Also see
+/// * [`crate::Reader`]
+/// * [`crate::BinReader`]
+/// * [`crate::BinWriter`]
 pub trait Writer {
 	/// write a u8 to the stream
+	/// # Input Parameters
+	/// * `&mut self` - a mutable reference to this [`crate::Writer`].
+	/// * `n` - [`u8`] - the value to write.
+	/// # Return
+	/// [`unit`]
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn write_u8(&mut self, n: u8) -> Result<(), Error> {
 		self.write_fixed_bytes(&[n])
 	}
 
 	/// write an i8 to the stream
+	/// # Input Parameters
+	/// * `&mut self` - a mutable reference to this [`crate::Writer`].
+	/// * `n` - [`i8`] - the value to write.
+	/// # Return
+	/// [`unit`]
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn write_i8(&mut self, n: i8) -> Result<(), Error> {
 		self.write_fixed_bytes(&[n as u8])
 	}
 
 	/// write a u16 to the stream
+	/// # Input Parameters
+	/// * `&mut self` - a mutable reference to this [`crate::Writer`].
+	/// * `n` - [`u16`] - the value to write.
+	/// # Return
+	/// [`unit`]
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn write_u16(&mut self, n: u16) -> Result<(), Error> {
 		self.write_fixed_bytes(n.to_be_bytes())
 	}
 
 	/// write an i16 to the stream
+	/// # Input Parameters
+	/// * `&mut self` - a mutable reference to this [`crate::Writer`].
+	/// * `n` - [`u16`] - the value to write.
+	/// # Return
+	/// [`unit`]
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn write_i16(&mut self, n: i16) -> Result<(), Error> {
 		self.write_fixed_bytes(n.to_be_bytes())
 	}
 
 	/// write a u32 to the stream
+	/// # Input Parameters
+	/// * `&mut self` - a mutable reference to this [`crate::Writer`].
+	/// * `n` - [`u32`] - the value to write.
+	/// # Return
+	/// [`unit`]
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn write_u32(&mut self, n: u32) -> Result<(), Error> {
 		self.write_fixed_bytes(n.to_be_bytes())
 	}
 
 	/// write an i32 to the stream
+	/// # Input Parameters
+	/// * `&mut self` - a mutable reference to this [`crate::Writer`].
+	/// * `n` - [`i32`] - the value to write.
+	/// # Return
+	/// [`unit`]
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn write_i32(&mut self, n: i32) -> Result<(), Error> {
 		self.write_fixed_bytes(n.to_be_bytes())
 	}
 
 	/// write a u64 to the stream
+	/// # Input Parameters
+	/// * `&mut self` - a mutable reference to this [`crate::Writer`].
+	/// * `n` - [`u64`] - the value to write.
+	/// # Return
+	/// [`unit`]
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn write_u64(&mut self, n: u64) -> Result<(), Error> {
 		self.write_fixed_bytes(n.to_be_bytes())
 	}
 
 	/// write an i128 to the stream
+	/// # Input Parameters
+	/// * `&mut self` - a mutable reference to this [`crate::Writer`].
+	/// * `n` - [`i128`] - the value to write.
+	/// # Return
+	/// [`unit`]
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn write_i128(&mut self, n: i128) -> Result<(), Error> {
 		self.write_fixed_bytes(n.to_be_bytes())
 	}
 
 	/// write a u128 to the stream
+	/// # Input Parameters
+	/// * `&mut self` - a mutable reference to this [`crate::Writer`].
+	/// * `n` - [`u128`] - the value to write.
+	/// # Return
+	/// [`unit`]
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn write_u128(&mut self, n: u128) -> Result<(), Error> {
 		self.write_fixed_bytes(n.to_be_bytes())
 	}
 
 	/// write an i64 to the stream
+	/// # Input Parameters
+	/// * `&mut self` - a mutable reference to this [`crate::Writer`].
+	/// * `n` - [`i64`] - the value to write.
+	/// # Return
+	/// [`unit`]
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn write_i64(&mut self, n: i64) -> Result<(), Error> {
 		self.write_fixed_bytes(n.to_be_bytes())
 	}
 
 	/// write a usize to the stream
+	/// # Input Parameters
+	/// * `&mut self` - a mutable reference to this [`crate::Writer`].
+	/// * `n` - [`usize`] - the value to write.
+	/// # Return
+	/// [`unit`]
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn write_usize(&mut self, n: usize) -> Result<(), Error> {
 		self.write_fixed_bytes(n.to_be_bytes())
 	}
 
 	/// write `bytes` to the stream and specify the length so that variable length data may be
 	/// written to the stream
+	/// # Input Parameters
+	/// * `&mut self` - a mutable reference to this [`crate::Writer`].
+	/// * `bytes` - `AsRef<[u8]>` - the value to write.
+	/// # Return
+	/// [`unit`]
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn write_bytes<T: AsRef<[u8]>>(&mut self, bytes: T) -> Result<(), Error> {
 		self.write_u64(bytes.as_ref().len() as u64)?;
 		self.write_fixed_bytes(bytes)
 	}
 
 	/// write `bytes` to the stream
+	/// # Input Parameters
+	/// * `&mut self` - a mutable reference to this [`crate::Writer`].
+	/// * `bytes` - `AsRef<[u8]>` - the value to write.
+	/// # Return
+	/// [`unit`]
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn write_fixed_bytes<T: AsRef<[u8]>>(&mut self, bytes: T) -> Result<(), Error>;
 
 	/// write `length` empty (0u8) bytes to a stream.
+	/// # Input Parameters
+	/// * `&mut self` - a mutable reference to this [`crate::Writer`].
+	/// * `length` - [`usize`] - the length of the empty bytes to write
+	/// # Return
+	/// [`unit`]
+	/// # Errors
+	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
 	fn write_empty_bytes(&mut self, length: usize) -> Result<(), Error> {
 		for _ in 0..length {
 			self.write_u8(0)?;
@@ -269,6 +474,57 @@ pub trait Writer {
 }
 
 /// Reader trait used for deserializing data.
+/// # Examples
+///```
+/// use bmw_base::*;
+///
+///    // type that can be used to generate an error
+///    #[derive(Debug, PartialEq)]
+///    struct SerErr {
+///         exp: u8,
+///         empty: u8,
+///     }
+///
+///     // serializable trait requires both a Reader/Writer.
+///     impl Serializable for SerErr {
+///         fn read<R: Reader>(reader: &mut R) -> Result<Self, Error> {
+///         // read data but return an error unless a specific value is set
+///         reader.expect_u8(99)?;
+///         reader.read_empty_bytes(1)?;
+///         Ok(Self { exp: 99, empty: 0 })
+///     }
+///
+///     fn write<W: Writer>(&self, writer: &mut W) -> Result<(), Error> {
+///         // write is regular with no errors
+///         writer.write_u8(self.exp)?;
+///         writer.write_u8(self.empty)?;
+///         Ok(())
+///     }
+///
+/// }
+///
+/// fn main() -> Result<(), Error> {
+///     // test an error
+///     let ser_out = SerErr { exp: 100, empty: 0 };
+///     let mut v: Vec<u8> = vec![];
+///     serialize(&mut v, &ser_out)?;
+///     let ser_in: Result<SerErr, Error> = deserialize(&mut &v[..]);
+///     assert!(ser_in.is_err());
+///
+///     // test with the values that do not generate an error
+///     let ser_out = SerErr { exp: 99, empty: 0 };
+///     let mut v: Vec<u8> = vec![];
+///     serialize(&mut v, &ser_out)?;
+///     let ser_in: Result<SerErr, Error> = deserialize(&mut &v[..]);
+///     assert!(ser_in.is_ok());
+///
+///     Ok(())
+/// }
+///```
+/// # Also see
+/// * [`crate::Writer`]
+/// * [`crate::BinReader`]
+/// * [`crate::BinWriter`]
 pub trait Reader {
 	/// read a u8 from the reader and return the value
 	/// # Input Parameters
@@ -536,6 +792,10 @@ pub trait Serializable {
 /// Utility wrapper for an underlying byte Writer. Defines higher level methods
 /// to write numbers, byte vectors, hashes, etc by implementing the [`crate::Writer`]
 /// trait.
+/// # Also see
+/// * [`crate::BinReader`]
+/// * [`crate::Reader`]
+/// * [`crate::Writer`]
 pub struct BinWriter<'a> {
 	pub(crate) sink: &'a mut dyn Write,
 }
@@ -543,6 +803,10 @@ pub struct BinWriter<'a> {
 /// Utility wrapper for an underlying byte Reader. Defines higher level methods
 /// to write numbers, byte vectors, hashes, etc by implementing the [`crate::Reader`]
 /// trait.
+/// # Also see
+/// * [`crate::BinWriter`]
+/// * [`crate::Reader`]
+/// * [`crate::Writer`]
 pub struct BinReader<'a, R: Read> {
 	pub(crate) source: &'a mut R,
 }
