@@ -16,9 +16,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Returns a free port that is not used at the time of the call. It is also guaranteed to not be
-/// allocated to another test which calls this macro or the [`crate::test_info`] macro, so there
-/// are no timing concerns.
+/// This macro returns a free port that is not currently in use. Importantly, it ensures
+/// that the port won't be allocated to another test that calls this macro or the
+/// [`crate::test_info`] macro, eliminating timing concerns.
 /// # Return
 /// Result < [`u16`], [`bmw_base::Error`] > - a tcp/ip port that can be used in a test
 /// # Errors

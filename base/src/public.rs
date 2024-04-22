@@ -97,7 +97,7 @@ pub trait ErrorKind: Send + Sync + Display + Debug {}
 /// # Also see
 /// * [`crate::Error`]
 /// * [`crate::ErrorKind`]
-#[derive(Clone, Eq, PartialEq, Debug, Fail)]
+#[derive(Debug, Fail)]
 pub enum BaseErrorKind {
 	/// Parse error
 	#[fail(display = "parse error: {}", _0)]
@@ -114,6 +114,9 @@ pub enum BaseErrorKind {
 	/// Illegal state
 	#[fail(display = "illegal state: {}", _0)]
 	IllegalState(String),
+	/// Configuration error
+	#[fail(display = "configuration error: {}", _0)]
+	Configuration(String),
 	/// I/O error
 	#[fail(display = "i/o error: {}", _0)]
 	IO(String),
@@ -141,6 +144,9 @@ pub enum BaseErrorKind {
 	/// Errno error
 	#[fail(display = "errno: {}", _0)]
 	Errno(String),
+	/// IllegalArgument
+	#[fail(display = "illegal argument: {}", _0)]
+	IllegalArgument(String),
 }
 
 /// The [`crate::Configurable`] trait, when implemented, allows structs to be configured.

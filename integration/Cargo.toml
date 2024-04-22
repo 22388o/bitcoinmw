@@ -12,5 +12,6 @@ edition = "2021"
 
 [dependencies]
 
-bmw_deps = { path = "../deps" }
-bmw_base = { path = "../base" }
+bmw_deps   = { path = "../deps"   }
+bmw_base   = { path = "../base"   }
+bmw_derive = { path = "../derive" }

@@ -16,12 +16,14 @@ members = [
 	"deps",
 	"base",
 	"test",
+	"derive",
 	"integration",
 ]
 exclude = ["etc"]
 
 [dependencies]
-bmw_base = { path = "./base" }
+bmw_base   = { path = "./base"   }
+bmw_derive = { path = "./derive" }
 
 [dev-dependencies]
 bmw_test = { path = "./test"        }

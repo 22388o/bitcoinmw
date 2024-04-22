@@ -70,6 +70,7 @@ name = "bitcoinmw"
 version = "0.0.3-beta.2"
 dependencies = [
  "bmw_base",
+ "bmw_derive",
  "bmw_int",
  "bmw_test",
  "built",
@@ -145,6 +146,7 @@ dependencies = [
  "num-format",
  "path-clean",
  "portpicker",
+ "proc-macro-error",
  "rand 0.8.5",
  "rand_core 0.6.4",
  "random-string",
@@ -158,11 +160,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "bmw_derive"
+version = "0.0.3-beta.2"
+dependencies = [
+ "bmw_base",
+ "bmw_deps",
+ "bmw_test",
+ "proc-macro-error",
+]
+
+[[package]]
 name = "bmw_int"
 version = "0.0.3-beta.2"
 dependencies = [
  "bmw_base",
  "bmw_deps",
+ "bmw_derive",
 ]
 
 [[package]]
@@ -829,6 +842,30 @@ name = "ppv-lite86"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
+
+[[package]]
+name = "proc-macro-error"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
+dependencies = [
+ "proc-macro-error-attr",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+ "version_check",
+]
+
+[[package]]
+name = "proc-macro-error-attr"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "version_check",
+]
 
 [[package]]
 name = "proc-macro2"

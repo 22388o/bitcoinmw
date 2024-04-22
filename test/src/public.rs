@@ -64,7 +64,7 @@ pub trait TestInfo {
 }
 
 /// Kinds of errors that can occur in or are related to tests.
-#[derive(Clone, Eq, PartialEq, Debug, Fail)]
+#[derive(Debug, Fail)]
 pub enum TestErrorKind {
 	/// A test generated error
 	#[fail(display = "simulated error: {}", _0)]

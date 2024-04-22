@@ -59,6 +59,7 @@ pub use math;
 pub use num_format;
 pub use path_clean;
 pub use portpicker;
+pub use proc_macro_error;
 pub use rand;
 pub use rand_core;
 pub use random_string;

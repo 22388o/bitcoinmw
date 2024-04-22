@@ -213,3 +213,75 @@ macro_rules! try_into {
 		map_err!($value.try_into(), BaseErrorKind::TryInto)
 	}};
 }
+
+#[macro_export]
+macro_rules! configure {
+	( $configurable:ident, $enum_name:ident, $vec:expr ) => {{
+		use bmw_base::*;
+		use std::collections::HashSet;
+		use $enum_name::*;
+
+		let mut ret = $configurable::new();
+
+		let mut name_set: HashSet<String> = HashSet::new();
+		let mut err = None;
+		let options: Vec<$enum_name> = $vec;
+
+		for cfg in options {
+			let name = cfg.name();
+			if name_set.contains(name.clone()) && !ret.allow_dupes().contains(name.clone()) {
+				let text = format!("config option ({}) was specified more than once", name);
+				err = Some(err!(BaseErrorKind::Configuration, text));
+			}
+			name_set.insert(name.to_string());
+			match cfg.value_u8() {
+				Some(value) => ret.set_u8(name, value),
+				None => {}
+			}
+			match cfg.value_u16() {
+				Some(value) => ret.set_u16(name, value),
+				None => {}
+			}
+			match cfg.value_u32() {
+				Some(value) => ret.set_u32(name, value),
+				None => {}
+			}
+			match cfg.value_u64() {
+				Some(value) => ret.set_u64(name, value),
+				None => {}
+			}
+			match cfg.value_u128() {
+				Some(value) => ret.set_u128(name, value),
+				None => {}
+			}
+			match cfg.value_usize() {
+				Some(value) => ret.set_usize(name, value),
+				None => {}
+			}
+			match cfg.value_string() {
+				Some(value) => ret.set_string(name, value),
+				None => {}
+			}
+			match cfg.value_bool() {
+				Some(value) => ret.set_bool(name, value),
+				None => {}
+			}
+			match cfg.value_string_tuple() {
+				Some(value) => ret.set_string_tuple(name, value),
+				None => {}
+			}
+		}
+
+		for r in $configurable::required() {
+			if !name_set.contains(&r) {
+				let text = format!("required option ({}) was not specified", r);
+				err = Some(err!(BaseErrorKind::Configuration, text));
+			}
+		}
+
+		match err {
+			Some(e) => e,
+			None => Ok(ret),
+		}
+	}};
+}

@@ -16,16 +16,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # The BitcoinMW Test Utility crate
-//! This crate contains macros utilized in tests across other crates within the BitcoinMW repository.
+use bmw_deps::substring::Substring;
 
-use bmw_deps::failure;
-
-mod builder;
-mod impls;
-mod macros;
-mod public;
-mod test;
-mod types;
-
-pub use crate::public::*;
+pub(crate) fn trim_outer(s: &String, pattern1: &str, pattern2: &str) -> String {
+	let ret = s.trim();
+	let ret = match ret.find(pattern1) {
+		Some(pos) => {
+			if pos == 0 {
+				ret.substring(1, ret.len()).to_string()
+			} else {
+				ret.to_string()
+			}
+		}
+		None => ret.to_string(),
+	};
+	let ret = match ret.rfind(pattern2) {
+		Some(pos) => {
+			let last = ret.len().saturating_sub(1);
+			if pos == last {
+				ret.substring(0, last).to_string()
+			} else {
+				ret
+			}
+		}
+		None => ret,
+	};
+	ret
+}

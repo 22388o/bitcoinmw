@@ -16,16 +16,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # The BitcoinMW Test Utility crate
-//! This crate contains macros utilized in tests across other crates within the BitcoinMW repository.
+use crate::types::DeriveErrorKind;
+use bmw_base::*;
 
-use bmw_deps::failure;
+impl ErrorKind for DeriveErrorKind {}
 
-mod builder;
-mod impls;
-mod macros;
-mod public;
-mod test;
-mod types;
-
-pub use crate::public::*;
+impl From<DeriveErrorKind> for Error {
+	fn from(kind: DeriveErrorKind) -> Error {
+		Error::new(Box::new(kind))
+	}
+}
