@@ -178,10 +178,13 @@ fn build_macros(state: &mut MacroState) -> Result<(), Error> {
 		// if we get here the name is not none so unwrap is ok.
 		let impl_name = state.name.as_ref().unwrap();
 		let trait_name = name.to_case(Case::Pascal);
-		let mut macro_text = format!("#[macro_export]\nmacro_rules! {} {{\n() => {{{{\n", name);
+		let mut macro_text = format!(
+			"#[macro_export]\nmacro_rules! {} {{\n($($param:tt)*) => {{{{\n",
+			name
+		);
 
 		macro_text = format!(
-			"{}\nlet config = configure!({}Config, {}ConfigOptions, vec![Y(2)])?;",
+			"{}\nlet config = configure!({}Config, {}ConfigOptions, vec![$($param)*])?;",
 			macro_text, impl_name, impl_name
 		);
 		macro_text = format!(
@@ -192,12 +195,6 @@ fn build_macros(state: &mut MacroState) -> Result<(), Error> {
 		debug!("macro_text={}", macro_text)?;
 		state.ret.extend(macro_text.parse::<TokenStream>());
 	}
-	/*
-	match Animal::builder(config) {
-		Ok(ret) => Ok(ret),
-		Err(e) => err!(Parse, "{}", e),
-	}
-		*/
 
 	Ok(())
 }
