@@ -19,12 +19,13 @@
 use crate::derive_configurable;
 use crate::types::DeriveErrorKind::*;
 use crate::types::ObjectMacroState as MacroState;
-use crate::types::{ConstType::*, Method, ObjectConst, ObjectField};
+use crate::types::{ConstType, ConstType::*, Method, ObjectConst, ObjectField};
 use crate::utils::trim_outer;
 use bmw_base::BaseErrorKind::*;
 use bmw_base::*;
 use bmw_deps::convert_case::{Case, Casing};
 use bmw_deps::proc_macro_error::{emit_error, Diagnostic, Level};
+use bmw_deps::substring::Substring;
 use proc_macro::TokenStream;
 use proc_macro::TokenTree::*;
 use std::collections::HashMap;
@@ -55,6 +56,17 @@ macro_rules! debug {
         }};
 }
 
+impl Method {
+	fn new() -> Self {
+		Self {
+			name: "".to_string(),
+			param_string: "".to_string(),
+			signature: "".to_string(),
+			views: vec![],
+		}
+	}
+}
+
 impl MacroState {
 	fn new() -> Self {
 		Self {
@@ -63,11 +75,18 @@ impl MacroState {
 			expect_name: false,
 			expect_impl: false,
 			expect_tag: false,
+			expect_method_name: false,
+			in_builder: false,
+			in_method: false,
+			in_field: false,
+			in_config: false,
+			expect_builder_name: false,
 			name: None,
 			builder: None,
 			const_list: vec![],
 			field_list: vec![],
 			views: HashMap::new(),
+			cur_method: None,
 		}
 	}
 
@@ -124,10 +143,16 @@ fn build_object(state: &mut MacroState) -> Result<(), Error> {
 	);
 
 	for conf in &state.const_list {
-		let (default_name, default_value) = match conf.default {
+		let (default_name, default_value) = match &conf.default {
 			U8(v) => ("u8", v.to_string()),
 			U32(v) => ("u32", v.to_string()),
+			U64(v) => ("u64", v.to_string()),
+			U128(v) => ("u128", v.to_string()),
 			Usize(v) => ("usize", v.to_string()),
+			Bool(v) => ("bool", v.to_string()),
+			Tuple(v) => ("(String, String)", format!("(\"{}\", \"{}\")", v.0, v.1)),
+			ConfString(v) => ("String", format!("\"{}\"", v)),
+			_ => ("", "".to_string()),
 		};
 		config_text = format!("{}{}: {},", config_text, conf.name, default_name,);
 		default_text = format!("{}{}: {},", default_text, conf.name, default_value);
@@ -154,17 +179,24 @@ fn build_traits(state: &mut MacroState) -> Result<(), Error> {
 		let name = name.to_case(Case::Pascal);
 		let mut ntrait = format!("\npub trait {} {{", name);
 		let mut nimpl = format!("\nimpl {} for {} {{", name, impl_name);
+		let mut nimplref = format!("\nimpl {} for &mut {} {{", name, impl_name);
 		for method in methods {
 			ntrait = format!("{} {};", ntrait, method.signature);
 			nimpl = format!(
 				"{} {} {{ {}::{}({}) }}",
 				nimpl, method.signature, impl_name, method.name, method.param_string,
 			);
+			nimplref = format!(
+				"{} {} {{ {}::{}({}) }}",
+				nimplref, method.signature, impl_name, method.name, method.param_string,
+			);
 		}
 		nimpl = format!("{} }}", nimpl);
+		nimplref = format!("{} }}", nimplref);
 		ntrait = format!("{} }}", ntrait);
 		state.ret.extend(ntrait.parse::<TokenStream>());
 		state.ret.extend(nimpl.parse::<TokenStream>());
+		state.ret.extend(nimplref.parse::<TokenStream>());
 	}
 	Ok(())
 }
@@ -188,11 +220,14 @@ fn build_macros(state: &mut MacroState) -> Result<(), Error> {
 			macro_text, impl_name, impl_name
 		);
 		macro_text = format!(
-			"{} match {}::{}(config) {{\nOk(ret) => {{let ret: Box<dyn {}> = Box::new(ret); Ok(ret)}}, Err(e) => err!(BaseErrorKind::Parse, e.to_string()), }}",
+			"{} match {}::{}(config) {{\nOk(ret) => {{let ret: Box<dyn {}> = Box::new(ret);",
 			macro_text, impl_name, builder, trait_name,
 		);
+		macro_text = format!(
+			"{}Ok(ret)}}, Err(e) => err!(BaseErrorKind::Parse, e.to_string()), }}",
+			macro_text
+		);
 		macro_text = format!("{}\n}}}};\n}}", macro_text);
-		debug!("macro_text={}", macro_text)?;
 		state.ret.extend(macro_text.parse::<TokenStream>());
 	}
 
@@ -202,6 +237,204 @@ fn build_macros(state: &mut MacroState) -> Result<(), Error> {
 fn process_tag(tag: String, state: &mut MacroState) -> Result<(), Error> {
 	let tag = trim_outer(&tag, "[", "]");
 	debug!("Tag='{}'", tag)?;
+	if tag == "builder" {
+		state.in_builder = true;
+	} else {
+		state.in_builder = false;
+		let tag = map_err!(tag.parse::<TokenStream>(), Parse)?;
+		for token in tag {
+			match token {
+				Ident(ident) => {
+					let ident_str = ident.to_string();
+					debug!("tag ident = {}", ident)?;
+					if ident_str == "method" {
+						state.cur_method = Some(Method::new());
+						state.in_method = true;
+					} else if ident_str == "field" {
+						state.in_field = true;
+						state.in_method = false;
+					} else if ident_str == "config" {
+						state.in_config = true;
+						state.in_field = false;
+						state.in_method = false;
+					} else {
+						state.in_method = false;
+						state.in_field = false;
+					}
+				}
+				Group(group) => {
+					let group_str = group.to_string();
+					debug!("tag_group = '{}'", group_str)?;
+					if state.in_method {
+						let list = trim_outer(&group_str, "(", ")");
+						let list = map_err!(list.parse::<TokenStream>(), Parse)?;
+						for item in list {
+							match item {
+								Ident(view) => {
+									let view_str = view.to_string();
+									debug!("view={}", view_str)?;
+									match &mut state.cur_method {
+										Some(ref mut method) => {
+											method.views.push(view_str);
+										}
+										None => {
+											return err!(IllegalState, "Expected a method");
+										}
+									}
+								}
+								_ => {}
+							}
+						}
+					} else if state.in_field {
+						let list = trim_outer(&group_str, "(", ")");
+						let list = map_err!(list.parse::<TokenStream>(), Parse)?;
+						let mut name = None;
+						let mut type_str = None;
+						let mut expect_colon = true;
+						for item in list {
+							let v = match item {
+								Ident(v) => v.to_string(),
+								Group(v) => v.to_string(),
+								Literal(v) => v.to_string(),
+								Punct(v) => v.to_string(),
+							};
+							debug!("fieldv={}", v)?;
+							if name == None {
+								name = Some(v);
+							} else if expect_colon {
+								expect_colon = false;
+								if v != ":" {
+									return err!(Parse, "expected colon");
+								}
+							} else {
+								match type_str {
+									Some(cur) => {
+										type_str = Some(format!("{}{}", cur, v));
+									}
+									None => {
+										type_str = Some(v);
+									}
+								}
+							}
+						}
+
+						if name == None || type_str == None {
+							return err!(Parse, "invalid field tag");
+						}
+
+						state.field_list.push(ObjectField {
+							name: name.unwrap(),
+							otype: type_str.unwrap(),
+						});
+
+						state.in_field = false;
+					} else if state.in_config {
+						let list = trim_outer(&group_str, "(", ")");
+						let list = map_err!(list.parse::<TokenStream>(), Parse)?;
+
+						let mut name = None;
+						let mut type_str = None;
+						let mut init_str = None;
+						let mut expect_colon = true;
+						let mut in_init = false;
+						for item in list {
+							let v = match item {
+								Ident(v) => v.to_string(),
+								Group(v) => v.to_string(),
+								Literal(v) => v.to_string(),
+								Punct(v) => v.to_string(),
+							};
+							debug!("fieldv={}", v)?;
+							if name == None {
+								name = Some(v);
+							} else if expect_colon {
+								expect_colon = false;
+								if v != ":" {
+									return err!(Parse, "expected colon");
+								}
+							} else if v == "=" {
+								if in_init {
+									return err!(Parse, "unexpected equal sign");
+								}
+								in_init = true;
+							} else if in_init {
+								match init_str {
+									Some(cur) => {
+										init_str = Some(format!("{}{}", cur, v));
+									}
+									None => {
+										init_str = Some(v);
+									}
+								}
+							} else {
+								match type_str {
+									Some(cur) => {
+										type_str = Some(format!("{}{}", cur, v));
+									}
+									None => {
+										type_str = Some(v);
+									}
+								}
+							}
+						}
+
+						if name == None || type_str == None || init_str == None {
+							return err!(
+								Parse,
+								"invalid config tag name={:?},type_str={:?},init_str={:?}",
+								name,
+								type_str,
+								init_str
+							);
+						}
+
+						debug!(
+							"config tag name={:?},type_str={:?},init_str={:?}",
+							name, type_str, init_str
+						)?;
+
+						let const_type = match type_str.unwrap().as_str() {
+							"u8" => {
+								let const_type: ConstType = U8(init_str.unwrap().parse()?);
+								const_type
+							}
+							"u16" => {
+								let const_type: ConstType = U16(init_str.unwrap().parse()?);
+								const_type
+							}
+							"u32" => {
+								let const_type: ConstType = U32(init_str.unwrap().parse()?);
+								const_type
+							}
+							"u64" => {
+								let const_type: ConstType = U64(init_str.unwrap().parse()?);
+								const_type
+							}
+							"u128" => {
+								let const_type: ConstType = U128(init_str.unwrap().parse()?);
+								const_type
+							}
+							"usize" => {
+								let const_type: ConstType = Usize(init_str.unwrap().parse()?);
+								const_type
+							}
+							_ => {
+								return err!(Parse, "unexpected type in config");
+							}
+						};
+						state.const_list.push(ObjectConst {
+							name: name.unwrap(),
+							default: const_type,
+						});
+
+						state.in_config = false;
+					}
+				}
+				_ => {}
+			}
+		}
+	}
+
 	Ok(())
 }
 
@@ -240,11 +473,18 @@ fn do_derive_object_impl(
 			}
 			Group(group) => {
 				state.span = Some(group.span());
+				let group_str = group.to_string();
 				debug!("group={}", group)?;
 				if state.expect_tag {
 					debug!("found a tag")?;
 					state.expect_tag = false;
-					process_tag(group.to_string(), state)?;
+					process_tag(group_str, state)?;
+				} else {
+					// this is our function block
+					let inner_group = trim_outer(&group_str, "{", "}");
+					debug!("inner_grp='{}'", inner_group)?;
+					let inner_group_tokens = map_err!(inner_group.parse::<TokenStream>(), Parse)?;
+					process_inner_group_tokens(inner_group_tokens, state)?;
 				}
 			}
 			Literal(literal) => {
@@ -263,6 +503,7 @@ fn do_derive_object_impl(
 		}
 	}
 
+	/*
 	state.const_list = vec![
 		ObjectConst {
 			name: "y".to_string(),
@@ -273,22 +514,163 @@ fn do_derive_object_impl(
 			default: U8(10),
 		},
 	];
+		*/
+	/*
 	state.field_list = vec![ObjectField {
 		name: "x".to_string(),
 		otype: "i32".to_string(),
 	}];
+		*/
+	/*
 	let method_list = vec![Method {
 		name: "bark".to_string(),
 		signature: "fn bark(&mut self) -> Result<String, Error>".to_string(),
 		views: vec!["dog".to_string(), "test".to_string()],
 		param_string: "self".to_string(),
 	}];
-	state.views = HashMap::new();
-	state.views.insert("dog".to_string(), method_list.clone());
-	state.views.insert("test".to_string(), method_list);
-	state.builder = Some("builder".to_string());
+		*/
+	//state.views = HashMap::new();
+	//state.views.insert("dog".to_string(), method_list.clone());
+	//state.views.insert("test".to_string(), method_list);
 	build_object(state)?;
-	debug!("state.ret='{}'", state.ret)?;
+	//debug!("state.ret='{}'", state.ret)?;
 
+	Ok(())
+}
+
+fn process_inner_group_tokens(strm: TokenStream, state: &mut MacroState) -> Result<(), Error> {
+	for token in strm {
+		match token {
+			Ident(ident) => {
+				state.span = Some(ident.span());
+				let ident_str = ident.to_string();
+				debug!("inner ident = '{}'", ident_str)?;
+				state.expect_tag = false;
+				if state.expect_method_name {
+					state.expect_method_name = false;
+					match &mut state.cur_method {
+						Some(ref mut method) => method.name = ident_str.clone(),
+						None => {
+							return err!(IllegalState, "expected a method");
+						}
+					}
+				} else if state.in_method && ident_str == "fn" {
+					state.expect_method_name = true;
+				} else if state.expect_builder_name {
+					debug!("FOUND BUILDER={}", ident_str)?;
+					state.builder = Some(ident_str.clone());
+					state.expect_builder_name = false;
+				} else if ident_str == "fn" && state.in_builder {
+					state.expect_builder_name = true;
+				} else {
+					state.expect_builder_name = false;
+				}
+
+				if state.in_method {
+					match state.cur_method {
+						Some(ref mut method) => {
+							if ident_str == "_" {
+								method.signature = format!("{}{}", method.signature, ident);
+							} else {
+								method.signature = format!("{} {}", method.signature, ident);
+							}
+						}
+						None => return err!(IllegalState, "expected a cur_method"),
+					}
+				}
+			}
+			Group(group) => {
+				state.span = Some(group.span());
+				let group_str = group.to_string();
+
+				if state.in_method && group_str.find("{") == Some(0) {
+					state.in_method = false;
+					debug!("METHOD COMPLETE. Cur = {:?}", state.cur_method)?;
+
+					let mut view_list = vec![];
+					match state.cur_method {
+						Some(ref mut method) => {
+							for view in &method.views {
+								view_list.push(view.clone());
+							}
+						}
+						None => return err!(IllegalState, "expected a cur_method"),
+					}
+
+					for view in view_list {
+						let mut found = false;
+						match state.views.get_mut(&view.clone()) {
+							Some(view) => {
+								view.push(state.cur_method.as_ref().unwrap().clone());
+								found = true;
+							}
+							None => {}
+						}
+
+						if !found {
+							state.views.insert(
+								view.clone(),
+								vec![state.cur_method.as_ref().unwrap().clone()],
+							);
+						}
+					}
+
+					state.cur_method = None;
+				} else if state.in_method {
+					// param list
+					if state.in_method {
+						match state.cur_method {
+							Some(ref mut method) => {
+								method.signature = format!("{} {} ", method.signature, group_str);
+							}
+							None => return err!(IllegalState, "expected a cur_method"),
+						}
+					}
+
+					let inner = trim_outer(&group_str, "(", ")");
+					match &mut state.cur_method {
+						Some(ref mut method) => {
+							let inner = match inner.find("self") {
+								Some(i) => inner.substring(i, inner.len()).to_string(),
+								None => inner,
+							};
+							method.param_string = inner
+						}
+						None => return err!(IllegalState, "expected a cur_method"),
+					}
+				}
+				debug!("inner group = '{}'", group)?;
+				if state.expect_tag {
+					state.expect_tag = false;
+					process_tag(group_str.clone(), state)?;
+				}
+			}
+			Literal(literal) => {
+				state.span = Some(literal.span());
+				debug!("inner lit = '{}'", literal)?;
+				state.expect_tag = false;
+			}
+			Punct(punct) => {
+				state.span = Some(punct.span());
+				debug!("inner punct = '{}'", punct)?;
+				let punct_str = punct.to_string();
+
+				if state.in_method {
+					match state.cur_method {
+						Some(ref mut method) => {
+							method.signature = format!("{}{}", method.signature, punct_str);
+						}
+						None => return err!(IllegalState, "expected a cur_method"),
+					}
+				}
+
+				if punct == '#' {
+					state.expect_tag = true;
+				} else {
+					state.expect_tag = false;
+				}
+			}
+		}
+	}
 	Ok(())
 }

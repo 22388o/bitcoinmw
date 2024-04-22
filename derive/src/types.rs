@@ -51,6 +51,15 @@ pub(crate) struct ObjectMacroState {
 	pub(crate) expect_impl: bool,
 	pub(crate) expect_name: bool,
 	pub(crate) expect_tag: bool,
+	pub(crate) in_builder: bool,
+	pub(crate) expect_builder_name: bool,
+	pub(crate) in_method: bool,
+
+	pub(crate) cur_method: Option<Method>,
+	pub(crate) expect_method_name: bool,
+
+	pub(crate) in_field: bool,
+	pub(crate) in_config: bool,
 
 	pub(crate) const_list: Vec<ObjectConst>,
 	pub(crate) field_list: Vec<ObjectField>,
@@ -60,8 +69,23 @@ pub(crate) struct ObjectMacroState {
 
 pub(crate) enum ConstType {
 	U8(u8),
+	U16(u16),
 	U32(u32),
+	U64(u64),
+	U128(u128),
 	Usize(usize),
+	Bool(bool),
+	Tuple((String, String)),
+	ConfString(String),
+	VecU8(Vec<u8>),
+	VecU16(Vec<u16>),
+	VecU32(Vec<u32>),
+	VecU64(Vec<u64>),
+	VecU128(Vec<u128>),
+	VecUsize(Vec<usize>),
+	VecBool(Vec<bool>),
+	VecTuple(Vec<(String, String)>),
+	VecString(Vec<String>),
 }
 
 pub(crate) struct ObjectConst {
@@ -69,7 +93,7 @@ pub(crate) struct ObjectConst {
 	pub(crate) default: ConstType,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct Method {
 	pub(crate) name: String,
 	pub(crate) signature: String,
