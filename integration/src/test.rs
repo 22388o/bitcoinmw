@@ -18,12 +18,12 @@
 
 use bmw_derive::*;
 
-#[object{
-        Animal2 {
+#[class{
+        Animal2 { 
                 const y: usize = 1;
                 const z: u8 = 10;
-                x: i32;
-                v: usize;
+                var x: i32;
+                var v: usize;
 
                 fn builder(&config) -> Result<Self, Error> {
                         Ok(Self { x: -100, v: config.y })
@@ -36,11 +36,16 @@ use bmw_derive::*;
 
                 [cat, test]
                 fn meow(&mut self, v1: usize) -> Result<String, Error> {
+                        self.other();
                         Ok("meow".to_string())
+                }
+
+                fn other(&self) {
+
                 }
         }
 }]
-object!();
+impl Animal2 {}
 
 #[cfg(test)]
 mod test {

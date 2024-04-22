@@ -18,6 +18,7 @@
 
 use bmw_deps::failure;
 
+mod class;
 mod config;
 mod document;
 mod errorkind;
@@ -28,6 +29,7 @@ mod types;
 mod utils;
 
 extern crate proc_macro;
+use crate::class::do_derive_class;
 use crate::config::do_derive_configurable;
 use crate::document::do_derive_document;
 use crate::errorkind::do_derive_errorkind;
@@ -63,6 +65,13 @@ pub fn derive_errorkind(strm: TokenStream) -> TokenStream {
 #[proc_macro_error]
 pub fn object(attr: TokenStream, item: TokenStream) -> TokenStream {
 	do_derive_object(attr, item)
+}
+
+#[proc_macro_attribute]
+#[cfg(not(tarpaulin_include))]
+#[proc_macro_error]
+pub fn class(attr: TokenStream, item: TokenStream) -> TokenStream {
+	do_derive_class(attr, item)
 }
 
 #[proc_macro_attribute]

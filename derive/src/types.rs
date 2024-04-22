@@ -152,7 +152,8 @@ pub(crate) enum TokenType {
 
 #[derive(Debug, Fail)]
 pub(crate) enum DeriveErrorKind {
-	/// Log error
 	#[fail(display = "log error: {}", _0)]
 	Log(String),
+	#[fail(display = "unexpected token: {}", _0)]
+	UnexpectedToken(String),
 }
