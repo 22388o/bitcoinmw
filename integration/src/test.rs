@@ -16,6 +16,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bmw_derive::*;
+
+#[object{
+        Animal2 {
+                const y: usize = 1;
+                const z: u8 = 10;
+                x: i32;
+                v: usize;
+
+                fn builder(&config) -> Result<Self, Error> {
+                        Ok(Self { x: -100, v: config.y })
+                }
+
+                [dog, test]
+                fn bark(&mut self) -> Result<String, Error> {
+                        Ok("woof".to_string())
+                }
+
+                [cat, test]
+                fn meow(&mut self, v1: usize) -> Result<String, Error> {
+                        Ok("meow".to_string())
+                }
+        }
+}]
+object!();
+
 #[cfg(test)]
 mod test {
 	use bmw_base::*;
@@ -69,38 +95,17 @@ mod test {
 			Ok(self.x + 1)
 		}
 
+		#[method(cat)]
+		fn ret10(&self) -> Result<u32, Error> {
+			Ok(10)
+		}
+
 		#[method(test)]
 		fn as_dog(&mut self) -> Result<Box<dyn Dog + '_>, Error> {
 			let dog: Box<dyn Dog> = Box::new(self);
 			Ok(dog)
 		}
-
-		fn impl_dog(&mut self) -> Result<impl Dog + '_, Error> {
-			Ok(self)
-		}
-
-		fn impl_test(&mut self) -> Result<impl Test + '_, Error> {
-			Ok(self)
-		}
 	}
-
-	/*
-	#[object{
-			Animal {
-				const y: usize = 1;
-				const z: u8 = 10;
-				x: i32;
-				fn builder(config: AnimalConfig) -> Result<Self, Error> {
-					Ok(Self { config, x: -100 })
-				}
-
-				fn bark(&mut self) -> Result<String, Error> {
-
-				}
-			}
-		}]
-	impl {}
-		*/
 
 	#[test]
 	fn test_object() -> Result<(), Error> {
@@ -119,6 +124,9 @@ mod test {
 
 		let mut test2 = test.as_dog()?;
 		assert_eq!(test2.bark()?, "WOOF!");
+
+		let cat = cat!()?;
+		assert_eq!(cat.ret10(), Ok(10));
 
 		Ok(())
 	}

@@ -67,6 +67,7 @@ pub(crate) struct ObjectMacroState {
 	pub(crate) builder: Option<String>,
 }
 
+#[allow(dead_code)]
 pub(crate) enum ConstType {
 	U8(u8),
 	U16(u16),

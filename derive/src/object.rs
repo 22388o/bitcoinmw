@@ -30,7 +30,7 @@ use proc_macro::TokenStream;
 use proc_macro::TokenTree::*;
 use std::collections::HashMap;
 
-const DEBUG: bool = true;
+const DEBUG: bool = false;
 
 // use a makeshift log because we want to use this as a dependency in the logging crate
 macro_rules! debug {
@@ -206,7 +206,7 @@ fn build_macros(state: &mut MacroState) -> Result<(), Error> {
 		Some(builder) => builder,
 		None => return err!(Parse, "expected builder"),
 	};
-	for (name, methods) in &state.views {
+	for (name, _methods) in &state.views {
 		// if we get here the name is not none so unwrap is ok.
 		let impl_name = state.name.as_ref().unwrap();
 		let trait_name = name.to_case(Case::Pascal);
@@ -418,6 +418,17 @@ fn process_tag(tag: String, state: &mut MacroState) -> Result<(), Error> {
 								let const_type: ConstType = Usize(init_str.unwrap().parse()?);
 								const_type
 							}
+							"bool" => {
+								let const_type: ConstType = Bool(init_str.unwrap().parse()?);
+								const_type
+							}
+							"(String, String)" => {
+								todo!()
+							}
+							"String" => {
+								let const_type: ConstType = ConfString(init_str.unwrap());
+								const_type
+							}
 							_ => {
 								return err!(Parse, "unexpected type in config");
 							}
@@ -439,11 +450,41 @@ fn process_tag(tag: String, state: &mut MacroState) -> Result<(), Error> {
 }
 
 fn do_derive_object_impl(
-	_attr: TokenStream,
+	attr: TokenStream,
 	item: TokenStream,
 	state: &mut MacroState,
 ) -> Result<(), Error> {
 	debug!("in do_derive_object_impl")?;
+
+	let mut has_inner = false;
+	let mut name = None;
+	for token in attr {
+		match token {
+			Ident(v) => {
+				debug!("vident={}", v)?;
+				name = Some(v.to_string());
+				has_inner = true;
+				break;
+			}
+			Group(v) => {
+				debug!("vgroup={}", v)?;
+				name = Some("Empty".to_string());
+				has_inner = true;
+			}
+			Literal(_v) => {}
+			Punct(v) => {
+				debug!("vpunct={}", v)?;
+			}
+		}
+	}
+
+	// return for 2.0 style
+	if has_inner {
+		let empty_struct = format!("struct {} {{}}", name.unwrap()).parse::<TokenStream>();
+		state.ret.extend(empty_struct);
+		return Ok(());
+	}
+
 	state.expect_impl = true;
 	state.ret.extend(item.clone());
 	state.ret.extend("#[doc = \"test\"]".parse::<TokenStream>());

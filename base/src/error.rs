@@ -28,7 +28,7 @@ use std::ffi::OsString;
 use std::fmt::{Display, Formatter, Result};
 use std::net::AddrParseError;
 use std::num::{ParseIntError, TryFromIntError};
-use std::str::Utf8Error;
+use std::str::{ParseBoolError, Utf8Error};
 use std::string::FromUtf8Error;
 use std::sync::mpsc::{RecvError, SendError};
 use std::sync::{MutexGuard, PoisonError, RwLockReadGuard, RwLockWriteGuard};
@@ -234,6 +234,12 @@ impl From<FromUtf8Error> for Error {
 
 impl From<AddrParseError> for Error {
 	fn from(e: AddrParseError) -> Error {
+		err_only!(BaseErrorKind::Parse, e)
+	}
+}
+
+impl From<ParseBoolError> for Error {
+	fn from(e: ParseBoolError) -> Error {
 		err_only!(BaseErrorKind::Parse, e)
 	}
 }
