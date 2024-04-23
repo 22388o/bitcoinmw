@@ -19,7 +19,7 @@
 use crate::types::DeriveErrorKind::*;
 use bmw_base::BaseErrorKind::*;
 use bmw_base::*;
-use proc_macro::{Delimiter, Span, TokenStream, TokenTree, TokenTree::*};
+use proc_macro::{Delimiter, Group, Span, TokenStream, TokenTree, TokenTree::*};
 use proc_macro_error::{abort, emit_error, Diagnostic, Level};
 
 const DEBUG: bool = true;
@@ -102,6 +102,27 @@ impl Const {
 	}
 }
 
+#[derive(Debug)]
+struct FnInfo {
+	name: String,
+	signature: String,
+	param_string: String,
+	fn_block: String,
+	views: Vec<String>,
+}
+
+impl FnInfo {
+	fn new() -> Self {
+		Self {
+			name: "".to_string(),
+			signature: "".to_string(),
+			param_string: "".to_string(),
+			fn_block: "".to_string(),
+			views: vec![],
+		}
+	}
+}
+
 struct State {
 	stage: Stage,
 	ret: TokenStream,
@@ -109,6 +130,7 @@ struct State {
 	error_list: Vec<SpanError>,
 	cur_var: Option<Var>,
 	cur_const: Option<Const>,
+	cur_fn: Option<FnInfo>,
 }
 
 impl State {
@@ -120,6 +142,7 @@ impl State {
 			error_list: vec![],
 			cur_var: None,
 			cur_const: None,
+			cur_fn: None,
 		}
 	}
 
@@ -203,13 +226,55 @@ impl State {
 	}
 
 	fn process_fn_block(&mut self, token: TokenTree) -> Result<(), Error> {
-		debug!("fblock token = {}", token)?;
+		debug!("fnblock token = {:?}", token)?;
 		match token {
 			Group(group) => {
 				if group.delimiter() == Delimiter::Brace {
+					match &mut self.cur_fn {
+						Some(ref mut cur_fn) => {
+							cur_fn.fn_block = group.to_string();
+						}
+						None => {
+							return err!(
+								IllegalState,
+								"Internal error: expected cur_fn in process_fn_block"
+							)
+						}
+					}
+
+					debug!("FN COMPLETE = '{:?}'", self.cur_fn)?;
+					debug!("setting cur_fn to none")?;
+					self.cur_fn = None;
 					self.stage = Stage::ClassBlock;
+				} else if group.delimiter() == Delimiter::Parenthesis {
+					match &mut self.cur_fn {
+						Some(ref mut cur_fn) => {
+							cur_fn.param_string = group.to_string();
+							cur_fn.signature = format!("{}{}", cur_fn.signature, group.to_string());
+						}
+						None => {
+							return err!(
+								IllegalState,
+								"Internal error: expected cur_fn in process_fn_block"
+							)
+						}
+					}
 				}
 			}
+			Ident(ident) => match &mut self.cur_fn {
+				Some(ref mut cur_fn) => {
+					if cur_fn.name.len() == 0 {
+						cur_fn.name = ident.to_string();
+						cur_fn.signature = format!("fn {}", ident.to_string());
+					}
+				}
+				None => {
+					return err!(
+						IllegalState,
+						"internal error: expected a cur_fn in fn_block"
+					);
+				}
+			},
 			_ => {}
 		}
 		Ok(())
@@ -358,10 +423,20 @@ impl State {
 			Ident(ident) => {
 				let ident_str = ident.to_string();
 				if ident_str == "var" {
+					if self.cur_fn.is_some() {
+						self.append_error("did not expect a var after a method list")?;
+					}
 					self.stage = Stage::VarBlock;
 				} else if ident_str == "const" {
+					if self.cur_fn.is_some() {
+						self.append_error("did not expect a const after a method list")?;
+					}
 					self.stage = Stage::ConstBlock;
 				} else if ident_str == "fn" {
+					if self.cur_fn.is_none() {
+						debug!("creating a cur_fn")?;
+						self.cur_fn = Some(FnInfo::new());
+					}
 					self.stage = Stage::FnBlock;
 				} else {
 					self.append_error(
@@ -371,7 +446,14 @@ impl State {
 			}
 			Group(group) => {
 				if group.delimiter() == Delimiter::Bracket {
+					if self.cur_fn.is_some() {
+						self.append_error("did not expect a method list after a method list")?;
+					}
+
 					// method list here
+					debug!("create a cur_fn")?;
+					self.cur_fn = Some(FnInfo::new());
+					self.process_method_list(group)?;
 				} else {
 					self.append_error(&format!(
 						"Parse Error: unexpected token: '{:?}'",
@@ -380,10 +462,46 @@ impl State {
 				}
 			}
 			Punct(p) => self.append_error(&format!("Parse Error: unexecpted token '{}'", p)[..])?,
-
 			Literal(l) => {
 				self.append_error(&format!("Parse Error: unexecpted token '{}'", l)[..])?
 			}
+		}
+		Ok(())
+	}
+
+	fn process_method_list(&mut self, group: Group) -> Result<(), Error> {
+		let mut expect_comma = false;
+		for token in group.stream() {
+			debug!("method_list_token={:?}", token)?;
+			match token {
+				Punct(p) => {
+					if !expect_comma || p.to_string() != "," {
+						self.append_error(&format!("Parse error, expected ','")[..])?;
+					}
+				}
+				Ident(ident) => {
+					if expect_comma {
+						self.append_error(&format!("Parse error, expected ','")[..])?;
+					} else {
+						match &mut self.cur_fn {
+							Some(ref mut cur_fn) => {
+								cur_fn.views.push(ident.to_string());
+							}
+							None => {
+								return err!(
+									IllegalState,
+									"internal error, expected to have a cur_fn here"
+								);
+							}
+						}
+					}
+				}
+				_ => {
+					self.append_error(&format!("expected view name"))?;
+				}
+			}
+
+			expect_comma = !expect_comma;
 		}
 		Ok(())
 	}

@@ -18,35 +18,34 @@
 
 use bmw_derive::*;
 
-#[class{
-        Animal2 {
-                const y: usize = 1;
-                const z: u8 = 10;
-                var x: i32;
-                var v: usize;
-                var abc: Vec<(String, u8)>;
-                var def: [u8; 5];
+#[class {
+    Animal2 {
+        const y: usize = 1;
+        const z: u8 = 10;
+        var x: i32;
+        var v: usize;
+        var abc: Vec<(String, u8)>;
+        var def: [u8; 5];
 
-                fn builder(&const_values) -> Result<Self, Error> {
-                        Ok(Self { x: -100, v: const_values.y })
-                }
-
-                [dog, test]
-                fn bark(&mut self) -> Result<String, Error> {
-                        Ok("woof".to_string())
-                }
-
-                [cat, test]
-                fn meow(&mut self, v1: usize) -> Result<String, Error> {
-                        self.other();
-                        Ok("meow".to_string())
-                }
-
-                fn other(&self) {
-
-                }
-                
+        fn builder(&const_values) -> Result<Self, Error> {
+                Ok(Self { x: -100, v: const_values.get_y() })
         }
+
+        [dog, test]
+        fn bark(&mut self) -> Result<String, Error> {
+                Ok("woof".to_string())
+        }
+
+        [cat, test]
+        fn meow(&mut self, v1: usize) -> Result<String, Error> {
+                self.other();
+                Ok("meow".to_string())
+        }
+
+        fn other(&self) {
+
+        }
+    }
 }]
 impl Animal2 {}
 
