@@ -24,7 +24,7 @@ use proc_macro::{Delimiter, Group, Span, TokenStream, TokenTree, TokenTree::*};
 use proc_macro_error::{abort, emit_error, Diagnostic, Level};
 use std::str::from_utf8;
 
-const DEBUG: bool = true;
+const DEBUG: bool = false;
 
 // use a makeshift log because we want to use this as a dependency in the logging crate
 macro_rules! debug {

@@ -200,24 +200,18 @@ where
 	}
 }
 
-struct X<OnRead>
-where
-	OnRead: FnMut() -> Result<(), Error> + Send + 'static + Clone + Sync + Unpin,
-{
-	on_read: Option<Pin<Box<OnRead>>>,
-}
-
 #[cfg(test)]
 mod test {
 	use bmw_base::*;
-	use bmw_deps::failure::Fail;
 	use bmw_derive::*;
 
-	#[derive(ErrorKind, Debug, Fail)]
+	#[errorkind]
 	enum IntErrorKind {
-		/// Test the integration of errors
-		#[fail(display = "integration error: {}", _0)]
-		Integration(String),
+		/// integration error
+		Integration,
+		/// Test error
+		Test123,
+		Abc123,
 	}
 
 	fn ret_err() -> Result<(), Error> {

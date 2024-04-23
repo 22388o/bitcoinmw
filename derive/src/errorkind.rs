@@ -17,11 +17,12 @@
 // limitations under the License.
 
 use bmw_base::*;
+use bmw_deps::substring::Substring;
 use proc_macro::TokenStream;
 use proc_macro::TokenTree::*;
 
 #[cfg(not(tarpaulin_include))]
-pub(crate) fn do_derive_errorkind(item: TokenStream) -> TokenStream {
+pub(crate) fn do_derive_errorkind(_attr: TokenStream, item: TokenStream) -> TokenStream {
 	match do_derive_errorkind_impl(&item) {
 		Ok(stream) => stream,
 		Err(e) => {
@@ -37,12 +38,73 @@ pub(crate) fn do_derive_errorkind(item: TokenStream) -> TokenStream {
 fn do_derive_errorkind_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 	let mut ret = TokenStream::new();
 	let mut expect_name = false;
+	let mut name = "".to_string();
+
+	ret.extend(
+		"use bmw_deps::failure::Fail;\nuse bmw_deps::failure;#[derive(Debug, Fail)]"
+			.parse::<TokenStream>(),
+	);
 
 	for token in item.clone() {
+		let mut extended = false;
+		let mut last_doc: Option<String> = None;
+		match token {
+			Ident(_) => {
+				ret.extend(token.to_string().parse::<TokenStream>());
+				extended = true;
+			}
+			Group(ref g) => {
+				let mut extension = "{".to_string();
+				for g in g.stream() {
+					let ginner = g.to_string();
+					if ginner.find("[doc") == Some(0) {
+						match ginner.find("\"") {
+							Some(start) => match ginner.rfind("\"") {
+								Some(end) => {
+									if end > start + 2 {
+										let d = ginner.substring(start + 2, end);
+										last_doc = Some(d.to_string());
+									}
+								}
+								None => {}
+							},
+							None => {}
+						}
+					}
+					match g {
+						Ident(g) => {
+							extension = format!(
+								"{}#[fail(display = \"{}: {{}}\", _0)]",
+								extension,
+								match last_doc {
+									Some(last_doc) => last_doc,
+									None => g.to_string(),
+								}
+							);
+							extension = format!("{} {}(String)", extension, g.to_string());
+							last_doc = None;
+						}
+						Punct(g) => {
+							extension = format!("{} {}", extension, g.to_string());
+						}
+						_ => extension = format!("{} {}", extension, g.to_string()),
+					}
+				}
+				extension = format!("{}}}", extension);
+				ret.extend(extension.parse::<TokenStream>());
+				extended = true;
+			}
+			_ => {}
+		}
+
+		if !extended {
+			ret.extend(token.to_string().parse::<TokenStream>());
+		}
+
 		match token {
 			Ident(ident) => {
 				if expect_name {
-					build_impls(ident.to_string(), &mut ret)?;
+					name = ident.to_string();
 					expect_name = false;
 				} else if ident.to_string() == "enum" {
 					expect_name = true;
@@ -55,6 +117,8 @@ fn do_derive_errorkind_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 			}
 		}
 	}
+
+	build_impls(name, &mut ret)?;
 
 	Ok(ret)
 }

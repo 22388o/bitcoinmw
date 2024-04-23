@@ -52,13 +52,13 @@ pub fn derive_configurable(strm: TokenStream) -> TokenStream {
 	do_derive_configurable(strm)
 }
 
-#[proc_macro_derive(ErrorKind)]
-#[cfg(not(tarpaulin_include))]
-pub fn derive_errorkind(strm: TokenStream) -> TokenStream {
-	do_derive_errorkind(strm)
-}
-
 // attribute proc macros
+
+#[proc_macro_attribute]
+#[cfg(not(tarpaulin_include))]
+pub fn errorkind(attr: TokenStream, item: TokenStream) -> TokenStream {
+	do_derive_errorkind(attr, item)
+}
 
 #[proc_macro_attribute]
 #[cfg(not(tarpaulin_include))]
