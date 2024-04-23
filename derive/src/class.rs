@@ -58,7 +58,48 @@ enum Stage {
 	Init,
 	ClassGroup,
 	ClassBlock,
+	FnBlock,
+	VarBlock,
+	ConstBlock,
 	Complete,
+}
+
+#[derive(Debug)]
+struct Var {
+	name: String,
+	type_str: String,
+	found_colon: bool,
+}
+
+impl Var {
+	fn new() -> Self {
+		Self {
+			name: "".to_string(),
+			type_str: "".to_string(),
+			found_colon: false,
+		}
+	}
+}
+
+#[derive(Debug)]
+struct Const {
+	name: String,
+	type_str: String,
+	value_str: String,
+	found_colon: bool,
+	found_equal: bool,
+}
+
+impl Const {
+	fn new() -> Self {
+		Self {
+			name: "".to_string(),
+			type_str: "".to_string(),
+			value_str: "".to_string(),
+			found_colon: false,
+			found_equal: false,
+		}
+	}
 }
 
 struct State {
@@ -66,6 +107,8 @@ struct State {
 	ret: TokenStream,
 	span: Option<Span>,
 	error_list: Vec<SpanError>,
+	cur_var: Option<Var>,
+	cur_const: Option<Const>,
 }
 
 impl State {
@@ -75,6 +118,8 @@ impl State {
 			stage: Stage::Init,
 			span: None,
 			error_list: vec![],
+			cur_var: None,
+			cur_const: None,
 		}
 	}
 
@@ -150,8 +195,141 @@ impl State {
 			Stage::Init => self.process_init(token),
 			Stage::ClassGroup => self.process_class_group(token),
 			Stage::ClassBlock => self.process_class_block(token),
+			Stage::FnBlock => self.process_fn_block(token),
+			Stage::VarBlock => self.process_var_block(token),
+			Stage::ConstBlock => self.process_const_block(token),
 			Stage::Complete => err!(UnexpectedToken, "unexpected token after class definition"),
 		}
+	}
+
+	fn process_fn_block(&mut self, token: TokenTree) -> Result<(), Error> {
+		debug!("fblock token = {}", token)?;
+		match token {
+			Group(group) => {
+				if group.delimiter() == Delimiter::Brace {
+					self.stage = Stage::ClassBlock;
+				}
+			}
+			_ => {}
+		}
+		Ok(())
+	}
+
+	fn process_var_block(&mut self, token: TokenTree) -> Result<(), Error> {
+		let token_str = token.to_string();
+		debug!("process_var token = {:?}", token)?;
+		if token_str == ";" {
+			match &self.cur_var {
+				None => {
+					self.append_error(&format!("unexpected token: '{}'", token_str)[..])?;
+				}
+				Some(var) => {
+					if !var.found_colon || var.type_str.len() == 0 {
+						self.append_error(&format!("unexpected token: '{}'", token_str)[..])?;
+					} else {
+						debug!("COMPLETE var = {:?}", self.cur_var)?;
+					}
+					self.cur_var = None;
+				}
+			}
+			self.stage = Stage::ClassBlock;
+		} else {
+			match &mut self.cur_var {
+				Some(var) => {
+					// if this is not true, we know we already have an error
+					if var.name.len() > 0 {
+						if !var.found_colon {
+							if token_str != ":" {
+								self.append_error(&format!("unexpected token: {}", token_str)[..])?;
+							} else {
+								var.found_colon = true;
+							}
+						} else {
+							if token_str == ":" {
+								self.append_error("unexpected token: ':'")?;
+							} else {
+								debug!("type_str += '{:?}'", token)?;
+								// append the rest
+								var.type_str = format!("{}{}", var.type_str, token_str);
+							}
+						}
+					}
+				}
+				None => match token {
+					Ident(name) => {
+						let mut var = Var::new();
+						var.name = name.to_string();
+						self.cur_var = Some(var);
+					}
+					_ => {
+						self.append_error(&format!("unexpected token: {}", token_str)[..])?;
+					}
+				},
+			}
+		}
+		Ok(())
+	}
+
+	fn process_const_block(&mut self, token: TokenTree) -> Result<(), Error> {
+		let token_str = token.to_string();
+		debug!("process const block token = {:?}", token)?;
+		if token_str == ";" {
+			self.stage = Stage::ClassBlock;
+			match &self.cur_const {
+				None => {
+					self.append_error(&format!("unexpected token: '{}'", token_str)[..])?;
+				}
+				Some(c) => {
+					if !c.found_colon
+						|| !c.found_equal || c.type_str.len() == 0
+						|| c.value_str.len() == 0
+					{
+						self.append_error(&format!("unexpected token: '{}'", token_str)[..])?;
+					} else {
+						debug!("COMPLETE const = {:?}", self.cur_const)?;
+					}
+					self.cur_const = None;
+				}
+			}
+		} else {
+			match &mut self.cur_const {
+				Some(c) => {
+					if !c.found_colon {
+						if token_str != ":" {
+							self.append_error(&format!("unexpected token: {}", token_str)[..])?;
+						} else {
+							c.found_colon = true;
+						}
+					} else {
+						if token_str == ":" {
+							self.append_error("unexpected token: ':'")?;
+						} else {
+							debug!("additional const token += '{:?}'", token)?;
+							if !c.found_equal {
+								// append to type_str
+								if token_str != "=" {
+									c.type_str = format!("{}{}", c.type_str, token_str);
+								} else {
+									c.found_equal = true;
+								}
+							} else {
+								// append to value str
+								c.value_str = format!("{}{}", c.value_str, token_str);
+							}
+						}
+					}
+				}
+				None => match token {
+					Ident(name) => {
+						let mut c = Const::new();
+						c.name = name.to_string();
+						self.cur_const = Some(c);
+					}
+					_ => self.append_error(&format!("unexpected token: {}", token_str)[..])?,
+				},
+			}
+		}
+		Ok(())
 	}
 
 	fn process_class_group(&mut self, token: TokenTree) -> Result<(), Error> {
@@ -177,12 +355,35 @@ impl State {
 	fn process_class_block(&mut self, token: TokenTree) -> Result<(), Error> {
 		debug!("class_block_token={:?}", token)?;
 		match token {
-			Punct(p) => {
-				if p == '#' {
-					self.append_error("Parse Error: unexecpted token '#'")?;
+			Ident(ident) => {
+				let ident_str = ident.to_string();
+				if ident_str == "var" {
+					self.stage = Stage::VarBlock;
+				} else if ident_str == "const" {
+					self.stage = Stage::ConstBlock;
+				} else if ident_str == "fn" {
+					self.stage = Stage::FnBlock;
+				} else {
+					self.append_error(
+						&format!("Parse Error: unexecpted token '{}'", ident_str)[..],
+					)?;
 				}
 			}
-			_ => {}
+			Group(group) => {
+				if group.delimiter() == Delimiter::Bracket {
+					// method list here
+				} else {
+					self.append_error(&format!(
+						"Parse Error: unexpected token: '{:?}'",
+						group.delimiter()
+					))?;
+				}
+			}
+			Punct(p) => self.append_error(&format!("Parse Error: unexecpted token '{}'", p)[..])?,
+
+			Literal(l) => {
+				self.append_error(&format!("Parse Error: unexecpted token '{}'", l)[..])?
+			}
 		}
 		Ok(())
 	}

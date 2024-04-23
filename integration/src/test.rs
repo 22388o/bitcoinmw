@@ -19,14 +19,16 @@
 use bmw_derive::*;
 
 #[class{
-        Animal2 { 
+        Animal2 {
                 const y: usize = 1;
                 const z: u8 = 10;
                 var x: i32;
                 var v: usize;
+                var abc: Vec<(String, u8)>;
+                var def: [u8; 5];
 
-                fn builder(&config) -> Result<Self, Error> {
-                        Ok(Self { x: -100, v: config.y })
+                fn builder(&const_values) -> Result<Self, Error> {
+                        Ok(Self { x: -100, v: const_values.y })
                 }
 
                 [dog, test]
@@ -43,6 +45,7 @@ use bmw_derive::*;
                 fn other(&self) {
 
                 }
+                
         }
 }]
 impl Animal2 {}
