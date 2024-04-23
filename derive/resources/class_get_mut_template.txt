@@ -1,0 +1,7 @@
+	fn get_${PARAM_NAME}(&self) -> &${PARAM_TYPE} {
+        	&self.${PARAM_NAME}
+	}
+
+	fn get_mut_${PARAM_NAME}(&self) -> &mut ${PARAM_TYPE} {
+        	&mut self.${PARAM_NAME}
+	}

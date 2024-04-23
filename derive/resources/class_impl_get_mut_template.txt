@@ -1,0 +1,7 @@
+        fn get_${PARAM_NAME}(&self) -> &${PARAM_TYPE} {
+                self._hidden_var_struct.get_${PARAM_NAME}()
+        }
+
+        fn get_mut_${PARAM_NAME}(&mut self) -> &mut ${PARAM_TYPE} {
+                self._hidden_var_struct.get_mut_${PARAM_NAME}()
+        }

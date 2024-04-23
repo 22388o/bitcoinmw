@@ -1,0 +1,18 @@
+#[allow(dead_code)]
+struct ${NAME} {
+	_hidden_var_struct: ${NAME}Var,
+	_hidden_const_struct: ${NAME}Const,
+}
+
+#[allow(dead_code)]
+struct ${NAME}Var
+{
+	${VAR_PARAMS}
+}
+
+#[allow(dead_code)]
+struct ${NAME}Const {
+	${CONST_PARAMS}
+}
+
+

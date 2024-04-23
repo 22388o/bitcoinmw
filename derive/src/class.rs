@@ -17,10 +17,12 @@
 // limitations under the License.
 
 use crate::types::DeriveErrorKind::*;
+use crate::utils::trim_outer;
 use bmw_base::BaseErrorKind::*;
 use bmw_base::*;
 use proc_macro::{Delimiter, Group, Span, TokenStream, TokenTree, TokenTree::*};
 use proc_macro_error::{abort, emit_error, Diagnostic, Level};
+use std::str::from_utf8;
 
 const DEBUG: bool = true;
 
@@ -55,8 +57,6 @@ struct SpanError {
 
 #[derive(PartialEq)]
 enum Stage {
-	Init,
-	ClassGroup,
 	ClassBlock,
 	FnBlock,
 	VarBlock,
@@ -64,7 +64,7 @@ enum Stage {
 	Complete,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Var {
 	name: String,
 	type_str: String,
@@ -81,7 +81,7 @@ impl Var {
 	}
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Const {
 	name: String,
 	type_str: String,
@@ -102,7 +102,7 @@ impl Const {
 	}
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct FnInfo {
 	name: String,
 	signature: String,
@@ -131,22 +131,76 @@ struct State {
 	cur_var: Option<Var>,
 	cur_const: Option<Const>,
 	cur_fn: Option<FnInfo>,
+	name: Option<String>,
+
+	fn_list: Vec<FnInfo>,
+	const_list: Vec<Const>,
+	var_list: Vec<Var>,
 }
 
 impl State {
 	fn new() -> Self {
 		Self {
 			ret: TokenStream::new(),
-			stage: Stage::Init,
+			stage: Stage::ClassBlock,
 			span: None,
 			error_list: vec![],
 			cur_var: None,
 			cur_const: None,
 			cur_fn: None,
+			name: None,
+			fn_list: vec![],
+			const_list: vec![],
+			var_list: vec![],
 		}
 	}
 
-	fn derive(&mut self, tag: TokenStream) -> Result<TokenStream, Error> {
+	fn process_item(&mut self, item: TokenStream) -> Result<(), Error> {
+		let mut expect_impl = true;
+		let mut expect_name = false;
+		let mut expect_group = false;
+
+		for token in item {
+			self.span = Some(token.span());
+			debug!("item_token='{}'", token)?;
+			let token_str = token.to_string();
+			if expect_impl && token_str != "impl" {
+				debug!("abort")?;
+				self.process_abort("expected keyword impl".to_string())?;
+			} else if expect_impl {
+				expect_impl = false;
+				expect_name = true;
+			} else if expect_name {
+				match token {
+					Ident(name) => {
+						self.name = Some(name.to_string());
+						expect_name = false;
+						expect_group = true;
+					}
+					_ => {
+						self.process_abort("expected class name".to_string())?;
+					}
+				}
+			} else if expect_group {
+				match token {
+					Group(group) => {
+						expect_group = false;
+						debug!("group='{}'", group.to_string())?;
+						for _group_item in group.stream() {
+							self.process_abort("impl must be empty for classes".to_string())?;
+						}
+					}
+					_ => self.process_abort("expected 'impl <name> {}'".to_string())?,
+				}
+			} else {
+				self.process_abort("unexpected token".to_string())?;
+			}
+		}
+		Ok(())
+	}
+
+	fn derive(&mut self, tag: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
+		self.process_item(item)?;
 		match self.do_derive(tag) {
 			Ok(_) => match self.stage {
 				Stage::Complete => Ok(self.ret.clone()),
@@ -166,6 +220,7 @@ impl State {
 
 	fn do_derive(&mut self, tag: TokenStream) -> Result<(), Error> {
 		debug!("in do_derive_class")?;
+		self.stage = Stage::ClassBlock;
 		for token in tag {
 			match self.process_token(token) {
 				Ok(_) => {}
@@ -176,6 +231,7 @@ impl State {
 				}
 			}
 		}
+		self.stage = Stage::Complete;
 
 		if self.error_list.len() > 0 {
 			self.print_errors()
@@ -209,14 +265,120 @@ impl State {
 	}
 
 	fn build(&mut self) -> Result<(), Error> {
+		debug!("name={:?}", self.name)?;
+		debug!("fn_list={:?}", self.fn_list)?;
+		debug!("const_list={:?}", self.const_list)?;
+		debug!("var_list={:?}", self.var_list)?;
+
+		// we can unwrap here
+		// if we get to this point all these are ok to unwrap
+		let name = self.name.as_ref().unwrap();
+
+		let struct_bytes = include_bytes!("../resources/class_struct_template.txt");
+
+		let struct_bytes = from_utf8(struct_bytes)?;
+		let struct_bytes = struct_bytes.replace("${NAME}", &name);
+
+		let mut var_params = "".to_string();
+		for var_param in &self.var_list {
+			var_params = format!(
+				"{}\n\t{}: {}",
+				var_params, var_param.name, var_param.type_str
+			);
+		}
+		let struct_bytes = struct_bytes.replace("${VAR_PARAMS}", &var_params);
+
+		let mut const_params = "".to_string();
+		for const_param in &self.const_list {
+			const_params = format!(
+				"{}\n\t{}: {}",
+				const_params, const_param.name, const_param.type_str
+			);
+		}
+		let struct_bytes = struct_bytes.replace("${CONST_PARAMS}", &const_params);
+
+		// create the Const impl
+		let get_bytes_template = include_bytes!("../resources/class_get_template.txt");
+		let get_bytes_template = from_utf8(get_bytes_template)?;
+		let mut const_impl = format!("impl {}Const {{", name);
+		for const_param in &self.const_list {
+			let getter = get_bytes_template.replace("${PARAM_NAME}", &const_param.name);
+			let getter = getter.replace("${PARAM_TYPE}", &const_param.type_str);
+			const_impl = format!("{}\n{}", const_impl, getter);
+		}
+		let const_impl = format!("{}}}", const_impl);
+
+		// create the Var impl
+		let get_mut_bytes_template = include_bytes!("../resources/class_get_mut_template.txt");
+		let get_mut_bytes_template = from_utf8(get_mut_bytes_template)?;
+		let mut var_impl = format!("impl {}Var {{", name);
+		for var_param in &self.var_list {
+			let mutter = get_mut_bytes_template.replace("${PARAM_NAME}", &var_param.name);
+			let mutter = mutter.replace("${PARAM_TYPE}", &var_param.type_str);
+			var_impl = format!("{}\n{}", var_impl, mutter);
+		}
+
+		// add builder
+		for fn_info in &self.fn_list {
+			if fn_info.name == "builder" {
+				let param_list = trim_outer(&fn_info.param_string, "(", ")");
+				let param_name = trim_outer(&param_list, "&", ")");
+				debug!("param_list='{}'", param_list)?;
+				var_impl = format!(
+					"{}\n\tfn builder({}: &{}Const) -> Result<Self, Error> {}\n",
+					var_impl, param_name, name, fn_info.fn_block
+				);
+			}
+		}
+
+		let var_impl = format!("{}}}", var_impl);
+
+		// create the main struct impl
+		let mut main_impl = format!("impl {} {{", name);
+
+		for fn_info in &self.fn_list {
+			if fn_info.name == "builder" {
+				let impl_builder = include_bytes!("../resources/class_impl_builder_template.txt");
+				let impl_builder = from_utf8(impl_builder)?;
+				let impl_builder = impl_builder.replace("${NAME}", name);
+				main_impl = format!("{}\n{}", main_impl, impl_builder);
+			} else {
+				main_impl = format!("{}\n{}{}", main_impl, fn_info.signature, fn_info.fn_block);
+			}
+		}
+
+		let get_bytes_template = include_bytes!("../resources/class_impl_get_template.txt");
+		let get_bytes_template = from_utf8(get_bytes_template)?;
+
+		let get_mut_bytes_template = include_bytes!("../resources/class_impl_get_mut_template.txt");
+		let get_mut_bytes_template = from_utf8(get_mut_bytes_template)?;
+
+		for const_param in &self.const_list {
+			let getter = get_bytes_template.replace("${PARAM_NAME}", &const_param.name);
+			let getter = getter.replace("${PARAM_TYPE}", &const_param.type_str);
+			main_impl = format!("{}\n{}", main_impl, getter);
+		}
+
+		for var_param in &self.var_list {
+			let mutter = get_mut_bytes_template.replace("${PARAM_NAME}", &var_param.name);
+			let mutter = mutter.replace("${PARAM_TYPE}", &var_param.type_str);
+			main_impl = format!("{}\n{}", main_impl, mutter);
+		}
+
+		let main_impl = format!("{}\n}}", main_impl);
+
+		let build_classes = format!("{}{}", struct_bytes, const_impl);
+		let build_classes = format!("{}\n{}", build_classes, var_impl);
+		let build_classes = format!("{}\n{}", build_classes, main_impl);
+
+		debug!("struct_bytes={}", build_classes)?;
+
 		Ok(())
 	}
 
 	fn process_token(&mut self, token: TokenTree) -> Result<(), Error> {
 		self.span = Some(token.span());
 		match self.stage {
-			Stage::Init => self.process_init(token),
-			Stage::ClassGroup => self.process_class_group(token),
 			Stage::ClassBlock => self.process_class_block(token),
 			Stage::FnBlock => self.process_fn_block(token),
 			Stage::VarBlock => self.process_var_block(token),
@@ -233,6 +395,7 @@ impl State {
 					match &mut self.cur_fn {
 						Some(ref mut cur_fn) => {
 							cur_fn.fn_block = group.to_string();
+							self.fn_list.push(cur_fn.clone());
 						}
 						None => {
 							return err!(
@@ -244,6 +407,7 @@ impl State {
 
 					debug!("FN COMPLETE = '{:?}'", self.cur_fn)?;
 					debug!("setting cur_fn to none")?;
+
 					self.cur_fn = None;
 					self.stage = Stage::ClassBlock;
 				} else if group.delimiter() == Delimiter::Parenthesis {
@@ -266,6 +430,8 @@ impl State {
 					if cur_fn.name.len() == 0 {
 						cur_fn.name = ident.to_string();
 						cur_fn.signature = format!("fn {}", ident.to_string());
+					} else {
+						cur_fn.signature = format!("{}{}", cur_fn.signature, ident.to_string());
 					}
 				}
 				None => {
@@ -275,7 +441,17 @@ impl State {
 					);
 				}
 			},
-			_ => {}
+			_ => match &mut self.cur_fn {
+				Some(ref mut cur_fn) => {
+					cur_fn.signature = format!("{}{}", cur_fn.signature, token.to_string());
+				}
+				None => {
+					return err!(
+						IllegalState,
+						"internal error: expected a cur_fn in fn_block"
+					);
+				}
+			},
 		}
 		Ok(())
 	}
@@ -293,6 +469,7 @@ impl State {
 						self.append_error(&format!("unexpected token: '{}'", token_str)[..])?;
 					} else {
 						debug!("COMPLETE var = {:?}", self.cur_var)?;
+						self.var_list.push(var.clone());
 					}
 					self.cur_var = None;
 				}
@@ -352,6 +529,7 @@ impl State {
 						self.append_error(&format!("unexpected token: '{}'", token_str)[..])?;
 					} else {
 						debug!("COMPLETE const = {:?}", self.cur_const)?;
+						self.const_list.push(c.clone());
 					}
 					self.cur_const = None;
 				}
@@ -394,26 +572,6 @@ impl State {
 				},
 			}
 		}
-		Ok(())
-	}
-
-	fn process_class_group(&mut self, token: TokenTree) -> Result<(), Error> {
-		debug!("ClassGroup token = {:?}", token)?;
-		match token {
-			Group(group) => {
-				if group.delimiter() != Delimiter::Brace {
-					self.append_error("unexpected token error: expected '{'")?;
-				}
-				self.stage = Stage::ClassBlock;
-				for token in group.stream() {
-					self.process_token(token)?;
-				}
-			}
-			_ => {
-				return err!(UnexpectedToken, "expected '{'");
-			}
-		}
-		self.stage = Stage::Complete;
 		Ok(())
 	}
 
@@ -506,15 +664,6 @@ impl State {
 		Ok(())
 	}
 
-	fn process_init(&mut self, token: TokenTree) -> Result<(), Error> {
-		debug!("init token={:?}", token)?;
-		if token.to_string() == "class" {
-			self.append_error("Reserved Word Error: the name 'class' is reserved.")?;
-		}
-		self.stage = Stage::ClassGroup;
-		Ok(())
-	}
-
 	fn append_error(&mut self, msg: &str) -> Result<(), Error> {
 		match self.span {
 			Some(span) => self.error_list.push(SpanError {
@@ -527,9 +676,9 @@ impl State {
 	}
 }
 
-pub(crate) fn do_derive_class(attr: TokenStream, _item: TokenStream) -> TokenStream {
+pub(crate) fn do_derive_class(attr: TokenStream, item: TokenStream) -> TokenStream {
 	let mut state = State::new();
-	match state.derive(attr) {
+	match state.derive(attr, item) {
 		Ok(strm) => strm,
 		Err(e) => {
 			let _ = debug!("Internal Error class proc_macro generated: {}", e);

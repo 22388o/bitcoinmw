@@ -16,23 +16,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bmw_base::*;
 use bmw_derive::*;
+use std::collections::HashSet;
+use std::pin::Pin;
 
 #[class {
-    Animal2 {
         const y: usize = 1;
         const z: u8 = 10;
         var x: i32;
         var v: usize;
-        var abc: Vec<(String, u8)>;
-        var def: [u8; 5];
 
+        // test
+        // ok ok ok
         fn builder(&const_values) -> Result<Self, Error> {
-                Ok(Self { x: -100, v: const_values.get_y() })
+                Ok(Self { x: -100, v: *const_values.get_y() })
         }
 
         [dog, test]
         fn bark(&mut self) -> Result<String, Error> {
+                *self.get_mut_x() += 1;
+                println!("x={}", self.get_x());
                 Ok("woof".to_string())
         }
 
@@ -43,11 +47,165 @@ use bmw_derive::*;
         }
 
         fn other(&self) {
-
+            let value: u8 = *self.get_z();
+            println!("v+1={}", value+1);
         }
-    }
 }]
 impl Animal2 {}
+// impl Animal2 <OnRead> where OnRead: FnMut() -> Result<(), Error> + Send + 'static + Clone + Sync + Unpin,{}
+
+#[allow(dead_code)]
+struct Animal2Var<OnRead>
+where
+	OnRead: FnMut() -> Result<(), Error> + Send + 'static + Clone + Sync + Unpin,
+{
+	x: i32,
+	v: usize,
+	bbb: HashSet<String>,
+	on_read: Option<Pin<Box<OnRead>>>,
+}
+
+#[allow(dead_code)]
+struct Animal2Const {
+	y: usize,
+	z: u8,
+}
+
+#[allow(dead_code)]
+struct Animal2<OnRead>
+where
+	OnRead: FnMut() -> Result<(), Error> + Send + 'static + Clone + Sync + Unpin,
+{
+	hidden_var_struct: Animal2Var<OnRead>,
+	hidden_const_struct: Animal2Const,
+}
+
+pub trait Dog {
+	fn bark(&mut self) -> Result<String, Error>;
+}
+
+#[allow(dead_code)]
+impl Animal2Const {
+	fn get_y(&self) -> &usize {
+		&self.y
+	}
+
+	fn get_z(&self) -> &u8 {
+		&self.z
+	}
+}
+
+#[allow(dead_code)]
+impl<OnRead> Animal2Var<OnRead>
+where
+	OnRead: FnMut() -> Result<(), Error> + Send + 'static + Clone + Sync + Unpin,
+{
+	fn builder(const_values: &Animal2Const) -> Result<Self, Error> {
+		Ok(Self {
+			x: -100,
+			v: *const_values.get_y(),
+			bbb: HashSet::new(),
+			on_read: None,
+		})
+	}
+
+	fn get_x(&self) -> &i32 {
+		&self.x
+	}
+
+	fn get_mut_x(&mut self) -> &mut i32 {
+		&mut self.x
+	}
+
+	fn get_v(&self) -> &usize {
+		&self.v
+	}
+
+	fn get_mut_v(&mut self) -> &mut usize {
+		&mut self.v
+	}
+}
+
+#[allow(dead_code)]
+impl<OnRead> Animal2<OnRead>
+where
+	OnRead: FnMut() -> Result<(), Error> + Send + 'static + Clone + Sync + Unpin,
+{
+	fn builder(const_values: Animal2Const) -> Result<Self, Error> {
+		Ok(Self {
+			hidden_var_struct: Animal2Var::builder(&const_values)?,
+			hidden_const_struct: const_values,
+		})
+	}
+
+	fn bark(&mut self) -> Result<String, Error> {
+		*self.get_mut_x() += 1;
+		println!("x={}", self.get_x());
+		Ok("woof".to_string())
+	}
+
+	fn set_on_read(&mut self, on_read: OnRead) -> Result<(), Error> {
+		let x = &mut self.hidden_var_struct.on_read;
+		*x = Some(Box::pin(on_read));
+		Ok(())
+	}
+
+	fn other(&self) {
+		let value: u8 = *self.get_z();
+		println!("v+1={}", value + 1);
+	}
+
+	fn get_x(&self) -> &i32 {
+		self.hidden_var_struct.get_x()
+	}
+
+	fn get_mut_x(&mut self) -> &mut i32 {
+		self.hidden_var_struct.get_mut_x()
+	}
+
+	fn get_v(&self) -> &usize {
+		self.hidden_var_struct.get_v()
+	}
+
+	fn get_mut_v(&mut self) -> &mut usize {
+		self.hidden_var_struct.get_mut_v()
+	}
+
+	fn get_y(&self) -> &usize {
+		self.hidden_const_struct.get_y()
+	}
+
+	fn get_z(&self) -> &u8 {
+		self.hidden_const_struct.get_z()
+	}
+}
+
+#[allow(dead_code)]
+impl<OnRead> Dog for Animal2<OnRead>
+where
+	OnRead: FnMut() -> Result<(), Error> + Send + 'static + Clone + Sync + Unpin,
+{
+	fn bark(&mut self) -> Result<String, Error> {
+		Animal2::bark(self)
+	}
+}
+
+#[allow(dead_code)]
+impl<OnRead> Dog for &mut Animal2<OnRead>
+where
+	OnRead: FnMut() -> Result<(), Error> + Send + 'static + Clone + Sync + Unpin,
+{
+	fn bark(&mut self) -> Result<String, Error> {
+		Animal2::bark(self)
+	}
+}
+
+struct X<OnRead>
+where
+	OnRead: FnMut() -> Result<(), Error> + Send + 'static + Clone + Sync + Unpin,
+{
+	on_read: Option<Pin<Box<OnRead>>>,
+}
 
 #[cfg(test)]
 mod test {
