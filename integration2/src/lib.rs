@@ -18,7 +18,16 @@
 
 //! The integration crate contains integration tests for other crates within BitcoinMW.
 
-use bmw_deps::failure;
+#[cfg(test)]
+mod test {
+	use bmw_base::*;
+	use bmw_int::test_class::*;
+	use bmw_int::*;
 
-pub mod test_class;
-mod test_error;
+	#[test]
+	fn test_int() -> Result<(), Error> {
+		let mut dog = dog!()?;
+		dog.bark()?;
+		Ok(())
+	}
+}

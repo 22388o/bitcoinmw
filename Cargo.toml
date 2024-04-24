@@ -18,6 +18,7 @@ members = [
 	"test",
 	"derive",
 	"integration",
+	"integration2",
 ]
 exclude = ["etc"]
 
@@ -26,8 +27,9 @@ bmw_base   = { path = "./base"   }
 bmw_derive = { path = "./derive" }
 
 [dev-dependencies]
-bmw_test = { path = "./test"        }
-bmw_int  = { path = "./integration" }
+bmw_test = { path = "./test"         }
+bmw_int  = { path = "./integration"  }
+bmw_int2 = { path = "./integration2" }
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 jemallocator = "0.5.4"

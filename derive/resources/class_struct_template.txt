@@ -1,5 +1,5 @@
 #[allow(dead_code)]
-struct ${NAME} {
+pub(crate) struct ${NAME} {
 	_hidden_var_struct: ${NAME}Var,
 	_hidden_const_struct: ${NAME}Const,
 }

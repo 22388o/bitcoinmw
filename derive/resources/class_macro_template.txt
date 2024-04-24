@@ -1,33 +1,23 @@
 #[macro_export]
 macro_rules! ${VIEW_SNAKE_CASE} {
         ($($param:tt)*) => {{
-                match configure!(${NAME}Const, ${NAME}ConstOptions, vec![$($param)*]) { 
-                        Ok(conf) => match ${NAME}Builder::build_${VIEW_SNAKE_CASE}(conf) {
-                                Ok(ret) => {
-                                        Ok(ret)
-                                }
-                                Err(e) => {
-                                        err!(BaseErrorKind::Configuration, e.to_string())
-                                }
+        	match ${NAME}Builder::build_${VIEW_SNAKE_CASE}(vec![$($param)*]) {
+                	Ok(ret) => {
+                        	Ok(ret)
                         }
-                        Err(e) => {
-                                err!(BaseErrorKind::Configuration, e.to_string())
-                        }
-                }
+                	Err(e) => {
+                		err!(BaseErrorKind::Configuration, e.to_string())
+                	}
+		}
         }};
 }
 
 #[macro_export]
 macro_rules! ${VIEW_SNAKE_CASE}_box {
         ($($param:tt)*) => {{
-                match configure!(${NAME}Const, ${NAME}ConstOptions, vec![$($param)*]) {
-                        Ok(conf) => match ${NAME}Builder::build_${VIEW_SNAKE_CASE}_box(conf) {
-                                Ok(ret) => {
-                                        Ok(ret)
-                                }
-                                Err(e) => {
-                                        err!(BaseErrorKind::Configuration, e.to_string())
-                                }
+		match ${NAME}Builder::build_${VIEW_SNAKE_CASE}_box(vec![$($param)*]) {
+                	Ok(ret) => {
+                        	Ok(ret)
                         }
                         Err(e) => {
                                 err!(BaseErrorKind::Configuration, e.to_string())

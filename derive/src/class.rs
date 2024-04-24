@@ -296,7 +296,9 @@ impl State {
 		let struct_bytes = struct_bytes.replace("${VAR_PARAMS}", &var_params);
 
 		let mut const_params = "".to_string();
-		let mut conf_default = format!("impl Default for {}Const {{", name);
+		// export the config options here
+		let mut conf_default = format!("pub use {}ConstOptions::*;", name);
+		conf_default = format!("{}\nimpl Default for {}Const {{", conf_default, name);
 		conf_default = format!("{}\n\tfn default() -> Self {{ Self {{", conf_default);
 		for const_param in &self.const_list {
 			const_params = format!(
