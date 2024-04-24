@@ -19,6 +19,24 @@
 use bmw_base::*;
 use bmw_derive::*;
 
+#[ErrorKind]
+enum IntErrorKind {
+	/// integration error
+	Integration,
+	/// test error
+	Test123,
+	Abc123,
+}
+
+#[ErrorKind]
+enum IntErrorKind2 {
+	/// integration error
+	Integration,
+	/// test error
+	Test123,
+	Abc123,
+}
+
 #[class {
         const y: usize = 1;
         const z: u8 = 10;
@@ -53,6 +71,7 @@ impl Animal3 {}
 mod test {
 	use crate::test::*;
 
+	/*
 	#[ErrorKind]
 	enum IntErrorKind {
 		/// integration error
@@ -61,6 +80,7 @@ mod test {
 		Test123,
 		Abc123,
 	}
+		*/
 
 	fn ret_err() -> Result<(), Error> {
 		err!(IntErrorKind::Integration, "this is a test {}", 1)

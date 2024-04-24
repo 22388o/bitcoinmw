@@ -40,10 +40,7 @@ fn do_derive_errorkind_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 	let mut expect_name = false;
 	let mut name = "".to_string();
 
-	ret.extend(
-		"use bmw_deps::failure::Fail;\nuse bmw_deps::failure;#[derive(Debug, Fail)]"
-			.parse::<TokenStream>(),
-	);
+	ret.extend("#[derive(Debug, bmw_deps::failure::Fail)]".parse::<TokenStream>());
 
 	for token in item.clone() {
 		let mut extended = false;
