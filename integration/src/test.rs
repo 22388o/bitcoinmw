@@ -18,8 +18,6 @@
 
 use bmw_base::*;
 use bmw_derive::*;
-use std::collections::HashSet;
-use std::pin::Pin;
 
 #[class {
         const y: usize = 1;
@@ -27,189 +25,39 @@ use std::pin::Pin;
         var x: i32;
         var v: usize;
 
-        // test
-        // ok ok ok
         fn builder(&const_values) -> Result<Self, Error> {
                 Ok(Self { x: -100, v: *const_values.get_y() })
         }
 
-        [dog, test]
+        [dog, test2]
         fn bark(&mut self) -> Result<String, Error> {
                 *self.get_mut_x() += 1;
-                println!("x={}", self.get_x());
+                println!("x={},y={}", self.get_x(), self.get_y());
                 Ok("woof".to_string())
         }
 
-        [cat, test]
-        fn meow(&mut self, v1: usize) -> Result<String, Error> {
+        [cat, test2]
+        fn meow(&mut self, v1: usize, v2: bool) -> Result<String, Error> {
                 self.other();
                 Ok("meow".to_string())
         }
 
         fn other(&self) {
-            let value: u8 = *self.get_z();
-            println!("v+1={}", value+1);
+                let value: u8 = *self.get_z();
+                println!("v+1={}", value+1);
         }
 }]
-impl Animal2 {}
-// impl Animal2 <OnRead> where OnRead: FnMut() -> Result<(), Error> + Send + 'static + Clone + Sync + Unpin,{}
-
-#[allow(dead_code)]
-struct Animal2Var<OnRead>
-where
-	OnRead: FnMut() -> Result<(), Error> + Send + 'static + Clone + Sync + Unpin,
-{
-	x: i32,
-	v: usize,
-	bbb: HashSet<String>,
-	on_read: Option<Pin<Box<OnRead>>>,
-}
-
-#[allow(dead_code)]
-struct Animal2Const {
-	y: usize,
-	z: u8,
-}
-
-#[allow(dead_code)]
-struct Animal2<OnRead>
-where
-	OnRead: FnMut() -> Result<(), Error> + Send + 'static + Clone + Sync + Unpin,
-{
-	hidden_var_struct: Animal2Var<OnRead>,
-	hidden_const_struct: Animal2Const,
-}
-
-pub trait Dog {
-	fn bark(&mut self) -> Result<String, Error>;
-}
-
-#[allow(dead_code)]
-impl Animal2Const {
-	fn get_y(&self) -> &usize {
-		&self.y
-	}
-
-	fn get_z(&self) -> &u8 {
-		&self.z
-	}
-}
-
-#[allow(dead_code)]
-impl<OnRead> Animal2Var<OnRead>
-where
-	OnRead: FnMut() -> Result<(), Error> + Send + 'static + Clone + Sync + Unpin,
-{
-	fn builder(const_values: &Animal2Const) -> Result<Self, Error> {
-		Ok(Self {
-			x: -100,
-			v: *const_values.get_y(),
-			bbb: HashSet::new(),
-			on_read: None,
-		})
-	}
-
-	fn get_x(&self) -> &i32 {
-		&self.x
-	}
-
-	fn get_mut_x(&mut self) -> &mut i32 {
-		&mut self.x
-	}
-
-	fn get_v(&self) -> &usize {
-		&self.v
-	}
-
-	fn get_mut_v(&mut self) -> &mut usize {
-		&mut self.v
-	}
-}
-
-#[allow(dead_code)]
-impl<OnRead> Animal2<OnRead>
-where
-	OnRead: FnMut() -> Result<(), Error> + Send + 'static + Clone + Sync + Unpin,
-{
-	fn builder(const_values: Animal2Const) -> Result<Self, Error> {
-		Ok(Self {
-			hidden_var_struct: Animal2Var::builder(&const_values)?,
-			hidden_const_struct: const_values,
-		})
-	}
-
-	fn bark(&mut self) -> Result<String, Error> {
-		*self.get_mut_x() += 1;
-		println!("x={}", self.get_x());
-		Ok("woof".to_string())
-	}
-
-	fn set_on_read(&mut self, on_read: OnRead) -> Result<(), Error> {
-		let x = &mut self.hidden_var_struct.on_read;
-		*x = Some(Box::pin(on_read));
-		Ok(())
-	}
-
-	fn other(&self) {
-		let value: u8 = *self.get_z();
-		println!("v+1={}", value + 1);
-	}
-
-	fn get_x(&self) -> &i32 {
-		self.hidden_var_struct.get_x()
-	}
-
-	fn get_mut_x(&mut self) -> &mut i32 {
-		self.hidden_var_struct.get_mut_x()
-	}
-
-	fn get_v(&self) -> &usize {
-		self.hidden_var_struct.get_v()
-	}
-
-	fn get_mut_v(&mut self) -> &mut usize {
-		self.hidden_var_struct.get_mut_v()
-	}
-
-	fn get_y(&self) -> &usize {
-		self.hidden_const_struct.get_y()
-	}
-
-	fn get_z(&self) -> &u8 {
-		self.hidden_const_struct.get_z()
-	}
-}
-
-#[allow(dead_code)]
-impl<OnRead> Dog for Animal2<OnRead>
-where
-	OnRead: FnMut() -> Result<(), Error> + Send + 'static + Clone + Sync + Unpin,
-{
-	fn bark(&mut self) -> Result<String, Error> {
-		Animal2::bark(self)
-	}
-}
-
-#[allow(dead_code)]
-impl<OnRead> Dog for &mut Animal2<OnRead>
-where
-	OnRead: FnMut() -> Result<(), Error> + Send + 'static + Clone + Sync + Unpin,
-{
-	fn bark(&mut self) -> Result<String, Error> {
-		Animal2::bark(self)
-	}
-}
+impl Animal3 {}
 
 #[cfg(test)]
 mod test {
-	use bmw_base::*;
-	use bmw_derive::*;
+	use crate::test::*;
 
-	#[errorkind]
+	#[ErrorKind]
 	enum IntErrorKind {
 		/// integration error
 		Integration,
-		/// Test error
+		/// test error
 		Test123,
 		Abc123,
 	}
@@ -230,62 +78,25 @@ mod test {
 		Ok(())
 	}
 
-	#[object]
-	impl Animal {
-		#[config(y: usize = 1)]
-		#[config(z: u8 = 10)]
-		#[field(x: i32)]
-		#[builder]
-		fn builder10(config: AnimalConfig) -> Result<Self, Error> {
-			Ok(Self { config, x: -100 })
-		}
-
-		#[method(dog, test)]
-		fn bark(&mut self) -> Result<String, Error> {
-			if self.config.y == 1 {
-				Ok("WOOF!".to_string())
-			} else {
-				Ok("woof!".to_string())
-			}
-		}
-
-		#[method(dog, cat)]
-		fn wag(&self) -> Result<i32, Error> {
-			Ok(self.x + 1)
-		}
-
-		#[method(cat)]
-		fn ret10(&self) -> Result<u32, Error> {
-			Ok(10)
-		}
-
-		#[method(test)]
-		fn as_dog(&mut self) -> Result<Box<dyn Dog + '_>, Error> {
-			let dog: Box<dyn Dog> = Box::new(self);
-			Ok(dog)
-		}
-	}
-
 	#[test]
-	fn test_object() -> Result<(), Error> {
-		let mut dog = dog!(Y(2))?;
-		assert_eq!(dog.bark()?, "woof!");
-		let mut dog = dog!(Y(1))?;
-		assert_eq!(dog.bark()?, "WOOF!");
-		let mut dog = dog!(Y(10))?;
-		assert_eq!(dog.bark()?, "woof!");
-		assert_eq!(dog.wag()?, -99);
-		let mut test = test!(Y(20))?;
-		assert_eq!(test.bark()?, "woof!");
+	fn test_class() -> Result<(), Error> {
+		let mut dog = dog_box!(Y(100))?;
+		dog.bark()?;
 
-		let mut test = test!(Y(1))?;
-		assert_eq!(test.bark()?, "WOOF!");
+		let mut dog = dog_send_box!(Y(80))?;
+		dog.bark()?;
 
-		let mut test2 = test.as_dog()?;
-		assert_eq!(test2.bark()?, "WOOF!");
+		let mut dog = dog_send!(Y(60))?;
+		dog.bark()?;
 
-		let cat = cat!()?;
-		assert_eq!(cat.ret10(), Ok(10));
+		let mut dog = dog!(Y(40))?;
+		dog.bark()?;
+
+		let mut dog = dog_sync_box!(Y(20))?;
+		dog.bark()?;
+
+		let mut dog = dog_sync!(Y(0))?;
+		dog.bark()?;
 
 		Ok(())
 	}

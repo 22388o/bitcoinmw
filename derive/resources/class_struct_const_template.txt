@@ -1,0 +1,6 @@
+#[allow(dead_code)]
+struct ${NAME}Const {
+	${CONST_PARAMS}
+}
+
+

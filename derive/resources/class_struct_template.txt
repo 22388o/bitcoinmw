@@ -9,10 +9,3 @@ struct ${NAME}Var
 {
 	${VAR_PARAMS}
 }
-
-#[allow(dead_code)]
-struct ${NAME}Const {
-	${CONST_PARAMS}
-}
-
-

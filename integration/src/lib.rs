@@ -18,7 +18,6 @@
 
 //! The integration crate contains integration tests for other crates within BitcoinMW.
 
-#[cfg(test)]
 use bmw_deps::failure;
 
 mod test;

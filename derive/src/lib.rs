@@ -56,7 +56,8 @@ pub fn derive_configurable(strm: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 #[cfg(not(tarpaulin_include))]
-pub fn errorkind(attr: TokenStream, item: TokenStream) -> TokenStream {
+#[allow(non_snake_case)]
+pub fn ErrorKind(attr: TokenStream, item: TokenStream) -> TokenStream {
 	do_derive_errorkind(attr, item)
 }
 

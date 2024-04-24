@@ -16,12 +16,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::derive_configurable;
 use crate::types::DeriveErrorKind::*;
 use crate::utils::trim_outer;
 use bmw_base::BaseErrorKind::*;
 use bmw_base::*;
+use bmw_deps::convert_case::{Case, Casing};
 use proc_macro::{Delimiter, Group, Span, TokenStream, TokenTree, TokenTree::*};
 use proc_macro_error::{abort, emit_error, Diagnostic, Level};
+use std::collections::HashMap;
 use std::str::from_utf8;
 
 const DEBUG: bool = false;
@@ -274,6 +277,10 @@ impl State {
 		// if we get to this point all these are ok to unwrap
 		let name = self.name.as_ref().unwrap();
 
+		let conf_bytes = include_bytes!("../resources/class_struct_const_template.txt");
+		let conf_bytes = from_utf8(conf_bytes)?;
+		let conf_bytes = conf_bytes.replace("${NAME}", &name);
+
 		let struct_bytes = include_bytes!("../resources/class_struct_template.txt");
 
 		let struct_bytes = from_utf8(struct_bytes)?;
@@ -282,20 +289,32 @@ impl State {
 		let mut var_params = "".to_string();
 		for var_param in &self.var_list {
 			var_params = format!(
-				"{}\n\t{}: {}",
+				"{}\n\t{}: {},",
 				var_params, var_param.name, var_param.type_str
 			);
 		}
 		let struct_bytes = struct_bytes.replace("${VAR_PARAMS}", &var_params);
 
 		let mut const_params = "".to_string();
+		let mut conf_default = format!("impl Default for {}Const {{", name);
+		conf_default = format!("{}\n\tfn default() -> Self {{ Self {{", conf_default);
 		for const_param in &self.const_list {
 			const_params = format!(
-				"{}\n\t{}: {}",
+				"{}\n\t{}: {},",
 				const_params, const_param.name, const_param.type_str
 			);
+			conf_default = format!(
+				"{}\n{}: {},",
+				conf_default, const_param.name, const_param.value_str
+			);
 		}
+
+		conf_default = format!("{}\n\t}}\n}}\n}}", conf_default);
+		debug!("conf_default = '{}'", conf_default)?;
 		let struct_bytes = struct_bytes.replace("${CONST_PARAMS}", &const_params);
+		let conf_bytes = conf_bytes.replace("${CONST_PARAMS}", &const_params);
+
+		let options = derive_configurable(map_err!(conf_bytes.parse::<TokenStream>(), Parse)?);
 
 		// create the Const impl
 		let get_bytes_template = include_bytes!("../resources/class_get_template.txt");
@@ -367,13 +386,161 @@ impl State {
 
 		let main_impl = format!("{}\n}}", main_impl);
 
-		let build_classes = format!("{}{}", struct_bytes, const_impl);
-		let build_classes = format!("{}\n{}", build_classes, var_impl);
-		let build_classes = format!("{}\n{}", build_classes, main_impl);
+		// add traits
 
-		debug!("struct_bytes={}", build_classes)?;
+		let mut map: HashMap<String, Vec<FnInfo>> = HashMap::new();
+		for fn_info in &self.fn_list {
+			for view in &fn_info.views {
+				match map.get_mut(view) {
+					Some(info_list) => {
+						info_list.push(fn_info.clone());
+					}
+					None => {
+						map.insert(view.clone(), vec![fn_info.clone()]);
+					}
+				}
+			}
+		}
 
+		let mut trait_text = format!("");
+		let mut trait_impl = format!("");
+		let mut trait_impl_mut = format!("");
+		let mut macro_text = format!("");
+		let mut builder_text = format!("pub struct {}Builder {{}}\nimpl {}Builder {{", name, name);
+		let macro_bytes_raw = include_bytes!("../resources/class_macro_template.txt");
+		let macro_bytes_raw = from_utf8(macro_bytes_raw)?;
+
+		let builder_bytes_raw = include_bytes!("../resources/class_builder_template.txt");
+		let builder_bytes_raw = from_utf8(builder_bytes_raw)?;
+
+		for (view, list) in map {
+			let snake_view = view.clone();
+			let view = view.to_case(Case::Pascal);
+
+			trait_text = format!("{}\npub trait {} {{\n", trait_text, view);
+			trait_impl = format!("{}\nimpl {} for {} {{\n", trait_impl, view, name);
+			trait_impl_mut = format!("{}\nimpl {} for &mut {} {{\n", trait_impl_mut, view, name);
+
+			// add non-send non-sync builder fns
+			let builder_bytes = builder_bytes_raw.replace("${NAME}", name);
+			let builder_bytes = builder_bytes.replace("${VIEW_SNAKE_CASE}", &snake_view);
+			let builder_bytes = builder_bytes.replace("${TRAIT_LIST}", &view);
+
+			builder_text = format!("{}{}", builder_text, builder_bytes);
+
+			// add send
+			let builder_bytes = builder_bytes_raw.replace("${NAME}", name);
+			let builder_bytes =
+				builder_bytes.replace("${VIEW_SNAKE_CASE}", &format!("{}_send", snake_view));
+			let builder_bytes = builder_bytes.replace("${TRAIT_LIST}", &format!("{} + Send", view));
+
+			builder_text = format!("{}{}", builder_text, builder_bytes);
+
+			// add sync
+			let builder_bytes = builder_bytes_raw.replace("${NAME}", name);
+			let builder_bytes =
+				builder_bytes.replace("${VIEW_SNAKE_CASE}", &format!("{}_sync", snake_view));
+			let builder_bytes =
+				builder_bytes.replace("${TRAIT_LIST}", &format!("{} + Send + Sync", view));
+
+			builder_text = format!("{}{}", builder_text, builder_bytes);
+
+			// add non-send non sync macros
+			let macro_bytes = macro_bytes_raw.replace("${NAME}", name);
+			let macro_bytes = macro_bytes.replace("${VIEW_SNAKE_CASE}", &snake_view);
+
+			macro_text = format!("{}\n{}", macro_text, macro_bytes);
+
+			// add send
+			let macro_bytes = macro_bytes_raw.replace("${NAME}", name);
+			let macro_bytes =
+				macro_bytes.replace("${VIEW_SNAKE_CASE}", &format!("{}_send", snake_view));
+
+			macro_text = format!("{}\n{}", macro_text, macro_bytes);
+
+			// add sync
+			let macro_bytes = macro_bytes_raw.replace("${NAME}", name);
+			let macro_bytes =
+				macro_bytes.replace("${VIEW_SNAKE_CASE}", &format!("{}_sync", snake_view));
+
+			macro_text = format!("{}\n{}", macro_text, macro_bytes);
+
+			for fn_info in list {
+				trait_text = format!("{}\n{};", trait_text, fn_info.signature);
+				let param_string = self.convert_param_string(&fn_info.param_string)?;
+				trait_impl = format!(
+					"{}\n{} {{ {}::{}{} }}",
+					trait_impl, fn_info.signature, name, fn_info.name, param_string
+				);
+				trait_impl_mut = format!(
+					"{}\n{} {{ {}::{}{} }}",
+					trait_impl_mut, fn_info.signature, name, fn_info.name, param_string
+				);
+			}
+
+			trait_text = format!("{}}}\n", trait_text);
+			trait_impl = format!("{}}}\n", trait_impl);
+			trait_impl_mut = format!("{}}}\n", trait_impl_mut);
+		}
+		builder_text = format!("{}}}\n", builder_text);
+
+		let build_class = format!("{}{}", struct_bytes, const_impl);
+		let build_class = format!("{}\n{}", build_class, builder_text);
+		let build_class = format!("{}\n{}", build_class, conf_bytes);
+		let build_class = format!("{}\n{}", build_class, conf_default);
+		let build_class = format!("{}\n{}", build_class, options);
+		let build_class = format!("{}\n{}", build_class, var_impl);
+		let build_class = format!("{}\n{}", build_class, main_impl);
+		let build_class = format!("{}\n{}", build_class, trait_text);
+		let build_class = format!("{}\n{}", build_class, trait_impl);
+		let build_class = format!("{}\n{}", build_class, trait_impl_mut);
+		let build_class = format!("{}\n{}", build_class, macro_text);
+
+		self.ret.extend(build_class.parse::<TokenStream>());
 		Ok(())
+	}
+
+	fn convert_param_string(&self, param_string: &String) -> Result<String, Error> {
+		let strm = map_err!(param_string.parse::<TokenStream>(), Parse)?;
+		let mut ret = "".to_string();
+		let mut first = true;
+		let mut in_type = false;
+		let mut gtlt_delim_sum = 0u128;
+		for token in strm {
+			match token {
+				Group(token) => {
+					ret = format!("{}(", ret);
+					for token in token.stream() {
+						let token = token.to_string();
+						debug!("ret_converloop token = '{}'", token)?;
+						if first && (token == "&" || token == "mut") {
+						} else {
+							first = false;
+							if token == ":" {
+								in_type = true;
+							} else if !in_type {
+								ret = format!("{}{}", ret, token);
+							} else {
+								if token == "<" {
+									gtlt_delim_sum += 1;
+								} else if token == ">" {
+									gtlt_delim_sum = gtlt_delim_sum.saturating_sub(1);
+								} else if token == "," && gtlt_delim_sum == 0 {
+									in_type = false;
+									ret = format!("{}{}", ret, token);
+								}
+							}
+						}
+					}
+					ret = format!("{})", ret);
+				}
+				_ => {
+					ret = format!("{}{}", ret, token);
+				}
+			}
+		}
+		debug!("ret_convert='{}'", ret)?;
+		Ok(ret)
 	}
 
 	fn process_token(&mut self, token: TokenTree) -> Result<(), Error> {

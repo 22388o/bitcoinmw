@@ -2,6 +2,6 @@
         	&self.${PARAM_NAME}
 	}
 
-	fn get_mut_${PARAM_NAME}(&self) -> &mut ${PARAM_TYPE} {
+	fn get_mut_${PARAM_NAME}(&mut self) -> &mut ${PARAM_TYPE} {
         	&mut self.${PARAM_NAME}
 	}

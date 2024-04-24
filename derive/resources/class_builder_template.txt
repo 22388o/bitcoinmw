@@ -1,0 +1,7 @@
+        pub fn build_${VIEW_SNAKE_CASE}(conf: ${NAME}Const) -> Result<impl ${TRAIT_LIST}, Error> {
+                ${NAME}::builder(conf)
+        }
+        
+        pub fn build_${VIEW_SNAKE_CASE}_box(conf: ${NAME}Const) -> Result<Box<dyn ${TRAIT_LIST}>, Error> {
+                Ok(Box::new(${NAME}::builder(conf)?))
+        } 

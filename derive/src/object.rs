@@ -482,7 +482,6 @@ fn do_derive_object_impl(
 	if has_inner {
 		let empty_struct = format!("struct {} {{}}", name.unwrap()).parse::<TokenStream>();
 		state.ret.extend(empty_struct);
-		println!("ret='{}'", state.ret);
 		return Ok(());
 	}
 
