@@ -20,7 +20,7 @@ use bmw_base::*;
 use bmw_derive::*;
 
 #[class {
-        public dog, dog_box, dog_send, dog_sync, dog_send_box, dog_sync_box;
+        public dog, dog_box, cat;
         const y: usize = 1;
         const z: u8 = 10;
         const server_name: String = "my_server".to_string();

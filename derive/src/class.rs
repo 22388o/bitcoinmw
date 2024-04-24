@@ -414,7 +414,17 @@ impl State {
 		let mut trait_impl = format!("");
 		let mut trait_impl_mut = format!("");
 		let mut macro_text = format!("");
-		let mut builder_text = format!("pub struct {}Builder {{}}\nimpl {}Builder {{", name, name);
+		let visibility = if self.public_set.len() > 0 {
+			"pub"
+		} else if self.protected_set.len() > 0 {
+			"pub (crate)"
+		} else {
+			""
+		};
+		let mut builder_text = format!(
+			"{} struct {}Builder {{}}\nimpl {}Builder {{",
+			visibility, name, name
+		);
 		let macro_bytes_raw = include_bytes!("../resources/class_macro_template.txt");
 		let macro_bytes_raw = from_utf8(macro_bytes_raw)?;
 
@@ -425,7 +435,48 @@ impl State {
 			let snake_view = view.clone();
 			let view = view.to_case(Case::Pascal);
 
-			trait_text = format!("{}\npub trait {} {{\n", trait_text, view);
+			let mut trait_visibility = "";
+			if self.protected_set.get(&format!("{}", snake_view)).is_some()
+				|| self
+					.protected_set
+					.get(&format!("{}_send_box", snake_view))
+					.is_some() || self
+				.protected_set
+				.get(&format!("{}_sync_box", snake_view))
+				.is_some() || self
+				.protected_set
+				.get(&format!("{}_box", snake_view))
+				.is_some() || self
+				.protected_set
+				.get(&format!("{}_send", snake_view))
+				.is_some() || self
+				.protected_set
+				.get(&format!("{}_sync", snake_view))
+				.is_some()
+			{
+				trait_visibility = "pub (crate)";
+			} else if self.public_set.get(&format!("{}", snake_view)).is_some()
+				|| self
+					.public_set
+					.get(&format!("{}_send_box", snake_view))
+					.is_some() || self
+				.public_set
+				.get(&format!("{}_sync_box", snake_view))
+				.is_some() || self
+				.public_set
+				.get(&format!("{}_box", snake_view))
+				.is_some() || self
+				.public_set
+				.get(&format!("{}_send", snake_view))
+				.is_some() || self
+				.public_set
+				.get(&format!("{}_sync", snake_view))
+				.is_some()
+			{
+				trait_visibility = "pub";
+			}
+
+			trait_text = format!("{}\n{} trait {} {{\n", trait_text, trait_visibility, view);
 			trait_impl = format!("{}\nimpl {} for {} {{\n", trait_impl, view, name);
 			trait_impl_mut = format!("{}\nimpl {} for &mut {} {{\n", trait_impl_mut, view, name);
 

@@ -48,7 +48,6 @@ enum IntErrorKind2 {
 #[cfg(test)]
 mod test {
 	use crate::test_error::*;
-	use crate::*;
 
 	fn ret_err() -> Result<(), Error> {
 		err!(IntErrorKind::Integration, "this is a test {}", 1)
