@@ -24,7 +24,7 @@ use bmw_base::*;
 use bmw_deps::convert_case::{Case, Casing};
 use proc_macro::{Delimiter, Group, Span, TokenStream, TokenTree, TokenTree::*};
 use proc_macro_error::{abort, emit_error, Diagnostic, Level};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::str::from_utf8;
 
 const DEBUG: bool = false;
@@ -64,6 +64,8 @@ enum Stage {
 	FnBlock,
 	VarBlock,
 	ConstBlock,
+	PublicBlock,
+	ProtectedBlock,
 	Complete,
 }
 
@@ -139,6 +141,8 @@ struct State {
 	fn_list: Vec<FnInfo>,
 	const_list: Vec<Const>,
 	var_list: Vec<Var>,
+	public_set: HashSet<String>,
+	protected_set: HashSet<String>,
 }
 
 impl State {
@@ -155,6 +159,8 @@ impl State {
 			fn_list: vec![],
 			const_list: vec![],
 			var_list: vec![],
+			public_set: HashSet::new(),
+			protected_set: HashSet::new(),
 		}
 	}
 
@@ -297,7 +303,7 @@ impl State {
 
 		let mut const_params = "".to_string();
 		// export the config options here
-		let mut conf_default = format!("pub use {}ConstOptions::*;", name);
+		let mut conf_default = format!("#[doc(hidden)]\npub use {}ConstOptions::*;", name);
 		conf_default = format!("{}\nimpl Default for {}Const {{", conf_default, name);
 		conf_default = format!("{}\n\tfn default() -> Self {{ Self {{", conf_default);
 		for const_param in &self.const_list {
@@ -427,6 +433,34 @@ impl State {
 			let builder_bytes = builder_bytes_raw.replace("${NAME}", name);
 			let builder_bytes = builder_bytes.replace("${VIEW_SNAKE_CASE}", &snake_view);
 			let builder_bytes = builder_bytes.replace("${TRAIT_LIST}", &view);
+			let builder_bytes = builder_bytes.replace(
+				"${VISIBILITY_IMPL}",
+				if self.public_set.get(&snake_view).is_some() {
+					"pub"
+				} else if self.protected_set.get(&snake_view).is_some() {
+					"pub(crate)"
+				} else {
+					""
+				},
+			);
+			let builder_bytes = builder_bytes.replace(
+				"${VISIBILITY_BOX}",
+				if self
+					.public_set
+					.get(&format!("{}_box", snake_view))
+					.is_some()
+				{
+					"pub"
+				} else if self
+					.protected_set
+					.get(&format!("{}_box", snake_view))
+					.is_some()
+				{
+					"pub(crate)"
+				} else {
+					""
+				},
+			);
 
 			builder_text = format!("{}{}", builder_text, builder_bytes);
 
@@ -435,6 +469,42 @@ impl State {
 			let builder_bytes =
 				builder_bytes.replace("${VIEW_SNAKE_CASE}", &format!("{}_send", snake_view));
 			let builder_bytes = builder_bytes.replace("${TRAIT_LIST}", &format!("{} + Send", view));
+			let builder_bytes = builder_bytes.replace(
+				"${VISIBILITY_IMPL}",
+				if self
+					.public_set
+					.get(&format!("{}_send", snake_view))
+					.is_some()
+				{
+					"pub"
+				} else if self
+					.protected_set
+					.get(&format!("{}_send", snake_view))
+					.is_some()
+				{
+					"pub(crate)"
+				} else {
+					""
+				},
+			);
+			let builder_bytes = builder_bytes.replace(
+				"${VISIBILITY_BOX}",
+				if self
+					.public_set
+					.get(&format!("{}_send_box", snake_view))
+					.is_some()
+				{
+					"pub"
+				} else if self
+					.protected_set
+					.get(&format!("{}_send_box", snake_view))
+					.is_some()
+				{
+					"pub(crate)"
+				} else {
+					""
+				},
+			);
 
 			builder_text = format!("{}{}", builder_text, builder_bytes);
 
@@ -444,12 +514,90 @@ impl State {
 				builder_bytes.replace("${VIEW_SNAKE_CASE}", &format!("{}_sync", snake_view));
 			let builder_bytes =
 				builder_bytes.replace("${TRAIT_LIST}", &format!("{} + Send + Sync", view));
+			let builder_bytes = builder_bytes.replace(
+				"${VISIBILITY_IMPL}",
+				if self
+					.public_set
+					.get(&format!("{}_sync", snake_view))
+					.is_some()
+				{
+					"pub"
+				} else if self
+					.protected_set
+					.get(&format!("{}_sync", snake_view))
+					.is_some()
+				{
+					"pub(crate)"
+				} else {
+					""
+				},
+			);
+			let builder_bytes = builder_bytes.replace(
+				"${VISIBILITY_BOX}",
+				if self
+					.public_set
+					.get(&format!("{}_sync_box", snake_view))
+					.is_some()
+				{
+					"pub"
+				} else if self
+					.protected_set
+					.get(&format!("{}_sync_box", snake_view))
+					.is_some()
+				{
+					"pub(crate)"
+				} else {
+					""
+				},
+			);
 
 			builder_text = format!("{}{}", builder_text, builder_bytes);
 
 			// add non-send non sync macros
 			let macro_bytes = macro_bytes_raw.replace("${NAME}", name);
 			let macro_bytes = macro_bytes.replace("${VIEW_SNAKE_CASE}", &snake_view);
+			let macro_bytes = macro_bytes.replace(
+				"${BOX_PUBLIC}",
+				&if self
+					.public_set
+					.get(&format!("{}_box", snake_view))
+					.is_some()
+				{
+					"#[macro_export]".to_string()
+				} else {
+					"".to_string()
+				},
+			);
+			let macro_bytes = macro_bytes.replace(
+				"${IMPL_PUBLIC}",
+				if self.public_set.get(&snake_view).is_some() {
+					"#[macro_export]"
+				} else {
+					""
+				},
+			);
+			let s = format!("pub(crate) use {};", snake_view);
+			let macro_bytes = macro_bytes.replace(
+				"${IMPL_PROTECTED}",
+				if self.protected_set.get(&snake_view).is_some() {
+					&s
+				} else {
+					""
+				},
+			);
+			let s = format!("pub(crate) use {}_box;", snake_view);
+			let macro_bytes = macro_bytes.replace(
+				"${BOX_PROTECTED}",
+				if self
+					.protected_set
+					.get(&format!("{}_box", snake_view))
+					.is_some()
+				{
+					&s
+				} else {
+					""
+				},
+			);
 
 			macro_text = format!("{}\n{}", macro_text, macro_bytes);
 
@@ -457,6 +605,57 @@ impl State {
 			let macro_bytes = macro_bytes_raw.replace("${NAME}", name);
 			let macro_bytes =
 				macro_bytes.replace("${VIEW_SNAKE_CASE}", &format!("{}_send", snake_view));
+			let macro_bytes = macro_bytes.replace(
+				"${BOX_PUBLIC}",
+				if self
+					.public_set
+					.get(&format!("{}_send_box", snake_view))
+					.is_some()
+				{
+					"#[macro_export]"
+				} else {
+					""
+				},
+			);
+			let macro_bytes = macro_bytes.replace(
+				"${IMPL_PUBLIC}",
+				if self
+					.public_set
+					.get(&format!("{}_send", snake_view))
+					.is_some()
+				{
+					"#[macro_export]"
+				} else {
+					""
+				},
+			);
+
+			let s = format!("pub(crate) use {}_send;", snake_view);
+			let macro_bytes = macro_bytes.replace(
+				"${IMPL_PROTECTED}",
+				if self
+					.protected_set
+					.get(&format!("{}_send", snake_view))
+					.is_some()
+				{
+					&s
+				} else {
+					""
+				},
+			);
+			let s = format!("pub(crate) use {}_send_box;", snake_view);
+			let macro_bytes = macro_bytes.replace(
+				"${BOX_PROTECTED}",
+				if self
+					.protected_set
+					.get(&format!("{}_send_box", snake_view))
+					.is_some()
+				{
+					&s
+				} else {
+					""
+				},
+			);
 
 			macro_text = format!("{}\n{}", macro_text, macro_bytes);
 
@@ -464,6 +663,57 @@ impl State {
 			let macro_bytes = macro_bytes_raw.replace("${NAME}", name);
 			let macro_bytes =
 				macro_bytes.replace("${VIEW_SNAKE_CASE}", &format!("{}_sync", snake_view));
+			let macro_bytes = macro_bytes.replace(
+				"${BOX_PUBLIC}",
+				if self
+					.public_set
+					.get(&format!("{}_sync_box", snake_view))
+					.is_some()
+				{
+					"#[macro_export]"
+				} else {
+					""
+				},
+			);
+			let macro_bytes = macro_bytes.replace(
+				"${IMPL_PUBLIC}",
+				if self
+					.public_set
+					.get(&format!("{}_sync", snake_view))
+					.is_some()
+				{
+					"#[macro_export]"
+				} else {
+					""
+				},
+			);
+
+			let s = format!("pub(crate) use {}_sync;", snake_view);
+			let macro_bytes = macro_bytes.replace(
+				"${IMPL_PROTECTED}",
+				if self
+					.protected_set
+					.get(&format!("{}_sync", snake_view))
+					.is_some()
+				{
+					&s
+				} else {
+					""
+				},
+			);
+			let s = format!("pub(crate) use {}_sync_box;", snake_view);
+			let macro_bytes = macro_bytes.replace(
+				"${BOX_PROTECTED}",
+				if self
+					.protected_set
+					.get(&format!("{}_sync_box", snake_view))
+					.is_some()
+				{
+					&s
+				} else {
+					""
+				},
+			);
 
 			macro_text = format!("{}\n{}", macro_text, macro_bytes);
 
@@ -487,7 +737,6 @@ impl State {
 		builder_text = format!("{}}}\n", builder_text);
 
 		let build_class = format!("{}{}", struct_bytes, const_impl);
-		let build_class = format!("{}\n{}", build_class, builder_text);
 		let build_class = format!("{}\n{}", build_class, conf_bytes);
 		let build_class = format!("{}\n{}", build_class, conf_default);
 		let build_class = format!("{}\n{}", build_class, options);
@@ -497,8 +746,11 @@ impl State {
 		let build_class = format!("{}\n{}", build_class, trait_impl);
 		let build_class = format!("{}\n{}", build_class, trait_impl_mut);
 		let build_class = format!("{}\n{}", build_class, macro_text);
+		let build_class = format!("{}\n{}", build_class, builder_text);
 
 		self.ret.extend(build_class.parse::<TokenStream>());
+		//println!("ret='{}'", self.ret);
+
 		Ok(())
 	}
 
@@ -552,8 +804,44 @@ impl State {
 			Stage::FnBlock => self.process_fn_block(token),
 			Stage::VarBlock => self.process_var_block(token),
 			Stage::ConstBlock => self.process_const_block(token),
+			Stage::PublicBlock => self.process_public_block(token),
+			Stage::ProtectedBlock => self.process_protected_block(token),
 			Stage::Complete => err!(UnexpectedToken, "unexpected token after class definition"),
 		}
+	}
+
+	fn process_public_block(&mut self, token: TokenTree) -> Result<(), Error> {
+		debug!("public_token={}", token)?;
+		let token_str = token.to_string();
+		if token_str == ";" {
+			self.stage = Stage::ClassBlock;
+		} else {
+			match token {
+				Ident(ident) => {
+					debug!("add to public: {}", ident)?;
+					self.public_set.insert(ident.to_string());
+				}
+				_ => {}
+			}
+		}
+		Ok(())
+	}
+
+	fn process_protected_block(&mut self, token: TokenTree) -> Result<(), Error> {
+		debug!("protected_token={}", token)?;
+		let token_str = token.to_string();
+		if token_str == ";" {
+			self.stage = Stage::ClassBlock;
+		} else {
+			match token {
+				Ident(ident) => {
+					debug!("add to protected: {}", ident)?;
+					self.protected_set.insert(ident.to_string());
+				}
+				_ => {}
+			}
+		}
+		Ok(())
 	}
 
 	fn process_fn_block(&mut self, token: TokenTree) -> Result<(), Error> {
@@ -765,6 +1053,10 @@ impl State {
 						self.cur_fn = Some(FnInfo::new());
 					}
 					self.stage = Stage::FnBlock;
+				} else if ident_str == "public" {
+					self.stage = Stage::PublicBlock;
+				} else if ident_str == "protected" {
+					self.stage = Stage::ProtectedBlock;
 				} else {
 					self.append_error(
 						&format!("Parse Error: unexecpted token '{}'", ident_str)[..],

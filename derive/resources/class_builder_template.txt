@@ -1,9 +1,9 @@
-        pub fn build_${VIEW_SNAKE_CASE}(options: Vec<${NAME}ConstOptions>) -> Result<impl ${TRAIT_LIST}, Error> {
+        ${VISIBILITY_IMPL} fn build_${VIEW_SNAKE_CASE}(options: Vec<${NAME}ConstOptions>) -> Result<impl ${TRAIT_LIST}, Error> {
 		let conf = configure!(${NAME}Const, ${NAME}ConstOptions, options)?;
                 ${NAME}::builder(conf)
         }
         
-        pub fn build_${VIEW_SNAKE_CASE}_box(options: Vec<${NAME}ConstOptions>) -> Result<Box<dyn ${TRAIT_LIST}>, Error> {
+        ${VISIBILITY_BOX} fn build_${VIEW_SNAKE_CASE}_box(options: Vec<${NAME}ConstOptions>) -> Result<Box<dyn ${TRAIT_LIST}>, Error> {
 		let conf = configure!(${NAME}Const, ${NAME}ConstOptions, options)?;
                 Ok(Box::new(${NAME}::builder(conf)?))
         } 

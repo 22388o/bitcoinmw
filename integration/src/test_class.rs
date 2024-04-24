@@ -18,18 +18,17 @@
 
 use bmw_base::*;
 use bmw_derive::*;
-use std::collections::HashMap;
 
 #[class {
+        public dog, dog_box, dog_send, dog_sync, dog_send_box, dog_sync_box;
         const y: usize = 1;
         const z: u8 = 10;
         const server_name: String = "my_server".to_string();
         var x: i32;
         var v: usize;
-        var p: HashMap<String, usize>;
 
         fn builder(&const_values) -> Result<Self, Error> {
-                Ok(Self { x: -100, v: *const_values.get_y(), p: HashMap::new() })
+                Ok(Self { x: -100, v: *const_values.get_y() })
         }
 
         [dog, test2]

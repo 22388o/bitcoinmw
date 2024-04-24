@@ -21,7 +21,6 @@
 #[cfg(test)]
 mod test {
 	use bmw_base::*;
-	use bmw_int::test_class::*;
 	use bmw_int::*;
 
 	#[test]

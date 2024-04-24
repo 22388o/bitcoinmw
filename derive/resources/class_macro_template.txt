@@ -1,4 +1,4 @@
-#[macro_export]
+#[allow(unused_macros)]${IMPL_PUBLIC}
 macro_rules! ${VIEW_SNAKE_CASE} {
         ($($param:tt)*) => {{
         	match ${NAME}Builder::build_${VIEW_SNAKE_CASE}(vec![$($param)*]) {
@@ -11,8 +11,9 @@ macro_rules! ${VIEW_SNAKE_CASE} {
 		}
         }};
 }
+${IMPL_PROTECTED}
 
-#[macro_export]
+#[allow(unused_macros)]${BOX_PUBLIC}
 macro_rules! ${VIEW_SNAKE_CASE}_box {
         ($($param:tt)*) => {{
 		match ${NAME}Builder::build_${VIEW_SNAKE_CASE}_box(vec![$($param)*]) {
@@ -25,3 +26,4 @@ macro_rules! ${VIEW_SNAKE_CASE}_box {
                 }
         }};
 }
+${BOX_PROTECTED}
