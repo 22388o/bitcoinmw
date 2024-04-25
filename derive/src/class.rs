@@ -22,6 +22,7 @@ use crate::utils::trim_outer;
 use bmw_base::BaseErrorKind::*;
 use bmw_base::*;
 use bmw_deps::convert_case::{Case, Casing};
+use bmw_deps::substring::Substring;
 use proc_macro::{Delimiter, Group, Span, TokenStream, TokenTree, TokenTree::*};
 use proc_macro_error::{abort, emit_error, Diagnostic, Level};
 use std::collections::{HashMap, HashSet};
@@ -66,6 +67,7 @@ enum Stage {
 	ConstBlock,
 	PublicBlock,
 	ProtectedBlock,
+	CommentBlock,
 	Complete,
 }
 
@@ -93,6 +95,7 @@ struct Const {
 	value_str: String,
 	found_colon: bool,
 	found_equal: bool,
+	comments: Vec<Group>,
 }
 
 impl Const {
@@ -103,6 +106,7 @@ impl Const {
 			value_str: "".to_string(),
 			found_colon: false,
 			found_equal: false,
+			comments: vec![],
 		}
 	}
 }
@@ -114,6 +118,7 @@ struct FnInfo {
 	param_string: String,
 	fn_block: String,
 	views: Vec<String>,
+	comments: Vec<Group>,
 }
 
 impl FnInfo {
@@ -124,6 +129,7 @@ impl FnInfo {
 			param_string: "".to_string(),
 			fn_block: "".to_string(),
 			views: vec![],
+			comments: vec![],
 		}
 	}
 }
@@ -143,6 +149,11 @@ struct State {
 	var_list: Vec<Var>,
 	public_set: HashSet<String>,
 	protected_set: HashSet<String>,
+
+	accumulated_comments: Vec<Group>,
+
+	trait_set: HashSet<String>,
+	trait_comments: HashMap<String, Vec<Group>>,
 }
 
 impl State {
@@ -161,6 +172,9 @@ impl State {
 			var_list: vec![],
 			public_set: HashSet::new(),
 			protected_set: HashSet::new(),
+			accumulated_comments: vec![],
+			trait_set: HashSet::new(),
+			trait_comments: HashMap::new(),
 		}
 	}
 
@@ -274,6 +288,12 @@ impl State {
 	}
 
 	fn build(&mut self) -> Result<(), Error> {
+		/*
+		let r: u64 = bmw_deps::rand::random();
+		let r = r % 1_000;
+		std::thread::sleep(std::time::Duration::from_millis(r));
+			*/
+
 		debug!("name={:?}", self.name)?;
 		debug!("fn_list={:?}", self.fn_list)?;
 		debug!("const_list={:?}", self.const_list)?;
@@ -345,9 +365,24 @@ impl State {
 			var_impl = format!("{}\n{}", var_impl, mutter);
 		}
 
+		let mut macro_comments = "".to_string();
+
 		// add builder
 		for fn_info in &self.fn_list {
 			if fn_info.name == "builder" {
+				for comment in &fn_info.comments {
+					for token in comment.stream() {
+						match token {
+							Literal(l) => {
+								let l = trim_outer(&l.to_string(), "\"", "\"");
+								macro_comments =
+									format!("{}\n#[doc=\"{}\"]", macro_comments, l.to_string());
+							}
+							_ => {}
+						}
+					}
+				}
+
 				let param_list = trim_outer(&fn_info.param_string, "(", ")");
 				let param_name = trim_outer(&param_list, "&", ")");
 				debug!("param_list='{}'", param_list)?;
@@ -422,8 +457,8 @@ impl State {
 			""
 		};
 		let mut builder_text = format!(
-			"{} struct {}Builder {{}}\nimpl {}Builder {{",
-			visibility, name, name
+			"#[doc=\"Builder Struct for the `{}` class.\"]{} struct {}Builder {{}}\nimpl {}Builder {{",
+			name, visibility, name, name
 		);
 		let macro_bytes_raw = include_bytes!("../resources/class_macro_template.txt");
 		let macro_bytes_raw = from_utf8(macro_bytes_raw)?;
@@ -431,9 +466,156 @@ impl State {
 		let builder_bytes_raw = include_bytes!("../resources/class_builder_template.txt");
 		let builder_bytes_raw = from_utf8(builder_bytes_raw)?;
 
+		macro_comments = format!("{}\n#[doc=\"# Input Parameters\"]", macro_comments);
+		macro_comments = format!(
+			"{}\n#[doc=\"| Parameter | Comment | Default Value|\"]",
+			macro_comments
+		);
+		macro_comments = format!("{}\n#[doc=\"|-------|-----|----|\"]", macro_comments);
+
+		for constant in &self.const_list {
+			let mut first = true;
+			let name = &constant.name.to_case(Case::Pascal);
+			let type_str = &constant.type_str;
+			for comment in &constant.comments {
+				for token in comment.stream() {
+					match token {
+						Literal(l) => {
+							let l = trim_outer(&l.to_string(), "\"", "\"");
+							if first {
+								macro_comments = format!(
+									"{}\n#[doc=\"| `{}`([`{}`]) | {}",
+									macro_comments,
+									name,
+									type_str,
+									l.to_string()
+								);
+							} else {
+								macro_comments = format!("{} {}", macro_comments, l.to_string());
+							}
+							first = false;
+						}
+						_ => {}
+					}
+				}
+			}
+			if !first {
+				let value = constant
+					.value_str
+					.replace("\"", "\\\"")
+					.replace(".to_string()", "");
+				macro_comments = format!("{}| {} |\"]", macro_comments, value);
+			} else {
+				macro_comments = format!(
+					"{}\n#[doc=\"| `{}`([`{}`]) | {}",
+					macro_comments, name, type_str, " - "
+				);
+				let value = constant
+					.value_str
+					.replace("\"", "\\\"")
+					.replace(".to_string()", "");
+				macro_comments = format!("{}| {} |\"]", macro_comments, value);
+			}
+		}
+
+		macro_comments = format!("{}\n#[doc=\"# Return\"]", macro_comments);
+		macro_comments = format!("{}\n#[doc=\"REPLACE_RETURN\"]", macro_comments);
+		macro_comments = format!("{}\n#[doc=\"# Errors \"]", macro_comments);
+		macro_comments = format!("{}\n#[doc=\"| ErrorKind | Reason |\"]", macro_comments);
+		macro_comments = format!("{}\n#[doc=\"|-------|-------|\"]", macro_comments);
+		macro_comments = format!("{}\n#[doc=\"| [`bmw_base::BaseErrorKind::Builder`] | If the builder function returns an error,", macro_comments);
+		macro_comments = format!("{} it will be wrapped in this [`bmw_base::ErrorKind`] with the details of the original error preserved. | \"]", macro_comments);
+		macro_comments = format!("{}\n#[doc=\"# Also See\"]", macro_comments);
+		macro_comments = format!("{}\n#[doc=\" * [`REPLACE_TRAIT_NAME`] \"]", macro_comments);
+		macro_comments = format!("{}\n#[doc=\" * [`bmw_base::ErrorKind`] \"]", macro_comments);
+		macro_comments = format!(
+			"{}\n#[doc=\" * [`bmw_base::BaseErrorKind::Builder`] \"]",
+			macro_comments
+		);
+
 		for (view, list) in map {
 			let snake_view = view.clone();
 			let view = view.to_case(Case::Pascal);
+			let mut macro_post = format!("#[doc=\"# Example\"]\n#[doc=\"\"]");
+			let replace_param = "REPLACE_PARAM";
+
+			if self.public_set.get(&format!("{}", snake_view)).is_some() {
+				macro_post = format!("{}\n#[doc=\"```\"]", macro_post);
+				macro_post = format!("{}\n#[doc=\"use bmw_base::*;\"]", macro_post);
+				let crate_name = std::env::var("CARGO_PKG_NAME").unwrap();
+				macro_post = format!("{}\n#[doc=\"use {}::*;\"]", macro_post, crate_name);
+				macro_post = format!("{}\n#[doc=\"\"]", macro_post);
+				macro_post = format!(
+					"{}\n#[doc=\"fn main() -> Result<(), Error> {{\"]",
+					macro_post
+				);
+
+				let mut param_list = "".to_string();
+				let mut first = true;
+				for item in &self.const_list {
+					if first {
+						param_list = format!(
+							"{}\n\t\t{}({})",
+							param_list,
+							item.name.to_case(Case::Pascal),
+							item.value_str
+								.replace("\"", "\\\"")
+								.replace(".to_string()", "")
+						);
+					} else {
+						param_list = format!(
+							"{},\n\t\t{}({})",
+							param_list,
+							item.name.to_case(Case::Pascal),
+							item.value_str
+								.replace("\"", "\\\"")
+								.replace(".to_string()", "")
+						);
+					}
+					first = false;
+				}
+				macro_post = format!(
+					"{}#[doc=\"    // instantiate {}! with all parameters explicitly specified.\"]\n",
+					macro_post,replace_param
+				);
+				macro_post = format!(
+					"{}\n#[doc=\"    let my_{} = {}!({}\n\t)?;\"]",
+					macro_post, replace_param, replace_param, param_list
+				);
+				macro_post = format!("{}\n#[doc=\"\"]", macro_post);
+				macro_post = format!(
+					"{}\n#[doc=\"    // use my_{}...\"]",
+					macro_post, replace_param
+				);
+				macro_post = format!("{}\n#[doc=\"\"]", macro_post);
+				macro_post = format!(
+                                        "{}#[doc=\"    // instantiate {}! with no parameters explicitly specified, defaults used.\"]\n",
+                                        macro_post,replace_param
+                                );
+				macro_post = format!(
+					"{}\n#[doc=\"    let my_{}_default = {}!()?;\"]",
+					macro_post, replace_param, replace_param
+				);
+				macro_post = format!("{}\n#[doc=\"\"]", macro_post);
+				macro_post = format!(
+					"{}\n#[doc=\"    // use my_{}_default...\"]",
+					macro_post, replace_param
+				);
+				macro_post = format!("{}\n#[doc=\"\"]", macro_post);
+				macro_post = format!("{}\n#[doc=\"    Ok(())\"]", macro_post);
+				macro_post = format!("{}\n#[doc=\"}}\"]", macro_post);
+				macro_post = format!("{}\n#[doc=\"\"]", macro_post);
+				macro_post = format!("{}\n#[doc=\"\"]", macro_post);
+
+				macro_post = format!("{}\n#[doc=\"```\"]", macro_post);
+			}
+
+			let macro_pre = format!(
+				"#[doc=\"Constructs an implementation of the [`{}`] trait using the provided input parameters.<br/>\"]\n{}{}",
+				view, macro_comments, macro_post
+			);
+			let macro_pre = macro_pre.replace("REPLACE_TRAIT_NAME", &view);
+			let comments = &macro_pre;
 
 			let mut trait_visibility = "";
 			if self.protected_set.get(&format!("{}", snake_view)).is_some()
@@ -476,12 +658,30 @@ impl State {
 				trait_visibility = "pub";
 			}
 
+			match self.trait_comments.get(&snake_view) {
+				Some(comments) => {
+					for comment in comments {
+						for token in comment.stream() {
+							match token {
+								Literal(l) => {
+									trait_text =
+										format!("{}\n#[doc={}]", trait_text, l.to_string());
+								}
+								_ => {}
+							}
+						}
+					}
+				}
+				None => {}
+			}
 			trait_text = format!("{}\n{} trait {} {{\n", trait_text, trait_visibility, view);
 			trait_impl = format!("{}\nimpl {} for {} {{\n", trait_impl, view, name);
 			trait_impl_mut = format!("{}\nimpl {} for &mut {} {{\n", trait_impl_mut, view, name);
 
 			// add non-send non-sync builder fns
 			let builder_bytes = builder_bytes_raw.replace("${NAME}", name);
+			let builder_bytes = builder_bytes.replace("${IMPL_COMMENTS}", "");
+			let builder_bytes = builder_bytes.replace("${BOX_COMMENTS}", "");
 			let builder_bytes = builder_bytes.replace("${VIEW_SNAKE_CASE}", &snake_view);
 			let builder_bytes = builder_bytes.replace("${TRAIT_LIST}", &view);
 			let builder_bytes = builder_bytes.replace(
@@ -517,6 +717,8 @@ impl State {
 
 			// add send
 			let builder_bytes = builder_bytes_raw.replace("${NAME}", name);
+			let builder_bytes = builder_bytes.replace("${IMPL_COMMENTS}", "");
+			let builder_bytes = builder_bytes.replace("${BOX_COMMENTS}", "");
 			let builder_bytes =
 				builder_bytes.replace("${VIEW_SNAKE_CASE}", &format!("{}_send", snake_view));
 			let builder_bytes = builder_bytes.replace("${TRAIT_LIST}", &format!("{} + Send", view));
@@ -561,6 +763,11 @@ impl State {
 
 			// add sync
 			let builder_bytes = builder_bytes_raw.replace("${NAME}", name);
+			let builder_bytes = builder_bytes.replace(
+				"${IMPL_COMMENTS}",
+				&self.build_builder_comments(format!("{}_sync", snake_view.clone()))?,
+			);
+			let builder_bytes = builder_bytes.replace("${BOX_COMMENTS}", "");
 			let builder_bytes =
 				builder_bytes.replace("${VIEW_SNAKE_CASE}", &format!("{}_sync", snake_view));
 			let builder_bytes =
@@ -601,11 +808,36 @@ impl State {
 					""
 				},
 			);
-
 			builder_text = format!("{}{}", builder_text, builder_bytes);
 
 			// add non-send non sync macros
-			let macro_bytes = macro_bytes_raw.replace("${NAME}", name);
+			let mut macro_bytes = macro_bytes_raw.replace("${NAME}", name);
+			let impl_comments = comments.replace("REPLACE_PARAM", &snake_view);
+			let ret = format!("[`Result`] <impl [`{}`], [`bmw_base::Error`]>", view);
+			let impl_comments = impl_comments.replace("REPLACE_RETURN", &ret);
+			let snake_view_box = format!("{}_box", snake_view);
+			let box_comments = comments.replace("REPLACE_PARAM", &snake_view_box);
+
+			let ret = format!(
+				"[`Result`] <[`Box`] <dyn [`{}`]>, [`bmw_base::Error`]>",
+				view
+			);
+			let box_comments = box_comments.replace("REPLACE_RETURN", &ret);
+
+			if self.public_set.get(&format!("{}", snake_view)).is_some() {
+				macro_bytes = macro_bytes.replace("${IMPL_COMMENTS}", &impl_comments);
+			} else {
+				macro_bytes = macro_bytes.replace("${IMPL_COMMENTS}", "");
+			}
+			if self
+				.public_set
+				.get(&format!("{}_box", snake_view))
+				.is_some()
+			{
+				macro_bytes = macro_bytes.replace("${BOX_COMMENTS}", &box_comments);
+			} else {
+				macro_bytes = macro_bytes.replace("${BOX_COMMENTS}", "");
+			}
 			let macro_bytes = macro_bytes.replace("${VIEW_SNAKE_CASE}", &snake_view);
 			let macro_bytes = macro_bytes.replace(
 				"${BOX_PUBLIC}",
@@ -653,7 +885,45 @@ impl State {
 			macro_text = format!("{}\n{}", macro_text, macro_bytes);
 
 			// add send
-			let macro_bytes = macro_bytes_raw.replace("${NAME}", name);
+			let mut macro_bytes = macro_bytes_raw.replace("${NAME}", name);
+			let snake_view_send = format!("{}_send", snake_view);
+			let impl_comments = comments.replace("REPLACE_PARAM", &snake_view_send);
+			let snake_view_send_box = format!("{}_send_box", snake_view);
+			let box_comments = comments.replace("REPLACE_PARAM", &snake_view_send_box);
+
+			let ret = format!(
+				"[`Result`] <impl [`{}`] + [`Send`], [`bmw_base::Error`]>",
+				view
+			);
+			let impl_comments = impl_comments.replace("REPLACE_RETURN", &ret);
+			let ret = format!(
+				"[`Result`] <[`Box`] <dyn [`{}`] + [`Send`]>, [`bmw_base::Error`]>",
+				view
+			);
+			let box_comments = box_comments.replace("REPLACE_RETURN", &ret);
+
+			if self
+				.public_set
+				.get(&format!("{}_send", snake_view))
+				.is_some()
+			{
+				macro_bytes = macro_bytes.replace("${IMPL_COMMENTS}", &impl_comments);
+			} else {
+				macro_bytes = macro_bytes.replace("${IMPL_COMMENTS}", "");
+			}
+			if self
+				.public_set
+				.get(&format!("{}_send_box", snake_view))
+				.is_some()
+			{
+				macro_bytes = macro_bytes.replace("${BOX_COMMENTS}", &box_comments);
+			} else {
+				macro_bytes = macro_bytes.replace("${BOX_COMMENTS}", "");
+			}
+
+			let macro_bytes = macro_bytes.replace("${IMPL_COMMENTS}", &impl_comments);
+			let macro_bytes = macro_bytes.replace("${BOX_COMMENTS}", &box_comments);
+
 			let macro_bytes =
 				macro_bytes.replace("${VIEW_SNAKE_CASE}", &format!("{}_send", snake_view));
 			let macro_bytes = macro_bytes.replace(
@@ -711,7 +981,46 @@ impl State {
 			macro_text = format!("{}\n{}", macro_text, macro_bytes);
 
 			// add sync
-			let macro_bytes = macro_bytes_raw.replace("${NAME}", name);
+			let mut macro_bytes = macro_bytes_raw.replace("${NAME}", name);
+
+			let snake_view_sync = format!("{}_sync", snake_view);
+			let impl_comments = comments.replace("REPLACE_PARAM", &snake_view_sync);
+			let snake_view_sync_box = format!("{}_sync_box", snake_view);
+			let box_comments = comments.replace("REPLACE_PARAM", &snake_view_sync_box);
+
+			let ret = format!(
+				"[`Result`] <impl [`{}`] + [`Send`] + [`Sync`], [`bmw_base::Error`]>",
+				view
+			);
+			let impl_comments = impl_comments.replace("REPLACE_RETURN", &ret);
+			let ret = format!(
+				"[`Result`] <[`Box`] <dyn [`{}`] + [`Send`] + [`Sync`]>, [`bmw_base::Error`]>",
+				view
+			);
+			let box_comments = box_comments.replace("REPLACE_RETURN", &ret);
+
+			if self
+				.public_set
+				.get(&format!("{}_sync", snake_view))
+				.is_some()
+			{
+				macro_bytes = macro_bytes.replace("${IMPL_COMMENTS}", &impl_comments);
+			} else {
+				macro_bytes = macro_bytes.replace("${IMPL_COMMENTS}", "");
+			}
+			if self
+				.public_set
+				.get(&format!("{}_sync_box", snake_view))
+				.is_some()
+			{
+				macro_bytes = macro_bytes.replace("${BOX_COMMENTS}", &box_comments);
+			} else {
+				macro_bytes = macro_bytes.replace("${BOX_COMMENTS}", "");
+			}
+
+			let macro_bytes = macro_bytes.replace("${IMPL_COMMENTS}", &impl_comments);
+			let macro_bytes = macro_bytes.replace("${BOX_COMMENTS}", &box_comments);
+
 			let macro_bytes =
 				macro_bytes.replace("${VIEW_SNAKE_CASE}", &format!("{}_sync", snake_view));
 			let macro_bytes = macro_bytes.replace(
@@ -769,15 +1078,24 @@ impl State {
 			macro_text = format!("{}\n{}", macro_text, macro_bytes);
 
 			for fn_info in list {
+				trait_text = format!(
+					"{}\n{}",
+					trait_text,
+					self.build_comments(
+						fn_info.comments,
+						fn_info.param_string.clone(),
+						view.clone()
+					)?
+				);
 				trait_text = format!("{}\n{};", trait_text, fn_info.signature);
 				let param_string = self.convert_param_string(&fn_info.param_string)?;
 				trait_impl = format!(
 					"{}\n{} {{ {}::{}{} }}",
-					trait_impl, fn_info.signature, name, fn_info.name, param_string
+					trait_impl, fn_info.signature, name, fn_info.name, param_string.0
 				);
 				trait_impl_mut = format!(
 					"{}\n{} {{ {}::{}{} }}",
-					trait_impl_mut, fn_info.signature, name, fn_info.name, param_string
+					trait_impl_mut, fn_info.signature, name, fn_info.name, param_string.0
 				);
 			}
 
@@ -805,7 +1123,196 @@ impl State {
 		Ok(())
 	}
 
-	fn convert_param_string(&self, param_string: &String) -> Result<String, Error> {
+	fn build_builder_comments(&self, snake_view: String) -> Result<String, Error> {
+		let ret = format!("#[doc=\"snake={}\"]", snake_view);
+		Ok(ret)
+	}
+
+	fn build_comments(
+		&self,
+		comments: Vec<Group>,
+		param_string: String,
+		trait_name: String,
+	) -> Result<String, Error> {
+		let conv_param_string = self.convert_param_string(&param_string)?;
+		let stream = map_err!(conv_param_string.0.parse::<TokenStream>(), Parse)?;
+		let mut inputs = vec![];
+		for token in stream {
+			match token {
+				Group(token) => {
+					for token in token.stream() {
+						match token {
+							Ident(token) => inputs.push(token.to_string()),
+							_ => {}
+						}
+					}
+				}
+				_ => {}
+			}
+		}
+		let mut type_list = vec![];
+		type_list.push(trait_name);
+		let stream = map_err!(conv_param_string.1.parse::<TokenStream>(), Parse)?;
+		for token in stream {
+			let token_str = token.to_string();
+			if token_str != "," {
+				type_list.push(token_str);
+			}
+		}
+
+		let mut trait_text = format!("");
+		let mut comment_map: HashMap<String, String> = HashMap::new();
+		let mut return_value = None;
+		let mut error_value = vec![];
+		let mut see_value = vec![];
+
+		let mut comment_vec = vec![];
+		for comment in comments {
+			for token in comment.stream() {
+				match token {
+					Literal(l) => {
+						let l = l.to_string();
+						comment_vec.push(l);
+					}
+					_ => {}
+				}
+			}
+		}
+
+		let mut examples = vec![];
+		let mut start_examples = false;
+		let mut deprecated = false;
+
+		for comment in comment_vec {
+			let trim = trim_outer(&comment, "\"", "\"");
+			let trim = trim.trim();
+			let mut found = false;
+			if trim.find("@param ") == Some(0) {
+				if trim.len() > 7 {
+					let trim = trim.substring(7, trim.len());
+					match trim.find(" ") {
+						Some(pos) => {
+							if pos + 1 < trim.len() {
+								let name = trim.substring(0, pos);
+								let value = trim.substring(pos + 1, trim.len());
+								comment_map.insert(name.to_string(), value.to_string());
+								found = true;
+							}
+						}
+						None => {}
+					}
+				}
+			} else if trim.find("@deprecated") == Some(0) {
+				deprecated = true;
+				found = true;
+			} else if trim.find("@return ") == Some(0) {
+				if trim.len() > 8 {
+					let trim = trim.substring(8, trim.len());
+					match trim.find(" ") {
+						Some(pos) => {
+							if pos + 1 < trim.len() {
+								let name = trim.substring(0, pos);
+								let value = trim.substring(pos + 1, trim.len());
+								return_value = Some(format!("[`{}`] - {}", name, value));
+								found = true;
+							}
+						}
+						None => {}
+					}
+				}
+			} else if trim.find("@error ") == Some(0) {
+				if trim.len() > 7 {
+					let trim = trim.substring(7, trim.len());
+					match trim.find(" ") {
+						Some(pos) => {
+							if pos + 1 < trim.len() {
+								let name = trim.substring(0, pos);
+								let value = trim.substring(pos + 1, trim.len());
+								error_value.push(format!("* [`{}`] - {}", name, value));
+								found = true;
+							}
+						}
+						None => {}
+					}
+				}
+			} else if trim.find("@see ") == Some(0) {
+				if trim.len() > 5 {
+					let trim = trim.substring(5, trim.len());
+					see_value.push(format!("* [`{}`]", trim));
+					found = true;
+				}
+			} else if trim.find("# Example") == Some(0) || start_examples {
+				// part of our example block
+				start_examples = true;
+				examples.push(comment.clone());
+			}
+			if !found && !start_examples {
+				trait_text = format!("{}\n#[doc={}]", trait_text, comment);
+			}
+		}
+
+		if deprecated {
+			trait_text = format!("{}\n#[doc=\"\"]", trait_text);
+			trait_text = format!(
+				"{}\n#[doc=\"<div class=\\\"warning\\\">This function is deprecated</div>\"]",
+				trait_text
+			);
+			trait_text = format!("{}\n#[doc=\"\"]", trait_text);
+		}
+		trait_text = format!("{}\n#[doc=\"# Input Parameters\"]", trait_text);
+		trait_text = format!("{}\n#[doc=\"|Parameter Name|Type|Comment|\"]", trait_text,);
+		trait_text = format!("{}\n#[doc=\"\n|---|---|---|\"]", trait_text);
+		let mut i = 0;
+		for input in inputs {
+			let type_str = format!("[`{}`]", type_list[i].clone());
+			let comment = match comment_map.get(&input) {
+				Some(comment) => comment.to_string(),
+				None => "`TODO: add @param documentation to describe this parameter`".to_string(),
+			};
+			trait_text = format!(
+				"{}\n#[doc=\"\n|`{}`|{}|{}|\"]",
+				trait_text, input, type_str, comment
+			);
+
+			i += 1;
+		}
+		trait_text = format!("{}\n#[doc=\"# Errors\"]", trait_text);
+		for error in &error_value {
+			trait_text = format!("{}\n#[doc=\"{}\"]", trait_text, error);
+		}
+		if error_value.len() == 0 {
+			trait_text = format!(
+				"{}\n#[doc=\"`TODO: add @error documentation to describe this function`\"]",
+				trait_text
+			);
+		}
+		trait_text = format!("{}\n#[doc=\"# Return\"]", trait_text);
+		trait_text = format!(
+			"{}\n#[doc=\"{}\"]",
+			trait_text,
+			match return_value {
+				Some(r) => r,
+				None => "`TODO: add @return documentation to describe this function`".to_string(),
+			}
+		);
+		trait_text = format!("{}\n#[doc=\"# Also See\"]", trait_text);
+		if see_value.len() == 0 {
+			trait_text = format!(
+				"{}\n#[doc=\"`TODO: add @see documentation to describe this function`\"]",
+				trait_text
+			);
+		}
+		for see in see_value {
+			trait_text = format!("{}\n#[doc=\"{}\"]", trait_text, see);
+		}
+		for example in examples {
+			trait_text = format!("{}\n#[doc={}]", trait_text, example);
+		}
+		Ok(trait_text)
+	}
+
+	fn convert_param_string(&self, param_string: &String) -> Result<(String, String), Error> {
+		let mut ret_types = format!("");
 		let strm = map_err!(param_string.parse::<TokenStream>(), Parse)?;
 		let mut ret = "".to_string();
 		let mut first = true;
@@ -826,6 +1333,7 @@ impl State {
 							} else if !in_type {
 								ret = format!("{}{}", ret, token);
 							} else {
+								ret_types = format!("{}{}", ret_types, token);
 								if token == "<" {
 									gtlt_delim_sum += 1;
 								} else if token == ">" {
@@ -845,7 +1353,7 @@ impl State {
 			}
 		}
 		debug!("ret_convert='{}'", ret)?;
-		Ok(ret)
+		Ok((ret, ret_types))
 	}
 
 	fn process_token(&mut self, token: TokenTree) -> Result<(), Error> {
@@ -857,20 +1365,92 @@ impl State {
 			Stage::ConstBlock => self.process_const_block(token),
 			Stage::PublicBlock => self.process_public_block(token),
 			Stage::ProtectedBlock => self.process_protected_block(token),
+			Stage::CommentBlock => self.process_comment_block(token),
 			Stage::Complete => err!(UnexpectedToken, "unexpected token after class definition"),
 		}
+	}
+
+	fn process_comment_block(&mut self, token: TokenTree) -> Result<(), Error> {
+		match token {
+			Group(ref g) => {
+				self.accumulated_comments.push(g.clone());
+			}
+			_ => self.append_error(&format!("Unexecpted token: '{}'", token))?,
+		}
+		debug!("comment token = {:?}", token)?;
+		self.stage = Stage::ClassBlock;
+		Ok(())
+	}
+
+	fn get_trait_name(&self, s: &String) -> String {
+		match s.rfind("_sync_box") {
+			Some(i) => {
+				if i == s.len().saturating_sub("_sync_box".len()) {
+					return s.substring(0, i).to_string();
+				}
+			}
+			_ => {}
+		}
+		match s.rfind("_send_box") {
+			Some(i) => {
+				if i == s.len().saturating_sub("_send_box".len()) {
+					return s.substring(0, i).to_string();
+				}
+			}
+			_ => {}
+		}
+		match s.rfind("_send") {
+			Some(i) => {
+				if i == s.len().saturating_sub("_send".len()) {
+					return s.substring(0, i).to_string();
+				}
+			}
+			_ => {}
+		}
+		match s.rfind("_sync") {
+			Some(i) => {
+				if i == s.len().saturating_sub("_sync".len()) {
+					return s.substring(0, i).to_string();
+				}
+			}
+			_ => {}
+		}
+		match s.rfind("_box") {
+			Some(i) => {
+				if i == s.len().saturating_sub("_box".len()) {
+					return s.substring(0, i).to_string();
+				}
+			}
+			_ => {}
+		}
+		s.clone()
 	}
 
 	fn process_public_block(&mut self, token: TokenTree) -> Result<(), Error> {
 		debug!("public_token={}", token)?;
 		let token_str = token.to_string();
 		if token_str == ";" {
+			for t in &self.trait_set {
+				match &mut self.trait_comments.get_mut(t) {
+					Some(tc) => {
+						tc.extend(self.accumulated_comments.clone());
+					}
+					None => {
+						let nvec = self.accumulated_comments.clone();
+						self.trait_comments.insert(t.clone(), nvec);
+					}
+				}
+			}
+			self.accumulated_comments.clear();
+			self.trait_set.clear();
 			self.stage = Stage::ClassBlock;
 		} else {
 			match token {
 				Ident(ident) => {
 					debug!("add to public: {}", ident)?;
 					self.public_set.insert(ident.to_string());
+					let trait_name = self.get_trait_name(&ident.to_string());
+					self.trait_set.insert(trait_name);
 				}
 				_ => {}
 			}
@@ -1025,23 +1605,24 @@ impl State {
 		debug!("process const block token = {:?}", token)?;
 		if token_str == ";" {
 			self.stage = Stage::ClassBlock;
-			match &self.cur_const {
+			match &mut self.cur_const {
 				None => {
 					self.append_error(&format!("unexpected token: '{}'", token_str)[..])?;
 				}
-				Some(c) => {
+				Some(ref mut c) => {
+					c.comments.extend(self.accumulated_comments.clone());
 					if !c.found_colon
 						|| !c.found_equal || c.type_str.len() == 0
 						|| c.value_str.len() == 0
 					{
 						self.append_error(&format!("unexpected token: '{}'", token_str)[..])?;
 					} else {
-						debug!("COMPLETE const = {:?}", self.cur_const)?;
 						self.const_list.push(c.clone());
 					}
 					self.cur_const = None;
 				}
 			}
+			self.accumulated_comments.clear();
 		} else {
 			match &mut self.cur_const {
 				Some(c) => {
@@ -1098,10 +1679,14 @@ impl State {
 						self.append_error("did not expect a const after a method list")?;
 					}
 					self.stage = Stage::ConstBlock;
+				// for now just clear them
 				} else if ident_str == "fn" {
 					if self.cur_fn.is_none() {
 						debug!("creating a cur_fn")?;
-						self.cur_fn = Some(FnInfo::new());
+						let mut fn_info = FnInfo::new();
+						fn_info.comments.extend(self.accumulated_comments.clone());
+						self.accumulated_comments.clear();
+						self.cur_fn = Some(fn_info);
 					}
 					self.stage = Stage::FnBlock;
 				} else if ident_str == "public" {
@@ -1122,7 +1707,10 @@ impl State {
 
 					// method list here
 					debug!("create a cur_fn")?;
-					self.cur_fn = Some(FnInfo::new());
+					let mut fn_info = FnInfo::new();
+					fn_info.comments.extend(self.accumulated_comments.clone());
+					self.accumulated_comments.clear();
+					self.cur_fn = Some(fn_info);
 					self.process_method_list(group)?;
 				} else {
 					self.append_error(&format!(
@@ -1131,7 +1719,14 @@ impl State {
 					))?;
 				}
 			}
-			Punct(p) => self.append_error(&format!("Parse Error: unexecpted token '{}'", p)[..])?,
+			Punct(p) => {
+				if p == '#' {
+					self.stage = Stage::CommentBlock;
+				} else {
+					self.append_error(&format!("Parse Error: unexecpted token '{}'", p)[..])?;
+				}
+				//self.process_abort("abort here!".to_string())?;
+			}
 			Literal(l) => {
 				self.append_error(&format!("Parse Error: unexecpted token '{}'", l)[..])?
 			}

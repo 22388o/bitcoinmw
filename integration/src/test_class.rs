@@ -19,11 +19,32 @@
 use bmw_base::*;
 use bmw_derive::*;
 
+#[ErrorKind]
+pub enum IntegrationErr {
+	/// overloaded error
+	Overloaded,
+}
+
 #[class {
-        public dog, dog_box, cat;
+        []
+        fn _x() {}
+
+        /// comments here go to the trait top documentation only @see works
+        /// if multiple are found these are appended. If you want separate stuff for dog
+        /// vs cat use separate public lines 
+        public dog, dog_sync_box, dog_sync, dog_send, dog_box, dog_send_box;
+        /// Cat trait here
+        public cat;
+        /// y coordinate if the item is last, otherwise, it's the first value in the list
         const y: usize = 1;
+        /// the number of items in the list 
         const z: u8 = 10;
+        /// the name of the server
         const server_name: String = "my_server".to_string();
+        /// number of threads
+        const threads: usize = 6;
+        /// timeout in milliseconds
+        const timeout: usize = 3_000;
         var x: i32;
         var v: usize;
 
@@ -31,6 +52,8 @@ use bmw_derive::*;
                 Ok(Self { x: -100, v: *const_values.get_y() })
         }
 
+        /// function documentation moved over to the trait fns
+        /// @param self this is a mutable reference to self
         [dog, test2]
         fn bark(&mut self) -> Result<String, Error> {
                 self.do_cool_stuff()?;
@@ -39,12 +62,48 @@ use bmw_derive::*;
                 Ok("woof".to_string())
         }
 
+        /// The meow function returns a wonderful meow.
+        /// @param v1 the version number to use
+        /// @param v2 whether or not v2 is supported
+        /// @param self mutable reference to self
+        /// @return std::string::String value that has been created
+        /// @error bmw_base::BaseErrorKind::IllegalState if the state becomes illegal
+        /// @error bmw_base::BaseErrorKind::Configuration if the configuration is invalid
+        /// @error crate::IntegrationErr::Overloaded if the system is overloaded
+        /// @see crate::dog
+        /// @see crate::cat
+        /// @see bmw_base::Error
+        /// @deprecated
+        /// # Examples
+        ///```
+        /// use bmw_base::*;
+        /// use bmw_int::*;
+        ///
+        /// fn main() -> Result<(), Error> {
+        ///     let mut cat = cat!()?;
+        ///     let s = cat.meow(1, false)?;
+        ///     assert_eq!(s, "meow".to_string());
+        ///
+        ///     Ok(())
+        /// }
+        ///```
         [cat, test2]
         fn meow(&mut self, v1: usize, v2: bool) -> Result<String, Error> {
                 self.other();
                 Ok("meow".to_string())
         }
 
+        /// This function returns the server name for this instance.
+        /// Once we're done we process the request
+        /// Potential errors can occur.
+        /// # test
+        /// ok here's some more info
+        /// * ok ok ok
+        /// * hi
+        /// * this is more
+        ///```
+        /// fn main() {}
+        ///```
         [dog]
         fn server_name(&self) -> Result<String, Error> {
                 Ok(self.get_server_name().clone())

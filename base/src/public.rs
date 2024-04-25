@@ -117,6 +117,9 @@ pub enum BaseErrorKind {
 	/// Configuration error
 	#[fail(display = "configuration error: {}", _0)]
 	Configuration(String),
+	/// Build error
+	#[fail(display = "builder error: {}", _0)]
+	Builder(String),
 	/// I/O error
 	#[fail(display = "i/o error: {}", _0)]
 	IO(String),
