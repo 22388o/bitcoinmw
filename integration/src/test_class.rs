@@ -19,6 +19,7 @@
 use crate::test_class::IntegrationErr::Overloaded;
 use bmw_base::*;
 use bmw_derive::*;
+use std::any::Any;
 use std::pin::Pin;
 
 #[ErrorKind]
@@ -267,9 +268,63 @@ impl<OnRead> HttpServerImpl<OnRead> where
 {
 }
 
+#[class{
+        public callback_holder_sync_box;
+        var callback: Option<Pin<Box<Callback>>>;
+
+        /// @module bmw_int::test_class
+        /// @add_test_init x.set_callback(|_| { Ok(()) }); // define on_read handler
+        fn builder(&const_values) -> Result<Self, Error> {
+                Ok(Self { callback: None })
+        }
+
+        [callback_holder]
+        fn set_callback(&mut self, callback: Callback) {
+                (*self.get_mut_callback()) = Some(Box::pin(callback));
+        }
+
+        [callback_holder]
+        fn callback(&mut self, any: &mut Box<dyn Any>) -> Result<(), Error> {
+                match self.get_mut_callback() {
+                        Some(callback) => {
+                                (callback)(any)?;
+                        }
+                        None => {}
+                }
+                Ok(())
+        }
+
+}]
+impl<Callback> CallbackHolderImpl<Callback> where
+	Callback: FnMut(&mut Box<dyn Any>) -> Result<(), Error> + Send + Sync + 'static + Clone + Unpin
+{
+}
+
 #[cfg(test)]
 mod test {
 	use crate::test_class::*;
+
+	#[test]
+	fn test_callback() -> Result<(), Error> {
+		let mut x = callback_holder_sync_box!()?;
+		x.set_callback(|x| {
+			match x.downcast_mut::<String>() {
+				Some(as_string) => {
+					*as_string = format!("{} and more", as_string);
+				}
+				None => {}
+			}
+			Ok(())
+		});
+
+		let mut y: Box<dyn Any> = Box::new("this is a test".to_string());
+		x.callback(&mut y)?;
+
+		let v = y.downcast_ref::<String>().unwrap();
+		assert_eq!(v, &"this is a test and more".to_string());
+
+		Ok(())
+	}
 
 	#[test]
 	fn test_http() -> Result<(), Error> {

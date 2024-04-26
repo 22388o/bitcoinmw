@@ -252,18 +252,35 @@ impl State {
 								if group.stream().to_string().len() != 0 {
 									self.process_abort("impl block must be empty".to_string())?;
 								}
+								/*
+								println!(
+									"final=gen={:?},gen2={:?},where={:?},post={:?},pre={:?}",
+									self.generics,
+									self.generics2,
+									self.where_clause,
+									&self.get_post_name_clause()?,
+									&self.get_pre_name_clause()?
+								);
+																*/
 							}
 						}
 						_ => {}
 					}
 					if self.generics2.is_none() && token.to_string() == "<" {
 					} else if !in_where && token.to_string() != "where" {
-						match self.generics2.as_mut() {
-							Some(g) => {
-								*g = format!("{}{}", *g, token.to_string());
-							}
-							None => {
-								self.generics2 = Some(token.to_string());
+						if !term_where {
+							match self.generics2.as_mut() {
+								Some(g) => match token {
+									Ident(ident) => {
+										*g = format!("{}{}", *g, ident.to_string());
+									}
+									_ => {
+										*g = format!("{}{}", *g, token.to_string());
+									}
+								},
+								None => {
+									self.generics2 = Some(token.to_string());
+								}
 							}
 						}
 					} else if token.to_string() == "where" {
@@ -271,9 +288,14 @@ impl State {
 					} else {
 						if !term_where {
 							match self.where_clause.as_mut() {
-								Some(w) => {
-									*w = format!("{}{}", *w, token.to_string());
-								}
+								Some(w) => match token {
+									Ident(ident) => {
+										*w = format!("{}{}", *w, ident.to_string());
+									}
+									_ => {
+										*w = format!("{}{}", *w, token.to_string());
+									}
+								},
 								None => {
 									self.where_clause = Some(token.to_string());
 								}
@@ -1524,11 +1546,27 @@ impl State {
 		let mut type_list = vec![];
 		type_list.push(trait_name);
 		let stream = map_err!(conv_param_string.1.parse::<TokenStream>(), Parse)?;
+		let mut next_token = "".to_string();
 		for token in stream {
 			let token_str = token.to_string();
-			if token_str != "," {
-				type_list.push(token_str);
+
+			if token_str == "," {
+				type_list.push(next_token.clone());
+				next_token = "".to_string();
+			} else {
+				if next_token.len() == 0 {
+					next_token = format!("{}", token_str);
+				} else {
+					match token {
+						Ident(_) => next_token = format!("{} {}", next_token, token_str),
+						Group(_) => next_token = format!("{} {}", next_token, token_str),
+						_ => next_token = format!("{}{}", next_token, token_str),
+					}
+				}
 			}
+		}
+		if next_token.len() > 0 {
+			type_list.push(next_token);
 		}
 
 		let mut trait_text = format!("");
@@ -1673,7 +1711,11 @@ impl State {
 		trait_text = format!("{}\n#[doc=\"\n|---|---|---|\"]", trait_text);
 		let mut i = 0;
 		for input in inputs {
-			let type_str = format!("[`{}`]", type_list[i].clone());
+			let type_str = if i < type_list.len() {
+				format!("[`{}`]", type_list[i].clone())
+			} else {
+				format!("-")
+			};
 			let comment = match comment_map.get(&input) {
 				Some(comment) => comment.to_string(),
 				None => "`TODO: add @param documentation to describe this parameter`".to_string(),
@@ -1745,7 +1787,7 @@ impl State {
 							} else if !in_type {
 								ret = format!("{}{}", ret, token);
 							} else {
-								ret_types = format!("{}{}", ret_types, token);
+								ret_types = format!("{} {}", ret_types, token);
 								if token == "<" {
 									gtlt_delim_sum += 1;
 								} else if token == ">" {
@@ -1998,7 +2040,15 @@ impl State {
 							} else {
 								debug!("type_str += '{:?}'", token)?;
 								// append the rest
-								var.type_str = format!("{}{}", var.type_str, token_str);
+								match token {
+									Ident(ident) => {
+										var.type_str =
+											format!("{} {}", var.type_str, ident.to_string());
+									}
+									_ => {
+										var.type_str = format!("{}{}", var.type_str, token_str);
+									}
+								}
 							}
 						}
 					}
