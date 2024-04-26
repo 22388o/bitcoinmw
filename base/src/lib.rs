@@ -32,6 +32,5 @@ mod macros;
 mod public;
 mod ser;
 mod test;
-mod tt;
 
 pub use crate::public::*;

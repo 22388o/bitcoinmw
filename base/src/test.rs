@@ -23,7 +23,7 @@ mod test {
 
 	use crate::{
 		cbreak, deserialize, err, err_only, kind, map_err, serialize, try_into, BaseErrorKind,
-		Error, ErrorKind, Reader, Serializable, TraitType, Writer,
+		Error, ErrorKind, Reader, Serializable, Writer,
 	};
 	use bmw_deps::rand;
 	use bmw_deps::url::{ParseError, Url};
@@ -105,20 +105,6 @@ mod test {
 			x.unwrap_err().kind(),
 			&kind!(BaseErrorKind::TryInto, exp_text)
 		);
-		Ok(())
-	}
-
-	#[test]
-	fn test_instance_enum() -> Result<(), Error> {
-		assert_eq!(try_into!("IMPL".to_string()), Ok(TraitType::Impl));
-		assert_eq!(try_into!("DYN".to_string()), Ok(TraitType::Dyn));
-		assert_eq!(try_into!("DYN_SEND".to_string()), Ok(TraitType::DynSend));
-		assert_eq!(try_into!("DYN_SYNC".to_string()), Ok(TraitType::DynSync));
-		assert_eq!(try_into!("IMPL_SEND".to_string()), Ok(TraitType::ImplSend));
-		assert_eq!(try_into!("IMPL_SYNC".to_string()), Ok(TraitType::ImplSync));
-
-		let err: Result<TraitType, Error> = try_into!("".to_string());
-		assert!(err.is_err());
 		Ok(())
 	}
 

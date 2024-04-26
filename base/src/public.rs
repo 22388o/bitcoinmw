@@ -182,25 +182,6 @@ pub trait Configurable {
 	fn allow_dupes(&self) -> HashSet<String>;
 }
 
-/// Enum to indicate the type of trait. Both `impl` and `dyn` traits can be implemented
-/// with or without the [`Send`] or [`Sync`] markers. This enum
-/// represents all possible combinations thereof.
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub enum TraitType {
-	/// anonymous implementation of the trait
-	Impl,
-	/// Boxed dyn implementation of the trait
-	Dyn,
-	/// anonymous implementation + [`Send`] marker
-	ImplSend,
-	/// anonymous implementation + [`Send`] + [`Sync`] markers
-	ImplSync,
-	/// Boxed dyn implmentation of the trait + [`Send`] marker
-	DynSend,
-	/// Boxed dyn implmentation of the trait + [`Send`] + [`Sync`] markers
-	DynSync,
-}
-
 /// Writer trait used for serializing data.
 /// # Examples
 ///```
