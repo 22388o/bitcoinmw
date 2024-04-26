@@ -20,7 +20,7 @@
 
 use bmw_deps::failure;
 
-mod test_class;
+pub mod test_class;
 mod test_error;
 
-pub use test_class::*;
+//pub use test_class::*;

@@ -366,6 +366,7 @@ impl State {
 		}
 
 		let mut macro_comments = "".to_string();
+		let mut use_comment = None;
 
 		// add builder
 		for fn_info in &self.fn_list {
@@ -375,8 +376,16 @@ impl State {
 						match token {
 							Literal(l) => {
 								let l = trim_outer(&l.to_string(), "\"", "\"");
-								macro_comments =
-									format!("{}\n#[doc=\"{}\"]", macro_comments, l.to_string());
+								let c = l.trim();
+								if c.find("@module ") == Some(0) {
+									if c.len() > 8 {
+										let usec = c.substring(8, c.len());
+										use_comment = Some(usec.to_string());
+									}
+								} else {
+									macro_comments =
+										format!("{}\n#[doc=\"{}\"]", macro_comments, c.to_string());
+								}
 							}
 							_ => {}
 						}
@@ -521,10 +530,11 @@ impl State {
 		macro_comments = format!("{}\n#[doc=\"# Return\"]", macro_comments);
 		macro_comments = format!("{}\n#[doc=\"REPLACE_RETURN\"]", macro_comments);
 		macro_comments = format!("{}\n#[doc=\"# Errors \"]", macro_comments);
-		macro_comments = format!("{}\n#[doc=\"| ErrorKind | Reason |\"]", macro_comments);
-		macro_comments = format!("{}\n#[doc=\"|-------|-------|\"]", macro_comments);
-		macro_comments = format!("{}\n#[doc=\"| [`bmw_base::BaseErrorKind::Builder`] | If the builder function returns an error,", macro_comments);
-		macro_comments = format!("{} it will be wrapped in this [`bmw_base::ErrorKind`] with the details of the original error preserved. | \"]", macro_comments);
+		macro_comments = format!("{}\n#[doc=\"* [`bmw_base::BaseErrorKind::Builder`] - if the builder function returns an error,", macro_comments);
+		macro_comments = format!(
+			"{} it will be wrapped in the builder error with the details of the original error preserved.\"]",
+			macro_comments
+		);
 		macro_comments = format!("{}\n#[doc=\"# Also See\"]", macro_comments);
 		macro_comments = format!("{}\n#[doc=\" * [`REPLACE_TRAIT_NAME`] \"]", macro_comments);
 		macro_comments = format!("{}\n#[doc=\" * [`bmw_base::ErrorKind`] \"]", macro_comments);
@@ -539,11 +549,55 @@ impl State {
 			let mut macro_post = format!("#[doc=\"# Example\"]\n#[doc=\"\"]");
 			let replace_param = "REPLACE_PARAM";
 
-			if self.public_set.get(&format!("{}", snake_view)).is_some() {
+			if self.public_set.get(&format!("{}", snake_view)).is_some()
+				|| self
+					.public_set
+					.get(&format!("{}_send", snake_view))
+					.is_some() || self
+				.public_set
+				.get(&format!("{}_sync", snake_view))
+				.is_some() || self
+				.public_set
+				.get(&format!("{}_sync_box", snake_view))
+				.is_some() || self
+				.public_set
+				.get(&format!("{}_send_box", snake_view))
+				.is_some() || self
+				.public_set
+				.get(&format!("{}_box", snake_view))
+				.is_some()
+			{
 				macro_post = format!("{}\n#[doc=\"```\"]", macro_post);
 				macro_post = format!("{}\n#[doc=\"use bmw_base::*;\"]", macro_post);
 				let crate_name = std::env::var("CARGO_PKG_NAME").unwrap();
-				macro_post = format!("{}\n#[doc=\"use {}::*;\"]", macro_post, crate_name);
+
+				macro_post = format!(
+					"{}\n#[doc=\"use {}::REPLACE_PARAM;\"]",
+					macro_post, crate_name
+				);
+
+				match use_comment {
+					Some(ref comment) => {
+						macro_post = format!(
+							"{}\n#[doc=\"use {}::{}Builder;\"]",
+							macro_post, comment, name
+						);
+						macro_post = format!(
+							"{}\n#[doc=\"use {}::{}ConstOptions::*;\"]",
+							macro_post, comment, name
+						);
+					}
+					None => {
+						macro_post = format!(
+							"{}\n#[doc=\"use {}::{}Builder;\"]",
+							macro_post, crate_name, name
+						);
+						macro_post = format!(
+							"{}\n#[doc=\"use {}::{}ConstOptions::*;\"]",
+							macro_post, crate_name, name
+						);
+					}
+				}
 				macro_post = format!("{}\n#[doc=\"\"]", macro_post);
 				macro_post = format!(
 					"{}\n#[doc=\"fn main() -> Result<(), Error> {{\"]",
@@ -553,33 +607,38 @@ impl State {
 				let mut param_list = "".to_string();
 				let mut first = true;
 				for item in &self.const_list {
-					if first {
-						param_list = format!(
-							"{}\n\t\t{}({})",
-							param_list,
-							item.name.to_case(Case::Pascal),
-							item.value_str
-								.replace("\"", "\\\"")
-								.replace(".to_string()", "")
-						);
+					if item.type_str.find("Vec<") == Some(0) {
+						// for now don't display these because safe defaults
+						// are not known
 					} else {
-						param_list = format!(
-							"{},\n\t\t{}({})",
-							param_list,
-							item.name.to_case(Case::Pascal),
-							item.value_str
-								.replace("\"", "\\\"")
-								.replace(".to_string()", "")
-						);
+						if first {
+							param_list = format!(
+								"{}\n\t\t{}({})",
+								param_list,
+								item.name.to_case(Case::Pascal),
+								item.value_str
+									.replace("\"", "\\\"")
+									.replace(".to_string()", "")
+							);
+						} else {
+							param_list = format!(
+								"{},\n\t\t{}({})",
+								param_list,
+								item.name.to_case(Case::Pascal),
+								item.value_str
+									.replace("\"", "\\\"")
+									.replace(".to_string()", "")
+							);
+						}
 					}
 					first = false;
 				}
 				macro_post = format!(
-					"{}#[doc=\"    // instantiate {}! with all parameters explicitly specified.\"]\n",
-					macro_post,replace_param
+					"{}#[doc=\"    // instantiate {}! with parameters explicitly specified.\"]\n",
+					macro_post, replace_param
 				);
 				macro_post = format!(
-					"{}\n#[doc=\"    let my_{} = {}!({}\n\t)?;\"]",
+					"{}\n#[doc=\"    let my_{} = REPLACE_BUILDER_OR_MACRO{}REPLACE_MACRO_BANG{}\n\tREPLACE_MACRO_END?;\"]",
 					macro_post, replace_param, replace_param, param_list
 				);
 				macro_post = format!("{}\n#[doc=\"\"]", macro_post);
@@ -593,7 +652,7 @@ impl State {
                                         macro_post,replace_param
                                 );
 				macro_post = format!(
-					"{}\n#[doc=\"    let my_{}_default = {}!()?;\"]",
+					"{}\n#[doc=\"    let my_{}_default = REPLACE_BUILDER_OR_MACRO{}REPLACE_MACRO_BANGREPLACE_MACRO_END?;\"]",
 					macro_post, replace_param, replace_param
 				);
 				macro_post = format!("{}\n#[doc=\"\"]", macro_post);
@@ -680,8 +739,34 @@ impl State {
 
 			// add non-send non-sync builder fns
 			let builder_bytes = builder_bytes_raw.replace("${NAME}", name);
-			let builder_bytes = builder_bytes.replace("${IMPL_COMMENTS}", "");
-			let builder_bytes = builder_bytes.replace("${BOX_COMMENTS}", "");
+			let builder_bytes = builder_bytes.replace(
+				"${IMPL_COMMENTS}",
+				&self.build_builder_comments(
+					view.clone(),
+					snake_view.clone(),
+					comments,
+					false,
+					false,
+					false,
+					name,
+					self.public_set.get(&snake_view).is_some(),
+				)?,
+			);
+			let builder_bytes = builder_bytes.replace(
+				"${BOX_COMMENTS}",
+				&self.build_builder_comments(
+					view.clone(),
+					format!("{}_box", snake_view.clone()),
+					comments,
+					false,
+					false,
+					true,
+					name,
+					self.public_set
+						.get(&format!("{}_box", snake_view))
+						.is_some(),
+				)?,
+			);
 			let builder_bytes = builder_bytes.replace("${VIEW_SNAKE_CASE}", &snake_view);
 			let builder_bytes = builder_bytes.replace("${TRAIT_LIST}", &view);
 			let builder_bytes = builder_bytes.replace(
@@ -717,8 +802,36 @@ impl State {
 
 			// add send
 			let builder_bytes = builder_bytes_raw.replace("${NAME}", name);
-			let builder_bytes = builder_bytes.replace("${IMPL_COMMENTS}", "");
-			let builder_bytes = builder_bytes.replace("${BOX_COMMENTS}", "");
+			let builder_bytes = builder_bytes.replace(
+				"${IMPL_COMMENTS}",
+				&self.build_builder_comments(
+					view.clone(),
+					format!("{}_send", snake_view.clone()),
+					comments,
+					true,
+					false,
+					false,
+					name,
+					self.public_set
+						.get(&format!("{}_send", snake_view))
+						.is_some(),
+				)?,
+			);
+			let builder_bytes = builder_bytes.replace(
+				"${BOX_COMMENTS}",
+				&self.build_builder_comments(
+					view.clone(),
+					format!("{}_send_box", snake_view.clone()),
+					comments,
+					true,
+					false,
+					true,
+					name,
+					self.public_set
+						.get(&format!("{}_send_box", snake_view))
+						.is_some(),
+				)?,
+			);
 			let builder_bytes =
 				builder_bytes.replace("${VIEW_SNAKE_CASE}", &format!("{}_send", snake_view));
 			let builder_bytes = builder_bytes.replace("${TRAIT_LIST}", &format!("{} + Send", view));
@@ -765,9 +878,39 @@ impl State {
 			let builder_bytes = builder_bytes_raw.replace("${NAME}", name);
 			let builder_bytes = builder_bytes.replace(
 				"${IMPL_COMMENTS}",
-				&self.build_builder_comments(format!("{}_sync", snake_view.clone()))?,
+				&self.build_builder_comments(
+					view.clone(),
+					format!("{}_sync", snake_view.clone()),
+					comments,
+					false,
+					true,
+					false,
+					name,
+					self.public_set
+						.get(&format!("{}_sync", snake_view))
+						.is_some(),
+				)?,
 			);
-			let builder_bytes = builder_bytes.replace("${BOX_COMMENTS}", "");
+			let builder_bytes = builder_bytes.replace(
+				"${BOX_COMMENTS}",
+				&self.build_builder_comments(
+					view.clone(),
+					format!("{}_sync_box", snake_view.clone()),
+					comments,
+					false,
+					true,
+					true,
+					name,
+					self.public_set
+						.get(&format!("{}_sync_box", snake_view))
+						.is_some(),
+				)?,
+			);
+
+			let comments = comments.replace("REPLACE_BUILDER_OR_MACRO", "");
+			let comments = comments.replace("REPLACE_MACRO_BANG", "!(");
+			let comments = comments.replace("REPLACE_MACRO_END", ")");
+
 			let builder_bytes =
 				builder_bytes.replace("${VIEW_SNAKE_CASE}", &format!("{}_sync", snake_view));
 			let builder_bytes =
@@ -1084,7 +1227,8 @@ impl State {
 					self.build_comments(
 						fn_info.comments,
 						fn_info.param_string.clone(),
-						view.clone()
+						view.clone(),
+						fn_info.signature.clone(),
 					)?
 				);
 				trait_text = format!("{}\n{};", trait_text, fn_info.signature);
@@ -1123,9 +1267,59 @@ impl State {
 		Ok(())
 	}
 
-	fn build_builder_comments(&self, snake_view: String) -> Result<String, Error> {
-		let ret = format!("#[doc=\"snake={}\"]", snake_view);
-		Ok(ret)
+	fn build_builder_comments(
+		&self,
+		view: String,
+		snake_view: String,
+		comments: &str,
+		is_send: bool,
+		is_sync: bool,
+		is_box: bool,
+		name: &String,
+		display: bool,
+	) -> Result<String, Error> {
+		if display {
+			let ret = format!("{}", comments);
+			let ret = ret.replace(
+				"REPLACE_BUILDER_OR_MACRO",
+				&format!("{}Builder::build_", name),
+			);
+			let ret = ret.replace("REPLACE_MACRO_BANG", "(vec![");
+			let ret = ret.replace("REPLACE_MACRO_END", "])");
+			let ret = ret.replace("REPLACE_PARAM", &snake_view);
+			let replace_return = if is_sync && is_box {
+				// _sync_box
+				format!(
+					"[`Result`]<[`Box`]<dyn [`{}`] + [`Send`] + [`Sync`]>, [`Error`]>",
+					view
+				)
+			} else if is_send && is_box {
+				// _send_box
+				format!(
+					"[`Result`]<[`Box`]<dyn [`{}`] + [`Send`]>, [`Error`]>",
+					view
+				)
+			} else if is_sync {
+				// _sync
+				format!(
+					"[`Result`]<impl [`{}`] + [`Send`] + [`Sync`], [`Error`]>",
+					view
+				)
+			} else if is_send {
+				// _send
+				format!("[`Result`]<impl [`{}`] + [`Send`], [`Error`]>", view)
+			} else if is_box {
+				// _box
+				format!("[`Result`]<[`Box`]<dyn [`{}`]>, [`Error`]>", view)
+			} else {
+				// impl
+				format!("[`Result`]<impl [`{}`], [`Error`]>", view)
+			};
+			let ret = ret.replace("REPLACE_RETURN", &replace_return);
+			Ok(ret)
+		} else {
+			Ok("".to_string())
+		}
 	}
 
 	fn build_comments(
@@ -1133,7 +1327,11 @@ impl State {
 		comments: Vec<Group>,
 		param_string: String,
 		trait_name: String,
+		signature: String,
 	) -> Result<String, Error> {
+		// for now, just check if result is in the return type. Could be improved.
+		let return_errors = signature.find("Result").is_some();
+
 		let conv_param_string = self.convert_param_string(&param_string)?;
 		let stream = map_err!(conv_param_string.0.parse::<TokenStream>(), Parse)?;
 		let mut inputs = vec![];
@@ -1183,6 +1381,10 @@ impl State {
 		let mut start_examples = false;
 		let mut deprecated = false;
 
+		let mut last_error = false;
+		let mut last_return = false;
+		let mut last_param: Option<String> = None;
+
 		for comment in comment_vec {
 			let trim = trim_outer(&comment, "\"", "\"");
 			let trim = trim.trim();
@@ -1197,6 +1399,9 @@ impl State {
 								let value = trim.substring(pos + 1, trim.len());
 								comment_map.insert(name.to_string(), value.to_string());
 								found = true;
+								last_param = Some(name.to_string());
+								last_return = false;
+								last_error = false;
 							}
 						}
 						None => {}
@@ -1205,6 +1410,9 @@ impl State {
 			} else if trim.find("@deprecated") == Some(0) {
 				deprecated = true;
 				found = true;
+				last_return = false;
+				last_param = None;
+				last_error = false;
 			} else if trim.find("@return ") == Some(0) {
 				if trim.len() > 8 {
 					let trim = trim.substring(8, trim.len());
@@ -1215,6 +1423,9 @@ impl State {
 								let value = trim.substring(pos + 1, trim.len());
 								return_value = Some(format!("[`{}`] - {}", name, value));
 								found = true;
+								last_return = true;
+								last_param = None;
+								last_error = false;
 							}
 						}
 						None => {}
@@ -1230,6 +1441,9 @@ impl State {
 								let value = trim.substring(pos + 1, trim.len());
 								error_value.push(format!("* [`{}`] - {}", name, value));
 								found = true;
+								last_error = true;
+								last_return = false;
+								last_param = None;
 							}
 						}
 						None => {}
@@ -1247,7 +1461,29 @@ impl State {
 				examples.push(comment.clone());
 			}
 			if !found && !start_examples {
-				trait_text = format!("{}\n#[doc={}]", trait_text, comment);
+				if last_return {
+					let return_value_ref = return_value.as_ref().unwrap();
+					let comment = trim_outer(&comment, "\"", "\"");
+					let nreturn_value = format!("{}{}", return_value_ref, comment);
+					return_value = Some(nreturn_value);
+				} else if last_error {
+					let index = error_value.len() - 1;
+					let comment = trim_outer(&comment, "\"", "\"");
+					error_value[index] = format!("{}{}", error_value[index], comment);
+				} else if last_param.is_some() {
+					let last_param_ref = last_param.as_ref().unwrap();
+					let comment = trim_outer(&comment, "\"", "\"");
+					let mut nvalue = "".to_string();
+					match comment_map.get(last_param_ref) {
+						Some(last) => {
+							nvalue = format!("{}{}", last, comment);
+						}
+						None => {}
+					}
+					comment_map.insert(last_param_ref.to_string(), nvalue);
+				} else {
+					trait_text = format!("{}\n#[doc={}]", trait_text, comment);
+				}
 			}
 		}
 
@@ -1277,14 +1513,17 @@ impl State {
 			i += 1;
 		}
 		trait_text = format!("{}\n#[doc=\"# Errors\"]", trait_text);
-		for error in &error_value {
-			trait_text = format!("{}\n#[doc=\"{}\"]", trait_text, error);
-		}
-		if error_value.len() == 0 {
+		if error_value.len() == 0 && return_errors {
 			trait_text = format!(
 				"{}\n#[doc=\"`TODO: add @error documentation to describe this function`\"]",
 				trait_text
 			);
+		}
+		if error_value.len() == 0 && !return_errors {
+			trait_text = format!("{}\n#[doc=\"n/a\"]", trait_text);
+		}
+		for error in &error_value {
+			trait_text = format!("{}\n#[doc=\"{}\"]", trait_text, error);
 		}
 		trait_text = format!("{}\n#[doc=\"# Return\"]", trait_text);
 		trait_text = format!(
@@ -1298,7 +1537,7 @@ impl State {
 		trait_text = format!("{}\n#[doc=\"# Also See\"]", trait_text);
 		if see_value.len() == 0 {
 			trait_text = format!(
-				"{}\n#[doc=\"`TODO: add @see documentation to describe this function`\"]",
+				"{}\n#[doc=\"`TODO: add @see documentation to link to related documentation`\"]",
 				trait_text
 			);
 		}
@@ -1501,8 +1740,14 @@ impl State {
 				} else if group.delimiter() == Delimiter::Parenthesis {
 					match &mut self.cur_fn {
 						Some(ref mut cur_fn) => {
-							cur_fn.param_string = group.to_string();
-							cur_fn.signature = format!("{}{}", cur_fn.signature, group.to_string());
+							if cur_fn.param_string.len() == 0 {
+								cur_fn.param_string = group.to_string();
+								cur_fn.signature =
+									format!("{}{}", cur_fn.signature, group.to_string());
+							} else {
+								cur_fn.signature =
+									format!("{}{}", cur_fn.signature, group.to_string());
+							}
 						}
 						None => {
 							return err!(
