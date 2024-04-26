@@ -34,6 +34,7 @@ mod test {
 	use std::num::ParseIntError;
 	use std::num::TryFromIntError;
 	use std::str::from_utf8;
+	use std::str::ParseBoolError;
 	use std::sync::mpsc::sync_channel;
 	use std::sync::{Arc, Mutex, RwLock};
 	use std::thread::spawn;
@@ -558,6 +559,18 @@ mod test {
 		);
 		let err2 = err2.unwrap_err();
 		assert_eq!(err1.kind(), err2.kind());
+
+		let x: Result<bool, ParseBoolError> = "x".parse();
+		let err1 = x.unwrap_err();
+		let err1: Error = err1.into();
+		let err2: Result<Duration, Error> = err!(
+			BaseErrorKind::Parse,
+			"provided string was not `true` or `false`",
+		);
+		let err2 = err2.unwrap_err();
+		assert_eq!(err1.kind(), err2.kind());
+
+		assert!(format!("{}", err2).len() > 0);
 
 		Ok(())
 	}

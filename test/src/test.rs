@@ -20,8 +20,8 @@
 mod test {
 	use crate as bmw_test;
 	use crate::types::TestInfoImpl;
-	use crate::{test_info, TestInfo};
-	use bmw_base::Error;
+	use crate::{test_info, TestErrorKind, TestInfo};
+	use bmw_base::{kind, Error, ErrorKind};
 	use std::sync::{Arc, RwLock};
 	use std::thread::spawn;
 
@@ -38,6 +38,10 @@ mod test {
 		let test_info = test_info!()?;
 		assert!(test_info.port() >= 9000);
 		assert!(test_info.directory().ends_with("bmw"));
+
+		let err = TestErrorKind::Test("test".to_string());
+		let err: Error = err.into();
+		assert_eq!(err.kind(), &kind!(TestErrorKind::Test, "test"));
 
 		Ok(())
 	}
