@@ -40,28 +40,34 @@ mod test {
 	use std::thread::spawn;
 	use std::time::{Duration, SystemTime, SystemTimeError};
 
+	// function to return a parse error
 	fn ret_err() -> Result<(), Error> {
 		err!(BaseErrorKind::Parse, "this is a test {}", 1)
 	}
 
+	// function to return a different parse error
 	fn ret_err2() -> Result<(), Error> {
 		err!(BaseErrorKind::Parse, "this is a test")
 	}
 
+	// function to generate a parse int error
 	fn ret_err3() -> Result<usize, ParseIntError> {
 		"".parse::<usize>()
 	}
 
 	#[test]
 	fn test_error() -> Result<(), Error> {
+		// assert that the first function returns an err
 		assert!(ret_err().is_err());
 
+		// do a conversion and check the kind
 		let err: Error = ret_err().unwrap_err();
 		let kind = err.kind();
 
 		assert_eq!(kind, &kind!(BaseErrorKind::Parse, "this is a test 1"));
 		assert_ne!(kind, &kind!(BaseErrorKind::Parse, "this is a test 2"));
 
+		// likewise with ret_err2
 		let err: Error = ret_err2().unwrap_err();
 		assert_eq!(err.kind(), &kind!(BaseErrorKind::Parse, "this is a test"));
 
@@ -70,6 +76,7 @@ mod test {
 
 	#[test]
 	fn test_map_err() -> Result<(), Error> {
+		// test that the map_err macro properly maps errors to the correct kinds
 		let e = map_err!(ret_err3(), BaseErrorKind::Parse, "1").unwrap_err();
 		let exp_text = "1: cannot parse integer from empty string";
 		assert_eq!(e.kind(), &kind!(BaseErrorKind::Parse, exp_text));
@@ -83,6 +90,7 @@ mod test {
 
 	#[test]
 	fn test_cbreak() -> Result<(), Error> {
+		// test the conditional break macro
 		let mut count = 0;
 		loop {
 			count += 1;
@@ -94,12 +102,17 @@ mod test {
 
 	#[test]
 	fn test_try_into() -> Result<(), Error> {
+		// test the try_into macro
+
+		// with a u64
 		let x: u64 = try_into!(100u32)?;
 		assert_eq!(x, 100u64);
 
+		// u32
 		let x: u32 = try_into!(100u64)?;
 		assert_eq!(x, 100u32);
 
+		// now gernate an error u64::MAX always fails being converted to u32
 		let x: Result<u32, Error> = try_into!(u64::MAX);
 		let exp_text = "out of range integral type conversion attempted";
 		assert_eq!(
@@ -345,6 +358,8 @@ mod test {
 		Ok(from_utf8(&[0xC0])?.to_string())
 	}
 
+	// test to generate all the From conversions we implement and then convert them into our
+	// Error struct and compare the kinds to make sure it's what we expect
 	#[test]
 	fn test_error_conversions() -> Result<(), Error> {
 		let err1 = err_only!(BaseErrorKind::Parse, "test");
@@ -575,6 +590,7 @@ mod test {
 		Ok(())
 	}
 
+	// unix specific test of nix crate
 	#[test]
 	#[cfg(unix)]
 	fn test_nix() -> Result<(), Error> {

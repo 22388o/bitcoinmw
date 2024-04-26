@@ -27,18 +27,24 @@ mod test {
 
 	#[test]
 	fn test_test_info_macro() -> Result<(), Error> {
+		// create a TestInfo
 		let test_info = test_info!()?;
-		assert!(test_info.port() >= 9000);
+
+		// port is always at least 9_000
+		assert!(test_info.port() >= 9_000);
+		// directory ends with bmw
 		assert!(test_info.directory().ends_with("bmw"));
 		Ok(())
 	}
 
 	#[test]
 	fn test_other_test() -> Result<(), Error> {
+		// once again test the test_info object
 		let test_info = test_info!()?;
 		assert!(test_info.port() >= 9000);
 		assert!(test_info.directory().ends_with("bmw"));
 
+		// assert the type of error returned is as expected
 		let err = TestErrorKind::Test("test".to_string());
 		let err: Error = err.into();
 		assert_eq!(err.kind(), &kind!(TestErrorKind::Test, "test"));
@@ -48,6 +54,7 @@ mod test {
 
 	#[test]
 	fn test_impl() -> Result<(), Error> {
+		// test the rx.recv returns in 100 ms
 		let test_info = TestInfoImpl::new(false)?;
 		let (_tx, rx) = test_info.sync_channel_impl(100);
 		assert!(rx.recv().is_ok());
@@ -57,20 +64,38 @@ mod test {
 
 	#[test]
 	fn test_sync_channel() -> Result<(), Error> {
+		// create a test info
 		let test_info = test_info!()?;
+
+		// create a sync_channel
 		let (tx, rx) = test_info.sync_channel();
+
+		// create a rwlock and it's clone
 		let v = Arc::new(RwLock::new(false));
 		let vc = v.clone();
 
+		// create a new thread
 		spawn(move || -> Result<(), Error> {
+			// obtain write lock
 			let mut v = v.write()?;
+
+			// set the value to true
 			*v = true;
+
+			// notify the receiver
 			tx.send(())?;
 			Ok(())
 		});
 
+		// wait for thread to notify us
 		rx.recv()?;
-		assert!(*vc.read()?);
+
+		// obtain read lock
+		let v = vc.read()?;
+
+		// assert that v is true
+		assert!(*v);
+
 		Ok(())
 	}
 }
