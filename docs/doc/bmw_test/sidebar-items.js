@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"constant":["QA_SLEEP"],"fn":["pick_free_port"],"macro":["free_port","test_info"],"struct":["Builder"],"trait":["TestInfo"]};

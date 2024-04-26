@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["HttpConnectionType","HttpMethod","HttpVersion"],"struct":["HttpBuilder","HttpContentReader","HttpInstance","HttpStats"],"trait":["HttpClient","HttpConnection","HttpHeaders","HttpRequest","HttpResponse","HttpServer","WSClient"],"type":["HttpCallback","HttpResponseHandler","WebSocketCallback"]};
