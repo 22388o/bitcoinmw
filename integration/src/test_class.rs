@@ -16,8 +16,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::test_class::IntegrationErr::Overloaded;
 use bmw_base::*;
 use bmw_derive::*;
+use std::pin::Pin;
 
 #[ErrorKind]
 pub enum IntegrationErr {
@@ -48,7 +50,7 @@ pub enum IntegrationErr {
 		var x: i32;
 		var v: usize;
 
-                /// @module bmw_int::test_class
+				/// @module bmw_int::test_class
 		fn builder(&const_values) -> Result<Self, Error> {
 			Ok(Self { x: -100, v: *const_values.get_y() })
 		}
@@ -141,67 +143,146 @@ impl Context {
 	public xserver_send_box;
 
 	const threads: usize = 1;
-        const headers: Vec<(String, String)> = vec![];
-        const str: String = "".to_string();
-        const header_conf: (String, String) = ("".to_string(), "ok".to_string());
-        const bbvec: Vec<bool> = vec![false];
+		const headers: Vec<(String, String)> = vec![];
+		const str: String = "".to_string();
+		const header_conf: (String, String) = ("".to_string(), "ok".to_string());
+		const bbvec: Vec<bool> = vec![false];
 	var context: Context;
 	var abc: usize;
 
-        /// @module bmw_int::test_class
+		/// @module bmw_int::test_class
 	fn builder(&const_values) -> Result<Self, Error> {
-	        let context = Context::new();
-	        let abc = 100;
+			let context = Context::new();
+			let abc = 100;
 		Ok(Self { context, abc })
 	}
 
 	[xserver, t1]
 	fn start(&mut self) -> Result<(), Error> {
-                (*self.get_mut_context()).counter += 1;
+				(*self.get_mut_context()).counter += 1;
 		Ok(())
 	}
 
-        [xserver]
-        fn get_stats(&self) -> usize {
-                (*self.get_context()).counter
+		[xserver]
+		fn get_stats(&self) -> usize {
+				(*self.get_context()).counter
+		}
+
+		/// Set the value of `offset` within the internal buffer to `value`.
+		/// @param value the u8 value to set
+		/// @param self mutable reference to this [`Xserver`]
+		/// @param offset offset of the byte in the buffer to set
+		/// or so they say
+		/// @error bmw_base::BaseErrorKind::IllegalState if the offset is greater than the size of
+		/// the buffer
+		/// @return unit unit value
+		/// that's it
+		/// @see crate::xserver_send_box
+		/// @see crate::test_class::AnimalBuilder
+		/// # Example
+		///```
+		/// use bmw_int::*;
+		/// use bmw_base::*;
+		/// use bmw_int::test_class::*;
+		/// use bmw_int::test_class::ServerConstOptions::*;
+		///
+		/// fn main() -> Result<(), Error> {
+		///     let mut server = xserver_send_box!(Threads(10))?;
+		///
+		///     assert!(server.set_buffer(20, 0u8).is_ok());
+		///
+		///     Ok(())
+		/// }
+		///```
+		[xserver]
+		fn set_buffer(&mut self, offset: usize, value: u8) -> Result<(), Error> {
+				(*self.get_mut_context()).buffer[offset] = value;
+				Ok(())
+		}
+
+		[xserver]
+		fn get_buffer(&mut self, offset: usize) -> Result<u8, Error> {
+				Ok((*self.get_context()).buffer[offset])
+		}
+
+		[xserver]
+		fn get_header(&self, offset: usize) -> Result<(String, String), Error> {
+				if offset >= self.get_headers().len() {
+						err!(BaseErrorKind::IllegalState, "out of bounds")
+				} else {
+						Ok(self.get_headers()[offset].clone())
+				}
+		}
+
+		[xserver]
+		fn test_server(&self) -> Result<(), Error> {
+				err!(Overloaded, "integration test")
+		}
+}]
+impl Server {}
+
+#[class{
+        public http_server_sync_box;
+
+        var handler: Option<Pin<Box<OnRead>>>;
+        var count: usize;
+
+        /// @module bmw_int::test_class
+        /// @add_test_init x.set_on_read_impl(|_| {})?; // define on_read handler
+        fn builder(&const_values) -> Result<Self, Error> {
+            Ok(Self { handler: None, count: 0 })
         }
 
-        /// Set the value of `offset` within the internal buffer to `value`.
-        /// @param value the u8 value to set
-        /// @param self mutable reference to this [`Xserver`]
-        /// @param offset offset of the byte in the buffer to set
-        /// or so they say
-        /// @error bmw_base::BaseErrorKind::IllegalState if the offset is greater than the size of
-        /// the buffer
-        /// @return unit unit value
-        /// that's it
-        /// @see crate::xserver_send_box
-        /// @see crate::test_class::AnimalBuilder
-        [xserver]
-        fn set_buffer(&mut self, offset: usize, value: u8) -> Result<(), Error> {
-                (*self.get_mut_context()).buffer[offset] = value;
+        [http_server]
+        fn set_on_read_impl(&mut self, on_read: OnRead) -> Result<(), Error> {
+                (*self.get_mut_handler()) = Some(Box::pin(on_read));
                 Ok(())
         }
 
-        [xserver]
-        fn get_buffer(&mut self, offset: usize) -> Result<u8, Error> {
-                Ok((*self.get_context()).buffer[offset])
+        [http_server]
+        fn start(&mut self) -> Result<(), Error> {
+            let ret = self.get_count().clone();
+                match (*self.get_mut_handler()) {
+                        Some(ref mut on_read) => {
+                                on_read(ret);
+                        }
+                        None => println!("none"),
+                }
+                Ok(())
         }
 
-        [xserver]
-        fn get_header(&self, offset: usize) -> Result<(String, String), Error> {
-                if offset >= self.get_headers().len() {
-                        err!(BaseErrorKind::IllegalState, "out of bounds")
-                } else {
-                        Ok(self.get_headers()[offset].clone())
-                }
+        [http_server]
+        fn incr(&mut self) -> Result<(), Error> {
+                *self.get_mut_count() += 1;
+                Ok(())
+        }
+
+        [http_server]
+        fn get_handler_impl(&self) -> Result<Option<Pin<Box<OnRead>>>, Error> {
+                Ok(self.get_handler().clone())
         }
 }]
-impl Server {}
+impl<OnRead> HttpServerImpl<OnRead> where
+	OnRead: FnMut(usize) -> () + Send + 'static + Clone + Sync + Unpin
+{
+}
 
 #[cfg(test)]
 mod test {
 	use crate::test_class::*;
+
+	#[test]
+	fn test_http() -> Result<(), Error> {
+		let mut http_server_sync_box = http_server_sync_box!()?;
+		http_server_sync_box.set_on_read_impl(|size| {
+			println!("in onread: {}", size);
+		})?;
+		assert!(http_server_sync_box.start().is_ok());
+		http_server_sync_box.incr()?;
+		assert!(http_server_sync_box.start().is_ok());
+
+		Ok(())
+	}
 
 	#[test]
 	fn test_server() -> Result<(), Error> {
@@ -228,7 +309,6 @@ mod test {
 		Ok(())
 	}
 
-	/*
 	#[test]
 	fn test_class_types() -> Result<(), Error> {
 		let mut dog = dog_box!(Y(100))?;
@@ -262,5 +342,4 @@ mod test {
 
 		Ok(())
 	}
-		*/
 }

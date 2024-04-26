@@ -143,6 +143,9 @@ struct State {
 	cur_const: Option<Const>,
 	cur_fn: Option<FnInfo>,
 	name: Option<String>,
+	generics: Option<String>,
+	generics2: Option<String>,
+	where_clause: Option<String>,
 
 	fn_list: Vec<FnInfo>,
 	const_list: Vec<Const>,
@@ -167,6 +170,9 @@ impl State {
 			cur_const: None,
 			cur_fn: None,
 			name: None,
+			generics: None,
+			generics2: None,
+			where_clause: None,
 			fn_list: vec![],
 			const_list: vec![],
 			var_list: vec![],
@@ -181,7 +187,10 @@ impl State {
 	fn process_item(&mut self, item: TokenStream) -> Result<(), Error> {
 		let mut expect_impl = true;
 		let mut expect_name = false;
+		let mut in_generics = false;
 		let mut expect_group = false;
+		let mut term_where = false;
+		let mut in_where = false;
 
 		for token in item {
 			self.span = Some(token.span());
@@ -195,28 +204,104 @@ impl State {
 				expect_name = true;
 			} else if expect_name {
 				match token {
-					Ident(name) => {
-						self.name = Some(name.to_string());
-						expect_name = false;
-						expect_group = true;
+					Ident(ref ident) => {
+						if !in_generics {
+							self.name = Some(ident.to_string());
+							expect_name = false;
+							expect_group = true;
+						} else {
+							match self.generics.as_mut() {
+								Some(generic) => {
+									*generic = format!("{}{}", *generic, ident.to_string());
+								}
+								None => {
+									self.generics = Some(ident.to_string());
+								}
+							}
+						}
+					}
+					Punct(ref p) => {
+						if p.to_string() == "<" {
+							in_generics = true;
+						} else if p.to_string() == ">" {
+							in_generics = false;
+						} else {
+							match self.generics.as_mut() {
+								Some(generic) => {
+									*generic = format!("{}{}", *generic, p.to_string());
+								}
+								None => {
+									self.generics = Some(p.to_string());
+								}
+							}
+						}
 					}
 					_ => {
 						self.process_abort("expected class name".to_string())?;
 					}
 				}
 			} else if expect_group {
-				match token {
-					Group(group) => {
-						expect_group = false;
-						debug!("group='{}'", group.to_string())?;
-						for _group_item in group.stream() {
-							self.process_abort("impl must be empty for classes".to_string())?;
+				if self.generics.is_some() {
+					if term_where {
+						self.process_abort("unterminated after impl clause".to_string())?;
+					}
+					match token {
+						Group(ref group) => {
+							if group.delimiter() == Delimiter::Brace {
+								term_where = true;
+								if group.stream().to_string().len() != 0 {
+									self.process_abort("impl block must be empty".to_string())?;
+								}
+							}
+						}
+						_ => {}
+					}
+					if self.generics2.is_none() && token.to_string() == "<" {
+					} else if !in_where && token.to_string() != "where" {
+						match self.generics2.as_mut() {
+							Some(g) => {
+								*g = format!("{}{}", *g, token.to_string());
+							}
+							None => {
+								self.generics2 = Some(token.to_string());
+							}
+						}
+					} else if token.to_string() == "where" {
+						in_where = true;
+					} else {
+						if !term_where {
+							match self.where_clause.as_mut() {
+								Some(w) => {
+									*w = format!("{}{}", *w, token.to_string());
+								}
+								None => {
+									self.where_clause = Some(token.to_string());
+								}
+							}
 						}
 					}
-					_ => self.process_abort("expected 'impl <name> {}'".to_string())?,
+				} else {
+					match token {
+						Group(ref group) => {
+							expect_group = false;
+							debug!("group='{}'", group.to_string())?;
+							for _group_item in group.stream() {
+								self.process_abort("impl must be empty for classes".to_string())?;
+							}
+						}
+						_ => self.process_abort("expected 'impl <name> {}'".to_string())?,
+					}
 				}
 			} else {
 				self.process_abort("unexpected token".to_string())?;
+			}
+			match self.generics2.as_mut() {
+				Some(g) => {
+					if (*g).rfind(">") == Some((*g).len().saturating_sub(1)) {
+						*g = (*g).substring(0, (*g).len().saturating_sub(1)).to_string();
+					}
+				}
+				_ => {}
 			}
 		}
 		Ok(())
@@ -287,6 +372,44 @@ impl State {
 		Ok(())
 	}
 
+	fn get_pre_name_clause(&self) -> Result<String, Error> {
+		Ok(match &self.generics {
+			Some(g) => {
+				format!("<{}>", g)
+			}
+			None => "".to_string(),
+		})
+	}
+
+	fn get_post_name_clause(&self) -> Result<String, Error> {
+		Ok(match &self.generics2 {
+			Some(generics) => {
+				format!(
+					"{}{}",
+					format!("<{}>", generics),
+					match &self.where_clause {
+						Some(w) => {
+							format!(" where {}", w)
+						}
+						None => {
+							"".to_string()
+						}
+					}
+				)
+			}
+			None => "".to_string(),
+		})
+	}
+
+	fn get_where_clause(&self) -> Result<String, Error> {
+		Ok(match &self.where_clause {
+			Some(w) => {
+				format!(" where {}", w)
+			}
+			None => "".to_string(),
+		})
+	}
+
 	fn build(&mut self) -> Result<(), Error> {
 		/*
 		let r: u64 = bmw_deps::rand::random();
@@ -311,6 +434,8 @@ impl State {
 
 		let struct_bytes = from_utf8(struct_bytes)?;
 		let struct_bytes = struct_bytes.replace("${NAME}", &name);
+		let struct_bytes = struct_bytes.replace("${GENERICS}", &self.get_post_name_clause()?);
+		let struct_bytes = struct_bytes.replace("${GENERICS_PRE}", &self.get_pre_name_clause()?);
 
 		let mut var_params = "".to_string();
 		for var_param in &self.var_list {
@@ -358,7 +483,12 @@ impl State {
 		// create the Var impl
 		let get_mut_bytes_template = include_bytes!("../resources/class_get_mut_template.txt");
 		let get_mut_bytes_template = from_utf8(get_mut_bytes_template)?;
-		let mut var_impl = format!("impl {}Var {{", name);
+		let mut var_impl = format!(
+			"impl {} {}Var {} {{",
+			&self.get_pre_name_clause()?,
+			name,
+			&self.get_post_name_clause()?
+		);
 		for var_param in &self.var_list {
 			let mutter = get_mut_bytes_template.replace("${PARAM_NAME}", &var_param.name);
 			let mutter = mutter.replace("${PARAM_TYPE}", &var_param.type_str);
@@ -367,6 +497,7 @@ impl State {
 
 		let mut macro_comments = "".to_string();
 		let mut use_comment = None;
+		let mut test_init = "".to_string();
 
 		// add builder
 		for fn_info in &self.fn_list {
@@ -381,6 +512,12 @@ impl State {
 									if c.len() > 8 {
 										let usec = c.substring(8, c.len());
 										use_comment = Some(usec.to_string());
+									}
+								} else if c.find("@add_test_init ") == Some(0) {
+									if c.len() > 15 {
+										let ncomment = c.substring(15, c.len()).to_string();
+										test_init =
+											format!("{}\n#[doc=\"\t{}\"]", test_init, ncomment);
 									}
 								} else {
 									macro_comments =
@@ -405,7 +542,12 @@ impl State {
 		let var_impl = format!("{}}}", var_impl);
 
 		// create the main struct impl
-		let mut main_impl = format!("impl {} {{", name);
+		let mut main_impl = format!(
+			"impl {} {} {} {{",
+			&self.get_pre_name_clause()?,
+			name,
+			&self.get_post_name_clause()?
+		);
 
 		for fn_info in &self.fn_list {
 			if fn_info.name == "builder" {
@@ -474,6 +616,10 @@ impl State {
 
 		let builder_bytes_raw = include_bytes!("../resources/class_builder_template.txt");
 		let builder_bytes_raw = from_utf8(builder_bytes_raw)?;
+		let builder_bytes_raw =
+			builder_bytes_raw.replace("${GENERIC_PRE}", &self.get_pre_name_clause()?);
+		let builder_bytes_raw =
+			builder_bytes_raw.replace("${WHERE_CLAUSE}", &self.get_where_clause()?);
 
 		macro_comments = format!("{}\n#[doc=\"# Input Parameters\"]", macro_comments);
 		macro_comments = format!(
@@ -638,28 +784,25 @@ impl State {
 					macro_post, replace_param
 				);
 				macro_post = format!(
-					"{}\n#[doc=\"    let my_{} = REPLACE_BUILDER_OR_MACRO{}REPLACE_MACRO_BANG{}\n\tREPLACE_MACRO_END?;\"]",
-					macro_post, replace_param, replace_param, param_list
+					"{}\n#[doc=\"    let mut x = REPLACE_BUILDER_OR_MACRO{}REPLACE_MACRO_BANG{}\n\tREPLACE_MACRO_END?;\"]",
+					macro_post, replace_param, param_list
 				);
 				macro_post = format!("{}\n#[doc=\"\"]", macro_post);
-				macro_post = format!(
-					"{}\n#[doc=\"    // use my_{}...\"]",
-					macro_post, replace_param
-				);
+				macro_post = format!("{}\n{}", macro_post, test_init);
+				macro_post = format!("{}\n#[doc=\"    // use x...\"]", macro_post);
 				macro_post = format!("{}\n#[doc=\"\"]", macro_post);
 				macro_post = format!(
-                                        "{}#[doc=\"    // instantiate {}! with no parameters explicitly specified, defaults used.\"]\n",
+                                        "{}#[doc=\"    // instantiate {}! with no parameters explicitly specified,\"]\n",
                                         macro_post,replace_param
                                 );
+				macro_post = format!("{}#[doc=\"    // defaults used.\"]\n", macro_post);
 				macro_post = format!(
-					"{}\n#[doc=\"    let my_{}_default = REPLACE_BUILDER_OR_MACRO{}REPLACE_MACRO_BANGREPLACE_MACRO_END?;\"]",
-					macro_post, replace_param, replace_param
-				);
-				macro_post = format!("{}\n#[doc=\"\"]", macro_post);
-				macro_post = format!(
-					"{}\n#[doc=\"    // use my_{}_default...\"]",
+					"{}\n#[doc=\"    let mut x = REPLACE_BUILDER_OR_MACRO{}REPLACE_MACRO_BANGREPLACE_MACRO_END?;\"]",
 					macro_post, replace_param
 				);
+				macro_post = format!("{}\n#[doc=\"\"]", macro_post);
+				macro_post = format!("{}\n{}", macro_post, test_init);
+				macro_post = format!("{}\n#[doc=\"    // use x...\"]", macro_post);
 				macro_post = format!("{}\n#[doc=\"\"]", macro_post);
 				macro_post = format!("{}\n#[doc=\"    Ok(())\"]", macro_post);
 				macro_post = format!("{}\n#[doc=\"}}\"]", macro_post);
@@ -733,9 +876,31 @@ impl State {
 				}
 				None => {}
 			}
-			trait_text = format!("{}\n{} trait {} {{\n", trait_text, trait_visibility, view);
-			trait_impl = format!("{}\nimpl {} for {} {{\n", trait_impl, view, name);
-			trait_impl_mut = format!("{}\nimpl {} for &mut {} {{\n", trait_impl_mut, view, name);
+			trait_text = format!(
+				"{}\n{} trait {} {} {{\n",
+				trait_text,
+				trait_visibility,
+				view,
+				&self.get_post_name_clause()?
+			);
+			trait_impl = format!(
+				"{}\nimpl {} {} {} for {} {} {{\n",
+				trait_impl,
+				&self.get_pre_name_clause()?,
+				view,
+				&self.get_pre_name_clause()?,
+				name,
+				&self.get_post_name_clause()?,
+			);
+			trait_impl_mut = format!(
+				"{}\nimpl {} {} {} for &mut {} {} {{\n",
+				trait_impl_mut,
+				&self.get_pre_name_clause()?,
+				view,
+				&self.get_pre_name_clause()?,
+				name,
+				&self.get_post_name_clause()?,
+			);
 
 			// add non-send non-sync builder fns
 			let builder_bytes = builder_bytes_raw.replace("${NAME}", name);
@@ -768,7 +933,10 @@ impl State {
 				)?,
 			);
 			let builder_bytes = builder_bytes.replace("${VIEW_SNAKE_CASE}", &snake_view);
-			let builder_bytes = builder_bytes.replace("${TRAIT_LIST}", &view);
+			let builder_bytes = builder_bytes.replace(
+				"${TRAIT_LIST}",
+				&format!("{} {}", view, &self.get_pre_name_clause()?),
+			);
 			let builder_bytes = builder_bytes.replace(
 				"${VISIBILITY_IMPL}",
 				if self.public_set.get(&snake_view).is_some() {
@@ -834,7 +1002,10 @@ impl State {
 			);
 			let builder_bytes =
 				builder_bytes.replace("${VIEW_SNAKE_CASE}", &format!("{}_send", snake_view));
-			let builder_bytes = builder_bytes.replace("${TRAIT_LIST}", &format!("{} + Send", view));
+			let builder_bytes = builder_bytes.replace(
+				"${TRAIT_LIST}",
+				&format!("{} {} + Send", view, &self.get_pre_name_clause()?,),
+			);
 			let builder_bytes = builder_bytes.replace(
 				"${VISIBILITY_IMPL}",
 				if self
@@ -913,8 +1084,10 @@ impl State {
 
 			let builder_bytes =
 				builder_bytes.replace("${VIEW_SNAKE_CASE}", &format!("{}_sync", snake_view));
-			let builder_bytes =
-				builder_bytes.replace("${TRAIT_LIST}", &format!("{} + Send + Sync", view));
+			let builder_bytes = builder_bytes.replace(
+				"${TRAIT_LIST}",
+				&format!("{} {} + Send + Sync", view, &self.get_pre_name_clause()?),
+			);
 			let builder_bytes = builder_bytes.replace(
 				"${VISIBILITY_IMPL}",
 				if self

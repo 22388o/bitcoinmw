@@ -1,11 +1,11 @@
 #[allow(dead_code)]
-pub(crate) struct ${NAME} {
-	_hidden_var_struct: ${NAME}Var,
+pub(crate) struct ${NAME} ${GENERICS} {
+	_hidden_var_struct: ${NAME}Var ${GENERICS_PRE},
 	_hidden_const_struct: ${NAME}Const,
 }
 
 #[allow(dead_code)]
-struct ${NAME}Var
+struct ${NAME}Var ${GENERICS}
 {
 	${VAR_PARAMS}
 }
