@@ -21,6 +21,5 @@
 use bmw_deps::failure;
 
 pub mod test_class;
+pub mod test_clone;
 mod test_error;
-
-//pub use test_class::*;

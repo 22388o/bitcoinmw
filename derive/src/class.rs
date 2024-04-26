@@ -23,7 +23,7 @@ use bmw_base::BaseErrorKind::*;
 use bmw_base::*;
 use bmw_deps::convert_case::{Case, Casing};
 use bmw_deps::substring::Substring;
-use proc_macro::{Delimiter, Group, Span, TokenStream, TokenTree, TokenTree::*};
+use proc_macro::{Delimiter, Group, Spacing, Span, TokenStream, TokenTree, TokenTree::*};
 use proc_macro_error::{abort, emit_error, Diagnostic, Level};
 use std::collections::{HashMap, HashSet};
 use std::str::from_utf8;
@@ -67,6 +67,7 @@ enum Stage {
 	ConstBlock,
 	PublicBlock,
 	ProtectedBlock,
+	CloneBlock,
 	CommentBlock,
 	Complete,
 }
@@ -157,6 +158,8 @@ struct State {
 
 	trait_set: HashSet<String>,
 	trait_comments: HashMap<String, Vec<Group>>,
+	prev_is_joint: bool,
+	clone_set: HashSet<String>,
 }
 
 impl State {
@@ -176,11 +179,13 @@ impl State {
 			fn_list: vec![],
 			const_list: vec![],
 			var_list: vec![],
+			clone_set: HashSet::new(),
 			public_set: HashSet::new(),
 			protected_set: HashSet::new(),
 			accumulated_comments: vec![],
 			trait_set: HashSet::new(),
 			trait_comments: HashMap::new(),
+			prev_is_joint: false,
 		}
 	}
 
@@ -450,11 +455,27 @@ impl State {
 
 		let conf_bytes = include_bytes!("../resources/class_struct_const_template.txt");
 		let conf_bytes = from_utf8(conf_bytes)?;
+		let conf_bytes = conf_bytes.replace(
+			"${CLONE}",
+			if self.clone_set.len() > 0 {
+				"#[derive(Clone)]"
+			} else {
+				""
+			},
+		);
 		let conf_bytes = conf_bytes.replace("${NAME}", &name);
 
 		let struct_bytes = include_bytes!("../resources/class_struct_template.txt");
 
 		let struct_bytes = from_utf8(struct_bytes)?;
+		let struct_bytes = struct_bytes.replace(
+			"${CLONE}",
+			if self.clone_set.len() > 0 {
+				"#[derive(Clone)]"
+			} else {
+				""
+			},
+		);
 		let struct_bytes = struct_bytes.replace("${NAME}", &name);
 		let struct_bytes = struct_bytes.replace("${GENERICS}", &self.get_post_name_clause()?);
 		let struct_bytes = struct_bytes.replace("${GENERICS_PRE}", &self.get_pre_name_clause()?);
@@ -899,11 +920,16 @@ impl State {
 				None => {}
 			}
 			trait_text = format!(
-				"{}\n{} trait {} {} {{\n",
+				"{}\n{} trait {} {} {} {{\n",
 				trait_text,
 				trait_visibility,
 				view,
-				&self.get_post_name_clause()?
+				&self.get_post_name_clause()?,
+				if self.clone_set.contains(&snake_view) {
+					": bmw_deps::dyn_clone::DynClone"
+				} else {
+					""
+				}
 			);
 			trait_impl = format!(
 				"{}\nimpl {} {} {} for {} {} {{\n",
@@ -914,15 +940,18 @@ impl State {
 				name,
 				&self.get_post_name_clause()?,
 			);
-			trait_impl_mut = format!(
-				"{}\nimpl {} {} {} for &mut {} {} {{\n",
-				trait_impl_mut,
-				&self.get_pre_name_clause()?,
-				view,
-				&self.get_pre_name_clause()?,
-				name,
-				&self.get_post_name_clause()?,
-			);
+
+			if !self.clone_set.contains(&snake_view) {
+				trait_impl_mut = format!(
+					"{}\nimpl {} {} {} for &mut {} {} {{\n",
+					trait_impl_mut,
+					&self.get_pre_name_clause()?,
+					view,
+					&self.get_pre_name_clause()?,
+					name,
+					&self.get_post_name_clause()?,
+				);
+			}
 
 			// add non-send non-sync builder fns
 			let builder_bytes = builder_bytes_raw.replace("${NAME}", name);
@@ -1432,15 +1461,25 @@ impl State {
 					"{}\n{} {{ {}::{}{} }}",
 					trait_impl, fn_info.signature, name, fn_info.name, param_string.0
 				);
-				trait_impl_mut = format!(
-					"{}\n{} {{ {}::{}{} }}",
-					trait_impl_mut, fn_info.signature, name, fn_info.name, param_string.0
-				);
+				if !self.clone_set.contains(&snake_view) {
+					trait_impl_mut = format!(
+						"{}\n{} {{ {}::{}{} }}",
+						trait_impl_mut, fn_info.signature, name, fn_info.name, param_string.0
+					);
+				}
 			}
 
 			trait_text = format!("{}}}\n", trait_text);
+			if self.clone_set.contains(&snake_view) {
+				trait_text = format!(
+					"{}bmw_deps::dyn_clone::clone_trait_object!({});\n",
+					trait_text, view
+				);
+			}
 			trait_impl = format!("{}}}\n", trait_impl);
-			trait_impl_mut = format!("{}}}\n", trait_impl_mut);
+			if !self.clone_set.contains(&snake_view) {
+				trait_impl_mut = format!("{}}}\n", trait_impl_mut);
+			}
 		}
 		builder_text = format!("{}}}\n", builder_text);
 
@@ -1819,6 +1858,7 @@ impl State {
 			Stage::ConstBlock => self.process_const_block(token),
 			Stage::PublicBlock => self.process_public_block(token),
 			Stage::ProtectedBlock => self.process_protected_block(token),
+			Stage::CloneBlock => self.process_clone_block(token),
 			Stage::CommentBlock => self.process_comment_block(token),
 			Stage::Complete => err!(UnexpectedToken, "unexpected token after class definition"),
 		}
@@ -1912,6 +1952,22 @@ impl State {
 		Ok(())
 	}
 
+	fn process_clone_block(&mut self, token: TokenTree) -> Result<(), Error> {
+		debug!("clone_block token={}", token)?;
+		let token_str = token.to_string();
+		if token_str == ";" {
+			self.stage = Stage::ClassBlock;
+		} else {
+			match token {
+				Ident(ident) => {
+					self.clone_set.insert(ident.to_string());
+				}
+				_ => {}
+			}
+		}
+		Ok(())
+	}
+
 	fn process_protected_block(&mut self, token: TokenTree) -> Result<(), Error> {
 		debug!("protected_token={}", token)?;
 		let token_str = token.to_string();
@@ -1932,7 +1988,7 @@ impl State {
 	fn process_fn_block(&mut self, token: TokenTree) -> Result<(), Error> {
 		debug!("fnblock token = {:?}", token)?;
 		match token {
-			Group(group) => {
+			Group(ref group) => {
 				if group.delimiter() == Delimiter::Brace {
 					match &mut self.cur_fn {
 						Some(ref mut cur_fn) => {
@@ -1973,13 +2029,18 @@ impl State {
 					}
 				}
 			}
-			Ident(ident) => match &mut self.cur_fn {
+			Ident(ref ident) => match &mut self.cur_fn {
 				Some(ref mut cur_fn) => {
 					if cur_fn.name.len() == 0 {
 						cur_fn.name = ident.to_string();
 						cur_fn.signature = format!("fn {}", ident.to_string());
 					} else {
-						cur_fn.signature = format!("{}{}", cur_fn.signature, ident.to_string());
+						if self.prev_is_joint {
+							cur_fn.signature = format!("{}{}", cur_fn.signature, ident.to_string());
+						} else {
+							cur_fn.signature =
+								format!("{} {}", cur_fn.signature, ident.to_string());
+						}
 					}
 				}
 				None => {
@@ -1991,6 +2052,7 @@ impl State {
 			},
 			_ => match &mut self.cur_fn {
 				Some(ref mut cur_fn) => {
+					debug!("other token type = '{}'", token)?;
 					cur_fn.signature = format!("{}{}", cur_fn.signature, token.to_string());
 				}
 				None => {
@@ -2001,6 +2063,17 @@ impl State {
 				}
 			},
 		}
+
+		self.prev_is_joint = false;
+		match token {
+			Punct(p) => {
+				if p.spacing() == Spacing::Joint {
+					self.prev_is_joint = true
+				}
+			}
+			_ => {}
+		}
+
 		Ok(())
 	}
 
@@ -2161,9 +2234,11 @@ impl State {
 					self.stage = Stage::PublicBlock;
 				} else if ident_str == "protected" {
 					self.stage = Stage::ProtectedBlock;
+				} else if ident_str == "clone" {
+					self.stage = Stage::CloneBlock;
 				} else {
 					self.append_error(
-						&format!("Parse Error: unexecpted token '{}'", ident_str)[..],
+						&format!("Parse Error: unexpected token '{}'", ident_str)[..],
 					)?;
 				}
 			}
