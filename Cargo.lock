@@ -71,8 +71,8 @@ version = "0.0.3-beta.2"
 dependencies = [
  "bmw_base",
  "bmw_derive",
+ "bmw_derive2",
  "bmw_int",
- "bmw_int2",
  "bmw_test",
  "built",
  "jemallocator",
@@ -171,20 +171,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "bmw_derive2"
+version = "0.0.3-beta.2"
+dependencies = [
+ "bmw_base",
+ "bmw_deps",
+ "bmw_test",
+ "proc-macro-error",
+]
+
+[[package]]
 name = "bmw_int"
 version = "0.0.3-beta.2"
 dependencies = [
  "bmw_base",
  "bmw_deps",
- "bmw_derive",
-]
-
-[[package]]
-name = "bmw_int2"
-version = "0.0.3-beta.2"
-dependencies = [
- "bmw_base",
- "bmw_int",
+ "bmw_derive2",
 ]
 
 [[package]]
