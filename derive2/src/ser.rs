@@ -69,14 +69,14 @@ impl MacroState {
 
 	pub(crate) fn ret(&self) -> String {
 		let ret = if self.is_enum {
-			let template = include_str!("../templates/ser_enum.template.rs");
+			let template = include_str!("../templates/ser_enum.template.txt");
 			let template = template.replace("${NAME}", &self.name);
 			let template = template.replace("${RET_READ}", &self.ret_read);
 			let template = template.replace("${RET_WRITE}", &self.ret_write);
 
 			template.to_string()
 		} else {
-			let template = include_str!("../templates/ser_struct.template.rs");
+			let template = include_str!("../templates/ser_struct.template.txt");
 
 			// concat field names
 			let mut field_name_return = "Ok(Self {".to_string();
@@ -265,13 +265,13 @@ fn process_field(
 	} else {
 		state.append_read(
 			&format!(
-				"let {} = bmw_derive::Serializable::read(reader)?;\n\t\t",
+				"let {} = bmw_base::Serializable::read(reader)?;\n\t\t",
 				name
 			)[..],
 		);
 		state.append_write(
 			&format!(
-				"bmw_derive::Serializable::write(&self.{}, writer)?;\n\t\t",
+				"bmw_base::Serializable::write(&self.{}, writer)?;\n\t\t",
 				name
 			)[..],
 		);

@@ -133,7 +133,7 @@ fn do_derive_errorkind_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 #[cfg(not(tarpaulin_include))]
 fn build_impls(name: String, strm: &mut TokenStream) -> Result<(), Error> {
 	// load template
-	let impls = include_str!("../templates/errorkind.template.rs");
+	let impls = include_str!("../templates/errorkind.template.txt");
 	// replace the ${NAME} variable with our name
 	let impls = impls.replace("${NAME}", &name).parse::<TokenStream>();
 	let impls = map_err!(impls, BaseErrorKind::Parse)?;
