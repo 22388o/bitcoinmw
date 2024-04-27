@@ -57,7 +57,6 @@ fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 				last_is_hash = false;
 			}
 			Group(ref group) => {
-				//println!("group={}", group);
 				if group.delimiter() == Delimiter::Brace {
 					in_signature = false;
 				} else {
@@ -70,7 +69,6 @@ fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 						for g in group.stream() {
 							if first && g.to_string() == "doc" {
 								omit = true;
-							//println!("comment group = {:?}", group);
 							} else if !first && !omit {
 								break;
 							}
@@ -84,7 +82,6 @@ fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 
 									if lf == Some(0) && lrf == Some(len_decr) {
 										let l = l.substring(1, len_decr).to_string();
-										//println!("comment='{}'", l);
 										comment_vec.push(l);
 									}
 								}
@@ -109,7 +106,7 @@ fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 					omit = true;
 				}
 			}
-			Literal(ref literal) => {
+			Literal(ref _literal) => {
 				last_is_hash = false;
 			}
 		}
@@ -144,15 +141,18 @@ fn build_docs(
 	signature: TokenStream,
 	param_list: TokenStream,
 ) -> Result<TokenStream, Error> {
-	//println!("sig='{}'", signature);
-	//println!("param_list='{}'", param_list);
-
 	let mut pre_comments = vec![];
 	let mut post_comments = vec![];
 	let mut param_comments = HashMap::new();
+	let mut return_comment = "".to_string();
+	let mut see_list = vec![];
+	let mut error_list = vec![];
 	let mut last_is_param = false;
+	let mut last_is_return = false;
+	let mut last_is_error = false;
 	let mut last_param_name = None;
 	let mut in_post = false;
+	let mut is_deprecated = false;
 	for comment in comments {
 		let comment_trim = comment.trim();
 		let comment_trim_len = comment_trim.len();
@@ -170,6 +170,8 @@ fn build_docs(
 						let param_value = param_value.to_string();
 						last_param_name = Some(param_name.clone());
 						last_is_param = true;
+						last_is_return = false;
+						last_is_error = false;
 						match param_comments.get_mut(&param_name) {
 							Some(param_value_pre) => {
 								*param_value_pre = format!("{} {}", param_value_pre, param_value);
@@ -181,6 +183,37 @@ fn build_docs(
 					}
 				}
 				None => {}
+			}
+		} else if comment_trim.find("@deprecated") == Some(0) {
+			is_deprecated = true;
+		} else if comment_trim.find("@error ") == Some(0) {
+			if comment_trim.len() > 7 {
+				let err_rem = comment_trim.substring(7, comment_trim.len()).to_string();
+				match err_rem.find(" ") {
+					Some(pos) => {
+						if err_rem.len() > pos + 1 {
+							let errkind = err_rem.substring(0, pos).to_string();
+							let comment = err_rem.substring(pos + 1, err_rem.len()).to_string();
+
+							error_list.push((errkind, comment));
+							last_is_error = true;
+							last_is_return = false;
+							last_is_param = false;
+						}
+					}
+					None => {}
+				}
+			}
+		} else if comment_trim.find("@return ") == Some(0) {
+			if comment_trim.len() > 7 {
+				return_comment = comment_trim.substring(7, comment_trim.len()).to_string();
+				last_is_return = true;
+				last_is_param = false;
+				last_is_error = false;
+			}
+		} else if comment_trim.find("@see ") == Some(0) {
+			if comment_trim.len() > 5 {
+				see_list.push(comment_trim.substring(5, comment_trim.len()).to_string());
 			}
 		} else if comment.trim().find("# Example") == Some(0) {
 			in_post = true;
@@ -195,23 +228,47 @@ fn build_docs(
 					param_comments.insert(last_param_name.to_string(), comment);
 				}
 			}
+		} else if last_is_return {
+			return_comment = format!("{} {}", return_comment, comment_trim);
+		} else if last_is_error {
+			let len = error_list.len();
+			let last_return_comment = &mut error_list[len.saturating_sub(1)];
+			last_return_comment.1 = format!("{} {}", last_return_comment.1, comment_trim);
 		} else {
 			pre_comments.push(comment.clone());
 		}
 	}
 
+	if return_comment == "" {
+		return_comment =
+			"__TODO__: add '/// @return ... ' to document the return of this function.".to_string();
+	}
+
 	let mut ret = TokenStream::new();
+	if is_deprecated {
+		ret.extend(
+			format!(
+				"/// <div class=\"warning\">This function is <strong>deprecated</strong>.</div>"
+			)
+			.parse::<TokenStream>(),
+		);
+		ret.extend("/// ".parse::<TokenStream>());
+	}
 	for comment in pre_comments {
 		ret.extend(format!("/// {}", comment).parse::<TokenStream>());
 	}
 	ret.extend("/// # Input Parameters".parse::<TokenStream>());
 	build_input_list(&mut ret, param_list, param_comments)?;
 	ret.extend("/// # Return".parse::<TokenStream>());
-	ret.extend("/// return type".parse::<TokenStream>());
+	let has_error = build_return_list(&mut ret, signature, return_comment)?;
 	ret.extend("/// # Errors".parse::<TokenStream>());
-	ret.extend("/// error list".parse::<TokenStream>());
+	if has_error {
+		build_error_list(&mut ret, error_list)?;
+	} else {
+		ret.extend("/// n/a".parse::<TokenStream>());
+	}
 	ret.extend("/// # Also See".parse::<TokenStream>());
-	ret.extend("/// see list".parse::<TokenStream>());
+	build_see_list(&mut ret, see_list)?;
 	for comment in post_comments {
 		ret.extend(format!("/// {}", comment).parse::<TokenStream>());
 	}
@@ -220,29 +277,113 @@ fn build_docs(
 	Ok(ret)
 }
 
+fn build_error_list(ret: &mut TokenStream, error_list: Vec<(String, String)>) -> Result<(), Error> {
+	if error_list.len() == 0 {
+		ret.extend(
+			"__TODO__: add '/// @error... ' to document the errors for this function."
+				.parse::<TokenStream>(),
+		);
+	}
+	for error in error_list {
+		let error_formatted = format!("[`{}`]", error.0);
+		let comment = error.1.clone();
+		ret.extend(format!("/// * {} - {}", error_formatted, comment).parse::<TokenStream>());
+	}
+	Ok(())
+}
+
+fn build_see_list(ret: &mut TokenStream, see_list: Vec<String>) -> Result<(), Error> {
+	for see in see_list {
+		ret.extend(format!("/// * [`{}`]", see).parse::<TokenStream>());
+	}
+	Ok(())
+}
+
+fn build_return_list(
+	ret: &mut TokenStream,
+	signature: TokenStream,
+	return_comment: String,
+) -> Result<bool, Error> {
+	let mut found_fn = false;
+	let mut found_param_list = false;
+	let mut return_type = "".to_string();
+	let mut found_dash = false;
+	let mut found_gt = false;
+	for token in signature {
+		if found_param_list {
+			match token {
+				Group(ref group) => {
+					if group.delimiter() == Delimiter::Brace {
+						break;
+					}
+				}
+				_ => {}
+			}
+			let token_str = match token {
+				Ident(ref ident) => {
+					let mut ident_str = ident.to_string();
+					if ident_str != "mut" && ident_str != "dyn" && ident_str != "impl" {
+						ident_str = format!("[`{}`]", ident_str);
+					}
+					ident_str
+				}
+				_ => {
+					let mut token_str = token.to_string();
+					if token_str == "()" {
+						token_str = "[`()`](unit)".to_string();
+					}
+					token_str
+				}
+			};
+			if !found_dash {
+				if token_str == "-" {
+					found_dash = true;
+				}
+			} else if !found_gt {
+				if token_str == ">" {
+					found_gt = true;
+				}
+			} else {
+				if return_type.len() == 0 {
+					return_type = token_str;
+				} else {
+					return_type = format!("{} {}", return_type, token_str);
+				}
+			}
+		} else {
+			match token {
+				Ident(ident) => {
+					let ident_str = ident.to_string();
+					if ident_str == "fn" {
+						found_fn = true;
+					}
+				}
+				Group(group) => {
+					if found_fn && group.delimiter() == Delimiter::Parenthesis {
+						found_param_list = true;
+					}
+				}
+				_ => {}
+			}
+		}
+	}
+	let return_type = format!("/// {} - {}", return_type, return_comment);
+	ret.extend(return_type.parse::<TokenStream>());
+	println!("return_type.trim={}", return_type.trim());
+	Ok(return_type.trim().find("Result").is_some())
+}
+
 fn build_input_list(
 	ret: &mut TokenStream,
 	param_list: TokenStream,
 	param_comments: HashMap<String, String>,
 ) -> Result<(), Error> {
 	let params = parse_param_list(param_list)?;
-	println!("params={:?}", params);
 	ret.extend("/// | Parameter | Type | Comment |".parse::<TokenStream>());
 	ret.extend("/// |-----------|------|---------|".parse::<TokenStream>());
 	let mut first = true;
 	for param in params {
 		let name = param.0.clone();
-		/*
-		let name = if first {
-			if param.0 == "& mut self" || param.0 == "& self" {
-				"self".to_string()
-			} else {
-				param.0.clone()
-			}
-		} else {
-			param.0.clone()
-		};
-			*/
 		let comment_name = if first {
 			if param.0 == "& mut self" || param.0 == "& self" {
 				"self".to_string()
@@ -254,7 +395,7 @@ fn build_input_list(
 		};
 		let comment = match param_comments.get(&comment_name) {
 			Some(comment) => comment.clone(),
-			None => format!("__TODO__: add '@param {} ...'", comment_name),
+			None => format!("__TODO__: add '/// @param {} ...'", comment_name),
 		};
 		ret.extend(format!("/// | `{}` | {} | {}", name, param.1, comment).parse::<TokenStream>());
 		first = false;
@@ -276,7 +417,7 @@ fn process_group(group: Group) -> Result<String, Error> {
 				let next = match token {
 					Ident(ident) => {
 						let mut ident_str = ident.to_string();
-						if ident_str != "dyn" && ident_str != "mut" {
+						if ident_str != "dyn" && ident_str != "mut" && ident_str != "impl" {
 							ident_str = format!("[`{}`]", ident_str);
 						}
 
@@ -299,7 +440,6 @@ fn process_group(group: Group) -> Result<String, Error> {
 			}
 
 			let ret = format!("{})", ret);
-			//Ok(token_str)
 			Ok(ret)
 		} else {
 			Ok(token_str)
@@ -317,7 +457,7 @@ fn parse_param_list(strm: TokenStream) -> Result<Vec<(String, String)>, Error> {
 		let token = match token {
 			Ident(i) => {
 				let i = i.to_string();
-				if i != "dyn" && i != "mut" {
+				if i != "dyn" && i != "mut" && i != "impl" {
 					is_non_keyword = true;
 				}
 				i
@@ -328,13 +468,11 @@ fn parse_param_list(strm: TokenStream) -> Result<Vec<(String, String)>, Error> {
 				} else if p == '>' {
 					bracket_count = bracket_count.saturating_sub(1);
 				}
-				println!("p={}", p);
 				p.to_string()
 			}
 			Group(ref g) => process_group(g.clone())?,
 			_ => {
 				let token_str = token.to_string();
-				println!("other={}", token_str);
 				if token_str == "()" {
 					"[`()`](unit)".to_string()
 				} else {
@@ -344,7 +482,6 @@ fn parse_param_list(strm: TokenStream) -> Result<Vec<(String, String)>, Error> {
 		};
 
 		if token.rfind(",") == Some(token.len().saturating_sub(1)) && bracket_count == 0 {
-			//println!("name={:?},value={:?}", name, value);
 			let name_ret = match name {
 				Some(name) => name,
 				None => "".to_string(),
@@ -354,7 +491,6 @@ fn parse_param_list(strm: TokenStream) -> Result<Vec<(String, String)>, Error> {
 				None => "".to_string(),
 			};
 			ret.push((name_ret, value_ret));
-			//println!("=======NEXT========");
 			name = None;
 			value = None;
 		} else if token == ":" {

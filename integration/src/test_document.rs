@@ -45,7 +45,7 @@ macro_rules! test {
 //#[document]
 /// ok
 /// here
-pub trait test_trait {
+pub trait TestTrait {
 	//#[document]
 	/// This is a test
 	/// more
@@ -83,6 +83,7 @@ impl MyStruct {
 	/// more2
 	/// additional
 	/// @param f hi
+	/// @deprecated
 	/// @param timeout some comment here!
 	/// @param group_name gggggggg
 	/// next g
@@ -91,6 +92,16 @@ impl MyStruct {
 	/// @param self abc
 	/// second comment
 	/// ok another
+	/// @return 12345
+	/// 6789
+	/// @see Error
+	/// @see BaseErrorKind::IllegalState
+	/// @see MyStruct
+	/// @error bmw_base::BaseErrorKind::IllegalState if there is an illegal state
+	/// or anything like that
+	/// @error bmw_base::BaseErrorKind::Parse if a parse error occurs
+	/// @error crate::test_document::IntegrationError::DocumentError if a documenting error occurs
+	/// @param f ok123
 	/// # Examples
 	///```
 	/// use bmw_base::*;
