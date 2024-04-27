@@ -357,3 +357,15 @@ use crate::config::do_derive_configurable;
 pub fn derive_configurable(strm: TokenStream) -> TokenStream {
 	do_derive_configurable(strm)
 }
+
+// document section
+mod document;
+use crate::document::do_derive_document;
+
+/// The [`crate::document()`] attribute...
+#[proc_macro_attribute]
+#[cfg(not(tarpaulin_include))]
+#[allow(non_snake_case)]
+pub fn document(attr: TokenStream, item: TokenStream) -> TokenStream {
+	do_derive_document(attr, item)
+}
