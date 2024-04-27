@@ -184,6 +184,174 @@ pub fn derive_serializable(strm: TokenStream) -> TokenStream {
 mod config;
 use crate::config::do_derive_configurable;
 
+/// The [`crate::Configurable`] macro creates data structures that turns a regular struct into a
+/// configurable struct in which defaults can be overwritten with the [`bmw_base::configure`]
+/// macro. The required and options helper attributes allow the user to
+/// indicate required fields and to overight the default name of the options enum, which is used to
+/// configure the struct, respectively.
+/// The [`crate::Configurable`] macro generates data structures that transform a standard struct
+/// into a configurable one. This configurable struct allows users to override defaults
+/// using the configure macro. Additionally, the required and
+/// options helper attributes enable users to specify required fields and customize the default name
+/// of the options enum used for struct configuration, respectively.
+/// # Supported types
+/// The currently supported types are:
+/// * [`u8`]
+/// * [`u16`]
+/// * [`u32`]
+/// * [`u64`]
+/// * [`u128`]
+/// * [`usize`]
+/// * [`bool`]
+/// * [`std::string::String`]
+/// * ([`std::string::String`], [`std::string::String`])
+/// * [`std::vec::Vec`] of any of the above types.
+/// # Vectors
+/// Vectors are used to allow multiple entries for one type. So, for instance, let's say you want a
+/// server to listen on multiple ports. You could include a port field as a `Vec<u16>`. Then, any
+/// number of ports may be configured. See the example below for further details.
+/// # Examples
+///```
+/// use bmw_base::*;
+/// use bmw_derive2::Configurable;
+/// use crate::MyOptions::Headers;
+///
+/// // define a struct and derive 'Configurable'
+/// #[derive(Configurable)]
+/// #[options="MyOptions"] // use MyOptions instead of the default MyStructOptions
+/// struct MyStruct {
+///     #[required] // require 'name'
+///     name: String,
+///     size: usize,
+///     headers: Vec<(String, String)>,
+/// }
+///
+/// // The Default trait must be implemented
+/// impl Default for MyStruct {
+///     fn default() -> Self {
+///         Self {
+///             name: "test".to_string(),
+///             size: 100,
+///             headers: vec![],
+///         }
+///     }
+/// }
+///
+/// fn main() -> Result<(), Error> {
+///     // configure the struct with required field "Name" set to "sam"
+///     let x = configure!(MyStruct, MyOptions, vec![Name("sam")])?;
+///
+///     // assert that name is set and size is the default (100)
+///     assert_eq!(x.name, "sam".to_string());
+///     assert_eq!(x.size, 100);
+///
+///     // now set both name and size
+///     let x = configure!(MyStruct, MyOptions, vec![Name("joe"), Size(101)])?;
+///
+///     // assert both values are correct
+///     assert_eq!(x.name, "joe".to_string());
+///     assert_eq!(x.size, 101);
+///
+///     let x = configure!(MyStruct, MyOptions, vec![
+///         Name("chris"),
+///         Headers(("Content-Type", "text/html")),
+///         Headers(("Content-Length", "1234"))
+///     ])?;
+///
+///     assert_eq!(x.name, "chris".to_string());
+///
+///     assert_eq!(x.headers, vec![
+///         ("Content-Type".to_string(), "text/html".to_string()),
+///         ("Content-Length".to_string(), "1234".to_string())
+///     ]);
+///
+///     Ok(())
+/// }
+///
+///```
+/// Attempting to configure duplicates will result in an error as well as omitting a `required`
+/// configuration.
+///```
+/// use bmw_base::*;
+/// use bmw_derive2::Configurable;
+///
+/// #[derive(Configurable)]
+/// struct MyStruct {
+///     #[required]
+///     name: String,
+///     count: usize,
+///     id: u128,
+/// }
+///
+/// impl Default for MyStruct {
+///     fn default() -> Self {
+///         Self {
+///             name: "sam".to_string(),
+///             count: 10,
+///             id: 1234,
+///         }
+///     }
+/// }
+///
+/// fn main() -> Result<(), Error> {
+///     // error because required field "name" is not configured
+///     assert!(configure!(MyStruct, MyStructOptions, vec![Id(0)]).is_err());
+///
+///     // error because duplicate counts are specified
+///     assert!(
+///         configure!(
+///             MyStruct,
+///             MyStructOptions,
+///             vec![
+///                 Count(1),
+///                 Count(2),
+///                 Name("joe")
+///             ]
+///         ).is_err()
+///     );
+///     Ok(())
+/// }
+///```
+/// Duplicates are allowed for [`std::vec::Vec`]...
+///```
+/// use bmw_base::*;
+/// use bmw_derive2::Configurable;
+///
+/// #[derive(Configurable)]
+/// struct MyStruct {
+///     val1: Vec<usize>,
+///     val2: Vec<String>,
+///     val3: u64,
+/// }
+///
+///
+/// impl Default for MyStruct {
+///     fn default() -> Self {
+///         Self {
+///             val1: vec![],
+///             val2: vec![],
+///             val3: 0,
+///         }
+///     }
+/// }
+///
+/// fn main() -> Result<(), Error> {
+///     let x = configure!(
+///         MyStruct,
+///         MyStructOptions,
+///         vec![Val1(100), Val1(200), Val1(300), Val2("str1"), Val2("str2"), Val2("str3")]
+///     )?;
+///
+///     // 3 entries that were specified
+///     assert_eq!(x.val1, vec![100, 200, 300]);
+///     // 3 entries that were specified
+///     assert_eq!(x.val2, vec!["str1".to_string(), "str2".to_string(), "str3".to_string()]);
+///     // default
+///     assert_eq!(x.val3, 0);
+///     Ok(())
+/// }
+///
+///```
 #[proc_macro_derive(Configurable, attributes(required, options))]
 #[cfg(not(tarpaulin_include))]
 pub fn derive_configurable(strm: TokenStream) -> TokenStream {
