@@ -22,5 +22,6 @@ use bmw_deps::failure;
 
 //pub mod test_class;
 //pub mod test_clone;
+mod test_config;
 mod test_error;
 mod test_serializable;

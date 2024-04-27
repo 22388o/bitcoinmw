@@ -55,11 +55,11 @@ mod test {
 
 	// helper function that serializes and deserializes a Serializable and tests them for
 	// equality
-	fn ser_helper<S: Serializable + Debug + PartialEq>(ser_out: S) -> Result<(), Error> {
+	fn ser_helper<S: Serializable + Debug + PartialEq>(ser_in: S) -> Result<(), Error> {
 		let mut v: Vec<u8> = vec![];
-		serialize(&mut v, &ser_out)?;
-		let ser_in: S = deserialize(&mut &v[..])?;
-		assert_eq!(ser_in, ser_out);
+		serialize(&mut v, &ser_in)?;
+		let ser_out: S = deserialize(&mut &v[..])?;
+		assert_eq!(ser_out, ser_in);
 		Ok(())
 	}
 

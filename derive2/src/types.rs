@@ -32,3 +32,18 @@ pub(crate) enum DeriveErrorKind {
 	#[fail(display = "log error: {}", _0)]
 	Log(String),
 }
+
+pub(crate) struct ConfMacroState {
+	pub(crate) count: usize,
+	pub(crate) name: Option<String>,
+	pub(crate) u8_configs: Vec<(String, bool, bool)>,
+	pub(crate) u16_configs: Vec<(String, bool, bool)>,
+	pub(crate) u32_configs: Vec<(String, bool, bool)>,
+	pub(crate) u64_configs: Vec<(String, bool, bool)>,
+	pub(crate) u128_configs: Vec<(String, bool, bool)>,
+	pub(crate) usize_configs: Vec<(String, bool, bool)>,
+	pub(crate) string_configs: Vec<(String, bool, bool)>,
+	pub(crate) bool_configs: Vec<(String, bool, bool)>,
+	pub(crate) string_tuple_configs: Vec<(String, bool, bool)>,
+	pub(crate) options_name: Option<String>,
+}

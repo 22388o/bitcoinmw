@@ -77,10 +77,115 @@ pub fn ErrorKind(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 // ser section
 mod ser;
-use crate::ser::do_derive_serialize;
+use crate::ser::do_derive_serializable;
 
+/// The [`crate::derive_serializable()`] proc_macro_derive derives a the Serializable trait for
+/// structs and enums. It's important to note that the elements within the data structure must
+/// implement [`bmw_base::Serializable`] as well. Since the [`bmw_base`] crate already implements
+/// [`bmw_base::Serializable`] for most of the primative types, Tuples, [`std::vec::Vec`] and
+/// [`std::option::Option`] it's possible to derive many data types. It's important to note that
+/// generics are not currently supported so if you need to implement Serilizable for something with
+/// a generic, you will need to do your own implementation.
+/// # Example
+///```
+/// use bmw_base::*;
+/// use bmw_deps::rand;
+/// use bmw_derive2::Serializable;
+/// use std::fmt::Debug;
+///
+/// // create a serializable to include in our other serializable
+/// #[derive(Serializable, PartialEq, Debug)]
+/// struct OtherSer {
+///     a: usize,
+///     b: String,
+/// }
+///
+/// // create a serializable with all supported types
+/// #[derive(Serializable, PartialEq, Debug)]
+/// struct SerAll {
+///     a: u8,
+///     b: i8,
+///     c: u16,
+///     d: i16,
+///     e: u32,
+///     f: i32,
+///     g: u64,
+///     h: i64,
+///     i: u128,
+///     j: i128,
+///     k: usize,
+///     l: bool,
+///     m: f64,
+///     n: char,
+///     v: Vec<u8>,
+///     o: Option<u8>,
+///     s: String,
+///     x: Vec<String>,
+///     y: Vec<Option<(String, ())>>,
+///     z: Option<Vec<OtherSer>>,
+/// }
+///
+/// // helper function that serializes and deserializes a Serializable and tests them for
+/// // equality
+/// fn ser_helper<S: Serializable + Debug + PartialEq>(ser_in: S) -> Result<(), Error> {
+///     let mut v: Vec<u8> = vec![];
+///     serialize(&mut v, &ser_in)?;
+///     let ser_out: S = deserialize(&mut &v[..])?;
+///     assert_eq!(ser_out, ser_in);
+///     Ok(())
+/// }
+///
+/// fn main() -> Result<(), Error> {
+///     // create a SerAll with random values
+///     let rand_u8: u8 = rand::random();
+///     let rand_ch: char = rand_u8 as char;
+///     let ser_out = SerAll {
+///         a: rand::random(),
+///         b: rand::random(),
+///         c: rand::random(),
+///         d: rand::random(),
+///         e: rand::random(),
+///         f: rand::random(),
+///         g: rand::random(),
+///         h: rand::random(),
+///         i: rand::random(),
+///         j: rand::random(),
+///         k: rand::random(),
+///         l: false,
+///         m: rand::random(),
+///         n: rand_ch,
+///         v: vec![rand::random(), rand::random(), rand::random()],
+///         o: Some(rand::random()),
+///         s: "abcdef".to_string(),
+///         x: vec!["123".to_string(), "456".to_string()],
+///         y: vec![
+///             None,
+///             None,
+///             None,
+///             Some(("hi".to_string(), ())),
+///             Some(("hi2".to_string(), ())),
+///         ],
+///         z: None,
+///     };
+///
+///     // test it
+///     ser_helper(ser_out)?;
+///
+///     Ok(())
+/// }
+///```
 #[proc_macro_derive(Serializable)]
 #[cfg(not(tarpaulin_include))]
-pub fn derive_serialize(strm: TokenStream) -> TokenStream {
-	do_derive_serialize(strm)
+pub fn derive_serializable(strm: TokenStream) -> TokenStream {
+	do_derive_serializable(strm)
+}
+
+// config section
+mod config;
+use crate::config::do_derive_configurable;
+
+#[proc_macro_derive(Configurable, attributes(required, options))]
+#[cfg(not(tarpaulin_include))]
+pub fn derive_configurable(strm: TokenStream) -> TokenStream {
+	do_derive_configurable(strm)
 }
