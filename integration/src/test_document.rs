@@ -28,7 +28,7 @@ pub enum IntegrationError {
 	DocumentError,
 }
 
-//#[document]
+#[document]
 /// test
 /// next
 /// @see bmw_base::Error
@@ -56,8 +56,9 @@ macro_rules! test {
 }
 
 pub trait TestTrait {
-	//#[document]
+	#[document]
 	/// This is a test
+	/// [`const`] - const
 	/// more
 	/// @see Error
 	/// @see std::string::String
@@ -67,7 +68,7 @@ pub trait TestTrait {
 	/// more2
 	fn test(&mut self, abc_def: usize, ghi: u32) -> Result<impl Display + Send + Unpin, Error>;
 
-	//#[document]
+	#[document]
 	/// ok ok ok
 	/// asjk
 	/// @param self immutable ref to self
@@ -83,12 +84,12 @@ pub trait TestTrait {
 	/// @error crate::test_document::IntegrationError::DocumentError if a documenting error occurs
 	fn test2(&self, x: usize, y: Option<Box<dyn Any + Send + Sync>>, z: bool);
 
-	//#[document]
+	#[document]
 	///
 	///
 	fn test3(&mut self, x: Result<(), Error>, y: String) -> usize;
 
-	//#[document]
+	#[document]
 	/// This is a bop function.
 	/// @return ok or err
 	/// @see bmw_derive2::Serializable
@@ -112,7 +113,7 @@ pub trait TestTrait {
 pub struct MyStruct {}
 
 impl MyStruct {
-	//#[document]
+	#[document]
 	/// This is a test
 	/// more
 	/// more2
