@@ -97,6 +97,7 @@ fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 				if *punct == '#' {
 					last_is_hash = true;
 					omit = true;
+				} else if *punct == ';' {
 				} else {
 					last_is_hash = false;
 				}
@@ -112,6 +113,15 @@ fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 		}
 
 		if !omit {
+			match token {
+				Group(ref g) => {
+					if g.delimiter() == Delimiter::Bracket {
+						// add back in '#' which was stripped
+						non_comments.extend("#".to_string().parse::<TokenStream>());
+					}
+				}
+				_ => {}
+			}
 			let token = match last_joint {
 				Some(ref last) => format!("{}{}", last, token).parse::<TokenStream>(),
 				None => token.to_string().parse::<TokenStream>(),
@@ -127,12 +137,8 @@ fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 
 		omit = false;
 	}
-	Ok(build_docs(
-		comment_vec,
-		non_comments,
-		signature,
-		parameter_list,
-	)?)
+	let ret = build_docs(comment_vec, non_comments, signature, parameter_list)?;
+	Ok(ret)
 }
 
 fn build_docs(
@@ -201,7 +207,13 @@ fn build_docs(
 							last_is_param = false;
 						}
 					}
-					None => {}
+					None => {
+						// just add the error kind only
+						error_list.push((err_rem, "".to_string()));
+						last_is_error = true;
+						last_is_return = false;
+						last_is_param = false;
+					}
 				}
 			}
 		} else if comment_trim.find("@return ") == Some(0) {
@@ -238,7 +250,6 @@ fn build_docs(
 			pre_comments.push(comment.clone());
 		}
 	}
-
 	if return_comment == "" {
 		return_comment =
 			"__TODO__: add '/// @return ... ' to document the return of this function.".to_string();
@@ -257,12 +268,15 @@ fn build_docs(
 	for comment in pre_comments {
 		ret.extend(format!("/// {}", comment).parse::<TokenStream>());
 	}
-	ret.extend("/// # Input Parameters".parse::<TokenStream>());
-	build_input_list(&mut ret, param_list, param_comments)?;
+
+	if param_list.to_string().len() > 0 {
+		ret.extend("/// # Input Parameters".parse::<TokenStream>());
+		build_input_list(&mut ret, param_list, param_comments)?;
+	}
 	ret.extend("/// # Return".parse::<TokenStream>());
 	let has_error = build_return_list(&mut ret, signature, return_comment)?;
 	ret.extend("/// # Errors".parse::<TokenStream>());
-	if has_error {
+	if has_error || error_list.len() != 0 {
 		build_error_list(&mut ret, error_list)?;
 	} else {
 		ret.extend("/// n/a".parse::<TokenStream>());
@@ -280,14 +294,22 @@ fn build_docs(
 fn build_error_list(ret: &mut TokenStream, error_list: Vec<(String, String)>) -> Result<(), Error> {
 	if error_list.len() == 0 {
 		ret.extend(
-			"__TODO__: add '/// @error... ' to document the errors for this function."
+			"/// __TODO__: add '/// @error... ' to document the errors for this function."
 				.parse::<TokenStream>(),
 		);
 	}
 	for error in error_list {
 		let error_formatted = format!("[`{}`]", error.0);
 		let comment = error.1.clone();
-		ret.extend(format!("/// * {} - {}", error_formatted, comment).parse::<TokenStream>());
+		ret.extend(
+			format!(
+				"/// * {} {}{}",
+				error_formatted,
+				if comment.len() > 0 { " - " } else { "" },
+				comment
+			)
+			.parse::<TokenStream>(),
+		);
 	}
 	Ok(())
 }
@@ -310,6 +332,10 @@ fn build_return_list(
 	let mut found_dash = false;
 	let mut found_gt = false;
 	for token in signature {
+		// don't add the semicolon
+		if token.to_string() == ";" {
+			continue;
+		}
 		if found_param_list {
 			match token {
 				Group(ref group) => {
@@ -367,9 +393,13 @@ fn build_return_list(
 			}
 		}
 	}
-	let return_type = format!("/// {} - {}", return_type, return_comment);
+	let return_type = format!(
+		"/// {} {}{}",
+		return_type,
+		if return_type.len() > 0 { " - " } else { "" },
+		return_comment
+	);
 	ret.extend(return_type.parse::<TokenStream>());
-	println!("return_type.trim={}", return_type.trim());
 	Ok(return_type.trim().find("Result").is_some())
 }
 
@@ -519,6 +549,9 @@ fn parse_param_list(strm: TokenStream) -> Result<Vec<(String, String)>, Error> {
 				},
 			}
 		}
+	}
+	if name.is_some() && value.is_some() {
+		ret.push((name.unwrap(), value.unwrap()));
 	}
 	Ok(ret)
 }

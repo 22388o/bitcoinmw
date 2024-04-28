@@ -28,10 +28,23 @@ pub enum IntegrationError {
 	DocumentError,
 }
 
-//#[document]
+#[document]
 /// test
 /// next
-/// final
+/// @see bmw_base::Error
+/// @see bmw_base::BaseErrorKind
+/// @return abc 123
+/// another return line
+/// @error bmw_base::BaseErrorKind::IllegalState
+/// @error bmw_base::BaseErrorKind::Parse parse error occurred
+/// # Examples
+///```
+/// use bmw_base::*;
+///
+/// fn main() -> Result<(), Error> {
+///     Ok(())
+/// }
+///```
 #[macro_export]
 macro_rules! test {
 	() => {{}};
@@ -42,33 +55,35 @@ macro_rules! test {
 	};
 }
 
-//#[document]
-/// ok
-/// here
 pub trait TestTrait {
-	//#[document]
+	#[document]
 	/// This is a test
 	/// more
+	/// @see Error
+	/// @see std::string::String
+	/// @return ok ok ok
+	/// @error bmw_base::BaseErrorKind::Parse if a parse error occurs
+	/// hi hi
 	/// more2
-	fn test(&mut self) -> Result<impl Display + Send + Unpin, Error>;
+	fn test(&mut self, abc_def: usize, ghi: u32) -> Result<impl Display + Send + Unpin, Error>;
 
-	//#[document]
+	#[document]
 	/// ok ok ok
 	/// asjk
 	/// @param self immutable ref to self
 	/// @param x the size of the item to display
 	/// @param y optional Any attribute
 	/// @param z a very nice bool
-	/// @return the [`unit`] is returned
+	// @return the [`unit`] is returned
 	/// @see bmw_base::Error
 	/// @see bmw_base::ErrorKind
-	/// @see bmw_derive::document()
+	/// @see bmw_derive2::document
 	/// @error bmw_base::BaseErrorKind::IllegalState if there is an illegal state
 	/// @error bmw_base::BaseErrorKind::Parse if a parse error occurs
 	/// @error crate::test_document::IntegrationError::DocumentError if a documenting error occurs
 	fn test2(&self, x: usize, y: Option<Box<dyn Any + Send + Sync>>, z: bool);
 
-	//#[document]
+	#[document]
 	///
 	///
 	fn test3(&mut self, x: Result<(), Error>, y: String) -> usize;
@@ -89,7 +104,6 @@ impl MyStruct {
 	/// next g
 	/// next next g
 	/// @param threads 123
-	/// @param self abc
 	/// second comment
 	/// ok another
 	/// @return 12345
@@ -107,7 +121,7 @@ impl MyStruct {
 	/// use bmw_base::*;
 	///
 	/// fn main() -> Result<(), Error> {
-	///     Ok((())
+	///     Ok(())
 	/// }
 	///```
 	pub fn test(
