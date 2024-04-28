@@ -17,9 +17,12 @@
 // limitations under the License.
 
 use bmw_base::*;
+use bmw_deps::substring::Substring;
 use proc_macro::TokenTree::*;
-use proc_macro::{Delimiter, Span, TokenStream, TokenTree};
+use proc_macro::{Delimiter, Group, Span, TokenStream, TokenTree};
 use proc_macro_error::{abort, emit_error, Diagnostic, Level};
+use std::collections::HashSet;
+use std::fmt::{Debug, Formatter};
 
 struct SpanError {
 	span: Span,
@@ -27,18 +30,56 @@ struct SpanError {
 }
 
 #[derive(Clone, Debug)]
+struct PublicView {
+	name: String,
+	span: Span,
+}
+
+impl PublicView {
+	fn new(name: String, span: Span) -> Self {
+		Self { name, span }
+	}
+}
+
+#[derive(Clone, Debug)]
+struct ProtectedView {
+	name: String,
+	span: Span,
+}
+
+impl ProtectedView {
+	fn new(name: String, span: Span) -> Self {
+		Self { name, span }
+	}
+}
+
+#[derive(Clone, Debug)]
+struct CloneView {
+	name: String,
+	span: Span,
+}
+
+impl CloneView {
+	fn new(name: String, span: Span) -> Self {
+		Self { name, span }
+	}
+}
+
+#[derive(Clone, Debug)]
 struct Var {
 	name: String,
 	type_str: String,
 	found_colon: bool,
+	span: Span,
 }
 
 impl Var {
-	fn new() -> Self {
+	fn new(span: Span) -> Self {
 		Self {
 			name: "".to_string(),
 			type_str: "".to_string(),
 			found_colon: false,
+			span,
 		}
 	}
 }
@@ -51,10 +92,11 @@ struct Const {
 	found_colon: bool,
 	found_equal: bool,
 	comments: Vec<String>,
+	span: Span,
 }
 
 impl Const {
-	fn new() -> Self {
+	fn new(span: Span) -> Self {
 		Self {
 			name: "".to_string(),
 			type_str: "".to_string(),
@@ -62,6 +104,52 @@ impl Const {
 			found_colon: false,
 			found_equal: false,
 			comments: vec![],
+			span,
+		}
+	}
+}
+
+#[derive(Clone)]
+struct FnInfo {
+	name: String,
+	return_str: TokenStream,
+	params: TokenStream,
+	fn_block: TokenStream,
+	views: Vec<String>,
+	comments: Vec<String>,
+	expect_ret_arrow1: bool,
+	expect_ret_arrow2: bool,
+	span: Span,
+}
+
+impl Debug for FnInfo {
+	fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+		write!(f, "FnInfo {{\n")?;
+		write!(f, "\tname: '{}'\n", self.name)?;
+		write!(f, "\tviews: '{:?}'\n", self.views)?;
+		write!(f, "\tparams: '{}'\n", self.params)?;
+		write!(f, "\treturn_str: '{}'\n", self.return_str)?;
+		for comment in &self.comments {
+			write!(f, "\t///{}\n", comment)?;
+		}
+		write!(f, "\tfn_block: '{}'\n", self.fn_block)?;
+		write!(f, "}}")?;
+		Ok(())
+	}
+}
+
+impl FnInfo {
+	fn new(span: Span) -> Self {
+		Self {
+			span,
+			name: "".to_string(),
+			return_str: TokenStream::new(),
+			params: TokenStream::new(),
+			fn_block: TokenStream::new(),
+			views: vec![],
+			comments: vec![],
+			expect_ret_arrow1: false,
+			expect_ret_arrow2: false,
 		}
 	}
 }
@@ -80,22 +168,33 @@ enum State {
 
 struct StateMachine {
 	state: State,
+	name: Option<String>,
 	span: Option<Span>,
 	error_list: Vec<SpanError>,
-	public_list: Vec<String>,
-	protected_list: Vec<String>,
-	clone_list: Vec<String>,
+	public_list: Vec<PublicView>,
+	protected_list: Vec<ProtectedView>,
+	clone_list: Vec<CloneView>,
 	var_list: Vec<Var>,
 	const_list: Vec<Const>,
+	fn_list: Vec<FnInfo>,
 	expect_comma: bool,
+	expect_fn: bool,
+	expect_fn_name: bool,
+	expect_params: bool,
 	cur_var: Option<Var>,
 	cur_const: Option<Const>,
+	cur_fn: Option<FnInfo>,
+	comments: Vec<String>,
+	generics: Option<String>,
+	generics2: Option<String>,
+	where_clause: Option<String>,
 }
 
 impl StateMachine {
 	fn new() -> Self {
 		Self {
 			state: State::Base,
+			name: None,
 			span: None,
 			error_list: vec![],
 			public_list: vec![],
@@ -103,23 +202,178 @@ impl StateMachine {
 			clone_list: vec![],
 			var_list: vec![],
 			const_list: vec![],
+			fn_list: vec![],
+			comments: vec![],
 			expect_comma: false,
+			expect_fn: false,
+			expect_fn_name: false,
+			expect_params: false,
 			cur_var: None,
 			cur_const: None,
+			cur_fn: None,
+			generics: None,
+			generics2: None,
+			where_clause: None,
 		}
 	}
 	fn derive(&mut self, attr: &TokenStream, item: &TokenStream) -> Result<TokenStream, Error> {
 		self.parse_attr(attr)?;
 		self.parse_item(item)?;
+		self.semantic_analysis()?;
 		self.build_response()
 	}
+
+	fn semantic_analysis(&mut self) -> Result<(), Error> {
+		self.do_semantic_analysis()?;
+		if self.error_list.len() != 0 {
+			self.print_errors()?;
+		}
+		Ok(())
+	}
+
+	fn do_semantic_analysis(&mut self) -> Result<(), Error> {
+		let view_set = self.build_view_set(false)?;
+		self.check_public_list(&view_set)?;
+		self.check_protected_list(&view_set)?;
+		let view_set = self.build_view_set(true)?;
+		self.check_clone_list(&view_set)?;
+		self.check_var_list()?;
+		self.check_const_list()?;
+		self.check_fn_list()?;
+		Ok(())
+	}
+
+	fn build_view_set(&self, is_clone: bool) -> Result<HashSet<String>, Error> {
+		let mut ret = HashSet::new();
+		for fn_info in &self.fn_list {
+			for view in &fn_info.views {
+				if !is_clone {
+					ret.insert(format!("{}_sync", view));
+					ret.insert(format!("{}_send", view));
+					ret.insert(format!("{}_box", view));
+					ret.insert(format!("{}_send_box", view));
+					ret.insert(format!("{}_sync_box", view));
+				}
+				ret.insert(view.clone());
+			}
+		}
+		Ok(ret)
+	}
+
+	fn check_var_list(&mut self) -> Result<(), Error> {
+		let mut set = HashSet::new();
+		for item in self.var_list.clone() {
+			if set.contains(&item.name) {
+				self.span = Some(item.span.clone());
+				self.append_error(&format!("var '{}' already delcared", item.name))?;
+			}
+			set.insert(item.name);
+		}
+		Ok(())
+	}
+
+	fn check_const_list(&mut self) -> Result<(), Error> {
+		let mut set = HashSet::new();
+		for item in self.const_list.clone() {
+			if set.contains(&item.name) {
+				self.span = Some(item.span.clone());
+				self.append_error(&format!("const '{}' already delcared", item.name))?;
+			}
+			set.insert(item.name);
+		}
+		Ok(())
+	}
+
+	fn check_fn_list(&mut self) -> Result<(), Error> {
+		let mut set = HashSet::new();
+		for item in self.fn_list.clone() {
+			if set.contains(&item.name) {
+				self.span = Some(item.span.clone());
+				self.append_error(&format!("fn '{}' already delcared", item.name))?;
+			}
+			set.insert(item.name);
+		}
+		Ok(())
+	}
+
+	fn check_clone_list(&mut self, view_set: &HashSet<String>) -> Result<(), Error> {
+		let mut set = HashSet::new();
+		for item in self.clone_list.clone() {
+			if set.contains(&item.name) {
+				self.span = Some(item.span.clone());
+				self.append_error(&format!(
+					"view '{}' already declared to be clone",
+					item.name
+				))?;
+			}
+			set.insert(item.name.clone());
+
+			if !view_set.contains(&item.name) {
+				self.span = Some(item.span.clone());
+				if item.name.rfind("_sync") == Some(item.name.len().saturating_sub(5))
+					|| item.name.rfind("_send") == Some(item.name.len().saturating_sub(5))
+					|| item.name.rfind("_box") == Some(item.name.len().saturating_sub(4))
+				{
+					self.append_error(&format!("view '{}' does not exist. Note: do not suffix with 'box', 'send', or 'sync' for clone.", item.name))?;
+				} else {
+					self.append_error(&format!("view '{}' does not exist", item.name))?;
+				}
+			}
+		}
+
+		Ok(())
+	}
+
+	fn check_protected_list(&mut self, view_set: &HashSet<String>) -> Result<(), Error> {
+		let mut set = HashSet::new();
+		for item in self.protected_list.clone() {
+			if set.contains(&item.name) {
+				self.span = Some(item.span.clone());
+				self.append_error(&format!(
+					"view '{}' already declared to be protected",
+					item.name
+				))?;
+			}
+			set.insert(item.name.clone());
+
+			if !view_set.contains(&item.name) {
+				self.span = Some(item.span.clone());
+				self.append_error(&format!("view '{}' does not exist", item.name))?;
+			}
+		}
+
+		Ok(())
+	}
+
+	fn check_public_list(&mut self, view_set: &HashSet<String>) -> Result<(), Error> {
+		let mut set = HashSet::new();
+		for item in self.public_list.clone() {
+			if set.contains(&item.name) {
+				self.span = Some(item.span.clone());
+				self.append_error(&format!(
+					"view '{}' already declared to be public",
+					item.name
+				))?;
+			}
+			set.insert(item.name.clone());
+
+			if !view_set.contains(&item.name) {
+				self.span = Some(item.span.clone());
+				self.append_error(&format!("view '{}' does not exist", item.name))?;
+			}
+		}
+
+		Ok(())
+	}
+
 	fn parse_attr(&mut self, strm: &TokenStream) -> Result<(), Error> {
 		for token in strm.clone() {
 			self.process_token(token)?;
 		}
 
 		if self.state != State::Base {
-			self.abort("unexpectedly ended class attribute")?;
+			self.append_error("unexpectedly ended class attribute")?;
+			self.print_errors()?;
 		}
 		if self.error_list.len() != 0 {
 			self.print_errors()?;
@@ -139,7 +393,7 @@ impl StateMachine {
 		Ok(())
 	}
 
-	fn abort(&mut self, msg: &str) -> Result<(), Error> {
+	fn process_abort(&mut self, msg: String) -> Result<(), Error> {
 		match self.span {
 			Some(span) => {
 				let diag = Diagnostic::spanned(span.into(), Level::Error, msg.to_string().clone());
@@ -184,7 +438,10 @@ impl StateMachine {
 		match token {
 			Ident(ident) => {
 				self.expect_comma = true;
-				self.protected_list.push(ident.to_string());
+				self.protected_list.push(ProtectedView::new(
+					ident.to_string(),
+					self.span.as_ref().unwrap().clone(),
+				));
 			}
 			Punct(p) => {
 				if p == ';' {
@@ -211,7 +468,10 @@ impl StateMachine {
 		match token {
 			Ident(ident) => {
 				self.expect_comma = true;
-				self.clone_list.push(ident.to_string());
+				self.clone_list.push(CloneView::new(
+					ident.to_string(),
+					self.span.as_ref().unwrap().clone(),
+				));
 			}
 			Punct(p) => {
 				if p == ';' {
@@ -235,10 +495,191 @@ impl StateMachine {
 	}
 
 	fn process_fn(&mut self, token: TokenTree) -> Result<(), Error> {
+		let token_str = token.to_string();
+		if self.expect_fn && token_str != "fn" {
+			self.append_error(&format!("expected 'fn' found '{}'", token))?;
+		} else if self.expect_fn {
+			self.expect_fn = false;
+			self.expect_fn_name = true;
+		} else if self.expect_fn_name {
+			match self.cur_fn.as_mut() {
+				Some(fn_info) => {
+					fn_info.span = self.span.as_ref().unwrap().clone();
+				}
+				None => {
+					let mut fn_info = FnInfo::new(self.span.as_ref().unwrap().clone());
+					fn_info.comments.extend(self.comments.clone());
+					self.comments.clear();
+					self.cur_fn = Some(fn_info);
+				}
+			}
+			match token {
+				Ident(ident) => {
+					self.cur_fn.as_mut().unwrap().name = ident.to_string();
+					self.expect_fn_name = false;
+					self.expect_params = true;
+				}
+				_ => self.append_error(&format!("expected function name found '{}'", token_str))?,
+			}
+		} else if self.expect_params {
+			match token {
+				Group(g) => {
+					if g.delimiter() != Delimiter::Parenthesis {
+						self.append_error(&format!(
+							"expected param list found '{}'",
+							g.to_string()
+						))?;
+					} else {
+						self.expect_params = false;
+						let cur_fn = self.cur_fn.as_mut().unwrap();
+						cur_fn.params.extend(g.stream());
+						cur_fn.expect_ret_arrow1 = true;
+						cur_fn.expect_ret_arrow2 = false;
+					}
+				}
+				_ => self.append_error(&format!("expected param list, found '{}'", token_str))?,
+			}
+		} else {
+			// we're in the return list section
+			self.process_return_list_token(token)?;
+		}
 		Ok(())
 	}
 
+	fn process_return_list_token(&mut self, token: TokenTree) -> Result<(), Error> {
+		match token {
+			Group(ref group) => {
+				if group.delimiter() == Delimiter::Brace {
+					match self.cur_fn.as_mut() {
+						Some(cur_fn) => {
+							cur_fn.fn_block.extend(group.stream());
+							self.fn_list.push(cur_fn.clone());
+						}
+						None => {
+							self.append_error("unexpected no cur_fn")?;
+						}
+					}
+					self.cur_fn = None;
+					self.expect_params = false;
+					self.expect_fn_name = false;
+					self.expect_fn = false;
+					self.state = State::Base;
+				} else {
+					match self.cur_fn.as_mut() {
+						Some(cur_fn) => {
+							if cur_fn.expect_ret_arrow1 {
+								self.append_error(&format!("expected '-', found '{}'", token))?;
+							} else if cur_fn.expect_ret_arrow2 {
+								self.append_error(&format!("expected '>', found '{}'", token))?;
+							} else {
+								(*cur_fn)
+									.return_str
+									.extend(group.to_string().parse::<TokenStream>());
+							}
+						}
+						None => {
+							self.append_error("unexpected no cur_fn")?;
+						}
+					}
+				}
+			}
+			_ => match self.cur_fn.as_mut() {
+				Some(cur_fn) => {
+					if cur_fn.expect_ret_arrow1 {
+						if token.to_string() != "-" {
+							self.append_error(&format!("expected '-', found '{}'", token))?;
+						} else {
+							cur_fn.expect_ret_arrow1 = false;
+							cur_fn.expect_ret_arrow2 = true;
+						}
+					} else if cur_fn.expect_ret_arrow2 {
+						if token.to_string() != ">" {
+							self.append_error(&format!("expected '>', found '{}'", token))?;
+						} else {
+							cur_fn.expect_ret_arrow2 = false;
+						}
+					} else {
+						(*cur_fn)
+							.return_str
+							.extend(token.to_string().parse::<TokenStream>());
+					}
+				}
+				None => {
+					self.append_error("unexpected no cur_fn")?;
+				}
+			},
+		}
+		Ok(())
+	}
+
+	fn strip_start(&self, s: &String, ch: char) -> String {
+		match s.trim().find(ch) {
+			Some(pos) => {
+				if pos == 0 {
+					s.replace(ch, "").to_string()
+				} else {
+					s.clone()
+				}
+			}
+			None => s.clone(),
+		}
+	}
+
+	fn strip_end(&self, s: &String, ch: char) -> String {
+		if s.len() == 0 {
+			s.clone()
+		} else {
+			match s.trim().rfind(ch) {
+				Some(pos) => {
+					if pos == s.len() - 1 {
+						s.replace(ch, "").to_string()
+					} else {
+						s.clone()
+					}
+				}
+				None => s.clone(),
+			}
+		}
+	}
+
 	fn process_comment(&mut self, token: TokenTree) -> Result<(), Error> {
+		println!("comment token = {}", token);
+		match token {
+			Group(group) => {
+				if group.delimiter() == Delimiter::Bracket {
+					let mut expect_doc = true;
+					let mut expect_equal = false;
+					for token in group.stream() {
+						println!("comment group token = {}", token);
+						let token_str = token.to_string();
+						if expect_doc && token_str != "doc" {
+							self.append_error(&format!("expected 'doc' found '{}'", token))?;
+						} else if expect_doc {
+							expect_doc = false;
+							expect_equal = true;
+						} else if expect_equal && token_str != "=" {
+							self.append_error(&format!("expected '=' found '{}'", token))?;
+						} else if expect_equal {
+							expect_equal = false;
+						} else {
+							let token_str = self.strip_start(&token_str, '\"');
+							let token_str = self.strip_end(&token_str, '\"');
+							println!("inner comment = '{}'", token_str);
+							self.comments.push(token_str);
+						}
+					}
+					self.state = State::Base;
+				} else {
+					self.append_error(&format!(
+						"unexpected token '{:?}'. Expected '['",
+						group.delimiter()
+					))?;
+				}
+			}
+			_ => {
+				self.append_error(&format!("unexpected token '{}'. expected '['", token))?;
+			}
+		}
 		Ok(())
 	}
 
@@ -248,7 +689,7 @@ impl StateMachine {
 		if self.cur_var.is_none() {
 			match token {
 				Ident(ident) => {
-					let mut v = Var::new();
+					let mut v = Var::new(self.span.as_ref().unwrap().clone());
 					v.name = ident.to_string();
 					self.cur_var = Some(v);
 				}
@@ -283,11 +724,12 @@ impl StateMachine {
 
 	fn process_const(&mut self, token: TokenTree) -> Result<(), Error> {
 		let token_str = token.to_string();
-		println!("token={}", token_str);
 		if self.cur_const.is_none() {
 			match token {
-				Ident(ident) => {
-					let mut c = Const::new();
+				Ident(ref ident) => {
+					let mut c = Const::new(token.span());
+					c.comments.extend(self.comments.clone());
+					self.comments.clear();
 					c.name = ident.to_string();
 					self.cur_const = Some(c);
 				}
@@ -302,24 +744,17 @@ impl StateMachine {
 				self.cur_const.as_mut().unwrap().found_colon = true;
 			}
 		} else if !self.cur_const.as_ref().unwrap().found_equal {
-			println!("not found equal");
 			if token_str == "=" {
-				println!("x");
 				if self.cur_const.as_ref().unwrap().type_str.len() == 0 {
-					println!("y");
 					self.append_error("expected type string, found '='")?;
 				} else {
-					println!("z");
 					self.cur_const.as_mut().unwrap().found_equal = true;
 				}
 			} else {
-				println!("else: {}", token_str);
 				if token_str == ";" {
-					println!("err");
 					self.append_error("expected type string, found ';'")?;
 					self.state = State::Base;
 				} else {
-					println!("append");
 					let type_str = &self.cur_const.as_ref().unwrap().type_str;
 					self.cur_const.as_mut().unwrap().type_str =
 						format!("{} {}", type_str, token_str);
@@ -337,7 +772,6 @@ impl StateMachine {
 					self.state = State::Base;
 				}
 			} else {
-				println!("token_debug vstring = {:?}", token);
 				let value_str = &self.cur_const.as_ref().unwrap().value_str;
 				self.cur_const.as_mut().unwrap().value_str = format!("{} {}", value_str, token_str);
 			}
@@ -349,7 +783,10 @@ impl StateMachine {
 		match token {
 			Ident(ident) => {
 				self.expect_comma = true;
-				self.public_list.push(ident.to_string());
+				self.public_list.push(PublicView::new(
+					ident.to_string(),
+					self.span.as_ref().unwrap().clone(),
+				));
 			}
 			Punct(p) => {
 				if p == ';' {
@@ -391,8 +828,25 @@ impl StateMachine {
 					self.state = State::Const;
 				} else if ident_str == "fn" {
 					self.state = State::Fn;
+					self.expect_fn_name = true;
 				} else {
 					self.append_error(&format!("unexpected token: '{}'", ident_str))?;
+				}
+			}
+			Group(ref group) => {
+				if group.delimiter() == Delimiter::Bracket {
+					self.process_view_list(group)?;
+					self.expect_comma = false;
+					self.state = State::Fn;
+				} else {
+					self.append_error(&format!("unexpected token: '{}'", token))?;
+				}
+			}
+			Punct(ref p) => {
+				if *p == '#' {
+					self.state = State::Comment;
+				} else {
+					self.append_error(&format!("unexpected token: '{}'", token))?;
 				}
 			}
 			_ => {
@@ -402,7 +856,217 @@ impl StateMachine {
 		Ok(())
 	}
 
+	fn process_view_list(&mut self, group: &Group) -> Result<(), Error> {
+		let mut fn_info = FnInfo::new(self.span.as_ref().unwrap().clone());
+		let mut expect_comma = false;
+		for token in group.stream() {
+			self.span = Some(token.span());
+			match token {
+				Ident(ident) => {
+					if expect_comma {
+						self.append_error(&format!("expected ',' found '{}'", ident))?;
+					} else {
+						expect_comma = true;
+						fn_info.views.push(ident.to_string());
+					}
+				}
+				Punct(p) => {
+					if p != ',' || !expect_comma {
+						if expect_comma {
+							self.append_error(&format!("expected ',', found, '{}'", p))?;
+						} else {
+							self.append_error(&format!("found comma when expected view name"))?;
+						}
+					} else {
+						expect_comma = false;
+					}
+				}
+				_ => self.append_error(&format!("unexpected token: '{}'", token.to_string()))?,
+			}
+		}
+		self.cur_fn = Some(fn_info);
+		self.expect_fn = true;
+		Ok(())
+	}
+
+	fn get_pre_name_clause(&self) -> Result<String, Error> {
+		Ok(match &self.generics {
+			Some(g) => {
+				format!("<{}>", g)
+			}
+			None => "".to_string(),
+		})
+	}
+
+	fn get_post_name_clause(&self) -> Result<String, Error> {
+		Ok(match &self.generics2 {
+			Some(generics) => {
+				format!(
+					"{}{}",
+					format!("<{}>", generics),
+					match &self.where_clause {
+						Some(w) => {
+							format!(" where {}", w)
+						}
+						None => {
+							"".to_string()
+						}
+					}
+				)
+			}
+			None => "".to_string(),
+		})
+	}
+
+	fn get_where_clause(&self) -> Result<String, Error> {
+		Ok(match &self.where_clause {
+			Some(w) => {
+				format!(" where {}", w)
+			}
+			None => "".to_string(),
+		})
+	}
+
 	fn parse_item(&mut self, strm: &TokenStream) -> Result<(), Error> {
+		let mut expect_impl = true;
+		let mut expect_name = false;
+		let mut in_generics = false;
+		let mut expect_group = false;
+		let mut term_where = false;
+		let mut in_where = false;
+
+		for token in strm.clone() {
+			self.span = Some(token.span());
+			println!("item_token='{}'", token);
+			let token_str = token.to_string();
+			if expect_impl && token_str != "impl" {
+				self.process_abort("expected keyword impl".to_string())?;
+			} else if expect_impl {
+				expect_impl = false;
+				expect_name = true;
+			} else if expect_name {
+				match token {
+					Ident(ref ident) => {
+						if !in_generics {
+							self.name = Some(ident.to_string());
+							expect_name = false;
+							expect_group = true;
+						} else {
+							match self.generics.as_mut() {
+								Some(generic) => {
+									*generic = format!("{}{}", *generic, ident.to_string());
+								}
+								None => {
+									self.generics = Some(ident.to_string());
+								}
+							}
+						}
+					}
+					Punct(ref p) => {
+						if p.to_string() == "<" {
+							in_generics = true;
+						} else if p.to_string() == ">" {
+							in_generics = false;
+						} else {
+							match self.generics.as_mut() {
+								Some(generic) => {
+									*generic = format!("{}{}", *generic, p.to_string());
+								}
+								None => {
+									self.generics = Some(p.to_string());
+								}
+							}
+						}
+					}
+					_ => {
+						self.process_abort("expected class name".to_string())?;
+					}
+				}
+			} else if expect_group {
+				if self.generics.is_some() {
+					if term_where {
+						self.process_abort("unterminated after impl clause".to_string())?;
+					}
+					match token {
+						Group(ref group) => {
+							if group.delimiter() == Delimiter::Brace {
+								term_where = true;
+								if group.stream().to_string().len() != 0 {
+									self.process_abort("impl block must be empty".to_string())?;
+								}
+
+								println!(
+									"final=gen={:?},gen2={:?},where={:?},post={:?},pre={:?}",
+									self.generics,
+									self.generics2,
+									self.where_clause,
+									&self.get_post_name_clause()?,
+									&self.get_pre_name_clause()?
+								);
+							}
+						}
+						_ => {}
+					}
+					if self.generics2.is_none() && token.to_string() == "<" {
+					} else if !in_where && token.to_string() != "where" {
+						if !term_where {
+							match self.generics2.as_mut() {
+								Some(g) => match token {
+									Ident(ident) => {
+										*g = format!("{}{}", *g, ident.to_string());
+									}
+									_ => {
+										*g = format!("{}{}", *g, token.to_string());
+									}
+								},
+								None => {
+									self.generics2 = Some(token.to_string());
+								}
+							}
+						}
+					} else if token.to_string() == "where" {
+						in_where = true;
+					} else {
+						if !term_where {
+							match self.where_clause.as_mut() {
+								Some(w) => match token {
+									Ident(ident) => {
+										*w = format!("{}{}", *w, ident.to_string());
+									}
+									_ => {
+										*w = format!("{}{}", *w, token.to_string());
+									}
+								},
+								None => {
+									self.where_clause = Some(token.to_string());
+								}
+							}
+						}
+					}
+				} else {
+					match token {
+						Group(ref group) => {
+							expect_group = false;
+							println!("group='{}'", group.to_string());
+							for _group_item in group.stream() {
+								self.process_abort("impl must be empty for classes".to_string())?;
+							}
+						}
+						_ => self.process_abort("expected 'impl <name> {}'".to_string())?,
+					}
+				}
+			} else {
+				self.process_abort("unexpected token".to_string())?;
+			}
+			match self.generics2.as_mut() {
+				Some(g) => {
+					if (*g).rfind(">") == Some((*g).len().saturating_sub(1)) {
+						*g = (*g).substring(0, (*g).len().saturating_sub(1)).to_string();
+					}
+				}
+				_ => {}
+			}
+		}
 		Ok(())
 	}
 
@@ -412,6 +1076,7 @@ impl StateMachine {
 		println!("clone = {:?}", self.clone_list);
 		println!("var list = {:?}", self.var_list);
 		println!("const list = {:?}", self.const_list);
+		println!("fn list = {:?}", self.fn_list);
 		Ok(TokenStream::new())
 	}
 }
