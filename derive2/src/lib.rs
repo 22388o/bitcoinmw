@@ -20,6 +20,7 @@
 //! The bmw_derive crate implements the low level derive macros which are used in BitcoinMW.
 
 use proc_macro::TokenStream;
+use proc_macro_error::proc_macro_error;
 
 use bmw_deps::failure;
 mod impls;
@@ -440,7 +441,17 @@ use crate::document::do_derive_document;
 ///```
 #[proc_macro_attribute]
 #[cfg(not(tarpaulin_include))]
-#[allow(non_snake_case)]
 pub fn document(attr: TokenStream, item: TokenStream) -> TokenStream {
 	do_derive_document(attr, item)
+}
+
+// class section
+mod class;
+use crate::class::do_derive_class;
+
+#[proc_macro_attribute]
+#[cfg(not(tarpaulin_include))]
+#[proc_macro_error]
+pub fn class(attr: TokenStream, item: TokenStream) -> TokenStream {
+	do_derive_class(attr, item)
 }

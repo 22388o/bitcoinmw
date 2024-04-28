@@ -16,12 +16,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! The integration crate contains integration tests for other crates within BitcoinMW.
+//! # The BitcoinMW core crate
+//! The core crate re-exports the two main crates as a convenience. This crate can be used instead
+//! of importing both of these crates.
 
-use bmw_deps::failure;
-
-mod test_class;
-mod test_config;
-pub mod test_document;
-mod test_error;
-mod test_serializable;
+pub use bmw_base::*;
+pub use bmw_derive2::*;
