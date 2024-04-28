@@ -96,8 +96,10 @@ pub trait TestTrait {
 	/// @error bmw_base::BaseErrorKind::IllegalState if the state becomes illegal
 	/// # Examples
 	///```
-	/// fn main() -> usize {
-	///     0
+	/// use bmw_base::*;
+	///
+	/// fn main() -> Result<(), Error> {
+	///     Ok(())
 	/// }
 	///```
 	fn bop() -> Result<(), Error>;

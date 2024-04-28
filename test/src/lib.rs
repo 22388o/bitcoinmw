@@ -16,7 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # The BitcoinMW Test Utility crate
+//! # The BitcoinMW test utility crate
 //! This crate contains macros utilized in tests across other crates within the BitcoinMW repository.
 
 use bmw_deps::failure;

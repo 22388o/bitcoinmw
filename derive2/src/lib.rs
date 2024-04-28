@@ -16,6 +16,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! # The BitcoinMW derive crate
+//! The bmw_derive crate implements the low level derive macros which are used in BitcoinMW.
+
 use proc_macro::TokenStream;
 
 use bmw_deps::failure;
@@ -79,7 +82,7 @@ pub fn ErrorKind(attr: TokenStream, item: TokenStream) -> TokenStream {
 mod ser;
 use crate::ser::do_derive_serializable;
 
-/// The [`crate::derive_serializable()`] proc_macro_derive derives a the Serializable trait for
+/// The [`crate::Serializable`] proc_macro_derive derives a the Serializable trait for
 /// structs and enums. It's important to note that the elements within the data structure must
 /// implement [`bmw_base::Serializable`] as well. Since the [`bmw_base`] crate already implements
 /// [`bmw_base::Serializable`] for most of the primative types, Tuples, [`std::vec::Vec`] and
@@ -362,7 +365,79 @@ pub fn derive_configurable(strm: TokenStream) -> TokenStream {
 mod document;
 use crate::document::do_derive_document;
 
-/// The [`crate::document()`] attribute...
+/// The [`crate::document()`] attribute documents functions and macros. To use it, you must add the
+/// document tag to the function or macro and then you can specify any number of items within the
+/// rust comment tag. The syntax mirrors that of Javadoc.
+///```
+/// use bmw_base::*;
+/// use bmw_derive2::*;
+///
+/// #[document]
+/// /// This appears at the top of the documentation
+/// /// # Example
+/// /// Anything after the example title (or anything that starts with "# Example" like
+/// /// "# Examples" will end up below the parameter/return/error/and see titles
+/// /// @param v1 a usize parameter
+/// /// multi line ok, this goes to v1
+/// /// @param v2 an option of a String
+/// /// @param v3 bool value. If true exit, otherwise continue...
+/// /// @return [`unit`] or error
+/// /// multi line ok, goes to return tag
+/// /// @error bmw_base::BaseErrorKind::IllegalState if the state becomes illegal
+/// /// multi line ok, goes to the error tag
+/// /// @error bmw_base::BaseErrorKind::Parse if the parser crashes
+/// /// @see bmw_derive2::ErrorKind
+/// /// @see bmw_derive2::Serializable
+/// /// @see bmw_base::Error
+/// /// @deprecated
+/// fn my_function(v1: usize, v2: Option<String>, v3: bool) -> Result<(), Error> {
+///     Ok(())
+/// }
+///```
+/// These tags will result in a nicely documented function/macro. Note that macros do not support
+/// the `param` tag since they do not have a known or strongly typed input parameter list.
+/// # Tag types
+/// * param - the parameter name with a comment
+///```text
+/// /// @param <param_name> <param comment>
+///```
+/// note: that newlines are ok and the next line following a param line, if no other tag is
+/// specified will automatically be appended to the param tag on the previous line.
+///
+/// note: self param can be used to describe the self param in the function as well
+///```text
+/// /// @param timeout the amount of time, in milliseconds before function returns an error.
+///```
+/// * see - a link to additional items
+///```text
+/// /// @see <link>
+///```
+/// note: only the path is needed. The macro will automatically put it in mark down.
+///```text
+/// /// @see crate::MyTrait
+///```
+/// * error - an error that may occur for this function/macro
+///```text
+/// /// @error <link to error type> <comment>
+///```
+/// note: the comment is optional
+///
+/// note: multiple values are allowed
+///```text
+/// /// @error bmw_base::BaseErrorKind::IllegalState if the state becomes illegal
+/// /// @error bmw_base::BaseErrorKind::Parse if a parse error occurs
+///```
+/// * return - a message to inlcude about the return parameter
+///```text
+/// /// @return <return_comment>
+///```
+///```text
+/// /// @return the returned value is the sum of all numbers in the sequence
+///```
+/// * deprecated - display a warning indicating this function/macro is deprecated
+///```text
+/// /// @deprecated
+///```
 #[proc_macro_attribute]
 #[cfg(not(tarpaulin_include))]
 #[allow(non_snake_case)]
