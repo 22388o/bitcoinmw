@@ -124,6 +124,7 @@ name = "bmw_core"
 version = "0.0.3-beta.2"
 dependencies = [
  "bmw_base",
+ "bmw_deps",
  "bmw_derive2",
 ]
 
