@@ -551,7 +551,14 @@ fn parse_param_list(strm: TokenStream) -> Result<Vec<(String, String)>, Error> {
 		}
 	}
 	if name.is_some() && value.is_some() {
-		ret.push((name.unwrap(), value.unwrap()));
+		ret.push((
+			name.as_ref().unwrap().to_string(),
+			value.as_ref().unwrap().to_string(),
+		));
+	}
+	if value.is_none() && ret.len() == 0 {
+		// self
+		ret.push((name.unwrap(), "".to_string()));
 	}
 	Ok(ret)
 }
