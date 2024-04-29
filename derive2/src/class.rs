@@ -1069,7 +1069,6 @@ impl StateMachine {
 		let template = self.update_macros(template)?;
 		let template = self.update_builder(template)?;
 
-		println!("resp='{}'", template);
 		Ok(map_err!(template.parse::<TokenStream>(), Parse)?)
 	}
 
@@ -1206,7 +1205,6 @@ impl StateMachine {
 					ret = format!("{}(", ret);
 					for token in token.stream() {
 						let token = token.to_string();
-						println!("ret_converloop token = '{}'", token);
 						if first && (token == "&" || token == "mut") {
 						} else {
 							first = false;
@@ -1234,7 +1232,6 @@ impl StateMachine {
 				}
 			}
 		}
-		println!("ret_convert='{}'", ret);
 		Ok((ret, ret_types))
 	}
 
@@ -1312,7 +1309,6 @@ impl StateMachine {
 		}
 
 		let all_trait_impls = format!("{}{}", all_trait_impls, all_trait_impls_mut);
-		println!("all_trait_impls='{}'", all_trait_impls);
 		let template = template
 			.replace("${TRAIT_IMPL}", &all_trait_impls)
 			.to_string();
@@ -1320,8 +1316,138 @@ impl StateMachine {
 	}
 
 	fn update_macros(&self, template: String) -> Result<String, Error> {
-		let template = template.replace("${MACROS}", "").to_string();
+		let name = self.name.as_ref().unwrap();
+		let public_set = self.build_public_set();
+		let protected_set = self.build_protected_set();
+		let view_set = self.build_view_set(true)?;
+		let mut all_macros = "".to_string();
+		for view in &view_set {
+			let macro_template = include_str!("../templates/class_macro_template.txt");
+			let macro_template = macro_template.replace("${NAME}", name).to_string();
+			let macro_template = macro_template.replace("${VIEW}", view).to_string();
+			let macro_template = macro_template.replace("${BOX_COMMENTS}", "").to_string();
+			let macro_template = macro_template.replace("${IMPL_COMMENTS}", "").to_string();
+			let macro_template = macro_template
+				.replace(
+					"${IMPL_PUBLIC}",
+					self.get_macro_pub_visibility(view, &public_set),
+				)
+				.to_string();
+			let macro_template = macro_template
+				.replace(
+					"${BOX_PUBLIC}",
+					self.get_macro_pub_visibility(&format!("{}_box", view), &public_set),
+				)
+				.to_string();
+			let macro_template = macro_template
+				.replace(
+					"${BOX_SEND_PUBLIC}",
+					self.get_macro_pub_visibility(&format!("{}_send_box", view), &public_set),
+				)
+				.to_string();
+			let macro_template = macro_template
+				.replace(
+					"${IMPL_SEND_PUBLIC}",
+					self.get_macro_pub_visibility(&format!("{}_send", view), &public_set),
+				)
+				.to_string();
+			let macro_template = macro_template
+				.replace(
+					"${BOX_SYNC_PUBLIC}",
+					self.get_macro_pub_visibility(&format!("{}_sync_box", view), &public_set),
+				)
+				.to_string();
+			let macro_template = macro_template
+				.replace(
+					"${IMPL_SYNC_PUBLIC}",
+					self.get_macro_pub_visibility(&format!("{}_sync", view), &public_set),
+				)
+				.to_string();
+			let macro_template = macro_template
+				.replace(
+					"${IMPL_PROTECTED}",
+					&self.get_macro_protected_visibility(view, &public_set, &protected_set),
+				)
+				.to_string();
+
+			let macro_template = macro_template
+				.replace(
+					"${BOX_PROTECTED}",
+					&self.get_macro_protected_visibility(
+						&format!("{}_box", view),
+						&public_set,
+						&protected_set,
+					),
+				)
+				.to_string();
+
+			let macro_template = macro_template
+				.replace(
+					"${IMPL_SEND_PROTECTED}",
+					&self.get_macro_protected_visibility(
+						&format!("{}_send", view),
+						&public_set,
+						&protected_set,
+					),
+				)
+				.to_string();
+			let macro_template = macro_template
+				.replace(
+					"${BOX_SEND_PROTECTED}",
+					&self.get_macro_protected_visibility(
+						&format!("{}_send_box", view),
+						&public_set,
+						&protected_set,
+					),
+				)
+				.to_string();
+			let macro_template = macro_template
+				.replace(
+					"${IMPL_SYNC_PROTECTED}",
+					&self.get_macro_protected_visibility(
+						&format!("{}_sync", view),
+						&public_set,
+						&protected_set,
+					),
+				)
+				.to_string();
+			let macro_template = macro_template
+				.replace(
+					"${BOX_SYNC_PROTECTED}",
+					&self.get_macro_protected_visibility(
+						&format!("{}_sync_box", view),
+						&public_set,
+						&protected_set,
+					),
+				)
+				.to_string();
+
+			all_macros = format!("{}{}", all_macros, macro_template);
+		}
+
+		let template = template.replace("${MACROS}", &all_macros).to_string();
 		Ok(template)
+	}
+
+	fn get_macro_pub_visibility(&self, name: &String, public_set: &HashSet<String>) -> &str {
+		if public_set.get(name).is_some() {
+			"#[macro_export]\n"
+		} else {
+			""
+		}
+	}
+
+	fn get_macro_protected_visibility(
+		&self,
+		name: &String,
+		public_set: &HashSet<String>,
+		protected_set: &HashSet<String>,
+	) -> String {
+		if !public_set.get(name).is_some() && protected_set.get(name).is_some() {
+			format!("pub(crate) use {};", name)
+		} else {
+			"".to_string()
+		}
 	}
 
 	fn get_visibility(
@@ -1387,7 +1513,6 @@ impl StateMachine {
 		}
 		builder_text = format!("{}}}", builder_text);
 
-		println!("builder_text='{}'", builder_text);
 		let template = template.replace("${BUILDER}", &builder_text).to_string();
 		Ok(template)
 	}
@@ -1462,12 +1587,10 @@ impl StateMachine {
 			var_impl = format!("{}\n{}", var_impl, mutter);
 		}
 
-		let mut test_init = "".to_string();
-
 		// add builder
 		for fn_info in &self.fn_list {
 			if fn_info.name == "builder" {
-				for comment in &fn_info.comments {}
+				for _comment in &fn_info.comments {}
 
 				let param_list = &fn_info.params.to_string();
 				let param_name = self.strip_start(&param_list, '&');
@@ -1559,7 +1682,6 @@ impl StateMachine {
 }
 
 pub(crate) fn do_derive_class(attr: TokenStream, item: TokenStream) -> TokenStream {
-	println!("in do_derive_class");
 	match do_derive_class_impl(&attr, &item) {
 		Ok(token_stream) => token_stream,
 		Err(e) => {

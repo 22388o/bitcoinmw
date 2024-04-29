@@ -16,6 +16,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bmw_core::*;
+
+#[class {
+        protected viewx, viewx_send_box;
+        public viewx_send_box, viewx_box;
+        const c: Vec<(String, String)> = vec![];
+        const p2: Vec<String> = vec![];
+        var m: Vec<Option<usize>>;
+        fn builder(&const_values) -> Result<Self, Error> {
+                Ok(Self {
+                        m: vec![],
+                })
+        }
+
+        [viewx]
+        fn ok(&self) -> Result<Option<usize>, Error> {
+                Ok(None)
+        }
+
+        [viewx]
+        fn next(&self, abc: usize) {
+                println!("abc={}", abc);
+        }
+
+        fn abc(&self) {
+        }
+
+}]
+impl Animal2 {}
+
 #[cfg(test)]
 mod test {
 	use bmw_core::*;
@@ -23,7 +53,7 @@ mod test {
 	struct MyStruct {}
 
 	#[class {
-                protected view1, view1_box, view1_sync, view1_sync_box, view1_send, view1_send_box;
+                protected view1, view1_send_box;
                 public view1_send_box;
                 const c: Vec<(String, String)> = vec![];
                 const p2: Vec<String> = vec![];

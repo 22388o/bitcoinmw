@@ -1,0 +1,90 @@
+#[allow(unused_macros)]
+${IMPL_COMMENTS}${IMPL_PUBLIC}macro_rules! ${VIEW} {
+        ($($param:tt)*) => {{
+        	match ${NAME}Builder::build_${VIEW}(vec![$($param)*]) {
+                	Ok(ret) => {
+                        	Ok(ret)
+                        }
+                	Err(e) => {
+                		err!(BaseErrorKind::Builder, e.to_string())
+                	}
+		}
+        }};
+}
+${IMPL_PROTECTED}
+
+#[allow(unused_macros)]
+${BOX_COMMENTS}${BOX_PUBLIC}macro_rules! ${VIEW}_box {
+        ($($param:tt)*) => {{
+		match ${NAME}Builder::build_${VIEW}_box(vec![$($param)*]) {
+                	Ok(ret) => {
+                        	Ok(ret)
+                        }
+                        Err(e) => {
+                                err!(BaseErrorKind::Builder, e.to_string())
+                        }
+                }
+        }};
+}
+${BOX_PROTECTED}
+
+#[allow(unused_macros)]
+${IMPL_COMMENTS}${IMPL_SEND_PUBLIC}macro_rules! ${VIEW}_send {
+        ($($param:tt)*) => {{
+                match ${NAME}Builder::build_${VIEW}_send(vec![$($param)*]) {
+                        Ok(ret) => {
+                                Ok(ret)
+                        }
+                        Err(e) => {
+                                err!(BaseErrorKind::Builder, e.to_string())
+                        }
+                }
+        }};
+}
+${IMPL_SEND_PROTECTED}
+
+#[allow(unused_macros)]
+${BOX_COMMENTS}${BOX_SEND_PUBLIC}macro_rules! ${VIEW}_send_box {
+        ($($param:tt)*) => {{
+                match ${NAME}Builder::build_${VIEW}_send_box(vec![$($param)*]) {
+                        Ok(ret) => {
+                                Ok(ret)
+                        }
+                        Err(e) => {
+                                err!(BaseErrorKind::Builder, e.to_string())
+                        }
+                }
+        }};
+}
+${BOX_SEND_PROTECTED}
+
+#[allow(unused_macros)]
+${IMPL_COMMENTS}${IMPL_SYNC_PUBLIC}macro_rules! ${VIEW}_sync {
+        ($($param:tt)*) => {{
+                match ${NAME}Builder::build_${VIEW}_sync(vec![$($param)*]) {
+                        Ok(ret) => {
+                                Ok(ret)
+                        }
+                        Err(e) => {
+                                err!(BaseErrorKind::Builder, e.to_string())
+                        }
+                }
+        }};
+}
+${IMPL_SYNC_PROTECTED}
+
+#[allow(unused_macros)]
+${BOX_COMMENTS}${BOX_SYNC_PUBLIC}macro_rules! ${VIEW}_sync_box {
+        ($($param:tt)*) => {{
+                match ${NAME}Builder::build_${VIEW}_sync_box(vec![$($param)*]) {
+                        Ok(ret) => {
+                                Ok(ret)
+                        }
+                        Err(e) => {
+                                err!(BaseErrorKind::Builder, e.to_string())
+                        }
+                }
+        }};
+}
+${BOX_SYNC_PROTECTED}
+
