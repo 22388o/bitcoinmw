@@ -1448,12 +1448,14 @@ impl StateMachine {
 		replacement: &str,
 		module: Option<&String>,
 		macro_name: String,
-		_class_name: &String,
+		class_name: &String,
 		trait_name: &str,
 		is_box: bool,
 		is_send: bool,
 		is_sync: bool,
+		is_builder: bool,
 	) -> Result<String, Error> {
+		let builder_name = format!("{}Builder", class_name);
 		let public_set = self.build_public_set();
 		let visible = self
 			.get_macro_pub_visibility(&macro_name, &public_set)
@@ -1578,10 +1580,17 @@ impl StateMachine {
 				"{}#[doc=\"\t// build a {} with default parameters.\"]\n",
 				comment_builder, trait_name
 			);
-			let comment_builder = format!(
-				"{}#[doc=\"\tlet object = {}!()?;\"]\n",
-				comment_builder, macro_name
-			);
+			let comment_builder = if is_builder {
+				format!(
+					"{}#[doc=\"\tlet object = {}::build_{}(vec![])?;\"]\n",
+					comment_builder, builder_name, macro_name
+				)
+			} else {
+				format!(
+					"{}#[doc=\"\tlet object = {}!()?;\"]\n",
+					comment_builder, macro_name
+				)
+			};
 			let comment_builder = format!("{}#[doc=\"\t// use object...\"]\n", comment_builder);
 			let comment_builder = format!("{}#[doc=\"\"]\n", comment_builder);
 
@@ -1589,10 +1598,17 @@ impl StateMachine {
 				"{}#[doc=\"\t// build a {} with parameters explicitly specified.\"]\n",
 				comment_builder, trait_name
 			);
-			let mut comment_builder = format!(
-				"{}#[doc=\"\tlet object = {}!(\"]\n",
-				comment_builder, macro_name
-			);
+			let mut comment_builder = if is_builder {
+				format!(
+					"{}#[doc=\"\tlet object = {}::build_{}(vec![\"]\n",
+					comment_builder, builder_name, macro_name
+				)
+			} else {
+				format!(
+					"{}#[doc=\"\tlet object = {}!(\"]\n",
+					comment_builder, macro_name
+				)
+			};
 
 			for param in &self.const_list {
 				let pascal = param.name.to_case(Case::Pascal);
@@ -1609,7 +1625,11 @@ impl StateMachine {
 				}
 			}
 
-			let comment_builder = format!("{}#[doc=\"\t)?;\"]\n", comment_builder,);
+			let comment_builder = if is_builder {
+				format!("{}#[doc=\"\t])?;\"]\n", comment_builder,)
+			} else {
+				format!("{}#[doc=\"\t)?;\"]\n", comment_builder,)
+			};
 			let comment_builder = format!("{}#[doc=\"\t// use object...\"]\n", comment_builder);
 			let comment_builder = format!("{}#[doc=\"\"]\n", comment_builder);
 			let comment_builder = format!("{}#[doc=\"\tOk(())\"]\n", comment_builder);
@@ -1641,6 +1661,7 @@ impl StateMachine {
 				false,
 				false,
 				false,
+				false,
 			)?;
 			let macro_template = self.update_comments(
 				macro_template,
@@ -1650,6 +1671,7 @@ impl StateMachine {
 				name,
 				&trait_name,
 				true,
+				false,
 				false,
 				false,
 			)?;
@@ -1663,6 +1685,7 @@ impl StateMachine {
 				false,
 				true,
 				false,
+				false,
 			)?;
 			let macro_template = self.update_comments(
 				macro_template,
@@ -1673,6 +1696,7 @@ impl StateMachine {
 				&trait_name,
 				true,
 				true,
+				false,
 				false,
 			)?;
 			let macro_template = self.update_comments(
@@ -1685,6 +1709,7 @@ impl StateMachine {
 				false,
 				false,
 				true,
+				false,
 			)?;
 			let macro_template = self.update_comments(
 				macro_template,
@@ -1696,6 +1721,7 @@ impl StateMachine {
 				true,
 				false,
 				true,
+				false,
 			)?;
 			let macro_template = macro_template
 				.replace(
@@ -1852,8 +1878,85 @@ impl StateMachine {
 				.to_string();
 			let builder_template = builder_template.replace("${NAME}", name).to_string();
 			let builder_template = builder_template.replace("${TRAIT}", &trait_name);
-			let builder_template = builder_template.replace("${IMPL_COMMENTS}", "");
-			let builder_template = builder_template.replace("${BOX_COMMENTS}", "");
+
+			let builder_template = self.update_comments(
+				builder_template,
+				"${IMPL_COMMENTS}",
+				self.module.as_ref(),
+				format!("{}", view),
+				name,
+				&trait_name,
+				false,
+				false,
+				false,
+				true,
+			)?;
+
+			let builder_template = self.update_comments(
+				builder_template,
+				"${BOX_COMMENTS}",
+				self.module.as_ref(),
+				format!("{}_box", view),
+				name,
+				&trait_name,
+				true,
+				false,
+				false,
+				true,
+			)?;
+
+			let builder_template = self.update_comments(
+				builder_template,
+				"${SEND_IMPL_COMMENTS}",
+				self.module.as_ref(),
+				format!("{}_send", view),
+				name,
+				&trait_name,
+				false,
+				true,
+				false,
+				true,
+			)?;
+
+			let builder_template = self.update_comments(
+				builder_template,
+				"${SEND_BOX_COMMENTS}",
+				self.module.as_ref(),
+				format!("{}_send_box", view),
+				name,
+				&trait_name,
+				true,
+				true,
+				false,
+				true,
+			)?;
+
+			let builder_template = self.update_comments(
+				builder_template,
+				"${SYNC_IMPL_COMMENTS}",
+				self.module.as_ref(),
+				format!("{}_sync", view),
+				name,
+				&trait_name,
+				false,
+				false,
+				true,
+				true,
+			)?;
+
+			let builder_template = self.update_comments(
+				builder_template,
+				"${SYNC_BOX_COMMENTS}",
+				self.module.as_ref(),
+				format!("{}_sync_box", view),
+				name,
+				&trait_name,
+				true,
+				false,
+				true,
+				true,
+			)?;
+
 			let builder_template = builder_template.replace(
 				"${VISIBILITY_BOX}",
 				self.get_visibility(&format!("{}_box", view), &public_set, &protected_set),

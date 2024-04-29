@@ -16,6 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! The test_class module
 use bmw_core::*;
 
 #[class {
