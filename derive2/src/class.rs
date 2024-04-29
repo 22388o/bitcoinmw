@@ -16,12 +16,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bmw_base::BaseErrorKind::Parse;
 use bmw_base::*;
+use bmw_deps::convert_case::{Case, Casing};
 use bmw_deps::substring::Substring;
 use proc_macro::TokenTree::*;
 use proc_macro::{Delimiter, Group, Span, TokenStream, TokenTree};
 use proc_macro_error::{abort, emit_error, Diagnostic, Level};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
 
 struct SpanError {
@@ -220,7 +222,7 @@ impl StateMachine {
 		self.parse_attr(attr)?;
 		self.parse_item(item)?;
 		self.semantic_analysis()?;
-		self.build_response()
+		self.generate_code()
 	}
 
 	fn semantic_analysis(&mut self) -> Result<(), Error> {
@@ -643,14 +645,12 @@ impl StateMachine {
 	}
 
 	fn process_comment(&mut self, token: TokenTree) -> Result<(), Error> {
-		println!("comment token = {}", token);
 		match token {
 			Group(group) => {
 				if group.delimiter() == Delimiter::Bracket {
 					let mut expect_doc = true;
 					let mut expect_equal = false;
 					for token in group.stream() {
-						println!("comment group token = {}", token);
 						let token_str = token.to_string();
 						if expect_doc && token_str != "doc" {
 							self.append_error(&format!("expected 'doc' found '{}'", token))?;
@@ -664,7 +664,6 @@ impl StateMachine {
 						} else {
 							let token_str = self.strip_start(&token_str, '\"');
 							let token_str = self.strip_end(&token_str, '\"');
-							println!("inner comment = '{}'", token_str);
 							self.comments.push(token_str);
 						}
 					}
@@ -937,7 +936,6 @@ impl StateMachine {
 
 		for token in strm.clone() {
 			self.span = Some(token.span());
-			println!("item_token='{}'", token);
 			let token_str = token.to_string();
 			if expect_impl && token_str != "impl" {
 				self.process_abort("expected keyword impl".to_string())?;
@@ -994,15 +992,6 @@ impl StateMachine {
 								if group.stream().to_string().len() != 0 {
 									self.process_abort("impl block must be empty".to_string())?;
 								}
-
-								println!(
-									"final=gen={:?},gen2={:?},where={:?},post={:?},pre={:?}",
-									self.generics,
-									self.generics2,
-									self.where_clause,
-									&self.get_post_name_clause()?,
-									&self.get_pre_name_clause()?
-								);
 							}
 						}
 						_ => {}
@@ -1047,7 +1036,6 @@ impl StateMachine {
 					match token {
 						Group(ref group) => {
 							expect_group = false;
-							println!("group='{}'", group.to_string());
 							for _group_item in group.stream() {
 								self.process_abort("impl must be empty for classes".to_string())?;
 							}
@@ -1070,14 +1058,503 @@ impl StateMachine {
 		Ok(())
 	}
 
-	fn build_response(&self) -> Result<TokenStream, Error> {
-		println!("protected list = {:?}", self.protected_list);
-		println!("public list = {:?}", self.public_list);
-		println!("clone = {:?}", self.clone_list);
-		println!("var list = {:?}", self.var_list);
-		println!("const list = {:?}", self.const_list);
-		println!("fn list = {:?}", self.fn_list);
-		Ok(TokenStream::new())
+	fn generate_code(&self) -> Result<TokenStream, Error> {
+		let template = include_str!("../templates/class_template.txt").to_string();
+		let template = self.update_structs(template)?;
+		let template = self.update_impl_struct(template)?;
+		let template = self.update_impl_var(template)?;
+		let template = self.update_impl_const(template)?;
+		let template = self.update_traits(template)?;
+		let template = self.update_trait_impl(template)?;
+		let template = self.update_macros(template)?;
+		let template = self.update_builder(template)?;
+
+		println!("resp='{}'", template);
+		Ok(map_err!(template.parse::<TokenStream>(), Parse)?)
+	}
+
+	fn build_clone_set(&self) -> HashSet<String> {
+		let mut ret = HashSet::new();
+		for item in &self.clone_list {
+			ret.insert(item.name.clone());
+		}
+		ret
+	}
+
+	fn build_trait_hashmap(&self) -> HashMap<String, Vec<FnInfo>> {
+		let mut ret: HashMap<String, Vec<FnInfo>> = HashMap::new();
+		for item in &self.fn_list {
+			for view in &item.views {
+				match ret.get_mut(view) {
+					Some(fn_vec) => {
+						fn_vec.push(item.clone());
+					}
+					None => {
+						ret.insert(view.clone(), vec![item.clone()]);
+					}
+				}
+			}
+		}
+		ret
+	}
+
+	fn get_visibility_trait(
+		&self,
+		name: &String,
+		public_set: &HashSet<String>,
+		protected_set: &HashSet<String>,
+	) -> String {
+		if public_set.contains(name)
+			|| public_set.contains(&format!("{}_box", name))
+			|| public_set.contains(&format!("{}_sync", name))
+			|| public_set.contains(&format!("{}_box", name))
+			|| public_set.contains(&format!("{}_sync_box", name))
+			|| public_set.contains(&format!("{}_send_box", name))
+		{
+			"pub ".to_string()
+		} else if protected_set.contains(name)
+			|| protected_set.contains(&format!("{}_box", name))
+			|| protected_set.contains(&format!("{}_sync", name))
+			|| protected_set.contains(&format!("{}_box", name))
+			|| protected_set.contains(&format!("{}_sync_box", name))
+			|| protected_set.contains(&format!("{}_send_box", name))
+		{
+			"pub(crate) ".to_string()
+		} else {
+			"".to_string()
+		}
+	}
+
+	fn build_public_set(&self) -> HashSet<String> {
+		let mut ret = HashSet::new();
+		for item in &self.public_list {
+			ret.insert(item.name.clone());
+		}
+		ret
+	}
+
+	fn build_protected_set(&self) -> HashSet<String> {
+		let mut ret = HashSet::new();
+		for item in &self.protected_list {
+			ret.insert(item.name.clone());
+		}
+		ret
+	}
+
+	fn update_traits(&self, template: String) -> Result<String, Error> {
+		let view_set = self.build_view_set(true)?;
+		let clone_set = self.build_clone_set();
+		let trait_hashmap = self.build_trait_hashmap();
+		let public_set = self.build_public_set();
+		let protected_set = self.build_protected_set();
+		let mut all_traits = "".to_string();
+
+		for view in view_set {
+			let trait_name = view.to_case(Case::Pascal);
+			let trait_visibility = self.get_visibility_trait(&view, &public_set, &protected_set);
+			let clone_text = if clone_set.contains(&view) {
+				": bmw_deps::dyn_clone::DynClone"
+			} else {
+				""
+			};
+			let mut trait_text = format!(
+				"{}trait {} {}{}{{",
+				trait_visibility,
+				trait_name,
+				&self.get_post_name_clause()?,
+				clone_text,
+			);
+
+			match trait_hashmap.get(&view) {
+				Some(fn_vec) => {
+					for fn_info in fn_vec {
+						trait_text = format!(
+							"{}\n\tfn {}({}){}{};",
+							trait_text,
+							fn_info.name,
+							fn_info.params.to_string(),
+							if fn_info.return_str.to_string().len() > 0 {
+								" -> "
+							} else {
+								""
+							},
+							fn_info.return_str.to_string()
+						);
+					}
+				}
+				None => {}
+			}
+
+			let trait_text = format!("{}\n}}", trait_text);
+			all_traits = format!("{}{}\n", all_traits, trait_text);
+		}
+
+		let template = template.replace("${TRAITS}", &all_traits);
+		Ok(template)
+	}
+
+	fn convert_param_string(&self, param_string: &String) -> Result<(String, String), Error> {
+		let mut ret_types = format!("");
+		let strm = map_err!(param_string.parse::<TokenStream>(), Parse)?;
+		let mut ret = "".to_string();
+		let mut first = true;
+		let mut in_type = false;
+		let mut gtlt_delim_sum = 0u128;
+		for token in strm {
+			match token {
+				Group(token) => {
+					ret = format!("{}(", ret);
+					for token in token.stream() {
+						let token = token.to_string();
+						println!("ret_converloop token = '{}'", token);
+						if first && (token == "&" || token == "mut") {
+						} else {
+							first = false;
+							if token == ":" {
+								in_type = true;
+							} else if !in_type {
+								ret = format!("{}{}", ret, token);
+							} else {
+								ret_types = format!("{} {}", ret_types, token);
+								if token == "<" {
+									gtlt_delim_sum += 1;
+								} else if token == ">" {
+									gtlt_delim_sum = gtlt_delim_sum.saturating_sub(1);
+								} else if token == "," && gtlt_delim_sum == 0 {
+									in_type = false;
+									ret = format!("{}{}", ret, token);
+								}
+							}
+						}
+					}
+					ret = format!("{})", ret);
+				}
+				_ => {
+					ret = format!("{}{}", ret, token);
+				}
+			}
+		}
+		println!("ret_convert='{}'", ret);
+		Ok((ret, ret_types))
+	}
+
+	fn update_trait_impl(&self, template: String) -> Result<String, Error> {
+		let mut all_trait_impls = "".to_string();
+		let mut all_trait_impls_mut = "".to_string();
+		let trait_hashmap = self.build_trait_hashmap();
+		let clone_set = self.build_clone_set();
+		let name = self.name.as_ref().unwrap();
+
+		for (view, fn_vec) in &trait_hashmap {
+			let trait_name = view.to_case(Case::Pascal);
+			all_trait_impls = format!(
+				"{}\nimpl {} {} {} for {} {} {{",
+				all_trait_impls,
+				&self.get_pre_name_clause()?,
+				trait_name,
+				&self.get_pre_name_clause()?,
+				name,
+				&self.get_post_name_clause()?,
+			);
+
+			if !clone_set.contains(view) {
+				all_trait_impls_mut = format!(
+					"{}\nimpl {} {} {} for &mut {} {} {{\n",
+					all_trait_impls_mut,
+					&self.get_pre_name_clause()?,
+					trait_name,
+					&self.get_pre_name_clause()?,
+					name,
+					&self.get_post_name_clause()?,
+				);
+			}
+
+			for fn_info in fn_vec {
+				let param_pair =
+					self.convert_param_string(&format!("({})", fn_info.params.to_string()))?;
+				all_trait_impls = format!(
+					"{}\n\tfn {}({}){} {{ {}::{}{} }}",
+					all_trait_impls,
+					fn_info.name,
+					fn_info.params,
+					if fn_info.return_str.to_string().len() > 0 {
+						format!(" -> {}", fn_info.return_str)
+					} else {
+						"".to_string()
+					},
+					name,
+					fn_info.name,
+					param_pair.0
+				);
+
+				if !clone_set.contains(view) {
+					all_trait_impls_mut = format!(
+						"{}\n\tfn {}({}){} {{ {}::{}{} }}",
+						all_trait_impls_mut,
+						fn_info.name,
+						fn_info.params,
+						if fn_info.return_str.to_string().len() > 0 {
+							format!(" -> {}", fn_info.return_str)
+						} else {
+							"".to_string()
+						},
+						name,
+						fn_info.name,
+						param_pair.0
+					);
+				}
+			}
+
+			all_trait_impls = format!("{}\n}}", all_trait_impls);
+			if !clone_set.contains(view) {
+				all_trait_impls_mut = format!("{}\n}}", all_trait_impls_mut);
+			}
+		}
+
+		let all_trait_impls = format!("{}{}", all_trait_impls, all_trait_impls_mut);
+		println!("all_trait_impls='{}'", all_trait_impls);
+		let template = template
+			.replace("${TRAIT_IMPL}", &all_trait_impls)
+			.to_string();
+		Ok(template)
+	}
+
+	fn update_macros(&self, template: String) -> Result<String, Error> {
+		let template = template.replace("${MACROS}", "").to_string();
+		Ok(template)
+	}
+
+	fn get_visibility(
+		&self,
+		name: &String,
+		public_set: &HashSet<String>,
+		protected_set: &HashSet<String>,
+	) -> &str {
+		if public_set.get(name).is_some() {
+			"pub "
+		} else if protected_set.get(name).is_some() {
+			"pub(crate) "
+		} else {
+			""
+		}
+	}
+
+	fn update_builder(&self, template: String) -> Result<String, Error> {
+		let name = self.name.as_ref().unwrap();
+		let public_set = self.build_public_set();
+		let protected_set = self.build_protected_set();
+		let view_set = self.build_view_set(true)?;
+		let mut builder_text = format!("pub struct {}Builder {{}}\nimpl {}Builder {{", name, name);
+		for view in &view_set {
+			let trait_name = view.to_case(Case::Pascal);
+			let builder_template = include_str!("../templates/class_builder_template.txt");
+			let builder_template = builder_template
+				.replace("${GENERIC_PRE}", &self.get_pre_name_clause()?)
+				.to_string();
+			let builder_template = builder_template
+				.replace("${WHERE_CLAUSE}", &self.get_where_clause()?)
+				.to_string();
+			let builder_template = builder_template.replace("${NAME}", name).to_string();
+			let builder_template = builder_template.replace("${TRAIT}", &trait_name);
+			let builder_template = builder_template.replace("${IMPL_COMMENTS}", "");
+			let builder_template = builder_template.replace("${BOX_COMMENTS}", "");
+			let builder_template = builder_template.replace(
+				"${VISIBILITY_BOX}",
+				self.get_visibility(&format!("{}_box", view), &public_set, &protected_set),
+			);
+			let builder_template = builder_template.replace(
+				"${VISIBILITY_IMPL}",
+				self.get_visibility(view, &public_set, &protected_set),
+			);
+			let builder_template = builder_template.replace(
+				"${VISIBILITY_SEND_BOX}",
+				self.get_visibility(&format!("{}_send_box", view), &public_set, &protected_set),
+			);
+			let builder_template = builder_template.replace(
+				"${VISIBILITY_SEND_IMPL}",
+				self.get_visibility(&format!("{}_send", view), &public_set, &protected_set),
+			);
+			let builder_template = builder_template.replace(
+				"${VISIBILITY_SYNC_BOX}",
+				self.get_visibility(&format!("{}_sync_box", view), &public_set, &protected_set),
+			);
+			let builder_template = builder_template.replace(
+				"${VISIBILITY_SYNC_IMPL}",
+				self.get_visibility(&format!("{}_sync", view), &public_set, &protected_set),
+			);
+			let builder_template = builder_template.replace("${VIEW}", view);
+			builder_text = format!("{}{}", builder_text, builder_template);
+		}
+		builder_text = format!("{}}}", builder_text);
+
+		println!("builder_text='{}'", builder_text);
+		let template = template.replace("${BUILDER}", &builder_text).to_string();
+		Ok(template)
+	}
+
+	fn update_impl_struct(&self, template: String) -> Result<String, Error> {
+		let name = self.name.as_ref().unwrap();
+
+		// create the main struct impl
+		let mut main_impl = format!(
+			"impl{} {} {} {{",
+			&self.get_pre_name_clause()?,
+			name,
+			&self.get_post_name_clause()?
+		);
+
+		for fn_info in &self.fn_list {
+			if fn_info.name == "builder" {
+				let impl_builder = include_str!("../templates/class_impl_builder_template.txt");
+				let impl_builder = impl_builder.replace("${NAME}", name);
+				main_impl = format!("{}\n{}", main_impl, impl_builder);
+			} else {
+				main_impl = format!(
+					"{}\n\tfn {}({}) {} {} {{\n\t\t{}\n\t}}\n",
+					main_impl,
+					fn_info.name,
+					fn_info.params,
+					if fn_info.return_str.to_string().trim().len() > 0 {
+						" -> "
+					} else {
+						""
+					},
+					fn_info.return_str,
+					fn_info.fn_block
+				);
+			}
+		}
+
+		let get_bytes_template = include_str!("../templates/class_impl_get_template.txt");
+		let get_mut_bytes_template = include_str!("../templates/class_impl_get_mut_template.txt");
+
+		for const_param in &self.const_list {
+			let getter = get_bytes_template.replace("${PARAM_NAME}", &const_param.name);
+			let getter = getter.replace("${PARAM_TYPE}", &const_param.type_str);
+			main_impl = format!("{}\n{}", main_impl, getter);
+		}
+
+		for var_param in &self.var_list {
+			let mutter = get_mut_bytes_template.replace("${PARAM_NAME}", &var_param.name);
+			let mutter = mutter.replace("${PARAM_TYPE}", &var_param.type_str);
+			main_impl = format!("{}\n{}", main_impl, mutter);
+		}
+
+		let main_impl = format!("{}\n}}", main_impl);
+
+		let template = template.replace("${IMPL_STRUCT}", &main_impl).to_string();
+		Ok(template)
+	}
+
+	fn update_impl_var(&self, template: String) -> Result<String, Error> {
+		let name = self.name.as_ref().unwrap();
+		// create the Var impl
+		let get_mut_bytes_template = include_str!("../templates/class_get_mut_template.txt");
+		let mut var_impl = format!(
+			"impl{} {}Var {} {{",
+			&self.get_pre_name_clause()?,
+			name,
+			&self.get_post_name_clause()?
+		);
+		for var_param in &self.var_list {
+			let mutter = get_mut_bytes_template.replace("${PARAM_NAME}", &var_param.name);
+			let mutter = mutter.replace("${PARAM_TYPE}", &var_param.type_str);
+			var_impl = format!("{}\n{}", var_impl, mutter);
+		}
+
+		let mut test_init = "".to_string();
+
+		// add builder
+		for fn_info in &self.fn_list {
+			if fn_info.name == "builder" {
+				for comment in &fn_info.comments {}
+
+				let param_list = &fn_info.params.to_string();
+				let param_name = self.strip_start(&param_list, '&');
+				let param_name = self.strip_start(&param_name, ')');
+				var_impl = format!(
+					"{}\n\tfn builder({}: &{}Const) -> Result<Self, Error> {{\n\t\t{}\n\t}} \n",
+					var_impl, param_name, name, fn_info.fn_block
+				);
+			}
+		}
+
+		let var_impl = format!("{}}}", var_impl);
+
+		let template = template.replace("${IMPL_VAR}", &var_impl).to_string();
+		Ok(template)
+	}
+
+	fn update_impl_const(&self, template: String) -> Result<String, Error> {
+		// create the Const impl
+		let name = self.name.as_ref().unwrap();
+		let get_bytes_template = include_str!("../templates/class_get_template.txt");
+		let mut const_impl = format!("impl {}Const {{", name);
+		for const_param in &self.const_list {
+			let getter = get_bytes_template.replace("${PARAM_NAME}", &const_param.name);
+			let getter = getter.replace("${PARAM_TYPE}", &const_param.type_str);
+			const_impl = format!("{}\n{}", const_impl, getter);
+		}
+		let const_impl = format!("{}}}", const_impl);
+		let template = template.replace("${IMPL_CONST}", &const_impl).to_string();
+		Ok(template)
+	}
+
+	fn update_structs(&self, template: String) -> Result<String, Error> {
+		let name = self.name.as_ref().unwrap();
+		let template = template.replace("${NAME}", &name).to_string();
+		let template = template
+			.replace("${GENERICS}", &self.get_post_name_clause()?)
+			.to_string();
+		let template = template
+			.replace("${GENERICS_PRE}", &self.get_pre_name_clause()?)
+			.to_string();
+
+		let template = template
+			.replace(
+				"${CLONE}",
+				if self.clone_list.len() == 0 {
+					""
+				} else {
+					"#[derive(Clone)]"
+				},
+			)
+			.to_string();
+
+		let mut var_params = "".to_string();
+		for var_param in &self.var_list {
+			var_params = format!(
+				"{}\n\t{}: {},",
+				var_params, var_param.name, var_param.type_str
+			);
+		}
+		let template = template.replace("${VAR_PARAMS}", &var_params);
+
+		let mut const_params = "".to_string();
+		// export the config options here
+		let mut conf_default = format!("#[doc(hidden)]\npub use {}ConstOptions::*;", name);
+		conf_default = format!("{}\nimpl Default for {}Const {{", conf_default, name);
+		conf_default = format!("{}\n\tfn default() -> Self {{\n\t\tSelf {{", conf_default);
+		for const_param in &self.const_list {
+			const_params = format!(
+				"{}\n\t{}: {},",
+				const_params, const_param.name, const_param.type_str
+			);
+			conf_default = format!(
+				"{}\n\t\t\t{}: {},",
+				conf_default, const_param.name, const_param.value_str
+			);
+		}
+
+		conf_default = format!("{}\n\t\t}}\n\t}}\n}}", conf_default);
+		let template = template
+			.replace("${CONST_PARAMS}", &const_params)
+			.to_string();
+		let template = template
+			.replace("${CONST_DEFAULT}", &conf_default)
+			.to_string();
+
+		Ok(template)
 	}
 }
 
