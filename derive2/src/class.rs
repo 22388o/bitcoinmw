@@ -1448,7 +1448,7 @@ impl StateMachine {
 		replacement: &str,
 		module: Option<&String>,
 		macro_name: String,
-		class_name: &String,
+		_class_name: &String,
 		trait_name: &str,
 		is_box: bool,
 		is_send: bool,
@@ -1462,7 +1462,6 @@ impl StateMachine {
 		let comment_builder = if !visible {
 			"".to_string()
 		} else {
-			let builder_name = format!("{}Builder", class_name);
 			let comment_builder = "".to_string();
 			let comment_builder = format!(
 				"{}#[doc=\"Builds an instance of the [`{}`]\"]\n",
@@ -1558,10 +1557,7 @@ impl StateMachine {
 
 			match module {
 				Some(module) => {
-					comment_builder = format!(
-						"{}\n#[doc=\"use {}::{};\"]",
-						comment_builder, module, builder_name
-					);
+					comment_builder = format!("{}\n#[doc=\"use {}::*;\"]", comment_builder, module);
 					comment_builder = format!(
 						"{}\n#[doc=\"use {}::{};\"]",
 						comment_builder, crate_name, macro_name
@@ -1579,9 +1575,42 @@ impl StateMachine {
 				comment_builder
 			);
 			let comment_builder = format!(
-				"{}#[doc=\"\tlet x = {}!()?;\"]\n",
+				"{}#[doc=\"\t// build a {} with default parameters.\"]\n",
+				comment_builder, trait_name
+			);
+			let comment_builder = format!(
+				"{}#[doc=\"\tlet object = {}!()?;\"]\n",
 				comment_builder, macro_name
 			);
+			let comment_builder = format!("{}#[doc=\"\t// use object...\"]\n", comment_builder);
+			let comment_builder = format!("{}#[doc=\"\"]\n", comment_builder);
+
+			let comment_builder = format!(
+				"{}#[doc=\"\t// build a {} with parameters explicitly specified.\"]\n",
+				comment_builder, trait_name
+			);
+			let mut comment_builder = format!(
+				"{}#[doc=\"\tlet object = {}!(\"]\n",
+				comment_builder, macro_name
+			);
+
+			for param in &self.const_list {
+				let pascal = param.name.to_case(Case::Pascal);
+				let default_value = param.value_str.clone();
+				let default_value = default_value.trim();
+
+				if default_value.find("vec").is_some() || default_value.find("(").is_some() {
+					// bypass Vec and tuple
+				} else {
+					comment_builder = format!(
+						"{}#[doc=\"\t\t{}({}),\"]\n",
+						comment_builder, pascal, default_value
+					);
+				}
+			}
+
+			let comment_builder = format!("{}#[doc=\"\t)?;\"]\n", comment_builder,);
+			let comment_builder = format!("{}#[doc=\"\t// use object...\"]\n", comment_builder);
 			let comment_builder = format!("{}#[doc=\"\"]\n", comment_builder);
 			let comment_builder = format!("{}#[doc=\"\tOk(())\"]\n", comment_builder);
 			let comment_builder = format!("{}#[doc=\"}}\"]\n", comment_builder);
