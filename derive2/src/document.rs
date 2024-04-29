@@ -250,7 +250,10 @@ fn build_docs(
 			pre_comments.push(comment.clone());
 		}
 	}
-	if return_comment == "" {
+
+	if !has_return_type(&signature) {
+		return_comment = "n/a".to_string();
+	} else if return_comment == "" {
 		return_comment =
 			"__TODO__: add '/// @return ... ' to document the return of this function.".to_string();
 	}
@@ -276,7 +279,7 @@ fn build_docs(
 	ret.extend("/// # Return".parse::<TokenStream>());
 	let has_error = build_return_list(&mut ret, signature, return_comment)?;
 	ret.extend("/// # Errors".parse::<TokenStream>());
-	if has_error || error_list.len() != 0 {
+	if has_error.0 || error_list.len() != 0 {
 		build_error_list(&mut ret, error_list)?;
 	} else {
 		ret.extend("/// n/a".parse::<TokenStream>());
@@ -321,11 +324,39 @@ fn build_see_list(ret: &mut TokenStream, see_list: Vec<String>) -> Result<(), Er
 	Ok(())
 }
 
+fn has_return_type(signature: &TokenStream) -> bool {
+	let mut found_fn = false;
+	let mut found_params = false;
+	let mut ret = false;
+	for token in signature.clone() {
+		let token_str = token.to_string();
+		if found_params {
+			if token_str != ";" {
+				ret = true;
+			}
+		} else if found_fn {
+			match token {
+				Group(group) => {
+					if group.delimiter() == Delimiter::Parenthesis {
+						// param string
+						found_params = true;
+					}
+				}
+				_ => {}
+			}
+		} else if token_str == "fn" {
+			found_fn = true;
+		}
+	}
+
+	ret
+}
+
 fn build_return_list(
 	ret: &mut TokenStream,
 	signature: TokenStream,
 	return_comment: String,
-) -> Result<bool, Error> {
+) -> Result<(bool, bool), Error> {
 	let mut found_fn = false;
 	let mut found_param_list = false;
 	let mut return_type = "".to_string();
@@ -393,6 +424,7 @@ fn build_return_list(
 			}
 		}
 	}
+	let has_return = return_type.len() > 0;
 	let return_type = format!(
 		"/// {} {}{}",
 		return_type,
@@ -400,7 +432,7 @@ fn build_return_list(
 		return_comment
 	);
 	ret.extend(return_type.parse::<TokenStream>());
-	Ok(return_type.trim().find("Result").is_some())
+	Ok((return_type.trim().find("Result").is_some(), has_return))
 }
 
 fn build_input_list(

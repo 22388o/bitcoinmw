@@ -20,21 +20,58 @@ use bmw_core::*;
 
 #[class {
         protected viewx, viewx_send_box;
-        public viewx_send_box, viewx_box;
+        /// top trait public
+        /// top trait 2
+        public viewx_send_box, viewx_box, viewy;
         const c: Vec<(String, String)> = vec![];
         const p2: Vec<String> = vec![];
         var m: Vec<Option<usize>>;
+
+        /// to trait top
+        /// more trait top
+        /// next
+        /// # some formatting
+        /// ok ok ok
+        /// here
+        ///```
+        /// fn main() -> Result<(), Error> {
+        ///     Ok(())
+        /// }
+        ///```
         fn builder(&const_values) -> Result<Self, Error> {
                 Ok(Self {
                         m: vec![],
                 })
         }
 
-        [viewx]
+        /// this
+        /// is a test
+        /// of the comments
+        /// @param self an immutable ref
+        /// @error bmw_base::BaseErrorKind::Parse if a parse error occurs
+        /// @error bmw_base::BaseErrorKind::IllegalState if an illegal state occurs
+        /// @error bmw_base::BaseErrorKind::IO if an i/o error occurs
+        /// @return None is always returned
+        /// @see crate::test_class::Viewx::next
+        /// @deprecated
+        /// # Examples
+        ///```
+        /// use bmw_base::*;
+        ///
+        /// fn main() -> Result<(), Error> {
+        ///     Ok(())
+        /// }
+        ///```
+        [viewx, viewy]
         fn ok(&self) -> Result<Option<usize>, Error> {
                 Ok(None)
         }
 
+        /// next comments here
+        /// another next line
+        /// viewx next
+        /// @param abc the value to be printed
+        /// @param self an immutable ref
         [viewx]
         fn next(&self, abc: usize) {
                 println!("abc={}", abc);
@@ -64,11 +101,15 @@ mod test {
                         })
                 }
 
+                /// ok ok ok ok
                 [view1]
                 fn ok(&self) -> Result<Option<MyStruct>, Error> {
                         Ok(None)
                 }
 
+                /// next
+                /// next2
+                /// next3
                 [view1]
                 fn next(&self, abc: usize) {
                     println!("abc={}", abc);

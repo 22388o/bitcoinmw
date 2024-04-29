@@ -35,11 +35,16 @@ struct SpanError {
 struct PublicView {
 	name: String,
 	span: Span,
+	comments: Vec<String>,
 }
 
 impl PublicView {
-	fn new(name: String, span: Span) -> Self {
-		Self { name, span }
+	fn new(name: String, span: Span, comments: Vec<String>) -> Self {
+		Self {
+			name,
+			span,
+			comments,
+		}
 	}
 }
 
@@ -782,13 +787,16 @@ impl StateMachine {
 		match token {
 			Ident(ident) => {
 				self.expect_comma = true;
+				let comments = self.comments.clone();
 				self.public_list.push(PublicView::new(
 					ident.to_string(),
 					self.span.as_ref().unwrap().clone(),
+					comments,
 				));
 			}
 			Punct(p) => {
 				if p == ';' {
+					self.comments.clear();
 					if !self.expect_comma {
 						self.append_error("expected ident")?;
 					}
@@ -857,6 +865,8 @@ impl StateMachine {
 
 	fn process_view_list(&mut self, group: &Group) -> Result<(), Error> {
 		let mut fn_info = FnInfo::new(self.span.as_ref().unwrap().clone());
+		fn_info.comments.extend(self.comments.clone());
+		self.comments.clear();
 		let mut expect_comma = false;
 		for token in group.stream() {
 			self.span = Some(token.span());
@@ -1068,7 +1078,7 @@ impl StateMachine {
 		let template = self.update_trait_impl(template)?;
 		let template = self.update_macros(template)?;
 		let template = self.update_builder(template)?;
-
+		//println!("template='{}'", template);
 		Ok(map_err!(template.parse::<TokenStream>(), Parse)?)
 	}
 
@@ -1156,8 +1166,26 @@ impl StateMachine {
 			} else {
 				""
 			};
+
+			let mut trait_comments = "".to_string();
+			for public in &self.public_list {
+				if public.name == view
+					|| public.name == format!("{}_box", view)
+					|| public.name == format!("{}_send_box", view)
+					|| public.name == format!("{}_sync_box", view)
+					|| public.name == format!("{}_send", view)
+					|| public.name == format!("{}_sync", view)
+				{
+					for comment in &public.comments {
+						trait_comments = format!("{}///{}\n", trait_comments, comment);
+					}
+					break;
+				}
+			}
+
 			let mut trait_text = format!(
-				"{}trait {} {}{}{{",
+				"{}{}trait {} {}{}{{",
+				trait_comments,
 				trait_visibility,
 				trait_name,
 				&self.get_post_name_clause()?,
@@ -1167,6 +1195,10 @@ impl StateMachine {
 			match trait_hashmap.get(&view) {
 				Some(fn_vec) => {
 					for fn_info in fn_vec {
+						trait_text = format!("{}\n\t#[document]", trait_text);
+						for comment in &fn_info.comments {
+							trait_text = format!("{}\n\t///{}", trait_text, comment);
+						}
 						trait_text = format!(
 							"{}\n\tfn {}({}){}{};",
 							trait_text,
@@ -1590,8 +1622,6 @@ impl StateMachine {
 		// add builder
 		for fn_info in &self.fn_list {
 			if fn_info.name == "builder" {
-				for _comment in &fn_info.comments {}
-
 				let param_list = &fn_info.params.to_string();
 				let param_name = self.strip_start(&param_list, '&');
 				let param_name = self.strip_start(&param_name, ')');
