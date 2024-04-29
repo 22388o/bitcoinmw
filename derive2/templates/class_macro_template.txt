@@ -29,7 +29,7 @@ ${BOX_COMMENTS}${BOX_PUBLIC}macro_rules! ${VIEW}_box {
 ${BOX_PROTECTED}
 
 #[allow(unused_macros)]
-${IMPL_COMMENTS}${IMPL_SEND_PUBLIC}macro_rules! ${VIEW}_send {
+${SEND_IMPL_COMMENTS}${IMPL_SEND_PUBLIC}macro_rules! ${VIEW}_send {
         ($($param:tt)*) => {{
                 match ${NAME}Builder::build_${VIEW}_send(vec![$($param)*]) {
                         Ok(ret) => {
@@ -44,7 +44,7 @@ ${IMPL_COMMENTS}${IMPL_SEND_PUBLIC}macro_rules! ${VIEW}_send {
 ${IMPL_SEND_PROTECTED}
 
 #[allow(unused_macros)]
-${BOX_COMMENTS}${BOX_SEND_PUBLIC}macro_rules! ${VIEW}_send_box {
+${SEND_BOX_COMMENTS}${BOX_SEND_PUBLIC}macro_rules! ${VIEW}_send_box {
         ($($param:tt)*) => {{
                 match ${NAME}Builder::build_${VIEW}_send_box(vec![$($param)*]) {
                         Ok(ret) => {
@@ -59,7 +59,7 @@ ${BOX_COMMENTS}${BOX_SEND_PUBLIC}macro_rules! ${VIEW}_send_box {
 ${BOX_SEND_PROTECTED}
 
 #[allow(unused_macros)]
-${IMPL_COMMENTS}${IMPL_SYNC_PUBLIC}macro_rules! ${VIEW}_sync {
+${SYNC_IMPL_COMMENTS}${IMPL_SYNC_PUBLIC}macro_rules! ${VIEW}_sync {
         ($($param:tt)*) => {{
                 match ${NAME}Builder::build_${VIEW}_sync(vec![$($param)*]) {
                         Ok(ret) => {
@@ -74,7 +74,7 @@ ${IMPL_COMMENTS}${IMPL_SYNC_PUBLIC}macro_rules! ${VIEW}_sync {
 ${IMPL_SYNC_PROTECTED}
 
 #[allow(unused_macros)]
-${BOX_COMMENTS}${BOX_SYNC_PUBLIC}macro_rules! ${VIEW}_sync_box {
+${SYNC_BOX_COMMENTS}${BOX_SYNC_PUBLIC}macro_rules! ${VIEW}_sync_box {
         ($($param:tt)*) => {{
                 match ${NAME}Builder::build_${VIEW}_sync_box(vec![$($param)*]) {
                         Ok(ret) => {

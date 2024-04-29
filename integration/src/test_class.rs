@@ -19,11 +19,29 @@
 use bmw_core::*;
 
 #[class {
+        module "bmw_int::test_class";
         protected viewx, viewx_send_box;
         /// top trait public
         /// top trait 2
-        public viewx_send_box, viewx_box, viewy;
-        const c: Vec<(String, String)> = vec![];
+        public viewx_send_box, viewx_box, viewy, viewy_sync_box;
+        /// a nice vec of (String, String).
+        const c: Vec<(String, String)> = vec![("abc".to_string(), "def".to_string())];
+        /// a nice usize value
+        const threads: usize = 6;
+
+
+        const my_value1: u8 = 1;
+        const my_value2: u16 = 2;
+        const my_value3: u32 = 3;
+        const my_value4: u64 = 4;
+        const my_value5: u128 = 5;
+        const my_value6: bool = false;
+        const my_value7: String =  "".to_string();
+        const my_value8: (String, String) = ("123".to_string(), "abc".to_string());
+        const my_value9: Vec<u32> = vec![1,2];
+
+        /// a very nice vec of strings
+        /// second comment
         const p2: Vec<String> = vec![];
         var m: Vec<Option<usize>>;
 

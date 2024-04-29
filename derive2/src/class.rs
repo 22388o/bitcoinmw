@@ -170,12 +170,14 @@ enum State {
 	Var,
 	Const,
 	Fn,
+	Module,
 	Comment,
 }
 
 struct StateMachine {
 	state: State,
 	name: Option<String>,
+	module: Option<String>,
 	span: Option<Span>,
 	error_list: Vec<SpanError>,
 	public_list: Vec<PublicView>,
@@ -202,6 +204,7 @@ impl StateMachine {
 		Self {
 			state: State::Base,
 			name: None,
+			module: None,
 			span: None,
 			error_list: vec![],
 			public_list: vec![],
@@ -437,6 +440,32 @@ impl StateMachine {
 			State::Comment => self.process_comment(token)?,
 			State::Var => self.process_var(token)?,
 			State::Const => self.process_const(token)?,
+			State::Module => self.process_module(token)?,
+		}
+		Ok(())
+	}
+
+	fn process_module(&mut self, token: TokenTree) -> Result<(), Error> {
+		if token.to_string() == ";" {
+			self.state = State::Base;
+		} else {
+			match token {
+				Literal(ident) => {
+					if self.module.is_some() {
+						self.append_error("module already defined")?;
+					} else {
+						let ident = self.strip_start(&ident.to_string(), '\"');
+						let ident = self.strip_end(&ident, '\"');
+						self.module = Some(ident);
+					}
+				}
+				_ => {
+					self.append_error(&format!(
+						"unexpected token, '{}', expected module name",
+						token.to_string()
+					))?;
+				}
+			}
 		}
 		Ok(())
 	}
@@ -836,6 +865,8 @@ impl StateMachine {
 				} else if ident_str == "fn" {
 					self.state = State::Fn;
 					self.expect_fn_name = true;
+				} else if ident_str == "module" {
+					self.state = State::Module;
 				} else {
 					self.append_error(&format!("unexpected token: '{}'", ident_str))?;
 				}
@@ -1078,7 +1109,6 @@ impl StateMachine {
 		let template = self.update_trait_impl(template)?;
 		let template = self.update_macros(template)?;
 		let template = self.update_builder(template)?;
-		//println!("template='{}'", template);
 		Ok(map_err!(template.parse::<TokenStream>(), Parse)?)
 	}
 
@@ -1347,6 +1377,220 @@ impl StateMachine {
 		Ok(template)
 	}
 
+	fn format_type_str(&self, type_str: &String) -> Result<(String, bool), Error> {
+		let mut allow_multi = false;
+		// we only need to special handling on our tuple and vec structures
+
+		let value = match type_str.find("Vec") {
+			Some(_) => {
+				// it's a Vec type
+				allow_multi = true;
+				let start = match type_str.find("<") {
+					Some(pos) => {
+						if pos + 1 < type_str.len() {
+							pos + 1
+						} else {
+							return err!(
+								BaseErrorKind::IllegalState,
+								"unexpected end of string: '{}'",
+								type_str
+							);
+						}
+					}
+					None => return err!(BaseErrorKind::IllegalState, "expected '<'"),
+				};
+
+				let end = match type_str.rfind(">") {
+					Some(end) => end,
+					None => {
+						return err!(
+							BaseErrorKind::IllegalState,
+							"expected '>' in '{}'",
+							type_str
+						)
+					}
+				};
+
+				type_str.substring(start, end).to_string()
+			}
+			None => type_str.clone(),
+		};
+
+		let value = value.trim();
+
+		let first_string = value.find("String");
+		let last_string = value.rfind("String");
+		if first_string.is_some() && last_string.is_some() && first_string != last_string {
+			// only legal value would be a tuple here so return the formatted version
+			Ok(("(&[`str`], &[`str`])".to_string(), allow_multi))
+		} else if first_string.is_some() {
+			// replace with &str
+			Ok(("&[`str`]".to_string(), allow_multi))
+		} else {
+			Ok((format!("[`{}`]", value), allow_multi))
+		}
+	}
+
+	fn format_value_str(&self, value_str: &String) -> String {
+		let value_str = value_str.replace("\"", "\\\"");
+		let value_str = value_str.replace("to_string", "");
+		let value_str = value_str.replace(".", "");
+		let value_str = value_str.replace("()", "");
+		let value_str = value_str.replace("vec", "");
+		let value_str = value_str.replace("!", "");
+
+		value_str.to_string()
+	}
+
+	fn update_comments(
+		&self,
+		template: String,
+		replacement: &str,
+		module: Option<&String>,
+		macro_name: String,
+		class_name: &String,
+		trait_name: &str,
+		is_box: bool,
+		is_send: bool,
+		is_sync: bool,
+	) -> Result<String, Error> {
+		let public_set = self.build_public_set();
+		let visible = self
+			.get_macro_pub_visibility(&macro_name, &public_set)
+			.len() != 0;
+
+		let comment_builder = if !visible {
+			"".to_string()
+		} else {
+			let builder_name = format!("{}Builder", class_name);
+			let comment_builder = "".to_string();
+			let comment_builder = format!(
+				"{}#[doc=\"Builds an instance of the [`{}`]\"]\n",
+				comment_builder, trait_name
+			);
+			let comment_builder = format!(
+				"{}#[doc=\"trait using the specified input parameters.\"]\n",
+				comment_builder
+			);
+			let comment_builder = format!("{}#[doc=\"# Input Parameters\"]\n", comment_builder);
+			let comment_builder = format!(
+				"{}#[doc=\"| Parameter | Multi | Description | Default Value |\"]\n",
+				comment_builder
+			);
+			let mut comment_builder = format!("{}#[doc=\"|---|---|---|---|\"]\n", comment_builder);
+			for value in &self.const_list {
+				let mut description = format!("");
+				for comment in &value.comments {
+					description = format!("{} {}", description, comment);
+				}
+				let value_pascal = value.name.to_case(Case::Pascal);
+				let (formatted_type_str, allow_multi) = self.format_type_str(&value.type_str)?;
+				let value_param = format!("{}({})", value_pascal, formatted_type_str);
+				comment_builder = format!(
+					"{}#[doc=\"| {} | {} | {} | {} |\n\"]\n",
+					comment_builder,
+					value_param,
+					if allow_multi { "yes" } else { "no" },
+					description,
+					self.format_value_str(&value.value_str)
+				);
+			}
+			let comment_builder = format!("{}#[doc=\"# Return\"]\n", comment_builder);
+			let mut ret_type = format!("[`{}`]", trait_name);
+			if is_sync {
+				ret_type = format!("{} + [`Send`] + [`Sync`]", ret_type);
+			} else if is_send {
+				ret_type = format!("{} + [`Send`]", ret_type);
+			}
+			if is_box {
+				ret_type = format!("[`Box`]<dyn {}>", ret_type);
+			} else {
+				ret_type = format!("`impl` {}", ret_type);
+			}
+			let comment_builder = format!(
+				"{}#[doc=\"This macro returns a [`Result`]<{}, [`Error`]>.\n\"]\n",
+				comment_builder, ret_type
+			);
+			let comment_builder = format!("{}#[doc=\"# Errors\"]\n", comment_builder);
+
+			let comment_builder = format!(
+				"{}\n#[doc=\"* [`bmw_core::BaseErrorKind::Builder`] -",
+				comment_builder
+			);
+			let comment_builder = format!(
+				"{}If the builder function returns an error,",
+				comment_builder
+			);
+			let comment_builder = format!(
+				"{} it will be wrapped in an error of the kind `Builder` with the details",
+				comment_builder
+			);
+			let comment_builder =
+				format!("{} of the original error preserved.\"]", comment_builder);
+
+			let comment_builder = format!("{}#[doc=\"\"]\n", comment_builder);
+			let comment_builder = format!("{}#[doc=\"# Also See\"]\n", comment_builder);
+			let comment_builder = format!("{}#[doc=\"* [`{}`]\"]\n", comment_builder, trait_name);
+			let mut comment_builder = format!(
+				"{}#[doc=\"* [`bmw_core::BaseErrorKind`]\"]\n",
+				comment_builder
+			);
+
+			if is_send {
+				comment_builder = format!("{}#[doc=\"* [`Send`]\"]\n", comment_builder);
+			} else if is_sync {
+				comment_builder = format!("{}#[doc=\"* [`Send`]\"]\n", comment_builder);
+				comment_builder = format!("{}#[doc=\"* [`Sync`]\"]\n", comment_builder);
+			}
+			if is_box {
+				comment_builder = format!("{}#[doc=\"* [`Box`]\"]\n", comment_builder);
+			}
+
+			let comment_builder = format!("{}#[doc=\"# Examples\"]\n", comment_builder);
+			let comment_builder = format!("{}#[doc=\"```\"]\n", comment_builder);
+			let comment_builder = format!(
+				"{}#[doc=\"// use bmw_core::*, the macro, and the builder\"]\n",
+				comment_builder
+			);
+			let mut comment_builder = format!("{}#[doc=\"use bmw_core::*;\"]\n", comment_builder);
+
+			let crate_name = std::env::var("CARGO_PKG_NAME").unwrap();
+
+			match module {
+				Some(module) => {
+					comment_builder = format!(
+						"{}\n#[doc=\"use {}::{};\"]",
+						comment_builder, module, builder_name
+					);
+					comment_builder = format!(
+						"{}\n#[doc=\"use {}::{};\"]",
+						comment_builder, crate_name, macro_name
+					);
+				}
+				None => {
+					comment_builder =
+						format!("{}\n#[doc=\"use {}::*;\"]", comment_builder, crate_name,);
+				}
+			}
+
+			let comment_builder = format!("{}#[doc=\"\"]\n", comment_builder);
+			let comment_builder = format!(
+				"{}#[doc=\"fn main() -> Result<(), Error> {{\"]\n",
+				comment_builder
+			);
+			let comment_builder = format!(
+				"{}#[doc=\"\tlet x = {}!()?;\"]\n",
+				comment_builder, macro_name
+			);
+			let comment_builder = format!("{}#[doc=\"\"]\n", comment_builder);
+			let comment_builder = format!("{}#[doc=\"\tOk(())\"]\n", comment_builder);
+			let comment_builder = format!("{}#[doc=\"}}\"]\n", comment_builder);
+			let comment_builder = format!("{}#[doc=\"```\"]\n", comment_builder);
+			comment_builder
+		};
+		Ok(template.replace(replacement, &comment_builder).to_string())
+	}
+
 	fn update_macros(&self, template: String) -> Result<String, Error> {
 		let name = self.name.as_ref().unwrap();
 		let public_set = self.build_public_set();
@@ -1354,11 +1598,76 @@ impl StateMachine {
 		let view_set = self.build_view_set(true)?;
 		let mut all_macros = "".to_string();
 		for view in &view_set {
+			let trait_name = view.to_case(Case::Pascal);
 			let macro_template = include_str!("../templates/class_macro_template.txt");
 			let macro_template = macro_template.replace("${NAME}", name).to_string();
 			let macro_template = macro_template.replace("${VIEW}", view).to_string();
-			let macro_template = macro_template.replace("${BOX_COMMENTS}", "").to_string();
-			let macro_template = macro_template.replace("${IMPL_COMMENTS}", "").to_string();
+			let macro_template = self.update_comments(
+				macro_template,
+				"${IMPL_COMMENTS}",
+				self.module.as_ref(),
+				view.to_string(),
+				name,
+				&trait_name,
+				false,
+				false,
+				false,
+			)?;
+			let macro_template = self.update_comments(
+				macro_template,
+				"${BOX_COMMENTS}",
+				self.module.as_ref(),
+				format!("{}_box", view),
+				name,
+				&trait_name,
+				true,
+				false,
+				false,
+			)?;
+			let macro_template = self.update_comments(
+				macro_template,
+				"${SEND_IMPL_COMMENTS}",
+				self.module.as_ref(),
+				format!("{}_send", view),
+				name,
+				&trait_name,
+				false,
+				true,
+				false,
+			)?;
+			let macro_template = self.update_comments(
+				macro_template,
+				"${SEND_BOX_COMMENTS}",
+				self.module.as_ref(),
+				format!("{}_send_box", view),
+				name,
+				&trait_name,
+				true,
+				true,
+				false,
+			)?;
+			let macro_template = self.update_comments(
+				macro_template,
+				"${SYNC_IMPL_COMMENTS}",
+				self.module.as_ref(),
+				format!("{}_sync", view),
+				name,
+				&trait_name,
+				false,
+				false,
+				true,
+			)?;
+			let macro_template = self.update_comments(
+				macro_template,
+				"${SYNC_BOX_COMMENTS}",
+				self.module.as_ref(),
+				format!("{}_sync_box", view),
+				name,
+				&trait_name,
+				true,
+				false,
+				true,
+			)?;
 			let macro_template = macro_template
 				.replace(
 					"${IMPL_PUBLIC}",
