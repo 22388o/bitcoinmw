@@ -17,16 +17,70 @@
 
 #[cfg(test)]
 mod test {
-	use crate::types::LogErrorKind::*;
+	use crate::log::Logger;
+	use crate::LogBuilder;
+	use crate::LogConstOptions::*;
+	use crate::LogLevel;
 	use bmw_core::*;
+	use bmw_test::*;
+	use std::fs::File;
+	use std::io::Read;
+	use std::path::PathBuf;
 
-	fn test_errkind() -> Result<(), Error> {
-		err!(Log, "log error occurred")
-	}
+	const DEFAULT_LINE_NUM_DATA_MAX_LEN: u16 = 30;
 
 	#[test]
 	fn test_log_basic() -> Result<(), Error> {
-		assert!(test_errkind().is_err());
+		let test_info = test_info!()?; // obtain test info struct
+		let directory = test_info.directory();
+		let mut buf = PathBuf::new();
+		buf.push(directory);
+		buf.push("test.log");
+		// create a logger with auto rotate on ( use impl so we can check the config )
+		let path = buf.display().to_string();
+		let configs = vec![
+			AutoRotate(true),
+			LogFilePath(&path),
+			FileHeader("testing123"),
+		];
+		let mut log = LogBuilder::build_logger(configs)?;
+
+		// debug log level
+		log.set_log_level(LogLevel::Debug);
+		log.init()?; // in logger
+		log.log(LogLevel::Debug, "test10")?; // log a message
+
+		// do some more logging
+		log.log(LogLevel::Debug, "test11")?;
+		log.log(LogLevel::Debug, "test12")?;
+		log.log(LogLevel::Debug, "test13")?;
+		// log a plain fatal message
+		log.log_plain(LogLevel::Fatal, "plaintextfatal")?;
+		// log trace (will not show up)
+		log.log(LogLevel::Trace, "thisdoesnotshowup")?;
+
+		// open the log file to confirm these logged items
+		let mut f = File::open(format!("{}/test.log", directory))?;
+		let mut s = String::new();
+		f.read_to_string(&mut s)?;
+
+		// find the lines
+		let test10_loc = s.find("test10").unwrap();
+		let test11_loc = s.find("test11").unwrap();
+		let test12_loc = s.find("test12").unwrap();
+		let test13_loc = s.find("test13").unwrap();
+		let plain_text_fatal_loc = s.find("\nplaintextfatal").unwrap();
+
+		// assert they were found and in the correct order
+		assert!(test10_loc > 0);
+		assert!(test10_loc < test11_loc);
+		assert!(test11_loc < test12_loc);
+		assert!(test12_loc < test13_loc);
+		assert!(plain_text_fatal_loc > test13_loc);
+
+		// this wasn't found because it was logged at 'trace' level
+		assert!(s.find("thisdoesnotshowup").is_none());
+
 		Ok(())
 	}
 }
