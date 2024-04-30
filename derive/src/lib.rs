@@ -39,7 +39,7 @@ use crate::errorkind::do_derive_errorkind;
 /// [`bmw_base::Error`] and can be returned using the [`bmw_base::err`] or [`bmw_base::map_err`]
 /// macros.
 ///```
-/// use bmw_derive2::*;
+/// use bmw_derive::*;
 /// use bmw_base::*;
 /// use bmw_deps::failure;
 ///
@@ -94,7 +94,7 @@ use crate::ser::do_derive_serializable;
 ///```
 /// use bmw_base::*;
 /// use bmw_deps::rand;
-/// use bmw_derive2::Serializable;
+/// use bmw_derive::Serializable;
 /// use std::fmt::Debug;
 ///
 /// // create a serializable to include in our other serializable
@@ -217,7 +217,7 @@ use crate::config::do_derive_configurable;
 /// # Examples
 ///```
 /// use bmw_base::*;
-/// use bmw_derive2::Configurable;
+/// use bmw_derive::Configurable;
 /// use crate::MyOptions::Headers;
 ///
 /// // define a struct and derive 'Configurable'
@@ -277,7 +277,7 @@ use crate::config::do_derive_configurable;
 /// configuration.
 ///```
 /// use bmw_base::*;
-/// use bmw_derive2::Configurable;
+/// use bmw_derive::Configurable;
 ///
 /// #[derive(Configurable)]
 /// struct MyStruct {
@@ -319,7 +319,7 @@ use crate::config::do_derive_configurable;
 /// Duplicates are allowed for [`std::vec::Vec`]...
 ///```
 /// use bmw_base::*;
-/// use bmw_derive2::Configurable;
+/// use bmw_derive::Configurable;
 ///
 /// #[derive(Configurable)]
 /// struct MyStruct {
@@ -371,7 +371,7 @@ use crate::document::do_derive_document;
 /// rust comment tag. The syntax mirrors that of Javadoc.
 ///```
 /// use bmw_base::*;
-/// use bmw_derive2::*;
+/// use bmw_derive::*;
 ///
 /// #[document]
 /// /// This appears at the top of the documentation
@@ -387,8 +387,8 @@ use crate::document::do_derive_document;
 /// /// @error bmw_base::BaseErrorKind::IllegalState if the state becomes illegal
 /// /// multi line ok, goes to the error tag
 /// /// @error bmw_base::BaseErrorKind::Parse if the parser crashes
-/// /// @see bmw_derive2::ErrorKind
-/// /// @see bmw_derive2::Serializable
+/// /// @see bmw_derive::ErrorKind
+/// /// @see bmw_derive::Serializable
 /// /// @see bmw_base::Error
 /// /// @deprecated
 /// fn my_function(v1: usize, v2: Option<String>, v3: bool) -> Result<(), Error> {
@@ -449,6 +449,10 @@ pub fn document(attr: TokenStream, item: TokenStream) -> TokenStream {
 mod class;
 use crate::class::do_derive_class;
 
+/// The [`crate::class()`] attribute defines a composite data type that incorporates other types, functions,
+/// and views. Classes offer functionalities reminiscent of those found in other programming languages
+/// while upholding Rust's fundamental principles. They can implement traits and serve as fields within a
+/// struct or as variants of an enum.
 #[proc_macro_attribute]
 #[cfg(not(tarpaulin_include))]
 #[proc_macro_error]

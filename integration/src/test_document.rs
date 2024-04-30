@@ -17,7 +17,7 @@
 // limitations under the License.
 
 use bmw_base::*;
-use bmw_derive2::{document, ErrorKind};
+use bmw_derive::{document, ErrorKind};
 use std::any::Any;
 use std::fmt::Debug;
 use std::fmt::Display;
@@ -78,7 +78,7 @@ pub trait TestTrait {
 	// @return the [`unit`] is returned
 	/// @see bmw_base::Error
 	/// @see bmw_base::ErrorKind
-	/// @see bmw_derive2::document
+	/// @see bmw_derive::document
 	/// @error bmw_base::BaseErrorKind::IllegalState if there is an illegal state
 	/// @error bmw_base::BaseErrorKind::Parse if a parse error occurs
 	/// @error crate::test_document::IntegrationError::DocumentError if a documenting error occurs
@@ -92,7 +92,7 @@ pub trait TestTrait {
 	#[document]
 	/// This is a bop function.
 	/// @return ok or err
-	/// @see bmw_derive2::Serializable
+	/// @see bmw_derive::Serializable
 	/// @error bmw_base::BaseErrorKind::IllegalState if the state becomes illegal
 	/// # Examples
 	///```

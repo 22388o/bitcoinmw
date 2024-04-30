@@ -14,5 +14,5 @@ edition = "2021"
 
 bmw_deps   = { path = "../deps"   }
 bmw_base   = { path = "../base"   }
-bmw_derive2 = { path = "../derive2" }
+bmw_derive = { path = "../derive" }
 bmw_core   = { path = "../core" }

@@ -20,7 +20,7 @@
 mod test {
 	use bmw_base::*;
 	use bmw_deps::rand;
-	use bmw_derive2::Serializable;
+	use bmw_derive::Serializable;
 	use std::fmt::Debug;
 
 	#[derive(Serializable, PartialEq, Debug)]

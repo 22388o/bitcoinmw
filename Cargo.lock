@@ -71,7 +71,7 @@ version = "0.0.3-beta.2"
 dependencies = [
  "bmw_base",
  "bmw_core",
- "bmw_derive2",
+ "bmw_derive",
  "bmw_int",
  "bmw_test",
  "built",
@@ -124,7 +124,7 @@ version = "0.0.3-beta.2"
 dependencies = [
  "bmw_base",
  "bmw_deps",
- "bmw_derive2",
+ "bmw_derive",
 ]
 
 [[package]]
@@ -170,7 +170,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "bmw_derive2"
+name = "bmw_derive"
 version = "0.0.3-beta.2"
 dependencies = [
  "bmw_base",
@@ -186,7 +186,7 @@ dependencies = [
  "bmw_base",
  "bmw_core",
  "bmw_deps",
- "bmw_derive2",
+ "bmw_derive",
 ]
 
 [[package]]

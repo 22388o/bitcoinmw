@@ -17,7 +17,7 @@
 // limitations under the License.
 
 use bmw_base::*;
-use bmw_derive2::*;
+use bmw_derive::*;
 
 // define an error kind
 #[ErrorKind]
@@ -42,7 +42,7 @@ enum IntErrorKind2 {
 #[cfg(test)]
 mod test {
 	use bmw_base::*;
-	use bmw_derive2::*;
+	use bmw_derive::*;
 
 	#[derive(Configurable)]
 	struct ConfTest {

@@ -1,5 +1,5 @@
 [package]
-name = "bmw_derive2"
+name = "bmw_derive"
 version = "0.0.3-beta.2"
 authors = ["The BitcoinMW Developers"]
 description = "Proc Macros for BitcoinMW"
