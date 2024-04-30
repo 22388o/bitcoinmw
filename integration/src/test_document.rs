@@ -32,11 +32,11 @@ pub enum IntegrationError {
 /// test
 /// next
 /// @see bmw_base::Error
-/// @see bmw_base::BaseErrorKind
+/// @see bmw_base::CoreErrorKind
 /// @return abc 123
 /// another return line
-/// @error bmw_base::BaseErrorKind::IllegalState
-/// @error bmw_base::BaseErrorKind::Parse parse error occurred
+/// @error bmw_base::CoreErrorKind::IllegalState
+/// @error bmw_base::CoreErrorKind::Parse parse error occurred
 /// # Examples
 ///```
 /// use bmw_base::*;
@@ -63,7 +63,7 @@ pub trait TestTrait {
 	/// @see Error
 	/// @see std::string::String
 	/// @return ok ok ok
-	/// @error bmw_base::BaseErrorKind::Parse if a parse error occurs
+	/// @error bmw_base::CoreErrorKind::Parse if a parse error occurs
 	/// hi hi
 	/// more2
 	fn test(&mut self, abc_def: usize, ghi: u32) -> Result<impl Display + Send + Unpin, Error>;
@@ -79,8 +79,8 @@ pub trait TestTrait {
 	/// @see bmw_base::Error
 	/// @see bmw_base::ErrorKind
 	/// @see bmw_derive::document
-	/// @error bmw_base::BaseErrorKind::IllegalState if there is an illegal state
-	/// @error bmw_base::BaseErrorKind::Parse if a parse error occurs
+	/// @error bmw_base::CoreErrorKind::IllegalState if there is an illegal state
+	/// @error bmw_base::CoreErrorKind::Parse if a parse error occurs
 	/// @error crate::test_document::IntegrationError::DocumentError if a documenting error occurs
 	fn test2(&self, x: usize, y: Option<Box<dyn Any + Send + Sync>>, z: bool);
 
@@ -93,7 +93,7 @@ pub trait TestTrait {
 	/// This is a bop function.
 	/// @return ok or err
 	/// @see bmw_derive::Serializable
-	/// @error bmw_base::BaseErrorKind::IllegalState if the state becomes illegal
+	/// @error bmw_base::CoreErrorKind::IllegalState if the state becomes illegal
 	/// # Examples
 	///```
 	/// use bmw_base::*;
@@ -106,7 +106,7 @@ pub trait TestTrait {
 
 	#[document]
 	/// @param self immutable ref
-	/// @error bmw_base::BaseErrorKind::Parse
+	/// @error bmw_base::CoreErrorKind::Parse
 	/// @return ret now
 	/// @see bmw_base::Error
 	fn bop2(&self) -> Result<(), Error>;
@@ -132,11 +132,11 @@ impl MyStruct {
 	/// @return 12345
 	/// 6789
 	/// @see Error
-	/// @see BaseErrorKind::IllegalState
+	/// @see CoreErrorKind::IllegalState
 	/// @see MyStruct
-	/// @error bmw_base::BaseErrorKind::IllegalState if there is an illegal state
+	/// @error bmw_base::CoreErrorKind::IllegalState if there is an illegal state
 	/// or anything like that
-	/// @error bmw_base::BaseErrorKind::Parse if a parse error occurs
+	/// @error bmw_base::CoreErrorKind::Parse if a parse error occurs
 	/// @error crate::test_document::IntegrationError::DocumentError if a documenting error occurs
 	/// @param f ok123
 	/// # Examples

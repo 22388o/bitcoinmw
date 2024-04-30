@@ -136,7 +136,7 @@ fn build_impls(name: String, strm: &mut TokenStream) -> Result<(), Error> {
 	let impls = include_str!("../templates/errorkind.template.txt");
 	// replace the ${NAME} variable with our name
 	let impls = impls.replace("${NAME}", &name).parse::<TokenStream>();
-	let impls = map_err!(impls, BaseErrorKind::Parse)?;
+	let impls = map_err!(impls, CoreErrorKind::Parse)?;
 	strm.extend(impls);
 	Ok(())
 }

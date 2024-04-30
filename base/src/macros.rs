@@ -20,7 +20,7 @@
 /// # Input Parameters
 /// * `$kind` - [`crate::ErrorKind`] - The kind of this error. Note that [`crate::ErrorKind`] is a trait
 /// and any crate can implement its own kinds of errors. This crate implements the
-/// [`crate::BaseErrorKind`] enum which includes many errors that are automatically converted.
+/// [`crate::CoreErrorKind`] enum which includes many errors that are automatically converted.
 /// * `$msg` - [`std::str`] - The message to display with this error.
 /// * `$($param)*` - The formatting parameters as in with [`std::format`].
 /// # Return
@@ -31,16 +31,16 @@
 /// # Examples
 ///
 ///```
-/// use bmw_base::{Error, err, BaseErrorKind, ErrorKind, kind};
+/// use bmw_base::{Error, err, CoreErrorKind, ErrorKind, kind};
 ///
 /// fn main() -> Result<(), Error> {
 ///     let err1: Result<(), Error> = err!(
-///         BaseErrorKind::Parse,
+///         CoreErrorKind::Parse,
 ///         "unexpected token: '{}'",
 ///         "test"
 ///     );
 ///     let err1 = err1.unwrap_err();
-///     assert_eq!(err1.kind(), &kind!(BaseErrorKind::Parse, "unexpected token: 'test'"));
+///     assert_eq!(err1.kind(), &kind!(CoreErrorKind::Parse, "unexpected token: 'test'"));
 ///
 ///     Ok(())
 /// }
@@ -64,7 +64,7 @@ macro_rules! err {
 /// # Input Parameters
 /// * `$kind` - [`crate::ErrorKind`] - Kind of this error. Note that [`crate::ErrorKind`] is a trait
 /// and any crate can implement its own kinds of errors. This crate implements the
-/// [`crate::BaseErrorKind`] enum which includes many errors that are automatically converted.
+/// [`crate::CoreErrorKind`] enum which includes many errors that are automatically converted.
 /// * `$msg` - [`std::str`] - The message to display with this error.
 /// * `$($param)*` - The formatting parameters as in with [`std::format`].
 /// # Return
@@ -75,15 +75,15 @@ macro_rules! err {
 /// # Examples
 ///
 ///```
-/// use bmw_base::{Error, err_only, BaseErrorKind, ErrorKind, kind};
+/// use bmw_base::{Error, err_only, CoreErrorKind, ErrorKind, kind};
 ///
 /// fn main() -> Result<(), Error> {
 ///     let err1: Error = err_only!(
-///         BaseErrorKind::Parse,
+///         CoreErrorKind::Parse,
 ///         "unexpected token: '{}'",
 ///         "test"
 ///     );
-///     assert_eq!(err1.kind(), &kind!(BaseErrorKind::Parse, "unexpected token: 'test'"));
+///     assert_eq!(err1.kind(), &kind!(CoreErrorKind::Parse, "unexpected token: 'test'"));
 ///
 ///     Ok(())
 /// }
@@ -115,16 +115,16 @@ macro_rules! err_only {
 /// * [`crate::err_only`]
 /// # Examples
 ///```
-/// use bmw_base::{Error, ErrorKind, map_err, BaseErrorKind, kind};
+/// use bmw_base::{Error, ErrorKind, map_err, CoreErrorKind, kind};
 /// use std::fs::File;
 /// use std::io::Write;
 ///
 /// fn main() -> Result<(), Error> {
-///     let err = map_err!("".parse::<usize>(), BaseErrorKind::Parse, "custom message: 1");
+///     let err = map_err!("".parse::<usize>(), CoreErrorKind::Parse, "custom message: 1");
 ///     assert_eq!(
 ///         err.unwrap_err().kind(),
 ///         &kind!(
-///             BaseErrorKind::Parse,
+///             CoreErrorKind::Parse,
 ///             "custom message: 1: cannot parse integer from empty string"
 ///         )
 ///     );
@@ -145,7 +145,7 @@ macro_rules! map_err {
 /// Convenience macro to return an error kind as a `Box<dyn ErrorKind>`. This is mostly useful for
 /// tests.
 /// # Input Parameters
-/// * `$kind` - [`crate::BaseErrorKind`] (or any other concrete type that implements the
+/// * `$kind` - [`crate::CoreErrorKind`] (or any other concrete type that implements the
 /// [`crate::ErrorKind`] trait.
 /// * `$msg` - [`std::str`] - The message to display with this error.
 /// # Return
@@ -210,7 +210,7 @@ macro_rules! cbreak {
 macro_rules! try_into {
 	($value:expr) => {{
 		use std::convert::TryInto;
-		map_err!($value.try_into(), BaseErrorKind::TryInto)
+		map_err!($value.try_into(), CoreErrorKind::TryInto)
 	}};
 }
 
@@ -224,7 +224,7 @@ macro_rules! try_into {
 /// An instance of the [`crate::Configurable`] struct with the specified values. Anything not
 /// specified will take on the default value.
 /// # Errors
-/// [`crate::BaseErrorKind::Configuration`] - if a duplicate value is specified.
+/// [`crate::CoreErrorKind::Configuration`] - if a duplicate value is specified.
 /// # Also see
 /// [`crate::Configurable`]
 /// # Examples
@@ -351,7 +351,7 @@ macro_rules! configure {
 			let name = cfg.name();
 			if name_set.contains(name.clone()) && !ret.allow_dupes().contains(name.clone()) {
 				let text = format!("config option ({}) was specified more than once", name);
-				err = Some(err!(BaseErrorKind::Configuration, text));
+				err = Some(err!(CoreErrorKind::Configuration, text));
 			}
 			name_set.insert(name.to_string());
 			match cfg.value_u8() {
@@ -395,7 +395,7 @@ macro_rules! configure {
 		for r in $configurable::required() {
 			if !name_set.contains(&r) {
 				let text = format!("required option ({}) was not specified", r);
-				err = Some(err!(BaseErrorKind::Configuration, text));
+				err = Some(err!(CoreErrorKind::Configuration, text));
 			}
 		}
 

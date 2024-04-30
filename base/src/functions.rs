@@ -24,7 +24,7 @@ use std::io::{Read, Write};
 /// * `thing` - [`crate::Serializable`] - anything that implements the [`crate::Serializable`]
 /// trait.
 /// # Errors
-/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 /// # Return
 /// * [`unit`]
 /// # Also see
@@ -53,10 +53,10 @@ pub fn serialize<W: Serializable>(sink: &mut dyn Write, thing: &W) -> Result<(),
 /// # Input Parameters
 /// * `source` - &mut dyn [`Read`] - any implementation of [`Read`].
 /// # Errors
-/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
-/// * [`crate::BaseErrorKind::OperationNotSupported`] - if the serialized data was from a data
+/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
+/// * [`crate::CoreErrorKind::OperationNotSupported`] - if the serialized data was from a data
 /// type that did not allow for it to be deserialized.
-/// * [`crate::BaseErrorKind::CorruptedData`] - if the data that was serialized was corrupted.
+/// * [`crate::CoreErrorKind::CorruptedData`] - if the data that was serialized was corrupted.
 /// # Return
 /// * [`Serializable`] - the serialized object.
 /// # Also see

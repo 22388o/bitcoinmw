@@ -16,7 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use bmw_base::{err, BaseErrorKind, Error};
+use bmw_base::{err, CoreErrorKind, Error};
 use std::mem::size_of;
 
 // include build information
@@ -34,7 +34,7 @@ fn real_main(debug_startup_32: bool) -> Result<(), Error> {
 	// ensure we only support 64 bit
 	match size_of::<&char>() == 8 && debug_startup_32 == false {
 		true => {}
-		false => return err!(BaseErrorKind::IllegalState, "Only 64 bit arch supported"),
+		false => return err!(CoreErrorKind::IllegalState, "Only 64 bit arch supported"),
 	}
 
 	println!("main currently doesn't do anything");

@@ -1,12 +1,12 @@
 #[allow(unused_macros)]
-${IMPL_COMMENTS}${IMPL_PUBLIC}macro_rules! ${VIEW} {
+${IMPL_COMMENTS}${IMPL_PUBLIC}macro_rules! ${MACRO_NAME_IMPL} {
         ($($param:tt)*) => {{
         	match ${NAME}Builder::build_${VIEW}(vec![$($param)*]) {
                 	Ok(ret) => {
                         	Ok(ret)
                         }
                 	Err(e) => {
-                		err!(BaseErrorKind::Builder, e.to_string())
+                		err!(CoreErrorKind::Builder, e.to_string())
                 	}
 		}
         }};
@@ -14,14 +14,14 @@ ${IMPL_COMMENTS}${IMPL_PUBLIC}macro_rules! ${VIEW} {
 ${IMPL_PROTECTED}
 
 #[allow(unused_macros)]
-${BOX_COMMENTS}${BOX_PUBLIC}macro_rules! ${VIEW}_box {
+${BOX_COMMENTS}${BOX_PUBLIC}macro_rules! ${MACRO_NAME_BOX} {
         ($($param:tt)*) => {{
 		match ${NAME}Builder::build_${VIEW}_box(vec![$($param)*]) {
                 	Ok(ret) => {
                         	Ok(ret)
                         }
                         Err(e) => {
-                                err!(BaseErrorKind::Builder, e.to_string())
+                                err!(CoreErrorKind::Builder, e.to_string())
                         }
                 }
         }};
@@ -29,14 +29,14 @@ ${BOX_COMMENTS}${BOX_PUBLIC}macro_rules! ${VIEW}_box {
 ${BOX_PROTECTED}
 
 #[allow(unused_macros)]
-${SEND_IMPL_COMMENTS}${IMPL_SEND_PUBLIC}macro_rules! ${VIEW}_send {
+${SEND_IMPL_COMMENTS}${IMPL_SEND_PUBLIC}macro_rules! ${MACRO_NAME_SEND_IMPL} {
         ($($param:tt)*) => {{
                 match ${NAME}Builder::build_${VIEW}_send(vec![$($param)*]) {
                         Ok(ret) => {
                                 Ok(ret)
                         }
                         Err(e) => {
-                                err!(BaseErrorKind::Builder, e.to_string())
+                                err!(CoreErrorKind::Builder, e.to_string())
                         }
                 }
         }};
@@ -44,14 +44,14 @@ ${SEND_IMPL_COMMENTS}${IMPL_SEND_PUBLIC}macro_rules! ${VIEW}_send {
 ${IMPL_SEND_PROTECTED}
 
 #[allow(unused_macros)]
-${SEND_BOX_COMMENTS}${BOX_SEND_PUBLIC}macro_rules! ${VIEW}_send_box {
+${SEND_BOX_COMMENTS}${BOX_SEND_PUBLIC}macro_rules! ${MACRO_NAME_SEND_BOX} {
         ($($param:tt)*) => {{
                 match ${NAME}Builder::build_${VIEW}_send_box(vec![$($param)*]) {
                         Ok(ret) => {
                                 Ok(ret)
                         }
                         Err(e) => {
-                                err!(BaseErrorKind::Builder, e.to_string())
+                                err!(CoreErrorKind::Builder, e.to_string())
                         }
                 }
         }};
@@ -59,14 +59,14 @@ ${SEND_BOX_COMMENTS}${BOX_SEND_PUBLIC}macro_rules! ${VIEW}_send_box {
 ${BOX_SEND_PROTECTED}
 
 #[allow(unused_macros)]
-${SYNC_IMPL_COMMENTS}${IMPL_SYNC_PUBLIC}macro_rules! ${VIEW}_sync {
+${SYNC_IMPL_COMMENTS}${IMPL_SYNC_PUBLIC}macro_rules! ${MACRO_NAME_SYNC_IMPL} {
         ($($param:tt)*) => {{
                 match ${NAME}Builder::build_${VIEW}_sync(vec![$($param)*]) {
                         Ok(ret) => {
                                 Ok(ret)
                         }
                         Err(e) => {
-                                err!(BaseErrorKind::Builder, e.to_string())
+                                err!(CoreErrorKind::Builder, e.to_string())
                         }
                 }
         }};
@@ -74,14 +74,14 @@ ${SYNC_IMPL_COMMENTS}${IMPL_SYNC_PUBLIC}macro_rules! ${VIEW}_sync {
 ${IMPL_SYNC_PROTECTED}
 
 #[allow(unused_macros)]
-${SYNC_BOX_COMMENTS}${BOX_SYNC_PUBLIC}macro_rules! ${VIEW}_sync_box {
+${SYNC_BOX_COMMENTS}${BOX_SYNC_PUBLIC}macro_rules! ${MACRO_NAME_SYNC_BOX} {
         ($($param:tt)*) => {{
                 match ${NAME}Builder::build_${VIEW}_sync_box(vec![$($param)*]) {
                         Ok(ret) => {
                                 Ok(ret)
                         }
                         Err(e) => {
-                                err!(BaseErrorKind::Builder, e.to_string())
+                                err!(CoreErrorKind::Builder, e.to_string())
                         }
                 }
         }};

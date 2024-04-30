@@ -126,7 +126,7 @@ fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 				Some(ref last) => format!("{}{}", last, token).parse::<TokenStream>(),
 				None => token.to_string().parse::<TokenStream>(),
 			};
-			let token = map_err!(token, BaseErrorKind::Parse)?;
+			let token = map_err!(token, CoreErrorKind::Parse)?;
 			last_joint = None;
 			non_comments.extend(token.clone());
 

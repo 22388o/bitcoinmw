@@ -17,8 +17,8 @@
 // limitations under the License.
 
 //! # The BitcoinMW core crate
-//! The core crate re-exports the `bmw_base`, `bmw_deps`, and `bmw_derive` crates as a convenience. This crate can be used instead
-//! of importing those crates directly.
+//! The core crate re-exports the `bmw_base`, `bmw_deps`, and `bmw_derive` crates as a convenience.
+//! This crate should be used instead of importing those crates directly.
 
 pub use bmw_base::*;
 pub use bmw_deps::*;

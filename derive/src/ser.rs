@@ -141,7 +141,7 @@ fn process_token_tree(tree: TokenTree, state: &mut MacroState) -> Result<(), Err
 				state.expect_name = false;
 			} else if ident != "pub" && ident != "struct" && ident != "enum" {
 				let fmt = format!("error expected pub or struct. Found '{}'", ident);
-				let e = err!(BaseErrorKind::IllegalState, fmt);
+				let e = err!(CoreErrorKind::IllegalState, fmt);
 				return e;
 			}
 
@@ -225,7 +225,7 @@ fn process_field(
 ) -> Result<(), Error> {
 	if name.len() == 0 {
 		let fmt = format!("expected name for this group: {:?}", group);
-		let e = err!(BaseErrorKind::IllegalState, fmt);
+		let e = err!(CoreErrorKind::IllegalState, fmt);
 		return e;
 	}
 

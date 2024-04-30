@@ -40,7 +40,7 @@
 #[macro_export]
 macro_rules! free_port {
 	() => {{
-		use bmw_base::{err, BaseErrorKind};
+		use bmw_base::{err, CoreErrorKind};
 		use bmw_test::{TestBuilder, TestErrorKind};
 		match TestBuilder::build_test_info(false) {
 			Ok(ti) => Ok(ti.port()),

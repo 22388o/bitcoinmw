@@ -36,14 +36,14 @@ pub use crate::functions::*;
 /// * [`crate::map_err`]
 /// # Examples
 ///```
-/// use bmw_base::{Error, map_err, BaseErrorKind};
+/// use bmw_base::{Error, map_err, CoreErrorKind};
 ///
 /// // return Error
 /// fn main() -> Result<(), Error> {
 ///     // this can actually be done with just a '?' because this error
 ///     // a convert implemented. But just for demonstration purposes, map_err
 ///     // can be used.
-///     let x: u32 = map_err!("1234".parse(), BaseErrorKind::Parse)?;
+///     let x: u32 = map_err!("1234".parse(), CoreErrorKind::Parse)?;
 ///     assert_eq!(x, 1234u32);
 ///
 ///     Ok(())
@@ -98,7 +98,7 @@ pub trait ErrorKind: Send + Sync + Display + Debug {}
 /// * [`crate::Error`]
 /// * [`crate::ErrorKind`]
 #[derive(Debug, Fail)]
-pub enum BaseErrorKind {
+pub enum CoreErrorKind {
 	/// Parse error
 	#[fail(display = "parse error: {}", _0)]
 	Parse(String),
@@ -242,7 +242,7 @@ pub trait Writer {
 	/// # Return
 	/// [`unit`]
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::BinReader`]
@@ -258,7 +258,7 @@ pub trait Writer {
 	/// # Return
 	/// [`unit`]
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::BinReader`]
@@ -274,7 +274,7 @@ pub trait Writer {
 	/// # Return
 	/// [`unit`]
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::BinReader`]
@@ -290,7 +290,7 @@ pub trait Writer {
 	/// # Return
 	/// [`unit`]
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::BinReader`]
@@ -306,7 +306,7 @@ pub trait Writer {
 	/// # Return
 	/// [`unit`]
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::BinReader`]
@@ -322,7 +322,7 @@ pub trait Writer {
 	/// # Return
 	/// [`unit`]
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::BinReader`]
@@ -338,7 +338,7 @@ pub trait Writer {
 	/// # Return
 	/// [`unit`]
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::BinReader`]
@@ -354,7 +354,7 @@ pub trait Writer {
 	/// # Return
 	/// [`unit`]
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::BinReader`]
@@ -370,7 +370,7 @@ pub trait Writer {
 	/// # Return
 	/// [`unit`]
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::BinReader`]
@@ -386,7 +386,7 @@ pub trait Writer {
 	/// # Return
 	/// [`unit`]
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::BinReader`]
@@ -402,7 +402,7 @@ pub trait Writer {
 	/// # Return
 	/// [`unit`]
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::BinReader`]
@@ -419,7 +419,7 @@ pub trait Writer {
 	/// # Return
 	/// [`unit`]
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::BinReader`]
@@ -436,7 +436,7 @@ pub trait Writer {
 	/// # Return
 	/// [`unit`]
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::BinReader`]
@@ -450,7 +450,7 @@ pub trait Writer {
 	/// # Return
 	/// [`unit`]
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::BinReader`]
@@ -522,7 +522,7 @@ pub trait Reader {
 	/// # Return
 	/// The [`u8`] that is read from the [`crate::Reader`].
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::Writer`]
@@ -535,7 +535,7 @@ pub trait Reader {
 	/// # Return
 	/// The [`i8`] that is read from the [`crate::Reader`].
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::Writer`]
@@ -548,7 +548,7 @@ pub trait Reader {
 	/// # Return
 	/// The [`i16`] that is read from the [`crate::Reader`].
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::Writer`]
@@ -561,7 +561,7 @@ pub trait Reader {
 	/// # Return
 	/// The [`u16`] that is read from the [`crate::Reader`].
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::Writer`]
@@ -574,7 +574,7 @@ pub trait Reader {
 	/// # Return
 	/// The [`u32`] that is read from the [`crate::Reader`].
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::Writer`]
@@ -587,7 +587,7 @@ pub trait Reader {
 	/// # Return
 	/// The [`u64`] that is read from the [`crate::Reader`].
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::Writer`]
@@ -600,7 +600,7 @@ pub trait Reader {
 	/// # Return
 	/// The [`u128`] that is read from the [`crate::Reader`].
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::Writer`]
@@ -613,7 +613,7 @@ pub trait Reader {
 	/// # Return
 	/// The [`i128`] that is read from the [`crate::Reader`].
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::Writer`]
@@ -626,7 +626,7 @@ pub trait Reader {
 	/// # Return
 	/// The [`i32`] that is read from the [`crate::Reader`].
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::Writer`]
@@ -639,7 +639,7 @@ pub trait Reader {
 	/// # Return
 	/// The [`i64`] that is read from the [`crate::Reader`].
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::Writer`]
@@ -654,7 +654,7 @@ pub trait Reader {
 	/// # Return
 	/// [`unit`]
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::Writer`]
@@ -667,7 +667,7 @@ pub trait Reader {
 	/// # Return
 	/// The [`usize`] that is read from the [`crate::Reader`].
 	/// # Errors
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::Writer`]
@@ -681,8 +681,8 @@ pub trait Reader {
 	/// # Return
 	/// The [`u8`] that is read from the [`crate::Reader`].
 	/// # Errors
-	/// * [`crate::BaseErrorKind::CorruptedData`] - if the byte read is not equal to `val`
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::CorruptedData`] - if the byte read is not equal to `val`
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::Writer`]
@@ -697,8 +697,8 @@ pub trait Reader {
 	/// # Return
 	/// [`unit`]
 	/// # Errors
-	/// * [`crate::BaseErrorKind::CorruptedData`] - if the byte read is not equal to `val`
-	/// * [`crate::BaseErrorKind::IO`] - if an i/o error occurs
+	/// * [`crate::CoreErrorKind::CorruptedData`] - if the byte read is not equal to `val`
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
 	/// # Also see
 	/// * [`crate::Reader`]
 	/// * [`crate::Writer`]
@@ -707,7 +707,7 @@ pub trait Reader {
 	fn read_empty_bytes(&mut self, length: usize) -> Result<(), Error> {
 		for _ in 0..length {
 			if self.read_u8()? != 0u8 {
-				return err!(BaseErrorKind::CorruptedData, "expected 0u8");
+				return err!(CoreErrorKind::CorruptedData, "expected 0u8");
 			}
 		}
 		Ok(())

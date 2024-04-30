@@ -24,7 +24,7 @@ use bmw_core::*;
         protected viewx, viewx_send_box;
         /// top trait public
         /// top trait 2
-        public viewx_send_box, viewx_box, viewy, viewy_sync_box;
+        public viewx_send_box, viewx_box as boxy_box, viewy, viewy_sync_box as a9;
         /// a nice vec of (String, String).
         const c: Vec<(String, String)> = vec![("abc".to_string(), "def".to_string())];
         /// a nice usize value
@@ -67,9 +67,9 @@ use bmw_core::*;
         /// is a test
         /// of the comments
         /// @param self an immutable ref
-        /// @error bmw_base::BaseErrorKind::Parse if a parse error occurs
-        /// @error bmw_base::BaseErrorKind::IllegalState if an illegal state occurs
-        /// @error bmw_base::BaseErrorKind::IO if an i/o error occurs
+        /// @error bmw_base::CoreErrorKind::Parse if a parse error occurs
+        /// @error bmw_base::CoreErrorKind::IllegalState if an illegal state occurs
+        /// @error bmw_base::CoreErrorKind::IO if an i/o error occurs
         /// @return None is always returned
         /// @see crate::test_class::Viewx::next
         /// @deprecated

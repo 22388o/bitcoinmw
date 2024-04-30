@@ -384,9 +384,9 @@ use crate::document::do_derive_document;
 /// /// @param v3 bool value. If true exit, otherwise continue...
 /// /// @return [`unit`] or error
 /// /// multi line ok, goes to return tag
-/// /// @error bmw_base::BaseErrorKind::IllegalState if the state becomes illegal
+/// /// @error bmw_base::CoreErrorKind::IllegalState if the state becomes illegal
 /// /// multi line ok, goes to the error tag
-/// /// @error bmw_base::BaseErrorKind::Parse if the parser crashes
+/// /// @error bmw_base::CoreErrorKind::Parse if the parser crashes
 /// /// @see bmw_derive::ErrorKind
 /// /// @see bmw_derive::Serializable
 /// /// @see bmw_base::Error
@@ -425,8 +425,8 @@ use crate::document::do_derive_document;
 ///
 /// note: multiple values are allowed
 ///```text
-/// /// @error bmw_base::BaseErrorKind::IllegalState if the state becomes illegal
-/// /// @error bmw_base::BaseErrorKind::Parse if a parse error occurs
+/// /// @error bmw_base::CoreErrorKind::IllegalState if the state becomes illegal
+/// /// @error bmw_base::CoreErrorKind::Parse if a parse error occurs
 ///```
 /// * return - a message to inlcude about the return parameter
 ///```text

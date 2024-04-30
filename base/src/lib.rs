@@ -22,7 +22,8 @@
 //! For detailed examples, refer to the derive crate. Additionally, this crate includes several other
 //! data types required by the derive crate. It also encompasses [`crate::Error`] and various core error-related
 //! structures, alongside essential macros utilized in BitcoinMW. The primary objective of this crate is to
-//! house all necessary components for implementing the derive proc macros utilized within BitcoinMW.
+//! house all necessary components for implementing the derive proc macros utilized within BitcoinMW. This crate
+//! should not be directly used. Instead `bmw_core` should be used.
 
 use bmw_deps::failure;
 

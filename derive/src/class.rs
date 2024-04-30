@@ -16,7 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use bmw_base::BaseErrorKind::Parse;
+use bmw_base::CoreErrorKind::Parse;
 use bmw_base::*;
 use bmw_deps::convert_case::{Case, Casing};
 use bmw_deps::substring::Substring;
@@ -36,14 +36,16 @@ struct PublicView {
 	name: String,
 	span: Span,
 	comments: Vec<String>,
+	macro_name: String,
 }
 
 impl PublicView {
-	fn new(name: String, span: Span, comments: Vec<String>) -> Self {
+	fn new(name: String, span: Span, comments: Vec<String>, macro_name: String) -> Self {
 		Self {
 			name,
 			span,
 			comments,
+			macro_name,
 		}
 	}
 }
@@ -198,6 +200,7 @@ struct StateMachine {
 	generics2: Option<String>,
 	where_clause: Option<String>,
 	type_str_prev_is_joint: bool,
+	in_as: bool,
 }
 
 impl StateMachine {
@@ -219,6 +222,7 @@ impl StateMachine {
 			expect_fn: false,
 			expect_fn_name: false,
 			expect_params: false,
+			in_as: false,
 			cur_var: None,
 			cur_const: None,
 			cur_fn: None,
@@ -836,15 +840,33 @@ impl StateMachine {
 	fn process_public(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ident) => {
-				self.expect_comma = true;
-				let comments = self.comments.clone();
-				self.public_list.push(PublicView::new(
-					ident.to_string(),
-					self.span.as_ref().unwrap().clone(),
-					comments,
-				));
+				if self.in_as {
+					if self.public_list.len() > 0 {
+						let i = self.public_list.len() - 1;
+						self.public_list[i].macro_name = ident.to_string();
+						self.expect_comma = true;
+					}
+				} else if ident.to_string() == "as" {
+					self.in_as = true;
+					self.expect_comma = false;
+				} else {
+					self.in_as = false;
+					if self.expect_comma {
+						self.append_error(&format!("expected ',' found '{}'", ident))?;
+					} else {
+						self.expect_comma = true;
+						let comments = self.comments.clone();
+						self.public_list.push(PublicView::new(
+							ident.to_string(),
+							self.span.as_ref().unwrap().clone(),
+							comments,
+							ident.to_string(),
+						));
+					}
+				}
 			}
 			Punct(p) => {
+				self.in_as = false;
 				if p == ';' {
 					self.comments.clear();
 					if !self.expect_comma {
@@ -860,6 +882,7 @@ impl StateMachine {
 				}
 			}
 			_ => {
+				self.in_as = false;
 				self.append_error(&format!("unexpected token '{}'", token))?;
 			}
 		}
@@ -1185,6 +1208,14 @@ impl StateMachine {
 		}
 	}
 
+	fn build_public_mappings(&self) -> HashMap<String, String> {
+		let mut ret = HashMap::new();
+		for item in &self.public_list {
+			ret.insert(item.name.clone(), item.macro_name.clone());
+		}
+		ret
+	}
+
 	fn build_public_set(&self) -> HashSet<String> {
 		let mut ret = HashSet::new();
 		for item in &self.public_list {
@@ -1412,20 +1443,20 @@ impl StateMachine {
 							pos + 1
 						} else {
 							return err!(
-								BaseErrorKind::IllegalState,
+								CoreErrorKind::IllegalState,
 								"unexpected end of string: '{}'",
 								type_str
 							);
 						}
 					}
-					None => return err!(BaseErrorKind::IllegalState, "expected '<'"),
+					None => return err!(CoreErrorKind::IllegalState, "expected '<'"),
 				};
 
 				let end = match type_str.rfind(">") {
 					Some(end) => end,
 					None => {
 						return err!(
-							BaseErrorKind::IllegalState,
+							CoreErrorKind::IllegalState,
 							"expected '>' in '{}'",
 							type_str
 						)
@@ -1475,12 +1506,25 @@ impl StateMachine {
 		is_send: bool,
 		is_sync: bool,
 		is_builder: bool,
+		public_mappings: &HashMap<String, String>,
 	) -> Result<String, Error> {
+		/*
+		let macro_name = match public_mappings.get(&macro_name) {
+			Some(macro_name) => macro_name,
+			None => &macro_name,
+		};
+			*/
+		let view_name = macro_name.clone();
 		let builder_name = format!("{}Builder", class_name);
 		let public_set = self.build_public_set();
 		let visible = self
 			.get_macro_pub_visibility(&macro_name, &public_set)
 			.len() != 0;
+
+		let macro_name = match public_mappings.get(&macro_name) {
+			Some(macro_name) => macro_name,
+			None => &macro_name,
+		};
 
 		let comment_builder = if !visible {
 			"".to_string()
@@ -1536,7 +1580,7 @@ impl StateMachine {
 			let comment_builder = format!("{}#[doc=\"# Errors\"]\n", comment_builder);
 
 			let comment_builder = format!(
-				"{}\n#[doc=\"* [`bmw_core::BaseErrorKind::Builder`] -",
+				"{}\n#[doc=\"* [`bmw_core::CoreErrorKind::Builder`] -",
 				comment_builder
 			);
 			let comment_builder = format!(
@@ -1554,7 +1598,7 @@ impl StateMachine {
 			let comment_builder = format!("{}#[doc=\"# Also See\"]\n", comment_builder);
 			let comment_builder = format!("{}#[doc=\"* [`{}`]\"]\n", comment_builder, trait_name);
 			let mut comment_builder = format!(
-				"{}#[doc=\"* [`bmw_core::BaseErrorKind`]\"]\n",
+				"{}#[doc=\"* [`bmw_core::CoreErrorKind`]\"]\n",
 				comment_builder
 			);
 
@@ -1578,7 +1622,7 @@ impl StateMachine {
 						};
 						comment_builder = format!(
 							"{}\n#[doc=\"* [`{}::{}::build_{}`]\"]",
-							comment_builder, module, builder_name, macro_name
+							comment_builder, module, builder_name, view_name
 						);
 					}
 					None => {
@@ -1636,7 +1680,7 @@ impl StateMachine {
 			let comment_builder = if is_builder {
 				format!(
 					"{}#[doc=\"\tlet object = {}::build_{}(vec![])?;\"]\n",
-					comment_builder, builder_name, macro_name
+					comment_builder, builder_name, view_name
 				)
 			} else {
 				format!(
@@ -1654,7 +1698,7 @@ impl StateMachine {
 			let mut comment_builder = if is_builder {
 				format!(
 					"{}#[doc=\"\tlet object = {}::build_{}(vec![\"]\n",
-					comment_builder, builder_name, macro_name
+					comment_builder, builder_name, view_name
 				)
 			} else {
 				format!(
@@ -1693,15 +1737,57 @@ impl StateMachine {
 		Ok(template.replace(replacement, &comment_builder).to_string())
 	}
 
+	fn update_macro_names(
+		&self,
+		public_mappings: &HashMap<String, String>,
+		macro_template: &str,
+		view: &String,
+	) -> Result<String, Error> {
+		let macro_template = match public_mappings.get(view) {
+			Some(name) => macro_template.replace("${MACRO_NAME_IMPL}", &name),
+			None => macro_template.replace("${MACRO_NAME_IMPL}", view),
+		};
+
+		let macro_template = match public_mappings.get(&format!("{}_box", view)) {
+			Some(name) => macro_template.replace("${MACRO_NAME_BOX}", &name),
+			None => macro_template.replace("${MACRO_NAME_BOX}", &format!("{}_box", view)),
+		};
+
+		let macro_template = match public_mappings.get(&format!("{}_send", view)) {
+			Some(name) => macro_template.replace("${MACRO_NAME_SEND_IMPL}", &name),
+			None => macro_template.replace("${MACRO_NAME_SEND_IMPL}", &format!("{}_send", view)),
+		};
+
+		let macro_template = match public_mappings.get(&format!("{}_send_box", view)) {
+			Some(name) => macro_template.replace("${MACRO_NAME_SEND_BOX}", &name),
+			None => macro_template.replace("${MACRO_NAME_SEND_BOX}", &format!("{}_send_box", view)),
+		};
+
+		let macro_template = match public_mappings.get(&format!("{}_sync", view)) {
+			Some(name) => macro_template.replace("${MACRO_NAME_SYNC_IMPL}", &name),
+			None => macro_template.replace("${MACRO_NAME_SYNC_IMPL}", &format!("{}_sync", view)),
+		};
+
+		let macro_template = match public_mappings.get(&format!("{}_sync_box", view)) {
+			Some(name) => macro_template.replace("${MACRO_NAME_SYNC_BOX}", &name),
+			None => macro_template.replace("${MACRO_NAME_SYNC_BOX}", &format!("{}_sync_box", view)),
+		};
+
+		Ok(macro_template)
+	}
+
 	fn update_macros(&self, template: String) -> Result<String, Error> {
 		let name = self.name.as_ref().unwrap();
 		let public_set = self.build_public_set();
+		let public_mappings = self.build_public_mappings();
 		let protected_set = self.build_protected_set();
 		let view_set = self.build_view_set(true)?;
 		let mut all_macros = "".to_string();
 		for view in &view_set {
 			let trait_name = view.to_case(Case::Pascal);
+
 			let macro_template = include_str!("../templates/class_macro_template.txt");
+			let macro_template = self.update_macro_names(&public_mappings, macro_template, view)?;
 			let macro_template = macro_template.replace("${NAME}", name).to_string();
 			let macro_template = macro_template.replace("${VIEW}", view).to_string();
 			let macro_template = self.update_comments(
@@ -1715,6 +1801,7 @@ impl StateMachine {
 				false,
 				false,
 				false,
+				&public_mappings,
 			)?;
 			let macro_template = self.update_comments(
 				macro_template,
@@ -1727,6 +1814,7 @@ impl StateMachine {
 				false,
 				false,
 				false,
+				&public_mappings,
 			)?;
 			let macro_template = self.update_comments(
 				macro_template,
@@ -1739,6 +1827,7 @@ impl StateMachine {
 				true,
 				false,
 				false,
+				&public_mappings,
 			)?;
 			let macro_template = self.update_comments(
 				macro_template,
@@ -1751,6 +1840,7 @@ impl StateMachine {
 				true,
 				false,
 				false,
+				&public_mappings,
 			)?;
 			let macro_template = self.update_comments(
 				macro_template,
@@ -1763,6 +1853,7 @@ impl StateMachine {
 				false,
 				true,
 				false,
+				&public_mappings,
 			)?;
 			let macro_template = self.update_comments(
 				macro_template,
@@ -1775,6 +1866,7 @@ impl StateMachine {
 				false,
 				true,
 				false,
+				&public_mappings,
 			)?;
 			let macro_template = macro_template
 				.replace(
@@ -1918,6 +2010,7 @@ impl StateMachine {
 		let name = self.name.as_ref().unwrap();
 		let public_set = self.build_public_set();
 		let protected_set = self.build_protected_set();
+		let public_mappings = self.build_public_mappings();
 		let view_set = self.build_view_set(true)?;
 		let builder_text = format!("/// Builder for `{}` class.", name);
 		let mut builder_text = format!(
@@ -1947,6 +2040,7 @@ impl StateMachine {
 				false,
 				false,
 				true,
+				&public_mappings,
 			)?;
 
 			let builder_template = self.update_comments(
@@ -1960,6 +2054,7 @@ impl StateMachine {
 				false,
 				false,
 				true,
+				&public_mappings,
 			)?;
 
 			let builder_template = self.update_comments(
@@ -1973,6 +2068,7 @@ impl StateMachine {
 				true,
 				false,
 				true,
+				&public_mappings,
 			)?;
 
 			let builder_template = self.update_comments(
@@ -1986,6 +2082,7 @@ impl StateMachine {
 				true,
 				false,
 				true,
+				&public_mappings,
 			)?;
 
 			let builder_template = self.update_comments(
@@ -1999,6 +2096,7 @@ impl StateMachine {
 				false,
 				true,
 				true,
+				&public_mappings,
 			)?;
 
 			let builder_template = self.update_comments(
@@ -2012,6 +2110,7 @@ impl StateMachine {
 				false,
 				true,
 				true,
+				&public_mappings,
 			)?;
 
 			let builder_template = builder_template.replace(

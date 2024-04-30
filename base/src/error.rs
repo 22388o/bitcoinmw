@@ -19,7 +19,7 @@
 #[cfg(unix)]
 use bmw_deps::nix::errno::Errno as NixErrno;
 
-use crate::{err_only, BaseErrorKind, Error, ErrorKind};
+use crate::{err_only, CoreErrorKind, Error, ErrorKind};
 use bmw_deps::failure::{Backtrace, Context, Fail};
 use bmw_deps::url::ParseError;
 use std::alloc::LayoutError;
@@ -126,120 +126,120 @@ impl PartialEq for Box<dyn ErrorKind> {
 	}
 }
 
-impl ErrorKind for BaseErrorKind {}
+impl ErrorKind for CoreErrorKind {}
 
-impl From<BaseErrorKind> for Error {
-	fn from(kind: BaseErrorKind) -> Error {
+impl From<CoreErrorKind> for Error {
+	fn from(kind: CoreErrorKind) -> Error {
 		Error::new(Box::new(kind))
 	}
 }
 
 impl From<std::io::Error> for Error {
 	fn from(e: std::io::Error) -> Error {
-		err_only!(BaseErrorKind::IO, e)
+		err_only!(CoreErrorKind::IO, e)
 	}
 }
 
 impl From<ParseError> for Error {
 	fn from(e: ParseError) -> Error {
-		err_only!(BaseErrorKind::Parse, e)
+		err_only!(CoreErrorKind::Parse, e)
 	}
 }
 
 impl From<OsString> for Error {
 	fn from(e: OsString) -> Error {
-		err_only!(BaseErrorKind::OsString, format!("{:?}", e))
+		err_only!(CoreErrorKind::OsString, format!("{:?}", e))
 	}
 }
 
 impl From<TryFromIntError> for Error {
 	fn from(e: TryFromIntError) -> Error {
-		err_only!(BaseErrorKind::TryFrom, e)
+		err_only!(CoreErrorKind::TryFrom, e)
 	}
 }
 
 impl From<ParseIntError> for Error {
 	fn from(e: ParseIntError) -> Error {
-		err_only!(BaseErrorKind::Parse, e)
+		err_only!(CoreErrorKind::Parse, e)
 	}
 }
 
 impl From<Utf8Error> for Error {
 	fn from(e: Utf8Error) -> Error {
-		err_only!(BaseErrorKind::Utf8, e)
+		err_only!(CoreErrorKind::Utf8, e)
 	}
 }
 
 impl<T> From<PoisonError<RwLockWriteGuard<'_, T>>> for Error {
 	fn from(e: PoisonError<RwLockWriteGuard<'_, T>>) -> Error {
-		err_only!(BaseErrorKind::Poison, e)
+		err_only!(CoreErrorKind::Poison, e)
 	}
 }
 
 impl<T> From<PoisonError<RwLockReadGuard<'_, T>>> for Error {
 	fn from(e: PoisonError<RwLockReadGuard<'_, T>>) -> Error {
-		err_only!(BaseErrorKind::Poison, e)
+		err_only!(CoreErrorKind::Poison, e)
 	}
 }
 
 impl<T> From<PoisonError<MutexGuard<'_, T>>> for Error {
 	fn from(e: PoisonError<MutexGuard<'_, T>>) -> Error {
-		err_only!(BaseErrorKind::Poison, e)
+		err_only!(CoreErrorKind::Poison, e)
 	}
 }
 
 impl From<RecvError> for Error {
 	fn from(e: RecvError) -> Error {
-		err_only!(BaseErrorKind::IllegalState, e)
+		err_only!(CoreErrorKind::IllegalState, e)
 	}
 }
 
 impl<T> From<SendError<T>> for Error {
 	fn from(e: SendError<T>) -> Error {
-		err_only!(BaseErrorKind::IllegalState, e)
+		err_only!(CoreErrorKind::IllegalState, e)
 	}
 }
 
 impl From<LayoutError> for Error {
 	fn from(e: LayoutError) -> Error {
-		err_only!(BaseErrorKind::Alloc, format!("layout error: {}", e))
+		err_only!(CoreErrorKind::Alloc, format!("layout error: {}", e))
 	}
 }
 
 impl From<SystemTimeError> for Error {
 	fn from(e: SystemTimeError) -> Error {
-		err_only!(BaseErrorKind::SystemTime, e)
+		err_only!(CoreErrorKind::SystemTime, e)
 	}
 }
 
 #[cfg(not(tarpaulin_include))] // can't happen
 impl From<Infallible> for Error {
 	fn from(e: Infallible) -> Error {
-		err_only!(BaseErrorKind::Misc, e)
+		err_only!(CoreErrorKind::Misc, e)
 	}
 }
 
 #[cfg(unix)]
 impl From<NixErrno> for Error {
 	fn from(e: NixErrno) -> Error {
-		err_only!(BaseErrorKind::Errno, e)
+		err_only!(CoreErrorKind::Errno, e)
 	}
 }
 
 impl From<FromUtf8Error> for Error {
 	fn from(e: FromUtf8Error) -> Error {
-		err_only!(BaseErrorKind::Utf8, e)
+		err_only!(CoreErrorKind::Utf8, e)
 	}
 }
 
 impl From<AddrParseError> for Error {
 	fn from(e: AddrParseError) -> Error {
-		err_only!(BaseErrorKind::Parse, e)
+		err_only!(CoreErrorKind::Parse, e)
 	}
 }
 
 impl From<ParseBoolError> for Error {
 	fn from(e: ParseBoolError) -> Error {
-		err_only!(BaseErrorKind::Parse, e)
+		err_only!(CoreErrorKind::Parse, e)
 	}
 }
