@@ -39,4 +39,21 @@ pub enum LogLevel {
 #[ErrorKind]
 pub enum LogErrorKind {
 	Log,
+	Configuration,
+	IllegalState,
+	AlreadyInitialized,
+	/// failed to retreive metadata
+	MetaData,
+	NotInitialized,
+	/// simulated test error
+	Test,
+}
+
+// used by macros
+#[doc(hidden)]
+#[derive(PartialEq)]
+pub enum LoggingType {
+	Standard,
+	Plain,
+	All,
 }
