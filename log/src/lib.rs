@@ -20,8 +20,8 @@ use bmw_core::failure;
 mod constants;
 mod log;
 mod macros;
-mod public;
 mod test;
 mod types;
 
-pub use crate::public::*;
+pub use log::*;
+pub use types::LogErrorKind;

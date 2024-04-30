@@ -1153,6 +1153,7 @@ impl StateMachine {
 		let template = self.update_trait_impl(template)?;
 		let template = self.update_macros(template)?;
 		let template = self.update_builder(template)?;
+		//println!("template='{}'", template);
 		Ok(map_err!(template.parse::<TokenStream>(), Parse)?)
 	}
 
@@ -2282,7 +2283,7 @@ impl StateMachine {
 
 		let mut const_params = "".to_string();
 		// export the config options here
-		let mut conf_default = format!("#[doc(hidden)]\npub use {}ConstOptions::*;", name);
+		let mut conf_default = format!("#[doc(hidden)] pub use {}ConstOptions::*;", name);
 		conf_default = format!("{}\nimpl Default for {}Const {{", conf_default, name);
 		conf_default = format!("{}\n\tfn default() -> Self {{\n\t\tSelf {{", conf_default);
 		for const_param in &self.const_list {

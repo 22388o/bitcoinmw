@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+pub use crate::types::LogLevel;
 use bmw_core::*;
 
 #[class{
@@ -62,8 +63,48 @@ use bmw_core::*;
     }
 
     [logger]
+    fn log(&mut self, level: LogLevel, line: &str) -> Result<(), Error> {
+        todo!()
+    }
+
+    [logger]
+    fn log_all(&mut self, level: LogLevel, line: &str) -> Result<(), Error> {
+        todo!()
+    }
+
+    [logger]
+    fn log_plain(&mut self, level: LogLevel, line: &str) -> Result<(), Error> {
+        todo!()
+    }
+
+    [logger]
+    fn need_rotate(&self) -> Result<bool, Error> {
+        todo!()
+    }
+
+    [logger]
     fn rotate(&mut self) -> Result<(), Error> {
-        Ok(())
+        todo!()
+    }
+
+    [logger]
+    fn set_log_level(&mut self, level: LogLevel) {
+        todo!()
+    }
+
+    [logger]
+    fn init(&mut self) -> Result<(), Error> {
+        todo!()
+    }
+
+    [logger]
+    fn close(&mut self) -> Result<(), Error> {
+        todo!()
+    }
+
+    [logger]
+    fn set_config_option(&mut self, value: LogConstOptions) -> Result<(), Error> {
+        todo!()
     }
 }]
 impl Log {}

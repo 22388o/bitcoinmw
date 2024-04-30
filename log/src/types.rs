@@ -35,6 +35,7 @@ pub enum LogLevel {
 	Fatal,
 }
 
+/// Types of errors that occur during logging
 #[ErrorKind]
 pub enum LogErrorKind {
 	Log,

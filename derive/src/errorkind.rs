@@ -40,6 +40,7 @@ pub(crate) fn do_derive_errorkind(_attr: TokenStream, item: TokenStream) -> Toke
 fn do_derive_errorkind_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 	let mut ret = TokenStream::new();
 	let mut expect_name = false;
+	let mut name_found = false;
 	let mut name = "".to_string();
 
 	// need Debug and Fail derived
@@ -49,60 +50,61 @@ fn do_derive_errorkind_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 	for token in item.clone() {
 		let mut extended = false;
 		let mut last_doc: Option<String> = None;
-		match token {
-			Ident(_) => {
-				ret.extend(token.to_string().parse::<TokenStream>());
-				extended = true;
-			}
-			Group(ref g) => {
-				let mut extension = "{".to_string();
-				for g in g.stream() {
-					let ginner = g.to_string();
-					if ginner.find("[doc") == Some(0) {
-						match ginner.find("\"") {
-							Some(start) => match ginner.rfind("\"") {
-								Some(end) => {
-									if end > start + 2 {
-										let d = ginner.substring(start + 2, end);
-										// store last doc to use as the
-										// message avoids having to
-										// duplicate this message
-										last_doc = Some(d.to_string());
-									}
-								}
-								None => {}
-							},
-							None => {}
-						}
-					}
-					match g {
-						Ident(g) => {
-							// use Fail to display message
-							extension = format!(
-								"{}#[fail(display = \"{}: {{}}\", _0)]",
-								extension,
-								match last_doc {
-									Some(last_doc) => last_doc,
-									None => g.to_string(),
-								}
-							);
-							// all errors take a string
-							extension = format!("{} {}(String)", extension, g.to_string());
-							last_doc = None;
-						}
-						Punct(g) => {
-							extension = format!("{} {}", extension, g.to_string());
-						}
-						_ => extension = format!("{} {}", extension, g.to_string()),
-					}
+		if name_found {
+			match token {
+				Ident(_) => {
+					ret.extend(token.to_string().parse::<TokenStream>());
+					extended = true;
 				}
-				extension = format!("{}}}", extension);
-				ret.extend(extension.parse::<TokenStream>());
-				extended = true;
+				Group(ref g) => {
+					let mut extension = "{".to_string();
+					for g in g.stream() {
+						let ginner = g.to_string();
+						if ginner.find("[doc") == Some(0) {
+							match ginner.find("\"") {
+								Some(start) => match ginner.rfind("\"") {
+									Some(end) => {
+										if end > start + 2 {
+											let d = ginner.substring(start + 2, end);
+											// store last doc to use as the
+											// message avoids having to
+											// duplicate this message
+											last_doc = Some(d.to_string());
+										}
+									}
+									None => {}
+								},
+								None => {}
+							}
+						}
+						match g {
+							Ident(g) => {
+								// use Fail to display message
+								extension = format!(
+									"{}#[fail(display = \"{}: {{}}\", _0)]",
+									extension,
+									match last_doc {
+										Some(last_doc) => last_doc,
+										None => g.to_string(),
+									}
+								);
+								// all errors take a string
+								extension = format!("{} {}(String)", extension, g.to_string());
+								last_doc = None;
+							}
+							Punct(g) => {
+								extension = format!("{} {}", extension, g.to_string());
+							}
+							_ => extension = format!("{} {}", extension, g.to_string()),
+						}
+					}
+					extension = format!("{}}}", extension);
+					ret.extend(extension.parse::<TokenStream>());
+					extended = true;
+				}
+				_ => {}
 			}
-			_ => {}
 		}
-
 		if !extended {
 			ret.extend(token.to_string().parse::<TokenStream>());
 		}
@@ -110,6 +112,7 @@ fn do_derive_errorkind_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 		match token {
 			Ident(ident) => {
 				if expect_name {
+					name_found = true;
 					name = ident.to_string();
 					expect_name = false;
 				} else if ident.to_string() == "enum" {
@@ -126,7 +129,6 @@ fn do_derive_errorkind_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 
 	// build the impl for ErrorKind and the From for Error impl
 	build_impls(name, &mut ret)?;
-
 	Ok(ret)
 }
 
