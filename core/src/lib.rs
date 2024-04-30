@@ -23,3 +23,6 @@
 pub use bmw_base::*;
 pub use bmw_deps::*;
 pub use bmw_derive::*;
+
+pub use bmw_base;
+pub use bmw_deps;

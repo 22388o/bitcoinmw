@@ -451,7 +451,7 @@ use crate::class::do_derive_class;
 
 /// The [`crate::class()`] attribute defines a composite data type that incorporates other types, functions,
 /// and views. Classes offer functionalities reminiscent of those found in other programming languages
-/// while upholding Rust's fundamental principles. They can implement traits and serve as fields within a
+/// while upholding Rust's fundamental principles. Classes can implement traits and serve as fields within a
 /// struct or as variants of an enum.
 #[proc_macro_attribute]
 #[cfg(not(tarpaulin_include))]

@@ -21,7 +21,7 @@ use bmw_base::*;
 use bmw_deps::convert_case::{Case, Casing};
 use bmw_deps::substring::Substring;
 use proc_macro::TokenTree::*;
-use proc_macro::{Delimiter, Group, Span, TokenStream, TokenTree};
+use proc_macro::{Delimiter, Group, Spacing, Span, TokenStream, TokenTree};
 use proc_macro_error::{abort, emit_error, Diagnostic, Level};
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
@@ -197,6 +197,7 @@ struct StateMachine {
 	generics: Option<String>,
 	generics2: Option<String>,
 	where_clause: Option<String>,
+	type_str_prev_is_joint: bool,
 }
 
 impl StateMachine {
@@ -224,6 +225,7 @@ impl StateMachine {
 			generics: None,
 			generics2: None,
 			where_clause: None,
+			type_str_prev_is_joint: false,
 		}
 	}
 	fn derive(&mut self, attr: &TokenStream, item: &TokenStream) -> Result<TokenStream, Error> {
@@ -806,7 +808,26 @@ impl StateMachine {
 				}
 			} else {
 				let value_str = &self.cur_const.as_ref().unwrap().value_str;
-				self.cur_const.as_mut().unwrap().value_str = format!("{} {}", value_str, token_str);
+				if self.type_str_prev_is_joint {
+					self.cur_const.as_mut().unwrap().value_str =
+						format!("{}{}", value_str, token_str);
+				} else {
+					self.cur_const.as_mut().unwrap().value_str =
+						format!("{} {}", value_str, token_str);
+				}
+
+				match token {
+					Punct(p) => {
+						if p.spacing() == Spacing::Joint {
+							self.type_str_prev_is_joint = true;
+						} else {
+							self.type_str_prev_is_joint = false;
+						}
+					}
+					_ => {
+						self.type_str_prev_is_joint = false;
+					}
+				}
 			}
 		}
 		Ok(())
@@ -1192,7 +1213,7 @@ impl StateMachine {
 			let trait_name = view.to_case(Case::Pascal);
 			let trait_visibility = self.get_visibility_trait(&view, &public_set, &protected_set);
 			let clone_text = if clone_set.contains(&view) {
-				": bmw_deps::dyn_clone::DynClone"
+				": bmw_core::dyn_clone::DynClone"
 			} else {
 				""
 			};
@@ -1536,6 +1557,38 @@ impl StateMachine {
 				"{}#[doc=\"* [`bmw_core::BaseErrorKind`]\"]\n",
 				comment_builder
 			);
+
+			if is_builder {
+				comment_builder = format!(
+					"{}#[doc=\"* [`crate::{}!`]\"]\n",
+					comment_builder, macro_name
+				);
+			} else {
+				match module {
+					Some(module) => {
+						let module = match module.find(":") {
+							Some(pos) => {
+								if pos > 0 {
+									format!("crate{}", module.substring(pos, module.len()))
+								} else {
+									module.clone()
+								}
+							}
+							None => module.clone(),
+						};
+						comment_builder = format!(
+							"{}\n#[doc=\"* [`{}::{}::build_{}`]\"]",
+							comment_builder, module, builder_name, macro_name
+						);
+					}
+					None => {
+						comment_builder = format!(
+							"{}\n#[doc=\"* [`crate::{}::build_{}`]\"]",
+							comment_builder, builder_name, macro_name
+						);
+					}
+				}
+			}
 
 			if is_send {
 				comment_builder = format!("{}#[doc=\"* [`Send`]\"]\n", comment_builder);

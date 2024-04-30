@@ -318,6 +318,13 @@ fn build_error_list(ret: &mut TokenStream, error_list: Vec<(String, String)>) ->
 }
 
 fn build_see_list(ret: &mut TokenStream, see_list: Vec<String>) -> Result<(), Error> {
+	if see_list.len() == 0 {
+		ret.extend(
+                        "/// __TODO__: add '/// @see <type> ' to point users of this function to other documentation."
+                                .parse::<TokenStream>(),
+                );
+	}
+
 	for see in see_list {
 		ret.extend(format!("/// * [`{}`]", see).parse::<TokenStream>());
 	}

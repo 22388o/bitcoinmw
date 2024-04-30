@@ -18,14 +18,16 @@ members = [
 	"test",
 	"derive",
 	"core",
+	"log",
 	"integration",
 ]
 exclude = ["etc"]
 
 [dependencies]
-bmw_base    = { path = "./base"    }
+bmw_base   = { path = "./base"   }
 bmw_derive = { path = "./derive" }
-bmw_core    = { path = "./core"    }
+bmw_core   = { path = "./core"   }
+bmw_log    = { path = "./log"    }
 
 [dev-dependencies]
 bmw_test = { path = "./test"         }

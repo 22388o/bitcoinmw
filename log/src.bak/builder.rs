@@ -7,7 +7,6 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-//
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
@@ -16,12 +15,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! The integration crate contains integration tests for other crates within BitcoinMW.
+use crate::public::*;
+use crate::types::LogImpl;
+use bmw_err::*;
 
-use bmw_deps::failure;
-
-//pub mod test_class;
-mod test_config;
-pub mod test_document;
-mod test_error;
-mod test_serializable;
+impl LogBuilder {
+	/// Build a logger based based on the specified configuration. This should generally be
+	/// done by calling the [`crate::logger`] macro.
+	pub fn build_log(configs: Vec<LogConfigOptions>) -> Result<Box<dyn Log + Send + Sync>, Error> {
+		Ok(Box::new(LogImpl::new(configs)?))
+	}
+}
