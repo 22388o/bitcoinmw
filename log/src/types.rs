@@ -35,7 +35,7 @@ pub enum LogLevel {
 	Fatal,
 }
 
-/// Types of errors that occur during logging
+/// Kinds of errors that occur during logging
 #[ErrorKind]
 pub enum LogErrorKind {
 	Log,
@@ -47,6 +47,7 @@ pub enum LogErrorKind {
 	NotInitialized,
 	/// simulated test error
 	Test,
+	IllegalArgument,
 }
 
 // used by macros
@@ -56,4 +57,23 @@ pub enum LoggingType {
 	Standard,
 	Plain,
 	All,
+}
+
+// crate public types
+
+#[derive(Clone)]
+pub(crate) struct LogConfig {
+	pub(crate) max_age_millis: u64,
+	pub(crate) max_size_bytes: u64,
+	pub(crate) line_num_data_max_len: u16,
+	pub(crate) stdout: bool,
+	pub(crate) colors: bool,
+	pub(crate) timestamp: bool,
+	pub(crate) show_millis: bool,
+	pub(crate) log_level: bool,
+	pub(crate) line_num: bool,
+	pub(crate) backtrace: bool,
+	pub(crate) auto_rotate: bool,
+	pub(crate) delete_rotation: bool,
+	pub(crate) file_header: String,
 }

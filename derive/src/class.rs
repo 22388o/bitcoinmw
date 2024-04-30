@@ -93,6 +93,38 @@ impl Var {
 	}
 }
 
+impl Ord for Const {
+	fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+		if self.name < other.name {
+			std::cmp::Ordering::Less
+		} else if self.name > other.name {
+			std::cmp::Ordering::Greater
+		} else {
+			std::cmp::Ordering::Equal
+		}
+	}
+}
+
+impl PartialOrd for Const {
+	fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+		Some(if self.name < other.name {
+			std::cmp::Ordering::Less
+		} else if self.name > other.name {
+			std::cmp::Ordering::Greater
+		} else {
+			std::cmp::Ordering::Equal
+		})
+	}
+}
+
+impl Eq for Const {}
+
+impl PartialEq for Const {
+	fn eq(&self, other: &Const) -> bool {
+		self.name == other.name
+	}
+}
+
 #[derive(Debug, Clone)]
 struct Const {
 	name: String,
@@ -1260,7 +1292,9 @@ impl StateMachine {
 					|| public.name == format!("{}_sync", view)
 				{
 					for comment in &public.comments {
-						trait_comments = format!("{}///{}\n", trait_comments, comment);
+						if comment.trim().find("@noexamples") != Some(0) {
+							trait_comments = format!("{}///{}\n", trait_comments, comment);
+						}
 					}
 					break;
 				}
@@ -1509,12 +1543,6 @@ impl StateMachine {
 		is_builder: bool,
 		public_mappings: &HashMap<String, String>,
 	) -> Result<String, Error> {
-		/*
-		let macro_name = match public_mappings.get(&macro_name) {
-			Some(macro_name) => macro_name,
-			None => &macro_name,
-		};
-			*/
 		let view_name = macro_name.clone();
 		let builder_name = format!("{}Builder", class_name);
 		let public_set = self.build_public_set();
@@ -1545,7 +1573,9 @@ impl StateMachine {
 				comment_builder
 			);
 			let mut comment_builder = format!("{}#[doc=\"|---|---|---|---|\"]\n", comment_builder);
-			for value in &self.const_list {
+			let mut list = self.const_list.clone();
+			list.sort();
+			for value in &list {
 				let mut description = format!("");
 				for comment in &value.comments {
 					description = format!("{} {}", description, comment);
@@ -1645,95 +1675,119 @@ impl StateMachine {
 				comment_builder = format!("{}#[doc=\"* [`Box`]\"]\n", comment_builder);
 			}
 
+			let mut enable_example = true;
+			for public in &self.public_list {
+				if public.name == view_name
+					|| public.name == format!("{}_box", view_name)
+					|| public.name == format!("{}_send_box", view_name)
+					|| public.name == format!("{}_sync_box", view_name)
+					|| public.name == format!("{}_send", view_name)
+					|| public.name == format!("{}_sync", view_name)
+				{
+					for comment in &public.comments {
+						if comment.trim().find("@noexamples") == Some(0) {
+							enable_example = false;
+						}
+					}
+				}
+			}
+
 			let comment_builder = format!("{}#[doc=\"# Examples\"]\n", comment_builder);
-			let comment_builder = format!("{}#[doc=\"```\"]\n", comment_builder);
-			let comment_builder = format!(
-				"{}#[doc=\"// use bmw_core::*, the macro, and the builder\"]\n",
-				comment_builder
-			);
-			let mut comment_builder = format!("{}#[doc=\"use bmw_core::*;\"]\n", comment_builder);
+			if enable_example {
+				let comment_builder = format!("{}#[doc=\"```\"]\n", comment_builder);
+				let comment_builder = format!(
+					"{}#[doc=\"// use bmw_core::*, the macro, and the builder\"]\n",
+					comment_builder
+				);
+				let mut comment_builder =
+					format!("{}#[doc=\"use bmw_core::*;\"]\n", comment_builder);
 
-			let crate_name = std::env::var("CARGO_PKG_NAME").unwrap();
+				let crate_name = std::env::var("CARGO_PKG_NAME").unwrap();
 
-			match module {
-				Some(module) => {
-					comment_builder = format!("{}\n#[doc=\"use {}::*;\"]", comment_builder, module);
-					comment_builder = format!(
-						"{}\n#[doc=\"use {}::{};\"]",
-						comment_builder, crate_name, macro_name
-					);
+				match module {
+					Some(module) => {
+						comment_builder =
+							format!("{}\n#[doc=\"use {}::*;\"]", comment_builder, module);
+						comment_builder = format!(
+							"{}\n#[doc=\"use {}::{};\"]",
+							comment_builder, crate_name, macro_name
+						);
+					}
+					None => {
+						comment_builder =
+							format!("{}\n#[doc=\"use {}::*;\"]", comment_builder, crate_name,);
+					}
 				}
-				None => {
-					comment_builder =
-						format!("{}\n#[doc=\"use {}::*;\"]", comment_builder, crate_name,);
-				}
-			}
 
-			let comment_builder = format!("{}#[doc=\"\"]\n", comment_builder);
-			let comment_builder = format!(
-				"{}#[doc=\"fn main() -> Result<(), Error> {{\"]\n",
-				comment_builder
-			);
-			let comment_builder = format!(
-				"{}#[doc=\"\t// build a {} with default parameters.\"]\n",
-				comment_builder, trait_name
-			);
-			let comment_builder = if is_builder {
-				format!(
-					"{}#[doc=\"\tlet object = {}::build_{}(vec![])?;\"]\n",
-					comment_builder, builder_name, view_name
-				)
-			} else {
-				format!(
-					"{}#[doc=\"\tlet object = {}!()?;\"]\n",
-					comment_builder, macro_name
-				)
-			};
-			let comment_builder = format!("{}#[doc=\"\t// use object...\"]\n", comment_builder);
-			let comment_builder = format!("{}#[doc=\"\"]\n", comment_builder);
-
-			let comment_builder = format!(
-				"{}#[doc=\"\t// build a {} with parameters explicitly specified.\"]\n",
-				comment_builder, trait_name
-			);
-			let mut comment_builder = if is_builder {
-				format!(
-					"{}#[doc=\"\tlet object = {}::build_{}(vec![\"]\n",
-					comment_builder, builder_name, view_name
-				)
-			} else {
-				format!(
-					"{}#[doc=\"\tlet object = {}!(\"]\n",
-					comment_builder, macro_name
-				)
-			};
-
-			for param in &self.const_list {
-				let pascal = param.name.to_case(Case::Pascal);
-				let default_value = param.value_str.clone();
-				let default_value = default_value.trim();
-
-				if default_value.find("vec").is_some() || default_value.find("(").is_some() {
-					// bypass Vec and tuple
+				let comment_builder = format!("{}#[doc=\"\"]\n", comment_builder);
+				let comment_builder = format!(
+					"{}#[doc=\"fn main() -> Result<(), Error> {{\"]\n",
+					comment_builder
+				);
+				let comment_builder = format!(
+					"{}#[doc=\"\t// build a {} with default parameters.\"]\n",
+					comment_builder, trait_name
+				);
+				let comment_builder = if is_builder {
+					format!(
+						"{}#[doc=\"\tlet object = {}::build_{}(vec![])?;\"]\n",
+						comment_builder, builder_name, view_name
+					)
 				} else {
-					comment_builder = format!(
-						"{}#[doc=\"\t\t{}({}),\"]\n",
-						comment_builder, pascal, default_value
-					);
-				}
-			}
+					format!(
+						"{}#[doc=\"\tlet object = {}!()?;\"]\n",
+						comment_builder, macro_name
+					)
+				};
+				let comment_builder = format!("{}#[doc=\"\t// use object...\"]\n", comment_builder);
+				let comment_builder = format!("{}#[doc=\"\"]\n", comment_builder);
 
-			let comment_builder = if is_builder {
-				format!("{}#[doc=\"\t])?;\"]\n", comment_builder,)
+				let comment_builder = format!(
+					"{}#[doc=\"\t// build a {} with parameters explicitly specified.\"]\n",
+					comment_builder, trait_name
+				);
+				let mut comment_builder = if is_builder {
+					format!(
+						"{}#[doc=\"\tlet object = {}::build_{}(vec![\"]\n",
+						comment_builder, builder_name, view_name
+					)
+				} else {
+					format!(
+						"{}#[doc=\"\tlet object = {}!(\"]\n",
+						comment_builder, macro_name
+					)
+				};
+
+				for param in &self.const_list {
+					let pascal = param.name.to_case(Case::Pascal);
+					let default_value = param.value_str.clone();
+					let default_value = default_value.trim();
+
+					if default_value.find("vec").is_some() || default_value.find("(").is_some() {
+						// bypass Vec and tuple
+					} else {
+						comment_builder = format!(
+							"{}#[doc=\"\t\t{}({}),\"]\n",
+							comment_builder, pascal, default_value
+						);
+					}
+				}
+
+				let comment_builder = if is_builder {
+					format!("{}#[doc=\"\t])?;\"]\n", comment_builder,)
+				} else {
+					format!("{}#[doc=\"\t)?;\"]\n", comment_builder,)
+				};
+				let comment_builder = format!("{}#[doc=\"\t// use object...\"]\n", comment_builder);
+				let comment_builder = format!("{}#[doc=\"\"]\n", comment_builder);
+				let comment_builder = format!("{}#[doc=\"\tOk(())\"]\n", comment_builder);
+				let comment_builder = format!("{}#[doc=\"}}\"]\n", comment_builder);
+				let comment_builder = format!("{}#[doc=\"```\"]\n", comment_builder);
+				comment_builder
 			} else {
-				format!("{}#[doc=\"\t)?;\"]\n", comment_builder,)
-			};
-			let comment_builder = format!("{}#[doc=\"\t// use object...\"]\n", comment_builder);
-			let comment_builder = format!("{}#[doc=\"\"]\n", comment_builder);
-			let comment_builder = format!("{}#[doc=\"\tOk(())\"]\n", comment_builder);
-			let comment_builder = format!("{}#[doc=\"}}\"]\n", comment_builder);
-			let comment_builder = format!("{}#[doc=\"```\"]\n", comment_builder);
-			comment_builder
+				let comment_builder = format!("{}#[doc=\"n/a\"]", comment_builder);
+				comment_builder
+			}
 		};
 		Ok(template.replace(replacement, &comment_builder).to_string())
 	}

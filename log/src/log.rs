@@ -17,6 +17,7 @@
 
 use crate::constants::*;
 use crate::log::url_path::UrlPath;
+use crate::types::LogConfig;
 pub use crate::types::{LogLevel, LoggingType};
 use crate::LogErrorKind::*;
 use bmw_core::backtrace::Backtrace as LocalBacktrace;
@@ -32,6 +33,9 @@ use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
+#[doc(hidden)]
+pub const DEFAULT_LINE_NUM_DATA_MAX_LEN: u16 = 30;
+
 #[class{
     /// Log trait
     public logger;
@@ -43,7 +47,7 @@ use std::time::{Duration, Instant};
     const max_size_bytes: u64 = u64::MAX;
     /// The maximum length, in bytes, of the line number data which, if
     /// enabled, is included in the log line.
-    const line_num_data_max_len: u16 = 30;
+    const line_num_data_max_len: u16 = DEFAULT_LINE_NUM_DATA_MAX_LEN;
     /// The path of log file. If this value is set to "", file logging is
     /// disabled.
     const log_file_path: String = "".to_string();
@@ -78,6 +82,7 @@ use std::time::{Duration, Instant};
     var file: Arc<RwLock<Option<File>>>;
     var is_init: bool;
     var last_rotation: Instant;
+    var log_config: LogConfig;
     var log_file_path_canonicalized: String;
     var debug_invalid_metadata: bool;
     var debug_lineno_is_none: bool;
@@ -117,6 +122,21 @@ use std::time::{Duration, Instant};
             let text = format!("LineNumDataMaxLen must be at least {}", MINIMUM_LNDML);
             err!(Configuration, text)
         } else {
+            let log_config = LogConfig {
+                max_age_millis: const_values.max_age_millis,
+                max_size_bytes: const_values.max_size_bytes,
+                line_num_data_max_len: const_values.line_num_data_max_len,
+                stdout: const_values.stdout,
+                colors: const_values.colors,
+                timestamp: const_values.timestamp,
+                show_millis: const_values.show_millis,
+                log_level: const_values.log_level,
+                line_num: const_values.line_num,
+                backtrace: const_values.backtrace,
+                auto_rotate: const_values.auto_rotate,
+                file_header: const_values.file_header.clone(),
+                delete_rotation: const_values.delete_rotation,
+            };
             Ok(Self {
                 cur_log_level: LogLevel::Info,
                 cur_size: 0,
@@ -127,6 +147,7 @@ use std::time::{Duration, Instant};
                 debug_process_resolve_frame_error,
                 debug_lineno_is_none,
                 debug_invalid_metadata,
+                log_config,
             })
         }
     }
@@ -171,6 +192,11 @@ use std::time::{Duration, Instant};
         self.close_impl()
     }
 
+    [logger, debug_log]
+    fn set_log_option(&mut self, value: LogConstOptions) -> Result<(), Error> {
+        self.set_log_option_impl(value)
+    }
+
     [debug_log]
     fn set_debug_lineno_is_none(&mut self, value: bool) {
         *self.get_mut_debug_lineno_is_none() = value;
@@ -179,6 +205,11 @@ use std::time::{Duration, Instant};
     [debug_log]
     fn set_debug_process_resolve_frame_error(&mut self, value: bool) {
         *self.get_mut_debug_process_resolve_frame_error() = value;
+    }
+
+    [debug_log]
+    fn get_log_config_debug(&self) -> LogConfig {
+        self.get_log_config().clone()
     }
 }]
 impl Log {}
@@ -204,6 +235,44 @@ macro_rules! none_or_err {
 }
 
 impl Log {
+	fn set_log_option_impl(&mut self, value: LogConstOptions) -> Result<(), Error> {
+		if !*self.get_is_init() {
+			err!(
+				NotInitialized,
+				"logger has not been initalized. Call init() first."
+			)
+		} else {
+			match value {
+				LogConstOptions::Colors(v) => (*self.get_mut_log_config()).colors = v,
+				LogConstOptions::Stdout(v) => (*self.get_mut_log_config()).stdout = v,
+				LogConstOptions::MaxAgeMillis(v) => (*self.get_mut_log_config()).max_age_millis = v,
+				LogConstOptions::MaxSizeBytes(v) => (*self.get_mut_log_config()).max_size_bytes = v,
+				LogConstOptions::LineNumDataMaxLen(v) => {
+					(*self.get_mut_log_config()).line_num_data_max_len = v
+				}
+				LogConstOptions::Timestamp(v) => (*self.get_mut_log_config()).timestamp = v,
+				LogConstOptions::ShowMillis(v) => (*self.get_mut_log_config()).show_millis = v,
+				LogConstOptions::LogLevel(v) => (*self.get_mut_log_config()).log_level = v,
+				LogConstOptions::LineNum(v) => (*self.get_mut_log_config()).line_num = v,
+				LogConstOptions::Backtrace(v) => (*self.get_mut_log_config()).backtrace = v,
+				LogConstOptions::AutoRotate(v) => (*self.get_mut_log_config()).auto_rotate = v,
+				LogConstOptions::DeleteRotation(v) => {
+					(*self.get_mut_log_config()).delete_rotation = v
+				}
+				LogConstOptions::FileHeader(v) => {
+					(*self.get_mut_log_config()).file_header = v.to_string()
+				}
+				LogConstOptions::LogFilePath(_) => {
+					return err!(
+						IllegalArgument,
+						"cannot set log file path after initialization"
+					)
+				}
+			}
+			Ok(())
+		}
+	}
+
 	fn init_impl(&mut self) -> Result<(), Error> {
 		if *self.get_is_init() {
 			// init already was called
@@ -250,16 +319,21 @@ impl Log {
 			);
 		}
 
-		if level as usize >= *self.get_log_level() as usize {
+		if level as usize >= *self.get_cur_log_level() as usize {
 			self.rotate_if_needed()?;
-			let show_stdout = *self.get_stdout() || logging_type == LoggingType::All;
-			let show_timestamp = *self.get_timestamp() && logging_type != LoggingType::Plain;
-			let show_colors = *self.get_colors();
-			let show_log_level = *self.get_log_level() && logging_type != LoggingType::Plain;
-			let show_line_num = *self.get_line_num() && logging_type != LoggingType::Plain;
-			let show_millis = *self.get_show_millis() && logging_type != LoggingType::Plain;
-			let show_bt = *self.get_backtrace() && level as usize >= LogLevel::Error as usize;
-			let max_len = *self.get_line_num_data_max_len();
+			let show_stdout = (*self.get_log_config()).stdout || logging_type == LoggingType::All;
+			let show_timestamp =
+				(*self.get_log_config()).timestamp && logging_type != LoggingType::Plain;
+			let show_colors = (*self.get_log_config()).colors;
+			let show_log_level =
+				(*self.get_log_config()).log_level && logging_type != LoggingType::Plain;
+			let show_line_num =
+				(*self.get_log_config()).line_num && logging_type != LoggingType::Plain;
+			let show_millis =
+				(*self.get_log_config()).show_millis && logging_type != LoggingType::Plain;
+			let show_bt =
+				(*self.get_log_config()).backtrace && level as usize >= LogLevel::Error as usize;
+			let max_len = (*self.get_log_config()).line_num_data_max_len;
 
 			// call the main logging function with the specified params
 			self.do_log_impl(
@@ -506,14 +580,14 @@ impl Log {
 	}
 
 	fn rotate_if_needed(&mut self) -> Result<(), Error> {
-		if !*self.get_auto_rotate() {
+		if !(*self.get_log_config()).auto_rotate {
 			return Ok(()); // auto rotate not enabled
 		}
 
 		let now = Instant::now();
 
-		let max_age_millis = *self.get_max_age_millis();
-		let max_size_bytes = *self.get_max_size_bytes();
+		let max_age_millis = (*self.get_log_config()).max_age_millis;
+		let max_size_bytes = (*self.get_log_config()).max_size_bytes;
 
 		// if the file is too old or too big we rotate
 		if now
@@ -554,10 +628,10 @@ impl Log {
 		let len = metadata.len();
 		if len == 0 {
 			// do we need to add the file header?
-			let header_len = self.get_file_header().len();
+			let header_len = (*self.get_log_config()).file_header.len();
 			if header_len > 0 {
 				// there's a header. We need to append it.
-				file.write(self.get_file_header().as_bytes())?;
+				file.write((*self.get_log_config()).file_header.as_bytes())?;
 				file.write(NEWLINE)?;
 				let header_len_u64: u64 = try_into!(header_len)?;
 				*self.get_mut_cur_size() = header_len_u64 + 1;
@@ -634,12 +708,15 @@ impl Log {
 
 	fn need_rotate_impl(&self) -> Result<bool, Error> {
 		if !*self.get_is_init() {
-			err!(NotInitialized, "log is not initialized")
+			err!(
+				NotInitialized,
+				"logger has not been initalized. Call init() first."
+			)
 		} else {
 			let now = Instant::now();
 
-			let max_age_millis = *self.get_max_age_millis();
-			let max_size_bytes = *self.get_max_size_bytes();
+			let max_age_millis = (*self.get_log_config()).max_age_millis;
+			let max_size_bytes = (*self.get_log_config()).max_size_bytes;
 
 			// if the file is either too old or too big we need to rotate
 			if now
@@ -658,7 +735,7 @@ impl Log {
 	fn rotate_impl(&mut self) -> Result<(), Error> {
 		if !*self.get_is_init() {
 			// log hasn't been initialized yet, return error
-			let text = "log file cannot be rotated because init() was never called";
+			let text = "logger has not been initalized. Call init() first.";
 			return err!(NotInitialized, text);
 		}
 
@@ -700,7 +777,7 @@ impl Log {
 		let file_name = format!("{}{}_{}.log", file_name, rotation_string, random::<u64>());
 		new_file_path_buf.push(file_name);
 
-		if *self.get_delete_rotation() {
+		if (*self.get_log_config()).delete_rotation {
 			remove_file(&original_file_path.as_path())?;
 		} else {
 			rename(&original_file_path.as_path(), new_file_path_buf.as_path())?;
@@ -726,7 +803,7 @@ impl Log {
 
 	fn close_impl(&mut self) -> Result<(), Error> {
 		if !*self.get_is_init() {
-			let text = "log file cannot be closed because init() was never called";
+			let text = "logger has not been initalized. Call init() first.";
 			err!(NotInitialized, text)
 		} else {
 			let mut file = (*self.get_mut_file()).write()?;

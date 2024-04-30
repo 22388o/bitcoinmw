@@ -17,17 +17,17 @@
 
 #[cfg(test)]
 mod test {
-	use crate::log::Logger;
-	use crate::LogBuilder;
-	use crate::LogConstOptions::*;
-	use crate::LogLevel;
+	use crate::log::DebugLog;
+	use crate::log::LogBuilder;
+	use crate::log::LogConstOptions::*;
+	use crate::types::LogLevel;
+	use crate::LogErrorKind::*;
+	use crate::*;
 	use bmw_core::*;
 	use bmw_test::*;
 	use std::fs::File;
 	use std::io::Read;
 	use std::path::PathBuf;
-
-	const DEFAULT_LINE_NUM_DATA_MAX_LEN: u16 = 30;
 
 	#[test]
 	fn test_log_basic() -> Result<(), Error> {
@@ -38,17 +38,72 @@ mod test {
 		buf.push("test.log");
 		// create a logger with auto rotate on ( use impl so we can check the config )
 		let path = buf.display().to_string();
-		let configs = vec![
-			AutoRotate(true),
-			LogFilePath(&path),
-			FileHeader("testing123"),
-		];
-		let mut log = LogBuilder::build_logger(configs)?;
+		let configs = vec![AutoRotate(true), LogFilePath(&path)];
+		let mut log = LogBuilder::build_debug_log(configs)?;
+
+		// set this before init. It is an error.
+		assert_eq!(
+			log.set_log_option(Colors(false)).unwrap_err().kind(),
+			&kind!(
+				NotInitialized,
+				"logger has not been initalized. Call init() first."
+			)
+		);
 
 		// debug log level
 		log.set_log_level(LogLevel::Debug);
 		log.init()?; // in logger
 		log.log(LogLevel::Debug, "test10")?; // log a message
+
+		assert!(log
+			.set_log_option(LogConstOptions::LogFilePath(&path))
+			.is_err());
+
+		// check that display colors is true (default)
+		assert_eq!(log.get_log_config_debug().colors, true);
+
+		// set display colors to false
+		log.set_log_option(LogConstOptions::Colors(false))?;
+		// confirm it was set
+		assert_eq!(log.get_log_config_debug().colors, false);
+
+		// set back to true
+		log.set_log_option(LogConstOptions::Colors(true))?;
+
+		// confirm it's now true
+		assert_eq!(log.get_log_config_debug().colors, true);
+
+		assert_eq!(
+			log.get_log_config_debug().line_num_data_max_len,
+			DEFAULT_LINE_NUM_DATA_MAX_LEN
+		);
+
+		log.set_log_option(LogConstOptions::LineNumDataMaxLen(
+			DEFAULT_LINE_NUM_DATA_MAX_LEN + 10,
+		))?;
+		// confirm it was set
+		assert_eq!(
+			log.get_log_config_debug().line_num_data_max_len,
+			DEFAULT_LINE_NUM_DATA_MAX_LEN + 10
+		);
+
+		// set back to default
+		log.set_log_option(LogConstOptions::LineNumDataMaxLen(
+			DEFAULT_LINE_NUM_DATA_MAX_LEN,
+		))?;
+
+		// confirm it's now  default
+		assert_eq!(
+			log.get_log_config_debug().line_num_data_max_len,
+			DEFAULT_LINE_NUM_DATA_MAX_LEN
+		);
+
+		log.set_log_option(LogConstOptions::FileHeader("testing123"))?;
+
+		assert_eq!(
+			log.get_log_config_debug().file_header,
+			"testing123".to_string()
+		);
 
 		// do some more logging
 		log.log(LogLevel::Debug, "test11")?;
