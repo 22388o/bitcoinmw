@@ -1866,7 +1866,11 @@ impl StateMachine {
 		let public_set = self.build_public_set();
 		let protected_set = self.build_protected_set();
 		let view_set = self.build_view_set(true)?;
-		let mut builder_text = format!("pub struct {}Builder {{}}\nimpl {}Builder {{", name, name);
+		let builder_text = format!("/// Builder for `{}` class.", name);
+		let mut builder_text = format!(
+			"{}\npub struct {}Builder {{}}\nimpl {}Builder {{",
+			builder_text, name, name
+		);
 		for view in &view_set {
 			let trait_name = view.to_case(Case::Pascal);
 			let builder_template = include_str!("../templates/class_builder_template.txt");
