@@ -23,11 +23,18 @@ mod test {
 	use crate::types::LogLevel;
 	use crate::LogErrorKind::*;
 	use crate::*;
+	use bmw_core::lazy_static::lazy_static;
 	use bmw_core::*;
 	use bmw_test::*;
-	use std::fs::File;
+	use std::fs::{read_dir, File};
 	use std::io::Read;
 	use std::path::PathBuf;
+	use std::sync::{Arc, RwLock};
+
+	// lock used to prevent two tests from calling log_init at the same time
+	lazy_static! {
+		pub static ref LOCK: Arc<RwLock<usize>> = Arc::new(RwLock::new(0));
+	}
 
 	#[test]
 	fn test_log_basic() -> Result<(), Error> {
@@ -135,6 +142,71 @@ mod test {
 
 		// this wasn't found because it was logged at 'trace' level
 		assert!(s.find("thisdoesnotshowup").is_none());
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_log_rotate() -> Result<(), Error> {
+		// get test_info for this test
+		let test_info = test_info!()?;
+		let directory = test_info.directory();
+
+		// create rotate.log in our assigned directory
+		let mut buf = PathBuf::new();
+		buf.push(directory);
+		buf.push("rotate.log");
+		let path = buf.display().to_string();
+		let mut log = logger!(
+			MaxSizeBytes(100),   // specific low byte count
+			MaxAgeMillis(3_000), // specific low max age
+			LogFilePath(&path)
+		)?;
+
+		log.init()?;
+		log.set_log_level(LogLevel::Debug);
+		assert!(!log.need_rotate()?); // no logging yet so no rotation needed
+
+		// log 100 bytes of data + 10 newlines so a rotation is needed (autorotate is
+		// false)
+		for _ in 0..10 {
+			log.log_plain(LogLevel::Info, "0123456789")?;
+		}
+
+		// we need a rotate
+		assert!(log.need_rotate()?);
+		log.rotate()?; // do the rotation
+		assert!(!log.need_rotate()?); // now rotation is not needed
+
+		// do some more logging that doesn't cross the 100 byte or 3000 ms threshold
+		log.log_plain(LogLevel::Info, "test")?;
+		assert!(!log.need_rotate()?); // not needed yet
+		sleep(Duration::from_millis(6_000)); // wait 6 seconds
+		assert!(log.need_rotate()?); // now it's needed based on log age
+		log.rotate()?; // do the rotation
+
+		// do some assertions on files
+		let dir = read_dir(directory)?;
+		let mut count = 0;
+		let mut rotated_files = 0;
+		let mut unrotated_files = 0;
+		for path in dir {
+			let file_name = path?.file_name().into_string()?;
+			// this is a rotated file
+			if file_name.find("rotate.r") == Some(0) {
+				rotated_files += 1;
+			}
+
+			// this is the non rotated file
+			if file_name.find("rotate.log") == Some(0) {
+				unrotated_files += 1;
+			}
+			count += 1;
+		}
+
+		assert_eq!(count, 3); // three files
+		assert_eq!(rotated_files, 2); // two rotated files
+		assert_eq!(unrotated_files, 1); // one unrotated file
 
 		Ok(())
 	}
