@@ -1,3 +1,0 @@
-        ${FN_SIGNATURE} {
-                ${NAME}::${FN_NAME}${FN_PARAM_LIST}
-        }

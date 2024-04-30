@@ -1,7 +1,0 @@
-#[allow(dead_code)]
-${CLONE}
-struct ${NAME}Const {
-	${CONST_PARAMS}
-}
-
-

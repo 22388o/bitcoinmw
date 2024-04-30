@@ -16,7 +16,6 @@ members = [
 	"deps",
 	"base",
 	"test",
-	"derive",
 	"derive2",
 	"core",
 	"integration",
@@ -25,7 +24,6 @@ exclude = ["etc"]
 
 [dependencies]
 bmw_base    = { path = "./base"    }
-bmw_derive  = { path = "./derive"  }
 bmw_derive2 = { path = "./derive2" }
 bmw_core    = { path = "./core"    }
 
