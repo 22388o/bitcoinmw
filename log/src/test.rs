@@ -17,7 +17,7 @@
 
 #[cfg(test)]
 mod test {
-	use crate::log::DebugLog;
+	use crate::log::DebugLogger;
 	use crate::log::LogBuilder;
 	use crate::log::LogConstOptions::*;
 	use crate::types::LogLevel;
@@ -26,8 +26,8 @@ mod test {
 	use bmw_core::lazy_static::lazy_static;
 	use bmw_core::*;
 	use bmw_test::*;
-	use std::fs::{read_dir, File};
-	use std::io::Read;
+	use std::fs::{read_dir, read_to_string, File, OpenOptions};
+	use std::io::{Read, Write};
 	use std::path::PathBuf;
 	use std::sync::{Arc, RwLock};
 
@@ -46,7 +46,7 @@ mod test {
 		// create a logger with auto rotate on ( use impl so we can check the config )
 		let path = buf.display().to_string();
 		let configs = vec![AutoRotate(true), LogFilePath(&path)];
-		let mut log = LogBuilder::build_debug_log(configs)?;
+		let mut log = LogBuilder::build_debug_logger(configs)?;
 
 		// set this before init. It is an error.
 		assert_eq!(
@@ -207,6 +207,756 @@ mod test {
 		assert_eq!(count, 3); // three files
 		assert_eq!(rotated_files, 2); // two rotated files
 		assert_eq!(unrotated_files, 1); // one unrotated file
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_log_auto_rotate() -> Result<(), Error> {
+		let test_info = test_info!()?; // get test info structure
+		let directory = test_info.directory();
+
+		// create log file in the directory assigned
+		let mut buf = PathBuf::new();
+		buf.push(directory);
+		buf.push("rotate.log");
+		let path = buf.display().to_string();
+		let mut log = logger!(
+			MaxSizeBytes(100),
+			MaxAgeMillis(3_000),
+			LogFilePath(&path),
+			AutoRotate(true)
+		)?;
+
+		log.init()?;
+		log.set_log_level(LogLevel::Debug);
+
+		// log enough to trigger a rotation
+		for _ in 0..10 {
+			log.log_plain(LogLevel::Info, "0123456789")?;
+		}
+
+		log.log_plain(LogLevel::Info, "test")?;
+		sleep(Duration::from_millis(6_000));
+		// second rotation should be triggered via autorotate
+		log.log_plain(LogLevel::Info, "test")?;
+
+		// assert that the rotations occurred
+		let dir = read_dir(directory)?;
+		let mut count = 0;
+		let mut rotated_files = 0;
+		let mut unrotated_files = 0;
+		for path in dir {
+			let file_name = path?.file_name().into_string()?;
+			if file_name.find("rotate.r") == Some(0) {
+				rotated_files += 1;
+			}
+			if file_name.find("rotate.log") == Some(0) {
+				unrotated_files += 1;
+			}
+			count += 1;
+		}
+
+		assert_eq!(count, 3);
+		assert_eq!(rotated_files, 2); // 2 rotated files
+		assert_eq!(unrotated_files, 1); // 1 non-rotated file
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_log_errors() -> Result<(), Error> {
+		// configure a standard logger
+		let test_info = test_info!()?;
+		let directory = test_info.directory();
+		let mut buf = PathBuf::new();
+		buf.push(directory);
+		buf.push("rotate.log");
+		let buf = buf.display().to_string();
+		let mut log = logger!(
+			MaxSizeBytes(100),
+			MaxAgeMillis(3_000),
+			LogFilePath(&buf),
+			AutoRotate(true)
+		)?;
+
+		// rotate cannot happen until init is called
+		assert!(log.rotate().is_err());
+
+		log.init()?;
+
+		// second log.init is an error
+		assert!(log.init().is_err());
+		// closing is ok
+		assert!(log.close().is_ok());
+		Ok(())
+	}
+
+	#[test]
+	fn test_log_stdoutonly() -> Result<(), Error> {
+		// init a stdout logger only
+		let mut log = logger!(
+			MaxSizeBytes(100),
+			MaxAgeMillis(3_000),
+			LogFilePath(""),
+			AutoRotate(true),
+		)?;
+
+		// need rotate cannot be called before init
+		assert!(log.need_rotate().is_err());
+		log.init()?;
+		// rotate is an error because we're stdout only
+		assert!(log.rotate().is_err());
+		Ok(())
+	}
+
+	#[test]
+	fn test_log_no_dot_name() -> Result<(), Error> {
+		// setup standard logger with quick/small rotations
+		let test_info = test_info!()?;
+		let directory = test_info.directory();
+		let mut buf = PathBuf::new();
+		buf.push(directory);
+		buf.push("rotatelog"); // no dot in log name
+		let buf = buf.display().to_string();
+		let mut log = logger!(
+			MaxSizeBytes(100),
+			MaxAgeMillis(3_000),
+			LogFilePath(&buf),
+			AutoRotate(true)
+		)?;
+
+		// init and log 110 bytes
+		log.init()?;
+		log.set_log_level(LogLevel::Debug);
+		for _ in 0..10 {
+			log.log_plain(LogLevel::Info, "0123456789")?;
+		}
+
+		// do some additional logging
+		log.log_plain(LogLevel::Info, "test")?;
+		sleep(Duration::from_millis(6_000));
+		log.log_plain(LogLevel::Info, "test")?;
+
+		let dir = read_dir(directory)?;
+		let mut count = 0;
+		let mut rotated_files = 0;
+		let mut unrotated_files = 0;
+		for path in dir {
+			let file_name = path?.file_name().into_string()?;
+			if file_name.find("rotatelog.r") == Some(0) {
+				rotated_files += 1;
+			}
+			if file_name == "rotatelog" {
+				unrotated_files += 1;
+			}
+			count += 1;
+		}
+
+		// assert that things are the same even though our log file has no dot in it's name
+		assert_eq!(count, 3);
+		assert_eq!(rotated_files, 2); // two rotated files
+		assert_eq!(unrotated_files, 1); // one standard log file
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_log_delete_rotation() -> Result<(), Error> {
+		// configure a log file with 'DeleteRotation' configured
+		let test_info = test_info!()?;
+		let directory = test_info.directory();
+		let mut buf = PathBuf::new();
+		buf.push(directory);
+		buf.push("rotatelog");
+		let buf = buf.display().to_string();
+		let mut log = logger!(
+			MaxSizeBytes(100),
+			MaxAgeMillis(3_000),
+			LogFilePath(&buf),
+			AutoRotate(true),
+			DeleteRotation(true)
+		)?;
+
+		// do some logging
+		log.init()?;
+		log.set_log_level(LogLevel::Debug);
+		for _ in 0..10 {
+			log.log_plain(LogLevel::Info, "0123456789")?;
+		}
+
+		log.log_plain(LogLevel::Info, "test")?;
+		sleep(Duration::from_millis(6_000));
+		log.log_plain(LogLevel::Info, "test")?;
+
+		let dir = read_dir(directory)?;
+		let mut count = 0;
+		let mut rotated_files = 0;
+		let mut unrotated_files = 0;
+		for path in dir {
+			let file_name = path?.file_name().into_string()?;
+			if file_name.find("rotatelog.r") == Some(0) {
+				rotated_files += 1;
+			}
+			if file_name == "rotatelog" {
+				unrotated_files += 1;
+			}
+			count += 1;
+		}
+
+		assert_eq!(count, 1);
+		assert_eq!(rotated_files, 0); // no rotated files because they were deleted
+		assert_eq!(unrotated_files, 1); // our initial file is still there
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_log_prexisting_file() -> Result<(), Error> {
+		// create a regular logger based on test_info
+		let test_info = test_info!()?;
+		let directory = test_info.directory();
+		let mut buf = PathBuf::new();
+		buf.push(directory);
+		buf.push("rotatelog");
+		let buf = buf.display().to_string();
+
+		// create the file before creating the logger
+		File::create(buf.clone())?;
+
+		// create logger
+		let mut log = logger!(
+			MaxSizeBytes(100),
+			MaxAgeMillis(3_000),
+			LogFilePath(&buf),
+			AutoRotate(true)
+		)?;
+
+		// closing is an error because we didn't call init yet
+		assert!(log.close().is_err());
+
+		// init and log 10 lines
+		log.init()?;
+		log.set_log_level(LogLevel::Debug);
+		for _ in 0..10 {
+			log.log_plain(LogLevel::Info, "0123456789")?;
+		}
+
+		// do some more logging
+		log.log_plain(LogLevel::Info, "test")?;
+		sleep(Duration::from_millis(6_000));
+		log.log_plain(LogLevel::Info, "test")?;
+
+		// confirm everything is ok even through the file existed
+		let dir = read_dir(directory)?;
+		let mut count = 0;
+		let mut rotated_files = 0;
+		let mut unrotated_files = 0;
+		for path in dir {
+			let file_name = path?.file_name().into_string()?;
+			if file_name.find("rotatelog.r") == Some(0) {
+				rotated_files += 1;
+			}
+			if file_name == "rotatelog" {
+				unrotated_files += 1;
+			}
+			count += 1;
+		}
+
+		assert_eq!(count, 3);
+		assert_eq!(rotated_files, 2);
+		assert_eq!(unrotated_files, 1);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_log_prexisting_file_w_data() -> Result<(), Error> {
+		// log with a prexisting file with content in it
+		let test_info = test_info!()?;
+		let directory = test_info.directory();
+		let mut buf = PathBuf::new();
+		buf.push(directory);
+		buf.push("rotatelog");
+		let buf = buf.display().to_string();
+
+		File::create(buf.clone())?;
+		let mut file = OpenOptions::new().write(true).open(buf.clone())?;
+		file.write(b"test")?; // write test to the file
+
+		// init the logger
+		let mut log = logger!(
+			MaxSizeBytes(100),
+			MaxAgeMillis(3_000),
+			LogFilePath(&buf),
+			AutoRotate(true)
+		)?;
+
+		// can't close until after init
+		assert!(log.close().is_err());
+
+		// init and write 10 lines
+		log.init()?;
+		log.set_log_level(LogLevel::Debug);
+		for _ in 0..10 {
+			log.log_plain(LogLevel::Info, "0123456789")?;
+		}
+
+		// do some more logging and sleep
+		log.log_plain(LogLevel::Info, "test")?;
+		sleep(Duration::from_millis(6_000));
+		log.log_plain(LogLevel::Info, "test")?;
+
+		// confirm all is as expected even with prexisting files
+		let dir = read_dir(directory)?;
+		let mut count = 0;
+		let mut rotated_files = 0;
+		let mut unrotated_files = 0;
+		for path in dir {
+			let file_name = path?.file_name().into_string()?;
+			if file_name.find("rotatelog.r") == Some(0) {
+				rotated_files += 1;
+			}
+			if file_name == "rotatelog" {
+				unrotated_files += 1;
+			}
+			count += 1;
+		}
+
+		assert_eq!(count, 3);
+		assert_eq!(rotated_files, 2);
+		assert_eq!(unrotated_files, 1);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_log_show_millis() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut buf1 = PathBuf::new();
+		let mut buf2 = PathBuf::new();
+
+		// setup two otherwise identical loggers (one with ShowMillis(false), other
+		// ShowMillis(true)
+		buf1.push(test_info.directory());
+		buf2.push(test_info.directory());
+		buf1.push("file1.log");
+		buf2.push("file2.log");
+		let buf1 = buf1.display().to_string();
+		let buf2 = buf2.display().to_string();
+
+		let mut logger1 = logger!(LogFilePath(&buf1), ShowMillis(true), FileHeader("sometext"))?;
+		let mut logger2 = logger!(
+			LogFilePath(&buf2),
+			ShowMillis(false),
+			FileHeader("sometext")
+		)?;
+
+		// set log level and init both loggers
+		logger1.set_log_level(LogLevel::Debug);
+		logger2.set_log_level(LogLevel::Debug);
+		logger1.init()?;
+		logger2.init()?;
+
+		// log same text to both
+		logger1.log(LogLevel::Info, "test")?;
+		logger2.log(LogLevel::Info, "test")?;
+
+		// close loggers
+		logger1.close()?;
+		logger2.close()?;
+
+		// and read the files to get sizes confirm file2 is 4 bytes bigger due to the
+		// milliseconds being displayed
+		let dir = read_dir(test_info.directory())?;
+		let mut file1_size = None;
+		let mut file2_size = None;
+		for path in dir {
+			let path = path?;
+			let file_name = path.file_name().into_string()?;
+			let metadata = path.metadata()?;
+			let len = metadata.len();
+			if file_name == "file1.log" {
+				file1_size = Some(len);
+			} else if file_name == "file2.log" {
+				file2_size = Some(len);
+			}
+		}
+
+		// file1 is 4 bytes bigger because it has the milliseconds displayed
+		assert_eq!(file1_size.unwrap(), file2_size.unwrap() + 4);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_process_resolve_frame_error() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut buf1 = PathBuf::new();
+
+		buf1.push(test_info.directory());
+		buf1.push("file1.log");
+		let buf1 = buf1.display().to_string();
+
+		// create a logger displaying millis and with FileHeader/LogPath specified
+		let mut logger1 = LogBuilder::build_debug_logger(vec![
+			LogFilePath(&buf1),
+			ShowMillis(true),
+			FileHeader("sometext"),
+		])?;
+
+		// set the debug flag to trigger specific state
+		logger1.set_debug_process_resolve_frame_error(true);
+		logger1.set_log_level(LogLevel::Debug);
+		logger1.init()?;
+
+		// even with the frame error we continue processing
+		assert!(logger1.log(LogLevel::Info, "test").is_ok());
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_invalid_metadata() -> Result<(), Error> {
+		// get test_info
+		let test_info = test_info!()?;
+		let mut buf1 = PathBuf::new();
+
+		buf1.push(test_info.directory());
+		buf1.push("file1.log");
+		let buf1 = buf1.display().to_string();
+
+		// create a logger with a log file and header
+		let mut logger1 = LogBuilder::build_debug_logger(vec![
+			LogFilePath(&buf1),
+			ShowMillis(true),
+			FileHeader("sometext"),
+		])?;
+		logger1.set_debug_invalid_metadata(true);
+		logger1.set_log_level(LogLevel::Debug);
+
+		// with invalid metadata, init will fail
+		assert!(logger1.init().is_err());
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_log_lineno_is_none() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let mut buf1 = PathBuf::new();
+
+		buf1.push(test_info.directory());
+		buf1.push("file1.log");
+		let buf1 = buf1.display().to_string();
+
+		// create a logger
+		let mut logger1 = LogBuilder::build_debug_logger(vec![
+			LogFilePath(&buf1),
+			ShowMillis(true),
+			FileHeader("sometext"),
+		])?;
+
+		// set debugging flag to trigger a different state
+		logger1.set_debug_lineno_is_none(true);
+
+		logger1.set_log_level(LogLevel::Debug);
+		logger1.init()?;
+
+		// even with the lineno error processing continues
+		assert!(logger1.log(LogLevel::Info, "test").is_ok());
+		Ok(())
+	}
+
+	#[test]
+	fn test_log_all_options() -> Result<(), Error> {
+		// get test_info
+		let test_info = test_info!()?;
+		let mut buf1 = PathBuf::new();
+
+		buf1.push(test_info.directory());
+		buf1.push("file1.log");
+		let buf1 = buf1.display().to_string();
+
+		// create a logger with all options specified to exercise various parts off the code
+		let mut log = logger!(
+			MaxSizeBytes(100),
+			MaxAgeMillis(3_000),
+			LogFilePath(&buf1),
+			AutoRotate(true),
+			Colors(true),
+			Stdout(true),
+			Timestamp(false),
+			LogLevel(true),
+			LineNum(false),
+			ShowMillis(true),
+			Backtrace(true),
+			LineNumDataMaxLen(32),
+			DeleteRotation(false),
+			FileHeader("header")
+		)?;
+
+		// init should be successful
+		assert!(log.init().is_ok());
+		Ok(())
+	}
+
+	#[test]
+	fn test_log_invalid_configs() -> Result<(), Error> {
+		// MaxSizeBytes must be 50 or more
+		assert!(logger!(MaxSizeBytes(1)).is_err());
+		// MaxAgeMillis must be 1_000 or more
+		assert!(logger!(MaxAgeMillis(1)).is_err());
+		// LineNumDataMaxLen must be 10 or more
+		assert!(logger!(LineNumDataMaxLen(1)).is_err());
+
+		// test an invalid path
+		let mut buf = PathBuf::new();
+		buf.push("a");
+		buf.push("b");
+		buf.push("c");
+		buf.push("d");
+		buf.push("e.log");
+		let buf = buf.display().to_string();
+		assert!(logger!(LogFilePath(&buf)).is_err());
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_file_header() -> Result<(), Error> {
+		// create a logger with a log file in our test directory 100 byte limit and a header
+		// configured with autorotate
+		let test_info = test_info!()?;
+		let mut buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push("mylogger.log");
+		let buf = buf.display().to_string();
+		let mut logger = logger!(
+			MaxSizeBytes(100),
+			LogFilePath(&buf),
+			AutoRotate(true),
+			FileHeader("myheader_abc")
+		)?;
+
+		// this is an error because we haven't called init yet
+		assert!(logger.log(LogLevel::Info, "test").is_err());
+		logger.init()?;
+		logger.set_log_level(LogLevel::Debug);
+		// do some logging
+		for _ in 0..100 {
+			logger.log(LogLevel::Info, "0123456789")?;
+		}
+
+		// there should be 50 files all should start with the FileHeader value
+		let dir = read_dir(test_info.directory())?;
+		let mut count = 0;
+		for path in dir {
+			let path = path?;
+			let file_name = path.file_name().into_string()?;
+			let mut path_buf = PathBuf::new();
+			path_buf.push(test_info.directory());
+			path_buf.push(file_name);
+			let d = read_to_string(path_buf)?;
+			assert!(d.find("myheader_abc").unwrap() == 0);
+			assert!(d[1..].find("myeader_abc").is_none());
+			count += 1;
+		}
+		assert_eq!(count, 50); // assert 50 files
+
+		Ok(())
+	}
+
+	#[test]
+	#[cfg(unix)]
+	fn test_confirm_boundries() -> Result<(), Error> {
+		// this test is not enabled on windows. BACK-R's added to files makes this calculation
+		// complicated. BMW optimized for linux/macos, but approximately correct on Windows.
+		let test_info = test_info!()?;
+		let mut buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push("mylogger.log");
+		let buf = buf.display().to_string();
+		let mut logger = logger!(
+			MaxSizeBytes(363),
+			LogFilePath(&buf),
+			AutoRotate(false),
+			FileHeader("myheader_abc")
+		)?;
+
+		logger.init()?;
+		logger.set_log_level(LogLevel::Debug);
+
+		logger.log(LogLevel::Info, "0123456789")?;
+		logger.log_plain(LogLevel::Info, "0123456789")?;
+		logger.log_all(LogLevel::Info, "0123456789")?;
+
+		logger.log(LogLevel::Debug, "0123456789")?;
+		logger.log_plain(LogLevel::Debug, "0123456789")?;
+		logger.log_all(LogLevel::Debug, "01234567890123")?;
+		assert!(!logger.need_rotate()?); // file exactly 363, no rotate needed
+		logger.close()?;
+
+		let mut buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push("mylogger.log");
+		let len = buf.metadata()?.len();
+		assert_eq!(len, 363);
+
+		let mut buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push("mylogger2.log");
+		let buf = buf.display().to_string();
+
+		// try again one byte smaller MaxSizeBytes.
+		let mut logger = logger!(
+			MaxSizeBytes(362),
+			LogFilePath(&buf),
+			AutoRotate(false),
+			FileHeader("myheader_abc")
+		)?;
+
+		logger.init()?;
+		logger.set_log_level(LogLevel::Debug);
+
+		logger.log(LogLevel::Info, "0123456789")?;
+		logger.log_plain(LogLevel::Info, "0123456789")?;
+		logger.log_all(LogLevel::Info, "0123456789")?;
+
+		logger.log(LogLevel::Debug, "0123456789")?;
+		logger.log_plain(LogLevel::Debug, "0123456789")?;
+		logger.log_all(LogLevel::Debug, "01234567890123")?;
+
+		assert!(logger.need_rotate()?); // this time we need a rotate
+		logger.close()?;
+
+		let mut buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push("mylogger2.log");
+
+		let len = buf.metadata()?.len();
+		assert_eq!(len, 363);
+
+		// try without header
+		let mut buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push("mylogger3.log");
+		let buf = buf.display().to_string();
+
+		// try without a header this time (12 bytes + 1 newline less)
+		let mut logger = logger!(MaxSizeBytes(350), LogFilePath(&buf), AutoRotate(false),)?;
+
+		logger.init()?;
+		logger.set_log_level(LogLevel::Debug);
+
+		logger.log(LogLevel::Info, "0123456789")?;
+		logger.log_plain(LogLevel::Info, "0123456789")?;
+		logger.log_all(LogLevel::Info, "0123456789")?;
+
+		logger.log(LogLevel::Debug, "0123456789")?;
+		logger.log_plain(LogLevel::Debug, "0123456789")?;
+		logger.log_all(LogLevel::Debug, "01234567890123")?;
+
+		assert!(!logger.need_rotate()?); // this time we don't need a rotate
+		logger.close()?;
+
+		let mut buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push("mylogger3.log");
+		let len = buf.metadata()?.len();
+		assert_eq!(len, 350);
+
+		// try again with one less byte MaxSizeByte
+		let mut buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push("mylogger4.log");
+		let buf = buf.display().to_string();
+
+		// try again one byte smaller MaxSizeBytes.
+		let mut logger = logger!(MaxSizeBytes(349), LogFilePath(&buf), AutoRotate(false),)?;
+
+		logger.init()?;
+		logger.set_log_level(LogLevel::Debug);
+
+		logger.log(LogLevel::Info, "0123456789")?;
+		logger.log_plain(LogLevel::Info, "0123456789")?;
+
+		logger.log_all(LogLevel::Info, "0123456789")?;
+
+		logger.log(LogLevel::Debug, "0123456789")?;
+		logger.log_plain(LogLevel::Debug, "0123456789")?;
+		logger.log_all(LogLevel::Debug, "01234567890123")?;
+
+		assert!(logger.need_rotate()?); // this time we need a rotate
+		logger.close()?;
+
+		let mut buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push("mylogger4.log");
+		let len = buf.metadata()?.len();
+		assert_eq!(len, 350);
+		Ok(())
+	}
+
+	#[test]
+	fn test_multi_loggers() -> Result<(), Error> {
+		let test_info = test_info!(true)?;
+		let directory = test_info.directory();
+
+		let mut path1 = PathBuf::from(directory);
+		let mut path2 = path1.clone();
+		let mut path3 = path1.clone();
+
+		path1.push("log1.log");
+		path2.push("log2.log");
+		path3.push("log3.log");
+
+		let path1 = path1.display().to_string();
+		let path2 = path2.display().to_string();
+		let path3 = path3.display().to_string();
+
+		let mut logger1 = logger!(
+			LogFilePath(&path1),
+			Colors(true),
+			LineNum(true),
+			LogLevel(true),
+			Timestamp(true),
+			ShowMillis(false)
+		)?;
+		let mut logger2 = logger!(LogFilePath(&path2), Stdout(false))?;
+		let mut logger3 = logger!(LogFilePath(&path3), Stdout(false))?;
+
+		logger1.init()?;
+		logger2.init()?;
+		logger3.init()?;
+
+		logger1.set_log_level(LogLevel::Info);
+		logger2.set_log_level(LogLevel::Debug);
+		logger3.set_log_level(LogLevel::Warn);
+
+		logger1.log(LogLevel::Trace, "test")?;
+		logger2.log(LogLevel::Trace, "test")?;
+		logger3.log(LogLevel::Trace, "test")?;
+
+		logger1.log(LogLevel::Debug, "test")?;
+		logger2.log(LogLevel::Debug, "test")?;
+		logger3.log(LogLevel::Debug, "test")?;
+
+		logger1.log(LogLevel::Info, "test")?;
+		logger2.log(LogLevel::Info, "test")?;
+		logger3.log(LogLevel::Info, "test")?;
+
+		logger1.log_plain(LogLevel::Warn, "test plain")?;
+		logger2.log_plain(LogLevel::Warn, "test plain")?;
+		logger3.log_plain(LogLevel::Warn, "test plain")?;
+
+		logger1.log(LogLevel::Error, "test")?;
+		logger2.log(LogLevel::Error, "test")?;
+		logger3.log(LogLevel::Error, "test")?;
+
+		logger1.log(LogLevel::Fatal, "test")?;
+		logger2.log(LogLevel::Fatal, "test")?;
+		logger3.log(LogLevel::Fatal, "test")?;
 
 		Ok(())
 	}

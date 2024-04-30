@@ -39,7 +39,7 @@ pub const DEFAULT_LINE_NUM_DATA_MAX_LEN: u16 = 30;
 #[class{
     /// Log trait
     public logger;
-    protected debug_log;
+    protected debug_logger;
     clone logger;
     /// The maximum age, in milliseconds, before a log should be rotated.
     const max_age_millis: u64 = u64::MAX;
@@ -152,62 +152,67 @@ pub const DEFAULT_LINE_NUM_DATA_MAX_LEN: u16 = 30;
         }
     }
 
-    [logger, debug_log]
+    [logger, debug_logger]
     fn log(&mut self, level: LogLevel, line: &str) -> Result<(), Error> {
         self.log_impl(level, line, LoggingType::Standard)
     }
 
-    [logger, debug_log]
+    [logger, debug_logger]
     fn log_all(&mut self, level: LogLevel, line: &str) -> Result<(), Error> {
          self.log_impl(level, line, LoggingType::All)
     }
 
-    [logger, debug_log]
+    [logger, debug_logger]
     fn log_plain(&mut self, level: LogLevel, line: &str) -> Result<(), Error> {
         self.log_impl(level, line, LoggingType::Plain)
     }
 
-    [logger, debug_log]
+    [logger, debug_logger]
     fn need_rotate(&self) -> Result<bool, Error> {
         self.need_rotate_impl()
     }
 
-    [logger, debug_log]
+    [logger, debug_logger]
     fn rotate(&mut self) -> Result<(), Error> {
         self.rotate_impl()
     }
 
-    [logger, debug_log]
+    [logger, debug_logger]
     fn set_log_level(&mut self, level: LogLevel) {
         self.set_log_level_impl(level)
     }
 
-    [logger, debug_log]
+    [logger, debug_logger]
     fn init(&mut self) -> Result<(), Error> {
         self.init_impl()
     }
 
-    [logger, debug_log]
+    [logger, debug_logger]
     fn close(&mut self) -> Result<(), Error> {
         self.close_impl()
     }
 
-    [logger, debug_log]
+    [logger, debug_logger]
     fn set_log_option(&mut self, value: LogConstOptions) -> Result<(), Error> {
         self.set_log_option_impl(value)
     }
 
-    [debug_log]
+    [debug_logger]
     fn set_debug_lineno_is_none(&mut self, value: bool) {
         *self.get_mut_debug_lineno_is_none() = value;
     }
 
-    [debug_log]
+    [debug_logger]
     fn set_debug_process_resolve_frame_error(&mut self, value: bool) {
         *self.get_mut_debug_process_resolve_frame_error() = value;
     }
 
-    [debug_log]
+    [debug_logger]
+    fn set_debug_invalid_metadata(&mut self, value: bool) {
+        *self.get_mut_debug_invalid_metadata() = value;
+    }
+
+    [debug_logger]
     fn get_log_config_debug(&self) -> LogConfig {
         self.get_log_config().clone()
     }
