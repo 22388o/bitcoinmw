@@ -247,12 +247,50 @@ impl Log {
 				"logger has not been initalized. Call init() first."
 			)
 		} else {
+			/*
+								 * if const_values.max_age_millis < MINIMUM_MAX_AGE_MILLIS {
+						let text = format!("MaxAgeMillis must be at least {}", MINIMUM_MAX_AGE_MILLIS);
+						err!(Configuration, text)
+					} else if const_values.max_size_bytes < MINIMUM_MAX_SIZE_BYTES {
+						let text = format!("MaxSizeBytes must be at least {}", MINIMUM_MAX_SIZE_BYTES);
+						err!(Configuration, text)
+					} else if const_values.line_num_data_max_len < MINIMUM_LNDML {
+						let text = format!("LineNumDataMaxLen must be at least {}", MINIMUM_LNDML);
+						err!(Configuration, text)
+					} else {
+			*/
 			match value {
 				LogConstOptions::Colors(v) => (*self.get_mut_log_config()).colors = v,
 				LogConstOptions::Stdout(v) => (*self.get_mut_log_config()).stdout = v,
-				LogConstOptions::MaxAgeMillis(v) => (*self.get_mut_log_config()).max_age_millis = v,
-				LogConstOptions::MaxSizeBytes(v) => (*self.get_mut_log_config()).max_size_bytes = v,
+				LogConstOptions::MaxAgeMillis(v) => {
+					if v < MINIMUM_MAX_SIZE_BYTES {
+						return err!(
+							IllegalArgument,
+							"MaxSizeBytes must be at least {}",
+							MINIMUM_MAX_SIZE_BYTES
+						);
+					}
+
+					(*self.get_mut_log_config()).max_age_millis = v
+				}
+				LogConstOptions::MaxSizeBytes(v) => {
+					if v < MINIMUM_MAX_AGE_MILLIS {
+						return err!(
+							IllegalArgument,
+							"MaxAgeMillis must be at least {}",
+							MINIMUM_MAX_AGE_MILLIS
+						);
+					}
+					(*self.get_mut_log_config()).max_size_bytes = v;
+				}
 				LogConstOptions::LineNumDataMaxLen(v) => {
+					if v < MINIMUM_LNDML {
+						return err!(
+							IllegalArgument,
+							"LineNumDataMaxLen must be at least {}",
+							MINIMUM_LNDML
+						);
+					}
 					(*self.get_mut_log_config()).line_num_data_max_len = v
 				}
 				LogConstOptions::Timestamp(v) => (*self.get_mut_log_config()).timestamp = v,
