@@ -1480,6 +1480,7 @@ macro_rules! fatal_all {
 macro_rules! log_init {
         ($($config:tt)*) => {{
                 use bmw_log::GlobalLogFunctions;
+                #[allow(unused_imports)]
                 use bmw_log::LogConstOptions::*;
                 let v: Vec<LogConstOptions> = vec![$($config)*];
                 GlobalLogFunctions::init(v)
