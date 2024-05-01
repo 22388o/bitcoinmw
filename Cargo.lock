@@ -164,6 +164,7 @@ dependencies = [
  "ring",
  "sha-1",
  "substring",
+ "syn 2.0.60",
  "url",
  "url_path",
  "wepoll-sys",

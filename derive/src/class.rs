@@ -20,6 +20,8 @@ use bmw_base::CoreErrorKind::Parse;
 use bmw_base::*;
 use bmw_deps::convert_case::{Case, Casing};
 use bmw_deps::substring::Substring;
+use bmw_deps::syn;
+use bmw_deps::syn::{parse_str, Block, Item, Type};
 use proc_macro::TokenTree::*;
 use proc_macro::{Delimiter, Group, Spacing, Span, TokenStream, TokenTree};
 use proc_macro_error::{abort, emit_error, Diagnostic, Level};
@@ -205,7 +207,7 @@ impl FnInfo {
 	}
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 enum State {
 	Base,
 	Public,
@@ -279,7 +281,8 @@ impl StateMachine {
 		self.parse_attr(attr)?;
 		self.parse_item(item)?;
 		self.semantic_analysis()?;
-		self.generate_code()
+		let ret = self.generate_code();
+		ret
 	}
 
 	fn semantic_analysis(&mut self) -> Result<(), Error> {
@@ -321,6 +324,9 @@ impl StateMachine {
 
 	fn check_var_list(&mut self) -> Result<(), Error> {
 		let mut set = HashSet::new();
+		for item in self.const_list.clone() {
+			set.insert(item.name);
+		}
 		for item in self.var_list.clone() {
 			if set.contains(&item.name) {
 				self.span = Some(item.span.clone());
@@ -430,8 +436,33 @@ impl StateMachine {
 			self.process_token(token)?;
 		}
 
+		let mut found_reason = false;
+
 		if self.state != State::Base {
-			self.append_error("unexpectedly ended class attribute")?;
+			match self.state {
+				State::Const => match &self.cur_const {
+					Some(cur_const) => {
+						self.span = Some(cur_const.span);
+						self.append_error(&format!("unterminated const definition"))?;
+						found_reason = true;
+					}
+					_ => {}
+				},
+				State::Var => match &self.cur_var {
+					Some(cur_var) => {
+						self.span = Some(cur_var.span);
+						self.append_error(&format!("unterminated var definition"))?;
+						found_reason = true;
+					}
+					_ => {}
+				},
+				_ => {}
+			}
+
+			if !found_reason {
+				self.append_error("unexpectedly ended class attribute")?;
+			}
+
 			self.print_errors()?;
 		}
 		if self.error_list.len() != 0 {
@@ -631,10 +662,56 @@ impl StateMachine {
 		Ok(())
 	}
 
+	fn check_fn(
+		&mut self,
+		name: String,
+		fn_stream: &TokenStream,
+		params: &TokenStream,
+		return_str: &TokenStream,
+	) -> Result<(), Error> {
+		let test = format!(
+			"fn {}({}) -> {} {{ {} }}",
+			name,
+			if name == "builder" {
+				let params_builder = self.strip_start(&params.to_string(), '&');
+				let params_builder = params_builder.trim();
+				format!("{}: &Const", params_builder)
+			} else {
+				params.to_string()
+			},
+			if return_str.to_string().len() == 0 {
+				"()".to_string()
+			} else {
+				return_str.to_string()
+			},
+			fn_stream
+		);
+
+		let expr: Result<Item, syn::Error> = parse_str(&test);
+		match expr {
+			Ok(_) => {}
+			Err(ref e) => {
+				self.append_error(&format!("syn returned error {:?} for this function", e))?;
+			}
+		}
+		Ok(())
+	}
+
 	fn process_return_list_token(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Group(ref group) => {
 				if group.delimiter() == Delimiter::Brace {
+					match self.cur_fn.clone() {
+						Some(cur_fn) => {
+							self.check_fn(
+								cur_fn.name,
+								&group.stream(),
+								&cur_fn.params,
+								&cur_fn.return_str,
+							)?;
+						}
+						None => {}
+					}
 					match self.cur_fn.as_mut() {
 						Some(cur_fn) => {
 							cur_fn.fn_block.extend(group.stream());
@@ -768,7 +845,9 @@ impl StateMachine {
 	fn process_var(&mut self, token: TokenTree) -> Result<(), Error> {
 		let token_str = token.to_string();
 
-		if self.cur_var.is_none() {
+		if token_str == "=" {
+			self.append_error("found '=' in var expression. Vars may not be initialized.")?;
+		} else if self.cur_var.is_none() {
 			match token {
 				Ident(ident) => {
 					let mut v = Var::new(self.span.as_ref().unwrap().clone());
@@ -786,9 +865,22 @@ impl StateMachine {
 				self.cur_var.as_mut().unwrap().found_colon = true;
 			}
 		} else if token_str == ";" {
-			if self.cur_var.as_ref().unwrap().type_str.len() == 0 {
+			let type_str = self.cur_var.as_ref().unwrap().type_str.clone();
+			if type_str.len() == 0 {
 				self.append_error("expected type string, found ';'")?;
 			} else {
+				let expr: Result<Type, syn::Error> = parse_str(&type_str);
+				match expr {
+					Ok(_) => {}
+					Err(ref e) => {
+						self.span = Some(self.cur_var.as_ref().unwrap().span);
+						self.append_error(&format!(
+							"syn returned error {:?} for type_str: {}",
+							e, type_str
+						))?;
+					}
+				}
+
 				self.var_list.push(self.cur_var.as_ref().unwrap().clone());
 				self.cur_var = None;
 			}
@@ -801,6 +893,25 @@ impl StateMachine {
 				None => {}
 			}
 		}
+		Ok(())
+	}
+
+	fn check_cur_const(&mut self) -> Result<(), Error> {
+		match &self.cur_const {
+			Some(cur_const) => {
+				let test = format!("{{{}}}", &cur_const.value_str);
+				let expr: Result<Block, syn::Error> = parse_str(&test);
+				match expr {
+					Ok(_) => {}
+					Err(ref e) => {
+						self.span = Some(cur_const.span);
+						self.append_error(&format!("syn returned error {:?} for this value", e))?;
+					}
+				}
+			}
+			None => {}
+		}
+
 		Ok(())
 	}
 
@@ -848,6 +959,7 @@ impl StateMachine {
 					self.append_error("expected value string, found ';'")?;
 					self.state = State::Base;
 				} else {
+					self.check_cur_const()?;
 					self.const_list
 						.push(self.cur_const.as_ref().unwrap().clone());
 					self.cur_const = None;
@@ -1196,7 +1308,6 @@ impl StateMachine {
 		let template = self.update_trait_impl(template)?;
 		let template = self.update_macros(template)?;
 		let template = self.update_builder(template)?;
-		//println!("template='{}'", template);
 		Ok(map_err!(template.parse::<TokenStream>(), Parse)?)
 	}
 

@@ -66,5 +66,6 @@ pub use random_string;
 pub use ring;
 pub use sha1;
 pub use substring;
+pub use syn;
 pub use url;
 pub use url_path;

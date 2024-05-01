@@ -77,3 +77,27 @@ pub(crate) struct LogConfig {
 	pub(crate) delete_rotation: bool,
 	pub(crate) file_header: String,
 }
+
+#[class {
+    var xyc: (u32, u64, bool);
+    var m: Result<(), Error>;
+    const abc: usize = 12;
+    var def: u64;
+    const abc2: usize = 1;
+
+    fn builder(&const_values) -> Result<Self, Error> {
+        let def = 0;
+        let m = Ok(());
+        let xyc = (0,0,false);
+        let abc2 = 0;
+
+        Ok(Self { def, m, xyc })
+    }
+
+    fn test() -> usize {
+        println!("ok");
+        let  x = 1;
+        0
+    }
+}]
+impl MyClass {}
