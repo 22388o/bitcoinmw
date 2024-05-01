@@ -75,6 +75,7 @@ dependencies = [
  "bmw_int",
  "bmw_log",
  "bmw_test",
+ "bmw_util",
  "built",
  "jemallocator",
 ]
@@ -205,6 +206,15 @@ version = "0.0.3-beta.2"
 dependencies = [
  "bmw_base",
  "bmw_deps",
+]
+
+[[package]]
+name = "bmw_util"
+version = "0.0.3-beta.2"
+dependencies = [
+ "bmw_core",
+ "bmw_log",
+ "bmw_test",
 ]
 
 [[package]]

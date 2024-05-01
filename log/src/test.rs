@@ -1066,7 +1066,7 @@ mod test {
 
 	#[test]
 	fn test_multi_loggers() -> Result<(), Error> {
-		let test_info = test_info!(true)?;
+		let test_info = test_info!(false)?;
 		let directory = test_info.directory();
 
 		let mut path1 = PathBuf::from(directory);
