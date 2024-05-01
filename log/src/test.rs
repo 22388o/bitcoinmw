@@ -142,6 +142,16 @@ mod test {
 		assert_eq!(config.auto_rotate, true);
 		assert_eq!(config.delete_rotation, true);
 		assert_eq!(config.file_header, "12345".to_string());
+
+		assert!(logger
+			.set_log_option(LogConstOptions::MaxAgeMillis(0))
+			.is_err());
+		assert!(logger
+			.set_log_option(LogConstOptions::MaxSizeBytes(0))
+			.is_err());
+		assert!(logger
+			.set_log_option(LogConstOptions::LineNumDataMaxLen(0))
+			.is_err());
 		Ok(())
 	}
 
