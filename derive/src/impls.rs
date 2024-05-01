@@ -22,6 +22,7 @@ use bmw_base::*;
 impl ErrorKind for DeriveErrorKind {}
 
 impl From<DeriveErrorKind> for Error {
+	#[cfg(not(tarpaulin_include))]
 	fn from(kind: DeriveErrorKind) -> Error {
 		Error::new(Box::new(kind))
 	}

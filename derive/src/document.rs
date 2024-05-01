@@ -139,6 +139,7 @@ fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 	Ok(ret)
 }
 
+#[cfg(not(tarpaulin_include))]
 fn build_docs(
 	comments: Vec<String>,
 	non_comments: TokenStream,
@@ -292,6 +293,7 @@ fn build_docs(
 	Ok(ret)
 }
 
+#[cfg(not(tarpaulin_include))]
 fn build_error_list(ret: &mut TokenStream, error_list: Vec<(String, String)>) -> Result<(), Error> {
 	if error_list.len() == 0 {
 		ret.extend(
@@ -315,6 +317,7 @@ fn build_error_list(ret: &mut TokenStream, error_list: Vec<(String, String)>) ->
 	Ok(())
 }
 
+#[cfg(not(tarpaulin_include))]
 fn build_see_list(ret: &mut TokenStream, see_list: Vec<String>) -> Result<(), Error> {
 	if see_list.len() == 0 {
 		ret.extend(
@@ -329,6 +332,7 @@ fn build_see_list(ret: &mut TokenStream, see_list: Vec<String>) -> Result<(), Er
 	Ok(())
 }
 
+#[cfg(not(tarpaulin_include))]
 fn has_return_type(signature: &TokenStream) -> bool {
 	let mut found_fn = false;
 	let mut found_params = false;
@@ -357,6 +361,7 @@ fn has_return_type(signature: &TokenStream) -> bool {
 	ret
 }
 
+#[cfg(not(tarpaulin_include))]
 fn build_return_list(
 	ret: &mut TokenStream,
 	signature: TokenStream,
@@ -440,6 +445,7 @@ fn build_return_list(
 	Ok((return_type.trim().find("Result").is_some(), has_return))
 }
 
+#[cfg(not(tarpaulin_include))]
 fn build_input_list(
 	ret: &mut TokenStream,
 	param_list: TokenStream,
@@ -471,6 +477,7 @@ fn build_input_list(
 	Ok(())
 }
 
+#[cfg(not(tarpaulin_include))]
 fn process_group(group: Group) -> Result<String, Error> {
 	let token_str = group.to_string();
 	if token_str == "()" {
@@ -514,6 +521,7 @@ fn process_group(group: Group) -> Result<String, Error> {
 	}
 }
 
+#[cfg(not(tarpaulin_include))]
 fn parse_param_list(strm: TokenStream) -> Result<Vec<(String, String)>, Error> {
 	let mut ret = vec![];
 	let mut name: Option<String> = None;

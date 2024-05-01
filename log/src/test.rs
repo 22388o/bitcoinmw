@@ -60,6 +60,9 @@ mod test {
 		let path = buf.display().to_string();
 		log_init!(LogFilePath(&path))?;
 
+		// assert error if log_init called again
+		assert!(log_init!().is_err());
+
 		// do logging at all levels and all styles
 		trace!("mactest1")?;
 		trace_plain!("plain1")?;
@@ -232,6 +235,36 @@ mod test {
 		// this wasn't found because it was logged at 'trace' level
 		assert!(s.find("thisdoesnotshowup").is_none());
 
+		log.set_log_option(LogConstOptions::LineNum(true))?;
+		log.set_log_option(LogConstOptions::Timestamp(true))?;
+		log.log(LogLevel::Fatal, "test12345")?;
+
+		let mut f = File::open(format!("{}/test.log", directory))?;
+		let mut s = String::new();
+		f.read_to_string(&mut s)?;
+		assert!(s.find("test12345").is_some());
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_log_line_num_coverage() -> Result<(), Error> {
+		let test_info = test_info!()?;
+		let directory = test_info.directory();
+		let mut path = PathBuf::new();
+		path.push(directory);
+		path.push("test.log");
+		let mut log = logger!(LogFilePath(&path.display().to_string()))?;
+		log.init()?;
+		log.set_log_option(LogConstOptions::LineNum(true))?;
+		log.set_log_option(LogConstOptions::Timestamp(false))?;
+		log.set_log_option(LogConstOptions::LogLevel(false))?;
+		log.log(LogLevel::Fatal, "test12345")?;
+
+		let mut f = File::open(format!("{}/test.log", directory))?;
+		let mut s = String::new();
+		f.read_to_string(&mut s)?;
+		assert!(s.find("test12345").is_some());
 		Ok(())
 	}
 

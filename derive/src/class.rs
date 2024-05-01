@@ -40,6 +40,7 @@ struct PublicView {
 }
 
 impl PublicView {
+	#[cfg(not(tarpaulin_include))]
 	fn new(name: String, span: Span, comments: Vec<String>, macro_name: String) -> Self {
 		Self {
 			name,
@@ -57,6 +58,7 @@ struct ProtectedView {
 }
 
 impl ProtectedView {
+	#[cfg(not(tarpaulin_include))]
 	fn new(name: String, span: Span) -> Self {
 		Self { name, span }
 	}
@@ -69,6 +71,7 @@ struct CloneView {
 }
 
 impl CloneView {
+	#[cfg(not(tarpaulin_include))]
 	fn new(name: String, span: Span) -> Self {
 		Self { name, span }
 	}
@@ -83,6 +86,7 @@ struct Var {
 }
 
 impl Var {
+	#[cfg(not(tarpaulin_include))]
 	fn new(span: Span) -> Self {
 		Self {
 			name: "".to_string(),
@@ -94,6 +98,7 @@ impl Var {
 }
 
 impl Ord for Const {
+	#[cfg(not(tarpaulin_include))]
 	fn cmp(&self, other: &Self) -> std::cmp::Ordering {
 		if self.name < other.name {
 			std::cmp::Ordering::Less
@@ -106,6 +111,7 @@ impl Ord for Const {
 }
 
 impl PartialOrd for Const {
+	#[cfg(not(tarpaulin_include))]
 	fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
 		Some(if self.name < other.name {
 			std::cmp::Ordering::Less
@@ -120,6 +126,7 @@ impl PartialOrd for Const {
 impl Eq for Const {}
 
 impl PartialEq for Const {
+	#[cfg(not(tarpaulin_include))]
 	fn eq(&self, other: &Const) -> bool {
 		self.name == other.name
 	}
@@ -137,6 +144,7 @@ struct Const {
 }
 
 impl Const {
+	#[cfg(not(tarpaulin_include))]
 	fn new(span: Span) -> Self {
 		Self {
 			name: "".to_string(),
@@ -164,6 +172,7 @@ struct FnInfo {
 }
 
 impl Debug for FnInfo {
+	#[cfg(not(tarpaulin_include))]
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
 		write!(f, "FnInfo {{\n")?;
 		write!(f, "\tname: '{}'\n", self.name)?;
@@ -180,6 +189,7 @@ impl Debug for FnInfo {
 }
 
 impl FnInfo {
+	#[cfg(not(tarpaulin_include))]
 	fn new(span: Span) -> Self {
 		Self {
 			span,
@@ -235,6 +245,7 @@ struct StateMachine {
 	in_as: bool,
 }
 
+#[cfg(not(tarpaulin_include))]
 impl StateMachine {
 	fn new() -> Self {
 		Self {
@@ -2363,6 +2374,7 @@ impl StateMachine {
 	}
 }
 
+#[cfg(not(tarpaulin_include))]
 pub(crate) fn do_derive_class(attr: TokenStream, item: TokenStream) -> TokenStream {
 	match do_derive_class_impl(&attr, &item) {
 		Ok(token_stream) => token_stream,
@@ -2373,6 +2385,7 @@ pub(crate) fn do_derive_class(attr: TokenStream, item: TokenStream) -> TokenStre
 	}
 }
 
+#[cfg(not(tarpaulin_include))]
 fn do_derive_class_impl(attr: &TokenStream, item: &TokenStream) -> Result<TokenStream, Error> {
 	StateMachine::new().derive(attr, item)
 }
