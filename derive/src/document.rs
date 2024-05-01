@@ -75,15 +75,13 @@ fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 							match g {
 								Literal(l) => {
 									// the comment
-									let l = l.to_string();
-									let len_decr = if l.len() > 0 { l.len() - 1 } else { 0 };
-									let lf = l.find("\"");
-									let lrf = l.rfind("\"");
-
-									if lf == Some(0) && lrf == Some(len_decr) {
-										let l = l.substring(1, len_decr).to_string();
-										comment_vec.push(l);
-									}
+									let comment = map_err!(
+										bmw_deps::litrs::StringLit::try_from(l),
+										CoreErrorKind::Parse
+									)?
+									.value()
+									.to_string();
+									comment_vec.push(comment);
 								}
 								_ => {}
 							}

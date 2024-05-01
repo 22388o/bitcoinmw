@@ -17,6 +17,7 @@
 
 #[cfg(test)]
 mod test {
+	use crate as bmw_log;
 	use crate::log::DebugLogger;
 	use crate::log::LogBuilder;
 	use crate::log::LogConstOptions::*;
@@ -31,9 +32,97 @@ mod test {
 	use std::path::PathBuf;
 	use std::sync::{Arc, RwLock};
 
+	trace!();
+
 	// lock used to prevent two tests from calling log_init at the same time
 	lazy_static! {
 		pub static ref LOCK: Arc<RwLock<usize>> = Arc::new(RwLock::new(0));
+	}
+
+	#[test]
+	fn test_log_macros() -> Result<(), Error> {
+		// lock so we don't interfere with the other test's global logging
+		let _lock = LOCK.write()?;
+		// do these before init. they're not allowed and generate errors
+		assert!(set_log_option!(AutoRotate(false)).is_err());
+		assert!(log_rotate!().is_err());
+		assert!(need_rotate!().is_err());
+
+		// get a test_info struct
+		let test_info = test_info!()?;
+
+		// create a pathbuf for a log file
+		let mut buf = PathBuf::new();
+		buf.push(test_info.directory());
+		buf.push("log.log");
+
+		// init log
+		let path = buf.display().to_string();
+		log_init!(LogFilePath(&path))?;
+
+		// do logging at all levels and all styles
+		trace!("mactest1")?;
+		trace_plain!("plain1")?;
+		trace_all!("all1")?;
+
+		debug!("mactest1")?;
+		debug_plain!("plain1")?;
+		debug_all!("all1")?;
+
+		info!("mactest1")?;
+		info_plain!("plain1")?;
+		info_all!("all1")?;
+
+		warn!("mactest1")?;
+		warn_plain!("plain1")?;
+		warn_all!("all1")?;
+
+		error!("mactest1")?;
+		error_plain!("plain1")?;
+		error_all!("all1")?;
+
+		fatal!("mactest1")?;
+		fatal_plain!("plain1")?;
+		fatal_all!("all1")?;
+
+		// ensure rotate is allowed and not an error now
+		assert!(need_rotate!().is_ok());
+		assert!(log_rotate!().is_ok());
+
+		// now log without colors
+		set_log_option!(Colors(false))?;
+		info!("nocolormactest1")?;
+		info_plain!("nocolorplain1")?;
+		info_all!("nocolorall1")?;
+
+		// log a backtrace
+		set_log_option!(Backtrace(true))?;
+		error!("errbt")?;
+		error_plain!("errorbt")?;
+
+		// set the GLOBAL logger back to none for the other tests
+		// only done in tests
+		let mut lock = BMW_GLOBAL_LOG.write()?;
+		*lock = None;
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_log_cycle() -> Result<(), Error> {
+		// ensure a long cycle of logging works
+		let _lock = LOCK.write()?;
+		for _ in 0..2000 {
+			sleep(Duration::from_millis(1));
+			info!("test")?;
+		}
+
+		// set the GLOBAL logger back to none for the other tests
+		// only done in tests
+		let mut lock = BMW_GLOBAL_LOG.write()?;
+		*lock = None;
+
+		Ok(())
 	}
 
 	#[test]
@@ -678,7 +767,7 @@ mod test {
 		buf1.push("file1.log");
 		let buf1 = buf1.display().to_string();
 
-		// create a logger with all options specified to exercise various parts off the code
+		// create a logger with all options specified to exercise various parts of the code
 		let mut log = logger!(
 			MaxSizeBytes(100),
 			MaxAgeMillis(3_000),

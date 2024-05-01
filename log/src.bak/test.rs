@@ -55,14 +55,6 @@ mod test {
 	}
 
 	#[test]
-	fn test_derive_attrs() -> Result<(), Error> {
-		let x = config!(TestDerive, MyOptions, vec![V1(2)])?;
-		assert_eq!(x.v1, 2);
-
-		Ok(())
-	}
-
-	#[test]
 	fn test_log_basic() -> Result<(), Error> {
 		let test_info = test_info!()?; // obtain test info struct
 		let directory = test_info.directory();
@@ -1021,19 +1013,6 @@ mod test {
 		buf.push("mylogger4.log");
 		let len = buf.metadata()?.len();
 		assert_eq!(len, 350);
-		Ok(())
-	}
-
-	#[test]
-	fn test_log_config() -> Result<(), Error> {
-		let conf = config!(LogConfig, LogConfigOptions, vec![])?;
-		assert_eq!(conf.max_size_bytes, u64::MAX);
-		let conf = config!(
-			LogConfig,
-			LogConfigOptions,
-			vec![MaxAgeMillis(1_000 * 60 * 60)]
-		)?;
-		assert_eq!(conf.max_age_millis, 1_000 * 60 * 60);
 		Ok(())
 	}
 

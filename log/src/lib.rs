@@ -18,10 +18,12 @@
 use bmw_core::failure;
 
 mod constants;
+mod global;
 mod log;
 mod macros;
 mod test;
 mod types;
 
+pub use crate::global::{GlobalLogFunctions, BMW_GLOBAL_LOG};
 pub use log::*;
 pub use types::LogErrorKind;
