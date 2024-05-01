@@ -112,6 +112,40 @@ mod test {
 	}
 
 	#[test]
+	fn test_all_config_options() -> Result<(), Error> {
+		let mut logger = debug_logger!()?;
+		logger.init()?;
+		logger.set_log_option(LogConstOptions::Colors(false))?;
+		logger.set_log_option(LogConstOptions::Stdout(false))?;
+		logger.set_log_option(LogConstOptions::MaxAgeMillis(100_000))?;
+		logger.set_log_option(LogConstOptions::MaxSizeBytes(1_000))?;
+		logger.set_log_option(LogConstOptions::LineNumDataMaxLen(35))?;
+		logger.set_log_option(LogConstOptions::Timestamp(false))?;
+		logger.set_log_option(LogConstOptions::ShowMillis(false))?;
+		logger.set_log_option(LogConstOptions::LogLevel(false))?;
+		logger.set_log_option(LogConstOptions::LineNum(false))?;
+		logger.set_log_option(LogConstOptions::Backtrace(true))?;
+		logger.set_log_option(LogConstOptions::AutoRotate(true))?;
+		logger.set_log_option(LogConstOptions::DeleteRotation(true))?;
+		logger.set_log_option(LogConstOptions::FileHeader("12345"))?;
+		let config = logger.get_log_config_debug();
+		assert_eq!(config.timestamp, false);
+		assert_eq!(config.colors, false);
+		assert_eq!(config.max_age_millis, 100_000);
+		assert_eq!(config.max_size_bytes, 1_000);
+		assert_eq!(config.stdout, false);
+		assert_eq!(config.line_num_data_max_len, 35);
+		assert_eq!(config.show_millis, false);
+		assert_eq!(config.log_level, false);
+		assert_eq!(config.line_num, false);
+		assert_eq!(config.backtrace, true);
+		assert_eq!(config.auto_rotate, true);
+		assert_eq!(config.delete_rotation, true);
+		assert_eq!(config.file_header, "12345".to_string());
+		Ok(())
+	}
+
+	#[test]
 	fn test_log_cycle() -> Result<(), Error> {
 		// ensure a long cycle of logging works
 		let _lock = LOCK.write()?;
