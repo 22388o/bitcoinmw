@@ -82,8 +82,11 @@ impl CloneView {
 #[derive(Clone, Debug)]
 struct Var {
 	name: String,
+	lifetimes: Vec<String>,
 	type_str: String,
 	found_colon: bool,
+	prev_is_joint: bool,
+	prev_is_lifetime: bool,
 	span: Span,
 }
 
@@ -92,8 +95,11 @@ impl Var {
 	fn new(span: Span) -> Self {
 		Self {
 			name: "".to_string(),
+			lifetimes: vec![],
 			type_str: "".to_string(),
 			found_colon: false,
+			prev_is_lifetime: false,
+			prev_is_joint: false,
 			span,
 		}
 	}
@@ -170,6 +176,11 @@ struct FnInfo {
 	comments: Vec<String>,
 	expect_ret_arrow1: bool,
 	expect_ret_arrow2: bool,
+	prev_is_lifetime: bool,
+	generics1: Option<String>,
+	generics2: Option<String>,
+	where_clause: Option<String>,
+	generics1_complete: bool,
 	span: Span,
 }
 
@@ -181,6 +192,7 @@ impl Debug for FnInfo {
 		write!(f, "\tviews: '{:?}'\n", self.views)?;
 		write!(f, "\tparams: '{}'\n", self.params)?;
 		write!(f, "\treturn_str: '{}'\n", self.return_str)?;
+		write!(f, "\tgenerics1: '{:?}'\n", self.generics1)?;
 		for comment in &self.comments {
 			write!(f, "\t///{}\n", comment)?;
 		}
@@ -203,6 +215,11 @@ impl FnInfo {
 			comments: vec![],
 			expect_ret_arrow1: false,
 			expect_ret_arrow2: false,
+			prev_is_lifetime: false,
+			generics1: None,
+			generics2: None,
+			generics1_complete: false,
+			where_clause: None,
 		}
 	}
 }
@@ -638,22 +655,38 @@ impl StateMachine {
 				_ => self.append_error(&format!("expected function name found '{}'", token_str))?,
 			}
 		} else if self.expect_params {
-			match token {
-				Group(g) => {
-					if g.delimiter() != Delimiter::Parenthesis {
-						self.append_error(&format!(
-							"expected param list found '{}'",
-							g.to_string()
-						))?;
-					} else {
-						self.expect_params = false;
-						let cur_fn = self.cur_fn.as_mut().unwrap();
-						cur_fn.params.extend(g.stream());
-						cur_fn.expect_ret_arrow1 = true;
-						cur_fn.expect_ret_arrow2 = false;
+			let cur_fn = self.cur_fn.as_mut().unwrap();
+			if cur_fn.generics1.is_some() && !cur_fn.generics1_complete {
+				if token_str == ">" {
+					cur_fn.generics1_complete = true;
+				} else {
+					cur_fn.generics1 = Some(format!(
+						"{}{}",
+						cur_fn.generics1.as_ref().unwrap(),
+						token_str
+					));
+				}
+			} else if token_str == "<" {
+				cur_fn.generics1 = Some("".to_string());
+			} else {
+				match token {
+					Group(g) => {
+						if g.delimiter() != Delimiter::Parenthesis {
+							self.append_error(&format!(
+								"expected param list found '{}'",
+								g.to_string()
+							))?;
+						} else {
+							self.expect_params = false;
+							cur_fn.params.extend(g.stream());
+							cur_fn.expect_ret_arrow1 = true;
+							cur_fn.expect_ret_arrow2 = false;
+						}
+					}
+					_ => {
+						self.append_error(&format!("expected param list, found '{}'", token_str))?
 					}
 				}
-				_ => self.append_error(&format!("expected param list, found '{}'", token_str))?,
 			}
 		} else {
 			// we're in the return list section
@@ -747,23 +780,32 @@ impl StateMachine {
 			}
 			_ => match self.cur_fn.as_mut() {
 				Some(cur_fn) => {
+					let token_str = token.to_string();
 					if cur_fn.expect_ret_arrow1 {
-						if token.to_string() != "-" {
+						if token_str != "-" {
 							self.append_error(&format!("expected '-', found '{}'", token))?;
 						} else {
 							cur_fn.expect_ret_arrow1 = false;
 							cur_fn.expect_ret_arrow2 = true;
 						}
 					} else if cur_fn.expect_ret_arrow2 {
-						if token.to_string() != ">" {
+						if token_str != ">" {
 							self.append_error(&format!("expected '>', found '{}'", token))?;
 						} else {
 							cur_fn.expect_ret_arrow2 = false;
 						}
+					} else if token_str == "\'" {
+						cur_fn.prev_is_lifetime = true;
 					} else {
+						let token_str = if cur_fn.prev_is_lifetime {
+							cur_fn.prev_is_lifetime = false;
+							format!("\'{}", token)
+						} else {
+							token_str
+						};
 						(*cur_fn)
 							.return_str
-							.extend(token.to_string().parse::<TokenStream>());
+							.extend(token_str.parse::<TokenStream>());
 					}
 				}
 				None => {
@@ -875,12 +917,11 @@ impl StateMachine {
 					Err(ref e) => {
 						self.span = Some(self.cur_var.as_ref().unwrap().span);
 						self.append_error(&format!(
-							"syn returned error {:?} for type_str: {}",
+							"syn returned error {:?} for type_str: '{}'",
 							e, type_str
 						))?;
 					}
 				}
-
 				self.var_list.push(self.cur_var.as_ref().unwrap().clone());
 				self.cur_var = None;
 			}
@@ -888,7 +929,26 @@ impl StateMachine {
 		} else {
 			match self.cur_var.as_mut() {
 				Some(cur_var) => {
-					cur_var.type_str = format!("{} {}", cur_var.type_str, token_str);
+					if cur_var.prev_is_lifetime {
+						cur_var.lifetimes.push(token_str.clone());
+						cur_var.prev_is_lifetime = false;
+					} else if token_str == "\'" {
+						cur_var.prev_is_lifetime = true;
+					}
+					if cur_var.prev_is_joint {
+						cur_var.type_str = format!("{}{}", cur_var.type_str, token_str);
+					} else {
+						cur_var.type_str = format!("{} {}", cur_var.type_str, token_str);
+					}
+
+					match token {
+						Punct(p) => {
+							if p.spacing() == Spacing::Joint {
+								cur_var.prev_is_joint = true;
+							}
+						}
+						_ => cur_var.prev_is_joint = false,
+					}
 				}
 				None => {}
 			}
@@ -1138,7 +1198,7 @@ impl StateMachine {
 	}
 
 	fn get_post_name_clause(&self) -> Result<String, Error> {
-		Ok(match &self.generics2 {
+		let ret = match &self.generics2 {
 			Some(generics) => {
 				format!(
 					"{}{}",
@@ -1153,8 +1213,12 @@ impl StateMachine {
 					}
 				)
 			}
-			None => "".to_string(),
-		})
+			None => match &self.generics {
+				Some(generics) => format!("<{}>", generics),
+				None => "".to_string(),
+			},
+		};
+		Ok(ret)
 	}
 
 	fn get_where_clause(&self) -> Result<String, Error> {
@@ -1439,9 +1503,15 @@ impl StateMachine {
 							trait_text = format!("{}\n\t///{}", trait_text, comment);
 						}
 						trait_text = format!(
-							"{}\n\tfn {}({}){}{};",
+							"{}\n\tfn {} {}({}){}{};",
 							trait_text,
 							fn_info.name,
+							match &fn_info.generics1 {
+								Some(generics1) => {
+									format!("<{}>", generics1)
+								}
+								None => "".to_string(),
+							},
 							fn_info.params.to_string(),
 							if fn_info.return_str.to_string().len() > 0 {
 								" -> "
@@ -1474,6 +1544,7 @@ impl StateMachine {
 			match token {
 				Group(token) => {
 					ret = format!("{}(", ret);
+					let mut prev_is_joint = false;
 					for token in token.stream() {
 						let token = token.to_string();
 						if first && (token == "&" || token == "mut") {
@@ -1482,7 +1553,10 @@ impl StateMachine {
 							if token == ":" {
 								in_type = true;
 							} else if !in_type {
-								ret = format!("{}{}", ret, token);
+								if prev_is_joint || token == "\'" || token == "mut" {
+								} else {
+									ret = format!("{} {}", ret, token);
+								}
 							} else {
 								ret_types = format!("{} {}", ret_types, token);
 								if token == "<" {
@@ -1493,6 +1567,12 @@ impl StateMachine {
 									in_type = false;
 									ret = format!("{}{}", ret, token);
 								}
+							}
+
+							if token == "\'" {
+								prev_is_joint = true;
+							} else {
+								prev_is_joint = false;
 							}
 						}
 					}
@@ -1541,9 +1621,15 @@ impl StateMachine {
 				let param_pair =
 					self.convert_param_string(&format!("({})", fn_info.params.to_string()))?;
 				all_trait_impls = format!(
-					"{}\n\tfn {}({}){} {{ {}::{}{} }}",
+					"{}\n\tfn {} {}({}){} {{ {}::{}{} }}",
 					all_trait_impls,
 					fn_info.name,
+					match &fn_info.generics1 {
+						Some(generics1) => {
+							format!("<{}>", generics1)
+						}
+						None => "".to_string(),
+					},
 					fn_info.params,
 					if fn_info.return_str.to_string().len() > 0 {
 						format!(" -> {}", fn_info.return_str)
@@ -1557,9 +1643,15 @@ impl StateMachine {
 
 				if !clone_set.contains(view) {
 					all_trait_impls_mut = format!(
-						"{}\n\tfn {}({}){} {{ {}::{}{} }}",
+						"{}\n\tfn {} {}({}){} {{ {}::{}{} }}",
 						all_trait_impls_mut,
 						fn_info.name,
+						match &fn_info.generics1 {
+							Some(generics1) => {
+								format!("<{}>", generics1)
+							}
+							None => "".to_string(),
+						},
 						fn_info.params,
 						if fn_info.return_str.to_string().len() > 0 {
 							format!(" -> {}", fn_info.return_str)
@@ -2183,11 +2275,28 @@ impl StateMachine {
 		}
 	}
 
+	fn get_lifetimes(&self) -> Result<Vec<String>, Error> {
+		let mut ret = vec![];
+		let mut set = HashSet::new();
+		for var in &self.var_list {
+			for lifetime in &var.lifetimes {
+				set.insert(lifetime.clone());
+			}
+		}
+
+		for lifetime in set {
+			ret.push(lifetime);
+		}
+
+		Ok(ret)
+	}
+
 	fn update_builder(&self, template: String) -> Result<String, Error> {
 		let name = self.name.as_ref().unwrap();
 		let public_set = self.build_public_set();
 		let protected_set = self.build_protected_set();
 		let public_mappings = self.build_public_mappings();
+		let lifetimes = self.get_lifetimes()?;
 		let view_set = self.build_view_set(true)?;
 		let builder_text = format!("/// Builder for `{}` class.", name);
 		let mut builder_text = format!(
@@ -2204,7 +2313,12 @@ impl StateMachine {
 				.replace("${WHERE_CLAUSE}", &self.get_where_clause()?)
 				.to_string();
 			let builder_template = builder_template.replace("${NAME}", name).to_string();
-			let builder_template = builder_template.replace("${TRAIT}", &trait_name);
+			let mut generic_text = self.get_pre_name_clause()?;
+			for lifetime in &lifetimes {
+				generic_text = format!("{} + \'{}", generic_text, lifetime);
+			}
+			let trait_replace = format!("{}{}", trait_name, generic_text);
+			let builder_template = builder_template.replace("${TRAIT}", &trait_replace);
 
 			let builder_template = self.update_comments(
 				builder_template,
@@ -2341,9 +2455,17 @@ impl StateMachine {
 				main_impl = format!("{}\n{}", main_impl, impl_builder);
 			} else {
 				main_impl = format!(
-					"{}\n\tfn {}({}) {} {} {{\n\t\t{}\n\t}}\n",
+					"{}\n\tfn {} {}({}) {} {} {{\n\t\t{}\n\t}}\n",
 					main_impl,
 					fn_info.name,
+					match &fn_info.generics1 {
+						Some(generics1) => {
+							format!("<{}>", generics1)
+						}
+						None => {
+							"".to_string()
+						}
+					},
 					fn_info.params,
 					if fn_info.return_str.to_string().trim().len() > 0 {
 						" -> "

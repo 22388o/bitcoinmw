@@ -689,6 +689,7 @@ impl Log {
 		Ok(())
 	}
 
+	#[allow(unused_variables)]
 	fn process_resolve_frame(
 		debug_lineno_is_none: bool,
 		debug_process_resolve_frame_error: bool,
@@ -713,12 +714,16 @@ impl Log {
 				lineno.unwrap().to_string()
 			};
 
-			if filename.find("/log/src/log.rs").is_some()
+			if filename.find("/log/src/global.rs").is_some()
+				|| filename.find("\\log\\src\\global.rs").is_some()
+				|| filename.find("/log/src/log.rs").is_some()
 				|| filename.find("\\log\\src\\log.rs").is_some()
 			{
 				*found_logger = true;
 			}
-			if (filename.find("/log/src/log.rs").is_none()
+			if (filename.find("/log/src/global.rs").is_none()
+				&& filename.find("\\log\\src\\global.rs").is_none()
+				&& filename.find("/log/src/log.rs").is_none()
 				&& filename.find("\\log\\src\\log.rs").is_none())
 				&& *found_logger
 			{
@@ -730,10 +735,13 @@ impl Log {
 		#[cfg(not(debug_assertions))]
 		if let Some(name) = symbol.name() {
 			let name = name.to_string();
-			if name.find("as bmw_log::types::Log").is_some() {
+			if name.find("bmw_log::log::Log").is_some() {
 				*found_logger = true;
 			}
-			if name.find("as bmw_log::types::Log").is_none() && *found_logger {
+			if name.find("bmw_log::log::Log").is_none()
+				&& name.find("bmw_log::global").is_none()
+				&& *found_logger
+			{
 				let pos = name.rfind(':');
 				let name = match pos {
 					Some(pos) => match pos > 1 {

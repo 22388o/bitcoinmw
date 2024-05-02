@@ -123,6 +123,9 @@ pub enum CoreErrorKind {
 	/// I/O error
 	#[fail(display = "i/o error: {}", _0)]
 	IO(String),
+	/// Out of memory error
+	#[fail(display = "out of memory error: {}", _0)]
+	OOM(String),
 	/// TryFrom error
 	#[fail(display = "try/from error: {}", _0)]
 	TryFrom(String),

@@ -39,6 +39,7 @@ pub(crate) fn do_derive_document(_attr: TokenStream, item: TokenStream) -> Token
 #[cfg(not(tarpaulin_include))]
 fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 	let mut last_is_hash = false;
+	let mut last_is_hash2 = false;
 	let mut last_joint = None;
 	let mut omit = false;
 	let mut in_signature = false;
@@ -115,7 +116,9 @@ fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 				Group(ref g) => {
 					if g.delimiter() == Delimiter::Bracket {
 						// add back in '#' which was stripped
-						non_comments.extend("#".to_string().parse::<TokenStream>());
+						if last_is_hash2 {
+							non_comments.extend("#".to_string().parse::<TokenStream>());
+						}
 					}
 				}
 				_ => {}
@@ -133,6 +136,7 @@ fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 			}
 		}
 
+		last_is_hash2 = last_is_hash;
 		omit = false;
 	}
 	let ret = build_docs(comment_vec, non_comments, signature, parameter_list)?;

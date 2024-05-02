@@ -23,6 +23,7 @@ use crate::{err_only, CoreErrorKind, Error, ErrorKind};
 use bmw_deps::failure::{Backtrace, Context, Fail};
 use bmw_deps::url::ParseError;
 use std::alloc::LayoutError;
+use std::collections::TryReserveError;
 use std::convert::Infallible;
 use std::ffi::OsString;
 use std::fmt::{Display, Formatter, Result};
@@ -241,5 +242,11 @@ impl From<AddrParseError> for Error {
 impl From<ParseBoolError> for Error {
 	fn from(e: ParseBoolError) -> Error {
 		err_only!(CoreErrorKind::Parse, e)
+	}
+}
+
+impl From<TryReserveError> for Error {
+	fn from(e: TryReserveError) -> Error {
+		err_only!(CoreErrorKind::OOM, e)
 	}
 }

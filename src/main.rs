@@ -17,7 +17,10 @@
 // limitations under the License.
 
 use bmw_base::{err, CoreErrorKind, Error};
+use bmw_log::*;
 use std::mem::size_of;
+
+info!();
 
 // include build information
 #[doc(hidden)]
@@ -37,7 +40,7 @@ fn real_main(debug_startup_32: bool) -> Result<(), Error> {
 		false => return err!(CoreErrorKind::IllegalState, "Only 64 bit arch supported"),
 	}
 
-	println!("main currently doesn't do anything");
+	info!("main currently doesn't do anything")?;
 	Ok(())
 }
 
