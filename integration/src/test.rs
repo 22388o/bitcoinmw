@@ -42,7 +42,7 @@ mod test {
 	fn ret_err3() -> Result<(), Error> {
 		match ret_err2() {
 			Ok(_) => Ok(()),
-			Err(e) => err!(IllegalState, "ret_err2 generated error: {}", e.kind()),
+			Err(e) => err!(IllegalState, "ret_err2 generated error: {}", e),
 		}
 	}
 
@@ -57,6 +57,7 @@ mod test {
 		assert_eq!(err2.kind().to_string(), "ghi error kind: 12345".to_string());
 
 		let err3 = ret_err3().unwrap_err();
+		println!("err3='{}'", err3);
 		assert_eq!(err3.kind(), kind!(IllegalState));
 
 		Ok(())

@@ -61,7 +61,7 @@ macro_rules! impl_debug {
 
 impl Debug for Error {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-		write!(f, "ERROR: {}\n", self.kind)?;
+		write!(f, "{}\n", self.kind)?;
 		match std::env::var("RUST_BACKTRACE") {
 			Ok(_) => {
 				write!(f, "backtrace: {:?}", Backtrace::new())?;
