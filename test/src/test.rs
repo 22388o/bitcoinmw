@@ -47,7 +47,7 @@ mod test {
 		// assert the type of error returned is as expected
 		let err = TestErrorKind::Test("test".to_string());
 		let err: Error = err.into();
-		assert_eq!(err.kind(), &kind!(TestErrorKind::Test, "test"));
+		assert_eq!(err.kind(), kind!(TestErrorKind::Test));
 
 		Ok(())
 	}

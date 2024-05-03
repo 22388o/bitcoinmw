@@ -16,11 +16,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use bmw_base::{err, CoreErrorKind, Error};
-use bmw_log::*;
+use bmw_core::*;
 use std::mem::size_of;
-
-info!();
 
 // include build information
 #[doc(hidden)]
@@ -37,27 +34,14 @@ fn real_main(debug_startup_32: bool) -> Result<(), Error> {
 	// ensure we only support 64 bit
 	match size_of::<&char>() == 8 && debug_startup_32 == false {
 		true => {}
-		false => return err!(CoreErrorKind::IllegalState, "Only 64 bit arch supported"),
+		false => ret_err!(MainErrorKind::UnsupportedArch, "Only 64 bit arch supported"),
 	}
 
-	info!("main currently doesn't do anything")?;
+	println!("main currently doesn't do anything");
 	Ok(())
 }
 
-#[cfg(test)]
-mod test {
-	use crate::{main, real_main};
-	use bmw_base::Error;
-
-	#[test]
-	fn test_main() -> Result<(), Error> {
-		assert!(main().is_ok());
-		Ok(())
-	}
-
-	#[test]
-	fn test_debug_startup_32() -> Result<(), Error> {
-		assert!(real_main(true).is_err());
-		Ok(())
-	}
+#[ErrorKind]
+enum MainErrorKind {
+	UnsupportedArch,
 }

@@ -17,6 +17,7 @@
 // limitations under the License.
 
 use bmw_base::*;
+use bmw_deps::convert_case::{Case, Casing};
 use bmw_deps::substring::Substring;
 use proc_macro::TokenStream;
 use proc_macro::TokenTree::*;
@@ -42,9 +43,7 @@ fn do_derive_errorkind_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 	let mut expect_name = false;
 	let mut name_found = false;
 	let mut name = "".to_string();
-
-	// need Debug and Fail derived
-	ret.extend("#[derive(Debug, bmw_deps::failure::Fail)]".parse::<TokenStream>());
+	let mut error_list = vec![];
 
 	// iterate through the tokens
 	for token in item.clone() {
@@ -79,17 +78,10 @@ fn do_derive_errorkind_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 						}
 						match g {
 							Ident(g) => {
-								// use Fail to display message
-								extension = format!(
-									"{}#[fail(display = \"{}: {{}}\", _0)]",
-									extension,
-									match last_doc {
-										Some(last_doc) => last_doc,
-										None => g.to_string(),
-									}
-								);
+								let gstring = g.to_string();
 								// all errors take a string
-								extension = format!("{} {}(String)", extension, g.to_string());
+								extension = format!("{} {}(String)", extension, gstring);
+								error_list.push((gstring, last_doc));
 								last_doc = None;
 							}
 							Punct(g) => {
@@ -128,14 +120,35 @@ fn do_derive_errorkind_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 	}
 
 	// build the impl for ErrorKind and the From for Error impl
-	build_impls(name, &mut ret)?;
+	build_impls(name, &mut ret, error_list)?;
 	Ok(ret)
 }
 
 #[cfg(not(tarpaulin_include))]
-fn build_impls(name: String, strm: &mut TokenStream) -> Result<(), Error> {
+fn build_impls(
+	name: String,
+	strm: &mut TokenStream,
+	error_list: Vec<(String, Option<String>)>,
+) -> Result<(), Error> {
 	// load template
 	let impls = include_str!("../templates/errorkind.template.txt");
+	let mut print_errors = format!("match self {{");
+	for error in &error_list {
+		print_errors = format!(
+			"{}\n{}::{}(s) => {{\n\twrite!(f, \"{{}}: {{}}\", \"{}\", s)?;\n}}",
+			print_errors,
+			name,
+			error.0,
+			match &error.1 {
+				Some(e) => e.to_string(),
+				None => error.0.to_string().to_case(Case::Snake).replace("_", " "),
+			}
+		);
+	}
+	print_errors = format!("{}}}", print_errors);
+
+	let impls = impls.replace("${PRINT_ERRORS}", &print_errors);
+
 	// replace the ${NAME} variable with our name
 	let impls = impls.replace("${NAME}", &name).parse::<TokenStream>();
 	let impls = map_err!(impls, CoreErrorKind::Parse)?;

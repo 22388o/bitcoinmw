@@ -16,104 +16,89 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[cfg(unix)]
-use bmw_deps::nix::errno::Errno as NixErrno;
-
-use crate::{err_only, CoreErrorKind, Error, ErrorKind};
-use bmw_deps::failure::{Backtrace, Context, Fail};
-use bmw_deps::url::ParseError;
-use std::alloc::LayoutError;
-use std::collections::TryReserveError;
-use std::convert::Infallible;
-use std::ffi::OsString;
-use std::fmt::{Display, Formatter, Result};
-use std::net::AddrParseError;
-use std::num::{ParseIntError, TryFromIntError};
-use std::str::{ParseBoolError, Utf8Error};
-use std::string::FromUtf8Error;
+use crate::err_only;
+use bmw_deps::backtrace::Backtrace;
+use std::fmt::{Debug, Display, Formatter};
 use std::sync::mpsc::{RecvError, SendError};
 use std::sync::{MutexGuard, PoisonError, RwLockReadGuard, RwLockWriteGuard};
-use std::time::SystemTimeError;
+use CoreErrorKind::*;
 
-// commpare errors by "kind" only
-impl PartialEq for Error {
-	fn eq(&self, r: &Error) -> bool {
-		r.kind() == self.kind()
+pub trait ErrorKind: Send + Sync + Display + Debug {}
+
+pub struct Error {
+	kind: Box<dyn ErrorKind>,
+}
+
+pub enum CoreErrorKind {
+	/// illegal argument
+	IllegalArgument(String),
+	/// illegal state
+	IllegalState(String),
+	/// array index out of bounds
+	ArrayIndexOutOfBounds(String),
+	/// poison
+	Poison(String),
+	/// parse
+	Parse(String),
+}
+
+impl Error {
+	pub fn new(kind: Box<dyn ErrorKind>) -> Self {
+		Self { kind }
+	}
+}
+
+macro_rules! impl_debug {
+	($self:expr, $f:expr, $variant_name:ident, $type_str:expr) => {
+		match $self {
+			$variant_name(s) => {
+				write!($f, "{}: {}", $type_str, s)?;
+			}
+			_ => {}
+		}
+	};
+}
+
+impl Debug for Error {
+	fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+		write!(f, "ERROR: {}\n", self.kind)?;
+		match std::env::var("RUST_BACKTRACE") {
+			Ok(_) => {
+				write!(f, "backtrace: {:?}", Backtrace::new())?;
+			}
+			Err(_e) => {
+				write!(f, "Backtrace disabled. For backtrace set RUST_BACKTRACE enviornment variable to 1.")?;
+			}
+		}
+
+		Ok(())
 	}
 }
 
 impl Display for Error {
-	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-		let output = format!("{} \n Backtrace: {:?}", self.inner, self.backtrace());
-		Display::fmt(&output, f)
+	fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+		write!(f, "{:?}", self)
 	}
 }
 
-impl Error {
-	/// create an error from the specified error kind. This should be called through the
-	/// [`crate::err`] macro.
-	/// # Input Parameters
-	/// * `kind` - [`Box`] <dyn [`crate::ErrorKind`] > - creates an error with the specified
-	/// error kind.
-	/// # Return
-	/// An instance of [`crate::Error`] is returned.
-	/// # Also see
-	/// * [`crate::Error::kind`]
-	/// * [`crate::err`]
-	pub fn new(kind: Box<dyn ErrorKind>) -> Self {
-		Self {
-			inner: Context::new(kind),
-		}
-	}
+impl ErrorKind for CoreErrorKind {}
 
-	/// get the kind of error that occurred.
-	/// # Input Parameters
-	/// * `self` - `&self`
-	/// # Return
-	/// An immutable reference to this error's [`crate::ErrorKind`].
-	pub fn kind(&self) -> &Box<dyn ErrorKind> {
-		self.inner.get_context()
-	}
-
-	/// get the cause (if available) of this error.
-	/// # Input Parameters
-	/// * `self` - `&self`
-	/// # Return
-	/// [`std::option::Option`] < & dyn [`Fail`] > - The cause of the error, if it can be
-	/// returned.
-	/// # Also see
-	/// * [`crate::ErrorKind`]
-	/// * [`crate::Error::backtrace`]
-	pub fn cause(&self) -> Option<&dyn Fail> {
-		self.inner.cause()
-	}
-
-	/// get the backtrace (if available) of this error.
-	/// # Input Parameters
-	/// * `self` - `&self`
-	/// # Return
-	/// [`std::option::Option`] < [`Backtrace`] > - The backtrace for this error, if it can be
-	/// returned.
-	/// * [`crate::ErrorKind`]
-	/// * [`crate::Error::cause`]
-	pub fn backtrace(&self) -> Option<&Backtrace> {
-		self.inner.backtrace()
-	}
-
-	/// get the inner error as a string.
-	/// # Input Parameters
-	/// `self` - `&self`
-	/// # Return
-	/// [`std::string::String`] - The error as a string.
-	/// # Also see
-	/// * [`crate::ErrorKind`]
-	/// * [`crate::Error::backtrace`]
-	pub fn inner(&self) -> String {
-		self.inner.to_string()
+impl Display for CoreErrorKind {
+	fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+		write!(f, "{:?}", self)
 	}
 }
 
-// do conversions of some common errors
+impl Debug for CoreErrorKind {
+	fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+		impl_debug!(self, f, IllegalArgument, "illegal argument");
+		impl_debug!(self, f, IllegalState, "illegal state err");
+		impl_debug!(self, f, ArrayIndexOutOfBounds, "array index out of bounds");
+		impl_debug!(self, f, Poison, "poison");
+		impl_debug!(self, f, Parse, "parse");
+		Ok(())
+	}
+}
 
 impl From<Box<dyn ErrorKind>> for Error {
 	fn from(kind: Box<dyn ErrorKind>) -> Error {
@@ -121,132 +106,99 @@ impl From<Box<dyn ErrorKind>> for Error {
 	}
 }
 
-impl PartialEq for Box<dyn ErrorKind> {
-	fn eq(&self, cmp: &Box<(dyn ErrorKind + 'static)>) -> bool {
-		cmp.to_string() == self.to_string()
-	}
-}
-
-impl ErrorKind for CoreErrorKind {}
-
 impl From<CoreErrorKind> for Error {
 	fn from(kind: CoreErrorKind) -> Error {
 		Error::new(Box::new(kind))
 	}
 }
 
-impl From<std::io::Error> for Error {
-	fn from(e: std::io::Error) -> Error {
-		err_only!(CoreErrorKind::IO, e)
+impl Error {
+	pub fn kind(&self) -> &Box<dyn ErrorKind> {
+		&self.kind
 	}
 }
 
-impl From<ParseError> for Error {
-	fn from(e: ParseError) -> Error {
-		err_only!(CoreErrorKind::Parse, e)
+impl PartialEq for Error {
+	fn eq(&self, other_err: &Error) -> bool {
+		self.kind().to_string() == other_err.kind().to_string()
 	}
 }
 
-impl From<OsString> for Error {
-	fn from(e: OsString) -> Error {
-		err_only!(CoreErrorKind::OsString, format!("{:?}", e))
-	}
-}
-
-impl From<TryFromIntError> for Error {
-	fn from(e: TryFromIntError) -> Error {
-		err_only!(CoreErrorKind::TryFrom, e)
-	}
-}
-
-impl From<ParseIntError> for Error {
-	fn from(e: ParseIntError) -> Error {
-		err_only!(CoreErrorKind::Parse, e)
-	}
-}
-
-impl From<Utf8Error> for Error {
-	fn from(e: Utf8Error) -> Error {
-		err_only!(CoreErrorKind::Utf8, e)
+impl PartialEq for Box<dyn ErrorKind> {
+	fn eq(&self, other_error: &Box<(dyn ErrorKind)>) -> bool {
+		let self_string = self.to_string();
+		let other_string = other_error.to_string();
+		match self_string.find(":") {
+			Some(pos1) => match other_string.find(":") {
+				Some(pos2) => &self_string.as_bytes()[0..pos1] == &other_string.as_bytes()[0..pos2],
+				None => false,
+			},
+			None => false,
+		}
 	}
 }
 
 impl<T> From<PoisonError<RwLockWriteGuard<'_, T>>> for Error {
 	fn from(e: PoisonError<RwLockWriteGuard<'_, T>>) -> Error {
-		err_only!(CoreErrorKind::Poison, e)
+		err_only!(Poison, e)
 	}
 }
 
 impl<T> From<PoisonError<RwLockReadGuard<'_, T>>> for Error {
 	fn from(e: PoisonError<RwLockReadGuard<'_, T>>) -> Error {
-		err_only!(CoreErrorKind::Poison, e)
+		err_only!(Poison, e)
 	}
 }
 
 impl<T> From<PoisonError<MutexGuard<'_, T>>> for Error {
 	fn from(e: PoisonError<MutexGuard<'_, T>>) -> Error {
-		err_only!(CoreErrorKind::Poison, e)
+		err_only!(Poison, e)
 	}
 }
 
 impl From<RecvError> for Error {
 	fn from(e: RecvError) -> Error {
-		err_only!(CoreErrorKind::IllegalState, e)
+		err_only!(IllegalState, e)
 	}
 }
 
 impl<T> From<SendError<T>> for Error {
 	fn from(e: SendError<T>) -> Error {
-		err_only!(CoreErrorKind::IllegalState, e)
+		err_only!(IllegalState, e)
 	}
 }
 
-impl From<LayoutError> for Error {
-	fn from(e: LayoutError) -> Error {
-		err_only!(CoreErrorKind::Alloc, format!("layout error: {}", e))
+impl PartialEq<Box<dyn ErrorKind>> for &Box<dyn ErrorKind> {
+	fn eq(&self, other: &Box<dyn ErrorKind>) -> bool {
+		*self == other
 	}
 }
 
-impl From<SystemTimeError> for Error {
-	fn from(e: SystemTimeError) -> Error {
-		err_only!(CoreErrorKind::SystemTime, e)
-	}
-}
+#[cfg(test)]
+mod test {
+	use super::*;
+	use crate::err;
 
-#[cfg(not(tarpaulin_include))] // can't happen
-impl From<Infallible> for Error {
-	fn from(e: Infallible) -> Error {
-		err_only!(CoreErrorKind::Misc, e)
+	fn ret_err() -> Result<(), Error> {
+		err!(IllegalArgument, "the argument was not legal")
 	}
-}
 
-#[cfg(unix)]
-impl From<NixErrno> for Error {
-	fn from(e: NixErrno) -> Error {
-		err_only!(CoreErrorKind::Errno, e)
+	fn ret_err2() -> Result<(), Error> {
+		err!(IllegalArgument, "the argument was not legal2")
 	}
-}
 
-impl From<FromUtf8Error> for Error {
-	fn from(e: FromUtf8Error) -> Error {
-		err_only!(CoreErrorKind::Utf8, e)
-	}
-}
+	#[test]
+	fn test_error() -> Result<(), Error> {
+		let err1 = ret_err().unwrap_err();
+		println!("err={}", err1);
+		let err2 = ret_err().unwrap_err();
+		assert_eq!(err1, err2);
 
-impl From<AddrParseError> for Error {
-	fn from(e: AddrParseError) -> Error {
-		err_only!(CoreErrorKind::Parse, e)
-	}
-}
+		let err2 = ret_err2().unwrap_err();
+		assert_ne!(err1, err2);
 
-impl From<ParseBoolError> for Error {
-	fn from(e: ParseBoolError) -> Error {
-		err_only!(CoreErrorKind::Parse, e)
-	}
-}
+		assert_eq!(err1.kind(), err2.kind());
 
-impl From<TryReserveError> for Error {
-	fn from(e: TryReserveError) -> Error {
-		err_only!(CoreErrorKind::OOM, e)
+		Ok(())
 	}
 }

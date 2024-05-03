@@ -1,6 +1,0 @@
-	fn builder(_hidden_const_struct: ${NAME}Const) -> Result<Self, Error> {
-                Ok(Self {
-                        _hidden_var_struct: ${NAME}Var::builder(&_hidden_const_struct)?,
-                        _hidden_const_struct,
-                })
-        }

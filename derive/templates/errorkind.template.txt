@@ -6,3 +6,16 @@ impl From<${NAME}> for Error {
 		Error::new(kind)
 	}
 }
+
+impl std::fmt::Display for ${NAME} {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+                write!(f, "{:?}", self)
+        }
+}
+
+impl std::fmt::Debug for ${NAME} {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+		${PRINT_ERRORS}
+                Ok(())
+        }
+}
