@@ -34,52 +34,6 @@ enum SlabAllocatorErrors {
 	OutOfSlabs,
 }
 
-#[class {
-    var data: Vec<u8>;
-
-    fn builder(&c) -> Result<Self, Error> {
-        let data = vec![];
-        Ok(Self { data })
-    }
-
-    [slab_data]
-    fn data(&self, offset: usize, len: usize) -> Result<&[u8], Error> {
-        let data = self.get_data();
-        let dlen = data.len();
-        let needed = offset + len;
-        if needed > dlen {
-            err!(ArrayIndexOutOfBounds, "needed={},available={}", needed, dlen)
-        } else {
-            Ok(&data[offset..offset+len])
-        }
-    }
-
-    [slab_data]
-    fn update(&mut self, v: &[u8], offset: usize) -> Result<(), Error> {
-        let vlen = v.len();
-        let data = self.get_mut_data();
-        let dlen = data.len();
-        let needed = vlen + offset;
-        if needed > dlen {
-            err!(ArrayIndexOutOfBounds, "needed={},available={}", needed, dlen)
-        } else {
-            data[offset..offset+vlen].clone_from_slice(v);
-            Ok(())
-        }
-    }
-
-    [slab_data]
-    fn resize(&mut self, reserved: usize) -> Result<(), Error> {
-        let data = self.get_mut_data();
-        map_err!(data.try_reserve_exact(reserved), TryReserveError)?;
-        data.truncate(reserved);
-        data.resize(reserved, 0u8);
-        Ok(())
-    }
-
-}]
-impl SlabDataClass {}
-
 #[derive(Debug)]
 struct SlabDataParams {
 	index: u8,
@@ -129,6 +83,52 @@ impl SlabDataParams {
 }
 
 #[class {
+    var data: Vec<u8>;
+
+    fn builder(&c) -> Result<Self, Error> {
+        let data = vec![];
+        Ok(Self { data })
+    }
+
+    [slab_data]
+    fn data(&self, offset: usize, len: usize) -> Result<&[u8], Error> {
+        let data = self.get_data();
+        let dlen = data.len();
+        let needed = offset + len;
+        if needed > dlen {
+            err!(ArrayIndexOutOfBounds, "needed={},available={}", needed, dlen)
+        } else {
+            Ok(&data[offset..offset+len])
+        }
+    }
+
+    [slab_data]
+    fn update(&mut self, v: &[u8], offset: usize) -> Result<(), Error> {
+        let vlen = v.len();
+        let data = self.get_mut_data();
+        let dlen = data.len();
+        let needed = vlen + offset;
+        if needed > dlen {
+            err!(ArrayIndexOutOfBounds, "needed={},available={}", needed, dlen)
+        } else {
+            data[offset..offset+vlen].clone_from_slice(v);
+            Ok(())
+        }
+    }
+
+    [slab_data]
+    fn resize(&mut self, reserved: usize) -> Result<(), Error> {
+        let data = self.get_mut_data();
+        map_err!(data.try_reserve_exact(reserved), TryReserveError)?;
+        data.truncate(reserved);
+        data.resize(reserved, 0u8);
+        Ok(())
+    }
+
+}]
+impl SlabDataClass {}
+
+#[class {
     public slab_allocator;
     const slab_size: Vec<usize> = vec![];
     const slab_count: Vec<usize> = vec![];
@@ -174,23 +174,7 @@ impl SlabDataParams {
 
     [slab_allocator]
     fn allocate(&mut self, size: usize) -> Result<u64, Error> {
-        match self.get_mut_slab_data().get_mut(&size) {
-            Some((sdp, slab_data)) => {
-                let index_u64: u64 = sdp.index.into();
-                let mut ret = index_u64 << 56;
-                debug!("index_u64={},ret={}", index_u64, ret)?;
-                match Self::get_next_free(slab_data, sdp)? {
-                    Some(v) => { ret |= v; }
-                    None => {
-                        return err!(OutOfSlabs, "no more slabs");
-                    }
-                }
-                Ok(ret)
-            }
-            None => {
-                err!(IllegalArgument, "SlabSize({}) not supported", size)
-            }
-        }
+        self.allocate_impl(size)
     }
 
     [slab_allocator]
@@ -247,6 +231,28 @@ impl SlabAllocatorClass {
 		slab_data.update(&sdp.invalid_ptr[0..sdp.ptr_size], offset)?;
 
 		Ok(Some(id))
+	}
+
+	fn allocate_impl(&mut self, size: usize) -> Result<u64, Error> {
+		match self.get_mut_slab_data().get_mut(&size) {
+			Some((sdp, slab_data)) => {
+				let index_u64: u64 = sdp.index.into();
+				let mut ret = index_u64 << 56;
+				debug!("index_u64={},ret={}", index_u64, ret)?;
+				match Self::get_next_free(slab_data, sdp)? {
+					Some(v) => {
+						ret |= v;
+					}
+					None => {
+						return err!(OutOfSlabs, "no more slabs");
+					}
+				}
+				Ok(ret)
+			}
+			None => {
+				err!(IllegalArgument, "SlabSize({}) not supported", size)
+			}
+		}
 	}
 
 	fn read_impl(&self, id: u64) -> Result<&[u8], Error> {
