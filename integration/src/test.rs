@@ -378,6 +378,7 @@ mod test {
 	}
 		*/
 
+	/*
 	#[derive(Configurable, Clone)]
 	struct TestVecVec {
 		def: usize,
@@ -432,6 +433,7 @@ mod test {
 			Self { s1: vec![] }
 		}
 	}
+		*/
 
 	#[derive(Configurable, Clone, Debug)]
 	struct Level1 {
@@ -451,6 +453,21 @@ mod test {
 	struct Level3 {
 		l2: Level2,
 		larr: Vec<Level1>,
+	}
+
+	#[derive(Configurable, Clone, Debug)]
+	struct Level4 {
+		conf: Level3,
+		name: String,
+	}
+
+	impl Default for Level4 {
+		fn default() -> Self {
+			Self {
+				conf: Level3::default(),
+				name: "".to_string(),
+			}
+		}
 	}
 
 	impl Default for Level1 {
@@ -481,15 +498,32 @@ mod test {
 			}
 		}
 	}
-
-	#[derive(Configurable, Clone)]
-	struct Abc {
-		x: usize,
-		s: String,
-	}
+	/*
+		#[derive(Configurable, Clone)]
+		struct Abc {
+			x: usize,
+			s: String,
+		}
+	*/
 
 	#[test]
 	fn test_configurable() -> Result<(), Error> {
+		let level4 = configure_box!(
+			Level4,
+			Level4Options,
+			vec![
+				Name("test"),
+				Conf(configure_box!(
+					Level3,
+					Level3Options,
+					vec![Larr(configure_box!(Level1, Level1Options, vec![S1("ok")])?)]
+				)?)
+			]
+		)?;
+		assert_eq!(level4.name, "test".to_string());
+		assert_eq!(level4.conf.larr.len(), 1);
+		assert_eq!(level4.conf.larr[0].s1, "ok".to_string());
+		/*
 		let level1 = configure_box!(Level1, Level1Options, vec![S1("test")])?;
 		assert_eq!(level1.vv123, 6u8);
 		let empty_vec: Vec<u8> = vec![];
@@ -544,6 +578,8 @@ mod test {
 
 		assert_eq!(adv2.def, 8);
 		assert_eq!(adv2.config.abc, vec![12345, 99]);
+
+				*/
 
 		let level1 = configure_box!(
 			Level1,

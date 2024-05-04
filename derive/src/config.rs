@@ -733,19 +733,30 @@ impl StateMachine {
 	}
 
 	fn update_vec_configurable_params_push(&mut self, template: &mut String) -> Result<(), Error> {
+		let set_configurable_template =
+			include_str!("../templates/config_vec_configurable_params_push.template.txt")
+				.to_string();
 		let mut replace_str = "".to_string();
 		for field in &self.fields {
 			let field_name = field.name.as_ref().unwrap();
 			let field_type = field.field_type.as_ref().unwrap();
 			let field_pascal = field_name.to_case(Case::Pascal);
+			let field_type_str = field.type_str.as_ref().unwrap();
 			match field_type {
 				FieldType::VecConfigurable => {
+					let replace_template =
+						set_configurable_template.replace("${FIELD_NAME}", field_name);
+					let replace_template =
+						replace_template.replace("${FIELD_PASCAL}", &field_pascal);
+					let replace_template =
+						replace_template.replace("${FIELD_TYPE}", &field_type_str);
+					replace_str = format!("{}{}", replace_str, replace_template);
 					/*
 					replace_str = format!(
-						"{}ret.push((\"{}\".to_string(), self.{}.clone()));\n",
+						"{}ret.push((\"{}\".to_string(), Box::new(self.{}.clone().as_configurable())));\n",
 						replace_str, field_pascal, field_name
 					);
-									*/
+										*/
 				}
 				_ => {}
 			}
