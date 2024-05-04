@@ -31,6 +31,60 @@ for item in &self.${FIELD_NAME} {
                 x.set_string(&param.0, param.1.clone());
         }
 
+	for param in &item.get_vec_usize_params() {
+		for p in &param.1 {
+			x.set_usize(&param.0, *p);
+		}
+        }
+
+        for param in &item.get_vec_bool_params() {
+                for p in &param.1 {
+                        x.set_bool(&param.0, *p);
+                }
+        }
+
+        for param in &item.get_vec_u8_params() {
+                for p in &param.1 {
+                        x.set_u8(&param.0, *p);
+                }
+        }
+
+        for param in &item.get_vec_u16_params() {
+                for p in &param.1 {
+                        x.set_u16(&param.0, *p);
+                }
+        }
+
+        for param in &item.get_vec_u32_params() {
+                for p in &param.1 {
+                        x.set_u32(&param.0, *p);
+                }
+        }
+
+        for param in &item.get_vec_u64_params() {
+                for p in &param.1 {
+                        x.set_u64(&param.0, *p);
+                }
+        }
+
+        for param in &item.get_vec_u128_params() {
+                for p in &param.1 {
+                        x.set_u128(&param.0, *p);
+                }
+        }
+
+        for param in &item.get_vec_string_params() {
+                for p in &param.1 {
+                        x.set_string(&param.0, p.clone());
+                }
+        }
+
+        for param in &item.get_vec_configurable_params() {
+                for p in &param.1 {
+                        x.set_configurable(&param.0, &*(p.clone()));
+                }
+        }
+
 	let item_conf: Box<dyn Configurable + '_> = Box::new(x);
 	nvec.push(item_conf);
 }

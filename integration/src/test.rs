@@ -440,6 +440,7 @@ mod test {
 		s1: String,
 		s2: usize,
 		s3: usize,
+		mmm: Vec<usize>,
 		vv123: u8,
 		vv456: Vec<u8>,
 	}
@@ -478,6 +479,7 @@ mod test {
 				s3: 2,
 				vv123: 6u8,
 				vv456: vec![],
+				mmm: vec![],
 			}
 		}
 	}
@@ -516,13 +518,18 @@ mod test {
 				Conf(configure_box!(
 					Level3,
 					Level3Options,
-					vec![Larr(configure_box!(Level1, Level1Options, vec![S1("ok")])?)]
+					vec![Larr(configure_box!(
+						Level1,
+						Level1Options,
+						vec![S1("ok"), Mmm(101)]
+					)?)]
 				)?)
 			]
 		)?;
 		assert_eq!(level4.name, "test".to_string());
 		assert_eq!(level4.conf.larr.len(), 1);
 		assert_eq!(level4.conf.larr[0].s1, "ok".to_string());
+		assert_eq!(level4.conf.larr[0].mmm, vec![101]);
 		/*
 		let level1 = configure_box!(Level1, Level1Options, vec![S1("test")])?;
 		assert_eq!(level1.vv123, 6u8);
