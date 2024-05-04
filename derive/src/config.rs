@@ -751,12 +751,6 @@ impl StateMachine {
 					let replace_template =
 						replace_template.replace("${FIELD_TYPE}", &field_type_str);
 					replace_str = format!("{}{}", replace_str, replace_template);
-					/*
-					replace_str = format!(
-						"{}ret.push((\"{}\".to_string(), Box::new(self.{}.clone().as_configurable())));\n",
-						replace_str, field_pascal, field_name
-					);
-										*/
 				}
 				_ => {}
 			}
