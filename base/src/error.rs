@@ -40,6 +40,8 @@ pub enum CoreErrorKind {
 	Poison(String),
 	/// parse
 	Parse(String),
+	/// configuration
+	Configuration(String),
 }
 
 impl Error {
@@ -96,6 +98,7 @@ impl Debug for CoreErrorKind {
 		impl_debug!(self, f, ArrayIndexOutOfBounds, "array index out of bounds");
 		impl_debug!(self, f, Poison, "poison");
 		impl_debug!(self, f, Parse, "parse");
+		impl_debug!(self, f, Configuration, "configuration");
 		Ok(())
 	}
 }

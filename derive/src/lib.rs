@@ -17,6 +17,7 @@
 // limitations under the License.
 
 use proc_macro::TokenStream;
+use proc_macro_error::proc_macro_error;
 
 // errorkind section
 mod errorkind;
@@ -27,4 +28,15 @@ use crate::errorkind::do_derive_errorkind;
 #[allow(non_snake_case)]
 pub fn ErrorKind(attr: TokenStream, item: TokenStream) -> TokenStream {
 	do_derive_errorkind(attr, item)
+}
+
+// config section
+mod config;
+use crate::config::do_derive_configurable;
+
+#[proc_macro_derive(Configurable, attributes(required))]
+#[proc_macro_error]
+#[cfg(not(tarpaulin_include))]
+pub fn derive_configurable(strm: TokenStream) -> TokenStream {
+	do_derive_configurable(strm)
 }

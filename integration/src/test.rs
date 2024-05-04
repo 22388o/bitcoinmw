@@ -19,6 +19,7 @@
 #[cfg(test)]
 mod test {
 	use bmw_core::*;
+	use std::collections::HashSet;
 	use TestErrorKind::*;
 
 	/// Kinds of errors used in testing
@@ -62,4 +63,395 @@ mod test {
 
 		Ok(())
 	}
+
+	#[derive(Clone)]
+	struct TestGlobalConfig {
+		config: TestConfig,
+		v3: u64,
+	}
+
+	impl Default for TestGlobalConfig {
+		fn default() -> Self {
+			Self {
+				config: TestConfig::default(),
+				v3: 101,
+			}
+		}
+	}
+
+	enum TestGlobalConfigOptions {
+		Config(Box<dyn Configurable>),
+		V3(u64),
+	}
+
+	impl Configurable for TestGlobalConfig {
+		fn set_usize(&mut self, name: &str, value: usize) {}
+
+		fn set_bool(&mut self, name: &str, value: bool) {}
+		fn set_u8(&mut self, name: &str, value: u8) {}
+		fn set_u16(&mut self, name: &str, value: u16) {}
+		fn set_u32(&mut self, name: &str, value: u32) {}
+		fn set_u64(&mut self, name: &str, value: u64) {
+			if name == "V3" {
+				self.v3 = value;
+			}
+		}
+		fn set_u128(&mut self, name: &str, value: u128) {}
+		fn set_string(&mut self, name: &str, value: String) {}
+		fn set_configurable(&mut self, name: &str, value: &dyn Configurable) {
+			if name == "Config" {
+				for param in &value.get_usize_params() {
+					self.config.set_usize(&param.0, param.1);
+				}
+				for param in &value.get_u64_params() {
+					self.config.set_u64(&param.0, param.1);
+				}
+				for param in &value.get_configurable_params() {
+					self.config.set_configurable(&param.0, &*param.1);
+				}
+				for param in &value.get_string_params() {
+					self.config.set_string(&param.0, param.1.clone());
+				}
+			}
+		}
+		fn allow_dupes(&self) -> HashSet<String> {
+			HashSet::new()
+		}
+
+		fn required(&self) -> Vec<String> {
+			vec![]
+		}
+
+		fn get_usize_params(&self) -> Vec<(String, usize)> {
+			vec![]
+		}
+
+		fn get_u8_params(&self) -> Vec<(String, u8)> {
+			vec![]
+		}
+		fn get_u16_params(&self) -> Vec<(String, u16)> {
+			vec![]
+		}
+		fn get_u32_params(&self) -> Vec<(String, u32)> {
+			vec![]
+		}
+		fn get_u64_params(&self) -> Vec<(String, u64)> {
+			vec![("V3".to_string(), self.v3)]
+		}
+		fn get_u128_params(&self) -> Vec<(String, u128)> {
+			vec![]
+		}
+		fn get_bool_params(&self) -> Vec<(String, bool)> {
+			vec![]
+		}
+		fn get_string_params(&self) -> Vec<(String, String)> {
+			vec![]
+		}
+		fn get_configurable_params(&self) -> Vec<(String, Box<dyn Configurable>)> {
+			vec![("Config".to_string(), Box::new(self.config.clone()))]
+		}
+	}
+
+	impl ConfigurableOptions for TestGlobalConfigOptions {
+		fn name(&self) -> &str {
+			match self {
+				TestGlobalConfigOptions::Config(_) => "Config",
+				TestGlobalConfigOptions::V3(_) => "V3",
+			}
+		}
+		fn value_usize(&self) -> Option<usize> {
+			None
+		}
+		fn value_bool(&self) -> Option<bool> {
+			None
+		}
+		fn value_u8(&self) -> Option<u8> {
+			None
+		}
+		fn value_u16(&self) -> Option<u16> {
+			None
+		}
+		fn value_u32(&self) -> Option<u32> {
+			None
+		}
+		fn value_u64(&self) -> Option<u64> {
+			match self {
+				TestGlobalConfigOptions::V3(v) => Some(*v),
+				_ => None,
+			}
+		}
+		fn value_u128(&self) -> Option<u128> {
+			None
+		}
+		fn value_string(&self) -> Option<String> {
+			None
+		}
+		fn value_configurable(&self) -> Option<Box<dyn Configurable>> {
+			match self {
+				TestGlobalConfigOptions::Config(v) => Some(v.clone()),
+				_ => None,
+			}
+		}
+	}
+
+	#[derive(Clone)]
+	struct TestConfig {
+		v1: usize,
+		v2: usize,
+	}
+
+	impl Default for TestConfig {
+		fn default() -> Self {
+			Self { v1: 1, v2: 0 }
+		}
+	}
+
+	enum TestConfigOptions {
+		V1(usize),
+		V2(usize),
+	}
+
+	impl Configurable for TestConfig {
+		fn set_usize(&mut self, name: &str, value: usize) {
+			if name == "V2" {
+				self.v2 = value;
+			} else if name == "V1" {
+				self.v1 = value;
+			}
+		}
+
+		fn set_bool(&mut self, name: &str, value: bool) {}
+		fn set_u8(&mut self, name: &str, value: u8) {}
+		fn set_u16(&mut self, name: &str, value: u16) {}
+		fn set_u32(&mut self, name: &str, value: u32) {}
+		fn set_u64(&mut self, name: &str, value: u64) {}
+		fn set_u128(&mut self, name: &str, value: u128) {}
+		fn set_string(&mut self, name: &str, value: String) {}
+		fn set_configurable(&mut self, name: &str, value: &dyn Configurable) {}
+		fn allow_dupes(&self) -> HashSet<String> {
+			HashSet::new()
+		}
+
+		fn required(&self) -> Vec<String> {
+			vec![]
+		}
+
+		fn get_usize_params(&self) -> Vec<(String, usize)> {
+			let mut ret = vec![];
+			ret.push(("V1".to_string(), self.v1));
+			ret.push(("V2".to_string(), self.v2));
+
+			ret
+		}
+
+		fn get_u8_params(&self) -> Vec<(String, u8)> {
+			vec![]
+		}
+		fn get_u16_params(&self) -> Vec<(String, u16)> {
+			vec![]
+		}
+		fn get_u32_params(&self) -> Vec<(String, u32)> {
+			vec![]
+		}
+		fn get_u64_params(&self) -> Vec<(String, u64)> {
+			vec![]
+		}
+		fn get_u128_params(&self) -> Vec<(String, u128)> {
+			vec![]
+		}
+		fn get_bool_params(&self) -> Vec<(String, bool)> {
+			vec![]
+		}
+		fn get_string_params(&self) -> Vec<(String, String)> {
+			vec![]
+		}
+		fn get_configurable_params(&self) -> Vec<(String, Box<dyn Configurable>)> {
+			vec![]
+		}
+	}
+
+	impl ConfigurableOptions for TestConfigOptions {
+		fn name(&self) -> &str {
+			match self {
+				TestConfigOptions::V1(_) => "V1",
+				TestConfigOptions::V2(_) => "V2",
+			}
+		}
+		fn value_usize(&self) -> Option<usize> {
+			match self {
+				TestConfigOptions::V2(v) => Some(*v),
+				TestConfigOptions::V1(v) => Some(*v),
+				_ => None,
+			}
+		}
+		fn value_bool(&self) -> Option<bool> {
+			None
+		}
+		fn value_u8(&self) -> Option<u8> {
+			None
+		}
+		fn value_u16(&self) -> Option<u16> {
+			None
+		}
+		fn value_u32(&self) -> Option<u32> {
+			None
+		}
+		fn value_u64(&self) -> Option<u64> {
+			None
+		}
+		fn value_u128(&self) -> Option<u128> {
+			None
+		}
+		fn value_string(&self) -> Option<String> {
+			None
+		}
+		fn value_configurable(&self) -> Option<Box<dyn Configurable>> {
+			None
+		}
+	}
+
+	/*
+	/// some configurable stuff
+	#[derive(Configurable, Clone)]
+	struct MyConfigurable {
+		/// threads here
+		threads: usize,
+		#[required]
+		timeout: u64,
+		param_names: Vec<String>,
+		slab_size: u32,
+	}
+
+	impl Default for MyConfigurable {
+		fn default() -> Self {
+			Self {
+				threads: 1,
+				timeout: 1_000,
+				slab_size: 256,
+				param_names: vec![],
+			}
+		}
+	}
+		*/
+
+	#[derive(Configurable, Clone)]
+	struct MyConfigurable {
+		threads: usize,
+		timeout: usize,
+		slab_size: usize,
+	}
+
+	impl Default for MyConfigurable {
+		fn default() -> Self {
+			Self {
+				threads: 1,
+				timeout: 2,
+				slab_size: 3,
+			}
+		}
+	}
+
+	#[test]
+	fn test_configurable() -> Result<(), Error> {
+		let x = configure!(TestConfig, TestConfigOptions, vec![V1(4), V2(100)])?;
+		assert_eq!(x.v1, 4);
+		assert_eq!(x.v2, 100);
+		let x = configure!(TestConfig, TestConfigOptions, vec![])?;
+		assert_eq!(x.v1, 1);
+		assert_eq!(x.v2, 0);
+
+		let x = configure!(TestGlobalConfig, TestGlobalConfigOptions, vec![])?;
+
+		assert_eq!(x.config.v1, 1);
+		assert_eq!(x.config.v2, 0);
+		assert_eq!(x.v3, 101);
+
+		let y = configure_box!(TestConfig, TestConfigOptions, vec![V1(1234)])?;
+		let x = configure!(
+			TestGlobalConfig,
+			TestGlobalConfigOptions,
+			vec![
+				V3(10),
+				Config(configure_box!(
+					TestConfig,
+					TestConfigOptions,
+					vec![V1(1234)]
+				)?)
+			]
+		)?;
+		assert_eq!(x.v3, 10);
+		assert_eq!(x.config.v1, 1234);
+		assert_eq!(x.config.v2, 0);
+
+		let x = configure!(MyConfigurable, MyConfigurableOptions, vec![])?;
+		assert_eq!(x.threads, 1);
+		assert_eq!(x.timeout, 2);
+		assert_eq!(x.slab_size, 3);
+
+		let x = configure!(
+			MyConfigurable,
+			MyConfigurableOptions,
+			vec![Threads(5), Timeout(6)]
+		)?;
+		assert_eq!(x.threads, 5);
+		assert_eq!(x.timeout, 6);
+		assert_eq!(x.slab_size, 3);
+
+		Ok(())
+	}
+
+	/*
+	 * let slabs = slab_allocator!(slab_config!(SlabSize(10), SlabCount(100))?, SlabsPerResize(100))?;
+	 * let http_client = http_client!(
+	 *      Timeout(10_000),
+	 *      header!(
+	 *          Name("Connection"),
+	 *          Value("Keep-Alive)
+	 *      )?,
+	 *      header!(
+	 *          Name("Content-Type"),
+	 *          Value("text/html")
+	 *      )
+	 * )?;
+	 */
+
+	/*
+	macro_rules! test_config {
+		($($param:tt)*) => {{
+					let my_vec: Vec<TestEnum> = vec![$($param)*];
+					println!("myvec={:?}", my_vec);
+				}};
+	}
+
+	#[derive(Debug)]
+	enum TestEnum {
+		SlabConfig((TestEnum2, TestEnum2)),
+		SlabsPerResize(usize),
+		Threads(u64),
+	}
+
+	#[derive(Debug)]
+	enum TestEnum2 {
+		SlabCount(usize),
+		SlabSize(usize),
+	}
+
+	use TestEnum::*;
+	use TestEnum2::*;
+
+	#[test]
+	fn test_enums() -> Result<(), Error> {
+		let z = vec![
+			SlabConfig((SlabCount(10), SlabSize(100))),
+			SlabsPerResize(300),
+		];
+		test_config!(
+			SlabsPerResize(300),
+			SlabConfig((SlabCount(10), SlabSize(100))),
+			SlabConfig((SlabCount(20), SlabSize(200))),
+			Threads(10)
+		);
+		Ok(())
+	}
+		*/
 }

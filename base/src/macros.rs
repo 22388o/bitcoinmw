@@ -92,3 +92,85 @@ macro_rules! try_into {
 		map_err!($value.try_into(), CoreErrorKind::TryInto)
 	}};
 }
+
+#[macro_export]
+macro_rules! configure_box {
+	( $configurable:ident, $enum_name:ident, $vec:expr ) => {{
+		match configure!($configurable, $enum_name, $vec) {
+			Ok(res) => Ok(Box::new(res)),
+			Err(e) => Err(e),
+		}
+	}};
+}
+
+#[macro_export]
+macro_rules! configure {
+	( $configurable:ident, $enum_name:ident, $vec:expr ) => {{
+		use bmw_base::*;
+		use std::collections::HashSet;
+		use $enum_name::*;
+
+		let mut ret = $configurable::default();
+
+		let mut name_set: HashSet<String> = HashSet::new();
+		let mut err = None;
+		let options: Vec<$enum_name> = $vec;
+
+		for cfg in options {
+			let name = cfg.name();
+			if name_set.contains(name.clone()) && !ret.allow_dupes().contains(name.clone()) {
+				let text = format!("config option ({}) was specified more than once", name);
+				err = Some(err!(CoreErrorKind::Configuration, text));
+			}
+			name_set.insert(name.to_string());
+			match cfg.value_u8() {
+				Some(value) => ret.set_u8(name, value),
+				None => {}
+			}
+			match cfg.value_u16() {
+				Some(value) => ret.set_u16(name, value),
+				None => {}
+			}
+			match cfg.value_u32() {
+				Some(value) => ret.set_u32(name, value),
+				None => {}
+			}
+			match cfg.value_u64() {
+				Some(value) => ret.set_u64(name, value),
+				None => {}
+			}
+			match cfg.value_u128() {
+				Some(value) => ret.set_u128(name, value),
+				None => {}
+			}
+			match cfg.value_usize() {
+				Some(value) => ret.set_usize(name, value),
+				None => {}
+			}
+			match cfg.value_string() {
+				Some(value) => ret.set_string(name, value),
+				None => {}
+			}
+			match cfg.value_bool() {
+				Some(value) => ret.set_bool(name, value),
+				None => {}
+			}
+			match cfg.value_configurable() {
+				Some(value) => ret.set_configurable(name, &*value),
+				None => {}
+			}
+		}
+
+		for r in ret.required() {
+			if !name_set.contains(&r) {
+				let text = format!("required option ({}) was not specified", r);
+				err = Some(err!(CoreErrorKind::Configuration, text));
+			}
+		}
+
+		match err {
+			Some(e) => e,
+			None => Ok(ret),
+		}
+	}};
+}
