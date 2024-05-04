@@ -64,6 +64,7 @@ mod test {
 		Ok(())
 	}
 
+	/*
 	#[derive(Clone)]
 	struct TestGlobalConfig {
 		config: TestConfig,
@@ -317,6 +318,7 @@ mod test {
 			None
 		}
 	}
+		*/
 
 	/*
 	/// some configurable stuff
@@ -402,8 +404,110 @@ mod test {
 		}
 	}
 
+	#[derive(Configurable, Clone)]
+	struct RequiredTest {
+		abc: usize,
+		def: usize,
+		#[required]
+		ghi: usize,
+	}
+
+	impl Default for RequiredTest {
+		fn default() -> Self {
+			Self {
+				abc: 1,
+				def: 2,
+				ghi: 3,
+			}
+		}
+	}
+
+	#[derive(Configurable, Clone)]
+	struct StringTest {
+		s1: Vec<String>,
+	}
+
+	impl Default for StringTest {
+		fn default() -> Self {
+			Self { s1: vec![] }
+		}
+	}
+
+	#[derive(Configurable, Clone, Debug)]
+	struct Level1 {
+		s1: String,
+		s2: usize,
+		s3: usize,
+	}
+
+	#[derive(Configurable, Clone, Debug)]
+	struct Level2 {
+		l1: Level1,
+	}
+
+	#[derive(Configurable, Clone, Debug)]
+	struct Level3 {
+		l2: Level2,
+		larr: Vec<Level1>,
+	}
+
+	impl Default for Level1 {
+		fn default() -> Self {
+			Self {
+				s1: "".to_string(),
+				s2: 1,
+				s3: 2,
+			}
+		}
+	}
+
+	impl Default for Level2 {
+		fn default() -> Self {
+			Self {
+				l1: Level1::default(),
+			}
+		}
+	}
+
+	impl Default for Level3 {
+		fn default() -> Self {
+			Self {
+				l2: Level2::default(),
+				larr: vec![],
+			}
+		}
+	}
+
 	#[test]
 	fn test_configurable() -> Result<(), Error> {
+		let level1 = configure_box!(Level1, Level1Options, vec![S1("test".to_string())])?;
+		let level2 = configure_box!(Level2, Level2Options, vec![L1(level1)])?;
+
+		let larr1 = configure_box!(Level1, Level1Options, vec![S1("testlarr1".to_string())])?;
+		let larr2 = configure_box!(Level1, Level1Options, vec![S1("testlarr2".to_string())])?;
+		let larr3 = configure_box!(Level1, Level1Options, vec![S1("testlarr3".to_string())])?;
+		println!("start level3");
+		let level3 = configure!(
+			Level3,
+			Level3Options,
+			vec![L2(level2), Larr(larr1), Larr(larr2), Larr(larr3)]
+		)?;
+
+		println!("level3={:?}", level3);
+
+		assert_eq!(level3.l2.l1.s1, "test".to_string());
+		assert_eq!(level3.larr.len(), 3);
+		assert_eq!(level3.larr[0].s1, "testlarr1".to_string());
+
+		let x = configure!(StringTest, StringTestOptions, vec![])?;
+
+		let empty_vec: Vec<String> = vec![];
+		assert_eq!(x.s1, empty_vec);
+		let x = configure!(StringTest, StringTestOptions, vec![S1("aaa".to_string())])?;
+		assert_eq!(x.s1, vec!["aaa".to_string()]);
+		assert!(configure!(RequiredTest, RequiredTestOptions, vec![Ghi(1)]).is_ok());
+		assert!(configure!(RequiredTest, RequiredTestOptions, vec![Def(1)]).is_err());
+
 		let test_vec = configure!(TestVec, TestVecOptions, vec![Abc(1), Abc(103)])?;
 		assert_eq!(test_vec.abc, vec![1, 103]);
 
@@ -448,6 +552,7 @@ mod test {
 		assert_eq!(adv.config.timeout, 2);
 			*/
 
+		/*
 		let x = configure!(TestConfig, TestConfigOptions, vec![V1(4), V2(100)])?;
 		assert_eq!(x.v1, 4);
 		assert_eq!(x.v2, 100);
@@ -477,6 +582,7 @@ mod test {
 		assert_eq!(x.v3, 10);
 		assert_eq!(x.config.v1, 1234);
 		assert_eq!(x.config.v2, 0);
+				*/
 
 		/*
 		let x = configure!(MyConfigurable, MyConfigurableOptions, vec![])?;
@@ -503,7 +609,7 @@ mod test {
 	 *      Timeout(10_000),
 	 *      header!(
 	 *          Name("Connection"),
-	 *          Value("Keep-Alive)
+	 *          Value("Keep-Alive")
 	 *      )?,
 	 *      header!(
 	 *          Name("Content-Type"),

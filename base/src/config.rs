@@ -46,16 +46,25 @@ pub trait Configurable: DynClone {
 	/// [`crate::configurable`] will return an error
 	fn required(&self) -> Vec<String>;
 
+	fn get_usize_params(&self) -> Vec<(String, usize)>;
 	fn get_u8_params(&self) -> Vec<(String, u8)>;
 	fn get_u16_params(&self) -> Vec<(String, u16)>;
 	fn get_u32_params(&self) -> Vec<(String, u32)>;
 	fn get_u64_params(&self) -> Vec<(String, u64)>;
 	fn get_u128_params(&self) -> Vec<(String, u128)>;
-	fn get_usize_params(&self) -> Vec<(String, usize)>;
-	fn get_vec_usize_params(&self) -> Vec<(String, Vec<usize>)>;
 	fn get_bool_params(&self) -> Vec<(String, bool)>;
 	fn get_string_params(&self) -> Vec<(String, String)>;
 	fn get_configurable_params(&self) -> Vec<(String, Box<dyn Configurable>)>;
+
+	fn get_vec_usize_params(&self) -> Vec<(String, Vec<usize>)>;
+	fn get_vec_u8_params(&self) -> Vec<(String, Vec<u8>)>;
+	fn get_vec_u16_params(&self) -> Vec<(String, Vec<u16>)>;
+	fn get_vec_u32_params(&self) -> Vec<(String, Vec<u32>)>;
+	fn get_vec_u64_params(&self) -> Vec<(String, Vec<u64>)>;
+	fn get_vec_u128_params(&self) -> Vec<(String, Vec<u128>)>;
+	fn get_vec_bool_params(&self) -> Vec<(String, Vec<bool>)>;
+	fn get_vec_string_params(&self) -> Vec<(String, Vec<String>)>;
+	fn get_vec_configurable_params(&self) -> Vec<(String, Vec<Box<dyn Configurable>>)>;
 }
 
 clone_trait_object!(Configurable);

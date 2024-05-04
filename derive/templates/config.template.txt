@@ -57,11 +57,58 @@ impl Configurable for ${CONFIGURABLE_STRUCT} {
         	ret
 	}
 
-	 fn get_vec_usize_params(&self) -> Vec<(String, Vec<usize>)> {
+	fn get_vec_usize_params(&self) -> Vec<(String, Vec<usize>)> {
 		let mut ret = vec![];
                 ${VEC_USIZE_PARAMS_PUSH}
                 ret
-         }
+	}
+
+	fn get_vec_u8_params(&self) -> Vec<(String, Vec<u8>)> {
+		let mut ret = vec![];
+		${VEC_U8_PARAMS_PUSH}
+		ret
+	}
+
+        fn get_vec_u16_params(&self) -> Vec<(String, Vec<u16>)> {
+		let mut ret = vec![];
+		${VEC_U16_PARAMS_PUSH}
+		ret
+	}
+
+        fn get_vec_u32_params(&self) -> Vec<(String, Vec<u32>)> {
+		let mut ret = vec![];
+		${VEC_U32_PARAMS_PUSH}
+		ret
+	}
+
+        fn get_vec_u64_params(&self) -> Vec<(String, Vec<u64>)> {
+		let mut ret = vec![];
+		${VEC_U64_PARAMS_PUSH}
+		ret
+	}
+
+        fn get_vec_u128_params(&self) -> Vec<(String, Vec<u128>)> {
+		let mut ret = vec![];
+		${VEC_U128_PARAMS_PUSH}
+		ret
+	}
+
+        fn get_vec_bool_params(&self) -> Vec<(String, Vec<bool>)> {
+		let mut ret = vec![];
+		${VEC_BOOL_PARAMS_PUSH}
+		ret
+	}
+
+        fn get_vec_string_params(&self) -> Vec<(String, Vec<String>)> {
+		let mut ret = vec![];
+		${VEC_STRING_PARAMS_PUSH}
+		ret
+	}
+        fn get_vec_configurable_params(&self) -> Vec<(String, Vec<Box<dyn Configurable>>)> {
+		let mut ret = vec![];
+		${VEC_CONFIGURABLE_PARAMS_PUSH}
+		ret
+	}
 
 	fn get_u8_params(&self) -> Vec<(String, u8)> {
                 let mut ret = vec![];

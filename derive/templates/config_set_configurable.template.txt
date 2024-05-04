@@ -1,17 +1,74 @@
 for param in &value.get_usize_params() {
 	self.${CONFIGURABLE_NAME}.set_usize(&param.0, param.1);
 }
+for param in &value.get_u8_params() {
+        self.${CONFIGURABLE_NAME}.set_u8(&param.0, param.1);
+}
+for param in &value.get_u16_params() {
+        self.${CONFIGURABLE_NAME}.set_u16(&param.0, param.1);
+}
+for param in &value.get_u32_params() {
+        self.${CONFIGURABLE_NAME}.set_u32(&param.0, param.1);
+}
 for param in &value.get_u64_params() {
 	self.${CONFIGURABLE_NAME}.set_u64(&param.0, param.1);
 }
-for param in &value.get_configurable_params() {
-	self.${CONFIGURABLE_NAME}.set_configurable(&param.0, &*param.1);
+for param in &value.get_u128_params() {
+        self.${CONFIGURABLE_NAME}.set_u128(&param.0, param.1);
+}
+for param in &value.get_bool_params() {
+        self.${CONFIGURABLE_NAME}.set_bool(&param.0, param.1);
 }
 for param in &value.get_string_params() {
-	self.${CONFIGURABLE_NAME}.set_string(&param.0, param.1.clone());
+        self.${CONFIGURABLE_NAME}.set_string(&param.0, param.1.clone());
+}
+for param in &value.get_configurable_params() {
+	self.${CONFIGURABLE_NAME}.set_configurable(&param.0, &*param.1);
 }
 for param in &value.get_vec_usize_params() {
 	for p in &param.1 {
 		self.${CONFIGURABLE_NAME}.set_usize(&param.0, *p);
 	}
+}
+for param in &value.get_vec_u8_params() {
+        for p in &param.1 {
+                self.${CONFIGURABLE_NAME}.set_u8(&param.0, *p);
+        }
+}
+for param in &value.get_vec_u16_params() {
+        for p in &param.1 {
+                self.${CONFIGURABLE_NAME}.set_u16(&param.0, *p);
+        }
+}
+for param in &value.get_vec_u32_params() {
+        for p in &param.1 {
+                self.${CONFIGURABLE_NAME}.set_u32(&param.0, *p);
+        }
+}
+for param in &value.get_vec_u64_params() {
+        for p in &param.1 {
+                self.${CONFIGURABLE_NAME}.set_u64(&param.0, *p);
+        }
+}
+for param in &value.get_vec_u128_params() {
+        for p in &param.1 {
+                self.${CONFIGURABLE_NAME}.set_u128(&param.0, *p);
+        }
+}
+
+for param in &value.get_vec_string_params() {
+        for p in &param.1 {
+                self.${CONFIGURABLE_NAME}.set_string(&param.0, p.clone());
+        }
+}
+
+for param in &value.get_vec_bool_params() {
+        for p in &param.1 {
+                self.${CONFIGURABLE_NAME}.set_bool(&param.0, *p);
+        }
+}
+for param in &value.get_vec_configurable_params() {
+        for p in &param.1 {
+                self.${CONFIGURABLE_NAME}.set_configurable(&param.0, &**p);
+        }
 }
