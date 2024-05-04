@@ -565,94 +565,6 @@ impl StateMachine {
 		Ok(())
 	}
 
-	fn update_set_usize(&mut self, template: &mut String) -> Result<(), Error> {
-		let mut replace_str = "".to_string();
-		for field in &self.fields {
-			let field_name = field.name.as_ref().unwrap();
-			let field_type = field.field_type.as_ref().unwrap();
-			let field_pascal = field_name.to_case(Case::Pascal);
-			match field_type {
-				FieldType::Usize => {
-					replace_str = format!(
-						"{}if name == \"{}\" {{ self.{} = value; }}\n",
-						replace_str, field_pascal, field_name
-					);
-				}
-				FieldType::VecUsize => {
-					replace_str = format!(
-						"{}if name == \"{}\" {{ self.{}.push(value); }}\n",
-						replace_str, field_pascal, field_name
-					);
-				}
-				_ => {}
-			}
-		}
-		*template = template.replace("${SET_USIZE}", &replace_str);
-		Ok(())
-	}
-
-	fn update_options_enum_usize_match(&mut self, template: &mut String) -> Result<(), Error> {
-		let mut replace_str = "".to_string();
-		let name = self.configurable_struct_name.as_ref().unwrap();
-		for field in &self.fields {
-			let field_name = field.name.as_ref().unwrap();
-			let field_pascal = field_name.to_case(Case::Pascal);
-			let field_type = field.field_type.as_ref().unwrap();
-			match field_type {
-				FieldType::Usize | FieldType::VecUsize => {
-					replace_str = format!(
-						"{}{}Options::{}(v) => Some(*v),\n",
-						replace_str, name, field_pascal
-					);
-				}
-				_ => {}
-			}
-		}
-		*template = template.replace("${OPTIONS_ENUM_VALUE_USIZE_MATCH}", &replace_str);
-		Ok(())
-	}
-
-	fn update_usize_params_push(&mut self, template: &mut String) -> Result<(), Error> {
-		let mut replace_str = "".to_string();
-		for field in &self.fields {
-			let field_name = field.name.as_ref().unwrap();
-			let field_type = field.field_type.as_ref().unwrap();
-			let field_pascal = field_name.to_case(Case::Pascal);
-			match field_type {
-				FieldType::Usize => {
-					replace_str = format!(
-						"{}ret.push((\"{}\".to_string(), self.{}));\n",
-						replace_str, field_pascal, field_name
-					);
-				}
-				_ => {}
-			}
-		}
-		*template = template.replace("${USIZE_PARAMS_PUSH}", &replace_str);
-
-		Ok(())
-	}
-
-	fn update_vec_usize_params_push(&mut self, template: &mut String) -> Result<(), Error> {
-		let mut replace_str = "".to_string();
-		for field in &self.fields {
-			let field_name = field.name.as_ref().unwrap();
-			let field_type = field.field_type.as_ref().unwrap();
-			let field_pascal = field_name.to_case(Case::Pascal);
-			match field_type {
-				FieldType::VecUsize => {
-					replace_str = format!(
-						"{}ret.push((\"{}\".to_string(), self.{}.clone()));\n",
-						replace_str, field_pascal, field_name
-					);
-				}
-				_ => {}
-			}
-		}
-		*template = template.replace("${VEC_USIZE_PARAMS_PUSH}", &replace_str);
-		Ok(())
-	}
-
 	fn update_set_string(&mut self, template: &mut String) -> Result<(), Error> {
 		let mut replace_str = "".to_string();
 		for field in &self.fields {
@@ -874,45 +786,26 @@ impl StateMachine {
 		self.update_enum_variants(&mut template)?;
 		template = update_template!(template, usize, &self.fields, name);
 		template = update_template!(template, u8, &self.fields, name);
-		template = template.replace("${SET_BOOL}", "");
-		//template = template.replace("${SET_U8}", "");
-		template = template.replace("${SET_U16}", "");
-		template = template.replace("${SET_U32}", "");
-		template = template.replace("${SET_U64}", "");
-		template = template.replace("${SET_U128}", "");
+		template = update_template!(template, u16, &self.fields, name);
+		template = update_template!(template, u32, &self.fields, name);
+		template = update_template!(template, u64, &self.fields, name);
+		template = update_template!(template, u128, &self.fields, name);
+		template = update_template!(template, bool, &self.fields, name);
 		self.update_set_string(&mut template)?;
 		self.update_set_configurable(&mut template)?;
 		self.update_dupes_inserts(&mut template)?;
 		self.update_required_inserts(&mut template)?;
-		//template = template.replace("${U8_PARAMS_PUSH}", "");
-		template = template.replace("${U16_PARAMS_PUSH}", "");
-		template = template.replace("${U32_PARAMS_PUSH}", "");
-		template = template.replace("${U64_PARAMS_PUSH}", "");
-		template = template.replace("${U128_PARAMS_PUSH}", "");
 		self.update_vec_string_params_push(&mut template)?;
-		template = template.replace("${BOOL_PARAMS_PUSH}", "");
-		//template = template.replace("${VEC_U8_PARAMS_PUSH}", "");
-		template = template.replace("${VEC_U16_PARAMS_PUSH}", "");
-		template = template.replace("${VEC_U32_PARAMS_PUSH}", "");
-		template = template.replace("${VEC_U64_PARAMS_PUSH}", "");
-		template = template.replace("${VEC_U128_PARAMS_PUSH}", "");
 		self.update_string_params_push(&mut template)?;
-		template = template.replace("${VEC_BOOL_PARAMS_PUSH}", "");
-		template = template.replace("${VEC_CONFIGURABLE_PARAMS_PUSH}", "");
 		self.update_configurable_params_push(&mut template)?;
 		self.update_options_enum_names_match(&mut template)?;
-		template = template.replace("${OPTIONS_ENUM_VALUE_BOOL_MATCH}", "");
-		//template = template.replace("${OPTIONS_ENUM_VALUE_U8_MATCH}", "");
-		template = template.replace("${OPTIONS_ENUM_VALUE_U16_MATCH}", "");
-		template = template.replace("${OPTIONS_ENUM_VALUE_U32_MATCH}", "");
-		template = template.replace("${OPTIONS_ENUM_VALUE_U64_MATCH}", "");
-		template = template.replace("${OPTIONS_ENUM_VALUE_U128_MATCH}", "");
 		self.update_options_enum_string_match(&mut template)?;
 		self.update_options_enum_configurable_match(&mut template)?;
 		template = template.replace(
 			"${CONFIGURABLE_STRUCT}",
 			&self.configurable_struct_name.as_ref().unwrap(),
 		);
+		template = template.replace("${VEC_CONFIGURABLE_PARAMS_PUSH}", "");
 
 		self.ret.extend(template.parse::<TokenStream>());
 		//println!("self.ret='{}'", self.ret);
