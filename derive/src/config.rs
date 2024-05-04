@@ -524,7 +524,7 @@ impl StateMachine {
 					replace_str = format!("{}{}(usize),\n", replace_str, field_pascal);
 				}
 				FieldType::CString | FieldType::VecCString => {
-					replace_str = format!("{}{}(String),\n", replace_str, field_pascal);
+					replace_str = format!("{}{}(&'a str),\n", replace_str, field_pascal);
 				}
 				FieldType::Bool | FieldType::VecBool => {
 					replace_str = format!("{}{}(bool),\n", replace_str, field_pascal);
@@ -601,7 +601,7 @@ impl StateMachine {
 			match field_type {
 				FieldType::CString | FieldType::VecCString => {
 					replace_str = format!(
-						"{}{}Options::{}(v) => Some(v.clone()),\n",
+						"{}{}Options::{}(v) => Some(v.to_string()),\n",
 						replace_str, name, field_pascal
 					);
 				}
@@ -732,6 +732,28 @@ impl StateMachine {
 		Ok(())
 	}
 
+	fn update_vec_configurable_params_push(&mut self, template: &mut String) -> Result<(), Error> {
+		let mut replace_str = "".to_string();
+		for field in &self.fields {
+			let field_name = field.name.as_ref().unwrap();
+			let field_type = field.field_type.as_ref().unwrap();
+			let field_pascal = field_name.to_case(Case::Pascal);
+			match field_type {
+				FieldType::VecConfigurable => {
+					/*
+					replace_str = format!(
+						"{}ret.push((\"{}\".to_string(), self.{}.clone()));\n",
+						replace_str, field_pascal, field_name
+					);
+									*/
+				}
+				_ => {}
+			}
+		}
+		*template = template.replace("${VEC_CONFIGURABLE_PARAMS_PUSH}", &replace_str);
+		Ok(())
+	}
+
 	fn update_dupes_inserts(&mut self, template: &mut String) -> Result<(), Error> {
 		let mut replace_str = "".to_string();
 
@@ -797,6 +819,7 @@ impl StateMachine {
 		self.update_required_inserts(&mut template)?;
 		self.update_vec_string_params_push(&mut template)?;
 		self.update_string_params_push(&mut template)?;
+		self.update_vec_configurable_params_push(&mut template)?;
 		self.update_configurable_params_push(&mut template)?;
 		self.update_options_enum_names_match(&mut template)?;
 		self.update_options_enum_string_match(&mut template)?;
@@ -805,7 +828,6 @@ impl StateMachine {
 			"${CONFIGURABLE_STRUCT}",
 			&self.configurable_struct_name.as_ref().unwrap(),
 		);
-		template = template.replace("${VEC_CONFIGURABLE_PARAMS_PUSH}", "");
 
 		self.ret.extend(template.parse::<TokenStream>());
 		//println!("self.ret='{}'", self.ret);

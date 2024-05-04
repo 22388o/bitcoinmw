@@ -1,4 +1,5 @@
-enum ${CONFIGURABLE_STRUCT}Options {
+enum ${CONFIGURABLE_STRUCT}Options <'a> {
+	Phantom(std::marker::PhantomData<&'a std::convert::Infallible>),
 	${OPTIONS_ENUM_VARIANTS}
 }
 
@@ -159,7 +160,7 @@ impl Configurable for ${CONFIGURABLE_STRUCT} {
         }
 }
 
-impl ConfigurableOptions for ${CONFIGURABLE_STRUCT}Options {
+impl ConfigurableOptions for ${CONFIGURABLE_STRUCT}Options <'_> {
                 fn name(&self) -> &str {
                         match self {
 				${OPTIONS_ENUM_NAMES_MATCH}
