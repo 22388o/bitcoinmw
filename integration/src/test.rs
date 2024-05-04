@@ -438,6 +438,8 @@ mod test {
 		s1: String,
 		s2: usize,
 		s3: usize,
+		vv123: u8,
+		vv456: Vec<u8>,
 	}
 
 	#[derive(Configurable, Clone, Debug)]
@@ -457,6 +459,8 @@ mod test {
 				s1: "".to_string(),
 				s2: 1,
 				s3: 2,
+				vv123: 6u8,
+				vv456: vec![],
 			}
 		}
 	}
@@ -481,6 +485,9 @@ mod test {
 	#[test]
 	fn test_configurable() -> Result<(), Error> {
 		let level1 = configure_box!(Level1, Level1Options, vec![S1("test".to_string())])?;
+		assert_eq!(level1.vv123, 6u8);
+		let empty_vec: Vec<u8> = vec![];
+		assert_eq!(level1.vv456, empty_vec);
 		let level2 = configure_box!(Level2, Level2Options, vec![L1(level1)])?;
 
 		let larr1 = configure_box!(Level1, Level1Options, vec![S1("testlarr1".to_string())])?;
@@ -531,6 +538,14 @@ mod test {
 
 		assert_eq!(adv2.def, 8);
 		assert_eq!(adv2.config.abc, vec![12345, 99]);
+
+		let level1 = configure_box!(
+			Level1,
+			Level1Options,
+			vec![Vv123(7u8), S1("test".to_string()), Vv456(1u8), Vv456(2u8)]
+		)?;
+		assert_eq!(level1.vv123, 7u8);
+		assert_eq!(level1.vv456, vec![1, 2]);
 
 		/*
 		let adv = configure!(
