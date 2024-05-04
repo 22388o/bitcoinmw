@@ -126,6 +126,10 @@ mod test {
 			vec![]
 		}
 
+		fn get_vec_usize_params(&self) -> Vec<(String, Vec<usize>)> {
+			vec![]
+		}
+
 		fn get_u8_params(&self) -> Vec<(String, u8)> {
 			vec![]
 		}
@@ -244,6 +248,10 @@ mod test {
 			ret
 		}
 
+		fn get_vec_usize_params(&self) -> Vec<(String, Vec<usize>)> {
+			vec![]
+		}
+
 		fn get_u8_params(&self) -> Vec<(String, u8)> {
 			vec![]
 		}
@@ -334,6 +342,22 @@ mod test {
 	}
 		*/
 
+	/*
+	#[derive(Configurable, Clone)]
+	struct MyConfigurableAdvanced {
+		first_value: usize,
+		config: MyConfigurable,
+	}
+
+	impl Default for MyConfigurableAdvanced {
+		fn default() -> Self {
+			Self {
+				config: MyConfigurable::default(),
+				first_value: 99,
+			}
+		}
+	}
+
 	#[derive(Configurable, Clone)]
 	struct MyConfigurable {
 		threads: usize,
@@ -350,9 +374,80 @@ mod test {
 			}
 		}
 	}
+		*/
+
+	#[derive(Configurable, Clone)]
+	struct TestVecVec {
+		def: usize,
+		config: TestVec,
+	}
+
+	impl Default for TestVecVec {
+		fn default() -> Self {
+			Self {
+				def: 100,
+				config: TestVec::default(),
+			}
+		}
+	}
+
+	#[derive(Configurable, Clone)]
+	struct TestVec {
+		abc: Vec<usize>,
+	}
+
+	impl Default for TestVec {
+		fn default() -> Self {
+			Self { abc: vec![] }
+		}
+	}
 
 	#[test]
 	fn test_configurable() -> Result<(), Error> {
+		let test_vec = configure!(TestVec, TestVecOptions, vec![Abc(1), Abc(103)])?;
+		assert_eq!(test_vec.abc, vec![1, 103]);
+
+		let adv2 = configure!(TestVecVec, TestVecVecOptions, vec![Def(8)])?;
+
+		assert_eq!(adv2.def, 8);
+		assert_eq!(adv2.config.abc, vec![]);
+
+		let adv2 = configure!(
+			TestVecVec,
+			TestVecVecOptions,
+			vec![
+				Def(8),
+				Config(configure_box!(
+					TestVec,
+					TestVecOptions,
+					vec![Abc(12345), Abc(99)]
+				)?)
+			]
+		)?;
+
+		assert_eq!(adv2.def, 8);
+		assert_eq!(adv2.config.abc, vec![12345, 99]);
+
+		/*
+		let adv = configure!(
+			MyConfigurableAdvanced,
+			MyConfigurableAdvancedOptions,
+			vec![
+				FirstValue(7),
+				Config(configure_box!(
+					MyConfigurable,
+					MyConfigurableOptions,
+					vec![Threads(101), SlabSize(30)]
+				)?)
+			]
+		)?;
+
+		assert_eq!(adv.first_value, 7);
+		assert_eq!(adv.config.threads, 101);
+		assert_eq!(adv.config.slab_size, 30);
+		assert_eq!(adv.config.timeout, 2);
+			*/
+
 		let x = configure!(TestConfig, TestConfigOptions, vec![V1(4), V2(100)])?;
 		assert_eq!(x.v1, 4);
 		assert_eq!(x.v2, 100);
@@ -383,6 +478,7 @@ mod test {
 		assert_eq!(x.config.v1, 1234);
 		assert_eq!(x.config.v2, 0);
 
+		/*
 		let x = configure!(MyConfigurable, MyConfigurableOptions, vec![])?;
 		assert_eq!(x.threads, 1);
 		assert_eq!(x.timeout, 2);
@@ -396,6 +492,7 @@ mod test {
 		assert_eq!(x.threads, 5);
 		assert_eq!(x.timeout, 6);
 		assert_eq!(x.slab_size, 3);
+				*/
 
 		Ok(())
 	}

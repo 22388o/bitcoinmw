@@ -1,0 +1,17 @@
+for param in &value.get_usize_params() {
+	self.${CONFIGURABLE_NAME}.set_usize(&param.0, param.1);
+}
+for param in &value.get_u64_params() {
+	self.${CONFIGURABLE_NAME}.set_u64(&param.0, param.1);
+}
+for param in &value.get_configurable_params() {
+	self.${CONFIGURABLE_NAME}.set_configurable(&param.0, &*param.1);
+}
+for param in &value.get_string_params() {
+	self.${CONFIGURABLE_NAME}.set_string(&param.0, param.1.clone());
+}
+for param in &value.get_vec_usize_params() {
+	for p in &param.1 {
+		self.${CONFIGURABLE_NAME}.set_usize(&param.0, *p);
+	}
+}

@@ -1,0 +1,177 @@
+enum ${CONFIGURABLE_STRUCT}Options {
+	${OPTIONS_ENUM_VARIANTS}
+}
+
+impl Configurable for ${CONFIGURABLE_STRUCT} {
+	fn set_usize(&mut self, name: &str, value: usize) {
+		${SET_USIZE}
+	}
+
+	fn set_bool(&mut self, name: &str, value: bool) {
+		${SET_BOOL}
+	}
+
+	fn set_u8(&mut self, name: &str, value: u8) {
+		${SET_U8}
+	}
+
+	fn set_u16(&mut self, name: &str, value: u16) {
+		${SET_U16}
+	}
+
+	fn set_u32(&mut self, name: &str, value: u32) {
+		${SET_U32}
+	}
+
+	fn set_u64(&mut self, name: &str, value: u64) {
+		${SET_U64}
+	}
+
+	fn set_u128(&mut self, name: &str, value: u128) {
+		${SET_U128}
+	}
+
+	fn set_string(&mut self, name: &str, value: String) {
+		${SET_STRING}
+	}
+
+	fn set_configurable(&mut self, name: &str, value: &dyn Configurable) {
+		${SET_CONFIGURABLE}
+	}
+
+	fn allow_dupes(&self) -> HashSet<String> {
+		let mut ret = HashSet::new();
+		${DUPES_INSERTS}
+		ret
+        }
+
+	fn required(&self) -> Vec<String> {
+		let mut ret = vec![];
+		${REQUIRED_INSERTS}
+		ret
+	}
+
+	fn get_usize_params(&self) -> Vec<(String, usize)> {
+                let mut ret = vec![];
+		${USIZE_PARAMS_PUSH}
+        	ret
+	}
+
+	 fn get_vec_usize_params(&self) -> Vec<(String, Vec<usize>)> {
+		let mut ret = vec![];
+                ${VEC_USIZE_PARAMS_PUSH}
+                ret
+         }
+
+	fn get_u8_params(&self) -> Vec<(String, u8)> {
+                let mut ret = vec![];
+                ${U8_PARAMS_PUSH}
+                ret
+        }
+
+	fn get_u16_params(&self) -> Vec<(String, u16)> {
+                let mut ret = vec![];
+                ${U16_PARAMS_PUSH}
+                ret
+        }
+
+	fn get_u32_params(&self) -> Vec<(String, u32)> {
+                let mut ret = vec![];
+                ${U32_PARAMS_PUSH}
+                ret
+	}
+
+        fn get_u64_params(&self) -> Vec<(String, u64)> {
+                let mut ret = vec![];
+                ${U64_PARAMS_PUSH}
+                ret
+        }
+
+        fn get_u128_params(&self) -> Vec<(String, u128)> {
+                let mut ret = vec![];
+                ${U128_PARAMS_PUSH}
+                ret
+        }
+
+        fn get_bool_params(&self) -> Vec<(String, bool)> {
+                let mut ret = vec![];
+                ${BOOL_PARAMS_PUSH}
+                ret
+        }
+
+        fn get_string_params(&self) -> Vec<(String, String)> {
+                let mut ret = vec![];
+                ${STRING_PARAMS_PUSH}
+                ret
+        }
+
+        fn get_configurable_params(&self) -> Vec<(String, Box<dyn Configurable>)> {
+                let mut ret: Vec<(String, Box<dyn Configurable>)> = vec![];
+                ${CONFIGURABLE_PARAMS_PUSH}
+                ret
+        }
+}
+
+impl ConfigurableOptions for ${CONFIGURABLE_STRUCT}Options {
+                fn name(&self) -> &str {
+                        match self {
+				${OPTIONS_ENUM_NAMES_MATCH}
+				_ => ""
+                        }
+                }
+                fn value_usize(&self) -> Option<usize> {
+                        match self {
+				${OPTIONS_ENUM_VALUE_USIZE_MATCH}
+                                _ => None,
+                        }
+                }
+                fn value_bool(&self) -> Option<bool> {
+                        match self {
+                                ${OPTIONS_ENUM_VALUE_BOOL_MATCH}
+                                _ => None,
+                        }
+                }
+                fn value_u8(&self) -> Option<u8> {
+                        match self {
+                                ${OPTIONS_ENUM_VALUE_U8_MATCH}
+                                _ => None,
+                        }
+                }
+                fn value_u16(&self) -> Option<u16> {
+                        match self {
+                                ${OPTIONS_ENUM_VALUE_U16_MATCH}
+                                _ => None,
+                        }
+                }
+                fn value_u32(&self) -> Option<u32> {
+                        match self {
+                                ${OPTIONS_ENUM_VALUE_U32_MATCH}
+                                _ => None,
+                        }
+                }
+                fn value_u64(&self) -> Option<u64> {
+                        match self {
+                                ${OPTIONS_ENUM_VALUE_U64_MATCH}
+                                _ => None,
+                        }
+                }
+                fn value_u128(&self) -> Option<u128> {
+                        match self {
+                                ${OPTIONS_ENUM_VALUE_U128_MATCH}
+                                _ => None,
+                        }
+                }
+                fn value_string(&self) -> Option<String> {
+                        match self {
+                                ${OPTIONS_ENUM_VALUE_STRING_MATCH}
+                                _ => None,
+                        }
+                }
+                fn value_configurable(&self) -> Option<Box<dyn Configurable>> {
+                        match self {
+                                ${OPTIONS_ENUM_VALUE_CONFIGURABLE_MATCH}
+                                _ => None,
+                        }
+                }
+}
+
