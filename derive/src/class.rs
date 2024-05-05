@@ -28,19 +28,33 @@ use proc_macro_error::{abort, emit_error, Diagnostic, Level};
 struct Fn {
 	name: String,
 	span: Span,
-	signature: String,
+	return_list: String,
 	param_list: String,
 	view_list: Vec<String>,
+	param_names: Vec<String>,
+	param_types: Vec<String>,
+	param_type_spans: Vec<Span>,
+	prev_token_is_joint: bool,
+	expect_dash_return_list: bool,
+	expect_gt_return_list: bool,
+	return_list_span: Option<Span>,
 }
 
 impl Fn {
 	fn new(span: Span) -> Self {
 		Self {
 			span,
+			return_list_span: None,
 			name: "".to_string(),
-			signature: "".to_string(),
+			return_list: "".to_string(),
 			param_list: "".to_string(),
 			view_list: vec![],
+			param_names: vec![],
+			param_types: vec![],
+			param_type_spans: vec![],
+			prev_token_is_joint: false,
+			expect_dash_return_list: false,
+			expect_gt_return_list: false,
 		}
 	}
 }
@@ -157,6 +171,7 @@ enum State {
 	WantsViewListFn,
 	WantsViewListFnName,
 	WantsViewListParamList,
+	WantsViewListReturnList,
 }
 
 struct StateMachine {
@@ -286,6 +301,7 @@ impl StateMachine {
 			State::WantsViewListFn => self.process_wants_view_list_fn(token)?,
 			State::WantsViewListFnName => self.process_wants_view_list_fn_name(token)?,
 			State::WantsViewListParamList => self.process_wants_view_list_param_list(token)?,
+			State::WantsViewListReturnList => self.process_wants_view_list_return_list(token)?,
 		}
 		Ok(())
 	}
@@ -706,11 +722,218 @@ impl StateMachine {
 		Ok(())
 	}
 
-	fn process_wants_view_list_param_list(&mut self, token: TokenTree) -> Result<(), Error> {
+	fn process_wants_view_list_return_list(&mut self, token: TokenTree) -> Result<(), Error> {
 		if token.to_string() == ";" {
-			self.fn_list.push(self.cur_fn.as_ref().unwrap().clone());
+			// if return_list is "" make it "()"
+			match self.cur_fn.as_mut() {
+				Some(cur_fn) => {
+					if cur_fn.return_list == "" {
+						cur_fn.return_list = "()".to_string();
+					}
+				}
+				None => {}
+			}
+
+			// check return list and param list with syn
+			let cur_fn = self.cur_fn.as_ref().unwrap().clone();
+			let expr: Result<Type, syn::Error> = parse_str(&cur_fn.return_list);
+			match expr {
+				Ok(_) => {}
+				Err(ref e) => {
+					self.span = match cur_fn.return_list_span {
+						Some(s) => Some(s),
+						None => Some(cur_fn.span),
+					};
+					self.append_error(&format!(
+						"failed to parse '{}'. Error: {:?}.",
+						cur_fn.return_list, e
+					))?;
+				}
+			}
+
+			self.fn_list.push(cur_fn.clone());
 			self.state = State::Base;
+		} else {
+			let (expect_dash_return_list, expect_gt_return_list) = {
+				let cur_fn = self.cur_fn.as_ref().unwrap();
+				(cur_fn.expect_dash_return_list, cur_fn.expect_gt_return_list)
+			};
+			if expect_dash_return_list {
+				self.expected(vec!["-"], &token.to_string())?;
+				self.cur_fn.as_mut().unwrap().expect_dash_return_list = false;
+			} else if expect_gt_return_list {
+				self.expected(vec![">"], &token.to_string())?;
+				self.cur_fn.as_mut().unwrap().expect_gt_return_list = false;
+			} else {
+				match self.cur_fn.as_mut() {
+					Some(cur_fn) => match cur_fn.return_list_span {
+						Some(_) => {}
+						None => cur_fn.return_list_span = Some(token.span()),
+					},
+					None => {}
+				}
+				match self.cur_fn.as_mut() {
+					Some(cur_fn) => {
+						let prev_is_joint = cur_fn.prev_token_is_joint;
+						match token {
+							Punct(ref p) => {
+								if p.spacing() == Spacing::Joint {
+									cur_fn.prev_token_is_joint = true;
+								} else {
+									cur_fn.prev_token_is_joint = false;
+								}
+							}
+							_ => {
+								cur_fn.prev_token_is_joint = false;
+							}
+						}
+
+						if prev_is_joint {
+							cur_fn.return_list = format!("{}{}", cur_fn.return_list, token);
+						} else {
+							cur_fn.return_list = format!("{} {}", cur_fn.return_list, token)
+								.trim()
+								.to_string();
+						}
+					}
+					None => {}
+				}
+			}
 		}
+		Ok(())
+	}
+
+	fn check_type(
+		&mut self,
+		param_name: String,
+		type_str: String,
+		span: Span,
+	) -> Result<(), Error> {
+		let expr: Result<Type, syn::Error> = parse_str(&type_str);
+		match expr {
+			Ok(_) => {}
+			Err(ref e) => {
+				self.span = Some(span);
+				self.append_error(&format!("failed to parse '{}'. Error: {:?}.", type_str, e))?;
+			}
+		}
+		Ok(())
+	}
+
+	fn process_wants_view_list_param_list(&mut self, token: TokenTree) -> Result<(), Error> {
+		println!("pwv token = {}", token);
+		match token {
+			Group(ref group) => {
+				if group.delimiter() != Delimiter::Parenthesis {
+					self.append_error(&format!("expected '(' found '{:?}'", group.delimiter()))?;
+				} else {
+					let mut self_error = false;
+					let mut name_errors: Vec<Span> = vec![];
+					match self.cur_fn.as_mut() {
+						Some(cur_fn) => {
+							let mut cur_name = "".to_string();
+							let mut cur_type = "".to_string();
+							let mut in_type = false;
+							let mut last_token = token.clone();
+							let mut first = true;
+							for token in group.stream() {
+								last_token = token.clone();
+								self.span = Some(token.span());
+								let token_str = token.to_string();
+								println!("token_str={}", token_str);
+								if token_str == "," {
+									println!("append name = {}", cur_name);
+									cur_fn.param_names.push(cur_name.clone());
+									cur_fn.param_types.push(cur_type.clone());
+									first = false;
+									cur_fn.param_type_spans.push(token.span());
+
+									println!("name list = {:?}", cur_fn.param_names);
+									cur_name = "".to_string();
+									cur_type = "".to_string();
+									in_type = false;
+								} else if token_str == ":" {
+									in_type = true;
+								} else if in_type {
+									println!("append cur type");
+									cur_type =
+										format!("{} {}", cur_type, token_str).trim().to_string();
+								} else {
+									if first {
+										if token_str != "&"
+											&& token_str != "mut" && token_str != "self"
+										{
+											self_error = true;
+										}
+										cur_name = format!("{} {}", cur_name, token_str.clone())
+											.trim()
+											.to_string();
+									} else {
+										if cur_name.len() != 0 {
+											name_errors.push(token.span());
+										}
+										match token {
+											Ident(_) => {}
+											_ => name_errors.push(token.span()),
+										}
+										cur_name = token_str.clone();
+									}
+								}
+							}
+							if cur_name.len() > 0 {
+								cur_fn.param_names.push(cur_name);
+								cur_fn.param_types.push(cur_type);
+								cur_fn.param_type_spans.push(last_token.span());
+							}
+
+							println!("fn_list='{}'", group.stream().to_string());
+							cur_fn.param_list = group.stream().to_string();
+							cur_fn.expect_dash_return_list = true;
+							cur_fn.expect_gt_return_list = true;
+						}
+						None => {}
+					}
+
+					if name_errors.len() > 0 {
+						for span in name_errors {
+							self.span = Some(span);
+							self.append_error("invalid name")?;
+						}
+					}
+
+					if self_error {
+						self.append_error("first param must be either '&self' or '&mut self'")?;
+					}
+
+					let cur_fn = self.cur_fn.as_ref().unwrap().clone();
+					if cur_fn.param_names.len() == 0 {
+						self.append_error("functions must have at least one param and it must be either '&self' or '&mut self'")?;
+					} else {
+						if cur_fn.param_types[0].len() != 0 {
+							self.span = Some(cur_fn.param_type_spans[0]);
+							self.append_error("first param must be either '&self' or '&mut self'")?;
+						}
+						if cur_fn.param_names[0].find("self").is_none() {
+							self.span = Some(cur_fn.param_type_spans[0]);
+							self.append_error("first param must be either '&self' or '&mut self'")?;
+						}
+						if cur_fn.param_names[0].find("&").is_none() {
+							self.span = Some(cur_fn.param_type_spans[0]);
+							self.append_error("first param must be either '&self' or '&mut self'")?;
+						}
+					}
+					for i in 1..cur_fn.param_types.len() {
+						self.check_type(
+							cur_fn.param_names[i].clone(),
+							cur_fn.param_types[i].clone(),
+							cur_fn.param_type_spans[i].clone(),
+						)?;
+					}
+				}
+			}
+			_ => {}
+		}
+		self.state = State::WantsViewListReturnList;
 		Ok(())
 	}
 

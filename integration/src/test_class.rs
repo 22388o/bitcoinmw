@@ -31,15 +31,23 @@ mod test {
                 const p: Vec<usize> = vec![];
                 const v123: configurable = 0;
                 var y: usize;
+                var b: Box<dyn Any + Send + Sync + '_>;
 
                 [cat, dog, monkey]
-                fn speak(&self, x: usize, v: Option<Vec<(usize, Box<dyn std::fmt::Debug + Send + Sync + '_>)>>) -> Result<(), Error>;
+                fn speak(&self, x: usize, v: Option<Vec<(usize, Box<dyn std::fmt::Debug + Send + Sync + '_>,)>>)
+                     -> Result<(), Error>;
+
+                [dog]
+                fn x(&mut self, x: Vec<usize>) -> Result<(), Error>;
 
                 [cat]
                 fn meow(&mut self) -> Result<(), Error>;
 
                 [dog]
                 fn bark(&mut self) -> Result<(), Error>;
+
+                [monkey]
+                fn debug(&mut self);
 
         }]
 	pub(crate) impl Animal {
