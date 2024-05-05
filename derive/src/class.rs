@@ -148,6 +148,19 @@ struct SpanError {
 	msg: String,
 }
 
+enum ItemState {
+	Base,
+	WantsCrateOrImpl,
+	WantsGeneric1OrName,
+	WantsImpl,
+	WantsGeneric2WhereOrBrace,
+	WantsWhereClause,
+	WantsGeneric2,
+	WantsWhereOrBrace,
+	WantsName,
+	Complete,
+}
+
 enum State {
 	Base,
 	Pub,
@@ -180,6 +193,7 @@ struct StateMachine {
 	error_list: Vec<SpanError>,
 	module: Option<String>,
 	is_pub_crate: bool,
+	in_generic2: bool,
 	pub_views: Vec<Pub>,
 	pub_crate_views: Vec<PubCrate>,
 	cur_const: Option<Const>,
@@ -188,16 +202,27 @@ struct StateMachine {
 	const_list: Vec<Const>,
 	var_list: Vec<Var>,
 	fn_list: Vec<Fn>,
+	item_state: ItemState,
+	class_name: Option<String>,
+	generic1: Option<String>,
+	generic2: Option<String>,
+	where_clause: Option<String>,
+	class_is_pub: bool,
+	class_is_pub_crate: bool,
+	inner: String,
+	prev_is_joint: bool,
 }
 
 impl StateMachine {
 	fn new() -> Self {
 		Self {
 			state: State::Base,
+			item_state: ItemState::Base,
 			span: None,
 			error_list: vec![],
 			module: None,
 			is_pub_crate: false,
+			in_generic2: false,
 			pub_views: vec![],
 			pub_crate_views: vec![],
 			cur_const: None,
@@ -206,11 +231,20 @@ impl StateMachine {
 			const_list: vec![],
 			var_list: vec![],
 			fn_list: vec![],
+			class_name: None,
+			generic1: None,
+			generic2: None,
+			where_clause: None,
+			class_is_pub: false,
+			class_is_pub_crate: false,
+			inner: "".to_string(),
+			prev_is_joint: false,
 		}
 	}
 
-	fn derive(&mut self, attr: TokenStream, _item: TokenStream) -> Result<(), Error> {
+	fn derive(&mut self, attr: TokenStream, item: TokenStream) -> Result<(), Error> {
 		self.parse_attr(attr)?;
+
 		println!("const list:");
 		for c in &self.const_list {
 			println!("{:?}", c);
@@ -225,6 +259,19 @@ impl StateMachine {
 		for f in &self.fn_list {
 			println!("{:?}", f);
 		}
+
+		self.item_state = ItemState::Base;
+		self.parse_item(item)?;
+
+		println!(
+			"class_name={:?},pub={},pub(crate)={},generics1={:?},generic2={:?},where={:?}",
+			self.class_name,
+			self.class_is_pub,
+			self.class_is_pub_crate,
+			self.generic1,
+			self.generic2,
+			self.where_clause,
+		);
 
 		if self.error_list.len() > 0 {
 			self.print_errors()?;
@@ -269,9 +316,276 @@ impl StateMachine {
 		abort!(diag, err.msg);
 	}
 
+	fn parse_item(&mut self, item: TokenStream) -> Result<(), Error> {
+		for token in item {
+			self.process_item_token(token)?;
+		}
+		Ok(())
+	}
+
 	fn parse_attr(&mut self, attr: TokenStream) -> Result<(), Error> {
 		for token in attr {
 			self.process_attr_token(token)?;
+		}
+		Ok(())
+	}
+
+	fn process_item_token(&mut self, token: TokenTree) -> Result<(), Error> {
+		self.span = Some(token.span());
+		match self.item_state {
+			ItemState::Base => self.process_item_base(token)?,
+			ItemState::WantsCrateOrImpl => self.process_item_wants_crate_or_impl(token)?,
+			ItemState::WantsGeneric1OrName => self.process_item_wants_generic1_or_name(token)?,
+			ItemState::WantsImpl => self.process_item_wants_impl(token)?,
+			ItemState::WantsGeneric2WhereOrBrace => {
+				self.process_item_wants_generic2_where_or_brace(token)?
+			}
+			ItemState::WantsWhereClause => self.process_wants_where_clause(token)?,
+			ItemState::WantsGeneric2 => self.process_wants_generic2(token)?,
+			ItemState::WantsWhereOrBrace => self.process_wants_where_or_brace(token)?,
+			ItemState::WantsName => self.process_wants_name(token)?,
+			ItemState::Complete => self.process_item_complete(token)?,
+		}
+		Ok(())
+	}
+
+	fn process_wants_name(&mut self, token: TokenTree) -> Result<(), Error> {
+		match token {
+			Ident(ident) => {
+				self.class_name = Some(ident.to_string());
+				self.item_state = ItemState::WantsGeneric2;
+			}
+			_ => {
+				self.append_error("expected ident")?;
+			}
+		}
+		Ok(())
+	}
+	fn process_item_complete(&mut self, token: TokenTree) -> Result<(), Error> {
+		self.append_error("unexpected additional tokens")?;
+		Ok(())
+	}
+
+	fn process_wants_where_or_brace(&mut self, token: TokenTree) -> Result<(), Error> {
+		match token {
+			Ident(ident) => {
+				self.expected(vec!["where"], &ident.to_string())?;
+				self.item_state = ItemState::WantsWhereClause;
+			}
+			Group(group) => {
+				if group.delimiter() == Delimiter::Brace {
+					self.item_state = ItemState::Complete;
+				} else {
+				}
+			}
+			_ => {}
+		}
+		Ok(())
+	}
+
+	fn process_wants_generic2(&mut self, token: TokenTree) -> Result<(), Error> {
+		println!("wants gen token = {}", token);
+		if token.to_string() == ">" {
+			if self.in_generic2 {
+				self.item_state = ItemState::WantsWhereOrBrace;
+			} else {
+				println!("setting to in_gen2");
+				self.item_state = ItemState::WantsName;
+				self.in_generic2 = true;
+			}
+		} else {
+			let mut generic = if self.in_generic2 {
+				match self.generic2.as_mut() {
+					Some(generic) => generic,
+					None => {
+						self.generic2 = Some("".to_string());
+						self.generic2.as_mut().unwrap()
+					}
+				}
+			} else {
+				match self.generic1.as_mut() {
+					Some(generic) => generic,
+					None => {
+						self.generic1 = Some("".to_string());
+						self.generic1.as_mut().unwrap()
+					}
+				}
+			};
+
+			let mut is_error = false;
+			match token {
+				Ident(ref ident) => {
+					if self.prev_is_joint {
+						*generic = format!("{}{}", *generic, ident).trim().to_string();
+					} else {
+						*generic = format!("{} {}", *generic, ident).trim().to_string();
+					}
+					self.prev_is_joint = false;
+				}
+				Punct(ref p) => {
+					let prev_is_joint = self.prev_is_joint;
+					if p.spacing() == Spacing::Joint {
+						self.prev_is_joint = true;
+					} else {
+						self.prev_is_joint = false;
+					}
+					if *p != ',' && *p != ':' && *p != '\'' && *p != '<' {
+						is_error = true;
+					}
+					if *p != '<' {
+						if prev_is_joint {
+							*generic = format!("{}{}", *generic, p).trim().to_string();
+						} else {
+							*generic = format!("{} {}", *generic, p).trim().to_string();
+						}
+					}
+				}
+				_ => {
+					self.expected(vec![",", "<ident>", ":", "\'"], &token.to_string())?;
+					self.prev_is_joint = true;
+				}
+			}
+
+			if is_error {
+				self.append_error(&format!(
+					"expected ',', '<ident>', ':', or ''', found '{}'",
+					token.to_string()
+				))?;
+			}
+		}
+		Ok(())
+	}
+
+	fn process_wants_where_clause(&mut self, token: TokenTree) -> Result<(), Error> {
+		match token {
+			Group(group) => {
+				if group.delimiter() == Delimiter::Brace {
+					self.item_state = ItemState::Complete;
+				} else {
+					self.expected(vec!["{"], &format!("{:?}", group.delimiter()))?;
+				}
+			}
+			_ => {
+				let prev_is_joint = self.prev_is_joint;
+				match token {
+					Punct(ref p) => {
+						if p.spacing() == Spacing::Joint {
+							self.prev_is_joint = true;
+						} else {
+							self.prev_is_joint = false;
+						}
+					}
+					_ => {
+						self.prev_is_joint = false;
+					}
+				}
+				if self.where_clause.is_none() {
+					self.where_clause = Some("".to_string());
+				}
+				match self.where_clause.as_mut() {
+					Some(where_clause) => {
+						if prev_is_joint {
+							*where_clause = format!("{}{}", *where_clause, token.to_string());
+						} else {
+							*where_clause = format!("{} {}", *where_clause, token.to_string());
+						}
+					}
+					None => {}
+				}
+			}
+		}
+		Ok(())
+	}
+
+	fn process_item_wants_generic2_where_or_brace(
+		&mut self,
+		token: TokenTree,
+	) -> Result<(), Error> {
+		match token {
+			Ident(ident) => {
+				if self.expected(vec!["where"], &ident.to_string())? {
+					self.item_state = ItemState::WantsWhereClause;
+				}
+			}
+			Group(group) => {
+				if group.delimiter() == Delimiter::Brace {
+					self.item_state = ItemState::Complete;
+				} else {
+					// error
+				}
+			}
+			_ => {
+				// error
+			}
+		}
+		Ok(())
+	}
+
+	fn process_item_wants_impl(&mut self, token: TokenTree) -> Result<(), Error> {
+		self.expected(vec!["impl"], &token.to_string())?;
+		self.item_state = ItemState::WantsGeneric1OrName;
+		Ok(())
+	}
+
+	fn process_item_wants_generic1_or_name(&mut self, token: TokenTree) -> Result<(), Error> {
+		match token {
+			Ident(ident) => {
+				self.class_name = Some(ident.to_string());
+				self.item_state = ItemState::WantsGeneric2WhereOrBrace;
+				self.in_generic2 = true;
+			}
+			Punct(punct) => {
+				if punct == '<' {
+					// generics
+					self.item_state = ItemState::WantsGeneric2;
+				} else {
+					// error
+					self.expected(vec!["<", "<ident>"], &punct.to_string())?;
+				}
+			}
+			_ => {
+				// error
+				self.expected(vec!["<", "<ident>"], &token.to_string())?;
+			}
+		}
+		Ok(())
+	}
+
+	fn process_item_wants_crate_or_impl(&mut self, token: TokenTree) -> Result<(), Error> {
+		match token {
+			Ident(ident) => {
+				if ident.to_string() == "impl" {
+					self.item_state = ItemState::WantsGeneric1OrName;
+				} else {
+					self.expected(vec!["(crate)", "impl"], &ident.to_string())?;
+				}
+			}
+			Group(group) => {
+				if group.to_string() == "(crate)" {
+					self.item_state = ItemState::WantsImpl;
+					self.class_is_pub_crate = true;
+				} else {
+					self.expected(vec!["(crate)", "impl"], &group.to_string())?;
+				}
+			}
+			_ => {
+				self.expected(vec!["(crate)", "impl"], &token.to_string())?;
+			}
+		}
+		Ok(())
+	}
+
+	fn process_item_base(&mut self, token: TokenTree) -> Result<(), Error> {
+		let token_str = token.to_string();
+		println!("item base token = {}", token_str);
+		if token_str == "pub" {
+			println!("set class_is_pub = true");
+			self.item_state = ItemState::WantsCrateOrImpl;
+			self.class_is_pub = true;
+		} else if token_str == "impl" {
+			self.item_state = ItemState::WantsGeneric1OrName;
+		} else {
+			self.expected(vec!["pub", "impl"], &token_str)?;
 		}
 		Ok(())
 	}
@@ -821,7 +1135,6 @@ impl StateMachine {
 	}
 
 	fn process_wants_view_list_param_list(&mut self, token: TokenTree) -> Result<(), Error> {
-		println!("pwv token = {}", token);
 		match token {
 			Group(ref group) => {
 				if group.delimiter() != Delimiter::Parenthesis {
@@ -840,22 +1153,18 @@ impl StateMachine {
 								last_token = token.clone();
 								self.span = Some(token.span());
 								let token_str = token.to_string();
-								println!("token_str={}", token_str);
 								if token_str == "," {
-									println!("append name = {}", cur_name);
 									cur_fn.param_names.push(cur_name.clone());
 									cur_fn.param_types.push(cur_type.clone());
 									first = false;
 									cur_fn.param_type_spans.push(token.span());
 
-									println!("name list = {:?}", cur_fn.param_names);
 									cur_name = "".to_string();
 									cur_type = "".to_string();
 									in_type = false;
 								} else if token_str == ":" {
 									in_type = true;
 								} else if in_type {
-									println!("append cur type");
 									cur_type =
 										format!("{} {}", cur_type, token_str).trim().to_string();
 								} else {
@@ -886,7 +1195,6 @@ impl StateMachine {
 								cur_fn.param_type_spans.push(last_token.span());
 							}
 
-							println!("fn_list='{}'", group.stream().to_string());
 							cur_fn.param_list = group.stream().to_string();
 							cur_fn.expect_dash_return_list = true;
 							cur_fn.expect_gt_return_list = true;
@@ -961,15 +1269,12 @@ impl StateMachine {
 
 	fn process_wants_view_list_identifier(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
-			Ident(ident) => {
-				println!("view list id = {}", ident.to_string());
-				match self.cur_fn.as_mut() {
-					Some(cur_fn) => {
-						cur_fn.view_list.push(ident.to_string());
-					}
-					None => {}
+			Ident(ident) => match self.cur_fn.as_mut() {
+				Some(cur_fn) => {
+					cur_fn.view_list.push(ident.to_string());
 				}
-			}
+				None => {}
+			},
 			_ => {
 				self.append_error(&format!("expected view list id, found, '{}'", token))?;
 			}

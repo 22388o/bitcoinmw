@@ -50,7 +50,10 @@ mod test {
                 fn debug(&mut self);
 
         }]
-	pub(crate) impl Animal {
+	pub(crate) impl<A, B> Animal<A, B: 'test>
+	where
+		A: std::fmt::Debug,
+	{
 		fn builder(&self) -> Result<Self, Error> {
 			Ok(Self { y: 1 })
 		}
@@ -76,6 +79,12 @@ mod test {
 	}
 
 	struct Animal {}
+
+	struct TestClass<A> {
+		a: A,
+	}
+
+	impl<A> TestClass<A> where A: std::fmt::Debug {}
 
 	#[test]
 	fn test_animal() -> Result<(), Error> {
