@@ -23,7 +23,7 @@ mod test {
 	#[class{
                 pub cat;
                 pub(crate) dog_box;
-                
+
                 module "bmw_int::test_class";
                 const x: usize = usize::MAX - 10;
                 const vvv: Vec<u16> = vec![1,2,3];
@@ -31,7 +31,7 @@ mod test {
                 const p: Vec<usize> = vec![];
                 const v123: configurable = 0;
                 var y: usize;
-                
+
                 [cat, dog, monkey]
                 fn speak(&self, x: usize, v: Option<Vec<(usize, Box<dyn std::fmt::Debug + Send + Sync + '_>)>>) -> Result<(), Error>;
 
