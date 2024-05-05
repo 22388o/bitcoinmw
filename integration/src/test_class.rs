@@ -42,7 +42,7 @@ mod test {
                 fn bark(&mut self) -> Result<(), Error>;
 
         }]
-	impl Animal {
+	pub(crate) impl Animal {
 		fn builder(&self) -> Result<Self, Error> {
 			Ok(Self { y: 1 })
 		}

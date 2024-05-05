@@ -25,6 +25,27 @@ use proc_macro::{Delimiter, Spacing, Span, TokenStream, TokenTree};
 use proc_macro_error::{abort, emit_error, Diagnostic, Level};
 
 #[derive(Clone, Debug)]
+struct Fn {
+	name: String,
+	span: Span,
+	signature: String,
+	param_list: String,
+	view_list: Vec<String>,
+}
+
+impl Fn {
+	fn new(span: Span) -> Self {
+		Self {
+			span,
+			name: "".to_string(),
+			signature: "".to_string(),
+			param_list: "".to_string(),
+			view_list: vec![],
+		}
+	}
+}
+
+#[derive(Clone, Debug)]
 struct Var {
 	name: String,
 	type_str: String,
@@ -131,6 +152,11 @@ enum State {
 	WantsConstGt,
 	WantsVarColon,
 	WantsVarType,
+	WantsViewListIdentifier,
+	WantsViewListComma,
+	WantsViewListFn,
+	WantsViewListFnName,
+	WantsViewListParamList,
 }
 
 struct StateMachine {
@@ -143,8 +169,10 @@ struct StateMachine {
 	pub_crate_views: Vec<PubCrate>,
 	cur_const: Option<Const>,
 	cur_var: Option<Var>,
+	cur_fn: Option<Fn>,
 	const_list: Vec<Const>,
 	var_list: Vec<Var>,
+	fn_list: Vec<Fn>,
 }
 
 impl StateMachine {
@@ -159,8 +187,10 @@ impl StateMachine {
 			pub_crate_views: vec![],
 			cur_const: None,
 			cur_var: None,
+			cur_fn: None,
 			const_list: vec![],
 			var_list: vec![],
+			fn_list: vec![],
 		}
 	}
 
@@ -174,6 +204,11 @@ impl StateMachine {
 		println!("var list:");
 		for v in &self.var_list {
 			println!("{:?}", v);
+		}
+
+		println!("fn list:");
+		for f in &self.fn_list {
+			println!("{:?}", f);
 		}
 
 		if self.error_list.len() > 0 {
@@ -234,7 +269,7 @@ impl StateMachine {
 			State::Module => self.process_module(token)?,
 			State::Const => self.process_const(token)?,
 			State::Var => self.process_var(token)?,
-			State::ViewList => self.process_view_list(token)?,
+			State::ViewList => self.process_wants_view_list_identifier(token)?,
 			State::WantsPubIdentifier => self.process_wants_pub_identifier(token)?,
 			State::WantsPubComma => self.process_wants_pub_comma(token)?,
 			State::WantsConstColon => self.process_wants_const_colon(token)?,
@@ -246,6 +281,11 @@ impl StateMachine {
 			State::WantsConstGt => self.process_wants_const_gt(token)?,
 			State::WantsVarColon => self.process_wants_var_colon(token)?,
 			State::WantsVarType => self.process_wants_var_type(token)?,
+			State::WantsViewListIdentifier => self.process_wants_view_list_identifier(token)?,
+			State::WantsViewListComma => self.process_wants_view_list_comma(token)?,
+			State::WantsViewListFn => self.process_wants_view_list_fn(token)?,
+			State::WantsViewListFnName => self.process_wants_view_list_fn_name(token)?,
+			State::WantsViewListParamList => self.process_wants_view_list_param_list(token)?,
 		}
 		Ok(())
 	}
@@ -262,9 +302,14 @@ impl StateMachine {
 			self.state = State::Var;
 		} else {
 			match token {
-				Group(group) => {
+				Group(ref group) => {
 					if group.delimiter() == Delimiter::Bracket {
 						self.state = State::ViewList;
+						self.cur_fn = Some(Fn::new(token.span()));
+						for token in group.stream() {
+							self.process_attr_token(token)?;
+						}
+						self.state = State::WantsViewListFn;
 					} else {
 						// error
 						self.expected(vec!["[", "pub", "var", "const", "module"], &token_str)?;
@@ -660,11 +705,59 @@ impl StateMachine {
 		self.state = State::WantsVarColon;
 		Ok(())
 	}
-	fn process_view_list(&mut self, token: TokenTree) -> Result<(), Error> {
-		let token_str = token.to_string();
-		if token_str == ";" {
+
+	fn process_wants_view_list_param_list(&mut self, token: TokenTree) -> Result<(), Error> {
+		if token.to_string() == ";" {
+			self.fn_list.push(self.cur_fn.as_ref().unwrap().clone());
 			self.state = State::Base;
 		}
+		Ok(())
+	}
+
+	fn process_wants_view_list_fn_name(&mut self, token: TokenTree) -> Result<(), Error> {
+		match token {
+			Ident(ident) => match self.cur_fn.as_mut() {
+				Some(cur_fn) => {
+					cur_fn.name = ident.to_string();
+				}
+				None => {}
+			},
+			_ => {
+				self.append_error(&format!("expected fn name found token '{}'", token))?;
+			}
+		}
+		self.state = State::WantsViewListParamList;
+		Ok(())
+	}
+
+	fn process_wants_view_list_fn(&mut self, token: TokenTree) -> Result<(), Error> {
+		self.expected(vec!["fn"], &token.to_string())?;
+		self.state = State::WantsViewListFnName;
+		Ok(())
+	}
+
+	fn process_wants_view_list_identifier(&mut self, token: TokenTree) -> Result<(), Error> {
+		match token {
+			Ident(ident) => {
+				println!("view list id = {}", ident.to_string());
+				match self.cur_fn.as_mut() {
+					Some(cur_fn) => {
+						cur_fn.view_list.push(ident.to_string());
+					}
+					None => {}
+				}
+			}
+			_ => {
+				self.append_error(&format!("expected view list id, found, '{}'", token))?;
+			}
+		}
+		self.state = State::WantsViewListComma;
+		Ok(())
+	}
+
+	fn process_wants_view_list_comma(&mut self, token: TokenTree) -> Result<(), Error> {
+		self.expected(vec![","], &token.to_string())?;
+		self.state = State::WantsViewListIdentifier;
 		Ok(())
 	}
 }
