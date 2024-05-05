@@ -1,0 +1,21 @@
+// generated Serializable trait implementation
+impl bmw_base::Serializable for ${NAME} {
+	// read implementation
+	fn read<R>(reader: &mut R) -> Result<Self, bmw_base::Error> where R: bmw_base::Reader {
+		Ok(match reader.read_u16()? {
+			${RET_READ}_ => {
+				let fmt = "unexpected type returned in reader";
+				let e = bmw_base::err!(bmw_base::ErrKind::CorruptedData, fmt);
+				return Err(e);
+			}
+		})
+	}
+
+	// write implementation
+	fn write<W>(&self, writer: &mut W) -> Result<(), bmw_base::Error> where W: bmw_base::Writer {
+		match self {
+			${RET_WRITE}}
+		Ok(())
+	}
+}
+

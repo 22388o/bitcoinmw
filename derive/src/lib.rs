@@ -40,3 +40,34 @@ use crate::config::do_derive_configurable;
 pub fn derive_configurable(strm: TokenStream) -> TokenStream {
 	do_derive_configurable(strm)
 }
+
+// ser section
+mod ser;
+use crate::ser::do_derive_serializable;
+
+#[proc_macro_derive(Serializable)]
+#[cfg(not(tarpaulin_include))]
+pub fn derive_serializable(strm: TokenStream) -> TokenStream {
+	do_derive_serializable(strm)
+}
+
+// document section
+mod document;
+use crate::document::do_derive_document;
+
+#[proc_macro_attribute]
+#[cfg(not(tarpaulin_include))]
+pub fn document(attr: TokenStream, item: TokenStream) -> TokenStream {
+	do_derive_document(attr, item)
+}
+
+// class section
+mod class;
+use crate::class::do_derive_class;
+
+#[proc_macro_attribute]
+#[cfg(not(tarpaulin_include))]
+#[proc_macro_error]
+pub fn class(attr: TokenStream, item: TokenStream) -> TokenStream {
+	do_derive_class(attr, item)
+}

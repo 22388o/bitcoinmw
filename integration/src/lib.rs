@@ -17,3 +17,4 @@
 // limitations under the License.
 
 mod test;
+mod test_class;
