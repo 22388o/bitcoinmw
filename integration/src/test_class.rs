@@ -19,8 +19,11 @@
 use bmw_core::*;
 
 #[debug_class {
-    pub cat;
+    pub cat, dog_send;
     pub(crate) dog_box;
+    pub(crate) bwrp, monkey_box;
+
+    pub monkey_sync_box;
 
     module "bmw_int::test_class";
     const x: usize = usize::MAX - 10;
@@ -31,7 +34,7 @@ use bmw_core::*;
     var y: usize;
     var b: bool;
 
-    [cat, dog, monkey]
+    [cat, dog, monkey, bwrp]
     fn speak(&self, x: usize, v: Option<Vec<(usize, Box<dyn std::fmt::Debug + Send + Sync + '_>,)>>)
     -> Result<(), Error>;
 
@@ -54,126 +57,54 @@ use bmw_core::*;
     fn debug(&mut self);
 
 }]
-pub(crate) impl Animal {
+pub impl Animal {
 	fn builder(&self) -> Result<Self, Error> {
 		Ok(Self {
-			t: "".to_string(),
+			t: "aaa".to_string(),
 			y: 10,
 			b: false,
 		})
 	}
 }
 
+impl Animal {
+	fn speak(
+		&self,
+		x: usize,
+		v: Option<Vec<(usize, Box<dyn std::fmt::Debug + Send + Sync + '_>)>>,
+	) -> Result<(), Error> {
+		println!("hi: {:?} {:?}", x, v);
+		Ok(())
+	}
+
+	fn meow(&mut self) -> Result<(), Error> {
+		println!("meow, v123: {}", self.constants().get_v123());
+		Ok(())
+	}
+
+	fn bark(&mut self) -> Result<(), Error> {
+		todo!()
+	}
+
+	fn ok(&mut self) {
+		println!("test");
+	}
+
+	fn abc(&mut self) {
+		println!("in abc2: {}", self.vars().get_y());
+		*self.vars().get_mut_y() += 1;
+	}
+}
+
 #[cfg(test)]
 mod test {
-	use bmw_core::*;
-	use bmw_deps::backtrace::Backtrace;
-
-	fn _print_symbols() {
-		let backtrace = Backtrace::new();
-		for i in 0..backtrace.frames().len() {
-			let symbols = backtrace.frames()[i].symbols();
-			for j in 0..symbols.len() {
-				println!(
-					"backtrace[{}][{}]={:?}",
-					i,
-					j,
-					backtrace.frames()[i].symbols()[j].name()
-				);
-			}
-		}
-	}
-
-	#[debug_class{
-                pub cat;
-                pub(crate) dog_box;
-
-                module "bmw_int::test_class";
-                const x: usize = usize::MAX - 10;
-                const vvv: Vec<u16> = vec![1,2,3];
-                var t: String;
-                const p: Vec<usize> = vec![];
-                const v123: usize = 0;
-                var y: usize;
-                var b: bool;
-
-                [cat, dog, monkey]
-                fn speak(&self, x: usize, v: Option<Vec<(usize, Box<dyn std::fmt::Debug + Send + Sync + '_>,)>>)
-                     -> Result<(), Error>;
-
-                [cat]
-                fn ok(&mut self);
-
-                [cat]
-                fn abc(&mut self);
-
-                [dog]
-                fn x(&mut self, x: Vec<usize>) -> Result<(), Error>;
-
-                [cat]
-                fn meow(&mut self) -> Result<(), Error>;
-
-                [dog]
-                fn bark(&mut self) -> Result<(), Error>;
-
-                [monkey]
-                fn debug(&mut self);
-
-        }]
-	pub(crate) impl Animal {
-		fn builder(&self) -> Result<Self, Error> {
-			Ok(Self {
-				t: "".to_string(),
-				y: 10,
-				b: false,
-			})
-		}
-	}
-
-	impl Animal {
-		fn speak(
-			&self,
-			x: usize,
-			v: Option<Vec<(usize, Box<dyn std::fmt::Debug + Send + Sync + '_>)>>,
-		) -> Result<(), Error> {
-			println!("hi: {:?} {:?}", x, v);
-			Ok(())
-		}
-
-		fn meow(&mut self) -> Result<(), Error> {
-			let backtrace = Backtrace::new();
-			for i in 0..backtrace.frames().len() {
-				let symbols = backtrace.frames()[i].symbols();
-				for j in 0..symbols.len() {
-					println!(
-						"backtrace[{}][{}]={:?}",
-						i,
-						j,
-						backtrace.frames()[i].symbols()[j].name()
-					);
-				}
-			}
-			println!("meow, v123: {}", self.constants().get_v123());
-			Ok(())
-		}
-
-		fn bark(&mut self) -> Result<(), Error> {
-			todo!()
-		}
-
-		fn ok(&mut self) {
-			println!("test");
-		}
-
-		fn abc(&mut self) {
-			println!("in abc");
-		}
-	}
+	use super::*;
 
 	#[test]
 	fn test_animal() -> Result<(), Error> {
-		//	let mut cat = AnimalBuilder::build_cat(vec![AnimalConstOptions::V123(101)])?;
 		let mut cat = cat!()?;
+		cat.abc();
+		cat.abc();
 		cat.abc();
 		Ok(())
 	}

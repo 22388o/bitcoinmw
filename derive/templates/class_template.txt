@@ -1,17 +1,20 @@
 ${CLONE}
-pub(crate) struct ${NAME} ${GENERICS2} ${WHERE} {
+#[doc(hidden)]
+${CLASS_VISIBILITY} struct ${NAME} ${GENERICS2} ${WHERE} {
         _hidden_var_struct: ${NAME}Var ${GENERICS1},
         _hidden_const_struct: ${NAME}Const,
 }
 
 ${CLONE}
-struct ${NAME}Var ${GENERICS2} ${WHERE}
+#[doc(hidden)]
+${CLASS_VISIBILITY} struct ${NAME}Var ${GENERICS2} ${WHERE}
 {
         ${VAR_PARAMS}
 }
 
 #[derive(Configurable, Clone)]
-struct ${NAME}Const {
+#[doc(hidden)]
+${CLASS_VISIBILITY} struct ${NAME}Const {
         ${CONST_PARAMS}
 }
 

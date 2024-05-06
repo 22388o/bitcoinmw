@@ -24,7 +24,14 @@ use bmw_deps::syn::{parse_str, Expr, Type};
 use proc_macro::TokenTree::{Group, Ident, Literal, Punct};
 use proc_macro::{Delimiter, Spacing, Span, TokenStream, TokenTree};
 use proc_macro_error::{abort, emit_error, Diagnostic, Level};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+
+#[derive(Debug, PartialEq)]
+enum Visibility {
+	Pub,
+	PubCrate,
+	Private,
+}
 
 #[derive(Clone, Debug)]
 struct Fn {
@@ -200,7 +207,7 @@ struct StateMachine {
 	span: Option<Span>,
 	error_list: Vec<SpanError>,
 	module: Option<String>,
-	is_pub_crate: bool,
+	cur_is_pub_crate: bool,
 	in_generic2: bool,
 	pub_views: Vec<Pub>,
 	pub_crate_views: Vec<PubCrate>,
@@ -234,7 +241,7 @@ impl StateMachine {
 			span: None,
 			error_list: vec![],
 			module: None,
-			is_pub_crate: false,
+			cur_is_pub_crate: false,
 			in_generic2: false,
 			in_builder: false,
 			pub_views: vec![],
@@ -382,13 +389,20 @@ impl StateMachine {
 	}
 
 	fn update_structs(&mut self, template: &String) -> Result<String, Error> {
-		let template = template.replace("${CLONE}", "").to_string();
-		let template = template.replace("${NAME}", &self.class_name.as_ref().unwrap());
-		let template = template.replace("${GENERICS2}", &self.build_generic2()?);
-		let template = template.replace("${WHERE}", &self.build_where()?);
-		let template = template.replace("${GENERICS1}", &self.build_generic2()?);
-		let template = template.replace("${VAR_PARAMS}", &self.build_var_params_replace()?);
-		let template = template.replace("${CONST_PARAMS}", &self.build_const_params_replace()?);
+		let mut template = template.replace("${CLONE}", "").to_string();
+		template = template.replace("${NAME}", &self.class_name.as_ref().unwrap());
+		template = template.replace("${GENERICS2}", &self.build_generic2()?);
+		template = template.replace("${WHERE}", &self.build_where()?);
+		template = template.replace("${GENERICS1}", &self.build_generic2()?);
+		template = template.replace("${VAR_PARAMS}", &self.build_var_params_replace()?);
+		template = template.replace("${CONST_PARAMS}", &self.build_const_params_replace()?);
+		if self.class_is_pub_crate {
+			template = template.replace("${CLASS_VISIBILITY}", "pub(crate)");
+		} else if self.class_is_pub {
+			template = template.replace("${CLASS_VISIBILITY}", "pub");
+		} else {
+			template = template.replace("${CLASS_VISIBILITY}", "");
+		}
 
 		Ok(template)
 	}
@@ -405,6 +419,116 @@ impl StateMachine {
 					None => {
 						ret.insert(view.clone(), vec![fn_info.clone()]);
 					}
+				}
+			}
+		}
+
+		Ok(ret)
+	}
+
+	fn build_view_pub_map(&self) -> Result<HashMap<String, Visibility>, Error> {
+		let mut ret = HashMap::new();
+		let mut pub_view_set: HashSet<String> = HashSet::new();
+		let mut pub_crate_view_set: HashSet<String> = HashSet::new();
+		for pub_view in &self.pub_views {
+			pub_view_set.insert(pub_view.name.clone());
+		}
+		for pub_crate_view in &self.pub_crate_views {
+			pub_crate_view_set.insert(pub_crate_view.name.clone());
+		}
+
+		for fn_info in &self.fn_list {
+			for v in &fn_info.view_list {
+				let mut trait_visibility = Visibility::Private;
+
+				let view = v.clone();
+
+				if pub_crate_view_set.contains(&view) {
+					if trait_visibility == Visibility::Private {
+						trait_visibility = Visibility::PubCrate;
+					}
+					ret.insert(view.clone(), Visibility::PubCrate);
+				} else if pub_view_set.contains(&view) {
+					if trait_visibility != Visibility::Pub {
+						trait_visibility = Visibility::Pub;
+					}
+					ret.insert(view.clone(), Visibility::Pub);
+				}
+
+				let view = format!("{}_box", v);
+				if pub_crate_view_set.contains(&view) {
+					if trait_visibility == Visibility::Private {
+						trait_visibility = Visibility::PubCrate;
+					}
+					ret.insert(view.clone(), Visibility::PubCrate);
+				} else if pub_view_set.contains(&view) {
+					if trait_visibility != Visibility::Pub {
+						trait_visibility = Visibility::Pub;
+					}
+					ret.insert(view.clone(), Visibility::Pub);
+				}
+
+				let view = format!("{}_send", v);
+				if pub_crate_view_set.contains(&view) {
+					if trait_visibility == Visibility::Private {
+						trait_visibility = Visibility::PubCrate;
+					}
+					ret.insert(view.clone(), Visibility::PubCrate);
+				} else if pub_view_set.contains(&view) {
+					if trait_visibility != Visibility::Pub {
+						trait_visibility = Visibility::Pub;
+					}
+					ret.insert(view.clone(), Visibility::Pub);
+				}
+
+				let view = format!("{}_send_box", v);
+				if pub_crate_view_set.contains(&view) {
+					if trait_visibility == Visibility::Private {
+						trait_visibility = Visibility::PubCrate;
+					}
+					ret.insert(view.clone(), Visibility::PubCrate);
+				} else if pub_view_set.contains(&view) {
+					if trait_visibility != Visibility::Pub {
+						trait_visibility = Visibility::Pub;
+					}
+					ret.insert(view.clone(), Visibility::Pub);
+				}
+
+				let view = format!("{}_sync", v);
+				if pub_crate_view_set.contains(&view) {
+					if trait_visibility == Visibility::Private {
+						trait_visibility = Visibility::PubCrate;
+					}
+					ret.insert(view.clone(), Visibility::PubCrate);
+				} else if pub_view_set.contains(&view) {
+					if trait_visibility != Visibility::Pub {
+						trait_visibility = Visibility::Pub;
+					}
+					ret.insert(view.clone(), Visibility::Pub);
+				}
+
+				let view = format!("{}_sync_box", v);
+				if pub_crate_view_set.contains(&view) {
+					if trait_visibility == Visibility::Private {
+						trait_visibility = Visibility::PubCrate;
+					}
+					ret.insert(view.clone(), Visibility::PubCrate);
+				} else if pub_view_set.contains(&view) {
+					if trait_visibility != Visibility::Pub {
+						trait_visibility = Visibility::Pub;
+					}
+					ret.insert(view.clone(), Visibility::Pub);
+				}
+
+				let view_pascal = v.to_case(Case::Pascal);
+				match trait_visibility {
+					Visibility::Pub => {
+						ret.insert(view_pascal, Visibility::Pub);
+					}
+					Visibility::PubCrate => {
+						ret.insert(view_pascal, Visibility::PubCrate);
+					}
+					Visibility::Private => {}
 				}
 			}
 		}
@@ -490,11 +614,21 @@ impl StateMachine {
 		&mut self,
 		template: &String,
 		views: &HashMap<String, Vec<Fn>>,
+		view_pub_map: &HashMap<String, Visibility>,
 	) -> Result<String, Error> {
 		let mut trait_text = "".to_string();
 		for (k, v) in views {
 			let trait_name = k.to_case(Case::Pascal);
-			trait_text = format!("{}\ntrait {} {{", trait_text, trait_name);
+			let vis = view_pub_map.get(&trait_name);
+			let vis = match vis {
+				Some(vis) => match vis {
+					Visibility::Pub => "pub",
+					Visibility::PubCrate => "pub(crate)",
+					Visibility::Private => "",
+				},
+				None => "",
+			};
+			trait_text = format!("{}\n{} trait {} {{", trait_text, vis, trait_name);
 			for fn_info in v {
 				trait_text = format!(
 					"{}\nfn {}({}) -> {};",
@@ -551,6 +685,7 @@ impl StateMachine {
 		&mut self,
 		template: &String,
 		views: &HashMap<String, Vec<Fn>>,
+		view_pub_map: &HashMap<String, Visibility>,
 	) -> Result<String, Error> {
 		let class_name = &self.class_name.as_ref().unwrap();
 		let macro_template = include_str!("../templates/class_macro_template.txt").to_string();
@@ -565,18 +700,102 @@ impl StateMachine {
 			mbt = mbt.replace("${MACRO_NAME_SEND_BOX}", &format!("{}_send_box", view));
 			mbt = mbt.replace("${MACRO_NAME_SYNC_IMPL}", &format!("{}_sync", view));
 			mbt = mbt.replace("${MACRO_NAME_SYNC_BOX}", &format!("{}_sync_box", view));
-			mbt = mbt.replace("${IMPL_PROTECTED}", "");
-			mbt = mbt.replace("${BOX_PROTECTED}", "");
-			mbt = mbt.replace("${IMPL_SEND_PROTECTED}", "");
-			mbt = mbt.replace("${BOX_SEND_PROTECTED}", "");
-			mbt = mbt.replace("${IMPL_SYNC_PROTECTED}", "");
-			mbt = mbt.replace("${BOX_SYNC_PROTECTED}", "");
-			mbt = mbt.replace("${IMPL_PUBLIC}", "#[macro_export]");
-			mbt = mbt.replace("${BOX_PUBLIC}", "#[macro_export]");
-			mbt = mbt.replace("${IMPL_SEND_PUBLIC}", "#[macro_export]");
-			mbt = mbt.replace("${BOX_SEND_PUBLIC}", "#[macro_export]");
-			mbt = mbt.replace("${IMPL_SYNC_PUBLIC}", "#[macro_export]");
-			mbt = mbt.replace("${BOX_SYNC_PUBLIC}", "#[macro_export]");
+			mbt = mbt.replace(
+				"${IMPL_PROTECTED}",
+				&if view_pub_map.get(view) == Some(&Visibility::PubCrate) {
+					format!("pub(crate) use {};", view)
+				} else {
+					format!("")
+				},
+			);
+			mbt = mbt.replace(
+				"${BOX_PROTECTED}",
+				&if view_pub_map.get(&format!("{}_box", view)) == Some(&Visibility::PubCrate) {
+					format!("pub(crate) use {}_box;", view)
+				} else {
+					format!("")
+				},
+			);
+			mbt = mbt.replace(
+				"${IMPL_SEND_PROTECTED}",
+				&if view_pub_map.get(&format!("{}_send", view)) == Some(&Visibility::PubCrate) {
+					format!("pub(crate) use {}_send;", view)
+				} else {
+					format!("")
+				},
+			);
+			mbt = mbt.replace(
+				"${BOX_SEND_PROTECTED}",
+				&if view_pub_map.get(&format!("{}_send_box", view)) == Some(&Visibility::PubCrate) {
+					format!("pub(crate) use {}_send_box;", view)
+				} else {
+					format!("")
+				},
+			);
+			mbt = mbt.replace(
+				"${IMPL_SYNC_PROTECTED}",
+				&if view_pub_map.get(&format!("{}_sync", view)) == Some(&Visibility::PubCrate) {
+					format!("pub(crate) use {}_sync;", view)
+				} else {
+					format!("")
+				},
+			);
+			mbt = mbt.replace(
+				"${BOX_SYNC_PROTECTED}",
+				&if view_pub_map.get(&format!("{}_sync_box", view)) == Some(&Visibility::PubCrate) {
+					format!("pub(crate) use {}_sync_box;", view)
+				} else {
+					format!("")
+				},
+			);
+			mbt = mbt.replace(
+				"${IMPL_PUBLIC}",
+				if view_pub_map.get(view) == Some(&Visibility::Pub) {
+					"#[macro_export]"
+				} else {
+					""
+				},
+			);
+			mbt = mbt.replace(
+				"${BOX_PUBLIC}",
+				if view_pub_map.get(&format!("{}_box", view)) == Some(&Visibility::Pub) {
+					"#[macro_export]"
+				} else {
+					""
+				},
+			);
+			mbt = mbt.replace(
+				"${IMPL_SEND_PUBLIC}",
+				if view_pub_map.get(&format!("{}_send", view)) == Some(&Visibility::Pub) {
+					"#[macro_export]"
+				} else {
+					""
+				},
+			);
+			mbt = mbt.replace(
+				"${BOX_SEND_PUBLIC}",
+				if view_pub_map.get(&format!("{}_send_box", view)) == Some(&Visibility::Pub) {
+					"#[macro_export]"
+				} else {
+					""
+				},
+			);
+			mbt = mbt.replace(
+				"${IMPL_SYNC_PUBLIC}",
+				if view_pub_map.get(&format!("{}_sync", view)) == Some(&Visibility::Pub) {
+					"#[macro_export]"
+				} else {
+					""
+				},
+			);
+			mbt = mbt.replace(
+				"${BOX_SYNC_PUBLIC}",
+				if view_pub_map.get(&format!("{}_sync_box", view)) == Some(&Visibility::Pub) {
+					"#[macro_export]"
+				} else {
+					""
+				},
+			);
 			mbt = mbt.replace("${IMPL_COMMENTS}", "");
 			mbt = mbt.replace("${BOX_COMMENTS}", "");
 			mbt = mbt.replace("${SEND_IMPL_COMMENTS}", "");
@@ -589,16 +808,36 @@ impl StateMachine {
 		Ok(template)
 	}
 
+	fn vis_for(&self, view: &String, view_pub_map: &HashMap<String, Visibility>) -> String {
+		match view_pub_map.get(view) {
+			Some(vis) => match vis {
+				Visibility::Pub => "pub",
+				Visibility::PubCrate => "pub(crate)",
+				_ => "",
+			},
+			None => "",
+		}
+		.to_string()
+	}
+
 	fn update_builder(
 		&mut self,
 		template: &String,
 		views: &HashMap<String, Vec<Fn>>,
+		view_pub_map: &HashMap<String, Visibility>,
 	) -> Result<String, Error> {
 		let class_name = &self.class_name.as_ref().unwrap();
 		let builder_template = include_str!("../templates/class_builder_template.txt").to_string();
+		let visibility = if self.class_is_pub_crate {
+			"pub(crate)"
+		} else if self.class_is_pub {
+			"pub"
+		} else {
+			""
+		};
 		let mut builder_text = format!(
-			"struct {}Builder {{}}\nimpl {}Builder {{",
-			class_name, class_name
+			"{} struct {}Builder {{}}\nimpl {}Builder {{",
+			visibility, class_name, class_name
 		);
 
 		for (view, _v) in views {
@@ -609,13 +848,30 @@ impl StateMachine {
 			view_template = view_template.replace("${SYNC_IMPL_COMMENTS}", "");
 			view_template = view_template.replace("${SEND_IMPL_COMMENTS}", "");
 			view_template = view_template.replace("${SEND_BOX_COMMENTS}", "");
-			view_template = view_template.replace("${VISIBILITY_IMPL}", "pub");
-			view_template = view_template.replace("${VISIBILITY_BOX}", "pub");
-			view_template = view_template.replace("${VISIBILITY_SEND_IMPL}", "pub");
-			view_template = view_template.replace("${VISIBILITY_SYNC_IMPL}", "pub");
-			view_template = view_template.replace("${VISIBILITY_SEND_BOX}", "pub");
-			view_template = view_template.replace("${VISIBILITY_SYNC_BOX}", "pub");
+			view_template =
+				view_template.replace("${VISIBILITY_IMPL}", &self.vis_for(view, view_pub_map));
+			view_template = view_template.replace(
+				"${VISIBILITY_BOX}",
+				&self.vis_for(&format!("{}_box", view), view_pub_map),
+			);
+			view_template = view_template.replace(
+				"${VISIBILITY_SEND_IMPL}",
+				&self.vis_for(&format!("{}_send", view), view_pub_map),
+			);
+			view_template = view_template.replace(
+				"${VISIBILITY_SYNC_IMPL}",
+				&self.vis_for(&format!("{}_sync", view), view_pub_map),
+			);
+			view_template = view_template.replace(
+				"${VISIBILITY_SEND_BOX}",
+				&self.vis_for(&format!("{}_send_box", view), view_pub_map),
+			);
+			view_template = view_template.replace(
+				"${VISIBILITY_SYNC_BOX}",
+				&self.vis_for(&format!("{}_sync_box", view), view_pub_map),
+			);
 			view_template = view_template.replace("${WHERE_CLAUSE}", "");
+
 			view_template = view_template.replace("${GENERIC_PRE}", "");
 			view_template = view_template.replace("${TRAIT}", &trait_text);
 			view_template = view_template.replace("${NAME}", class_name);
@@ -630,16 +886,17 @@ impl StateMachine {
 
 	fn generate_code(&mut self) -> Result<(), Error> {
 		let views = self.build_trait_views()?;
+		let view_pub_map = self.build_view_pub_map()?;
 		let mut template = include_str!("../templates/class_template.txt").to_string();
 		template = self.update_structs(&template)?;
 		template = self.update_const_default(&template)?;
 		template = self.update_impl_struct(&template)?;
 		template = self.update_impl_var(&template)?;
 		template = self.update_impl_const(&template)?;
-		template = self.update_traits(&template, &views)?;
+		template = self.update_traits(&template, &views, &view_pub_map)?;
 		template = self.update_trait_impl(&template, &views)?;
-		template = self.update_macros(&template, &views)?;
-		template = self.update_builder(&template, &views)?;
+		template = self.update_macros(&template, &views, &view_pub_map)?;
+		template = self.update_builder(&template, &views, &view_pub_map)?;
 
 		self.ret.extend(template.parse::<TokenStream>());
 
@@ -1091,6 +1348,7 @@ impl StateMachine {
 	}
 
 	fn process_base(&mut self, token: TokenTree) -> Result<(), Error> {
+		self.cur_is_pub_crate = false;
 		let token_str = token.to_string();
 		if token_str == "pub" {
 			self.state = State::Pub;
@@ -1133,7 +1391,7 @@ impl StateMachine {
 		} else {
 			match token {
 				Ident(ident) => {
-					if self.is_pub_crate {
+					if self.cur_is_pub_crate {
 						self.pub_crate_views.push(PubCrate::new(
 							ident.to_string(),
 							self.span.as_ref().unwrap().clone(),
@@ -1169,7 +1427,7 @@ impl StateMachine {
 		match token {
 			Ident(ident) => {
 				self.state = State::WantsPubComma;
-				if self.is_pub_crate {
+				if self.cur_is_pub_crate {
 					self.pub_crate_views.push(PubCrate::new(
 						ident.to_string(),
 						self.span.as_ref().unwrap().clone(),
@@ -1185,7 +1443,7 @@ impl StateMachine {
 				if group.delimiter() != Delimiter::Parenthesis || group.to_string() != "(crate)" {
 					self.append_error("expected, '(crate)' or view name")?;
 				} else {
-					self.is_pub_crate = true;
+					self.cur_is_pub_crate = true;
 					self.state = State::WantsPubIdentifier;
 				}
 			}
@@ -1740,16 +1998,25 @@ impl StateMachine {
 	}
 
 	fn process_wants_view_list_identifier(&mut self, token: TokenTree) -> Result<(), Error> {
+		let mut snake_err = false;
 		match token {
 			Ident(ident) => match self.cur_fn.as_mut() {
 				Some(cur_fn) => {
-					cur_fn.view_list.push(ident.to_string());
+					let ident_str = ident.to_string();
+					if !ident_str.is_case(Case::Snake) {
+						snake_err = true;
+					}
+					cur_fn.view_list.push(ident_str);
 				}
 				None => {}
 			},
 			_ => {
 				self.append_error(&format!("expected view list id, found, '{}'", token))?;
 			}
+		}
+
+		if snake_err {
+			self.append_error("views must be of the snake case format")?;
 		}
 		self.state = State::WantsViewListComma;
 		Ok(())

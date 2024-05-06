@@ -43,7 +43,7 @@ pub trait Configurable: DynClone {
 	/// options are used.
 	fn allow_dupes(&self) -> HashSet<String>;
 	/// returns a list of required parameters, if any of these are not specified,
-	/// [`crate::configurable`] will return an error
+	/// the [`crate::configure`] macro will return an error
 	fn required(&self) -> Vec<String>;
 
 	fn get_usize_params(&self) -> Vec<(String, usize)>;
