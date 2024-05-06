@@ -40,8 +40,8 @@ impl Configurable for ${CONFIGURABLE_STRUCT} {
 		${SET_CONFIGURABLE}
 	}
 
-	fn allow_dupes(&self) -> HashSet<String> {
-		let mut ret = HashSet::new();
+	fn allow_dupes(&self) -> std::collections::HashSet<String> {
+		let mut ret = std::collections::HashSet::new();
 		${DUPES_INSERTS}
 		ret
         }

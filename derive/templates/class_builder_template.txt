@@ -1,0 +1,35 @@
+	${IMPL_COMMENTS}
+        ${VISIBILITY_IMPL} fn build_${VIEW} ${GENERIC_PRE} (options: Vec<${NAME}ConstOptions>) -> Result<impl ${TRAIT}, Error> ${WHERE_CLAUSE} {
+		let conf = configure!(${NAME}Const, ${NAME}ConstOptions, options)?;
+                ${NAME}::builder(conf)
+        }
+       
+	${BOX_COMMENTS}
+        ${VISIBILITY_BOX} fn build_${VIEW}_box ${GENERIC_PRE} (options: Vec<${NAME}ConstOptions>) -> Result<Box<dyn ${TRAIT}>, Error> ${WHERE_CLAUSE} {
+		let conf = configure!(${NAME}Const, ${NAME}ConstOptions, options)?;
+                Ok(Box::new(${NAME}::builder(conf)?))
+        } 
+
+        ${SEND_IMPL_COMMENTS}
+        ${VISIBILITY_SEND_IMPL} fn build_${VIEW}_send ${GENERIC_PRE} (options: Vec<${NAME}ConstOptions>) -> Result<impl ${TRAIT} + Send, Error> ${WHERE_CLAUSE} {
+                let conf = configure!(${NAME}Const, ${NAME}ConstOptions, options)?;
+                ${NAME}::builder(conf)
+        }
+
+        ${SEND_BOX_COMMENTS}
+        ${VISIBILITY_SEND_BOX} fn build_${VIEW}_send_box ${GENERIC_PRE} (options: Vec<${NAME}ConstOptions>) -> Result<Box<dyn ${TRAIT} + Send>, Error> ${WHERE_CLAUSE} {
+                let conf = configure!(${NAME}Const, ${NAME}ConstOptions, options)?;
+                Ok(Box::new(${NAME}::builder(conf)?))
+        }
+
+        ${SYNC_IMPL_COMMENTS}
+        ${VISIBILITY_SYNC_IMPL} fn build_${VIEW}_sync ${GENERIC_PRE} (options: Vec<${NAME}ConstOptions>) -> Result<impl ${TRAIT} + Send + Sync, Error> ${WHERE_CLAUSE} {
+                let conf = configure!(${NAME}Const, ${NAME}ConstOptions, options)?;
+                ${NAME}::builder(conf)
+        }
+
+        ${SYNC_BOX_COMMENTS}
+        ${VISIBILITY_SYNC_BOX} fn build_${VIEW}_sync_box ${GENERIC_PRE} (options: Vec<${NAME}ConstOptions>) -> Result<Box<dyn ${TRAIT} + Send + Sync>, Error> ${WHERE_CLAUSE} {
+                let conf = configure!(${NAME}Const, ${NAME}ConstOptions, options)?;
+                Ok(Box::new(${NAME}::builder(conf)?))
+        }

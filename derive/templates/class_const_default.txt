@@ -1,0 +1,8 @@
+impl Default for ${NAME}Const {
+	fn default() -> Self {
+		${DEFAULT_INITS}
+		Self {
+			${DEFAULT_PARAMS}
+		}
+	}
+}

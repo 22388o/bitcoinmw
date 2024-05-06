@@ -19,7 +19,6 @@
 #[cfg(test)]
 mod test {
 	use bmw_core::*;
-	use std::collections::HashSet;
 	use TestErrorKind::*;
 
 	/// Kinds of errors used in testing

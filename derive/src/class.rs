@@ -17,12 +17,14 @@
 // limitations under the License.
 
 use bmw_base::*;
+use bmw_deps::convert_case::{Case, Casing};
 use bmw_deps::substring::Substring;
 use bmw_deps::syn;
 use bmw_deps::syn::{parse_str, Expr, Type};
 use proc_macro::TokenTree::{Group, Ident, Literal, Punct};
 use proc_macro::{Delimiter, Spacing, Span, TokenStream, TokenTree};
 use proc_macro_error::{abort, emit_error, Diagnostic, Level};
+use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
 struct Fn {
@@ -104,6 +106,7 @@ enum FieldType {
 struct Const {
 	name: String,
 	field_type: Option<FieldType>,
+	field_string: Option<String>,
 	value_str: String,
 	span: Span,
 	prev_token_is_joint: bool,
@@ -115,6 +118,7 @@ impl Const {
 			name,
 			value_str: "".to_string(),
 			field_type: None,
+			field_string: None,
 			span,
 			prev_token_is_joint: false,
 		}
@@ -158,6 +162,9 @@ enum ItemState {
 	WantsGeneric2,
 	WantsWhereOrBrace,
 	WantsName,
+	WantsFn,
+	WantsFnName,
+	WantsAppendFn,
 	Complete,
 }
 
@@ -188,6 +195,7 @@ enum State {
 }
 
 struct StateMachine {
+	debug: bool,
 	state: State,
 	span: Option<Span>,
 	error_list: Vec<SpanError>,
@@ -209,13 +217,18 @@ struct StateMachine {
 	where_clause: Option<String>,
 	class_is_pub: bool,
 	class_is_pub_crate: bool,
-	inner: String,
 	prev_is_joint: bool,
+	impl_fns: Vec<String>,
+	builder_fn: String,
+	cur_fn_str: String,
+	in_builder: bool,
+	ret: TokenStream,
 }
 
 impl StateMachine {
-	fn new() -> Self {
+	fn new(debug: bool) -> Self {
 		Self {
+			debug,
 			state: State::Base,
 			item_state: ItemState::Base,
 			span: None,
@@ -223,6 +236,7 @@ impl StateMachine {
 			module: None,
 			is_pub_crate: false,
 			in_generic2: false,
+			in_builder: false,
 			pub_views: vec![],
 			pub_crate_views: vec![],
 			cur_const: None,
@@ -237,44 +251,407 @@ impl StateMachine {
 			where_clause: None,
 			class_is_pub: false,
 			class_is_pub_crate: false,
-			inner: "".to_string(),
 			prev_is_joint: false,
+			builder_fn: "".to_string(),
+			cur_fn_str: "".to_string(),
+			impl_fns: vec![],
+			ret: TokenStream::new(),
 		}
 	}
 
-	fn derive(&mut self, attr: TokenStream, item: TokenStream) -> Result<(), Error> {
+	fn derive(&mut self, attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
 		self.parse_attr(attr)?;
 
-		println!("const list:");
-		for c in &self.const_list {
-			println!("{:?}", c);
-		}
+		if self.debug {
+			println!("const list:");
+			for c in &self.const_list {
+				println!("{:?}", c);
+			}
 
-		println!("var list:");
-		for v in &self.var_list {
-			println!("{:?}", v);
-		}
+			println!("var list:");
+			for v in &self.var_list {
+				println!("{:?}", v);
+			}
 
-		println!("fn list:");
-		for f in &self.fn_list {
-			println!("{:?}", f);
+			println!("fn list:");
+			for f in &self.fn_list {
+				println!("{:?}", f);
+			}
 		}
 
 		self.item_state = ItemState::Base;
 		self.parse_item(item)?;
 
-		println!(
-			"class_name={:?},pub={},pub(crate)={},generics1={:?},generic2={:?},where={:?}",
-			self.class_name,
-			self.class_is_pub,
-			self.class_is_pub_crate,
-			self.generic1,
-			self.generic2,
-			self.where_clause,
-		);
+		if self.debug {
+			println!(
+				"class_name={:?},pub={},pub(crate)={},generics1={:?},generic2={:?},where={:?}",
+				self.class_name,
+				self.class_is_pub,
+				self.class_is_pub_crate,
+				self.generic1,
+				self.generic2,
+				self.where_clause,
+			);
+			println!("builder='{}'", self.builder_fn);
+			println!("other fns:");
+			for impl_fn in &self.impl_fns {
+				println!("{:?}", impl_fn);
+			}
+		}
 
 		if self.error_list.len() > 0 {
 			self.print_errors()?;
+		}
+
+		self.generate_code()?;
+
+		Ok(self.ret.clone())
+	}
+
+	fn build_generic1(&self) -> Result<String, Error> {
+		Ok(match &self.generic1 {
+			Some(generic) => format!("<{}>", generic),
+			None => "".to_string(),
+		})
+	}
+
+	fn build_generic2(&self) -> Result<String, Error> {
+		Ok(match &self.generic2 {
+			Some(generic) => format!("<{}>", generic),
+			None => "".to_string(),
+		})
+	}
+
+	fn build_where(&self) -> Result<String, Error> {
+		Ok(match &self.where_clause {
+			Some(where_clause) => format!("where {}", where_clause),
+			None => "".to_string(),
+		})
+	}
+
+	fn build_var_params_replace(&self) -> Result<String, Error> {
+		let mut replace = "".to_string();
+		for item in &self.var_list {
+			replace = format!("{}{}: {},\n\t", replace, item.name, item.type_str);
+		}
+		Ok(replace)
+	}
+
+	fn const_type_string(&self, item: &Const) -> Result<String, Error> {
+		let configurable_name = match &item.field_string {
+			Some(field_string) => field_string.clone(),
+			None => "".to_string(),
+		};
+		let vec_configurable_name = match &item.field_string {
+			Some(field_string) => format!("Vec<{}>", field_string.clone()),
+			None => "".to_string(),
+		};
+		let type_str = match &item.field_type {
+			Some(field_type) => match field_type {
+				FieldType::Usize => "usize",
+				FieldType::String => "String",
+				FieldType::U8 => "u8",
+				FieldType::Bool => "bool",
+				FieldType::U16 => "u16",
+				FieldType::U32 => "u32",
+				FieldType::U64 => "u64",
+				FieldType::U128 => "u128",
+				FieldType::VecUsize => "Vec<usize>",
+				FieldType::VecString => "Vec<String>",
+				FieldType::VecU8 => "Vec<u8>",
+				FieldType::VecBool => "Vec<bool>",
+				FieldType::VecU16 => "Vec<u16>",
+				FieldType::VecU32 => "Vec<u32>",
+				FieldType::VecU64 => "Vec<u64>",
+				FieldType::VecU128 => "Vec<u128>",
+				FieldType::VecConfigurable => &vec_configurable_name,
+				FieldType::Configurable => &configurable_name,
+			},
+			None => ret_err!(CoreErrorKind::Parse, "unexpected type is none"),
+		};
+		Ok(type_str.to_string())
+	}
+
+	fn build_const_params_replace(&self) -> Result<String, Error> {
+		let mut replace = "".to_string();
+		for item in &self.const_list {
+			let type_str = self.const_type_string(item)?;
+			replace = format!("{}{}: {},\n\t", replace, item.name, type_str);
+		}
+		Ok(replace)
+	}
+
+	fn update_structs(&mut self, template: &String) -> Result<String, Error> {
+		let template = template.replace("${CLONE}", "").to_string();
+		let template = template.replace("${NAME}", &self.class_name.as_ref().unwrap());
+		let template = template.replace("${GENERICS2}", &self.build_generic2()?);
+		let template = template.replace("${WHERE}", &self.build_where()?);
+		let template = template.replace("${GENERICS1}", &self.build_generic2()?);
+		let template = template.replace("${VAR_PARAMS}", &self.build_var_params_replace()?);
+		let template = template.replace("${CONST_PARAMS}", &self.build_const_params_replace()?);
+
+		Ok(template)
+	}
+
+	fn build_trait_views(&self) -> Result<HashMap<String, Vec<Fn>>, Error> {
+		let mut ret: HashMap<String, Vec<Fn>> = HashMap::new();
+
+		for fn_info in &self.fn_list {
+			for view in &fn_info.view_list {
+				match ret.get_mut(view) {
+					Some(v) => {
+						v.push(fn_info.clone());
+					}
+					None => {
+						ret.insert(view.clone(), vec![fn_info.clone()]);
+					}
+				}
+			}
+		}
+
+		Ok(ret)
+	}
+
+	fn get_const_default_inits(&self) -> Result<String, Error> {
+		let mut ret = "".to_string();
+		for const_value in &self.const_list {
+			ret = format!(
+				"{}let {} = {};\n\t\t",
+				ret, const_value.name, const_value.value_str
+			);
+		}
+		Ok(ret)
+	}
+
+	fn get_const_default_params(&self) -> Result<String, Error> {
+		let mut ret = "".to_string();
+		for const_value in &self.const_list {
+			ret = format!("{}{},\n\t\t\t", ret, const_value.name);
+		}
+		Ok(ret)
+	}
+
+	fn update_const_default(&mut self, template: &String) -> Result<String, Error> {
+		let mut replace = include_str!("../templates/class_const_default.txt").to_string();
+		replace = replace.replace("${NAME}", &self.class_name.as_ref().unwrap());
+		replace = replace.replace("${DEFAULT_INITS}", &self.get_const_default_inits()?);
+		replace = replace.replace("${DEFAULT_PARAMS}", &self.get_const_default_params()?);
+		let template = template.replace("${CONST_DEFAULT}", &replace);
+		Ok(template)
+	}
+
+	fn update_impl_struct(&mut self, template: &String) -> Result<String, Error> {
+		let mut replace = include_str!("../templates/class_impl_struct_template.txt").to_string();
+		replace = replace.replace("${NAME}", &self.class_name.as_ref().unwrap());
+		let template = template.replace("${IMPL_STRUCT}", &replace);
+		Ok(template)
+	}
+
+	fn update_impl_var(&mut self, template: &String) -> Result<String, Error> {
+		let class_name = &self.class_name.as_ref().unwrap();
+		let mut replace = format!("impl {}Var {{\n", class_name);
+		let get_template = include_str!("../templates/class_get_mut_template.txt").to_string();
+		for c in &self.var_list {
+			let type_str = &c.type_str;
+			replace = format!(
+				"{}\n{}",
+				replace,
+				get_template
+					.replace("${PARAM_NAME}", &c.name)
+					.replace("${PARAM_TYPE}", &type_str)
+			);
+		}
+		// add builder
+		replace = format!("{}\t{}", replace, self.builder_fn);
+		replace = format!("{}}}", replace);
+		let template = template.replace("${IMPL_VAR}", &replace);
+		Ok(template)
+	}
+
+	fn update_impl_const(&mut self, template: &String) -> Result<String, Error> {
+		let mut replace = format!("impl {}Const {{", &self.class_name.as_ref().unwrap());
+		let get_template = include_str!("../templates/class_get_template.txt").to_string();
+		for c in &self.const_list {
+			let type_str = self.const_type_string(c)?;
+			replace = format!(
+				"{}\n{}",
+				replace,
+				get_template
+					.replace("${PARAM_NAME}", &c.name)
+					.replace("${PARAM_TYPE}", &type_str)
+			);
+		}
+		replace = format!("{}}}", replace);
+		let template = template.replace("${IMPL_CONST}", &replace);
+		Ok(template)
+	}
+
+	fn update_traits(
+		&mut self,
+		template: &String,
+		views: &HashMap<String, Vec<Fn>>,
+	) -> Result<String, Error> {
+		let mut trait_text = "".to_string();
+		for (k, v) in views {
+			let trait_name = k.to_case(Case::Pascal);
+			trait_text = format!("{}\ntrait {} {{", trait_text, trait_name);
+			for fn_info in v {
+				trait_text = format!(
+					"{}\nfn {}({}) -> {};",
+					trait_text, fn_info.name, fn_info.param_list, fn_info.return_list
+				);
+			}
+			trait_text = format!("{}\n}}", trait_text);
+		}
+		let template = template.replace("${TRAITS}", &trait_text);
+		Ok(template)
+	}
+
+	fn update_trait_impl(
+		&mut self,
+		template: &String,
+		views: &HashMap<String, Vec<Fn>>,
+	) -> Result<String, Error> {
+		let mut trait_impl = "".to_string();
+		let class_name = &self.class_name.as_ref().unwrap();
+		for (k, v) in views {
+			let trait_name = k.to_case(Case::Pascal);
+			trait_impl = format!(
+				"{}\nimpl {} {} {} for {} {}{} {{",
+				trait_impl,
+				self.build_generic1()?,
+				trait_name,
+				self.build_generic1()?,
+				class_name,
+				self.build_generic2()?,
+				self.build_where()?,
+			);
+			for fn_info in v {
+				trait_impl = format!(
+					"{}\n\tfn {}({}) -> {} {{",
+					trait_impl, fn_info.name, fn_info.param_list, fn_info.return_list
+				);
+				let mut param_names = "self".to_string();
+				for i in 1..fn_info.param_names.len() {
+					param_names = format!("{}, {}", param_names, fn_info.param_names[i]);
+				}
+				trait_impl = format!(
+					"{}\n\t\t{}::{}({})",
+					trait_impl, class_name, fn_info.name, param_names
+				);
+				trait_impl = format!("{}\n\t}}", trait_impl);
+			}
+			trait_impl = format!("{}\n}}", trait_impl);
+		}
+		let template = template.replace("${TRAIT_IMPL}", &trait_impl);
+		Ok(template)
+	}
+
+	fn update_macros(
+		&mut self,
+		template: &String,
+		views: &HashMap<String, Vec<Fn>>,
+	) -> Result<String, Error> {
+		let class_name = &self.class_name.as_ref().unwrap();
+		let macro_template = include_str!("../templates/class_macro_template.txt").to_string();
+		let mut macro_builder = "".to_string();
+		for (view, _v) in views {
+			let mut mbt = macro_template.clone();
+			mbt = mbt.replace("${NAME}", &class_name);
+			mbt = mbt.replace("${VIEW}", &view);
+			mbt = mbt.replace("${MACRO_NAME_IMPL}", &format!("{}", view));
+			mbt = mbt.replace("${MACRO_NAME_BOX}", &format!("{}_box", view));
+			mbt = mbt.replace("${MACRO_NAME_SEND_IMPL}", &format!("{}_send", view));
+			mbt = mbt.replace("${MACRO_NAME_SEND_BOX}", &format!("{}_send_box", view));
+			mbt = mbt.replace("${MACRO_NAME_SYNC_IMPL}", &format!("{}_sync", view));
+			mbt = mbt.replace("${MACRO_NAME_SYNC_BOX}", &format!("{}_sync_box", view));
+			mbt = mbt.replace("${IMPL_PROTECTED}", "");
+			mbt = mbt.replace("${BOX_PROTECTED}", "");
+			mbt = mbt.replace("${IMPL_SEND_PROTECTED}", "");
+			mbt = mbt.replace("${BOX_SEND_PROTECTED}", "");
+			mbt = mbt.replace("${IMPL_SYNC_PROTECTED}", "");
+			mbt = mbt.replace("${BOX_SYNC_PROTECTED}", "");
+			mbt = mbt.replace("${IMPL_PUBLIC}", "#[macro_export]");
+			mbt = mbt.replace("${BOX_PUBLIC}", "#[macro_export]");
+			mbt = mbt.replace("${IMPL_SEND_PUBLIC}", "#[macro_export]");
+			mbt = mbt.replace("${BOX_SEND_PUBLIC}", "#[macro_export]");
+			mbt = mbt.replace("${IMPL_SYNC_PUBLIC}", "#[macro_export]");
+			mbt = mbt.replace("${BOX_SYNC_PUBLIC}", "#[macro_export]");
+			mbt = mbt.replace("${IMPL_COMMENTS}", "");
+			mbt = mbt.replace("${BOX_COMMENTS}", "");
+			mbt = mbt.replace("${SEND_IMPL_COMMENTS}", "");
+			mbt = mbt.replace("${SEND_BOX_COMMENTS}", "");
+			mbt = mbt.replace("${SYNC_IMPL_COMMENTS}", "");
+			mbt = mbt.replace("${SYNC_BOX_COMMENTS}", "");
+			macro_builder = format!("{}\n{}", macro_builder, mbt);
+		}
+		let template = template.replace("${MACROS}", &macro_builder);
+		Ok(template)
+	}
+
+	fn update_builder(
+		&mut self,
+		template: &String,
+		views: &HashMap<String, Vec<Fn>>,
+	) -> Result<String, Error> {
+		let class_name = &self.class_name.as_ref().unwrap();
+		let builder_template = include_str!("../templates/class_builder_template.txt").to_string();
+		let mut builder_text = format!(
+			"struct {}Builder {{}}\nimpl {}Builder {{",
+			class_name, class_name
+		);
+
+		for (view, _v) in views {
+			let trait_text = view.to_case(Case::Pascal);
+			let mut view_template = builder_template.replace("${IMPL_COMMENTS}", "");
+			view_template = view_template.replace("${BOX_COMMENTS}", "");
+			view_template = view_template.replace("${SYNC_BOX_COMMENTS}", "");
+			view_template = view_template.replace("${SYNC_IMPL_COMMENTS}", "");
+			view_template = view_template.replace("${SEND_IMPL_COMMENTS}", "");
+			view_template = view_template.replace("${SEND_BOX_COMMENTS}", "");
+			view_template = view_template.replace("${VISIBILITY_IMPL}", "pub");
+			view_template = view_template.replace("${VISIBILITY_BOX}", "pub");
+			view_template = view_template.replace("${VISIBILITY_SEND_IMPL}", "pub");
+			view_template = view_template.replace("${VISIBILITY_SYNC_IMPL}", "pub");
+			view_template = view_template.replace("${VISIBILITY_SEND_BOX}", "pub");
+			view_template = view_template.replace("${VISIBILITY_SYNC_BOX}", "pub");
+			view_template = view_template.replace("${WHERE_CLAUSE}", "");
+			view_template = view_template.replace("${GENERIC_PRE}", "");
+			view_template = view_template.replace("${TRAIT}", &trait_text);
+			view_template = view_template.replace("${NAME}", class_name);
+			view_template = view_template.replace("${VIEW}", view);
+			builder_text = format!("{}{}", builder_text, view_template);
+		}
+
+		builder_text = format!("{}\n}}", builder_text);
+		let template = template.replace("${BUILDER}", &builder_text);
+		Ok(template)
+	}
+
+	fn generate_code(&mut self) -> Result<(), Error> {
+		let views = self.build_trait_views()?;
+		let mut template = include_str!("../templates/class_template.txt").to_string();
+		template = self.update_structs(&template)?;
+		template = self.update_const_default(&template)?;
+		template = self.update_impl_struct(&template)?;
+		template = self.update_impl_var(&template)?;
+		template = self.update_impl_const(&template)?;
+		template = self.update_traits(&template, &views)?;
+		template = self.update_trait_impl(&template, &views)?;
+		template = self.update_macros(&template, &views)?;
+		template = self.update_builder(&template, &views)?;
+
+		self.ret.extend(template.parse::<TokenStream>());
+
+		// add back in the non-builder fns
+		let mut other_fns = format!("impl {} {{", self.class_name.as_ref().unwrap());
+		for impl_fn in &self.impl_fns {
+			other_fns = format!("{} {}", other_fns, impl_fn);
+		}
+		other_fns = format!("{}}}", other_fns);
+		self.ret.extend(other_fns.parse::<TokenStream>());
+		if self.debug {
+			println!("ret='{}'", self.ret);
 		}
 		Ok(())
 	}
@@ -345,7 +722,98 @@ impl StateMachine {
 			ItemState::WantsWhereOrBrace => self.process_wants_where_or_brace(token)?,
 			ItemState::WantsName => self.process_wants_name(token)?,
 			ItemState::Complete => self.process_item_complete(token)?,
+			ItemState::WantsFn => self.process_item_wants_fn(token)?,
+			ItemState::WantsFnName => self.process_item_wants_fn_name(token)?,
+			ItemState::WantsAppendFn => self.process_append_fn(token)?,
 		}
+		Ok(())
+	}
+
+	fn process_item_braces(&mut self, strm: TokenStream) -> Result<(), Error> {
+		self.item_state = ItemState::WantsFn;
+		for token in strm {
+			self.span = Some(token.span());
+			self.process_item_token(token)?;
+		}
+		Ok(())
+	}
+
+	fn process_append_fn(&mut self, token: TokenTree) -> Result<(), Error> {
+		if self.in_builder {
+			if self.builder_fn.len() == 0 {
+				let name = self.class_name.as_ref().unwrap();
+				self.builder_fn = format!("fn builder(const_values: &{}Const)", name);
+			} else {
+				self.builder_fn = format!(
+					"{}{}{}",
+					self.builder_fn,
+					if self.prev_is_joint { "" } else { " " },
+					token.to_string()
+				);
+			}
+		} else {
+			self.append_error(
+				"fn blocks other than the builder are not allowed. Please use another impl block.",
+			)?;
+			self.cur_fn_str = format!(
+				"{}{}{}",
+				self.cur_fn_str,
+				if self.prev_is_joint { "" } else { " " },
+				token.to_string()
+			);
+		}
+
+		match token {
+			Punct(ref p) => {
+				if p.spacing() == Spacing::Joint {
+					self.prev_is_joint = true;
+				} else {
+					self.prev_is_joint = false;
+				}
+			}
+			_ => {
+				self.prev_is_joint = false;
+			}
+		}
+
+		match token {
+			Group(group) => {
+				if group.delimiter() == Delimiter::Brace {
+					// the rest of the fn info is here change state to WantsFn
+					self.item_state = ItemState::WantsFn;
+					if !self.in_builder {
+						self.impl_fns.push(self.cur_fn_str.clone());
+					}
+				}
+			}
+			_ => {}
+		}
+		Ok(())
+	}
+
+	fn process_item_wants_fn_name(&mut self, token: TokenTree) -> Result<(), Error> {
+		match token {
+			Ident(ident) => {
+				let ident_str = ident.to_string();
+				if ident_str == "builder" {
+					self.in_builder = true;
+				} else {
+					self.in_builder = false;
+				}
+				self.cur_fn_str = format!("fn {}", ident_str);
+				self.item_state = ItemState::WantsAppendFn;
+			}
+			_ => {
+				// error
+				self.append_error(&format!("expected fn name found, '{}'", token.to_string()))?;
+			}
+		}
+		Ok(())
+	}
+
+	fn process_item_wants_fn(&mut self, token: TokenTree) -> Result<(), Error> {
+		self.expected(vec!["fn"], &token.to_string())?;
+		self.item_state = ItemState::WantsFnName;
 		Ok(())
 	}
 
@@ -362,7 +830,10 @@ impl StateMachine {
 		Ok(())
 	}
 	fn process_item_complete(&mut self, token: TokenTree) -> Result<(), Error> {
-		self.append_error("unexpected additional tokens")?;
+		self.append_error(&format!(
+			"unexpected additional tokens. token: {}",
+			token.to_string()
+		))?;
 		Ok(())
 	}
 
@@ -375,6 +846,7 @@ impl StateMachine {
 			Group(group) => {
 				if group.delimiter() == Delimiter::Brace {
 					self.item_state = ItemState::Complete;
+					self.process_item_braces(group.stream())?;
 				} else {
 				}
 			}
@@ -384,17 +856,15 @@ impl StateMachine {
 	}
 
 	fn process_wants_generic2(&mut self, token: TokenTree) -> Result<(), Error> {
-		println!("wants gen token = {}", token);
 		if token.to_string() == ">" {
 			if self.in_generic2 {
 				self.item_state = ItemState::WantsWhereOrBrace;
 			} else {
-				println!("setting to in_gen2");
 				self.item_state = ItemState::WantsName;
 				self.in_generic2 = true;
 			}
 		} else {
-			let mut generic = if self.in_generic2 {
+			let generic = if self.in_generic2 {
 				match self.generic2.as_mut() {
 					Some(generic) => generic,
 					None => {
@@ -461,6 +931,7 @@ impl StateMachine {
 			Group(group) => {
 				if group.delimiter() == Delimiter::Brace {
 					self.item_state = ItemState::Complete;
+					self.process_item_braces(group.stream())?;
 				} else {
 					self.expected(vec!["{"], &format!("{:?}", group.delimiter()))?;
 				}
@@ -510,6 +981,7 @@ impl StateMachine {
 			Group(group) => {
 				if group.delimiter() == Delimiter::Brace {
 					self.item_state = ItemState::Complete;
+					self.process_item_braces(group.stream())?;
 				} else {
 					// error
 				}
@@ -577,9 +1049,7 @@ impl StateMachine {
 
 	fn process_item_base(&mut self, token: TokenTree) -> Result<(), Error> {
 		let token_str = token.to_string();
-		println!("item base token = {}", token_str);
 		if token_str == "pub" {
-			println!("set class_is_pub = true");
 			self.item_state = ItemState::WantsCrateOrImpl;
 			self.class_is_pub = true;
 		} else if token_str == "impl" {
@@ -813,6 +1283,7 @@ impl StateMachine {
 							} else if ident_str == "String" {
 								cur_const.field_type = Some(FieldType::VecString);
 							} else {
+								cur_const.field_string = Some(ident_str);
 								cur_const.field_type = Some(FieldType::VecConfigurable);
 							}
 						}
@@ -921,6 +1392,7 @@ impl StateMachine {
 							} else if ident_str == "String" {
 								cur_const.field_type = Some(FieldType::String);
 							} else {
+								cur_const.field_string = Some(ident_str);
 								cur_const.field_type = Some(FieldType::Configurable);
 							}
 						}
@@ -1119,7 +1591,7 @@ impl StateMachine {
 
 	fn check_type(
 		&mut self,
-		param_name: String,
+		_param_name: String,
 		type_str: String,
 		span: Span,
 	) -> Result<(), Error> {
@@ -1290,13 +1762,13 @@ impl StateMachine {
 	}
 }
 
-pub(crate) fn do_derive_class(attr: TokenStream, item: TokenStream) -> TokenStream {
-	let mut state = StateMachine::new();
+pub(crate) fn do_derive_class(attr: TokenStream, item: TokenStream, debug: bool) -> TokenStream {
+	let mut state = StateMachine::new(debug);
 	match state.derive(attr, item) {
-		Ok(_) => {}
+		Ok(strm) => strm,
 		Err(e) => {
 			println!("do_derive_class generated error: {}", e);
+			"".parse::<TokenStream>().unwrap()
 		}
 	}
-	"".parse::<TokenStream>().unwrap()
 }

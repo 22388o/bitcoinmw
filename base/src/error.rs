@@ -42,6 +42,8 @@ pub enum CoreErrorKind {
 	Parse(String),
 	/// configuration
 	Configuration(String),
+	/// class builder
+	Builder(String),
 }
 
 impl Error {

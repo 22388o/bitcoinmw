@@ -1,0 +1,17 @@
+impl ${NAME} {
+	fn constants(&self) -> &${NAME}Const {
+		&self._hidden_const_struct
+	}
+
+	fn vars(&mut self) -> &mut ${NAME}Var {
+		&mut self._hidden_var_struct
+	}
+
+	fn builder(_hidden_const_struct: ${NAME}Const) -> Result<Self, Error> {
+		let _hidden_var_struct = ${NAME}Var::builder(&_hidden_const_struct)?;
+		Ok(Self {
+			_hidden_var_struct,
+			_hidden_const_struct,
+		})
+	}
+}

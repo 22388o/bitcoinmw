@@ -69,5 +69,12 @@ use crate::class::do_derive_class;
 #[cfg(not(tarpaulin_include))]
 #[proc_macro_error]
 pub fn class(attr: TokenStream, item: TokenStream) -> TokenStream {
-	do_derive_class(attr, item)
+	do_derive_class(attr, item, false)
+}
+
+#[proc_macro_attribute]
+#[cfg(not(tarpaulin_include))]
+#[proc_macro_error]
+pub fn debug_class(attr: TokenStream, item: TokenStream) -> TokenStream {
+	do_derive_class(attr, item, true)
 }

@@ -1,0 +1,40 @@
+${CLONE}
+pub(crate) struct ${NAME} ${GENERICS2} ${WHERE} {
+        _hidden_var_struct: ${NAME}Var ${GENERICS1},
+        _hidden_const_struct: ${NAME}Const,
+}
+
+${CLONE}
+struct ${NAME}Var ${GENERICS2} ${WHERE}
+{
+        ${VAR_PARAMS}
+}
+
+#[derive(Configurable, Clone)]
+struct ${NAME}Const {
+        ${CONST_PARAMS}
+}
+
+// impl Default for ${NAME}Const
+${CONST_DEFAULT}
+
+// impl struct
+${IMPL_STRUCT}
+
+// impl var
+${IMPL_VAR}
+
+// impl const
+${IMPL_CONST}
+
+// traits
+${TRAITS}
+
+// impls for traits
+${TRAIT_IMPL}
+
+// builder struct
+${BUILDER}
+
+// macros
+${MACROS}

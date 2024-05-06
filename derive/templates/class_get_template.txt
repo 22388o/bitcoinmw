@@ -1,0 +1,3 @@
+	pub(crate) fn get_${PARAM_NAME}(&self) -> &${PARAM_TYPE} {
+		&self.${PARAM_NAME}
+	}
