@@ -17,9 +17,16 @@
 // limitations under the License.
 
 use bmw_core::*;
+use bmw_deps::dyn_clone::clone_trait_object;
 
-#[class {
-    pub cat as catmapped, dog_send;
+#[derive(Clone)]
+struct Abc {
+	x: usize,
+}
+
+#[debug_class {
+    clone dog, cat;
+    pub cat as catmapped, dog_send, cat_box;
     pub(crate) dog_box;
     pub(crate) bwrp, monkey_box;
 
@@ -28,6 +35,7 @@ use bmw_core::*;
     module "bmw_int::test_class";
     const x: usize = usize::MAX - 10;
     const vvv: Vec<u16> = vec![1,2,3];
+    var a: Abc;
     var t: String;
     const p: Vec<usize> = vec![];
     const v123: usize = 0;
@@ -63,9 +71,12 @@ pub impl Animal {
 			t: "aaa".to_string(),
 			y: 10,
 			b: false,
+			a: Abc { x: 0 },
 		})
 	}
 }
+
+//clone_trait_object!(Cat);
 
 impl Animal {
 	fn speak(
@@ -102,10 +113,12 @@ mod test {
 
 	#[test]
 	fn test_animal() -> Result<(), Error> {
-		let mut cat = catmapped!()?;
+		let mut cat = cat_box!()?;
 		cat.abc();
 		cat.abc();
 		cat.abc();
+
+		let mut cat_clone = cat.clone();
 		Ok(())
 	}
 }

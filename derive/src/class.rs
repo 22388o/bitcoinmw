@@ -168,6 +168,12 @@ impl PubCrate {
 	}
 }
 
+#[derive(Clone)]
+struct CloneItem {
+	name: String,
+	span: Span,
+}
+
 struct SpanError {
 	span: Span,
 	msg: String,
@@ -214,6 +220,8 @@ enum State {
 	WantsViewListFnName,
 	WantsViewListParamList,
 	WantsViewListReturnList,
+	Clone,
+	WantsCloneComma,
 }
 
 struct StateMachine {
@@ -241,6 +249,7 @@ struct StateMachine {
 	class_is_pub_crate: bool,
 	prev_is_joint: bool,
 	impl_fns: Vec<String>,
+	clone_list: Vec<CloneItem>,
 	builder_fn: String,
 	cur_fn_str: String,
 	in_builder: bool,
@@ -266,6 +275,7 @@ impl StateMachine {
 			cur_fn: None,
 			const_list: vec![],
 			var_list: vec![],
+			clone_list: vec![],
 			fn_list: vec![],
 			class_name: None,
 			generic1: None,
@@ -338,6 +348,14 @@ impl StateMachine {
 
 	fn check_semantics(&mut self) -> Result<(), Error> {
 		let mut trait_views = self.build_trait_views()?;
+
+		for c in self.clone_list.clone() {
+			if trait_views.get(&c.name).is_none() {
+				self.span = Some(c.span);
+				self.append_error(&format!("view '{}' not found", c.name))?;
+			}
+		}
+
 		for (k, v) in trait_views.clone() {
 			trait_views.insert(format!("{}_send_box", k), v.clone());
 			trait_views.insert(format!("{}_send", k), v.clone());
@@ -469,7 +487,11 @@ impl StateMachine {
 	}
 
 	fn update_structs(&mut self, template: &String) -> Result<String, Error> {
-		let mut template = template.replace("${CLONE}", "").to_string();
+		let mut template = if self.clone_list.len() > 0 {
+			template.replace("${CLONE}", "#[derive(Clone)]").to_string()
+		} else {
+			template.replace("${CLONE}", "").to_string()
+		};
 		template = template.replace("${NAME}", &self.class_name.as_ref().unwrap());
 		template = template.replace("${GENERICS2}", &self.build_generic2()?);
 		template = template.replace("${WHERE}", &self.build_where()?);
@@ -787,7 +809,16 @@ impl StateMachine {
 		view_pub_map: &HashMap<String, (Visibility, String)>,
 	) -> Result<String, Error> {
 		let mut trait_text = "".to_string();
+		let mut clone_set = HashSet::new();
+		for c in &self.clone_list {
+			clone_set.insert(c.name.clone());
+		}
 		for (k, v) in views {
+			let clone_text = if clone_set.contains(k) {
+				": bmw_core::dyn_clone::DynClone"
+			} else {
+				""
+			};
 			let trait_name = k.to_case(Case::Pascal);
 			let vis = view_pub_map.get(&trait_name);
 			let vis = match vis {
@@ -798,7 +829,10 @@ impl StateMachine {
 				},
 				None => "",
 			};
-			trait_text = format!("{}\n{} trait {} {{", trait_text, vis, trait_name);
+			trait_text = format!(
+				"{}\n{} trait {} {} {{",
+				trait_text, vis, trait_name, clone_text
+			);
 			for fn_info in v {
 				trait_text = format!(
 					"{}\nfn {}({}) -> {};",
@@ -816,6 +850,10 @@ impl StateMachine {
 		template: &String,
 		views: &HashMap<String, Vec<Fn>>,
 	) -> Result<String, Error> {
+		let mut clone_set = HashSet::new();
+		for c in &self.clone_list {
+			clone_set.insert(c.name.clone());
+		}
 		let mut trait_impl = "".to_string();
 		let class_name = &self.class_name.as_ref().unwrap();
 		for (k, v) in views {
@@ -849,33 +887,37 @@ impl StateMachine {
 			}
 			trait_impl = format!("{}\n}}", trait_impl);
 
-			// trait implementation for &mut
-			trait_impl = format!(
-				"{}\nimpl {} {} {} for &mut {} {}{} {{",
-				trait_impl,
-				self.build_generic1()?,
-				trait_name,
-				self.build_generic1()?,
-				class_name,
-				self.build_generic2()?,
-				self.build_where()?,
-			);
-			for fn_info in v {
+			if !clone_set.contains(k) {
+				// trait implementation for &mut
 				trait_impl = format!(
-					"{}\n\tfn {}({}) -> {} {{",
-					trait_impl, fn_info.name, fn_info.param_list, fn_info.return_list
+					"{}\nimpl {} {} {} for &mut {} {}{} {{",
+					trait_impl,
+					self.build_generic1()?,
+					trait_name,
+					self.build_generic1()?,
+					class_name,
+					self.build_generic2()?,
+					self.build_where()?,
 				);
-				let mut param_names = "self".to_string();
-				for i in 1..fn_info.param_names.len() {
-					param_names = format!("{}, {}", param_names, fn_info.param_names[i]);
+				for fn_info in v {
+					trait_impl = format!(
+						"{}\n\tfn {}({}) -> {} {{",
+						trait_impl, fn_info.name, fn_info.param_list, fn_info.return_list
+					);
+					let mut param_names = "self".to_string();
+					for i in 1..fn_info.param_names.len() {
+						param_names = format!("{}, {}", param_names, fn_info.param_names[i]);
+					}
+					trait_impl = format!(
+						"{}\n\t\t{}::{}({})",
+						trait_impl, class_name, fn_info.name, param_names
+					);
+					trait_impl = format!("{}\n\t}}", trait_impl);
 				}
-				trait_impl = format!(
-					"{}\n\t\t{}::{}({})",
-					trait_impl, class_name, fn_info.name, param_names
-				);
-				trait_impl = format!("{}\n\t}}", trait_impl);
+				trait_impl = format!("{}\n}}", trait_impl);
+			} else {
+				trait_impl = format!("{}\nclone_trait_object!({});", trait_impl, trait_name);
 			}
-			trait_impl = format!("{}\n}}", trait_impl);
 		}
 		let template = template.replace("${TRAIT_IMPL}", &trait_impl);
 		Ok(template)
@@ -1640,7 +1682,40 @@ impl StateMachine {
 			State::WantsViewListParamList => self.process_wants_view_list_param_list(token)?,
 			State::WantsViewListReturnList => self.process_wants_view_list_return_list(token)?,
 			State::WantsPubAs => self.process_wants_pub_as(token)?,
+			State::Clone => self.process_wants_clone_identifier(token)?,
+			State::WantsCloneComma => self.process_wants_clone_comma(token)?,
 		}
+		Ok(())
+	}
+
+	fn process_wants_clone_identifier(&mut self, token: TokenTree) -> Result<(), Error> {
+		match token {
+			Ident(ref ident) => {
+				self.clone_list.push(CloneItem {
+					name: ident.to_string(),
+					span: token.span(),
+				});
+			}
+			_ => {
+				self.append_error(&format!("expected view name, found, '{}'", token))?;
+			}
+		}
+
+		self.state = State::WantsCloneComma;
+		Ok(())
+	}
+
+	fn process_wants_clone_comma(&mut self, token: TokenTree) -> Result<(), Error> {
+		let token_str = token.to_string();
+		if token_str == ";" {
+			self.state = State::Base;
+		} else if token_str == "," {
+			self.state = State::Clone;
+		} else {
+			self.expected(vec![",", ";"], &token_str)?;
+			self.state = State::Clone;
+		}
+
 		Ok(())
 	}
 
@@ -1655,6 +1730,8 @@ impl StateMachine {
 			self.state = State::Const;
 		} else if token_str == "var" {
 			self.state = State::Var;
+		} else if token_str == "clone" {
+			self.state = State::Clone;
 		} else {
 			match token {
 				Group(ref group) => {
