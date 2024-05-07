@@ -5,12 +5,14 @@ ${CLASS_VISIBILITY} struct ${NAME} ${GENERICS2} ${WHERE} {
         _hidden_const_struct: ${NAME}Const,
 }
 
+
 ${CLONE}
 #[doc(hidden)]
 ${CLASS_VISIBILITY} struct ${NAME}Var ${GENERICS2} ${WHERE}
 {
         ${VAR_PARAMS}
 }
+
 
 #[derive(Configurable, Clone)]
 #[doc(hidden)]
@@ -29,6 +31,7 @@ ${IMPL_VAR}
 
 // impl const
 ${IMPL_CONST}
+
 
 // traits
 ${TRAITS}

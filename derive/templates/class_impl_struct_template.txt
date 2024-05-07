@@ -1,9 +1,9 @@
-impl ${NAME} {
+impl ${GENERIC1} ${NAME} ${GENERIC2} ${WHERE} {
 	fn constants(&self) -> &${NAME}Const {
 		&self._hidden_const_struct
 	}
 
-	fn vars(&mut self) -> &mut ${NAME}Var {
+	fn vars(&mut self) -> &mut ${NAME}Var ${GENERIC1} {
 		&mut self._hidden_var_struct
 	}
 

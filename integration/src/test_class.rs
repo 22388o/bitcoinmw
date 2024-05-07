@@ -24,8 +24,8 @@ struct Abc {
 	x: usize,
 }
 
-#[debug_class {
-    clone dog, cat;
+#[class {
+    clone cat;
     pub cat as catmapped, dog_send, cat_box;
     pub(crate) dog_box;
     pub(crate) bwrp, monkey_box;
@@ -35,6 +35,7 @@ struct Abc {
     module "bmw_int::test_class";
     const x: usize = usize::MAX - 10;
     const vvv: Vec<u16> = vec![1,2,3];
+    var x: Option<B>;
     var a: Abc;
     var t: String;
     const p: Vec<usize> = vec![];
@@ -52,8 +53,8 @@ struct Abc {
     [cat]
     fn abc(&mut self);
 
-    [dog]
-    fn x(&mut self, x: Vec<usize>) -> Result<(), Error>;
+    [dog, cat]
+    fn x(&mut self, x: B) -> Result<(), Error>;
 
     [cat]
     fn meow(&mut self) -> Result<(), Error>;
@@ -65,18 +66,31 @@ struct Abc {
     fn debug(&mut self);
 
 }]
-pub impl Animal {
+pub impl<B> Animal<B>
+where
+	B: Clone + Send + Sync + 'static,
+{
 	fn builder(&self) -> Result<Self, Error> {
+		let a = Abc { x: 0 };
+		println!("a.x={}", a.x);
 		Ok(Self {
 			t: "aaa".to_string(),
 			y: 10,
 			b: false,
-			a: Abc { x: 0 },
+			a,
+			x: None,
 		})
 	}
 }
 
-impl Animal {
+impl<B> Animal<B>
+where
+	B: Clone + Send + Sync + 'static,
+{
+	fn x(&mut self, x: B) -> Result<(), Error> {
+		*self.vars().get_mut_x() = Some(x);
+		Ok(())
+	}
 	fn speak(
 		&self,
 		x: usize,
@@ -105,6 +119,29 @@ impl Animal {
 	}
 }
 
+#[class{
+    pub test_box;
+    clone test;
+    var v: usize;
+
+    [test]
+    fn test_run(&mut self);
+
+}]
+impl XClone {
+	fn builder(&self) -> Result<Self, Error> {
+		Ok(Self { v: 0 })
+	}
+}
+
+impl XClone {
+	fn test_run(&mut self) {
+		let x = self.vars().get_mut_v();
+		println!("x={}", *x);
+		*x += 1;
+	}
+}
+
 #[cfg(test)]
 mod test {
 	use super::*;
@@ -115,8 +152,19 @@ mod test {
 		cat.abc();
 		cat.abc();
 		cat.abc();
+		cat.x(0usize)?;
 
 		let mut cat_clone = cat.clone();
+
+		cat_clone.abc();
+		cat_clone.abc();
+		cat.abc();
+
+		let mut x1 = test_box!()?;
+		let mut x2 = x1.clone();
+		x2.test_run();
+		x2.test_run();
+		x1.test_run();
 		Ok(())
 	}
 }

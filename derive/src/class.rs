@@ -314,11 +314,6 @@ impl StateMachine {
 		self.item_state = ItemState::Base;
 		self.parse_item(item)?;
 
-		println!(
-			"gen1={:?},gen2={:?},where={:?}",
-			self.generic1, self.generic2, self.where_clause
-		);
-
 		if self.debug {
 			println!(
 				"class_name={:?},pub={},pub(crate)={},generics1={:?},generic2={:?},where={:?}",
@@ -500,7 +495,7 @@ impl StateMachine {
 		template = template.replace("${NAME}", &self.class_name.as_ref().unwrap());
 		template = template.replace("${GENERICS2}", &self.build_generic2()?);
 		template = template.replace("${WHERE}", &self.build_where()?);
-		template = template.replace("${GENERICS1}", &self.build_generic2()?);
+		template = template.replace("${GENERICS1}", &self.build_generic1()?);
 		template = template.replace("${VAR_PARAMS}", &self.build_var_params_replace()?);
 		template = template.replace("${CONST_PARAMS}", &self.build_const_params_replace()?);
 		if self.class_is_pub_crate {
@@ -763,6 +758,9 @@ impl StateMachine {
 
 	fn update_impl_struct(&mut self, template: &String) -> Result<String, Error> {
 		let mut replace = include_str!("../templates/class_impl_struct_template.txt").to_string();
+		replace = replace.replace("${GENERIC1}", &self.build_generic1()?);
+		replace = replace.replace("${GENERIC2}", &self.build_generic2()?);
+		replace = replace.replace("${WHERE}", &self.build_where()?);
 		replace = replace.replace("${NAME}", &self.class_name.as_ref().unwrap());
 		let template = template.replace("${IMPL_STRUCT}", &replace);
 		Ok(template)
@@ -770,7 +768,13 @@ impl StateMachine {
 
 	fn update_impl_var(&mut self, template: &String) -> Result<String, Error> {
 		let class_name = &self.class_name.as_ref().unwrap();
-		let mut replace = format!("impl {}Var {{\n", class_name);
+		let mut replace = format!(
+			"impl {} {}Var {}{} {{\n",
+			self.build_generic1()?,
+			class_name,
+			self.build_generic2()?,
+			self.build_where()?
+		);
 		let get_template = include_str!("../templates/class_get_mut_template.txt").to_string();
 		for c in &self.var_list {
 			let type_str = &c.type_str;
@@ -835,8 +839,13 @@ impl StateMachine {
 				None => "",
 			};
 			trait_text = format!(
-				"{}\n{} trait {} {} {{",
-				trait_text, vis, trait_name, clone_text
+				"{}\n{} trait {} {} {} {} {{",
+				trait_text,
+				vis,
+				trait_name,
+				self.build_generic2()?,
+				clone_text,
+				self.build_where()?,
 			);
 			for fn_info in v {
 				trait_text = format!(
@@ -921,7 +930,14 @@ impl StateMachine {
 				}
 				trait_impl = format!("{}\n}}", trait_impl);
 			} else {
-				trait_impl = format!("{}\nclone_trait_object!({});", trait_impl, trait_name);
+				trait_impl = format!(
+					"{}\nclone_trait_object!({}{}{}{});",
+					trait_impl,
+					self.build_generic1()?,
+					trait_name,
+					self.build_generic2()?,
+					self.build_where()?
+				);
 			}
 		}
 		let template = template.replace("${TRAIT_IMPL}", &trait_impl);
@@ -1213,9 +1229,10 @@ impl StateMachine {
 				"${VISIBILITY_SYNC_BOX}",
 				&self.vis_for(&format!("{}_sync_box", view), view_pub_map),
 			);
-			view_template = view_template.replace("${WHERE_CLAUSE}", "");
+			view_template = view_template.replace("${WHERE_CLAUSE}", &self.build_where()?);
 
-			view_template = view_template.replace("${GENERIC_PRE}", "");
+			view_template = view_template.replace("${GENERIC_PRE}", &self.build_generic1()?);
+			let trait_text = format!("{}{}", trait_text, self.build_generic1()?);
 			view_template = view_template.replace("${TRAIT}", &trait_text);
 			view_template = view_template.replace("${NAME}", class_name);
 			view_template = view_template.replace("${VIEW}", view);
@@ -1244,7 +1261,13 @@ impl StateMachine {
 		self.ret.extend(template.parse::<TokenStream>());
 
 		// add back in the non-builder fns
-		let mut other_fns = format!("impl {} {{", self.class_name.as_ref().unwrap());
+		let mut other_fns = format!(
+			"impl {} {} {}{} {{",
+			self.build_generic1()?,
+			self.class_name.as_ref().unwrap(),
+			self.build_generic2()?,
+			self.build_where()?
+		);
 		for impl_fn in &self.impl_fns {
 			other_fns = format!("{} {}", other_fns, impl_fn);
 		}
@@ -1308,7 +1331,6 @@ impl StateMachine {
 	}
 
 	fn process_item_token(&mut self, token: TokenTree) -> Result<(), Error> {
-		println!("token={},state={:?}", token, self.item_state);
 		self.span = Some(token.span());
 		match self.item_state {
 			ItemState::Base => self.process_item_base(token)?,
@@ -1421,7 +1443,6 @@ impl StateMachine {
 	fn process_wants_name(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ident) => {
-				println!("found name {}", ident);
 				self.class_name = Some(ident.to_string());
 				self.item_state = ItemState::WantsGeneric2WhereOrBrace;
 			}
@@ -1442,7 +1463,6 @@ impl StateMachine {
 	fn process_wants_where_or_brace(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ident) => {
-				println!("2");
 				self.expected(vec!["where"], &ident.to_string())?;
 				self.item_state = ItemState::WantsWhereClause;
 			}
@@ -1577,7 +1597,6 @@ impl StateMachine {
 	) -> Result<(), Error> {
 		match token {
 			Ident(ident) => {
-				println!("1");
 				if self.expected(vec!["where"], &ident.to_string())? {
 					self.item_state = ItemState::WantsWhereClause;
 				}
@@ -1610,7 +1629,6 @@ impl StateMachine {
 	fn process_item_wants_generic1_or_name(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ident) => {
-				println!("found class name = {}", ident);
 				self.class_name = Some(ident.to_string());
 				self.item_state = ItemState::WantsGeneric2WhereOrBrace;
 				self.in_generic2 = true;
