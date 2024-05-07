@@ -138,11 +138,16 @@ impl Const {
 struct Pub {
 	name: String,
 	span: Span,
+	macro_name: String,
 }
 
 impl Pub {
 	fn new(name: String, span: Span) -> Self {
-		Self { name, span }
+		Self {
+			name: name.clone(),
+			span,
+			macro_name: name,
+		}
 	}
 }
 
@@ -150,11 +155,16 @@ impl Pub {
 struct PubCrate {
 	name: String,
 	span: Span,
+	macro_name: String,
 }
 
 impl PubCrate {
 	fn new(name: String, span: Span) -> Self {
-		Self { name, span }
+		Self {
+			name: name.clone(),
+			span,
+			macro_name: name,
+		}
 	}
 }
 
@@ -186,6 +196,7 @@ enum State {
 	Const,
 	Var,
 	ViewList,
+	WantsPubAs,
 	WantsPubIdentifier,
 	WantsPubComma,
 	WantsConstColon,
@@ -324,57 +335,6 @@ impl StateMachine {
 
 		Ok(self.ret.clone())
 	}
-
-	/*
-	 * build_trait_views(&self) -> Result<HashMap<String, Vec<Fn>>, Error> {
-			let mut ret: HashMap<String, Vec<Fn>> = HashMap::new();
-
-			for fn_info in &self.fn_list {
-					for view in &fn_info.view_list {
-							match ret.get_mut(view) {
-									Some(v) => {
-											v.push(fn_info.clone());
-									}
-									None => {
-											ret.insert(view.clone(), vec![fn_info.clone()]);
-									}
-							}
-					}
-			}
-
-			Ok(ret)
-	}
-
-			fn build_view_pub_map(&self) -> Result<HashMap<String, Visibility>, Error> {
-			let mut ret = HashMap::new();
-			let mut pub_view_set: HashSet<String> = HashSet::new();
-			let mut pub_crate_view_set: HashSet<String> = HashSet::new();
-			for pub_view in &self.pub_views {
-					pub_view_set.insert(pub_view.name.clone());
-			}
-			for pub_crate_view in &self.pub_crate_views {
-					pub_crate_view_set.insert(pub_crate_view.name.clone());
-			}
-
-			for fn_info in &self.fn_list {
-					for v in &fn_info.view_list {
-							let mut trait_visibility = Visibility::Private;
-
-							let view = v.clone();
-
-							if pub_crate_view_set.contains(&view) {
-									if trait_visibility == Visibility::Private {
-											trait_visibility = Visibility::PubCrate;
-									}
-									ret.insert(view.clone(), Visibility::PubCrate);
-							} else if pub_view_set.contains(&view) {
-									if trait_visibility != Visibility::Pub {
-											trait_visibility = Visibility::Pub;
-									}
-									ret.insert(view.clone(), Visibility::Pub);
-							}
-
-	*/
 
 	fn check_semantics(&mut self) -> Result<(), Error> {
 		let mut trait_views = self.build_trait_views()?;
@@ -546,14 +506,20 @@ impl StateMachine {
 		Ok(ret)
 	}
 
-	fn build_view_pub_map(&self) -> Result<HashMap<String, Visibility>, Error> {
+	fn build_view_pub_map(&self) -> Result<HashMap<String, (Visibility, String)>, Error> {
 		let mut ret = HashMap::new();
 		let mut pub_view_set: HashSet<String> = HashSet::new();
 		let mut pub_crate_view_set: HashSet<String> = HashSet::new();
+		let mut pub_view_name_map: HashMap<String, String> = HashMap::new();
 		for pub_view in &self.pub_views {
+			pub_view_name_map.insert(pub_view.name.clone(), pub_view.macro_name.clone());
 			pub_view_set.insert(pub_view.name.clone());
 		}
 		for pub_crate_view in &self.pub_crate_views {
+			pub_view_name_map.insert(
+				pub_crate_view.name.clone(),
+				pub_crate_view.macro_name.clone(),
+			);
 			pub_crate_view_set.insert(pub_crate_view.name.clone());
 		}
 
@@ -567,12 +533,24 @@ impl StateMachine {
 					if trait_visibility == Visibility::Private {
 						trait_visibility = Visibility::PubCrate;
 					}
-					ret.insert(view.clone(), Visibility::PubCrate);
+					ret.insert(
+						view.clone(),
+						(
+							Visibility::PubCrate,
+							pub_view_name_map.get(&view).unwrap_or(&view).clone(),
+						),
+					);
 				} else if pub_view_set.contains(&view) {
 					if trait_visibility != Visibility::Pub {
 						trait_visibility = Visibility::Pub;
 					}
-					ret.insert(view.clone(), Visibility::Pub);
+					ret.insert(
+						view.clone(),
+						(
+							Visibility::Pub,
+							pub_view_name_map.get(&view).unwrap_or(&view).clone(),
+						),
+					);
 				}
 
 				let view = format!("{}_box", v);
@@ -580,12 +558,24 @@ impl StateMachine {
 					if trait_visibility == Visibility::Private {
 						trait_visibility = Visibility::PubCrate;
 					}
-					ret.insert(view.clone(), Visibility::PubCrate);
+					ret.insert(
+						view.clone(),
+						(
+							Visibility::PubCrate,
+							pub_view_name_map.get(&view).unwrap_or(&view).clone(),
+						),
+					);
 				} else if pub_view_set.contains(&view) {
 					if trait_visibility != Visibility::Pub {
 						trait_visibility = Visibility::Pub;
 					}
-					ret.insert(view.clone(), Visibility::Pub);
+					ret.insert(
+						view.clone(),
+						(
+							Visibility::Pub,
+							pub_view_name_map.get(&view).unwrap_or(&view).clone(),
+						),
+					);
 				}
 
 				let view = format!("{}_send", v);
@@ -593,12 +583,24 @@ impl StateMachine {
 					if trait_visibility == Visibility::Private {
 						trait_visibility = Visibility::PubCrate;
 					}
-					ret.insert(view.clone(), Visibility::PubCrate);
+					ret.insert(
+						view.clone(),
+						(
+							Visibility::PubCrate,
+							pub_view_name_map.get(&view).unwrap_or(&view).clone(),
+						),
+					);
 				} else if pub_view_set.contains(&view) {
 					if trait_visibility != Visibility::Pub {
 						trait_visibility = Visibility::Pub;
 					}
-					ret.insert(view.clone(), Visibility::Pub);
+					ret.insert(
+						view.clone(),
+						(
+							Visibility::Pub,
+							pub_view_name_map.get(&view).unwrap_or(&view).clone(),
+						),
+					);
 				}
 
 				let view = format!("{}_send_box", v);
@@ -606,12 +608,24 @@ impl StateMachine {
 					if trait_visibility == Visibility::Private {
 						trait_visibility = Visibility::PubCrate;
 					}
-					ret.insert(view.clone(), Visibility::PubCrate);
+					ret.insert(
+						view.clone(),
+						(
+							Visibility::PubCrate,
+							pub_view_name_map.get(&view).unwrap_or(&view).clone(),
+						),
+					);
 				} else if pub_view_set.contains(&view) {
 					if trait_visibility != Visibility::Pub {
 						trait_visibility = Visibility::Pub;
 					}
-					ret.insert(view.clone(), Visibility::Pub);
+					ret.insert(
+						view.clone(),
+						(
+							Visibility::Pub,
+							pub_view_name_map.get(&view).unwrap_or(&view).clone(),
+						),
+					);
 				}
 
 				let view = format!("{}_sync", v);
@@ -619,12 +633,24 @@ impl StateMachine {
 					if trait_visibility == Visibility::Private {
 						trait_visibility = Visibility::PubCrate;
 					}
-					ret.insert(view.clone(), Visibility::PubCrate);
+					ret.insert(
+						view.clone(),
+						(
+							Visibility::PubCrate,
+							pub_view_name_map.get(&view).unwrap_or(&view).clone(),
+						),
+					);
 				} else if pub_view_set.contains(&view) {
 					if trait_visibility != Visibility::Pub {
 						trait_visibility = Visibility::Pub;
 					}
-					ret.insert(view.clone(), Visibility::Pub);
+					ret.insert(
+						view.clone(),
+						(
+							Visibility::Pub,
+							pub_view_name_map.get(&view).unwrap_or(&view).clone(),
+						),
+					);
 				}
 
 				let view = format!("{}_sync_box", v);
@@ -632,21 +658,45 @@ impl StateMachine {
 					if trait_visibility == Visibility::Private {
 						trait_visibility = Visibility::PubCrate;
 					}
-					ret.insert(view.clone(), Visibility::PubCrate);
+					ret.insert(
+						view.clone(),
+						(
+							Visibility::PubCrate,
+							pub_view_name_map.get(&view).unwrap_or(&view).clone(),
+						),
+					);
 				} else if pub_view_set.contains(&view) {
 					if trait_visibility != Visibility::Pub {
 						trait_visibility = Visibility::Pub;
 					}
-					ret.insert(view.clone(), Visibility::Pub);
+					ret.insert(
+						view.clone(),
+						(
+							Visibility::Pub,
+							pub_view_name_map.get(&view).unwrap_or(&view).clone(),
+						),
+					);
 				}
 
 				let view_pascal = v.to_case(Case::Pascal);
 				match trait_visibility {
 					Visibility::Pub => {
-						ret.insert(view_pascal, Visibility::Pub);
+						ret.insert(
+							view_pascal,
+							(
+								Visibility::Pub,
+								pub_view_name_map.get(&view).unwrap_or(&view).clone(),
+							),
+						);
 					}
 					Visibility::PubCrate => {
-						ret.insert(view_pascal, Visibility::PubCrate);
+						ret.insert(
+							view_pascal,
+							(
+								Visibility::PubCrate,
+								pub_view_name_map.get(&view).unwrap_or(&view).clone(),
+							),
+						);
 					}
 					Visibility::Private => {}
 				}
@@ -734,14 +784,14 @@ impl StateMachine {
 		&mut self,
 		template: &String,
 		views: &HashMap<String, Vec<Fn>>,
-		view_pub_map: &HashMap<String, Visibility>,
+		view_pub_map: &HashMap<String, (Visibility, String)>,
 	) -> Result<String, Error> {
 		let mut trait_text = "".to_string();
 		for (k, v) in views {
 			let trait_name = k.to_case(Case::Pascal);
 			let vis = view_pub_map.get(&trait_name);
 			let vis = match vis {
-				Some(vis) => match vis {
+				Some(vis) => match vis.0 {
 					Visibility::Pub => "pub",
 					Visibility::PubCrate => "pub(crate)",
 					Visibility::Private => "",
@@ -835,7 +885,7 @@ impl StateMachine {
 		&mut self,
 		template: &String,
 		views: &HashMap<String, Vec<Fn>>,
-		view_pub_map: &HashMap<String, Visibility>,
+		view_pub_map: &HashMap<String, (Visibility, String)>,
 	) -> Result<String, Error> {
 		let class_name = &self.class_name.as_ref().unwrap();
 		let macro_template = include_str!("../templates/class_macro_template.txt").to_string();
@@ -844,15 +894,63 @@ impl StateMachine {
 			let mut mbt = macro_template.clone();
 			mbt = mbt.replace("${NAME}", &class_name);
 			mbt = mbt.replace("${VIEW}", &view);
-			mbt = mbt.replace("${MACRO_NAME_IMPL}", &format!("{}", view));
-			mbt = mbt.replace("${MACRO_NAME_BOX}", &format!("{}_box", view));
-			mbt = mbt.replace("${MACRO_NAME_SEND_IMPL}", &format!("{}_send", view));
-			mbt = mbt.replace("${MACRO_NAME_SEND_BOX}", &format!("{}_send_box", view));
-			mbt = mbt.replace("${MACRO_NAME_SYNC_IMPL}", &format!("{}_sync", view));
-			mbt = mbt.replace("${MACRO_NAME_SYNC_BOX}", &format!("{}_sync_box", view));
+			let view_fmt = format!("{}", view);
+			mbt = mbt.replace(
+				"${MACRO_NAME_IMPL}",
+				&match view_pub_map.get(&view_fmt) {
+					Some(v) => v.1.clone(),
+					None => view_fmt,
+				},
+			);
+
+			let view_fmt = format!("{}_box", view);
+			mbt = mbt.replace(
+				"${MACRO_NAME_BOX}",
+				&match view_pub_map.get(&view_fmt) {
+					Some(v) => v.1.clone(),
+					None => view_fmt,
+				},
+			);
+			let view_fmt = format!("{}_send", view);
+			mbt = mbt.replace(
+				"${MACRO_NAME_SEND_IMPL}",
+				&match view_pub_map.get(&view_fmt) {
+					Some(v) => v.1.clone(),
+					None => view_fmt,
+				},
+			);
+			let view_fmt = format!("{}_send_box", view);
+			mbt = mbt.replace(
+				"${MACRO_NAME_SEND_BOX}",
+				&match view_pub_map.get(&view_fmt) {
+					Some(v) => v.1.clone(),
+					None => view_fmt,
+				},
+			);
+			let view_fmt = format!("{}_sync", view);
+			mbt = mbt.replace(
+				"${MACRO_NAME_SYNC_IMPL}",
+				&match view_pub_map.get(&view_fmt) {
+					Some(v) => v.1.clone(),
+					None => view_fmt,
+				},
+			);
+			let view_fmt = format!("{}_sync_box", view);
+			mbt = mbt.replace(
+				"${MACRO_NAME_SYNC_BOX}",
+				&match view_pub_map.get(&view_fmt) {
+					Some(v) => v.1.clone(),
+					None => view_fmt,
+				},
+			);
+
 			mbt = mbt.replace(
 				"${IMPL_PROTECTED}",
-				&if view_pub_map.get(view) == Some(&Visibility::PubCrate) {
+				&if view_pub_map
+					.get(view)
+					.unwrap_or(&(Visibility::Private, "".to_string()))
+					.0 == Visibility::PubCrate
+				{
 					format!("pub(crate) use {};", view)
 				} else {
 					format!("")
@@ -860,7 +958,11 @@ impl StateMachine {
 			);
 			mbt = mbt.replace(
 				"${BOX_PROTECTED}",
-				&if view_pub_map.get(&format!("{}_box", view)) == Some(&Visibility::PubCrate) {
+				&if view_pub_map
+					.get(&format!("{}_box", view))
+					.unwrap_or(&(Visibility::Private, "".to_string()))
+					.0 == Visibility::PubCrate
+				{
 					format!("pub(crate) use {}_box;", view)
 				} else {
 					format!("")
@@ -868,7 +970,11 @@ impl StateMachine {
 			);
 			mbt = mbt.replace(
 				"${IMPL_SEND_PROTECTED}",
-				&if view_pub_map.get(&format!("{}_send", view)) == Some(&Visibility::PubCrate) {
+				&if view_pub_map
+					.get(&format!("{}_send", view))
+					.unwrap_or(&(Visibility::Private, "".to_string()))
+					.0 == Visibility::PubCrate
+				{
 					format!("pub(crate) use {}_send;", view)
 				} else {
 					format!("")
@@ -876,7 +982,11 @@ impl StateMachine {
 			);
 			mbt = mbt.replace(
 				"${BOX_SEND_PROTECTED}",
-				&if view_pub_map.get(&format!("{}_send_box", view)) == Some(&Visibility::PubCrate) {
+				&if view_pub_map
+					.get(&format!("{}_send_box", view))
+					.unwrap_or(&(Visibility::Private, "".to_string()))
+					.0 == Visibility::PubCrate
+				{
 					format!("pub(crate) use {}_send_box;", view)
 				} else {
 					format!("")
@@ -884,7 +994,11 @@ impl StateMachine {
 			);
 			mbt = mbt.replace(
 				"${IMPL_SYNC_PROTECTED}",
-				&if view_pub_map.get(&format!("{}_sync", view)) == Some(&Visibility::PubCrate) {
+				&if view_pub_map
+					.get(&format!("{}_sync", view))
+					.unwrap_or(&(Visibility::Private, "".to_string()))
+					.0 == Visibility::PubCrate
+				{
 					format!("pub(crate) use {}_sync;", view)
 				} else {
 					format!("")
@@ -892,7 +1006,11 @@ impl StateMachine {
 			);
 			mbt = mbt.replace(
 				"${BOX_SYNC_PROTECTED}",
-				&if view_pub_map.get(&format!("{}_sync_box", view)) == Some(&Visibility::PubCrate) {
+				&if view_pub_map
+					.get(&format!("{}_sync_box", view))
+					.unwrap_or(&(Visibility::Private, "".to_string()))
+					.0 == Visibility::PubCrate
+				{
 					format!("pub(crate) use {}_sync_box;", view)
 				} else {
 					format!("")
@@ -900,7 +1018,11 @@ impl StateMachine {
 			);
 			mbt = mbt.replace(
 				"${IMPL_PUBLIC}",
-				if view_pub_map.get(view) == Some(&Visibility::Pub) {
+				if view_pub_map
+					.get(view)
+					.unwrap_or(&(Visibility::Private, "".to_string()))
+					.0 == Visibility::Pub
+				{
 					"#[macro_export]"
 				} else {
 					""
@@ -908,7 +1030,11 @@ impl StateMachine {
 			);
 			mbt = mbt.replace(
 				"${BOX_PUBLIC}",
-				if view_pub_map.get(&format!("{}_box", view)) == Some(&Visibility::Pub) {
+				if view_pub_map
+					.get(&format!("{}_box", view))
+					.unwrap_or(&(Visibility::Private, "".to_string()))
+					.0 == Visibility::Pub
+				{
 					"#[macro_export]"
 				} else {
 					""
@@ -916,7 +1042,11 @@ impl StateMachine {
 			);
 			mbt = mbt.replace(
 				"${IMPL_SEND_PUBLIC}",
-				if view_pub_map.get(&format!("{}_send", view)) == Some(&Visibility::Pub) {
+				if view_pub_map
+					.get(&format!("{}_send", view))
+					.unwrap_or(&(Visibility::Private, "".to_string()))
+					.0 == Visibility::Pub
+				{
 					"#[macro_export]"
 				} else {
 					""
@@ -924,7 +1054,11 @@ impl StateMachine {
 			);
 			mbt = mbt.replace(
 				"${BOX_SEND_PUBLIC}",
-				if view_pub_map.get(&format!("{}_send_box", view)) == Some(&Visibility::Pub) {
+				if view_pub_map
+					.get(&format!("{}_send_box", view))
+					.unwrap_or(&(Visibility::Private, "".to_string()))
+					.0 == Visibility::Pub
+				{
 					"#[macro_export]"
 				} else {
 					""
@@ -932,7 +1066,11 @@ impl StateMachine {
 			);
 			mbt = mbt.replace(
 				"${IMPL_SYNC_PUBLIC}",
-				if view_pub_map.get(&format!("{}_sync", view)) == Some(&Visibility::Pub) {
+				if view_pub_map
+					.get(&format!("{}_sync", view))
+					.unwrap_or(&(Visibility::Private, "".to_string()))
+					.0 == Visibility::Pub
+				{
 					"#[macro_export]"
 				} else {
 					""
@@ -940,7 +1078,11 @@ impl StateMachine {
 			);
 			mbt = mbt.replace(
 				"${BOX_SYNC_PUBLIC}",
-				if view_pub_map.get(&format!("{}_sync_box", view)) == Some(&Visibility::Pub) {
+				if view_pub_map
+					.get(&format!("{}_sync_box", view))
+					.unwrap_or(&(Visibility::Private, "".to_string()))
+					.0 == Visibility::Pub
+				{
 					"#[macro_export]"
 				} else {
 					""
@@ -958,9 +1100,13 @@ impl StateMachine {
 		Ok(template)
 	}
 
-	fn vis_for(&self, view: &String, view_pub_map: &HashMap<String, Visibility>) -> String {
+	fn vis_for(
+		&self,
+		view: &String,
+		view_pub_map: &HashMap<String, (Visibility, String)>,
+	) -> String {
 		match view_pub_map.get(view) {
-			Some(vis) => match vis {
+			Some(vis) => match vis.0 {
 				Visibility::Pub => "pub",
 				Visibility::PubCrate => "pub(crate)",
 				_ => "",
@@ -974,7 +1120,7 @@ impl StateMachine {
 		&mut self,
 		template: &String,
 		views: &HashMap<String, Vec<Fn>>,
-		view_pub_map: &HashMap<String, Visibility>,
+		view_pub_map: &HashMap<String, (Visibility, String)>,
 	) -> Result<String, Error> {
 		let class_name = &self.class_name.as_ref().unwrap();
 		let builder_template = include_str!("../templates/class_builder_template.txt").to_string();
@@ -1493,6 +1639,7 @@ impl StateMachine {
 			State::WantsViewListFnName => self.process_wants_view_list_fn_name(token)?,
 			State::WantsViewListParamList => self.process_wants_view_list_param_list(token)?,
 			State::WantsViewListReturnList => self.process_wants_view_list_return_list(token)?,
+			State::WantsPubAs => self.process_wants_pub_as(token)?,
 		}
 		Ok(())
 	}
@@ -1533,6 +1680,28 @@ impl StateMachine {
 		Ok(())
 	}
 
+	fn process_wants_pub_as(&mut self, token: TokenTree) -> Result<(), Error> {
+		match token {
+			Ident(ident) => {
+				// update last pushed view
+				if self.cur_is_pub_crate {
+					let len = self.pub_crate_views.len();
+					self.pub_crate_views[len - 1].macro_name = ident.to_string();
+				} else {
+					let len = self.pub_views.len();
+					self.pub_views[len - 1].macro_name = ident.to_string();
+				}
+			}
+			_ => {
+				self.append_error(&format!("expected macro_name, found, '{}'", token))?;
+			}
+		}
+
+		self.state = State::WantsPubComma;
+
+		Ok(())
+	}
+
 	fn process_wants_pub_identifier(&mut self, token: TokenTree) -> Result<(), Error> {
 		let token_str = token.to_string();
 		if token_str == ";" {
@@ -1564,7 +1733,9 @@ impl StateMachine {
 
 	fn process_wants_pub_comma(&mut self, token: TokenTree) -> Result<(), Error> {
 		let token_str = token.to_string();
-		if token_str == ";" {
+		if token_str == "as" {
+			self.state = State::WantsPubAs;
+		} else if token_str == ";" {
 			self.state = State::Base;
 		} else {
 			self.expected(vec![","], &token_str)?;

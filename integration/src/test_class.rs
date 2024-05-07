@@ -18,12 +18,12 @@
 
 use bmw_core::*;
 
-#[debug_class {
-    pub cat, dog_send;
+#[class {
+    pub cat as catmapped, dog_send;
     pub(crate) dog_box;
     pub(crate) bwrp, monkey_box;
 
-    pub monkey_sync_box;
+    pub monkey_sync_box as monmon;
 
     module "bmw_int::test_class";
     const x: usize = usize::MAX - 10;
@@ -102,7 +102,7 @@ mod test {
 
 	#[test]
 	fn test_animal() -> Result<(), Error> {
-		let mut cat = cat!()?;
+		let mut cat = catmapped!()?;
 		cat.abc();
 		cat.abc();
 		cat.abc();
