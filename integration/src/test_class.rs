@@ -17,7 +17,6 @@
 // limitations under the License.
 
 use bmw_core::*;
-use bmw_deps::dyn_clone::clone_trait_object;
 
 fn _vvv<X>(_i: usize) -> X
 where

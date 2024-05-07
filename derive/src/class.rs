@@ -939,7 +939,7 @@ impl StateMachine {
 				trait_impl = format!("{}\n}}", trait_impl);
 			} else {
 				trait_impl = format!(
-					"{}\nclone_trait_object!({}{}{}{});",
+					"{}\nbmw_deps::dyn_clone::clone_trait_object!({}{}{}{});",
 					trait_impl,
 					self.build_generic1()?,
 					trait_name,
