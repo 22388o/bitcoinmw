@@ -770,8 +770,38 @@ impl StateMachine {
 		let class_name = &self.class_name.as_ref().unwrap();
 		for (k, v) in views {
 			let trait_name = k.to_case(Case::Pascal);
+
+			// trait implementation
 			trait_impl = format!(
 				"{}\nimpl {} {} {} for {} {}{} {{",
+				trait_impl,
+				self.build_generic1()?,
+				trait_name,
+				self.build_generic1()?,
+				class_name,
+				self.build_generic2()?,
+				self.build_where()?,
+			);
+			for fn_info in v {
+				trait_impl = format!(
+					"{}\n\tfn {}({}) -> {} {{",
+					trait_impl, fn_info.name, fn_info.param_list, fn_info.return_list
+				);
+				let mut param_names = "self".to_string();
+				for i in 1..fn_info.param_names.len() {
+					param_names = format!("{}, {}", param_names, fn_info.param_names[i]);
+				}
+				trait_impl = format!(
+					"{}\n\t\t{}::{}({})",
+					trait_impl, class_name, fn_info.name, param_names
+				);
+				trait_impl = format!("{}\n\t}}", trait_impl);
+			}
+			trait_impl = format!("{}\n}}", trait_impl);
+
+			// trait implementation for &mut
+			trait_impl = format!(
+				"{}\nimpl {} {} {} for &mut {} {}{} {{",
 				trait_impl,
 				self.build_generic1()?,
 				trait_name,
