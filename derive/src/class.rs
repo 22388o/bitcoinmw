@@ -26,7 +26,7 @@ use proc_macro::{Delimiter, Spacing, Span, TokenStream, TokenTree};
 use proc_macro_error::{abort, emit_error, Diagnostic, Level};
 use std::collections::{HashMap, HashSet};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum Visibility {
 	Pub,
 	PubCrate,
@@ -37,6 +37,7 @@ enum Visibility {
 struct Fn {
 	name: String,
 	span: Span,
+	name_span: Option<Span>,
 	return_list: String,
 	param_list: String,
 	view_list: Vec<String>,
@@ -53,6 +54,7 @@ impl Fn {
 	fn new(span: Span) -> Self {
 		Self {
 			span,
+			name_span: None,
 			return_list_span: None,
 			name: "".to_string(),
 			return_list: "".to_string(),
@@ -132,6 +134,7 @@ impl Const {
 	}
 }
 
+#[derive(Clone)]
 struct Pub {
 	name: String,
 	span: Span,
@@ -143,6 +146,7 @@ impl Pub {
 	}
 }
 
+#[derive(Clone)]
 struct PubCrate {
 	name: String,
 	span: Span,
@@ -310,9 +314,125 @@ impl StateMachine {
 			self.print_errors()?;
 		}
 
+		self.check_semantics()?;
+
+		if self.error_list.len() > 0 {
+			self.print_errors()?;
+		}
+
 		self.generate_code()?;
 
 		Ok(self.ret.clone())
+	}
+
+	/*
+	 * build_trait_views(&self) -> Result<HashMap<String, Vec<Fn>>, Error> {
+			let mut ret: HashMap<String, Vec<Fn>> = HashMap::new();
+
+			for fn_info in &self.fn_list {
+					for view in &fn_info.view_list {
+							match ret.get_mut(view) {
+									Some(v) => {
+											v.push(fn_info.clone());
+									}
+									None => {
+											ret.insert(view.clone(), vec![fn_info.clone()]);
+									}
+							}
+					}
+			}
+
+			Ok(ret)
+	}
+
+			fn build_view_pub_map(&self) -> Result<HashMap<String, Visibility>, Error> {
+			let mut ret = HashMap::new();
+			let mut pub_view_set: HashSet<String> = HashSet::new();
+			let mut pub_crate_view_set: HashSet<String> = HashSet::new();
+			for pub_view in &self.pub_views {
+					pub_view_set.insert(pub_view.name.clone());
+			}
+			for pub_crate_view in &self.pub_crate_views {
+					pub_crate_view_set.insert(pub_crate_view.name.clone());
+			}
+
+			for fn_info in &self.fn_list {
+					for v in &fn_info.view_list {
+							let mut trait_visibility = Visibility::Private;
+
+							let view = v.clone();
+
+							if pub_crate_view_set.contains(&view) {
+									if trait_visibility == Visibility::Private {
+											trait_visibility = Visibility::PubCrate;
+									}
+									ret.insert(view.clone(), Visibility::PubCrate);
+							} else if pub_view_set.contains(&view) {
+									if trait_visibility != Visibility::Pub {
+											trait_visibility = Visibility::Pub;
+									}
+									ret.insert(view.clone(), Visibility::Pub);
+							}
+
+	*/
+
+	fn check_semantics(&mut self) -> Result<(), Error> {
+		let mut trait_views = self.build_trait_views()?;
+		for (k, v) in trait_views.clone() {
+			trait_views.insert(format!("{}_send_box", k), v.clone());
+			trait_views.insert(format!("{}_send", k), v.clone());
+
+			trait_views.insert(format!("{}_sync", k), v.clone());
+			trait_views.insert(format!("{}_sync_box", k), v.clone());
+
+			trait_views.insert(format!("{}_box", k), v);
+		}
+
+		for view in self.pub_crate_views.clone() {
+			if trait_views.get(&view.name).is_none() {
+				self.span = Some(view.span);
+				self.append_error(&format!("unknown view"))?;
+			}
+		}
+
+		for view in self.pub_views.clone() {
+			if trait_views.get(&view.name).is_none() {
+				self.span = Some(view.span);
+				self.append_error(&format!("unknown view"))?;
+			}
+		}
+
+		let mut set = HashSet::new();
+		for v in self.var_list.clone() {
+			if set.contains(&v.name) {
+				self.span = Some(v.span);
+				self.append_error(&format!("duplicate var. {} is already defined.", v.name))?;
+			}
+			set.insert(v.name.clone());
+		}
+
+		let mut set = HashSet::new();
+		for c in self.const_list.clone() {
+			if set.contains(&c.name) {
+				self.span = Some(c.span);
+				self.append_error(&format!("duplicate const. {} is already defined.", c.name))?;
+			}
+			set.insert(c.name.clone());
+		}
+
+		let mut set = HashSet::new();
+		for f in self.fn_list.clone() {
+			if set.contains(&f.name) {
+				self.span = match f.name_span {
+					Some(ns) => Some(ns),
+					None => Some(f.span),
+				};
+				self.append_error(&format!("duplicate fn. '{}' is already defined.", f.name))?;
+			}
+			set.insert(f.name.clone());
+		}
+
+		Ok(())
 	}
 
 	fn build_generic1(&self) -> Result<String, Error> {
@@ -1977,9 +2097,10 @@ impl StateMachine {
 
 	fn process_wants_view_list_fn_name(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
-			Ident(ident) => match self.cur_fn.as_mut() {
+			Ident(ref ident) => match self.cur_fn.as_mut() {
 				Some(cur_fn) => {
 					cur_fn.name = ident.to_string();
+					cur_fn.name_span = Some(token.span());
 				}
 				None => {}
 			},
