@@ -76,8 +76,6 @@ pub impl Animal {
 	}
 }
 
-//clone_trait_object!(Cat);
-
 impl Animal {
 	fn speak(
 		&self,

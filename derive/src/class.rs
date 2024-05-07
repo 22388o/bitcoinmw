@@ -179,6 +179,7 @@ struct SpanError {
 	msg: String,
 }
 
+#[derive(Debug)]
 enum ItemState {
 	Base,
 	WantsCrateOrImpl,
@@ -310,9 +311,13 @@ impl StateMachine {
 				println!("{:?}", f);
 			}
 		}
-
 		self.item_state = ItemState::Base;
 		self.parse_item(item)?;
+
+		println!(
+			"gen1={:?},gen2={:?},where={:?}",
+			self.generic1, self.generic2, self.where_clause
+		);
 
 		if self.debug {
 			println!(
@@ -1303,6 +1308,7 @@ impl StateMachine {
 	}
 
 	fn process_item_token(&mut self, token: TokenTree) -> Result<(), Error> {
+		println!("token={},state={:?}", token, self.item_state);
 		self.span = Some(token.span());
 		match self.item_state {
 			ItemState::Base => self.process_item_base(token)?,
@@ -1415,8 +1421,9 @@ impl StateMachine {
 	fn process_wants_name(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ident) => {
+				println!("found name {}", ident);
 				self.class_name = Some(ident.to_string());
-				self.item_state = ItemState::WantsGeneric2;
+				self.item_state = ItemState::WantsGeneric2WhereOrBrace;
 			}
 			_ => {
 				self.append_error("expected ident")?;
@@ -1435,6 +1442,7 @@ impl StateMachine {
 	fn process_wants_where_or_brace(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ident) => {
+				println!("2");
 				self.expected(vec!["where"], &ident.to_string())?;
 				self.item_state = ItemState::WantsWhereClause;
 			}
@@ -1569,6 +1577,7 @@ impl StateMachine {
 	) -> Result<(), Error> {
 		match token {
 			Ident(ident) => {
+				println!("1");
 				if self.expected(vec!["where"], &ident.to_string())? {
 					self.item_state = ItemState::WantsWhereClause;
 				}
@@ -1582,7 +1591,11 @@ impl StateMachine {
 				}
 			}
 			_ => {
-				// error
+				if token.to_string() == "<" {
+					self.item_state = ItemState::WantsGeneric2;
+				} else {
+					self.expected(vec!["<", "{"], &token.to_string())?;
+				}
 			}
 		}
 		Ok(())
@@ -1597,6 +1610,7 @@ impl StateMachine {
 	fn process_item_wants_generic1_or_name(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ident) => {
+				println!("found class name = {}", ident);
 				self.class_name = Some(ident.to_string());
 				self.item_state = ItemState::WantsGeneric2WhereOrBrace;
 				self.in_generic2 = true;
