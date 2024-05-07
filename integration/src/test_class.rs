@@ -19,6 +19,37 @@
 use bmw_core::*;
 use bmw_deps::dyn_clone::clone_trait_object;
 
+fn _vvv<X>(_i: usize) -> X
+where
+	X: Send + Sync + 'static,
+{
+	todo!()
+}
+
+#[class{
+	var y: Option<&'a usize>;
+        var z: Option<A>;
+
+	[test_abc_1]
+	fn x(&mut self, v: A);
+
+}]
+impl<'a, A> TestLifetimes<'a, A>
+where
+	A: Send + Sync + 'a,
+{
+	fn builder(&self) -> Result<Self, Error> {
+		Ok(Self { y: None, z: None })
+	}
+}
+
+impl<'a, A> TestLifetimes<'a, A>
+where
+	A: Send + Sync + 'a,
+{
+	fn x(&mut self, _v: A) {}
+}
+
 #[derive(Clone)]
 struct Abc {
 	x: usize,
@@ -165,6 +196,9 @@ mod test {
 		x2.test_run();
 		x2.test_run();
 		x1.test_run();
+
+		let mut m = test_abc_1_box!()?;
+		m.x(0usize);
 		Ok(())
 	}
 }

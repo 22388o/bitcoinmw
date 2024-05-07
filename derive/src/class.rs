@@ -48,6 +48,7 @@ struct Fn {
 	expect_dash_return_list: bool,
 	expect_gt_return_list: bool,
 	return_list_span: Option<Span>,
+	generic_string: String,
 }
 
 impl Fn {
@@ -66,6 +67,7 @@ impl Fn {
 			prev_token_is_joint: false,
 			expect_dash_return_list: false,
 			expect_gt_return_list: false,
+			generic_string: "".to_string(),
 		}
 	}
 }
@@ -221,6 +223,7 @@ enum State {
 	WantsViewListFnName,
 	WantsViewListParamList,
 	WantsViewListReturnList,
+	WantsViewListGenerics,
 	Clone,
 	WantsCloneComma,
 }
@@ -255,12 +258,14 @@ struct StateMachine {
 	cur_fn_str: String,
 	in_builder: bool,
 	ret: TokenStream,
+	found_builder: bool,
 }
 
 impl StateMachine {
 	fn new(debug: bool) -> Self {
 		Self {
 			debug,
+			found_builder: false,
 			state: State::Base,
 			item_state: ItemState::Base,
 			span: None,
@@ -347,6 +352,9 @@ impl StateMachine {
 	}
 
 	fn check_semantics(&mut self) -> Result<(), Error> {
+		if !self.found_builder {
+			self.append_error("a builder function must be defined within the attached impl item 'fn builder(&self) -> Result<Self, Error> { todo!() }'")?;
+		}
 		let mut trait_views = self.build_trait_views()?;
 
 		for c in self.clone_list.clone() {
@@ -1232,7 +1240,22 @@ impl StateMachine {
 			view_template = view_template.replace("${WHERE_CLAUSE}", &self.build_where()?);
 
 			view_template = view_template.replace("${GENERIC_PRE}", &self.build_generic1()?);
-			let trait_text = format!("{}{}", trait_text, self.build_generic1()?);
+			let gen_text = self.build_generic1()?;
+			let gen_text = gen_text.trim();
+			let lifetime = if gen_text.find("<'") == Some(0) {
+				let lifetime = gen_text.substring(2, gen_text.len());
+				let lifetime = match lifetime.find(",") {
+					Some(pos) => lifetime.substring(0, pos),
+					None => match lifetime.find(">") {
+						Some(pos) => lifetime.substring(0, pos),
+						None => lifetime,
+					},
+				};
+				format!("+ '{}", lifetime)
+			} else {
+				"".to_string()
+			};
+			let trait_text = format!("{}{}{}", trait_text, gen_text, lifetime);
 			view_template = view_template.replace("${TRAIT}", &trait_text);
 			view_template = view_template.replace("${NAME}", class_name);
 			view_template = view_template.replace("${VIEW}", view);
@@ -1419,6 +1442,7 @@ impl StateMachine {
 			Ident(ident) => {
 				let ident_str = ident.to_string();
 				if ident_str == "builder" {
+					self.found_builder = true;
 					self.in_builder = true;
 				} else {
 					self.in_builder = false;
@@ -1713,10 +1737,28 @@ impl StateMachine {
 			State::WantsViewListFnName => self.process_wants_view_list_fn_name(token)?,
 			State::WantsViewListParamList => self.process_wants_view_list_param_list(token)?,
 			State::WantsViewListReturnList => self.process_wants_view_list_return_list(token)?,
+			State::WantsViewListGenerics => self.process_generics(token)?,
 			State::WantsPubAs => self.process_wants_pub_as(token)?,
 			State::Clone => self.process_wants_clone_identifier(token)?,
 			State::WantsCloneComma => self.process_wants_clone_comma(token)?,
 		}
+		Ok(())
+	}
+
+	fn process_generics(&mut self, token: TokenTree) -> Result<(), Error> {
+		let token_str = token.to_string();
+		if token_str == ">" {
+			self.append_error("class functions cannot have generics")?;
+			self.state = State::WantsViewListParamList;
+		} else {
+			match self.cur_fn.as_mut() {
+				Some(cur_fn) => {
+					cur_fn.generic_string = format!("{} {}", cur_fn.generic_string, token_str);
+				}
+				None => {}
+			}
+		}
+
 		Ok(())
 	}
 
@@ -2214,6 +2256,7 @@ impl StateMachine {
 			match expr {
 				Ok(_) => {}
 				Err(ref e) => {
+					println!("err with {:?}", cur_fn);
 					self.span = match cur_fn.return_list_span {
 						Some(s) => Some(s),
 						None => Some(cur_fn.span),
@@ -2398,10 +2441,20 @@ impl StateMachine {
 						)?;
 					}
 				}
+				self.state = State::WantsViewListReturnList;
 			}
-			_ => {}
+			_ => {
+				if token.to_string() == "<" {
+					self.state = State::WantsViewListGenerics;
+				} else {
+					self.append_error(&format!(
+						"expected param list or generics found, '{}'",
+						token.to_string()
+					))?;
+					self.state = State::WantsViewListReturnList;
+				}
+			}
 		}
-		self.state = State::WantsViewListReturnList;
 		Ok(())
 	}
 
