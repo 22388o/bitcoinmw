@@ -1286,8 +1286,6 @@ impl StateMachine {
 			}
 		}
 
-		println!("minvis={:?}", min_visibility);
-
 		let mut visibility = if self.class_is_pub_crate {
 			"pub(crate)"
 		} else if self.class_is_pub {
@@ -2396,7 +2394,6 @@ impl StateMachine {
 			match expr {
 				Ok(_) => {}
 				Err(ref e) => {
-					println!("err with {:?}", cur_fn);
 					self.span = match cur_fn.return_list_span {
 						Some(s) => Some(s),
 						None => Some(cur_fn.span),
