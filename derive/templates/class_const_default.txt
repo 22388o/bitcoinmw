@@ -1,3 +1,4 @@
+#[doc(hidden)] pub use ${NAME}ConstOptions::*;
 impl Default for ${NAME}Const {
 	fn default() -> Self {
 		${DEFAULT_INITS}

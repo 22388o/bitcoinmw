@@ -871,6 +871,16 @@ impl StateMachine {
 					trait_text, fn_info.name, fn_info.param_list, fn_info.return_list
 				);
 			}
+
+			// add get_configurables
+			trait_text = format!(
+				"{}\n#[doc(hidden)] fn configurable_mut(&mut self) -> &mut dyn Configurable;",
+				trait_text
+			);
+			trait_text = format!(
+				"{}\n#[doc(hidden)] fn configurable(&self) -> &dyn Configurable;",
+				trait_text
+			);
 			trait_text = format!("{}\n}}", trait_text);
 		}
 		let template = template.replace("${TRAITS}", &trait_text);
@@ -929,6 +939,15 @@ impl StateMachine {
 
 				trait_impl = format!("{}\n\t}}", trait_impl);
 			}
+			trait_impl = format!(
+                            "{}\nfn configurable_mut(&mut self) -> &mut dyn Configurable {{ &mut self._hidden_const_struct }}",
+				trait_impl
+			);
+			trait_impl = format!(
+				"{}\nfn configurable(&self) -> &dyn Configurable {{ &self._hidden_const_struct }}",
+				trait_impl
+			);
+
 			trait_impl = format!("{}\n}}", trait_impl);
 
 			if !clone_set.contains(k) {
@@ -968,6 +987,16 @@ impl StateMachine {
 					);
 					trait_impl = format!("{}\n\t}}", trait_impl);
 				}
+
+				trait_impl = format!(
+                            "{}\nfn configurable_mut(&mut self) -> &mut dyn Configurable {{ &mut self._hidden_const_struct }}",
+                                trait_impl
+                        );
+				trait_impl = format!(
+                            "{}\nfn configurable(&self) -> &dyn Configurable {{ &self._hidden_const_struct }}",
+                                trait_impl
+                        );
+
 				trait_impl = format!("{}\n}}", trait_impl);
 			} else {
 				trait_impl = format!(
@@ -994,6 +1023,7 @@ impl StateMachine {
 		let macro_template = include_str!("../templates/class_macro_template.txt").to_string();
 		let mut macro_builder = "".to_string();
 		for (view, _v) in views {
+			let view_pascal = view.to_case(Case::Pascal);
 			let mut mbt = macro_template.clone();
 
 			if self.no_send {
@@ -1011,6 +1041,8 @@ impl StateMachine {
 				mbt = mbt.replace("${START_SYNC}", "");
 				mbt = mbt.replace("${END_SYNC}", "");
 			}
+
+			mbt = mbt.replace("${VIEW_PASCAL}", &view_pascal);
 
 			mbt = mbt.replace("${NAME}", &class_name);
 			mbt = mbt.replace("${VIEW}", &view);
@@ -2102,7 +2134,7 @@ impl StateMachine {
 							} else if ident_str == "String" {
 								cur_const.field_type = Some(FieldType::VecString);
 							} else {
-								cur_const.field_string = Some(ident_str);
+								cur_const.field_string = Some(format!("{}", ident_str));
 								cur_const.field_type = Some(FieldType::VecConfigurable);
 							}
 						}
@@ -2211,7 +2243,7 @@ impl StateMachine {
 							} else if ident_str == "String" {
 								cur_const.field_type = Some(FieldType::String);
 							} else {
-								cur_const.field_string = Some(ident_str);
+								cur_const.field_string = Some(format!("{}", ident_str));
 								cur_const.field_type = Some(FieldType::Configurable);
 							}
 						}

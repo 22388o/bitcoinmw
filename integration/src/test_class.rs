@@ -18,6 +18,336 @@
 
 use bmw_core::*;
 
+#[class{
+        clone http_server;
+	no_send;
+	pub http_server_box;
+	const instance: Vec<Instance> = vec![];
+	const threads: usize = 1;
+
+	[http_server]
+	fn show(&self);
+}]
+impl Server {
+	fn builder(&self) -> Result<Self, Error> {
+		Ok(Self {})
+	}
+}
+
+impl Server {
+	fn show(&self) {
+		let mut i = 0;
+		for instance in self.constants().get_instance() {
+			println!("instance[{}] = {:?}", i, instance);
+			i += 1;
+		}
+	}
+}
+
+#[allow(unused_macros)]
+macro_rules! instance {
+        ($($params:tt)*) => {{
+            configure_box!(Instance, InstanceOptions, vec![$($params)*])
+        }};
+}
+
+#[derive(Clone, Configurable, Debug)]
+struct Instance {
+	port: u16,
+	address: String,
+}
+
+impl Default for Instance {
+	fn default() -> Self {
+		Self {
+			port: 1234,
+			address: "127.0.0.1".to_string(),
+		}
+	}
+}
+
+/*
+#[class{
+	no_send;
+	clone http_instance;
+	pub(crate) http_instance_box;
+	const port: u16 = 8000;
+
+	[http_instance]
+	fn get_port(&self) -> u16;
+}]
+impl Instance {
+	fn builder(&self) -> Result<Self, Error> {
+		Ok(Self {})
+	}
+}
+
+impl Instance {
+	fn get_port(&self) -> u16 {
+		*self.constants().get_port()
+	}
+}
+
+impl Configurable for Server {
+	fn set_u8(&mut self, name: &str, value: u8) {}
+	fn set_u16(&mut self, name: &str, value: u16) {
+		self._hidden_const_struct.set_u16(name, value)
+	}
+	fn set_u32(&mut self, name: &str, value: u32) {}
+	fn set_u64(&mut self, name: &str, value: u64) {}
+	fn set_u128(&mut self, name: &str, value: u128) {}
+	fn set_usize(&mut self, name: &str, value: usize) {
+		self._hidden_const_struct.set_usize(name, value)
+	}
+	fn set_string(&mut self, _: &str, _: std::string::String) {}
+	fn set_bool(&mut self, _: &str, _: bool) {}
+	fn set_configurable(&mut self, name: &str, value: &dyn bmw_core::Configurable) {
+		self._hidden_const_struct.set_configurable(name, value)
+	}
+
+	fn allow_dupes(&self) -> HashSet<std::string::String> {
+		HashSet::new()
+	}
+	fn required(&self) -> Vec<std::string::String> {
+		vec![]
+	}
+	fn get_usize_params(&self) -> Vec<(std::string::String, usize)> {
+		self._hidden_const_struct.get_usize_params()
+	}
+	fn get_u8_params(&self) -> Vec<(std::string::String, u8)> {
+		vec![]
+	}
+	fn get_u16_params(&self) -> Vec<(std::string::String, u16)> {
+		self._hidden_const_struct.get_u16_params()
+	}
+	fn get_u32_params(&self) -> Vec<(std::string::String, u32)> {
+		vec![]
+	}
+	fn get_u64_params(&self) -> Vec<(std::string::String, u64)> {
+		vec![]
+	}
+	fn get_u128_params(&self) -> Vec<(std::string::String, u128)> {
+		vec![]
+	}
+	fn get_bool_params(&self) -> Vec<(std::string::String, bool)> {
+		vec![]
+	}
+	fn get_string_params(&self) -> Vec<(std::string::String, std::string::String)> {
+		vec![]
+	}
+	fn get_configurable_params(
+		&self,
+	) -> Vec<(
+		std::string::String,
+		std::boxed::Box<(dyn bmw_core::Configurable + 'static)>,
+	)> {
+		self._hidden_const_struct.get_configurable_params()
+	}
+	fn get_vec_usize_params(&self) -> Vec<(std::string::String, Vec<usize>)> {
+		vec![]
+	}
+	fn get_vec_u8_params(&self) -> Vec<(std::string::String, Vec<u8>)> {
+		vec![]
+	}
+	fn get_vec_u16_params(&self) -> Vec<(std::string::String, Vec<u16>)> {
+		vec![]
+	}
+	fn get_vec_u32_params(&self) -> Vec<(std::string::String, Vec<u32>)> {
+		vec![]
+	}
+	fn get_vec_u64_params(&self) -> Vec<(std::string::String, Vec<u64>)> {
+		vec![]
+	}
+	fn get_vec_u128_params(&self) -> Vec<(std::string::String, Vec<u128>)> {
+		vec![]
+	}
+	fn get_vec_bool_params(&self) -> Vec<(std::string::String, Vec<bool>)> {
+		vec![]
+	}
+	fn get_vec_string_params(&self) -> Vec<(std::string::String, Vec<std::string::String>)> {
+		vec![]
+	}
+
+	fn get_vec_configurable_params(
+		&self,
+	) -> Vec<(
+		std::string::String,
+		Vec<std::boxed::Box<(dyn bmw_core::Configurable + 'static)>>,
+	)> {
+		vec![]
+	}
+}
+
+impl Configurable for Instance {
+	fn set_u8(&mut self, name: &str, value: u8) {}
+	fn set_u16(&mut self, name: &str, value: u16) {
+		self._hidden_const_struct.set_u16(name, value)
+	}
+	fn set_u32(&mut self, name: &str, value: u32) {}
+	fn set_u64(&mut self, name: &str, value: u64) {}
+	fn set_u128(&mut self, name: &str, value: u128) {}
+	fn set_usize(&mut self, name: &str, value: usize) {}
+	fn set_string(&mut self, _: &str, _: std::string::String) {}
+	fn set_bool(&mut self, _: &str, _: bool) {}
+	fn set_configurable(&mut self, _: &str, _: &dyn bmw_core::Configurable) {}
+	fn allow_dupes(&self) -> HashSet<std::string::String> {
+		HashSet::new()
+	}
+	fn required(&self) -> Vec<std::string::String> {
+		vec![]
+	}
+	fn get_usize_params(&self) -> Vec<(std::string::String, usize)> {
+		vec![]
+	}
+	fn get_u8_params(&self) -> Vec<(std::string::String, u8)> {
+		vec![]
+	}
+	fn get_u16_params(&self) -> Vec<(std::string::String, u16)> {
+		self._hidden_const_struct.get_u16_params()
+	}
+	fn get_u32_params(&self) -> Vec<(std::string::String, u32)> {
+		vec![]
+	}
+	fn get_u64_params(&self) -> Vec<(std::string::String, u64)> {
+		vec![]
+	}
+	fn get_u128_params(&self) -> Vec<(std::string::String, u128)> {
+		vec![]
+	}
+	fn get_bool_params(&self) -> Vec<(std::string::String, bool)> {
+		vec![]
+	}
+	fn get_string_params(&self) -> Vec<(std::string::String, std::string::String)> {
+		vec![]
+	}
+	fn get_configurable_params(
+		&self,
+	) -> Vec<(
+		std::string::String,
+		std::boxed::Box<(dyn bmw_core::Configurable + 'static)>,
+	)> {
+		vec![]
+	}
+	fn get_vec_usize_params(&self) -> Vec<(std::string::String, Vec<usize>)> {
+		vec![]
+	}
+	fn get_vec_u8_params(&self) -> Vec<(std::string::String, Vec<u8>)> {
+		vec![]
+	}
+	fn get_vec_u16_params(&self) -> Vec<(std::string::String, Vec<u16>)> {
+		vec![]
+	}
+	fn get_vec_u32_params(&self) -> Vec<(std::string::String, Vec<u32>)> {
+		vec![]
+	}
+	fn get_vec_u64_params(&self) -> Vec<(std::string::String, Vec<u64>)> {
+		vec![]
+	}
+	fn get_vec_u128_params(&self) -> Vec<(std::string::String, Vec<u128>)> {
+		vec![]
+	}
+	fn get_vec_bool_params(&self) -> Vec<(std::string::String, Vec<bool>)> {
+		vec![]
+	}
+	fn get_vec_string_params(&self) -> Vec<(std::string::String, Vec<std::string::String>)> {
+		vec![]
+	}
+
+	fn get_vec_configurable_params(
+		&self,
+	) -> Vec<(
+		std::string::String,
+		Vec<std::boxed::Box<(dyn bmw_core::Configurable + 'static)>>,
+	)> {
+		vec![]
+	}
+}
+
+impl Configurable for Box<dyn HttpInstance> {
+	fn set_u8(&mut self, name: &str, value: u8) {}
+	fn set_u16(&mut self, name: &str, value: u16) {
+		self.configurable_mut().set_u16(name, value)
+	}
+	fn set_u32(&mut self, name: &str, value: u32) {}
+	fn set_u64(&mut self, name: &str, value: u64) {}
+	fn set_u128(&mut self, name: &str, value: u128) {}
+	fn set_usize(&mut self, name: &str, value: usize) {}
+	fn set_string(&mut self, _: &str, _: std::string::String) {}
+	fn set_bool(&mut self, _: &str, _: bool) {}
+	fn set_configurable(&mut self, _: &str, _: &dyn bmw_core::Configurable) {}
+	fn allow_dupes(&self) -> HashSet<std::string::String> {
+		HashSet::new()
+	}
+	fn required(&self) -> Vec<std::string::String> {
+		vec![]
+	}
+	fn get_usize_params(&self) -> Vec<(std::string::String, usize)> {
+		vec![]
+	}
+	fn get_u8_params(&self) -> Vec<(std::string::String, u8)> {
+		vec![]
+	}
+	fn get_u16_params(&self) -> Vec<(std::string::String, u16)> {
+		self.configurable().get_u16_params()
+	}
+	fn get_u32_params(&self) -> Vec<(std::string::String, u32)> {
+		vec![]
+	}
+	fn get_u64_params(&self) -> Vec<(std::string::String, u64)> {
+		vec![]
+	}
+	fn get_u128_params(&self) -> Vec<(std::string::String, u128)> {
+		vec![]
+	}
+	fn get_bool_params(&self) -> Vec<(std::string::String, bool)> {
+		vec![]
+	}
+	fn get_string_params(&self) -> Vec<(std::string::String, std::string::String)> {
+		vec![]
+	}
+	fn get_configurable_params(
+		&self,
+	) -> Vec<(
+		std::string::String,
+		std::boxed::Box<(dyn bmw_core::Configurable + 'static)>,
+	)> {
+		vec![]
+	}
+	fn get_vec_usize_params(&self) -> Vec<(std::string::String, Vec<usize>)> {
+		vec![]
+	}
+	fn get_vec_u8_params(&self) -> Vec<(std::string::String, Vec<u8>)> {
+		vec![]
+	}
+	fn get_vec_u16_params(&self) -> Vec<(std::string::String, Vec<u16>)> {
+		vec![]
+	}
+	fn get_vec_u32_params(&self) -> Vec<(std::string::String, Vec<u32>)> {
+		vec![]
+	}
+	fn get_vec_u64_params(&self) -> Vec<(std::string::String, Vec<u64>)> {
+		vec![]
+	}
+	fn get_vec_u128_params(&self) -> Vec<(std::string::String, Vec<u128>)> {
+		vec![]
+	}
+	fn get_vec_bool_params(&self) -> Vec<(std::string::String, Vec<bool>)> {
+		vec![]
+	}
+	fn get_vec_string_params(&self) -> Vec<(std::string::String, Vec<std::string::String>)> {
+		vec![]
+	}
+
+	fn get_vec_configurable_params(
+		&self,
+	) -> Vec<(
+		std::string::String,
+		Vec<std::boxed::Box<(dyn bmw_core::Configurable + 'static)>>,
+	)> {
+		vec![]
+	}
+}
+
 fn _vvv<X>(_i: usize) -> X
 where
 	X: Send + Sync + 'static,
@@ -25,14 +355,14 @@ where
 	todo!()
 }
 
-#[debug_class{
-        //no_sync;
-        no_send;
+#[class{
+		//no_sync;
+		no_send;
 	var y: Option<&'a usize>;
-        var z: Option<A>;
+		var z: Option<A>;
 
-        [test_abc_1]
-        fn unimp(&self);
+		[test_abc_1]
+		fn unimp(&self);
 
 	[test_abc_1]
 	fn x(&mut self, v: A);
@@ -61,45 +391,45 @@ struct Abc {
 }
 
 #[class {
-    clone cat;
-    pub cat as catmapped, dog_send, cat_box;
-    pub(crate) dog_box;
-    pub(crate) bwrp, monkey_box;
+	clone cat;
+	pub cat as catmapped, dog_send, cat_box;
+	pub(crate) dog_box;
+	pub(crate) bwrp, monkey_box;
 
-    pub monkey_sync_box as monmon;
+	pub monkey_sync_box as monmon;
 
-    module "bmw_int::test_class";
-    const x: usize = usize::MAX - 10;
-    const vvv: Vec<u16> = vec![1,2,3];
-    var x: Option<B>;
-    var a: Abc;
-    var t: String;
-    const p: Vec<usize> = vec![];
-    const v123: usize = 0;
-    var y: usize;
-    var b: bool;
+	module "bmw_int::test_class";
+	const x: usize = usize::MAX - 10;
+	const vvv: Vec<u16> = vec![1,2,3];
+	var x: Option<B>;
+	var a: Abc;
+	var t: String;
+	const p: Vec<usize> = vec![];
+	const v123: usize = 0;
+	var y: usize;
+	var b: bool;
 
-    [cat, dog, monkey, bwrp]
-    fn speak(&self, x: usize, v: Option<Vec<(usize, Box<dyn std::fmt::Debug + Send + Sync + '_>,)>>)
-    -> Result<(), Error>;
+	[cat, dog, monkey, bwrp]
+	fn speak(&self, x: usize, v: Option<Vec<(usize, Box<dyn std::fmt::Debug + Send + Sync + '_>,)>>)
+	-> Result<(), Error>;
 
-    [cat]
-    fn ok(&mut self);
+	[cat]
+	fn ok(&mut self);
 
-    [cat]
-    fn abc(&mut self);
+	[cat]
+	fn abc(&mut self);
 
-    [dog, cat]
-    fn x(&mut self, x: B) -> Result<(), Error>;
+	[dog, cat]
+	fn x(&mut self, x: B) -> Result<(), Error>;
 
-    [cat]
-    fn meow(&mut self) -> Result<(), Error>;
+	[cat]
+	fn meow(&mut self) -> Result<(), Error>;
 
-    [dog]
-    fn bark(&mut self) -> Result<(), Error>;
+	[dog]
+	fn bark(&mut self) -> Result<(), Error>;
 
-    [monkey]
-    fn debug(&mut self);
+	[monkey]
+	fn debug(&mut self);
 
 }]
 pub impl<B> Animal<B>
@@ -156,12 +486,12 @@ where
 }
 
 #[class{
-    pub test_box;
-    clone test;
-    var v: usize;
+	pub test_box;
+	clone test;
+	var v: usize;
 
-    [test]
-    fn test_run(&mut self);
+	[test]
+	fn test_run(&mut self);
 
 }]
 impl XClone {
@@ -193,6 +523,13 @@ fn test1(count: usize) {
 fn test2(count: usize) {
 	println!("test2is_recursive={},count={}", is_recursive(), count);
 }
+*/
+
+/*
+enum Test1<'a> {
+	Test(&'a dyn Configurable),
+}
+*/
 
 #[cfg(test)]
 mod test {
@@ -200,6 +537,7 @@ mod test {
 
 	#[test]
 	fn test_animal() -> Result<(), Error> {
+		/*
 		let mut cat = cat_box!()?;
 		cat.abc();
 		cat.abc();
@@ -227,6 +565,26 @@ mod test {
 		test1(0);
 
 		m.unimp();
+			*/
+
+		//let mut http = http_server_box!(Threads(100), HttpInstance(&instance))?;
+		//http.x();
+		//
+		/*
+		let test_conf = Box::new(TestConf {
+			port: 9999,
+			address: "0.0.0.0".to_string(),
+		});
+				*/
+
+		let http = http_server_box!(
+			Threads(100),
+			Instance(instance!(Port(1113))?),
+			Instance(instance!(Port(1233), Address("0.0.0.0"))?),
+			Instance(instance!()?),
+		)?;
+		http.show();
+
 		Ok(())
 	}
 }

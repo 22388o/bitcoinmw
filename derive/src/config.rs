@@ -199,7 +199,6 @@ macro_rules! update_template {
 
 		let var_replace_name = &format!("${{VEC_{}_PARAMS_PUSH}}", type_upper);
 		let template = template.replace(var_replace_name, &replace_str);
-
 		template
 	}};
 }
@@ -398,7 +397,13 @@ impl StateMachine {
 					Ident(ident) => {
 						let ident_str = ident.to_string();
 
-						if ident_str != "Vec" {
+						if ident_str == "Box" {
+							cur_field.type_str = Some(ident_str.clone());
+						} else if ident_str == "dyn" {
+						} else if cur_field.type_str.is_some() {
+							cur_field.type_str = Some(format!("Box<dyn {}>", token_str));
+							cur_field.field_type = Some(FieldType::Configurable);
+						} else if ident_str != "Vec" {
 							cur_field.type_str = Some(ident_str.clone());
 							self.state = State::WantsComma;
 
@@ -429,7 +434,17 @@ impl StateMachine {
 						}
 					}
 					_ => {
-						self.expected("<type>", &token_str)?;
+						if token_str == "<" {
+						}
+						// just ignore this because we
+						// append it later with Box
+						else if token_str == ">" {
+							self.state = State::WantsComma;
+							self.fields.push(cur_field.clone());
+							self.cur_field = None;
+						} else {
+							self.expected("<type>", &token_str)?;
+						}
 					}
 				}
 			}
@@ -440,6 +455,10 @@ impl StateMachine {
 
 	fn process_wants_colon(&mut self, token: TokenTree) -> Result<(), Error> {
 		if token.to_string() == ":" {
+			match self.cur_field.as_mut() {
+				Some(cur_field) => cur_field.type_str = None,
+				None => {}
+			}
 			self.state = State::WantsType;
 		} else {
 			self.expected(":", &token.to_string())?;
