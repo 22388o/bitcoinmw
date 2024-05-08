@@ -20,7 +20,6 @@ use bmw_core::*;
 
 #[class{
         clone http_server;
-	no_send;
 	pub http_server_box;
 	const instance: Vec<Instance> = vec![];
 	const threads: usize = 1;
@@ -44,6 +43,7 @@ impl Server {
 	}
 }
 
+#[macro_export]
 #[allow(unused_macros)]
 macro_rules! instance {
         ($($params:tt)*) => {{
@@ -52,7 +52,7 @@ macro_rules! instance {
 }
 
 #[derive(Clone, Configurable, Debug)]
-struct Instance {
+pub struct Instance {
 	port: u16,
 	address: String,
 }

@@ -29,6 +29,7 @@ bmw_core   = { path = "./core"   }
 [dev-dependencies]
 bmw_test = { path = "./test" }
 bmw_int = { path = "./integration" }
+bmw_int2 = { path = "./integration2" }
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 jemallocator = "0.5.4"

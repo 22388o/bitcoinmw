@@ -1276,13 +1276,32 @@ impl StateMachine {
 	) -> Result<String, Error> {
 		let class_name = &self.class_name.as_ref().unwrap();
 		let builder_template = include_str!("../templates/class_builder_template.txt").to_string();
-		let visibility = if self.class_is_pub_crate {
+
+		let mut min_visibility = Visibility::Private;
+		for (_k, vis) in view_pub_map {
+			match vis.0 {
+				Visibility::Pub => min_visibility = Visibility::Pub,
+				Visibility::PubCrate => min_visibility = Visibility::PubCrate,
+				_ => {}
+			}
+		}
+
+		println!("minvis={:?}", min_visibility);
+
+		let mut visibility = if self.class_is_pub_crate {
 			"pub(crate)"
 		} else if self.class_is_pub {
 			"pub"
 		} else {
 			""
 		};
+
+		if min_visibility == Visibility::Pub && visibility != "pub" {
+			visibility = "pub";
+		} else if min_visibility == Visibility::PubCrate && visibility == "" {
+			visibility = "pub(crate)";
+		}
+
 		let mut builder_text = format!(
 			"{} struct {}Builder {{}}\nimpl {}Builder {{",
 			visibility, class_name, class_name
