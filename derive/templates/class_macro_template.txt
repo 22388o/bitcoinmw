@@ -28,6 +28,8 @@ ${BOX_COMMENTS}${BOX_PUBLIC}macro_rules! ${MACRO_NAME_BOX} {
 }
 ${BOX_PROTECTED}
 
+${START_SEND}
+
 #[allow(unused_macros)]
 ${SEND_IMPL_COMMENTS}${IMPL_SEND_PUBLIC}macro_rules! ${MACRO_NAME_SEND_IMPL} {
         ($($param:tt)*) => {{
@@ -57,6 +59,9 @@ ${SEND_BOX_COMMENTS}${BOX_SEND_PUBLIC}macro_rules! ${MACRO_NAME_SEND_BOX} {
         }};
 }
 ${BOX_SEND_PROTECTED}
+
+${END_SEND}
+${START_SYNC}
 
 #[allow(unused_macros)]
 ${SYNC_IMPL_COMMENTS}${IMPL_SYNC_PUBLIC}macro_rules! ${MACRO_NAME_SYNC_IMPL} {
@@ -88,3 +93,4 @@ ${SYNC_BOX_COMMENTS}${BOX_SYNC_PUBLIC}macro_rules! ${MACRO_NAME_SYNC_BOX} {
 }
 ${BOX_SYNC_PROTECTED}
 
+${END_SYNC}

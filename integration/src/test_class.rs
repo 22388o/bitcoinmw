@@ -25,9 +25,14 @@ where
 	todo!()
 }
 
-#[class{
+#[debug_class{
+        //no_sync;
+        no_send;
 	var y: Option<&'a usize>;
         var z: Option<A>;
+
+        [test_abc_1]
+        fn unimp(&self);
 
 	[test_abc_1]
 	fn x(&mut self, v: A);
@@ -35,7 +40,7 @@ where
 }]
 impl<'a, A> TestLifetimes<'a, A>
 where
-	A: Send + Sync + 'a,
+	A: 'a,
 {
 	fn builder(&self) -> Result<Self, Error> {
 		Ok(Self { y: None, z: None })
@@ -44,9 +49,10 @@ where
 
 impl<'a, A> TestLifetimes<'a, A>
 where
-	A: Send + Sync + 'a,
+	A: 'a,
 {
 	fn x(&mut self, _v: A) {}
+	fn unimp(&self) {}
 }
 
 #[derive(Clone)]
@@ -172,6 +178,22 @@ impl XClone {
 	}
 }
 
+fn test1(count: usize) {
+	println!(
+		"test1is_recursive={},count={}",
+		bmw_core::is_recursive(),
+		count
+	);
+	if count != 0 {
+		test2(count - 1);
+		test1(count - 1);
+	}
+}
+
+fn test2(count: usize) {
+	println!("test2is_recursive={},count={}", is_recursive(), count);
+}
+
 #[cfg(test)]
 mod test {
 	use super::*;
@@ -198,6 +220,13 @@ mod test {
 
 		let mut m = test_abc_1_box!()?;
 		m.x(0usize);
+
+		test1(3);
+
+		println!("test1(0)");
+		test1(0);
+
+		m.unimp();
 		Ok(())
 	}
 }

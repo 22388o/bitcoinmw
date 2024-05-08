@@ -26,6 +26,10 @@ use proc_macro::{Delimiter, Spacing, Span, TokenStream, TokenTree};
 use proc_macro_error::{abort, emit_error, Diagnostic, Level};
 use std::collections::{HashMap, HashSet};
 
+static CHECK_RECURSION_CONST_PREFIX: &str =
+	"if bmw_core::is_recursive() { panic!(\"Recursion detected! Perhaps ";
+static CHECK_RECURSION_CONST_SUFFIX: &str = " is not implemented?\"); }";
+
 #[derive(Debug, PartialEq, Clone)]
 enum Visibility {
 	Pub,
@@ -200,6 +204,8 @@ enum ItemState {
 
 enum State {
 	Base,
+	NoSync,
+	NoSend,
 	Pub,
 	Module,
 	Const,
@@ -259,6 +265,8 @@ struct StateMachine {
 	in_builder: bool,
 	ret: TokenStream,
 	found_builder: bool,
+	no_sync: bool,
+	no_send: bool,
 }
 
 impl StateMachine {
@@ -294,6 +302,8 @@ impl StateMachine {
 			cur_fn_str: "".to_string(),
 			impl_fns: vec![],
 			ret: TokenStream::new(),
+			no_sync: false,
+			no_send: false,
 		}
 	}
 
@@ -901,10 +911,22 @@ impl StateMachine {
 				for i in 1..fn_info.param_names.len() {
 					param_names = format!("{}, {}", param_names, fn_info.param_names[i]);
 				}
+
 				trait_impl = format!(
-					"{}\n\t\t{}::{}({})",
-					trait_impl, class_name, fn_info.name, param_names
+					"{}\n\t\t{}\n\t\t{}::{}({})",
+					trait_impl,
+					format!(
+						"{}{}::{}{}",
+						CHECK_RECURSION_CONST_PREFIX,
+						class_name,
+						fn_info.name,
+						CHECK_RECURSION_CONST_SUFFIX
+					),
+					class_name,
+					fn_info.name,
+					param_names
 				);
+
 				trait_impl = format!("{}\n\t}}", trait_impl);
 			}
 			trait_impl = format!("{}\n}}", trait_impl);
@@ -931,8 +953,18 @@ impl StateMachine {
 						param_names = format!("{}, {}", param_names, fn_info.param_names[i]);
 					}
 					trait_impl = format!(
-						"{}\n\t\t{}::{}({})",
-						trait_impl, class_name, fn_info.name, param_names
+						"{}\n\t\t{}\n\t\t{}::{}({})",
+						trait_impl,
+						format!(
+							"{}{}::{}{}",
+							CHECK_RECURSION_CONST_PREFIX,
+							class_name,
+							fn_info.name,
+							CHECK_RECURSION_CONST_SUFFIX
+						),
+						class_name,
+						fn_info.name,
+						param_names
 					);
 					trait_impl = format!("{}\n\t}}", trait_impl);
 				}
@@ -963,6 +995,23 @@ impl StateMachine {
 		let mut macro_builder = "".to_string();
 		for (view, _v) in views {
 			let mut mbt = macro_template.clone();
+
+			if self.no_send {
+				mbt = mbt.replace("${START_SEND}", "/*");
+				mbt = mbt.replace("${END_SEND}", "*/");
+			} else {
+				mbt = mbt.replace("${START_SEND}", "");
+				mbt = mbt.replace("${END_SEND}", "");
+			}
+
+			if self.no_send || self.no_sync {
+				mbt = mbt.replace("${START_SYNC}", "/*");
+				mbt = mbt.replace("${END_SYNC}", "*/");
+			} else {
+				mbt = mbt.replace("${START_SYNC}", "");
+				mbt = mbt.replace("${END_SYNC}", "");
+			}
+
 			mbt = mbt.replace("${NAME}", &class_name);
 			mbt = mbt.replace("${VIEW}", &view);
 			let view_fmt = format!("{}", view);
@@ -1210,6 +1259,24 @@ impl StateMachine {
 		for (view, _v) in views {
 			let trait_text = view.to_case(Case::Pascal);
 			let mut view_template = builder_template.replace("${IMPL_COMMENTS}", "");
+			if self.no_send {
+				view_template = view_template.replace("${START_SEND}", "/*");
+				view_template = view_template.replace("${END_SEND}", "*/");
+			} else {
+				view_template = view_template.replace("${START_SEND}", "");
+				view_template = view_template.replace("${END_SEND}", "");
+			}
+
+			if self.no_send || self.no_sync {
+				view_template = view_template.replace("${START_SYNC}", "/*");
+				view_template = view_template.replace("${END_SYNC}", "*/");
+			} else {
+				view_template = view_template.replace("${START_SYNC}", "");
+				view_template = view_template.replace("${END_SYNC}", "");
+			}
+
+			view_template = view_template.replace("${START_SYNC}", "");
+			view_template = view_template.replace("${END_SYNC}", "");
 			view_template = view_template.replace("${BOX_COMMENTS}", "");
 			view_template = view_template.replace("${SYNC_BOX_COMMENTS}", "");
 			view_template = view_template.replace("${SYNC_IMPL_COMMENTS}", "");
@@ -1741,7 +1808,25 @@ impl StateMachine {
 			State::WantsPubAs => self.process_wants_pub_as(token)?,
 			State::Clone => self.process_wants_clone_identifier(token)?,
 			State::WantsCloneComma => self.process_wants_clone_comma(token)?,
+			State::NoSend => self.process_no_send_wants_semi(token)?,
+			State::NoSync => self.process_no_sync_wants_semi(token)?,
 		}
+		Ok(())
+	}
+
+	fn process_no_send_wants_semi(&mut self, token: TokenTree) -> Result<(), Error> {
+		self.no_send = true;
+		self.expected(vec![";"], &token.to_string())?;
+		self.state = State::Base;
+
+		Ok(())
+	}
+
+	fn process_no_sync_wants_semi(&mut self, token: TokenTree) -> Result<(), Error> {
+		self.no_sync = true;
+		self.expected(vec![";"], &token.to_string())?;
+		self.state = State::Base;
+
 		Ok(())
 	}
 
@@ -1806,6 +1891,10 @@ impl StateMachine {
 			self.state = State::Var;
 		} else if token_str == "clone" {
 			self.state = State::Clone;
+		} else if token_str == "no_send" {
+			self.state = State::NoSend;
+		} else if token_str == "no_sync" {
+			self.state = State::NoSync;
 		} else {
 			match token {
 				Group(ref group) => {

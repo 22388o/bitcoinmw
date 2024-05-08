@@ -19,6 +19,8 @@
 mod config;
 mod error;
 mod macros;
+mod utils;
 
 pub use config::{Configurable, ConfigurableOptions};
 pub use error::{CoreErrorKind, Error, ErrorKind};
+pub use utils::is_recursive;
