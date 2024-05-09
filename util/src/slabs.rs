@@ -33,55 +33,8 @@ enum SlabAllocatorErrors {
 	OutOfSlabs,
 }
 
-#[derive(Debug)]
-struct SlabDataParams {
-	index: u8,
-	slab_size: usize,
-	slab_count: usize,
-	ptr_size: usize,
-	free_list_head: u64,
-	max_value: usize,
-	invalid_ptr: [u8; 8],
-	free_list_end: [u8; 8],
-}
-
-impl SlabDataParams {
-	fn new(index: u8, slab_size: usize, slab_count: usize) -> Result<Self, Error> {
-		let mut ptr_size = 0;
-		// add 2 (1 termination pointer and one for free status)
-		let mut x = slab_count.saturating_add(2);
-		loop {
-			if x == 0 {
-				break;
-			}
-			x >>= 8;
-			ptr_size += 1;
-		}
-		let free_list_head = 0;
-
-		let mut ptr = [0u8; 8];
-		set_max(&mut ptr[0..ptr_size]);
-		let max_value = slice_to_usize(&ptr[0..ptr_size])?;
-		let mut invalid_ptr = [0u8; 8];
-		let mut free_list_end = [0u8; 8];
-
-		usize_to_slice(max_value - 1, &mut invalid_ptr[0..ptr_size])?;
-		usize_to_slice(max_value, &mut free_list_end[0..ptr_size])?;
-
-		Ok(Self {
-			index,
-			slab_size,
-			slab_count,
-			ptr_size,
-			free_list_head,
-			max_value,
-			invalid_ptr,
-			free_list_end,
-		})
-	}
-}
-
 #[class {
+    clone slab_data;
     pub slab_data_sync_box;
     var data: Vec<u8>;
 
@@ -168,12 +121,60 @@ macro_rules! slab_config {
         }};
 }
 
+#[derive(Debug)]
+struct SlabDataParams {
+	index: u8,
+	slab_size: usize,
+	slab_count: usize,
+	ptr_size: usize,
+	free_list_head: u64,
+	max_value: usize,
+	invalid_ptr: [u8; 8],
+	free_list_end: [u8; 8],
+}
+
+impl SlabDataParams {
+	fn new(index: u8, slab_size: usize, slab_count: usize) -> Result<Self, Error> {
+		let mut ptr_size = 0;
+		// add 2 (1 termination pointer and one for free status)
+		let mut x = slab_count.saturating_add(2);
+		loop {
+			if x == 0 {
+				break;
+			}
+			x >>= 8;
+			ptr_size += 1;
+		}
+		let free_list_head = 0;
+
+		let mut ptr = [0u8; 8];
+		set_max(&mut ptr[0..ptr_size]);
+		let max_value = slice_to_usize(&ptr[0..ptr_size])?;
+		let mut invalid_ptr = [0u8; 8];
+		let mut free_list_end = [0u8; 8];
+
+		usize_to_slice(max_value - 1, &mut invalid_ptr[0..ptr_size])?;
+		usize_to_slice(max_value, &mut free_list_end[0..ptr_size])?;
+
+		Ok(Self {
+			index,
+			slab_size,
+			slab_count,
+			ptr_size,
+			free_list_head,
+			max_value,
+			invalid_ptr,
+			free_list_end,
+		})
+	}
+}
+
 #[class{
     pub slab_allocator;
     const slab_config: Vec<SlabAllocatorConfig> = vec![];
     const slabs_per_resize: usize = 1_000;
-    var slab_data: HashMap<usize, (SlabDataParams, Box<dyn SlabData + Send + Sync>)>;
-    var slab_data_index: HashMap<u8, usize>;
+    var slab_data: Vec<(SlabDataParams, Box<dyn SlabData + Send + Sync>)>;
+    var slab_data_index: HashMap<usize, usize>;
 
     [slab_allocator]
     fn allocate(&mut self, size: usize) -> Result<u64, Error>;
@@ -189,33 +190,38 @@ macro_rules! slab_config {
 }]
 impl SlabAllocatorClass {
 	fn builder(constants: &SlabAllocatorClassConst) -> Result<Self, Error> {
-		debug!("config={:?}", constants.slab_config)?;
-		let mut slab_data = HashMap::new();
+		let mut slab_data = vec![];
 		let mut slab_data_index = HashMap::new();
 
 		let mut index = 0u8;
+
+		let mut ret = Self {
+			slab_data,
+			slab_data_index,
+		};
+
 		for config in &constants.slab_config {
 			let mut sdsb = slab_data_sync_box!()?;
 			let sdp = SlabDataParams::new(index, config.slab_size, config.slab_count)?;
 			sdsb.resize((config.slab_size + sdp.ptr_size) * constants.slabs_per_resize)?;
 			SlabAllocatorClass::init_free_list(&mut sdsb, &sdp, constants.slabs_per_resize)?;
-			slab_data_index.insert(sdp.index, config.slab_size);
-			slab_data.insert(config.slab_size, (sdp, sdsb));
+			ret.slab_data_index.insert(config.slab_size, index as usize);
+			ret.slab_data.push((sdp, sdsb));
 			index += 1;
 		}
 
-		Ok(Self {
-			slab_data,
-			slab_data_index,
-		})
+		Ok(ret)
 	}
 }
 
 impl SlabAllocatorClass {
 	fn allocate(&mut self, size: usize) -> Result<u64, Error> {
 		debug!("allocate {}", size)?;
-		match self.vars_mut().get_mut_slab_data().get_mut(&size) {
-			Some((sdp, slab_data)) => {
+		let slab_data_index = self.vars_mut().get_mut_slab_data_index();
+		match slab_data_index.get_mut(&size) {
+			Some(index) => {
+				let index = *index;
+				let (sdp, slab_data) = &mut self.vars_mut().get_mut_slab_data()[index];
 				debug!("found: {:?}", sdp)?;
 				let index_u64: u64 = sdp.index.into();
 				let mut ret = index_u64 << 56;
@@ -234,6 +240,34 @@ impl SlabAllocatorClass {
 				err!(IllegalArgument, "SlabSize({}) not supported", size)
 			}
 		}
+	}
+
+	fn read(&self, id: u64) -> Result<&[u8], Error> {
+		let id_relative = id & !0xFF00000000000000;
+		let index = id >> 56;
+		let index: usize = try_into!(index)?;
+
+		let (sdp, slab_data) = &self.vars().get_slab_data()[index];
+		let id_relative: usize = try_into!(id_relative)?;
+		slab_data.data(
+			sdp.ptr_size + (id_relative * (sdp.ptr_size + sdp.slab_size)),
+			sdp.slab_size,
+		)
+	}
+
+	fn write(&mut self, id: u64, data: &[u8], offset: usize) -> Result<(), Error> {
+		let id_relative = id & !0xFF00000000000000;
+		let index = id >> 56;
+		let index: usize = try_into!(index)?;
+
+		let (sdp, slab_data) = &mut self.vars_mut().get_mut_slab_data()[index];
+		let id_relative: usize = try_into!(id_relative)?;
+
+		slab_data.update(
+			data,
+			sdp.ptr_size + (id_relative * (sdp.ptr_size + sdp.slab_size)) + offset,
+		)?;
+		Ok(())
 	}
 
 	fn get_next_free(
@@ -272,60 +306,6 @@ impl SlabAllocatorClass {
 			slab_data.update(&next_bytes[0..ptr_size], offset_next)?;
 		}
 		Ok(())
-	}
-
-	fn read(&self, id: u64) -> Result<&[u8], Error> {
-		let id_relative = id & !0xFF00000000000000;
-		let index = id >> 56;
-		let index: u8 = try_into!(index)?;
-
-		debug!("id={},index={},id_rel={}", id, index, id_relative)?;
-		let slab_size = match self.vars().get_slab_data_index().get(&index) {
-			Some(slab_size) => *slab_size,
-			None => return err!(IllegalArgument, "invalid id"),
-		};
-
-		match self.vars().get_slab_data().get(&slab_size) {
-			Some((sdp, slab_data)) => {
-				let id_relative: usize = try_into!(id_relative)?;
-				slab_data.data(
-					sdp.ptr_size + (id_relative * (sdp.ptr_size + sdp.slab_size)),
-					slab_size,
-				)
-			}
-			None => {
-				err!(IllegalArgument, "invalid id")
-			}
-		}
-	}
-
-	fn write(&mut self, id: u64, data: &[u8], offset: usize) -> Result<(), Error> {
-		let id_relative = id & !0xFF00000000000000;
-		let index = id >> 56;
-		let index: u8 = try_into!(index)?;
-		debug!("id={},index={},id_rel={}", id, index, id_relative)?;
-		let slab_size = match self.vars().get_slab_data_index().get(&index) {
-			Some(slab_size) => *slab_size,
-			None => return err!(IllegalArgument, "invalid id"),
-		};
-
-		match self.vars_mut().get_mut_slab_data().get_mut(&slab_size) {
-			Some((sdp, slab_data)) => {
-				if offset + data.len() > sdp.slab_size {
-					err!(IllegalArgument, "data did not fit into slab")
-				} else {
-					let id_relative: usize = try_into!(id_relative)?;
-					slab_data.update(
-						data,
-						sdp.ptr_size + (id_relative * (sdp.ptr_size + sdp.slab_size)) + offset,
-					)?;
-					Ok(())
-				}
-			}
-			None => {
-				err!(IllegalArgument, "invalid id")
-			}
-		}
 	}
 }
 
