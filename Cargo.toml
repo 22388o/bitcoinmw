@@ -18,6 +18,7 @@ members = [
 	"derive",
 	"core",
 	"log",
+	"util",
 	"test",
 	"integration",
 	"integration2"
@@ -29,6 +30,7 @@ bmw_base   = { path = "./base"   }
 bmw_derive = { path = "./derive" }
 bmw_core   = { path = "./core"   }
 bmw_log    = { path = "./log"    }
+bmw_util   = { path = "./util"   }
 
 [dev-dependencies]
 bmw_test = { path = "./test" }

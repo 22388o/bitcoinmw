@@ -1,0 +1,19 @@
+[package]
+name = "bmw_util"
+version = "0.0.3-beta.2"
+authors = ["The BitcoinMW Developers"]
+description = "Utility Library"
+license = "Apache-2.0"
+repository = "https://github.com/cgilliard/bitcoinmw"
+keywords = [ "crypto", "bitcoinmw"]
+readme = "README.md"
+exclude = ["**/*.bmw", "**/*.bmw"]
+edition = "2021"
+
+[dependencies]
+
+bmw_core = { path = "../core" }
+bmw_log  = { path = "../log"  }
+
+[dev-dependencies]
+bmw_test   = { path = "../test" }

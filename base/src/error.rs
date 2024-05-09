@@ -21,6 +21,7 @@ use bmw_deps::backtrace::Backtrace;
 use std::env::VarError;
 use std::ffi::OsString;
 use std::fmt::{Debug, Display, Formatter};
+use std::str::Utf8Error;
 use std::sync::mpsc::{RecvError, SendError};
 use std::sync::{MutexGuard, PoisonError, RwLockReadGuard, RwLockWriteGuard};
 use CoreErrorKind::*;
@@ -54,6 +55,8 @@ pub enum CoreErrorKind {
 	TryInto(String),
 	/// OsString error
 	OsString(String),
+	/// Utf8 error
+	Utf8(String),
 }
 
 impl Error {
@@ -168,6 +171,12 @@ impl<T> From<PoisonError<RwLockWriteGuard<'_, T>>> for Error {
 impl<T> From<PoisonError<RwLockReadGuard<'_, T>>> for Error {
 	fn from(e: PoisonError<RwLockReadGuard<'_, T>>) -> Error {
 		err_only!(Poison, e)
+	}
+}
+
+impl From<Utf8Error> for Error {
+	fn from(e: Utf8Error) -> Error {
+		err_only!(Utf8, e)
 	}
 }
 
