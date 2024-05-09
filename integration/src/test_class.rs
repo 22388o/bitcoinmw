@@ -516,7 +516,7 @@ where
 	B: Clone + Send + Sync + 'static,
 {
 	fn x(&mut self, x: B) -> Result<(), Error> {
-		*self.vars().get_mut_x() = Some(x);
+		*self.vars_mut().get_mut_x() = Some(x);
 		Ok(())
 	}
 	fn speak(
@@ -542,8 +542,8 @@ where
 	}
 
 	fn abc(&mut self) {
-		println!("in abc2: {}", self.vars().get_y());
-		*self.vars().get_mut_y() += 1;
+		println!("in abc2: {}", self.vars_mut().get_y());
+		*self.vars_mut().get_mut_y() += 1;
 	}
 }
 
@@ -564,7 +564,7 @@ impl XClone {
 
 impl XClone {
 	fn test_run(&mut self) {
-		let x = self.vars().get_mut_v();
+		let x = self.vars_mut().get_mut_v();
 		println!("x={}", *x);
 		*x += 1;
 	}

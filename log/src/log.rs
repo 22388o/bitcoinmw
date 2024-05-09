@@ -215,31 +215,31 @@ macro_rules! none_or_err {
 
 impl Log {
 	fn set_debug_lineno_is_none(&mut self, value: bool) {
-		*self.vars().get_mut_debug_lineno_is_none() = value;
+		*self.vars_mut().get_mut_debug_lineno_is_none() = value;
 	}
 
 	fn set_debug_process_resolve_frame_error(&mut self, value: bool) {
-		*self.vars().get_mut_debug_process_resolve_frame_error() = value;
+		*self.vars_mut().get_mut_debug_process_resolve_frame_error() = value;
 	}
 
 	fn set_debug_invalid_metadata(&mut self, value: bool) {
-		*self.vars().get_mut_debug_invalid_metadata() = value;
+		*self.vars_mut().get_mut_debug_invalid_metadata() = value;
 	}
 
 	fn get_log_config_debug(&self) -> LogConfig {
-		self.vars_immutable().get_log_config().clone()
+		self.vars().get_log_config().clone()
 	}
 
 	fn set_log_option(&mut self, value: LogConstOptions) -> Result<(), Error> {
-		if !*self.vars().get_is_init() {
+		if !*self.vars_mut().get_is_init() {
 			err!(
 				NotInitialized,
 				"logger has not been initalized. Call init() first."
 			)
 		} else {
 			match value {
-				LogConstOptions::Colors(v) => (*self.vars().get_mut_log_config()).colors = v,
-				LogConstOptions::Stdout(v) => (*self.vars().get_mut_log_config()).stdout = v,
+				LogConstOptions::Colors(v) => (*self.vars_mut().get_mut_log_config()).colors = v,
+				LogConstOptions::Stdout(v) => (*self.vars_mut().get_mut_log_config()).stdout = v,
 				LogConstOptions::MaxAgeMillis(v) => {
 					if v < MINIMUM_MAX_SIZE_BYTES {
 						return err!(
@@ -249,7 +249,7 @@ impl Log {
 						);
 					}
 
-					(*self.vars().get_mut_log_config()).max_age_millis = v
+					(*self.vars_mut().get_mut_log_config()).max_age_millis = v
 				}
 				LogConstOptions::MaxSizeBytes(v) => {
 					if v < MINIMUM_MAX_AGE_MILLIS {
@@ -259,7 +259,7 @@ impl Log {
 							MINIMUM_MAX_AGE_MILLIS
 						);
 					}
-					(*self.vars().get_mut_log_config()).max_size_bytes = v;
+					(*self.vars_mut().get_mut_log_config()).max_size_bytes = v;
 				}
 				LogConstOptions::LineNumDataMaxLen(v) => {
 					if v < MINIMUM_LNDML {
@@ -269,23 +269,29 @@ impl Log {
 							MINIMUM_LNDML
 						);
 					}
-					(*self.vars().get_mut_log_config()).line_num_data_max_len = v
+					(*self.vars_mut().get_mut_log_config()).line_num_data_max_len = v
 				}
-				LogConstOptions::Timestamp(v) => (*self.vars().get_mut_log_config()).timestamp = v,
+				LogConstOptions::Timestamp(v) => {
+					(*self.vars_mut().get_mut_log_config()).timestamp = v
+				}
 				LogConstOptions::ShowMillis(v) => {
-					(*self.vars().get_mut_log_config()).show_millis = v
+					(*self.vars_mut().get_mut_log_config()).show_millis = v
 				}
-				LogConstOptions::LogLevel(v) => (*self.vars().get_mut_log_config()).log_level = v,
-				LogConstOptions::LineNum(v) => (*self.vars().get_mut_log_config()).line_num = v,
-				LogConstOptions::Backtrace(v) => (*self.vars().get_mut_log_config()).backtrace = v,
+				LogConstOptions::LogLevel(v) => {
+					(*self.vars_mut().get_mut_log_config()).log_level = v
+				}
+				LogConstOptions::LineNum(v) => (*self.vars_mut().get_mut_log_config()).line_num = v,
+				LogConstOptions::Backtrace(v) => {
+					(*self.vars_mut().get_mut_log_config()).backtrace = v
+				}
 				LogConstOptions::AutoRotate(v) => {
-					(*self.vars().get_mut_log_config()).auto_rotate = v
+					(*self.vars_mut().get_mut_log_config()).auto_rotate = v
 				}
 				LogConstOptions::DeleteRotation(v) => {
-					(*self.vars().get_mut_log_config()).delete_rotation = v
+					(*self.vars_mut().get_mut_log_config()).delete_rotation = v
 				}
 				LogConstOptions::FileHeader(v) => {
-					(*self.vars().get_mut_log_config()).file_header = v.to_string()
+					(*self.vars_mut().get_mut_log_config()).file_header = v.to_string()
 				}
 				LogConstOptions::LogFilePath(_) => {
 					return err!(
@@ -300,18 +306,18 @@ impl Log {
 	}
 
 	fn init(&mut self) -> Result<(), Error> {
-		if *self.vars().get_is_init() {
+		if *self.vars_mut().get_is_init() {
 			// init already was called
 			return err!(AlreadyInitialized, "log file has already ben initialized");
 		}
 		{
-			let file = self.vars().get_file().read()?;
+			let file = self.vars_mut().get_file().read()?;
 			let text = "log.init() has already been called";
 			none_or_err!((*file).as_ref(), IllegalState, text)?;
 		}
 
-		if self.vars().get_log_file_path_canonicalized() != "" {
-			let path = PathBuf::from(self.vars().get_log_file_path_canonicalized().clone());
+		if self.vars_mut().get_log_file_path_canonicalized() != "" {
+			let path = PathBuf::from(self.vars_mut().get_log_file_path_canonicalized().clone());
 			let mut f = match File::options().append(true).open(path.as_path()) {
 				Ok(f) => {
 					// already exists just return file here
@@ -324,10 +330,10 @@ impl Log {
 			};
 			self.check_open(&mut f, &path)?;
 
-			let mut file = self.vars().get_mut_file().write()?;
+			let mut file = self.vars_mut().get_mut_file().write()?;
 			*file = Some(f);
 		}
-		*self.vars().get_mut_is_init() = true;
+		*self.vars_mut().get_mut_is_init() = true;
 
 		Ok(())
 	}
@@ -350,29 +356,29 @@ impl Log {
 		line: &str,
 		logging_type: LoggingType,
 	) -> Result<(), Error> {
-		if !*self.vars().get_is_init() {
+		if !*self.vars_mut().get_is_init() {
 			return err!(
 				NotInitialized,
 				"logger has not been initalized. Call init() first."
 			);
 		}
 
-		if level as usize >= *self.vars().get_cur_log_level() as usize {
+		if level as usize >= *self.vars_mut().get_cur_log_level() as usize {
 			self.rotate_if_needed()?;
 			let show_stdout =
-				(*self.vars().get_log_config()).stdout || logging_type == LoggingType::All;
+				(*self.vars_mut().get_log_config()).stdout || logging_type == LoggingType::All;
 			let show_timestamp =
-				(*self.vars().get_log_config()).timestamp && logging_type != LoggingType::Plain;
-			let show_colors = (*self.vars().get_log_config()).colors;
+				(*self.vars_mut().get_log_config()).timestamp && logging_type != LoggingType::Plain;
+			let show_colors = (*self.vars_mut().get_log_config()).colors;
 			let show_log_level =
-				(*self.vars().get_log_config()).log_level && logging_type != LoggingType::Plain;
+				(*self.vars_mut().get_log_config()).log_level && logging_type != LoggingType::Plain;
 			let show_line_num =
-				(*self.vars().get_log_config()).line_num && logging_type != LoggingType::Plain;
-			let show_millis =
-				(*self.vars().get_log_config()).show_millis && logging_type != LoggingType::Plain;
-			let show_bt = (*self.vars().get_log_config()).backtrace
+				(*self.vars_mut().get_log_config()).line_num && logging_type != LoggingType::Plain;
+			let show_millis = (*self.vars_mut().get_log_config()).show_millis
+				&& logging_type != LoggingType::Plain;
+			let show_bt = (*self.vars_mut().get_log_config()).backtrace
 				&& level as usize >= LogLevel::Error as usize;
-			let max_len = (*self.vars().get_log_config()).line_num_data_max_len;
+			let max_len = (*self.vars_mut().get_log_config()).line_num_data_max_len;
 
 			// call the main logging function with the specified params
 			self.do_log_impl(
@@ -406,9 +412,9 @@ impl Log {
 		line: &str,
 		logging_type: LoggingType,
 	) -> Result<(), Error> {
-		let debug_lineno_is_none = *self.vars().get_debug_lineno_is_none();
+		let debug_lineno_is_none = *self.vars_mut().get_debug_lineno_is_none();
 		let debug_process_resolve_frame_error =
-			*self.vars().get_debug_process_resolve_frame_error();
+			*self.vars_mut().get_debug_process_resolve_frame_error();
 
 		// if timestamp needs to be shown we print/write it here
 		if show_timestamp {
@@ -423,7 +429,7 @@ impl Log {
 
 			{
 				let formatted_len = {
-					let mut file = (*self.vars().get_mut_file()).write()?;
+					let mut file = (*self.vars_mut().get_mut_file()).write()?;
 					match (*file).as_mut() {
 						Some(file) => {
 							let formatted_timestamp = format!("[{}]", formatted_timestamp);
@@ -435,7 +441,7 @@ impl Log {
 						None => 0,
 					}
 				};
-				*self.vars().get_mut_cur_size() += formatted_len;
+				*self.vars_mut().get_mut_cur_size() += formatted_len;
 			}
 
 			if show_stdout {
@@ -451,7 +457,7 @@ impl Log {
 			let tsp = if show_timestamp { " " } else { "" };
 			{
 				let formatted_len = {
-					let mut file = (*self.vars().get_mut_file()).write()?;
+					let mut file = (*self.vars_mut().get_mut_file()).write()?;
 					match (*file).as_mut() {
 						Some(file) => {
 							let formatted_level =
@@ -468,7 +474,7 @@ impl Log {
 						None => 0,
 					}
 				};
-				*self.vars().get_mut_cur_size() += formatted_len;
+				*self.vars_mut().get_mut_cur_size() += formatted_len;
 			}
 
 			if show_stdout {
@@ -543,7 +549,7 @@ impl Log {
 
 			{
 				let logged_from_file_len = {
-					let mut file = (*self.vars().get_mut_file()).write()?;
+					let mut file = (*self.vars_mut().get_mut_file()).write()?;
 					match (*file).as_mut() {
 						Some(file) => {
 							let logged_from_file = format!("{}[{}]", slp, logged_from_file);
@@ -555,7 +561,7 @@ impl Log {
 						None => 0,
 					}
 				};
-				*self.vars().get_mut_cur_size() += logged_from_file_len;
+				*self.vars_mut().get_mut_cur_size() += logged_from_file_len;
 			}
 			// if we're showing stdout, do so here
 			if show_stdout {
@@ -570,7 +576,7 @@ impl Log {
 		// write the line to the file (if it exists)
 		{
 			let bytes_len = {
-				let mut file = (*self.vars().get_mut_file()).write()?;
+				let mut file = (*self.vars_mut().get_mut_file()).write()?;
 				match (*file).as_mut() {
 					Some(file) => {
 						let file_line = if logging_type != LoggingType::Plain {
@@ -599,7 +605,7 @@ impl Log {
 					None => 0,
 				}
 			};
-			*self.vars().get_mut_cur_size() += bytes_len;
+			*self.vars_mut().get_mut_cur_size() += bytes_len;
 		}
 
 		// finally print the actual line
@@ -620,21 +626,21 @@ impl Log {
 	}
 
 	fn rotate_if_needed(&mut self) -> Result<(), Error> {
-		if !(*self.vars().get_log_config()).auto_rotate {
+		if !(*self.vars_mut().get_log_config()).auto_rotate {
 			return Ok(()); // auto rotate not enabled
 		}
 
 		let now = Instant::now();
 
-		let max_age_millis = (*self.vars().get_log_config()).max_age_millis;
-		let max_size_bytes = (*self.vars().get_log_config()).max_size_bytes;
+		let max_age_millis = (*self.vars_mut().get_log_config()).max_age_millis;
+		let max_size_bytes = (*self.vars_mut().get_log_config()).max_size_bytes;
 
 		// if the file is too old or too big we rotate
 		if now
-			.checked_duration_since(*self.vars().get_last_rotation())
+			.checked_duration_since(*self.vars_mut().get_last_rotation())
 			.unwrap_or(Duration::new(0, 0))
 			.as_millis() > max_age_millis.into()
-			|| *self.vars().get_cur_size() > max_size_bytes
+			|| *self.vars_mut().get_cur_size() > max_size_bytes
 		{
 			self.rotate()?;
 		}
@@ -657,7 +663,7 @@ impl Log {
 
 	fn check_open(&mut self, file: &mut File, path: &PathBuf) -> Result<(), Error> {
 		let metadata = file.metadata();
-		if metadata.is_err() || *self.vars().get_debug_invalid_metadata() {
+		if metadata.is_err() || *self.vars_mut().get_debug_invalid_metadata() {
 			return err!(
 				MetaData,
 				format!("failed to retrieve metadata for file: {}", path.display())
@@ -668,21 +674,21 @@ impl Log {
 		let len = metadata.len();
 		if len == 0 {
 			// do we need to add the file header?
-			let header_len = (*self.vars().get_log_config()).file_header.len();
+			let header_len = (*self.vars_mut().get_log_config()).file_header.len();
 			if header_len > 0 {
 				// there's a header. We need to append it.
-				file.write((*self.vars().get_log_config()).file_header.as_bytes())?;
+				file.write((*self.vars_mut().get_log_config()).file_header.as_bytes())?;
 				file.write(NEWLINE)?;
 				let header_len_u64: u64 = try_into!(header_len)?;
-				*self.vars().get_mut_cur_size() = header_len_u64 + 1;
+				*self.vars_mut().get_mut_cur_size() = header_len_u64 + 1;
 			} else {
-				*self.vars().get_mut_cur_size() = 0;
+				*self.vars_mut().get_mut_cur_size() = 0;
 			}
 		} else {
-			*self.vars().get_mut_cur_size() = len;
+			*self.vars_mut().get_mut_cur_size() = len;
 		}
 
-		*self.vars().get_mut_last_rotation() = Instant::now();
+		*self.vars_mut().get_mut_last_rotation() = Instant::now();
 		Ok(())
 	}
 
@@ -755,7 +761,7 @@ impl Log {
 	}
 
 	fn need_rotate(&self) -> Result<bool, Error> {
-		if !*self.vars_immutable().get_is_init() {
+		if !*self.vars().get_is_init() {
 			err!(
 				NotInitialized,
 				"logger has not been initalized. Call init() first."
@@ -763,15 +769,15 @@ impl Log {
 		} else {
 			let now = Instant::now();
 
-			let max_age_millis = (*self.vars_immutable().get_log_config()).max_age_millis;
-			let max_size_bytes = (*self.vars_immutable().get_log_config()).max_size_bytes;
+			let max_age_millis = (*self.vars().get_log_config()).max_age_millis;
+			let max_size_bytes = (*self.vars().get_log_config()).max_size_bytes;
 
 			// if the file is either too old or too big we need to rotate
 			if now
-				.checked_duration_since(*self.vars_immutable().get_last_rotation())
+				.checked_duration_since(*self.vars().get_last_rotation())
 				.unwrap_or(Duration::new(0, 0))
 				.as_millis() > max_age_millis.into()
-				|| *self.vars_immutable().get_cur_size() > max_size_bytes
+				|| *self.vars().get_cur_size() > max_size_bytes
 			{
 				Ok(true)
 			} else {
@@ -781,7 +787,7 @@ impl Log {
 	}
 
 	fn rotate(&mut self) -> Result<(), Error> {
-		if !*self.vars().get_is_init() {
+		if !*self.vars_mut().get_is_init() {
 			// log hasn't been initialized yet, return error
 			let text = "logger has not been initalized. Call init() first.";
 			return err!(NotInitialized, text);
@@ -789,7 +795,7 @@ impl Log {
 
 		{
 			// check if there's a file, if not return error
-			let mut file = (*self.vars().get_mut_file()).write()?;
+			let mut file = (*self.vars_mut().get_mut_file()).write()?;
 			match (*file).as_mut() {
 				Some(_file) => {}
 				None => {
@@ -805,7 +811,7 @@ impl Log {
 
 		// get the original file path
 		let original_file_path =
-			PathBuf::from(self.vars().get_log_file_path_canonicalized().clone());
+			PathBuf::from(self.vars_mut().get_log_file_path_canonicalized().clone());
 
 		// get the parent directory and the file name
 		let text = "file_path has an unexpected illegal value of None for parent";
@@ -826,7 +832,7 @@ impl Log {
 		let file_name = format!("{}{}_{}.log", file_name, rotation_string, random::<u64>());
 		new_file_path_buf.push(file_name);
 
-		if (*self.vars().get_log_config()).delete_rotation {
+		if (*self.vars_mut().get_log_config()).delete_rotation {
 			remove_file(&original_file_path.as_path())?;
 		} else {
 			rename(&original_file_path.as_path(), new_file_path_buf.as_path())?;
@@ -839,7 +845,7 @@ impl Log {
 		self.check_open(&mut nfile, &original_file_path)?;
 
 		{
-			let mut file = (*self.vars().get_file()).write()?;
+			let mut file = (*self.vars_mut().get_file()).write()?;
 			*file = Some(nfile);
 		}
 
@@ -847,15 +853,15 @@ impl Log {
 	}
 
 	fn set_log_level(&mut self, log_level: LogLevel) {
-		(*self.vars().get_mut_cur_log_level()) = log_level;
+		(*self.vars_mut().get_mut_cur_log_level()) = log_level;
 	}
 
 	fn close(&mut self) -> Result<(), Error> {
-		if !*self.vars().get_is_init() {
+		if !*self.vars_mut().get_is_init() {
 			let text = "logger has not been initalized. Call init() first.";
 			err!(NotInitialized, text)
 		} else {
-			let mut file = (*self.vars().get_mut_file()).write()?;
+			let mut file = (*self.vars_mut().get_mut_file()).write()?;
 			// drop handler closes the handle
 			*file = None;
 			Ok(())
