@@ -19,6 +19,7 @@
 use crate::err_only;
 use bmw_deps::backtrace::Backtrace;
 use std::env::VarError;
+use std::ffi::OsString;
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::mpsc::{RecvError, SendError};
 use std::sync::{MutexGuard, PoisonError, RwLockReadGuard, RwLockWriteGuard};
@@ -47,6 +48,12 @@ pub enum CoreErrorKind {
 	Builder(String),
 	/// var error
 	Var(String),
+	/// IO error
+	IO(String),
+	/// TryInto error
+	TryInto(String),
+	/// OsString error
+	OsString(String),
 }
 
 impl Error {
@@ -176,9 +183,21 @@ impl From<RecvError> for Error {
 	}
 }
 
+impl From<OsString> for Error {
+	fn from(e: OsString) -> Error {
+		err_only!(OsString, format!("{:?}", e))
+	}
+}
+
 impl<T> From<SendError<T>> for Error {
 	fn from(e: SendError<T>) -> Error {
 		err_only!(IllegalState, e)
+	}
+}
+
+impl From<std::io::Error> for Error {
+	fn from(e: std::io::Error) -> Error {
+		err_only!(IO, e)
 	}
 }
 

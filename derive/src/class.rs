@@ -1117,7 +1117,7 @@ impl StateMachine {
 		macro_name: String,
 		class_name: &String,
 	) -> Result<String, Error> {
-		let mut no_example = false;
+		let mut no_example = true;
 		for pub_view in &self.pub_views {
 			if pub_view.name == macro_name {
 				no_example = pub_view.no_example;
@@ -1667,7 +1667,11 @@ impl StateMachine {
 		for (_k, vis) in view_pub_map {
 			match vis.0 {
 				Visibility::Pub => min_visibility = Visibility::Pub,
-				Visibility::PubCrate => min_visibility = Visibility::PubCrate,
+				Visibility::PubCrate => {
+					if min_visibility != Visibility::Pub {
+						min_visibility = Visibility::PubCrate
+					}
+				}
 				_ => {}
 			}
 		}
@@ -1679,7 +1683,6 @@ impl StateMachine {
 		} else {
 			""
 		};
-
 		if min_visibility == Visibility::Pub && visibility != "pub" {
 			visibility = "pub";
 		} else if min_visibility == Visibility::PubCrate && visibility == "" {

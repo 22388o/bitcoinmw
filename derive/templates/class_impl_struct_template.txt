@@ -7,6 +7,10 @@ impl ${GENERIC1} ${NAME} ${GENERIC2} ${WHERE} {
 		&mut self._hidden_var_struct
 	}
 
+	fn vars_immutable(&self) -> & ${NAME}Var ${GENERIC1} {
+                &self._hidden_var_struct
+        }
+
 	fn builder(_hidden_const_struct: ${NAME}Const) -> Result<Self, Error> {
 		let _hidden_var_struct = ${NAME}Var::builder(&_hidden_const_struct)?;
 		Ok(Self {
