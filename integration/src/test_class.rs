@@ -22,10 +22,12 @@ use std::any::Any;
 #[class{
         module "bmw_int::test_class";
         clone http_server;
+        /// @noexample
+        pub http_server_send, http_server_send_box;
         /// build a boxed httpsever
         /// # Also See
         /// [`Error`]
-	pub http_server_box as new_name, http_server, http_server_send, http_server_sync, http_server_send_box, http_server_sync_box;
+	pub http_server_box as new_name, http_server, http_server_sync, http_server_sync_box;
         /// Http instances
 	const instance: Vec<Instance> = vec![];
         /// The number of threads in this class

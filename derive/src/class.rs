@@ -195,6 +195,7 @@ struct Pub {
 	span: Span,
 	macro_name: String,
 	comments: Vec<String>,
+	no_example: bool,
 }
 
 impl Pub {
@@ -204,6 +205,7 @@ impl Pub {
 			span,
 			macro_name: name,
 			comments,
+			no_example: false,
 		}
 	}
 }
@@ -902,10 +904,18 @@ impl StateMachine {
 
 		for (k, v) in views {
 			let mut comment_map = HashMap::new();
-			for item in &self.pub_views {
+			for item in &mut self.pub_views {
 				if item.name.find(k) == Some(0) {
 					// TODO: improve this, could have some false positives
-					comment_map.insert(k, item.comments.clone());
+					let mut vec = vec![];
+					for comment in item.comments.clone() {
+						if comment.find("@noexample").is_none() {
+							vec.push(comment);
+						} else {
+							item.no_example = true;
+						}
+					}
+					comment_map.insert(k, vec);
 				}
 			}
 			let clone_text = if clone_set.contains(k) {
@@ -1107,6 +1117,12 @@ impl StateMachine {
 		macro_name: String,
 		class_name: &String,
 	) -> Result<String, Error> {
+		let mut no_example = false;
+		for pub_view in &self.pub_views {
+			if pub_view.name == macro_name {
+				no_example = pub_view.no_example;
+			}
+		}
 		let fmt = if is_send && is_box {
 			"_send_box"
 		} else if is_send {
@@ -1214,103 +1230,106 @@ impl StateMachine {
 		}
 
 		let crate_name = std::env::var("CARGO_PKG_NAME")?;
-		comment_text = format!("{}\n#[doc=\"# Examples\"]", comment_text);
-		comment_text = format!("{}\n#[doc=\"```\"]", comment_text);
-		comment_text = format!("{}\n#[doc=\" use bmw_core::*;\"]", comment_text);
 
-		match &self.module {
-			Some(module) => {
-				comment_text = format!("{}\n#[doc=\" use {}::*;\"]", comment_text, module,);
+		if !no_example {
+			comment_text = format!("{}\n#[doc=\"# Examples\"]", comment_text);
+			comment_text = format!("{}\n#[doc=\"```\"]", comment_text);
+			comment_text = format!("{}\n#[doc=\" use bmw_core::*;\"]", comment_text);
+
+			match &self.module {
+				Some(module) => {
+					comment_text = format!("{}\n#[doc=\" use {}::*;\"]", comment_text, module,);
+					comment_text = format!(
+						"{}\n#[doc=\" use {}::{};\"]",
+						comment_text, crate_name, macro_name
+					);
+				}
+				None => {
+					comment_text = format!("{}\n#[doc=\" use {}::*;\"]", comment_text, crate_name,);
+				}
+			}
+
+			comment_text = format!("{}\n#[doc=\"\"]", comment_text);
+			comment_text = format!(
+				"{}\n#[doc=\" fn main() -> Result<(), Error> {{\"]",
+				comment_text
+			);
+
+			comment_text = format!(
+				"{}#[doc=\"     // build an instance of {} with default parameters.\"]\n",
+				comment_text, trait_name
+			);
+
+			if is_macro {
 				comment_text = format!(
-					"{}\n#[doc=\" use {}::{};\"]",
-					comment_text, crate_name, macro_name
+					"{}\n#[doc=\"     let mut object = {}!()?;\"]",
+					comment_text, macro_name
+				);
+			} else {
+				comment_text = format!(
+					"{}\n#[doc=\"     let mut object = {}Builder::build_{}{}(vec![])?;\"]",
+					comment_text, class_name, builder_fn_name, fmt
 				);
 			}
-			None => {
-				comment_text = format!("{}\n#[doc=\" use {}::*;\"]", comment_text, crate_name,);
-			}
-		}
 
-		comment_text = format!("{}\n#[doc=\"\"]", comment_text);
-		comment_text = format!(
-			"{}\n#[doc=\" fn main() -> Result<(), Error> {{\"]",
-			comment_text
-		);
+			comment_text = format!("{}\n#[doc=\"\"]", comment_text);
 
-		comment_text = format!(
-			"{}#[doc=\"     // build an instance of {} with default parameters.\"]\n",
-			comment_text, trait_name
-		);
-
-		if is_macro {
 			comment_text = format!(
-				"{}\n#[doc=\"     let mut object = {}!()?;\"]",
-				comment_text, macro_name
-			);
-		} else {
-			comment_text = format!(
-				"{}\n#[doc=\"     let mut object = {}Builder::build_{}{}(vec![])?;\"]",
-				comment_text, class_name, builder_fn_name, fmt
-			);
-		}
-
-		comment_text = format!("{}\n#[doc=\"\"]", comment_text);
-
-		comment_text = format!(
 			"{}#[doc=\"     // build an instance of {} with parameters explicitly specified.\"]\n",
 			comment_text, trait_name
 		);
 
-		if is_macro {
-			comment_text = format!(
-				"{}#[doc=\"\tlet object = {}!(\"]\n",
-				comment_text, macro_name
-			);
-		} else {
-			comment_text = format!(
-				"{}#[doc=\"\tlet object = {}Builder::build_{}{}(vec![\"]\n",
-				comment_text, class_name, builder_fn_name, fmt
-			);
-		}
-
-		for param in &self.const_list {
-			let pascal = param.name.to_case(Case::Pascal);
-			let default_value = param.value_str.clone();
-			let default_value = default_value.trim();
-			let default_value = self.escape(&default_value.to_string());
-
-			if !param.is_multi()
-				&& param.field_type != Some(FieldType::Configurable)
-				&& param.field_type != Some(FieldType::String)
-			{
-				// bypass Vec & Configurable
+			if is_macro {
 				comment_text = format!(
-					"{}#[doc=\"         {}({}),\"]\n",
-					comment_text, pascal, default_value
+					"{}#[doc=\"\tlet object = {}!(\"]\n",
+					comment_text, macro_name
 				);
-			} else if param.field_type == Some(FieldType::String) {
+			} else {
 				comment_text = format!(
-					"{}#[doc=\"         {}(&{}),\"]\n",
-					comment_text, pascal, default_value
-				);
-			} else if param.field_type == Some(FieldType::Configurable) {
-				comment_text = format!(
-					"{}#[doc=\"         {}(Box::new({})),\"]\n",
-					comment_text, pascal, default_value
+					"{}#[doc=\"\tlet object = {}Builder::build_{}{}(vec![\"]\n",
+					comment_text, class_name, builder_fn_name, fmt
 				);
 			}
-		}
-		if is_macro {
-			comment_text = format!("{}#[doc=\"     )?;\"]\n", comment_text);
-		} else {
-			comment_text = format!("{}#[doc=\"     ])?;\"]\n", comment_text);
-		}
 
-		comment_text = format!("{}\n#[doc=\"\"]", comment_text);
-		comment_text = format!("{}\n#[doc=\"     Ok(())\"]", comment_text);
-		comment_text = format!("{}\n#[doc=\" }}\"]", comment_text);
+			for param in &self.const_list {
+				let pascal = param.name.to_case(Case::Pascal);
+				let default_value = param.value_str.clone();
+				let default_value = default_value.trim();
+				let default_value = self.escape(&default_value.to_string());
 
-		comment_text = format!("{}\n#[doc=\"```\"]", comment_text);
+				if !param.is_multi()
+					&& param.field_type != Some(FieldType::Configurable)
+					&& param.field_type != Some(FieldType::String)
+				{
+					// bypass Vec & Configurable
+					comment_text = format!(
+						"{}#[doc=\"         {}({}),\"]\n",
+						comment_text, pascal, default_value
+					);
+				} else if param.field_type == Some(FieldType::String) {
+					comment_text = format!(
+						"{}#[doc=\"         {}(&{}),\"]\n",
+						comment_text, pascal, default_value
+					);
+				} else if param.field_type == Some(FieldType::Configurable) {
+					comment_text = format!(
+						"{}#[doc=\"         {}(Box::new({})),\"]\n",
+						comment_text, pascal, default_value
+					);
+				}
+			}
+			if is_macro {
+				comment_text = format!("{}#[doc=\"     )?;\"]\n", comment_text);
+			} else {
+				comment_text = format!("{}#[doc=\"     ])?;\"]\n", comment_text);
+			}
+
+			comment_text = format!("{}\n#[doc=\"\"]", comment_text);
+			comment_text = format!("{}\n#[doc=\"     Ok(())\"]", comment_text);
+			comment_text = format!("{}\n#[doc=\" }}\"]", comment_text);
+
+			comment_text = format!("{}\n#[doc=\"```\"]", comment_text);
+		}
 
 		comment_text = format!(
 			"{}\n#[doc=\"[^1]: Multiple values allowed.\n\"]",
