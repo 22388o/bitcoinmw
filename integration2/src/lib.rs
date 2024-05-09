@@ -20,11 +20,11 @@
 mod test {
 	use bmw_core::*;
 	use bmw_int::test_class::*;
-	use bmw_int::{http_server_box, instance};
+	use bmw_int::{http_server, instance};
 
 	#[test]
 	fn test_instance() -> Result<(), Error> {
-		let http = http_server_box!(
+		let http = http_server!(
 			Threads(100),
 			Instance(instance!(Port(1113))?),
 			Instance(instance!(Port(1233), Address("0.0.0.0"))?),

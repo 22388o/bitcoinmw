@@ -17,19 +17,70 @@
 // limitations under the License.
 
 use bmw_core::*;
+use std::any::Any;
 
 #[class{
+        module "bmw_int::test_class";
         clone http_server;
-	pub http_server_box;
+        /// build a boxed httpsever
+        /// # Also See
+        /// [`Error`]
+	pub http_server_box as new_name, http_server, http_server_send, http_server_sync, http_server_send_box, http_server_sync_box;
+        /// Http instances
 	const instance: Vec<Instance> = vec![];
+        /// The number of threads in this class
+        /// or another value
 	const threads: usize = 1;
+        const timeout: usize = 5_000;
+        const abc: u8 = 123;
+        const def: u16 = 444;
+        const ghi: u32 = 777;
+        const aaa: u64 = 1000;
+        const bbb: u128 = 1111;
+        const ccc: bool = false;
+        /// time of day
+        const time: u64 = 1234;
+        const ddd: String = "test".to_string();
+        const jjj: Instance = Instance::default();
+        const mmm: Vec<usize> = vec![1,2,3];
+        const eee: Vec<u8> = vec![0,2];
+        const fff: Vec<String> = vec!["ok".to_string()];
+        var m: usize;
 
+        /// Show the configuration for this http server
+        /// @param self an immutable ref to the http server
+        /// this is just self
+        /// @return the unit type is returned
+        /// @see Error
 	[http_server]
 	fn show(&self);
+
+        /// This function is really great! Try it out.
+        /// @param self mutable ref
+        /// @param x a cool usize value
+        /// @param p a big value
+        /// @param ok a tuple with three values: String, usize, and String.
+        /// @return a very nice [`usize`] value
+        /// @see bmw_base::CoreErrorKind
+        /// @see bmw_deps::chrono
+        /// @error CoreErrorKind::Parse if a parse error occurs
+        /// @error CoreErrorKind::IllegalState if an illegal state occurs
+        /// @error CoreErrorKind::IllegalArgument
+        /// # Examples
+        ///```
+        /// use bmw_core::*;
+        ///
+        /// fn main() -> Result<(), Error> {
+        ///     println!("hi");
+        ///     Ok(())
+        /// }
+        ///```
+        [http_server]
+        fn load(&mut self, x: usize, p: Box<dyn Any + Send + Sync>, ok: (String, usize, String)) -> Result<usize, Error>;
 }]
 impl Server {
 	fn builder(&self) -> Result<Self, Error> {
-		Ok(Self {})
+		Ok(Self { m: 0 })
 	}
 }
 
@@ -40,6 +91,15 @@ impl Server {
 			println!("instance[{}] = {:?}", i, instance);
 			i += 1;
 		}
+	}
+
+	fn load(
+		&mut self,
+		_x: usize,
+		_p: Box<dyn Any + Send + Sync>,
+		_ok: (String, usize, String),
+	) -> Result<usize, Error> {
+		Ok(0)
 	}
 }
 
@@ -577,7 +637,7 @@ mod test {
 		});
 				*/
 
-		let http = http_server_box!(
+		let http = http_server!(
 			Threads(100),
 			Instance(instance!(Port(1113))?),
 			Instance(instance!(Port(1233), Address("0.0.0.0"))?),

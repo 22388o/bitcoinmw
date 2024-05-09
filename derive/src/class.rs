@@ -25,6 +25,7 @@ use proc_macro::TokenTree::{Group, Ident, Literal, Punct};
 use proc_macro::{Delimiter, Spacing, Span, TokenStream, TokenTree};
 use proc_macro_error::{abort, emit_error, Diagnostic, Level};
 use std::collections::{HashMap, HashSet};
+use std::fmt::{Display, Formatter};
 
 static CHECK_RECURSION_CONST_PREFIX: &str =
 	"if bmw_core::is_recursive() { panic!(\"Recursion detected! Perhaps ";
@@ -53,6 +54,7 @@ struct Fn {
 	expect_gt_return_list: bool,
 	return_list_span: Option<Span>,
 	generic_string: String,
+	comments: Vec<String>,
 }
 
 impl Fn {
@@ -72,6 +74,7 @@ impl Fn {
 			expect_dash_return_list: false,
 			expect_gt_return_list: false,
 			generic_string: "".to_string(),
+			comments: vec![],
 		}
 	}
 }
@@ -92,6 +95,32 @@ impl Var {
 			span,
 			prev_token_is_joint: false,
 		}
+	}
+}
+
+impl Display for FieldType {
+	fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+		match self {
+			FieldType::Usize => write!(f, "[`usize`]")?,
+			FieldType::U8 => write!(f, "[`u8`]")?,
+			FieldType::U16 => write!(f, "[`u16`]")?,
+			FieldType::U32 => write!(f, "[`u32`]")?,
+			FieldType::U64 => write!(f, "[`u64`]")?,
+			FieldType::U128 => write!(f, "[`u128`]")?,
+			FieldType::Bool => write!(f, "[`bool`]")?,
+			FieldType::String => write!(f, "[`String`]")?,
+			FieldType::Configurable => write!(f, "[`Configurable`]")?,
+			FieldType::VecUsize => write!(f, "[`usize`]")?,
+			FieldType::VecBool => write!(f, "[`bool`]")?,
+			FieldType::VecU8 => write!(f, "[`u8`]")?,
+			FieldType::VecU16 => write!(f, "[`u16`]")?,
+			FieldType::VecU32 => write!(f, "[`u32`]")?,
+			FieldType::VecU64 => write!(f, "[`u64`]")?,
+			FieldType::VecU128 => write!(f, "[`u128`]")?,
+			FieldType::VecString => write!(f, "[`String`]")?,
+			FieldType::VecConfigurable => write!(f, "[`Configurable`]")?,
+		}
+		Ok(())
 	}
 }
 
@@ -125,6 +154,7 @@ struct Const {
 	value_str: String,
 	span: Span,
 	prev_token_is_joint: bool,
+	comments: Vec<String>,
 }
 
 impl Const {
@@ -136,23 +166,44 @@ impl Const {
 			field_string: None,
 			span,
 			prev_token_is_joint: false,
+			comments: vec![],
+		}
+	}
+
+	fn is_multi(&self) -> bool {
+		match &self.field_type {
+			Some(f) => match f {
+				FieldType::VecUsize => true,
+				FieldType::VecBool => true,
+				FieldType::VecString => true,
+				FieldType::VecConfigurable => true,
+				FieldType::VecU8 => true,
+				FieldType::VecU16 => true,
+				FieldType::VecU32 => true,
+				FieldType::VecU64 => true,
+				FieldType::VecU128 => true,
+				_ => false,
+			},
+			None => false,
 		}
 	}
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Pub {
 	name: String,
 	span: Span,
 	macro_name: String,
+	comments: Vec<String>,
 }
 
 impl Pub {
-	fn new(name: String, span: Span) -> Self {
+	fn new(name: String, span: Span, comments: Vec<String>) -> Self {
 		Self {
 			name: name.clone(),
 			span,
 			macro_name: name,
+			comments,
 		}
 	}
 }
@@ -227,6 +278,7 @@ enum State {
 	WantsViewListComma,
 	WantsViewListFn,
 	WantsViewListFnName,
+	WantsComment,
 	WantsViewListParamList,
 	WantsViewListReturnList,
 	WantsViewListGenerics,
@@ -267,6 +319,7 @@ struct StateMachine {
 	found_builder: bool,
 	no_sync: bool,
 	no_send: bool,
+	cur_comments: Vec<String>,
 }
 
 impl StateMachine {
@@ -304,6 +357,7 @@ impl StateMachine {
 			ret: TokenStream::new(),
 			no_sync: false,
 			no_send: false,
+			cur_comments: vec![],
 		}
 	}
 
@@ -324,6 +378,11 @@ impl StateMachine {
 			println!("fn list:");
 			for f in &self.fn_list {
 				println!("{:?}", f);
+			}
+
+			println!("pub list:");
+			for p in &self.pub_views {
+				println!("{:?}", p);
 			}
 		}
 		self.item_state = ItemState::Base;
@@ -840,7 +899,15 @@ impl StateMachine {
 		for c in &self.clone_list {
 			clone_set.insert(c.name.clone());
 		}
+
 		for (k, v) in views {
+			let mut comment_map = HashMap::new();
+			for item in &self.pub_views {
+				if item.name.find(k) == Some(0) {
+					// TODO: improve this, could have some false positives
+					comment_map.insert(k, item.comments.clone());
+				}
+			}
 			let clone_text = if clone_set.contains(k) {
 				": bmw_core::dyn_clone::DynClone"
 			} else {
@@ -856,6 +923,15 @@ impl StateMachine {
 				},
 				None => "",
 			};
+
+			match comment_map.get(k) {
+				Some(comments) => {
+					for comment in comments {
+						trait_text = format!("{}\n#[doc={}]", trait_text, comment);
+					}
+				}
+				None => {}
+			}
 			trait_text = format!(
 				"{}\n{} trait {} {} {} {} {{",
 				trait_text,
@@ -866,6 +942,10 @@ impl StateMachine {
 				self.build_where()?,
 			);
 			for fn_info in v {
+				trait_text = format!("{}\n#[document]", trait_text);
+				for comment in &fn_info.comments {
+					trait_text = format!("{}\n\t#[doc={}]", trait_text, comment);
+				}
 				trait_text = format!(
 					"{}\nfn {}({}) -> {};",
 					trait_text, fn_info.name, fn_info.param_list, fn_info.return_list
@@ -1013,6 +1093,214 @@ impl StateMachine {
 		Ok(template)
 	}
 
+	fn escape(&self, s: &String) -> String {
+		s.replace("\"", "\\\"").to_string()
+	}
+
+	fn build_comments(
+		&self,
+		is_macro: bool,
+		is_send: bool,
+		is_sync: bool,
+		is_box: bool,
+		trait_name: String,
+		macro_name: String,
+		class_name: &String,
+	) -> Result<String, Error> {
+		let builder_fn_name = trait_name.to_case(Case::Snake);
+		let mut comment_text = format!("#[doc=\"Builds an instance of the [`{}`]\"]\n", trait_name);
+		comment_text = format!(
+			"{}#[doc=\"trait using the specified input parameters.\"]\n",
+			comment_text
+		);
+
+		comment_text = format!("{}\n#[doc=\"# Input Parameters\"]", comment_text);
+		let comment_text = format!(
+			"{}#[doc=\"| Parameter | Multi [^1] | Description | Default Value |\"]\n",
+			comment_text
+		);
+		let mut comment_text = format!("{}#[doc=\"|---|---|---|---|\"]\n", comment_text);
+		for c in &self.const_list {
+			let mut comments = "".to_string();
+			for comment in &c.comments {
+				let comment = self.dequote(comment);
+				let comment = comment.trim();
+				if comments.len() == 0 {
+					comments = format!("{}{}", comments, comment);
+				} else {
+					comments = format!("{} {}", comments, comment);
+				}
+			}
+			if c.comments.len() == 0 {
+				comments = "TODO: document this parameter.".to_string();
+			}
+			comment_text = format!(
+				"{}\n#[doc=\"{}({}) | {} | {} | {}<br/>\"]",
+				comment_text,
+				c.name.to_case(Case::Pascal),
+				c.field_type.as_ref().unwrap(),
+				if c.is_multi() { "yes" } else { "no" },
+				comments,
+				self.escape(&c.value_str),
+			);
+		}
+
+		comment_text = format!("{}\n#[doc=\"# Return\n\"]", comment_text);
+
+		if is_send && is_box {
+			comment_text = format!(
+				"{}\n#[doc=\"[`Result`]<[`Box`]<dyn [`{}`] + [`Send`]>, [`Error`]>\n\"]",
+				comment_text, trait_name
+			);
+		} else if is_send {
+			comment_text = format!(
+				"{}\n#[doc=\"[`Result`]<impl [`{}`] + [`Send`], [`Error`]>\n\"]",
+				comment_text, trait_name
+			);
+		} else if is_sync && is_box {
+			comment_text = format!(
+				"{}\n#[doc=\"[`Result`]<[`Box`]<dyn [`{}`] + [`Send`] + [`Sync`]>, [`Error`]>\n\"]",
+				comment_text, trait_name
+			);
+		} else if is_sync {
+			comment_text = format!(
+				"{}\n#[doc=\"[`Result`]<impl [`{}`] + [`Send`] + [`Sync`], [`Error`]>\n\"]",
+				comment_text, trait_name
+			);
+		} else if is_box {
+			comment_text = format!(
+				"{}\n#[doc=\"[`Result`]<[`Box`]<dyn [`{}`]>, [`Error`]>\n\"]",
+				comment_text, trait_name
+			);
+		} else {
+			comment_text = format!(
+				"{}\n#[doc=\"[`Result`]<impl [`{}`], [`Error`]>\n\"]",
+				comment_text, trait_name
+			);
+		}
+
+		comment_text = format!("{}\n#[doc=\"# Errors\n\"]", comment_text);
+		if is_macro {
+			comment_text = format!("{}\n#[doc=\"[`CoreErrorKind::Builder`] - Errors returned by the builder are wrapped in this error kind.\"]", comment_text);
+		} else {
+			comment_text = format!(
+				"{}\n#[doc=\"[`CoreErrorKind::Configuration`] - If the configuration is invalid.<br/>\"]",
+				comment_text
+			);
+			comment_text = format!("{}\n#[doc=\"[`CoreErrorKind::Builder`] - Errors returned by the builder are wrapped in this error kind.\"]", comment_text);
+		}
+		comment_text = format!("{}\n#[doc=\"# Also see\"]", comment_text);
+		comment_text = format!("{}\n#[doc=\"[`{}`]<br/>\"]", comment_text, trait_name);
+		if is_macro {
+			let fmt = if is_send && is_box {
+				"_send_box"
+			} else if is_send {
+				"_send"
+			} else if is_sync && is_box {
+				"_sync_box"
+			} else if is_sync {
+				"_sync"
+			} else if is_box {
+				"_box"
+			} else {
+				""
+			};
+			comment_text = format!(
+				"{}\n#[doc=\"[`{}Builder::build_{}{}`]\"]",
+				comment_text, class_name, builder_fn_name, fmt
+			);
+		} else {
+			comment_text = format!("{}\n#[doc=\"[`crate::{}`]\"]", comment_text, macro_name);
+		}
+
+		let crate_name = std::env::var("CARGO_PKG_NAME")?;
+		comment_text = format!("{}\n#[doc=\"# Examples\"]", comment_text);
+		comment_text = format!("{}\n#[doc=\"```\"]", comment_text);
+		comment_text = format!("{}\n#[doc=\" use bmw_core::*;\"]", comment_text);
+
+		match &self.module {
+			Some(module) => {
+				comment_text = format!("{}\n#[doc=\" use {}::*;\"]", comment_text, module);
+				comment_text = format!(
+					"{}\n#[doc=\" use {}::{};\"]",
+					comment_text, crate_name, macro_name
+				);
+			}
+			None => {
+				comment_text = format!("{}\n#[doc=\" use {}::*;\"]", comment_text, crate_name,);
+			}
+		}
+
+		comment_text = format!("{}\n#[doc=\"\"]", comment_text);
+		comment_text = format!(
+			"{}\n#[doc=\" fn main() -> Result<(), Error> {{\"]",
+			comment_text
+		);
+
+		comment_text = format!(
+			"{}#[doc=\"     // build an instance of {} with default parameters.\"]\n",
+			comment_text, trait_name
+		);
+
+		comment_text = format!(
+			"{}\n#[doc=\"     let mut object = {}!()?;\"]",
+			comment_text, macro_name
+		);
+
+		comment_text = format!("{}\n#[doc=\"\"]", comment_text);
+
+		comment_text = format!(
+			"{}#[doc=\"     // build an instance of {} with parameters explicitly specified.\"]\n",
+			comment_text, trait_name
+		);
+		comment_text = format!(
+			"{}#[doc=\"\tlet object = {}!(\"]\n",
+			comment_text, macro_name
+		);
+
+		for param in &self.const_list {
+			let pascal = param.name.to_case(Case::Pascal);
+			let default_value = param.value_str.clone();
+			let default_value = default_value.trim();
+			let default_value = self.escape(&default_value.to_string());
+
+			if !param.is_multi()
+				&& param.field_type != Some(FieldType::Configurable)
+				&& param.field_type != Some(FieldType::String)
+			{
+				// bypass Vec & Configurable
+				comment_text = format!(
+					"{}#[doc=\"         {}({}),\"]\n",
+					comment_text, pascal, default_value
+				);
+			} else if param.field_type == Some(FieldType::String) {
+				comment_text = format!(
+					"{}#[doc=\"         {}(&{}),\"]\n",
+					comment_text, pascal, default_value
+				);
+			} else if param.field_type == Some(FieldType::Configurable) {
+				comment_text = format!(
+					"{}#[doc=\"         {}(Box::new({})),\"]\n",
+					comment_text, pascal, default_value
+				);
+			}
+		}
+		comment_text = format!("{}#[doc=\"     )?;\"]\n", comment_text);
+
+		comment_text = format!("{}\n#[doc=\"\"]", comment_text);
+		comment_text = format!("{}\n#[doc=\"     Ok(())\"]", comment_text);
+		comment_text = format!("{}\n#[doc=\" }}\"]", comment_text);
+
+		comment_text = format!("{}\n#[doc=\"```\"]", comment_text);
+
+		comment_text = format!(
+			"{}\n#[doc=\"[^1]: Multiple values allowed.\n\"]",
+			comment_text
+		);
+
+		Ok(comment_text)
+	}
+
 	fn update_macros(
 		&mut self,
 		template: &String,
@@ -1022,6 +1310,7 @@ impl StateMachine {
 		let class_name = &self.class_name.as_ref().unwrap();
 		let macro_template = include_str!("../templates/class_macro_template.txt").to_string();
 		let mut macro_builder = "".to_string();
+
 		for (view, _v) in views {
 			let view_pascal = view.to_case(Case::Pascal);
 			let mut mbt = macro_template.clone();
@@ -1046,54 +1335,119 @@ impl StateMachine {
 
 			mbt = mbt.replace("${NAME}", &class_name);
 			mbt = mbt.replace("${VIEW}", &view);
+
 			let view_fmt = format!("{}", view);
+			let macro_name = match view_pub_map.get(&view_fmt) {
+				Some(v) => v.1.clone(),
+				None => view_fmt,
+			};
+			mbt = mbt.replace("${MACRO_NAME_IMPL}", &macro_name);
 			mbt = mbt.replace(
-				"${MACRO_NAME_IMPL}",
-				&match view_pub_map.get(&view_fmt) {
-					Some(v) => v.1.clone(),
-					None => view_fmt,
-				},
+				"${IMPL_COMMENTS}",
+				&self.build_comments(
+					true,
+					false,
+					false,
+					false,
+					view_pascal.clone(),
+					macro_name,
+					&class_name,
+				)?,
 			);
 
 			let view_fmt = format!("{}_box", view);
+			let macro_name = match view_pub_map.get(&view_fmt) {
+				Some(v) => v.1.clone(),
+				None => view_fmt,
+			};
+			mbt = mbt.replace("${MACRO_NAME_BOX}", &macro_name);
 			mbt = mbt.replace(
-				"${MACRO_NAME_BOX}",
-				&match view_pub_map.get(&view_fmt) {
-					Some(v) => v.1.clone(),
-					None => view_fmt,
-				},
+				"${BOX_COMMENTS}",
+				&self.build_comments(
+					true,
+					false,
+					false,
+					true,
+					view_pascal.clone(),
+					macro_name,
+					&class_name,
+				)?,
 			);
+
 			let view_fmt = format!("{}_send", view);
+			let macro_name = match view_pub_map.get(&view_fmt) {
+				Some(v) => v.1.clone(),
+				None => view_fmt,
+			};
+			mbt = mbt.replace("${MACRO_NAME_SEND_IMPL}", &macro_name);
 			mbt = mbt.replace(
-				"${MACRO_NAME_SEND_IMPL}",
-				&match view_pub_map.get(&view_fmt) {
-					Some(v) => v.1.clone(),
-					None => view_fmt,
-				},
+				"${SEND_IMPL_COMMENTS}",
+				&self.build_comments(
+					true,
+					true,
+					false,
+					false,
+					view_pascal.clone(),
+					macro_name,
+					&class_name,
+				)?,
 			);
+
 			let view_fmt = format!("{}_send_box", view);
+			let macro_name = match view_pub_map.get(&view_fmt) {
+				Some(v) => v.1.clone(),
+				None => view_fmt,
+			};
+			mbt = mbt.replace("${MACRO_NAME_SEND_BOX}", &macro_name);
 			mbt = mbt.replace(
-				"${MACRO_NAME_SEND_BOX}",
-				&match view_pub_map.get(&view_fmt) {
-					Some(v) => v.1.clone(),
-					None => view_fmt,
-				},
+				"${SEND_BOX_COMMENTS}",
+				&self.build_comments(
+					true,
+					true,
+					false,
+					true,
+					view_pascal.clone(),
+					macro_name,
+					&class_name,
+				)?,
 			);
+
 			let view_fmt = format!("{}_sync", view);
+			let macro_name = match view_pub_map.get(&view_fmt) {
+				Some(v) => v.1.clone(),
+				None => view_fmt,
+			};
+			mbt = mbt.replace("${MACRO_NAME_SYNC_IMPL}", &macro_name);
 			mbt = mbt.replace(
-				"${MACRO_NAME_SYNC_IMPL}",
-				&match view_pub_map.get(&view_fmt) {
-					Some(v) => v.1.clone(),
-					None => view_fmt,
-				},
+				"${SYNC_IMPL_COMMENTS}",
+				&self.build_comments(
+					true,
+					false,
+					true,
+					false,
+					view_pascal.clone(),
+					macro_name,
+					&class_name,
+				)?,
 			);
+
 			let view_fmt = format!("{}_sync_box", view);
+			let macro_name = match view_pub_map.get(&view_fmt) {
+				Some(v) => v.1.clone(),
+				None => view_fmt,
+			};
+			mbt = mbt.replace("${MACRO_NAME_SYNC_BOX}", &macro_name);
 			mbt = mbt.replace(
-				"${MACRO_NAME_SYNC_BOX}",
-				&match view_pub_map.get(&view_fmt) {
-					Some(v) => v.1.clone(),
-					None => view_fmt,
-				},
+				"${SYNC_BOX_COMMENTS}",
+				&self.build_comments(
+					true,
+					false,
+					true,
+					true,
+					view_pascal.clone(),
+					macro_name,
+					&class_name,
+				)?,
 			);
 
 			mbt = mbt.replace(
@@ -1240,12 +1594,6 @@ impl StateMachine {
 					""
 				},
 			);
-			mbt = mbt.replace("${IMPL_COMMENTS}", "");
-			mbt = mbt.replace("${BOX_COMMENTS}", "");
-			mbt = mbt.replace("${SEND_IMPL_COMMENTS}", "");
-			mbt = mbt.replace("${SEND_BOX_COMMENTS}", "");
-			mbt = mbt.replace("${SYNC_IMPL_COMMENTS}", "");
-			mbt = mbt.replace("${SYNC_BOX_COMMENTS}", "");
 			macro_builder = format!("{}\n{}", macro_builder, mbt);
 		}
 		let template = template.replace("${MACROS}", &macro_builder);
@@ -1301,13 +1649,13 @@ impl StateMachine {
 		}
 
 		let mut builder_text = format!(
-			"{} struct {}Builder {{}}\nimpl {}Builder {{",
-			visibility, class_name, class_name
+			"#[doc=\"Builder for the `{}` class.\"]{} struct {}Builder {{}}\nimpl {}Builder {{",
+			class_name, visibility, class_name, class_name
 		);
 
 		for (view, _v) in views {
 			let trait_text = view.to_case(Case::Pascal);
-			let mut view_template = builder_template.replace("${IMPL_COMMENTS}", "");
+			let mut view_template = builder_template.clone();
 			if self.no_send {
 				view_template = view_template.replace("${START_SEND}", "/*");
 				view_template = view_template.replace("${END_SEND}", "*/");
@@ -1326,11 +1674,114 @@ impl StateMachine {
 
 			view_template = view_template.replace("${START_SYNC}", "");
 			view_template = view_template.replace("${END_SYNC}", "");
-			view_template = view_template.replace("${BOX_COMMENTS}", "");
-			view_template = view_template.replace("${SYNC_BOX_COMMENTS}", "");
-			view_template = view_template.replace("${SYNC_IMPL_COMMENTS}", "");
-			view_template = view_template.replace("${SEND_IMPL_COMMENTS}", "");
-			view_template = view_template.replace("${SEND_BOX_COMMENTS}", "");
+
+			let view_fmt = format!("{}", view);
+			let macro_name = match view_pub_map.get(&view_fmt) {
+				Some(v) => v.1.clone(),
+				None => view_fmt,
+			};
+			view_template = view_template.replace(
+				"${IMPL_COMMENTS}",
+				&self.build_comments(
+					false,
+					false,
+					false,
+					false,
+					trait_text.clone(),
+					macro_name,
+					&class_name,
+				)?,
+			);
+
+			let view_fmt = format!("{}_box", view);
+			let macro_name = match view_pub_map.get(&view_fmt) {
+				Some(v) => v.1.clone(),
+				None => view_fmt,
+			};
+			view_template = view_template.replace(
+				"${BOX_COMMENTS}",
+				&self.build_comments(
+					false,
+					false,
+					false,
+					true,
+					trait_text.clone(),
+					macro_name,
+					&class_name,
+				)?,
+			);
+
+			let view_fmt = format!("{}_sync_box", view);
+			let macro_name = match view_pub_map.get(&view_fmt) {
+				Some(v) => v.1.clone(),
+				None => view_fmt,
+			};
+			view_template = view_template.replace(
+				"${SYNC_BOX_COMMENTS}",
+				&self.build_comments(
+					false,
+					false,
+					true,
+					true,
+					trait_text.clone(),
+					macro_name,
+					&class_name,
+				)?,
+			);
+
+			let view_fmt = format!("{}_sync", view);
+			let macro_name = match view_pub_map.get(&view_fmt) {
+				Some(v) => v.1.clone(),
+				None => view_fmt,
+			};
+			view_template = view_template.replace(
+				"${SYNC_IMPL_COMMENTS}",
+				&self.build_comments(
+					false,
+					false,
+					true,
+					false,
+					trait_text.clone(),
+					macro_name,
+					&class_name,
+				)?,
+			);
+
+			let view_fmt = format!("{}_send", view);
+			let macro_name = match view_pub_map.get(&view_fmt) {
+				Some(v) => v.1.clone(),
+				None => view_fmt,
+			};
+			view_template = view_template.replace(
+				"${SEND_IMPL_COMMENTS}",
+				&self.build_comments(
+					false,
+					true,
+					false,
+					false,
+					trait_text.clone(),
+					macro_name,
+					&class_name,
+				)?,
+			);
+
+			let view_fmt = format!("{}_send_box", view);
+			let macro_name = match view_pub_map.get(&view_fmt) {
+				Some(v) => v.1.clone(),
+				None => view_fmt,
+			};
+			view_template = view_template.replace(
+				"${SEND_BOX_COMMENTS}",
+				&self.build_comments(
+					false,
+					true,
+					false,
+					true,
+					trait_text.clone(),
+					macro_name,
+					&class_name,
+				)?,
+			);
 			view_template =
 				view_template.replace("${VISIBILITY_IMPL}", &self.vis_for(view, view_pub_map));
 			view_template = view_template.replace(
@@ -1851,6 +2302,7 @@ impl StateMachine {
 			State::WantsViewListComma => self.process_wants_view_list_comma(token)?,
 			State::WantsViewListFn => self.process_wants_view_list_fn(token)?,
 			State::WantsViewListFnName => self.process_wants_view_list_fn_name(token)?,
+			State::WantsComment => self.process_wants_comment(token)?,
 			State::WantsViewListParamList => self.process_wants_view_list_param_list(token)?,
 			State::WantsViewListReturnList => self.process_wants_view_list_return_list(token)?,
 			State::WantsViewListGenerics => self.process_generics(token)?,
@@ -1860,6 +2312,86 @@ impl StateMachine {
 			State::NoSend => self.process_no_send_wants_semi(token)?,
 			State::NoSync => self.process_no_sync_wants_semi(token)?,
 		}
+		Ok(())
+	}
+
+	fn dequote(&self, s: &String) -> String {
+		let s = s.trim().to_string();
+		let s = match s.find("\"") {
+			Some(pos) => {
+				if pos == 0 {
+					s.substring(1, s.len()).to_string()
+				} else {
+					s
+				}
+			}
+			None => s,
+		};
+		let s = match s.rfind("\"") {
+			Some(pos) => {
+				let len = s.len();
+				if len > 0 {
+					if pos == len - 1 {
+						s.substring(0, len - 1).to_string()
+					} else {
+						s
+					}
+				} else {
+					s
+				}
+			}
+			None => s,
+		};
+		s
+	}
+
+	fn process_wants_comment(&mut self, token: TokenTree) -> Result<(), Error> {
+		match token {
+			Group(ref group) => {
+				if group.delimiter() == Delimiter::Bracket {
+					let mut first = true;
+					let mut second = false;
+					for inner in group.stream() {
+						let inner_str = inner.to_string();
+						if first && inner_str != "doc" {
+							self.append_error(&format!(
+								"expected comment block here, found '{}'",
+								inner_str,
+							))?;
+						} else if first {
+							second = true;
+						} else if second {
+							match inner {
+								Literal(lit) => {
+									self.cur_comments.push(lit.to_string());
+								}
+								_ => {
+									if inner_str != "=" {
+										self.append_error(&format!(
+											"expected comment block here, found '{}'",
+											inner_str,
+										))?;
+									}
+								}
+							}
+						}
+						first = false;
+					}
+				} else {
+					self.append_error(&format!(
+						"expected comment block here, found '{}'",
+						token.to_string(),
+					))?;
+				}
+			}
+			_ => {
+				self.append_error(&format!(
+					"expected comment block here, found '{}'",
+					token.to_string()
+				))?;
+			}
+		}
+		self.state = State::Base;
 		Ok(())
 	}
 
@@ -1960,8 +2492,13 @@ impl StateMachine {
 					}
 				}
 				_ => {
-					// error
-					self.expected(vec!["[", "pub", "var", "const", "module"], &token_str)?;
+					if token_str == "#" {
+						// comment potential
+						self.state = State::WantsComment;
+					} else {
+						// error
+						self.expected(vec!["[", "pub", "var", "const", "module"], &token_str)?;
+					}
 				}
 			}
 		}
@@ -2008,6 +2545,7 @@ impl StateMachine {
 						self.pub_views.push(Pub::new(
 							ident.to_string(),
 							self.span.as_ref().unwrap().clone(),
+							self.cur_comments.clone(),
 						));
 					}
 				}
@@ -2025,6 +2563,7 @@ impl StateMachine {
 		if token_str == "as" {
 			self.state = State::WantsPubAs;
 		} else if token_str == ";" {
+			self.cur_comments.clear();
 			self.state = State::Base;
 		} else {
 			self.expected(vec![","], &token_str)?;
@@ -2046,6 +2585,7 @@ impl StateMachine {
 					self.pub_views.push(Pub::new(
 						ident.to_string(),
 						self.span.as_ref().unwrap().clone(),
+						self.cur_comments.clone(),
 					));
 				}
 			}
@@ -2288,7 +2828,10 @@ impl StateMachine {
 	fn process_const(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ref ident) => {
-				self.cur_const = Some(Const::new(ident.to_string(), token.span()));
+				let mut nconst = Const::new(ident.to_string(), token.span());
+				nconst.comments.extend(self.cur_comments.clone());
+				self.cur_comments.clear();
+				self.cur_const = Some(nconst);
 			}
 			_ => {
 				self.append_error(&format!(
@@ -2389,7 +2932,7 @@ impl StateMachine {
 			}
 
 			// check return list and param list with syn
-			let cur_fn = self.cur_fn.as_ref().unwrap().clone();
+			let mut cur_fn = self.cur_fn.as_ref().unwrap().clone();
 			let expr: Result<Type, syn::Error> = parse_str(&cur_fn.return_list);
 			match expr {
 				Ok(_) => {}
@@ -2404,6 +2947,9 @@ impl StateMachine {
 					))?;
 				}
 			}
+
+			cur_fn.comments.extend(self.cur_comments.clone());
+			self.cur_comments.clear();
 
 			self.fn_list.push(cur_fn.clone());
 			self.state = State::Base;

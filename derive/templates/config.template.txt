@@ -1,3 +1,4 @@
+#[doc(hidden)]
 pub enum ${CONFIGURABLE_STRUCT}Options <'a> {
 	Phantom(std::marker::PhantomData<&'a std::convert::Infallible>),
 	${OPTIONS_ENUM_VARIANTS}

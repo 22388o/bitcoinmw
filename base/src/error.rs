@@ -18,6 +18,7 @@
 
 use crate::err_only;
 use bmw_deps::backtrace::Backtrace;
+use std::env::VarError;
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::mpsc::{RecvError, SendError};
 use std::sync::{MutexGuard, PoisonError, RwLockReadGuard, RwLockWriteGuard};
@@ -44,6 +45,8 @@ pub enum CoreErrorKind {
 	Configuration(String),
 	/// class builder
 	Builder(String),
+	/// var error
+	Var(String),
 }
 
 impl Error {
@@ -140,6 +143,12 @@ impl PartialEq for Box<dyn ErrorKind> {
 			},
 			None => false,
 		}
+	}
+}
+
+impl From<VarError> for Error {
+	fn from(e: VarError) -> Error {
+		err_only!(Var, e)
 	}
 }
 
