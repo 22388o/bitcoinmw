@@ -200,17 +200,21 @@ impl SlabAllocatorClass {
 			slab_data_index,
 		};
 
-		for config in &constants.slab_config {
-			let mut sdsb = slab_data_sync_box!()?;
-			let sdp = SlabDataParams::new(index, config.slab_size, config.slab_count)?;
-			sdsb.resize((config.slab_size + sdp.ptr_size) * constants.slabs_per_resize)?;
-			SlabAllocatorClass::init_free_list(&mut sdsb, &sdp, constants.slabs_per_resize)?;
-			ret.slab_data_index.insert(config.slab_size, index as usize);
-			ret.slab_data.push((sdp, sdsb));
-			index += 1;
-		}
+		if constants.slab_config.len() > u8::MAX as usize {
+			err!(Configuration, "no more than {} slab_configs", u8::MAX)
+		} else {
+			for config in &constants.slab_config {
+				let mut sdsb = slab_data_sync_box!()?;
+				let sdp = SlabDataParams::new(index, config.slab_size, config.slab_count)?;
+				sdsb.resize((config.slab_size + sdp.ptr_size) * constants.slabs_per_resize)?;
+				SlabAllocatorClass::init_free_list(&mut sdsb, &sdp, constants.slabs_per_resize)?;
+				ret.slab_data_index.insert(config.slab_size, index as usize);
+				ret.slab_data.push((sdp, sdsb));
+				index += 1;
+			}
 
-		Ok(ret)
+			Ok(ret)
+		}
 	}
 }
 
