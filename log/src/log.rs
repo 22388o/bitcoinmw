@@ -128,14 +128,14 @@ pub const DEFAULT_LINE_NUM_DATA_MAX_LEN: u16 = 30;
     fn get_log_config_debug(&self) -> LogConfig;
 }]
 pub(crate) impl Log {
-	fn builder(&self) -> Result<Self, Error> {
+	fn builder(constants: &LogConst) -> Result<Self, Error> {
 		let home_dir = dirs::home_dir()
 			.unwrap_or(PathBuf::new())
 			.as_path()
 			.display()
 			.to_string();
 		let file = Arc::new(RwLock::new(None));
-		let log_file_path_canonicalized = const_values.log_file_path.replace("~", &home_dir);
+		let log_file_path_canonicalized = constants.log_file_path.replace("~", &home_dir);
 
 		// to check if the file is ok we try to canonicalize its parent, but only if a file
 		// is specified (len > 0). If there is no parent directory, canonicalize will fail
@@ -152,30 +152,30 @@ pub(crate) impl Log {
 		let debug_lineno_is_none = false;
 		let debug_invalid_metadata = false;
 
-		if const_values.max_age_millis < MINIMUM_MAX_AGE_MILLIS {
+		if constants.max_age_millis < MINIMUM_MAX_AGE_MILLIS {
 			let text = format!("MaxAgeMillis must be at least {}", MINIMUM_MAX_AGE_MILLIS);
 			err!(Configuration, text)
-		} else if const_values.max_size_bytes < MINIMUM_MAX_SIZE_BYTES {
+		} else if constants.max_size_bytes < MINIMUM_MAX_SIZE_BYTES {
 			let text = format!("MaxSizeBytes must be at least {}", MINIMUM_MAX_SIZE_BYTES);
 			err!(Configuration, text)
-		} else if const_values.line_num_data_max_len < MINIMUM_LNDML {
+		} else if constants.line_num_data_max_len < MINIMUM_LNDML {
 			let text = format!("LineNumDataMaxLen must be at least {}", MINIMUM_LNDML);
 			err!(Configuration, text)
 		} else {
 			let log_config = LogConfig {
-				max_age_millis: const_values.max_age_millis,
-				max_size_bytes: const_values.max_size_bytes,
-				line_num_data_max_len: const_values.line_num_data_max_len,
-				stdout: const_values.stdout,
-				colors: const_values.colors,
-				timestamp: const_values.timestamp,
-				show_millis: const_values.show_millis,
-				log_level: const_values.log_level,
-				line_num: const_values.line_num,
-				backtrace: const_values.backtrace,
-				auto_rotate: const_values.auto_rotate,
-				file_header: const_values.file_header.clone(),
-				delete_rotation: const_values.delete_rotation,
+				max_age_millis: constants.max_age_millis,
+				max_size_bytes: constants.max_size_bytes,
+				line_num_data_max_len: constants.line_num_data_max_len,
+				stdout: constants.stdout,
+				colors: constants.colors,
+				timestamp: constants.timestamp,
+				show_millis: constants.show_millis,
+				log_level: constants.log_level,
+				line_num: constants.line_num,
+				backtrace: constants.backtrace,
+				auto_rotate: constants.auto_rotate,
+				file_header: constants.file_header.clone(),
+				delete_rotation: constants.delete_rotation,
 			};
 			Ok(Self {
 				cur_log_level: LogLevel::Info,
@@ -237,18 +237,6 @@ impl Log {
 				"logger has not been initalized. Call init() first."
 			)
 		} else {
-			/*
-								 * if const_values.max_age_millis < MINIMUM_MAX_AGE_MILLIS {
-						let text = format!("MaxAgeMillis must be at least {}", MINIMUM_MAX_AGE_MILLIS);
-						err!(Configuration, text)
-					} else if const_values.max_size_bytes < MINIMUM_MAX_SIZE_BYTES {
-						let text = format!("MaxSizeBytes must be at least {}", MINIMUM_MAX_SIZE_BYTES);
-						err!(Configuration, text)
-					} else if const_values.line_num_data_max_len < MINIMUM_LNDML {
-						let text = format!("LineNumDataMaxLen must be at least {}", MINIMUM_LNDML);
-						err!(Configuration, text)
-					} else {
-			*/
 			match value {
 				LogConstOptions::Colors(v) => (*self.vars().get_mut_log_config()).colors = v,
 				LogConstOptions::Stdout(v) => (*self.vars().get_mut_log_config()).stdout = v,

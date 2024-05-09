@@ -81,7 +81,7 @@ use std::any::Any;
         fn load(&mut self, x: usize, p: Box<dyn Any + Send + Sync>, ok: (String, usize, String)) -> Result<usize, Error>;
 }]
 impl Server {
-	fn builder(&self) -> Result<Self, Error> {
+	fn builder(constants: &ServerConst) -> Result<Self, Error> {
 		Ok(Self { m: 0 })
 	}
 }

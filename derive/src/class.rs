@@ -1869,7 +1869,6 @@ impl StateMachine {
 			view_template = view_template.replace("${VIEW}", view);
 			builder_text = format!("{}{}", builder_text, view_template);
 		}
-
 		builder_text = format!("{}\n}}", builder_text);
 		let template = template.replace("${BUILDER}", &builder_text);
 		Ok(template)
@@ -1995,8 +1994,17 @@ impl StateMachine {
 	fn process_append_fn(&mut self, token: TokenTree) -> Result<(), Error> {
 		if self.in_builder {
 			if self.builder_fn.len() == 0 {
-				let name = self.class_name.as_ref().unwrap();
-				self.builder_fn = format!("fn builder(const_values: &{}Const)", name);
+				let name = self.class_name.as_ref().unwrap().clone();
+				let token_str = token.to_string();
+				let token_str = token_str.trim();
+				let expected = format!("(constants: &{}Const)", name);
+				if token_str.find(expected.as_str()) != Some(0) {
+					self.append_error(&format!(
+						"builder must have signature, fn builder{} -> Result<Self, Error>;",
+						expected
+					))?;
+				}
+				self.builder_fn = format!("fn builder(constants: &{}Const)", name);
 			} else {
 				self.builder_fn = format!(
 					"{}{}{}",
