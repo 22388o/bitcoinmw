@@ -1107,6 +1107,19 @@ impl StateMachine {
 		macro_name: String,
 		class_name: &String,
 	) -> Result<String, Error> {
+		let fmt = if is_send && is_box {
+			"_send_box"
+		} else if is_send {
+			"_send"
+		} else if is_sync && is_box {
+			"_sync_box"
+		} else if is_sync {
+			"_sync"
+		} else if is_box {
+			"_box"
+		} else {
+			""
+		};
 		let builder_fn_name = trait_name.to_case(Case::Snake);
 		let mut comment_text = format!("#[doc=\"Builds an instance of the [`{}`]\"]\n", trait_name);
 		comment_text = format!(
@@ -1192,19 +1205,6 @@ impl StateMachine {
 		comment_text = format!("{}\n#[doc=\"# Also see\"]", comment_text);
 		comment_text = format!("{}\n#[doc=\"[`{}`]<br/>\"]", comment_text, trait_name);
 		if is_macro {
-			let fmt = if is_send && is_box {
-				"_send_box"
-			} else if is_send {
-				"_send"
-			} else if is_sync && is_box {
-				"_sync_box"
-			} else if is_sync {
-				"_sync"
-			} else if is_box {
-				"_box"
-			} else {
-				""
-			};
 			comment_text = format!(
 				"{}\n#[doc=\"[`{}Builder::build_{}{}`]\"]",
 				comment_text, class_name, builder_fn_name, fmt
@@ -1220,7 +1220,7 @@ impl StateMachine {
 
 		match &self.module {
 			Some(module) => {
-				comment_text = format!("{}\n#[doc=\" use {}::*;\"]", comment_text, module);
+				comment_text = format!("{}\n#[doc=\" use {}::*;\"]", comment_text, module,);
 				comment_text = format!(
 					"{}\n#[doc=\" use {}::{};\"]",
 					comment_text, crate_name, macro_name
@@ -1242,10 +1242,17 @@ impl StateMachine {
 			comment_text, trait_name
 		);
 
-		comment_text = format!(
-			"{}\n#[doc=\"     let mut object = {}!()?;\"]",
-			comment_text, macro_name
-		);
+		if is_macro {
+			comment_text = format!(
+				"{}\n#[doc=\"     let mut object = {}!()?;\"]",
+				comment_text, macro_name
+			);
+		} else {
+			comment_text = format!(
+				"{}\n#[doc=\"     let mut object = {}Builder::build_{}{}(vec![])?;\"]",
+				comment_text, class_name, builder_fn_name, fmt
+			);
+		}
 
 		comment_text = format!("{}\n#[doc=\"\"]", comment_text);
 
@@ -1253,10 +1260,18 @@ impl StateMachine {
 			"{}#[doc=\"     // build an instance of {} with parameters explicitly specified.\"]\n",
 			comment_text, trait_name
 		);
-		comment_text = format!(
-			"{}#[doc=\"\tlet object = {}!(\"]\n",
-			comment_text, macro_name
-		);
+
+		if is_macro {
+			comment_text = format!(
+				"{}#[doc=\"\tlet object = {}!(\"]\n",
+				comment_text, macro_name
+			);
+		} else {
+			comment_text = format!(
+				"{}#[doc=\"\tlet object = {}Builder::build_{}{}(vec![\"]\n",
+				comment_text, class_name, builder_fn_name, fmt
+			);
+		}
 
 		for param in &self.const_list {
 			let pascal = param.name.to_case(Case::Pascal);
@@ -1285,7 +1300,11 @@ impl StateMachine {
 				);
 			}
 		}
-		comment_text = format!("{}#[doc=\"     )?;\"]\n", comment_text);
+		if is_macro {
+			comment_text = format!("{}#[doc=\"     )?;\"]\n", comment_text);
+		} else {
+			comment_text = format!("{}#[doc=\"     ])?;\"]\n", comment_text);
+		}
 
 		comment_text = format!("{}\n#[doc=\"\"]", comment_text);
 		comment_text = format!("{}\n#[doc=\"     Ok(())\"]", comment_text);
