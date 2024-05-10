@@ -29,7 +29,7 @@ thread_local! {
 }
 
 #[ErrorKind]
-pub enum MiscErrorKind {
+enum MiscErrorKind {
 	IllegalArgument,
 	IO,
 }

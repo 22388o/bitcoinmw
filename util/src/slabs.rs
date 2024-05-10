@@ -16,6 +16,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! The [`crate::slabs`] module defines and implements the [`SlabAllocator`] trait, which handles
+//! the allocation of memory in `slabs` or chunks for data structures that require memory
+//! allocation.
+//!
+//! # Examples
+//!```
+//! use bmw_core::*;
+//! use bmw_log::*;
+//! use bmw_util::{slab_config, slab_allocator};
+//! use bmw_util::slabs::*;
+//!
+//! debug!();
+//!
+//! fn main() -> Result<(), Error> {
+//!     let mut sa = slab_allocator!(
+//!         SlabConfig(slab_config!(SlabSize(200))?),
+//!         SlabConfig(slab_config!(SlabSize(100), SlabCount(300))?),
+//!         SlabsPerResize(100),
+//!     )?;
+//!
+//!     let id1 = sa.allocate(100)?;
+//!     info!("id1={}", id1)?;
+//!     assert_eq!(&sa.read(id1)?[0..5], &[0, 0, 0, 0, 0]);
+//!     sa.write(id1, b"test1", 0)?;
+//!     assert_eq!(&sa.read(id1)?[0..5], b"test1");
+//!
+//!     let id2 = sa.allocate(200)?;
+//!     assert_eq!(&sa.read(id2)?[0..5], &[0, 0, 0, 0, 0]);
+//!     sa.write(id2, b"test2", 0)?;
+//!     assert_eq!(&sa.read(id2)?[0..5], b"test2");
+//!
+//!     Ok(())
+//! }
+//!```
 use crate::misc::{set_max, slice_to_u64, slice_to_usize, usize_to_slice};
 use bmw_core::*;
 use bmw_log::*;
@@ -24,8 +58,9 @@ use SlabAllocatorErrors::*;
 
 info!();
 
+/// Kinds of errors that can occur in a [`crate::slabs::SlabAllocator`].
 #[ErrorKind]
-enum SlabAllocatorErrors {
+pub enum SlabAllocatorErrors {
 	Configuration,
 	ArrayIndexOutOfBounds,
 	TryReserveError,
@@ -36,18 +71,43 @@ enum SlabAllocatorErrors {
 }
 
 #[class {
+    module "bmw_util::slabs";
     clone slab_data;
+    /// This class is used by the slab allocator class to allocate, grow, read, and write data.
     pub slab_data_sync_box;
     var data: Vec<u8>;
 
+    /// Retreive raw data from the [`SlabData`].
+    /// @param offset the offset, in bytes, to read data from.
+    /// @param len the length, in bytes, of data to read.
+    /// @param self an immutable reference to the [`SlabData`] to access.
+    /// @return an immutable reference to the bytes requested.
+    /// @error ArrayIndexOutOfBounds if the requested data is out the bound which are currently
+    /// allocated to this [`SlabData`].
+    /// @see crate::slabs::SlabData::update
     [slab_data]
     fn data(&self, offset: usize, len: usize) -> Result<&[u8], Error>;
 
+    /// Update the raw data with the specified value.
+    /// @param offset the offset, in bytes, to write data to.
+    /// @param value an immutable reference to an array of [`u8`] to write to this [`SlabData`].
+    /// @param self a mutable reference to the [`SlabData`] to update.
+    /// @return n/a
+    /// @error ArrayIndexOutOfBounds if the requested data is out the bound which are currently
+    /// allocated to this [`SlabData`].
+    /// @see crate::slabs::SlabData::data
     [slab_data]
-    fn update(&mut self, v: &[u8], offset: usize) -> Result<(), Error>;
+    fn update(&mut self, value: &[u8], offset: usize) -> Result<(), Error>;
 
+    /// grows or truncates the [`SlabData`] to the specified size.
+    /// @param self a mutable reference to the [`SlabData`] to resize.
+    /// @param size the size, in bytes, to reserve.
+    /// @error TryReserveError if the resize fails due to an underlying TryReserve error by the
+    /// [`std::vec::Vec`].
+    /// @return n/a
+    /// @see crate::slabs::SlabData
     [slab_data]
-    fn resize(&mut self, reserved: usize) -> Result<(), Error>;
+    fn resize(&mut self, size: usize) -> Result<(), Error>;
 
 }]
 impl SlabDataClass {
@@ -101,6 +161,7 @@ impl SlabDataClass {
 	}
 }
 
+/// A configuration used by the [`crate::slabs::SlabAllocator`]. See [`crate::slab_config`].
 #[derive(Configurable, Clone, Debug)]
 pub struct SlabAllocatorConfig {
 	slab_size: usize,
@@ -116,6 +177,38 @@ impl Default for SlabAllocatorConfig {
 	}
 }
 
+/// Builds an instance of the  [`SlabAllocatorConfig`] struct using the specified input parameters.
+/// # Input Parameters
+/// * SlabSize([`usize`]) - the size, in bytes, of slabs for this slab allocator config. The default
+/// value is 512.<br/>
+/// * SlabCount([`usize`]) - the maximum number of slabs available in this slab allocator. The
+/// default value is usize::MAX. <br/>
+///
+/// # Examples
+///```
+/// use bmw_core::*;
+/// use bmw_util::*;
+/// use bmw_util::slabs::*;
+///
+/// fn main() -> Result<(), Error> {
+///     let mut sa = slab_allocator!(
+///         SlabConfig(slab_config!(SlabSize(100), SlabCount(10))?),
+///         SlabConfig(slab_config!(SlabSize(200), SlabCount(20))?),
+///         SlabsPerResize(5),
+///     )?;
+///
+///     let id = sa.allocate(100)?;
+///     sa.write(id, b"test", 0)?;
+///
+///     assert_eq!(&sa.read(id)?[0..4], b"test");
+///
+///     Ok(())
+/// }
+///```
+/// # Also see
+/// [`crate::slab_allocator`]<br/>
+/// [`SlabAllocator`]
+///
 #[macro_export]
 macro_rules! slab_config {
         ($($params:tt)*) => {{
@@ -123,12 +216,20 @@ macro_rules! slab_config {
         }};
 }
 
+/// A statistical snapshot that represents the current state of this [`crate::slabs::SlabAllocator`]
+/// which is returned by the [`crate::slabs::SlabAllocator::stats`] function.
 #[derive(Clone, Debug)]
-struct SlabStats {
-	cur_slabs: usize,
-	cur_capacity: usize,
-	slabs_per_resize: usize,
-	max_slabs: usize,
+pub struct SlabStats {
+	/// The current number of slabs that have been allocated by this
+	/// [`crate::slabs::SlabAllocator::stats`].
+	pub cur_slabs: usize,
+	/// The current capacity of this [`crate::slabs::SlabAllocator`].
+	pub cur_capacity: usize,
+	/// The number of additional slabs allocated when the [`crate::slabs::SlabAllocator`] runs
+	/// out of slabs.
+	pub slabs_per_resize: usize,
+	/// The maximum number of slabs that this [`crate::slabs::SlabAllocator`] can allocate.
+	pub max_slabs: usize,
 }
 
 impl SlabStats {
@@ -235,16 +336,40 @@ impl SlabDataHolder {
 	}
 }
 
-#[class{
+#[class {
+    module "bmw_util::slabs";
+    /// A slab allocator allocates byte arrays, or `slabs`, to be used in data structures.
     pub slab_allocator;
+    /// Specifies a [`SlabAllocatorConfig`]. See [`crate::slab_config`].
     const slab_config: Vec<SlabAllocatorConfig> = vec![];
+    /// The number of slabs allocated internally, the [`SlabAllocator`] when it has no slabs.
     const slabs_per_resize: usize = 1_000;
+    /// If set to true, all bytes in a slab that is returned by the [`crate::slabs::SlabAllocator::allocate`]
+    /// function are set to `0u8`.
     const zeroed: bool = false;
     var slab_data: Vec<SlabDataHolder>;
 
+    /// Allocate a slab of the specified size.
+    /// @param size the size, in bytes, of the slab.
+    /// @param self a mutable reference to the [`SlabAllocator`] to allocate from.
+    /// @return the id of the slab that has been allocated.
+    /// @error crate::slabs::TryReserveError if no more memory can be reserved
+    /// @error crate::slabs::OutOfSlabs if no more slabs can be created due to a limitation of the
+    /// configuration for this [`SlabAllocator`].
+    /// @error crate::slabs::IllegalArgument if the size specified does not exist in this slab
+    /// allocator.
+    /// @see SlabAllocator::free
     [slab_allocator]
     fn allocate(&mut self, size: usize) -> Result<u64, Error>;
 
+    /// Write data to the specified slab.
+    /// @param self a mutable reference to the [`SlabAllocator`] to write data to.
+    /// @param id the identifier of the slab to write data to.
+    /// @param data the data to write.
+    /// @param offset the offset within the slab to write data at.
+    /// @return n/a
+    /// @error InvalidSlabId if the slab id is out of range for this [`SlabAllocator`].
+    /// @see SlabAllocator::read
     [slab_allocator]
     fn write(&mut self, id: u64, data: &[u8], offset: usize) -> Result<(), Error>;
 

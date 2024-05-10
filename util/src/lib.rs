@@ -17,7 +17,6 @@
 // limitations under the License.
 
 mod misc;
-mod slabs;
+pub mod slabs;
 
 pub use crate::misc::*;
-pub use crate::slabs::*;
