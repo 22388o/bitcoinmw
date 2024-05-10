@@ -175,61 +175,6 @@ macro_rules! trace_plain {
 #[add_doc(see: "crate::Log")]
 #[add_doc(doc_point)]
 */
-/// # Examples
-///```
-/// use bmw_core::*;
-/// use bmw_log::*;
-/// use bmw_test::*;
-/// use std::path::PathBuf;
-///
-/// // set the global logger's logging level to 'trace'. Since it's outside of the
-/// // function block, any logging that occurs for the rest of this file will use
-/// // the 'trace' threshold.
-/// trace_all!();
-///
-/// fn main() -> Result<(), Error> {
-///     // get test info so we can get a temporary directory name
-///     let test_info = test_info!()?;
-///
-///     // create a logger that logs to a log file only
-///     let mut path_buf = PathBuf::from(test_info.directory());
-///     path_buf.push("test.log");
-///     let path = path_buf.display().to_string();
-///     // call log_init to initialize the global logger
-///     log_init!(
-///         LogFilePath(&path),
-///         Stdout(false)
-///     )?;
-///
-///     // log at the trace level. Since the threshold is trace, this will be
-///     // logged. Additionally this will be logged to both the file and stdout
-///     // whereas if trace were called with this configuration, the line
-///     // would not be printed to stdout.
-///     trace_all!("this is a test")?;
-///
-///     // formatting can be used just like println! and format!
-///     trace_all!("1 + 1 = {}", 2)?;
-///
-///     Ok(())
-/// }
-///
-/// fn another_fn() -> Result<(), Error> {
-///    // if you set the log level to a different threshold at a different scope, that
-///    // value will overwrite the one at the outer scope.
-///    debug!();
-///
-///    // this will not be logged because the threshold is higher
-///    trace_all!("will not show up")?;
-///
-///    Ok(())
-/// }
-///```
-/// # Output of the above example
-/// The output of the above example may look something like this:
-///```text
-/// [2024-04-14 17:45:46.899]: (TRACE) [..src/bin/http.rs:100]: this is a test
-/// [2024-04-14 17:45:46.900]: (TRACE) [..src/bin/http.rs:103]: 1 + 1 = 2
-///```
 #[macro_export]
 macro_rules! trace_all {
         () => {
@@ -625,61 +570,6 @@ macro_rules! info_plain {
 #[add_doc(see: "crate::Log")]
 #[add_doc(doc_point)]
 */
-/// # Examples
-///```
-/// use bmw_core::*;
-/// use bmw_log::*;
-/// use bmw_test::*;
-/// use std::path::PathBuf;
-///
-/// // set the global logger's logging level to 'info'. Since it's outside of the
-/// // function block, any logging that occurs for the rest of this file will use
-/// // the 'info' threshold.
-/// info_all!();
-///
-/// fn main() -> Result<(), Error> {
-///     // get test info so we can get a temporary directory name
-///     let test_info = test_info!()?;
-///
-///     // create a logger that logs to a log file only
-///     let mut path_buf = PathBuf::from(test_info.directory());
-///     path_buf.push("test.log");
-///     let path = path_buf.display().to_string();
-///     // call log_init to initialize the global logger
-///     log_init!(
-///         LogFilePath(&path),
-///         Stdout(false)
-///     )?;
-///
-///     // log at the info level. Since the threshold is info, this will be
-///     // logged. Additionally this will be logged to both the file and stdout
-///     // whereas if info were called with this configuration, the line
-///     // would not be printed to stdout.
-///     info_all!("this is a test")?;
-///
-///     // formatting can be used just like println! and format!
-///     info_all!("1 + 1 = {}", 2)?;
-///
-///     Ok(())
-/// }
-///
-/// fn another_fn() -> Result<(), Error> {
-///    // if you set the log level to a different threshold at a different scope, that
-///    // value will overwrite the one at the outer scope.
-///    warn!();
-///
-///    // this will not be logged because the threshold is higher
-///    info_all!("will not show up")?;
-///
-///    Ok(())
-/// }
-///```
-/// # Output of the above example
-/// The output of the above example may look something like this:
-///```text
-/// [2024-04-14 17:45:46.899]:  (INFO) [..src/bin/http.rs:100]: this is a test
-/// [2024-04-14 17:45:46.900]:  (INFO) [..src/bin/http.rs:103]: 1 + 1 = 2
-///```
 #[macro_export]
 macro_rules! info_all {
         () => {
@@ -850,61 +740,6 @@ macro_rules! warn_plain {
 #[add_doc(see: "crate::Log")]
 #[add_doc(doc_point)]
 */
-/// # Examples
-///```
-/// use bmw_core::*;
-/// use bmw_log::*;
-/// use bmw_test::*;
-/// use std::path::PathBuf;
-///
-/// // set the global logger's logging level to 'warn'. Since it's outside of the
-/// // function block, any logging that occurs for the rest of this file will use
-/// // the 'warn' threshold.
-/// warn_all!();
-///
-/// fn main() -> Result<(), Error> {
-///     // get test info so we can get a temporary directory name
-///     let test_info = test_info!()?;
-///
-///     // create a logger that logs to a log file only
-///     let mut path_buf = PathBuf::from(test_info.directory());
-///     path_buf.push("test.log");
-///     let path = path_buf.display().to_string();
-///     // call log_init to initialize the global logger
-///     log_init!(
-///         LogFilePath(&path),
-///         Stdout(false)
-///     )?;
-///
-///     // log at the warn level. Since the threshold is warn, this will be
-///     // logged. Additionally this will be logged to both the file and stdout
-///     // whereas if warn were called with this configuration, the line
-///     // would not be printed to stdout.
-///     warn_all!("this is a test")?;
-///
-///     // formatting can be used just like println! and format!
-///     warn_all!("1 + 1 = {}", 2)?;
-///
-///     Ok(())
-/// }
-///
-/// fn another_fn() -> Result<(), Error> {
-///    // if you set the log level to a different threshold at a different scope, that
-///    // value will overwrite the one at the outer scope.
-///    error!();
-///
-///    // this will not be logged because the threshold is higher
-///    warn_all!("will not show up")?;
-///
-///    Ok(())
-/// }
-///```
-/// # Output of the above example
-/// The output of the above example may look something like this:
-///```text
-/// [2024-04-14 17:45:46.899]:  (WARN) [..src/bin/http.rs:100]: this is a test
-/// [2024-04-14 17:45:46.900]:  (WARN) [..src/bin/http.rs:103]: 1 + 1 = 2
-///```
 #[macro_export]
 macro_rules! warn_all {
         () => {
@@ -1075,61 +910,6 @@ macro_rules! error_plain {
 #[add_doc(see: "crate::Log")]
 #[add_doc(doc_point)]
 */
-/// # Examples
-///```
-/// use bmw_core::*;
-/// use bmw_log::*;
-/// use bmw_test::*;
-/// use std::path::PathBuf;
-///
-/// // set the global logger's logging level to 'error'. Since it's outside of the
-/// // function block, any logging that occurs for the rest of this file will use
-/// // the 'error' threshold.
-/// error_all!();
-///
-/// fn main() -> Result<(), Error> {
-///     // get test info so we can get a temporary directory name
-///     let test_info = test_info!()?;
-///
-///     // create a logger that logs to a log file only
-///     let mut path_buf = PathBuf::from(test_info.directory());
-///     path_buf.push("test.log");
-///     let path = path_buf.display().to_string();
-///     // call log_init to initialize the global logger
-///     log_init!(
-///         LogFilePath(&path),
-///         Stdout(false)
-///     )?;
-///
-///     // log at the error level. Since the threshold is error, this will be
-///     // logged. Additionally this will be logged to both the file and stdout
-///     // whereas if error were called with this configuration, the line
-///     // would not be printed to stdout.
-///     error_all!("this is a test")?;
-///
-///     // formatting can be used just like println! and format!
-///     error_all!("1 + 1 = {}", 2)?;
-///
-///     Ok(())
-/// }
-///
-/// fn another_fn() -> Result<(), Error> {
-///    // if you set the log level to a different threshold at a different scope, that
-///    // value will overwrite the one at the outer scope.
-///    fatal!();
-///
-///    // this will not be logged because the threshold is higher
-///    error_all!("will not show up")?;
-///
-///    Ok(())
-/// }
-///```
-/// # Output of the above example
-/// The output of the above example may look something like this:
-///```text
-/// [2024-04-14 17:45:46.899]: (ERROR) [..src/bin/http.rs:100]: this is a test
-/// [2024-04-14 17:45:46.900]: (ERROR) [..src/bin/http.rs:103]: 1 + 1 = 2
-///```
 #[macro_export]
 macro_rules! error_all {
         () => {
@@ -1446,36 +1226,6 @@ macro_rules! fatal_all {
 #[add_doc(see: "crate::info")]
 #[add_doc(doc_point)]
 */
-/// # Examples
-///
-///```
-/// use bmw_core::*;
-/// use bmw_log::*;
-/// use bmw_test::*;
-/// use std::path::PathBuf;
-///
-/// info!();
-///
-/// fn main() -> Result<(), Error> {
-///     let test_info = test_info!()?;
-///     let mut path = PathBuf::from(test_info.directory());
-///     path.push("test.log");
-///     let path = path.display().to_string();
-///
-///     // first call log_init
-///     log_init!(Colors(false), LineNum(false), LogFilePath(&path))?;
-///
-///     // then log with the global logger macros.
-///     info!("Logger initialized!")?;
-///
-///     spawn(move || -> Result<(), Error> {
-///         info!("global logger can be used in other threads")?;
-///         Ok(())
-///     });
-///
-///     Ok(())
-/// }
-///```
 #[macro_export]
 macro_rules! log_init {
         ($($config:tt)*) => {{
@@ -1517,48 +1267,6 @@ macro_rules! set_log_option {
 #[add_doc(see: "crate::log_init")]
 #[add_doc(doc_point)]
 */
-/// # Examples
-///```
-/// use bmw_core::*;
-/// use bmw_log::*;
-/// use bmw_test::*;
-/// use std::path::PathBuf;
-///
-/// info!();
-///
-/// fn main() -> Result<(), Error> {
-///     let test_info = test_info!()?;
-///     let mut path = PathBuf::from(test_info.directory());
-///     path.push("test.log");
-///     let path = path.display().to_string();
-///
-///     // init the logger with a 100 byte size limit
-///     log_init!(MaxSizeBytes(100), LogFilePath(&path), AutoRotate(false))?;
-///
-///     // log  few lines
-///     info!("01234567890")?;
-///     info!("01234567890")?;
-///     info!("01234567890")?;
-///     info!("01234567890")?;
-///     info!("01234567890")?;
-///     info!("01234567890")?;
-///     info!("01234567890")?;
-///     info!("01234567890")?;
-///     info!("01234567890")?;
-///     info!("01234567890")?;
-///
-///     // a rotation should be needed at this point
-///     assert!(need_rotate!()?);
-///
-///     // do the rotation
-///     log_rotate!()?;
-///
-///     // now a rotation is not needed
-///     assert!(!need_rotate!()?);
-///
-///     Ok(())
-/// }
-///```
 #[macro_export]
 macro_rules! log_rotate {
 	() => {{
@@ -1577,48 +1285,6 @@ macro_rules! log_rotate {
 #[add_doc(see: "crate::log_init")]
 #[add_doc(doc_point)]
 */
-/// # Examples
-///```
-/// use bmw_core::*;
-/// use bmw_log::*;
-/// use bmw_test::*;
-/// use std::path::PathBuf;
-///
-/// info!();
-///
-/// fn main() -> Result<(), Error> {
-///     let test_info = test_info!()?;
-///     let mut path = PathBuf::from(test_info.directory());
-///     path.push("test.log");
-///     let path = path.display().to_string();
-///
-///     // init the logger with a 100 byte size limit
-///     log_init!(MaxSizeBytes(100), LogFilePath(&path), AutoRotate(false))?;
-///
-///     // log  few lines
-///     info!("01234567890")?;
-///     info!("01234567890")?;
-///     info!("01234567890")?;
-///     info!("01234567890")?;
-///     info!("01234567890")?;
-///     info!("01234567890")?;
-///     info!("01234567890")?;
-///     info!("01234567890")?;
-///     info!("01234567890")?;
-///     info!("01234567890")?;
-///
-///     // a rotation should be needed at this point
-///     assert!(need_rotate!()?);
-///
-///     // do the rotation
-///     log_rotate!()?;
-///
-///     // now a rotation is not needed
-///     assert!(!need_rotate!()?);
-///
-///     Ok(())
-/// }
-///```
 #[macro_export]
 macro_rules! need_rotate {
 	() => {{
