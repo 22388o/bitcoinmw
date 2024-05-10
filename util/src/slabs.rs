@@ -84,20 +84,20 @@ pub enum SlabAllocatorErrors {
     /// @return an immutable reference to the bytes requested.
     /// @error ArrayIndexOutOfBounds if the requested data is out the bound which are currently
     /// allocated to this [`SlabData`].
-    /// @see crate::slabs::SlabData::update
+    /// @see crate::slabs::SlabData::write
     [slab_data]
-    fn data(&self, offset: usize, len: usize) -> Result<&[u8], Error>;
+    fn read(&self, offset: usize, len: usize) -> Result<&[u8], Error>;
 
     /// Update the raw data with the specified value.
     /// @param offset the offset, in bytes, to write data to.
     /// @param value an immutable reference to an array of [`u8`] to write to this [`SlabData`].
-    /// @param self a mutable reference to the [`SlabData`] to update.
+    /// @param self a mutable reference to the [`SlabData`] to write.
     /// @return n/a
     /// @error ArrayIndexOutOfBounds if the requested data is out the bound which are currently
     /// allocated to this [`SlabData`].
     /// @see crate::slabs::SlabData::data
     [slab_data]
-    fn update(&mut self, value: &[u8], offset: usize) -> Result<(), Error>;
+    fn write(&mut self, value: &[u8], offset: usize) -> Result<(), Error>;
 
     /// grows or truncates the [`SlabData`] to the specified size.
     /// @param self a mutable reference to the [`SlabData`] to resize.
@@ -118,7 +118,7 @@ impl SlabDataClass {
 }
 
 impl SlabDataClass {
-	fn data(&self, offset: usize, len: usize) -> Result<&[u8], Error> {
+	fn read(&self, offset: usize, len: usize) -> Result<&[u8], Error> {
 		let data = self.vars().get_data();
 		let dlen = data.len();
 		let needed = offset + len;
@@ -134,7 +134,7 @@ impl SlabDataClass {
 		}
 	}
 
-	fn update(&mut self, v: &[u8], offset: usize) -> Result<(), Error> {
+	fn write(&mut self, v: &[u8], offset: usize) -> Result<(), Error> {
 		let vlen = v.len();
 		let data = self.vars_mut().get_mut_data();
 		let dlen = data.len();
@@ -388,6 +388,7 @@ impl SlabDataHolder {
     /// @param id the identifier of the slab to free.
     /// @return n/a
     /// @error InvalidSlabId if the slab id is out of range for this [`SlabAllocator`].
+    /// @error DoubleFree if a slab that has already been freed is freed once again.
     /// @see SlabAllocator::write
     /// @see SlabAllocator::read
     [slab_allocator]
@@ -454,7 +455,7 @@ impl SlabAllocatorClass {
 			let id_relative: usize = try_into!(id_relative)?;
 
 			// check if it's already free
-			let cur_ptr = sdh.sd.data(
+			let cur_ptr = sdh.sd.read(
 				id_relative * (sdh.sdp.ptr_size + sdh.sdp.slab_size),
 				sdh.sdp.ptr_size,
 			)?;
@@ -474,7 +475,7 @@ impl SlabAllocatorClass {
 				&mut first_free_slice[0..sdh.sdp.ptr_size],
 			)?;
 
-			sdh.sd.update(
+			sdh.sd.write(
 				&first_free_slice[0..sdh.sdp.ptr_size],
 				id_relative * (sdh.sdp.ptr_size + sdh.sdp.slab_size),
 			)?;
@@ -603,7 +604,7 @@ impl SlabAllocatorClass {
 		} else {
 			let sdh = &slab_data[index];
 			let id_relative: usize = try_into!(id_relative)?;
-			sdh.sd.data(
+			sdh.sd.read(
 				sdh.sdp.ptr_size + (id_relative * (sdh.sdp.ptr_size + sdh.sdp.slab_size)),
 				sdh.sdp.slab_size,
 			)
@@ -622,7 +623,7 @@ impl SlabAllocatorClass {
 			let sdh = &mut slab_data[index];
 			let id_relative: usize = try_into!(id_relative)?;
 
-			sdh.sd.update(
+			sdh.sd.write(
 				data,
 				sdh.sdp.ptr_size + (id_relative * (sdh.sdp.ptr_size + sdh.sdp.slab_size)) + offset,
 			)?;
@@ -640,9 +641,9 @@ impl SlabAllocatorClass {
 			debug!("ret={}", id)?;
 			let offset = (sdh.sdp.ptr_size + sdh.sdp.slab_size) * id_usize;
 			let ptr_size = sdh.sdp.ptr_size;
-			sdh.sdp.free_list_head = slice_to_u64(&sdh.sd.data(offset, ptr_size)?)?;
+			sdh.sdp.free_list_head = slice_to_u64(&sdh.sd.read(offset, ptr_size)?)?;
 			debug!("set free list head to {}", sdh.sdp.free_list_head)?;
-			sdh.sd.update(&sdh.sdp.invalid_ptr[0..ptr_size], offset)?;
+			sdh.sd.write(&sdh.sdp.invalid_ptr[0..ptr_size], offset)?;
 
 			Ok(Some(id))
 		}
@@ -670,7 +671,7 @@ impl SlabAllocatorClass {
 			}
 
 			let offset_next = i * (ptr_size + slab_size);
-			slab_data.update(&next_bytes[0..ptr_size], offset_next)?;
+			slab_data.write(&next_bytes[0..ptr_size], offset_next)?;
 		}
 
 		Ok(())
@@ -874,17 +875,17 @@ mod test {
 	fn test_slab_data() -> Result<(), Error> {
 		let mut slab_data = slab_data!()?;
 		slab_data.resize(100)?;
-		slab_data.update(&[0, 1, 2, 3], 10)?;
-		assert_eq!(slab_data.data(10, 4)?, [0, 1, 2, 3]);
-		assert_eq!(slab_data.data(0, 4)?, [0, 0, 0, 0]);
-		assert!(slab_data.data(0, 100).is_ok());
-		assert!(slab_data.data(0, 101).is_err());
-		assert!(slab_data.data(1, 99).is_ok());
-		assert!(slab_data.data(1, 100).is_err());
+		slab_data.write(&[0, 1, 2, 3], 10)?;
+		assert_eq!(slab_data.read(10, 4)?, [0, 1, 2, 3]);
+		assert_eq!(slab_data.read(0, 4)?, [0, 0, 0, 0]);
+		assert!(slab_data.read(0, 100).is_ok());
+		assert!(slab_data.read(0, 101).is_err());
+		assert!(slab_data.read(1, 99).is_ok());
+		assert!(slab_data.read(1, 100).is_err());
 
 		slab_data.resize(90)?;
-		assert!(slab_data.data(1, 89).is_ok());
-		assert!(slab_data.data(1, 90).is_err());
+		assert!(slab_data.read(1, 89).is_ok());
+		assert!(slab_data.read(1, 90).is_err());
 
 		Ok(())
 	}
