@@ -121,6 +121,24 @@ macro_rules! slab_config {
         }};
 }
 
+struct SlabStats {
+	cur_slabs: usize,
+	cur_capacity: usize,
+	slabs_per_resize: usize,
+	max_slabs: usize,
+}
+
+impl SlabStats {
+	fn new(slabs_per_resize: usize, max_slabs: usize) -> Self {
+		Self {
+			cur_capacity: slabs_per_resize,
+			cur_slabs: 0,
+			slabs_per_resize,
+			max_slabs,
+		}
+	}
+}
+
 #[derive(Debug, Eq, PartialEq)]
 struct SlabDataParams {
 	slab_size: usize,
@@ -170,6 +188,7 @@ impl SlabDataParams {
 struct SlabDataHolder {
 	sdp: SlabDataParams,
 	sd: Box<dyn SlabData + Send + Sync>,
+	stats: SlabStats,
 }
 
 impl Eq for SlabDataHolder {}
@@ -203,11 +222,22 @@ impl Ord for SlabDataHolder {
 	}
 }
 
+impl SlabDataHolder {
+	fn new(
+		sdp: SlabDataParams,
+		sd: Box<dyn SlabData + Send + Sync>,
+		slabs_per_resize: usize,
+	) -> Self {
+		let stats = SlabStats::new(slabs_per_resize, sdp.slab_count);
+		Self { sdp, sd, stats }
+	}
+}
+
 #[class{
     pub slab_allocator;
     const slab_config: Vec<SlabAllocatorConfig> = vec![];
     const slabs_per_resize: usize = 1_000;
-    var slab_data: Vec<SlabDataHolder>; // (SlabDataParams, Box<dyn SlabData + Send + Sync>)>;
+    var slab_data: Vec<SlabDataHolder>;
 
     [slab_allocator]
     fn allocate(&mut self, size: usize) -> Result<u64, Error>;
@@ -233,8 +263,9 @@ impl SlabAllocatorClass {
 				let mut sd = slab_data_sync_box!()?;
 				let sdp = SlabDataParams::new(config.slab_size, config.slab_count)?;
 				sd.resize((config.slab_size + sdp.ptr_size) * constants.slabs_per_resize)?;
-				SlabAllocatorClass::init_free_list(&mut sd, &sdp, constants.slabs_per_resize)?;
-				ret.slab_data.push(SlabDataHolder { sdp, sd });
+				SlabAllocatorClass::init_free_list(&mut sd, &sdp, constants.slabs_per_resize, 0)?;
+				ret.slab_data
+					.push(SlabDataHolder::new(sdp, sd, constants.slabs_per_resize));
 			}
 
 			ret.slab_data.sort();
@@ -269,6 +300,7 @@ impl SlabAllocatorClass {
 
 		sdh.sdp.free_list_head = try_into!(id_relative)?;
 		debug!("update firstfree to {}", sdh.sdp.free_list_head)?;
+		sdh.stats.cur_slabs -= 1;
 
 		Ok(())
 	}
@@ -294,12 +326,49 @@ impl SlabAllocatorClass {
 				debug!("index_u64={},ret={}", index_u64, ret)?;
 				match Self::get_next_free(&mut sdh)? {
 					Some(v) => {
+						debug!("v={}", v)?;
 						ret |= v;
 					}
 					None => {
-						return err!(OutOfSlabs, "no more slabs");
+						if sdh.stats.slabs_per_resize + sdh.stats.cur_slabs <= sdh.stats.max_slabs {
+							debug!(
+								"do realloc: cur_slabs={},max={}",
+								sdh.stats.cur_slabs, sdh.stats.max_slabs
+							)?;
+
+							sdh.sd.resize(
+								(sdh.stats.slabs_per_resize + sdh.stats.cur_slabs)
+									* sdh.sdp.slab_size,
+							)?;
+							sdh.stats.cur_capacity += sdh.stats.slabs_per_resize;
+							Self::init_free_list(
+								&mut sdh.sd,
+								&sdh.sdp,
+								sdh.stats.slabs_per_resize,
+								sdh.stats.cur_slabs,
+							)?;
+							sdh.sdp.free_list_head = try_into!(sdh.stats.cur_slabs)?;
+						} else {
+							debug!(
+								"can't realloc sdh.stats.cur_slabs={}, sdh.stats.max_slabs={}",
+								sdh.stats.cur_slabs, sdh.stats.max_slabs
+							)?;
+						}
+
+						debug!("try get next free")?;
+						match Self::get_next_free(&mut sdh)? {
+							Some(v) => {
+								debug!("v={}", v)?;
+								ret |= v;
+							}
+							None => {
+								debug!("ret err")?;
+								return err!(OutOfSlabs, "no more slabs");
+							}
+						}
 					}
 				}
+				sdh.stats.cur_slabs += 1;
 				debug!("ret={},index={}", ret, mid)?;
 				return Ok(ret);
 			} else if slab_data[mid].sdp.slab_size > size {
@@ -356,36 +425,46 @@ impl SlabAllocatorClass {
 	fn get_next_free(sdh: &mut SlabDataHolder) -> Result<Option<u64>, Error> {
 		let id = sdh.sdp.free_list_head;
 		let id_usize: usize = try_into!(id)?;
-		debug!("ret={}", id)?;
-		let offset = (sdh.sdp.ptr_size + sdh.sdp.slab_size) * id_usize;
-		let ptr_size = sdh.sdp.ptr_size;
-		sdh.sdp.free_list_head = slice_to_u64(&sdh.sd.data(offset, ptr_size)?)?;
-		sdh.sd.update(&sdh.sdp.invalid_ptr[0..ptr_size], offset)?;
 
-		Ok(Some(id))
+		if id_usize == sdh.sdp.max_value {
+			Ok(None)
+		} else {
+			debug!("ret={}", id)?;
+			let offset = (sdh.sdp.ptr_size + sdh.sdp.slab_size) * id_usize;
+			let ptr_size = sdh.sdp.ptr_size;
+			sdh.sdp.free_list_head = slice_to_u64(&sdh.sd.data(offset, ptr_size)?)?;
+			debug!("set free list head to {}", sdh.sdp.free_list_head)?;
+			sdh.sd.update(&sdh.sdp.invalid_ptr[0..ptr_size], offset)?;
+
+			Ok(Some(id))
+		}
 	}
 
 	fn init_free_list(
 		slab_data: &mut Box<dyn SlabData + Send + Sync>,
 		sdp: &SlabDataParams,
 		size: usize,
+		offset: usize,
 	) -> Result<(), Error> {
 		debug!("init free list {:?}", sdp)?;
 		let max_value = sdp.max_value;
 		let ptr_size = sdp.ptr_size;
 		let slab_size: usize = try_into!(sdp.slab_size)?;
-		let slab_count = sdp.slab_count;
-		for i in 0..size {
+		for i in offset..(offset + size) {
+			debug!("init i = {}", i)?;
 			let mut next_bytes = [0u8; 8];
-			if i < slab_count - 1 {
+			if i < (offset + size) - 1 {
+				debug!("SET A REGULAR VALUE================================")?;
 				usize_to_slice(i + 1, &mut next_bytes[0..ptr_size])?;
 			} else {
+				debug!("SET A MAX VALUE================================")?;
 				usize_to_slice(max_value, &mut next_bytes[0..ptr_size])?;
 			}
 
 			let offset_next = i * (ptr_size + slab_size);
 			slab_data.update(&next_bytes[0..ptr_size], offset_next)?;
 		}
+
 		Ok(())
 	}
 }
@@ -457,6 +536,24 @@ mod test {
 
 		let nid = sa.allocate(200)?;
 		info!("nid={}", nid)?;
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_resize() -> Result<(), Error> {
+		let mut sa = slab_allocator!(
+			SlabConfig(slab_config!(SlabSize(100), SlabCount(10))?),
+			SlabsPerResize(2),
+		)?;
+
+		for _ in 0..10 {
+			let ret = sa.allocate(100)?;
+			info!("re={}", ret)?;
+		}
+
+		info!("last alloc")?;
+		assert_eq!(sa.allocate(100).unwrap_err().kind(), kind!(OutOfSlabs));
 
 		Ok(())
 	}
