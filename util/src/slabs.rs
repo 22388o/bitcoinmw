@@ -373,12 +373,32 @@ impl SlabDataHolder {
     [slab_allocator]
     fn write(&mut self, id: u64, data: &[u8], offset: usize) -> Result<(), Error>;
 
+    /// Read data from the specified slab.
+    /// @param self an immutable reference to the [`SlabAllocator`] to read data from.
+    /// @param id the identifier of the slab to read data from.
+    /// @return an immutable reference to an array of bytes which references the data in
+    /// the specified slab.
+    /// @error InvalidSlabId if the slab id is out of range for this [`SlabAllocator`].
+    /// @see SlabAllocator::write
     [slab_allocator]
     fn read(&self, id: u64) -> Result<&[u8], Error>;
 
+    /// Free the specified slab so that the [`SlabAllocator`] can use it again.
+    /// @param self a mutable reference to the [`SlabAllocator`] to free from.
+    /// @param id the identifier of the slab to free.
+    /// @return n/a
+    /// @error InvalidSlabId if the slab id is out of range for this [`SlabAllocator`].
+    /// @see SlabAllocator::write
+    /// @see SlabAllocator::read
     [slab_allocator]
     fn free(&mut self, id: u64) -> Result<(), Error>;
 
+    /// Returns a [`std::vec::Vec`] of [`SlabStats`]. One Stats is returned per slab_configs
+    /// specified at startup.
+    /// @param self an immutable reference to the [`SlabAllocator`] to retreive stats from.
+    /// @return a [`std::vec::Vec`] of [`SlabStats`].
+    /// @error - this function currently doesn't return errors.
+    /// @see SlabStats
     [slab_allocator]
     fn stats(&self) -> Result<Vec<SlabStats>, Error>;
 }]
