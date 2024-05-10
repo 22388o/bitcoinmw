@@ -31,6 +31,8 @@ enum SlabAllocatorErrors {
 	TryReserveError,
 	IllegalArgument,
 	OutOfSlabs,
+	InvalidSlabId,
+	DoubleFree,
 }
 
 #[class {
@@ -259,6 +261,8 @@ impl SlabAllocatorClass {
 	fn builder(constants: &SlabAllocatorClassConst) -> Result<Self, Error> {
 		if constants.slab_config.len() > u8::MAX as usize {
 			err!(Configuration, "no more than {} slab_configs", u8::MAX)
+		} else if constants.slabs_per_resize == 0 {
+			err!(Configuration, "SlabsPerResize must be greater than 0")
 		} else {
 			let mut slab_data = vec![];
 
@@ -295,27 +299,47 @@ impl SlabAllocatorClass {
 		let id_relative = id & !0xFF00000000000000;
 		let index = id >> 56;
 		let index: usize = try_into!(index)?;
+		let slab_data = &mut self.vars_mut().get_mut_slab_data();
 
-		debug!("free index = {}", index)?;
-		let sdh = &mut self.vars_mut().get_mut_slab_data()[index];
-		let id_relative: usize = try_into!(id_relative)?;
+		if index >= slab_data.len() {
+			err!(InvalidSlabId, "invalid slab id")
+		} else {
+			debug!("free index = {}", index)?;
+			let sdh = &mut slab_data[index];
+			let id_relative: usize = try_into!(id_relative)?;
 
-		let mut first_free_slice = [0u8; 8];
-		usize_to_slice(
-			try_into!(sdh.sdp.free_list_head)?,
-			&mut first_free_slice[0..sdh.sdp.ptr_size],
-		)?;
+			// check if it's already free
+			let cur_ptr = sdh.sd.data(
+				id_relative * (sdh.sdp.ptr_size + sdh.sdp.slab_size),
+				sdh.sdp.ptr_size,
+			)?;
+			if cur_ptr != &sdh.sdp.invalid_ptr[0..sdh.sdp.ptr_size] {
+				ret_err!(DoubleFree, "a slab that was already free was freed again")
+			}
 
-		sdh.sd.update(
-			&first_free_slice[0..sdh.sdp.ptr_size],
-			id_relative * (sdh.sdp.ptr_size + sdh.sdp.slab_size),
-		)?;
+			debug!(
+				"cur_ptr={:?},invalid={:?}",
+				cur_ptr,
+				&sdh.sdp.invalid_ptr[0..sdh.sdp.ptr_size]
+			)?;
 
-		sdh.sdp.free_list_head = try_into!(id_relative)?;
-		debug!("update firstfree to {}", sdh.sdp.free_list_head)?;
-		sdh.stats.cur_slabs -= 1;
+			let mut first_free_slice = [0u8; 8];
+			usize_to_slice(
+				try_into!(sdh.sdp.free_list_head)?,
+				&mut first_free_slice[0..sdh.sdp.ptr_size],
+			)?;
 
-		Ok(())
+			sdh.sd.update(
+				&first_free_slice[0..sdh.sdp.ptr_size],
+				id_relative * (sdh.sdp.ptr_size + sdh.sdp.slab_size),
+			)?;
+
+			sdh.sdp.free_list_head = try_into!(id_relative)?;
+			debug!("update firstfree to {}", sdh.sdp.free_list_head)?;
+			sdh.stats.cur_slabs -= 1;
+
+			Ok(())
+		}
 	}
 
 	fn allocate(&mut self, size: usize) -> Result<u64, Error> {
@@ -329,8 +353,8 @@ impl SlabAllocatorClass {
 		let mut max = len.saturating_sub(1);
 		let mut min = 0;
 		loop {
-			info!("min={},mid={},max={}", min, mid, max)?;
-			info!("try mid = {}", slab_data[mid].sdp.slab_size)?;
+			debug!("min={},mid={},max={}", min, mid, max)?;
+			debug!("try mid = {}", slab_data[mid].sdp.slab_size)?;
 			if slab_data[mid].sdp.slab_size == size {
 				debug!("index={}", mid)?;
 				let mut sdh = &mut slab_data[mid];
@@ -350,7 +374,7 @@ impl SlabAllocatorClass {
 								sdh.stats.cur_slabs, sdh.stats.max_slabs
 							)?;
 
-							info!(
+							debug!(
 								"resize to {}",
 								(sdh.stats.slabs_per_resize + sdh.stats.cur_slabs)
 									* sdh.sdp.slab_size
@@ -427,28 +451,38 @@ impl SlabAllocatorClass {
 		let id_relative = id & !0xFF00000000000000;
 		let index = id >> 56;
 		let index: usize = try_into!(index)?;
+		let slab_data = &self.vars().get_slab_data();
 
-		let sdh = &self.vars().get_slab_data()[index];
-		let id_relative: usize = try_into!(id_relative)?;
-		sdh.sd.data(
-			sdh.sdp.ptr_size + (id_relative * (sdh.sdp.ptr_size + sdh.sdp.slab_size)),
-			sdh.sdp.slab_size,
-		)
+		if index >= slab_data.len() {
+			err!(InvalidSlabId, "invalid slab id")
+		} else {
+			let sdh = &slab_data[index];
+			let id_relative: usize = try_into!(id_relative)?;
+			sdh.sd.data(
+				sdh.sdp.ptr_size + (id_relative * (sdh.sdp.ptr_size + sdh.sdp.slab_size)),
+				sdh.sdp.slab_size,
+			)
+		}
 	}
 
 	fn write(&mut self, id: u64, data: &[u8], offset: usize) -> Result<(), Error> {
 		let id_relative = id & !0xFF00000000000000;
 		let index = id >> 56;
 		let index: usize = try_into!(index)?;
+		let slab_data = &mut self.vars_mut().get_mut_slab_data();
 
-		let sdh = &mut self.vars_mut().get_mut_slab_data()[index];
-		let id_relative: usize = try_into!(id_relative)?;
+		if index >= slab_data.len() {
+			err!(InvalidSlabId, "invalid slab id")
+		} else {
+			let sdh = &mut slab_data[index];
+			let id_relative: usize = try_into!(id_relative)?;
 
-		sdh.sd.update(
-			data,
-			sdh.sdp.ptr_size + (id_relative * (sdh.sdp.ptr_size + sdh.sdp.slab_size)) + offset,
-		)?;
-		Ok(())
+			sdh.sd.update(
+				data,
+				sdh.sdp.ptr_size + (id_relative * (sdh.sdp.ptr_size + sdh.sdp.slab_size)) + offset,
+			)?;
+			Ok(())
+		}
 	}
 
 	fn get_next_free(sdh: &mut SlabDataHolder) -> Result<Option<u64>, Error> {
@@ -501,8 +535,110 @@ impl SlabAllocatorClass {
 #[cfg(test)]
 mod test {
 	use super::*;
+	use bmw_core::rand::random;
+	use std::collections::HashMap;
 
 	debug!();
+
+	#[test]
+	fn test_sizes() -> Result<(), Error> {
+		let mut sa = slab_allocator!(
+			SlabConfig(slab_config!(SlabSize(100), SlabCount(30))?),
+			SlabConfig(slab_config!(SlabSize(200), SlabCount(30))?),
+			SlabConfig(slab_config!(SlabSize(300), SlabCount(30))?),
+			SlabConfig(slab_config!(SlabSize(400), SlabCount(30))?),
+			SlabConfig(slab_config!(SlabSize(500), SlabCount(30))?),
+			SlabConfig(slab_config!(SlabSize(600), SlabCount(30))?),
+			SlabConfig(slab_config!(SlabSize(700), SlabCount(30))?),
+			SlabConfig(slab_config!(SlabSize(800), SlabCount(30))?),
+			SlabConfig(slab_config!(SlabSize(900), SlabCount(30))?),
+			SlabConfig(slab_config!(SlabSize(1_000), SlabCount(30))?),
+			SlabsPerResize(10),
+		)?;
+
+		for i in 1..1003 {
+			if i % 100 == 0 {
+				assert!(sa.allocate(i).is_ok());
+			} else {
+				assert!(sa.allocate(i).is_err());
+			}
+		}
+		Ok(())
+	}
+
+	#[test]
+	fn test_allocate_free_read_write_stat() -> Result<(), Error> {
+		let mut sa = slab_allocator!(
+			SlabConfig(slab_config!(SlabSize(100), SlabCount(1_000))?),
+			SlabsPerResize(10)
+		)?;
+
+		let rrr: usize = random();
+		let mut r = rrr % 1_000;
+		let mut hash = HashMap::new();
+		let mut capacity = 10;
+		for i in 0..r {
+			let x: usize = random();
+			let mut x_bytes = [0u8; 8];
+			usize_to_slice(x, &mut x_bytes)?;
+			let id = sa.allocate(100)?;
+			info!("id={},random={}", id, x)?;
+			sa.write(id, &x_bytes, 0)?;
+			hash.insert(id, x);
+			let stats = sa.stats()?;
+			info!("stats={:?}", stats)?;
+			assert_eq!(stats[0].cur_slabs, i + 1);
+			assert_eq!(stats[0].cur_capacity, capacity);
+			if i != r - 1 && stats[0].cur_slabs % 10 == 0 {
+				capacity += 10;
+			}
+		}
+
+		for (k, v) in &hash {
+			let bytes = sa.read(*k)?;
+			let read_v = slice_to_usize(&bytes[0..8])?;
+			assert_eq!(read_v, *v);
+			sa.free(*k)?;
+			let stats = sa.stats()?;
+			info!("stats={:?}", stats)?;
+			r -= 1;
+			assert_eq!(stats[0].cur_slabs, r);
+			assert_eq!(stats[0].cur_capacity, capacity);
+		}
+
+		assert_eq!(r, 0);
+
+		let mut r = rrr % 1_000;
+		for i in 0..r {
+			let x: usize = random();
+			let mut x_bytes = [0u8; 8];
+			usize_to_slice(x, &mut x_bytes)?;
+			let id = sa.allocate(100)?;
+			info!("id={},random={}", id, x)?;
+			sa.write(id, &x_bytes, 0)?;
+			hash.insert(id, x);
+			let stats = sa.stats()?;
+			info!("stats={:?}", stats)?;
+			assert_eq!(stats[0].cur_slabs, i + 1);
+			assert_eq!(stats[0].cur_capacity, capacity);
+		}
+
+		for (k, v) in hash {
+			let bytes = sa.read(k)?;
+			let read_v = slice_to_usize(&bytes[0..8])?;
+			assert_eq!(read_v, v);
+			sa.free(k)?;
+			let stats = sa.stats()?;
+			info!("stats={:?}", stats)?;
+			r -= 1;
+			assert_eq!(stats[0].cur_slabs, r);
+			assert_eq!(stats[0].cur_capacity, capacity);
+		}
+
+		assert_eq!(r, 0);
+
+		Ok(())
+	}
 
 	#[test]
 	fn test_slab_allocator() -> Result<(), Error> {
@@ -715,6 +851,49 @@ mod test {
 		let ret = sa.allocate(100)?;
 		assert_eq!(&sa.read(ret)?[0..100], &expected);
 
+		Ok(())
+	}
+
+	#[test]
+	fn test_slabs_per_resize_1() -> Result<(), Error> {
+		let mut sa = slab_allocator!(
+			SlabConfig(slab_config!(SlabSize(100), SlabCount(10))?),
+			SlabsPerResize(1),
+		)?;
+
+		for _ in 0..10 {
+			let ret = sa.allocate(100)?;
+			let data = [1u8; 100];
+			sa.write(ret, &data, 0)?;
+			info!("re={}", ret)?;
+		}
+
+		info!("last alloc")?;
+		assert_eq!(sa.allocate(100).unwrap_err().kind(), kind!(OutOfSlabs));
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_double_free() -> Result<(), Error> {
+		let mut sa = slab_allocator!(
+			SlabConfig(slab_config!(SlabSize(100), SlabCount(10))?),
+			SlabsPerResize(2),
+		)?;
+		let mut id_vec = vec![];
+		for _ in 0..10 {
+			let ret = sa.allocate(100)?;
+			let data = [1u8; 100];
+			sa.write(ret, &data, 0)?;
+			info!("re={}", ret)?;
+			id_vec.push(ret);
+		}
+
+		for id in &id_vec {
+			sa.free(*id)?;
+		}
+
+		assert_eq!(sa.free(id_vec[0]).unwrap_err().kind(), kind!(DoubleFree));
 		Ok(())
 	}
 }
