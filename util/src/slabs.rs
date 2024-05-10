@@ -110,8 +110,10 @@ pub enum SlabAllocatorErrors {
     fn resize(&mut self, size: usize) -> Result<(), Error>;
 
 }]
-impl SlabDataClass {
-	fn builder(constants: &SlabDataClassConst) -> Result<Self, Error> {
+impl SlabDataClass {}
+
+impl SlabDataClassVarBuilder for SlabDataClassVar {
+	fn builder(_constants: &SlabDataClassConst) -> Result<Self, Error> {
 		let data = vec![];
 		Ok(Self { data })
 	}
@@ -403,14 +405,16 @@ impl SlabDataHolder {
     [slab_allocator]
     fn stats(&self) -> Result<Vec<SlabStats>, Error>;
 }]
-impl SlabAllocatorClass {
+impl SlabAllocatorClass {}
+
+impl SlabAllocatorClassVarBuilder for SlabAllocatorClassVar {
 	fn builder(constants: &SlabAllocatorClassConst) -> Result<Self, Error> {
 		if constants.slab_config.len() > u8::MAX as usize {
 			err!(Configuration, "no more than {} slab_configs", u8::MAX)
 		} else if constants.slabs_per_resize == 0 {
 			err!(Configuration, "SlabsPerResize must be greater than 0")
 		} else {
-			let mut slab_data = vec![];
+			let slab_data = vec![];
 
 			let mut ret = Self { slab_data };
 			for config in &constants.slab_config {

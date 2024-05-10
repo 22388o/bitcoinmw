@@ -127,7 +127,9 @@ pub const DEFAULT_LINE_NUM_DATA_MAX_LEN: u16 = 30;
     [debug_logger]
     fn get_log_config_debug(&self) -> LogConfig;
 }]
-pub(crate) impl Log {
+pub(crate) impl Log {}
+
+impl LogVarBuilder for LogVar {
 	fn builder(constants: &LogConst) -> Result<Self, Error> {
 		let home_dir = dirs::home_dir()
 			.unwrap_or(PathBuf::new())
