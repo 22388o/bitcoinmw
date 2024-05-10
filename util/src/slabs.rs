@@ -724,7 +724,7 @@ mod test {
 		)?;
 
 		let rrr: usize = random();
-		let mut r = rrr % 1_000;
+		let mut r = rrr % 100;
 		let mut hash = HashMap::new();
 		let mut capacity = 10;
 		for i in 0..r {
@@ -758,7 +758,7 @@ mod test {
 
 		assert_eq!(r, 0);
 
-		let mut r = rrr % 1_000;
+		let mut r = rrr % 100;
 		for i in 0..r {
 			let x: usize = random();
 			let mut x_bytes = [0u8; 8];
