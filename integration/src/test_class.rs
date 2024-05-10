@@ -21,6 +21,27 @@ use std::any::Any;
 
 #[class{
         module "bmw_int::test_class";
+        pub test_class;
+
+        [test_class]
+        fn x(&self);
+}]
+impl MyClass {}
+
+impl MyClassVarBuilder for MyClassVar {
+	fn builder(_constants: &MyClassConst) -> Result<Self, Error> {
+		Ok(Self {})
+	}
+}
+
+impl MyClass {
+	fn x(&self) {
+		println!("go!");
+	}
+}
+
+#[class{
+        module "bmw_int::test_class";
         clone http_server;
         /// @noexample
         pub http_server_send, http_server_send_box;
@@ -646,6 +667,13 @@ mod test {
 			Instance(instance!()?),
 		)?;
 		http.show();
+		Ok(())
+	}
+
+	#[test]
+	fn test_my_class() -> Result<(), Error> {
+		let test_class = test_class!()?;
+		test_class.x();
 
 		Ok(())
 	}

@@ -423,9 +423,6 @@ impl StateMachine {
 	}
 
 	fn check_semantics(&mut self) -> Result<(), Error> {
-		if !self.found_builder {
-			self.append_error("a builder function must be defined within the attached impl item 'fn builder(&self) -> Result<Self, Error> { todo!() }'")?;
-		}
 		let mut trait_views = self.build_trait_views()?;
 
 		for c in self.clone_list.clone() {

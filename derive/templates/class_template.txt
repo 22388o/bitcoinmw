@@ -13,6 +13,13 @@ ${CLASS_VISIBILITY} struct ${NAME}Var ${GENERICS2} ${WHERE}
         ${VAR_PARAMS}
 }
 
+#[doc(hidden)]
+trait ${NAME}VarBuilder {
+        fn builder(constants: &${NAME}Const) -> Result<Self, Error>
+        where
+                Self: Sized;
+}
+
 
 #[derive(Configurable, Clone)]
 #[doc(hidden)]
