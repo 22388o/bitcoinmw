@@ -18,7 +18,7 @@
 use crate::constants::*;
 use crate::log::url_path::UrlPath;
 use crate::types::LogConfig;
-pub use crate::types::{LogLevel, LoggingType};
+
 use crate::LogErrorKind::*;
 use bmw_core::backtrace::Backtrace as LocalBacktrace;
 use bmw_core::backtrace::Symbol;
@@ -33,6 +33,9 @@ use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
+pub use crate::types::LogLevel;
+#[doc(hidden)]
+pub use crate::types::LoggingType;
 #[doc(hidden)]
 pub const DEFAULT_LINE_NUM_DATA_MAX_LEN: u16 = 30;
 
@@ -88,30 +91,109 @@ pub const DEFAULT_LINE_NUM_DATA_MAX_LEN: u16 = 30;
     var debug_lineno_is_none: bool;
     var debug_process_resolve_frame_error: bool;
 
+    /// log the specified line.
+    /// @param self a mutable reference to the desired log.
+    /// @param level the level to log this line at.
+    /// @param line the &str to log.
+    /// @return n/a 
+    /// @error crate::LogErrorKind::NotInitialized if the log is not initialized.
+    /// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+    /// @see crate::Logger
+    /// @see crate::Logger::log_all
+    /// @see crate::Logger::log_plain
     [logger, debug_logger]
     fn log(&mut self, level: LogLevel, line: &str) -> Result<(), Error>;
 
+    /// log the specified line to both any specified log file as well as stdout.
+    /// logging to stdout occurs regardless of any configurations for this log.
+    /// @param self a mutable reference to the desired log.
+    /// @param level the level to log this line at.
+    /// @param line the &str to log.
+    /// @return n/a
+    /// @error crate::LogErrorKind::NotInitialized if the log is not initialized.
+    /// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+    /// @see crate::Logger
+    /// @see crate::Logger::log
+    /// @see crate::Logger::log_plain
     [logger, debug_logger]
     fn log_all(&mut self, level: LogLevel, line: &str) -> Result<(), Error>;
 
+    /// log without any header information (i.e. log level, timestamp, or line).
+    /// @param self a mutable reference to the desired log.
+    /// @param level the level to log this line at.
+    /// @param line the &str to log.
+    /// @return n/a
+    /// @error crate::LogErrorKind::NotInitialized if the log is not initialized.
+    /// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+    /// @see crate::Logger
+    /// @see crate::Logger::log
+    /// @see crate::Logger::log_all
     [logger, debug_logger]
     fn log_plain(&mut self, level: LogLevel, line: &str) -> Result<(), Error>;
 
+    /// return value indicating whether or not log needs to be rotated.
+    /// @param self an immutable reference to the desired log.
+    /// @return if the log needs to be rotated, returns [`true`], otherwise, returns [`false`].
+    /// @error crate::LogErrorKind::NotInitialized if the log is not initialized.
+    /// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+    /// @see crate::Logger
+    /// @see crate::Logger::rotate
     [logger, debug_logger]
     fn need_rotate(&self) -> Result<bool, Error>;
 
+    /// rotate the log. This occurs whether or not the log needs to be rotated
+    /// based on specified configuration.
+    /// @param self a mutable reference to the desired log.
+    /// @return n/a
+    /// @error crate::LogErrorKind::NotInitialized if the log is not initialized.
+    /// @error crate::LogErrorKind::IllegalState if the underlying file is not present.
+    /// @error crate::LogErrorKind::MetaData if an error accessing the log file's metadata occurs.
+    /// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+    /// @see crate::Logger
+    /// @see crate::Logger::need_rotate
     [logger, debug_logger]
     fn rotate(&mut self) -> Result<(), Error>;
 
+    /// set the log level for this log.
+    /// @param self a mutable reference to the desired log.
+    /// @param level the level to set.
+    /// @return n/a
+    /// @see crate::Logger
+    /// @see crate::Logger::log
     [logger, debug_logger]
     fn set_log_level(&mut self, level: LogLevel);
 
+    /// initialize the log.
+    /// @param self a mutable reference to the desired log.
+    /// @return n/a
+    /// @error crate::LogErrorKind::AlreadyInitialized if the log is already initialized.
+    /// @error crate::LogErrorKind::IllegalState if the log file cannot be read.
+    /// @error crate::LogErrorKind::MetaData if an error accessing the log file's metadata occurs.
+    /// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+    /// @see crate::Logger
     [logger, debug_logger]
     fn init(&mut self) -> Result<(), Error>;
 
+    /// close the log file.
+    /// @param self a mutable reference to the desired log.
+    /// @return n/a
+    /// @error crate::LogErrorKind::NotInitialized if the log is not initialized.
+    /// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+    /// @see crate::Logger
+    /// @see crate::Logger::init
     [logger, debug_logger]
     fn close(&mut self) -> Result<(), Error>;
 
+    /// set a log option. Note that LogFilePath may not be set after
+    /// startup and will result in an error.
+    /// @param self a mutable reference to the desired log.
+    /// @param value the log option to set.
+    /// @return n/a
+    /// @error crate::LogErrorKind::NotInitialized if the log is not initialized.
+    /// @error crate::LogErrorKind::IllegalArgument if the value is invalid.
+    /// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+    /// @see crate::Logger
+    /// @see crate::Logger::init
     [logger, debug_logger]
     fn set_log_option(&mut self, value: LogConstOptions) -> Result<(), Error>;
 
@@ -314,7 +396,7 @@ impl Log {
 		}
 		{
 			let file = self.vars_mut().get_file().read()?;
-			let text = "log.init() has already been called";
+			let text = "log file cannot be opened for reading";
 			none_or_err!((*file).as_ref(), IllegalState, text)?;
 		}
 

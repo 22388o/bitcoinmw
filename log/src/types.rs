@@ -38,15 +38,21 @@ pub enum LogLevel {
 /// Kinds of errors that occur during logging
 #[ErrorKind]
 pub enum LogErrorKind {
+	/// log error
 	Log,
+	/// configuration error
 	Configuration,
+	/// illegal state
 	IllegalState,
+	/// log already initialized
 	AlreadyInitialized,
 	/// failed to retreive metadata
 	MetaData,
+	/// not initialized error
 	NotInitialized,
 	/// simulated test error
 	Test,
+	/// illegal argument
 	IllegalArgument,
 }
 
