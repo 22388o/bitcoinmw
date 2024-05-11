@@ -24,5 +24,7 @@ pub use bmw_base::*;
 pub use bmw_deps::*;
 pub use bmw_derive::*;
 
+#[doc(hidden)]
 pub use bmw_base;
+#[doc(hidden)]
 pub use bmw_deps;

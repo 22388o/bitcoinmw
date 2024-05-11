@@ -18,3 +18,4 @@
 
 mod test;
 pub mod test_class;
+mod test_serializable;
