@@ -21,7 +21,7 @@ use bmw_core::*;
 /// The [`crate::trace`] macro is used to set the global logging level at the current scope to the
 /// [`crate::LogLevel::Trace`] level _or_ to log at the [`crate::LogLevel::Trace`] level depending on
 /// which arguments are passed to the macro. If no arguments are supplied, it is the equivalent to
-/// calling [`crate::Log::set_log_level`] with an argument of [`crate::LogLevel::Trace`] for the
+/// calling [`crate::Logger::set_log_level`] with an argument of [`crate::LogLevel::Trace`] for the
 /// global logger. If arguments are supplied, the global logger will be called at the trace level
 /// and the formatted output will be logged if the threshold of the global logger permits it.
 /*
@@ -35,6 +35,11 @@ use bmw_core::*;
 #[add_doc(see: "crate::Log")]
 #[add_doc(doc_point)]
 */
+/// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+/// @see crate::trace_all
+/// @see crate::trace_plain
+/// @see crate::info
+/// @see crate::Logger
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -90,7 +95,7 @@ macro_rules! trace {
 /// the [`crate::trace`] macro, the [`crate::trace_plain`] macro can be used to set the global logging
 /// level at the current scope to the [`crate::LogLevel::Trace`] level _or_ to log at the
 /// [`crate::LogLevel::Trace`] level depending on which arguments are passed to the macro. If no arguments
-/// are supplied, it is the equivalent to calling [`crate::Log::set_log_level`] with an argument of
+/// are supplied, it is the equivalent to calling [`crate::Logger::set_log_level`] with an argument of
 /// [`crate::LogLevel::Trace`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the trace level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
@@ -160,7 +165,7 @@ macro_rules! trace_plain {
 /// is enabled. Just as with [`crate::trace`],  the [`crate::trace_all`] macro can also be used
 /// to set the global logging level at the current scope to the [`crate::LogLevel::Trace`] level _or_ to log at the
 /// [`crate::LogLevel::Trace`] level depending on which arguments are passed to the macro. If no arguments
-/// are supplied, it is the equivalent to calling [`crate::Log::set_log_level`] with an argument of
+/// are supplied, it is the equivalent to calling [`crate::Logger::set_log_level`] with an argument of
 /// [`crate::LogLevel::Trace`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the trace level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
@@ -191,7 +196,7 @@ macro_rules! trace_all {
 /// The [`crate::debug`] macro is used to set the global logging level at the current scope to the
 /// [`crate::LogLevel::Debug`] level _or_ to log at the [`crate::LogLevel::Debug`] level depending on
 /// which arguments are passed to the macro. If no arguments are supplied, it is the equivalent to
-/// calling [`crate::Log::set_log_level`] with an argument of [`crate::LogLevel::Debug`] for the
+/// calling [`crate::Logger::set_log_level`] with an argument of [`crate::LogLevel::Debug`] for the
 /// global logger. If arguments are supplied, the global logger will be called at the debug level
 /// and the formatted output will be logged if the threshold of the global logger permits it.
 /*
@@ -260,7 +265,7 @@ macro_rules! debug {
 /// the [`crate::debug`] macro, the [`crate::debug_plain`] macro can be used to set the global logging
 /// level at the current scope to the [`crate::LogLevel::Debug`] level _or_ to log at the
 /// [`crate::LogLevel::Debug`] level depending on which arguments are passed to the macro. If no arguments
-/// are supplied, it is the equivalent to calling [`crate::Log::set_log_level`] with an argument of
+/// are supplied, it is the equivalent to calling [`crate::Logger::set_log_level`] with an argument of
 /// [`crate::LogLevel::Debug`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the debug level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
@@ -330,7 +335,7 @@ macro_rules! debug_plain {
 /// is enabled. Just as with [`crate::debug`],  the [`crate::debug_all`] macro can also be used
 /// to set the global logging level at the current scope to the [`crate::LogLevel::Debug`] level _or_ to log at the
 /// [`crate::LogLevel::Debug`] level depending on which arguments are passed to the macro. If no arguments
-/// are supplied, it is the equivalent to calling [`crate::Log::set_log_level`] with an argument of
+/// are supplied, it is the equivalent to calling [`crate::Logger::set_log_level`] with an argument of
 /// [`crate::LogLevel::Debug`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the debug level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
@@ -416,7 +421,7 @@ macro_rules! debug_all {
 /// The [`crate::info`] macro is used to set the global logging level at the current scope to the
 /// [`crate::LogLevel::Info`] level _or_ to log at the [`crate::LogLevel::Info`] level depending on
 /// which arguments are passed to the macro. If no arguments are supplied, it is the equivalent to
-/// calling [`crate::Log::set_log_level`] with an argument of [`crate::LogLevel::Info`] for the
+/// calling [`crate::Logger::set_log_level`] with an argument of [`crate::LogLevel::Info`] for the
 /// global logger. If arguments are supplied, the global logger will be called at the info level
 /// and the formatted output will be logged if the threshold of the global logger permits it.
 /*
@@ -485,7 +490,7 @@ macro_rules! info {
 /// the [`crate::info`] macro, the [`crate::info_plain`] macro can be used to set the global logging
 /// level at the current scope to the [`crate::LogLevel::Info`] level _or_ to log at the
 /// [`crate::LogLevel::Info`] level depending on which arguments are passed to the macro. If no arguments
-/// are supplied, it is the equivalent to calling [`crate::Log::set_log_level`] with an argument of
+/// are supplied, it is the equivalent to calling [`crate::Logger::set_log_level`] with an argument of
 /// [`crate::LogLevel::Info`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the info level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
@@ -555,7 +560,7 @@ macro_rules! info_plain {
 /// is enabled. Just as with [`crate::info`],  the [`crate::info_all`] macro can also be used
 /// to set the global logging level at the current scope to the [`crate::LogLevel::Info`] level _or_ to log at the
 /// [`crate::LogLevel::Info`] level depending on which arguments are passed to the macro. If no arguments
-/// are supplied, it is the equivalent to calling [`crate::Log::set_log_level`] with an argument of
+/// are supplied, it is the equivalent to calling [`crate::Logger::set_log_level`] with an argument of
 /// [`crate::LogLevel::Info`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the info level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
@@ -586,7 +591,7 @@ macro_rules! info_all {
 /// The [`crate::warn`] macro is used to set the global logging level at the current scope to the
 /// [`crate::LogLevel::Warn`] level _or_ to log at the [`crate::LogLevel::Warn`] level depending on
 /// which arguments are passed to the macro. If no arguments are supplied, it is the equivalent to
-/// calling [`crate::Log::set_log_level`] with an argument of [`crate::LogLevel::Warn`] for the
+/// calling [`crate::Logger::set_log_level`] with an argument of [`crate::LogLevel::Warn`] for the
 /// global logger. If arguments are supplied, the global logger will be called at the warn level
 /// and the formatted output will be logged if the threshold of the global logger permits it.
 /*
@@ -655,7 +660,7 @@ macro_rules! warn {
 /// the [`crate::warn`] macro, the [`crate::warn_plain`] macro can be used to set the global logging
 /// level at the current scope to the [`crate::LogLevel::Warn`] level _or_ to log at the
 /// [`crate::LogLevel::Warn`] level depending on which arguments are passed to the macro. If no arguments
-/// are supplied, it is the equivalent to calling [`crate::Log::set_log_level`] with an argument of
+/// are supplied, it is the equivalent to calling [`crate::Logger::set_log_level`] with an argument of
 /// [`crate::LogLevel::Warn`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the warn level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
@@ -725,7 +730,7 @@ macro_rules! warn_plain {
 /// is enabled. Just as with [`crate::warn`],  the [`crate::warn_all`] macro can also be used
 /// to set the global logging level at the current scope to the [`crate::LogLevel::Warn`] level _or_ to log at the
 /// [`crate::LogLevel::Warn`] level depending on which arguments are passed to the macro. If no arguments
-/// are supplied, it is the equivalent to calling [`crate::Log::set_log_level`] with an argument of
+/// are supplied, it is the equivalent to calling [`crate::Logger::set_log_level`] with an argument of
 /// [`crate::LogLevel::Warn`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the warn level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
@@ -756,7 +761,7 @@ macro_rules! warn_all {
 /// The [`crate::error`] macro is used to set the global logging level at the current scope to the
 /// [`crate::LogLevel::Error`] level _or_ to log at the [`crate::LogLevel::Error`] level depending on
 /// which arguments are passed to the macro. If no arguments are supplied, it is the equivalent to
-/// calling [`crate::Log::set_log_level`] with an argument of [`crate::LogLevel::Error`] for the
+/// calling [`crate::Logger::set_log_level`] with an argument of [`crate::LogLevel::Error`] for the
 /// global logger. If arguments are supplied, the global logger will be called at the error level
 /// and the formatted output will be logged if the threshold of the global logger permits it.
 /*
@@ -825,7 +830,7 @@ macro_rules! error {
 /// the [`crate::error`] macro, the [`crate::error_plain`] macro can be used to set the global logging
 /// level at the current scope to the [`crate::LogLevel::Error`] level _or_ to log at the
 /// [`crate::LogLevel::Error`] level depending on which arguments are passed to the macro. If no arguments
-/// are supplied, it is the equivalent to calling [`crate::Log::set_log_level`] with an argument of
+/// are supplied, it is the equivalent to calling [`crate::Logger::set_log_level`] with an argument of
 /// [`crate::LogLevel::Error`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the error level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
@@ -895,7 +900,7 @@ macro_rules! error_plain {
 /// is enabled. Just as with [`crate::error`],  the [`crate::error_all`] macro can also be used
 /// to set the global logging level at the current scope to the [`crate::LogLevel::Error`] level _or_ to log at the
 /// [`crate::LogLevel::Error`] level depending on which arguments are passed to the macro. If no arguments
-/// are supplied, it is the equivalent to calling [`crate::Log::set_log_level`] with an argument of
+/// are supplied, it is the equivalent to calling [`crate::Logger::set_log_level`] with an argument of
 /// [`crate::LogLevel::Error`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the error level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
@@ -926,7 +931,7 @@ macro_rules! error_all {
 /// The [`crate::fatal`] macro is used to set the global logging level at the current scope to the
 /// [`crate::LogLevel::Fatal`] level _or_ to log at the [`crate::LogLevel::Fatal`] level depending on
 /// which arguments are passed to the macro. If no arguments are supplied, it is the equivalent to
-/// calling [`crate::Log::set_log_level`] with an argument of [`crate::LogLevel::Fatal`] for the
+/// calling [`crate::Logger::set_log_level`] with an argument of [`crate::LogLevel::Fatal`] for the
 /// global logger. If arguments are supplied, the global logger will be called at the fatal level
 /// and the formatted output will be logged if the threshold of the global logger permits it.
 /*
@@ -995,7 +1000,7 @@ macro_rules! fatal {
 /// the [`crate::fatal`] macro, the [`crate::fatal_plain`] macro can be used to set the global logging
 /// level at the current scope to the [`crate::LogLevel::Fatal`] level _or_ to log at the
 /// [`crate::LogLevel::Fatal`] level depending on which arguments are passed to the macro. If no arguments
-/// are supplied, it is the equivalent to calling [`crate::Log::set_log_level`] with an argument of
+/// are supplied, it is the equivalent to calling [`crate::Logger::set_log_level`] with an argument of
 /// [`crate::LogLevel::Fatal`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the fatal level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
@@ -1065,7 +1070,7 @@ macro_rules! fatal_plain {
 /// is enabled. Just as with [`crate::fatal`],  the [`crate::fatal_all`] macro can also be used
 /// to set the global logging level at the current scope to the [`crate::LogLevel::Fatal`] level _or_ to log at the
 /// [`crate::LogLevel::Fatal`] level depending on which arguments are passed to the macro. If no arguments
-/// are supplied, it is the equivalent to calling [`crate::Log::set_log_level`] with an argument of
+/// are supplied, it is the equivalent to calling [`crate::Logger::set_log_level`] with an argument of
 /// [`crate::LogLevel::Fatal`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the fatal level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
