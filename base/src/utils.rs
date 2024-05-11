@@ -18,6 +18,8 @@
 
 use bmw_deps::backtrace::Backtrace;
 
+/// This function detects if the calling function has been executed recursively. If it has, true is
+/// returned. Otherwise, false is returned.
 pub fn is_recursive() -> bool {
 	let backtrace = Backtrace::new();
 	let frames = backtrace.frames();

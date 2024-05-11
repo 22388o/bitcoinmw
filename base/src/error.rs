@@ -26,12 +26,18 @@ use std::sync::mpsc::{RecvError, SendError};
 use std::sync::{MutexGuard, PoisonError, RwLockReadGuard, RwLockWriteGuard};
 use CoreErrorKind::*;
 
+/// The [`ErrorKind`] trait is a trait that allows kinds of errors to be defined in other crates.
+/// The trait is used by the proc_macro derive crate and is automatically derived by an attribute
+/// in that crate. Generally it should be used through the proc_macro.
 pub trait ErrorKind: Send + Sync + Display + Debug {}
 
+/// Base error struct used throughout BitcoinMW.
 pub struct Error {
 	kind: Box<dyn ErrorKind>,
 }
 
+/// Core error kinds used in this crate and other lower level crates. Errors that have a `from`
+/// trait implementation map to one of these error kinds.
 pub enum CoreErrorKind {
 	/// illegal argument
 	IllegalArgument(String),
@@ -57,6 +63,10 @@ pub enum CoreErrorKind {
 	OsString(String),
 	/// Utf8 error
 	Utf8(String),
+	/// Data is corrupted
+	CorruptedData(String),
+	/// The operation is not supported
+	OperationNotSupported(String),
 }
 
 impl Error {
