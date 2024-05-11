@@ -24,22 +24,11 @@ use bmw_core::*;
 /// calling [`crate::Logger::set_log_level`] with an argument of [`crate::LogLevel::Trace`] for the
 /// global logger. If arguments are supplied, the global logger will be called at the trace level
 /// and the formatted output will be logged if the threshold of the global logger permits it.
-/*
-#[add_doc(input: values - "(optional) - if specified, the values are logged as if they were", "($($values:tt)*)")]
-#[add_doc(input: values - "parameters sent to [`std::format`]. If none are specified, the log")]
-#[add_doc(input: values - "level for this scope is set to [`crate::LogLevel::Trace`].")]
-#[add_doc(error: "bmw_core::ErrKind::IO" - "if an i/o error occurs")]
-#[add_doc(see: "crate::trace_all")]
-#[add_doc(see: "crate::trace_plain")]
-#[add_doc(see: "crate::info")]
-#[add_doc(see: "crate::Log")]
-#[add_doc(doc_point)]
-*/
 /// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
 /// @see crate::trace_all
 /// @see crate::trace_plain
 /// @see crate::info
-/// @see crate::Logger
+/// @see crate::Log
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -99,17 +88,11 @@ macro_rules! trace {
 /// [`crate::LogLevel::Trace`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the trace level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
-/*
-#[add_doc(input: values - "(optional) - if specified, the values are logged as if they were", "($($values:tt)*)")]
-#[add_doc(input: values - "parameters sent to [`std::format`]. If none are specified, the log")]
-#[add_doc(input: values - "level for this scope is set to [`crate::LogLevel::Trace`].")]
-#[add_doc(error: "bmw_core::ErrKind::IO" - "if an i/o error occurs")]
-#[add_doc(see: "crate::trace_all")]
-#[add_doc(see: "crate::trace")]
-#[add_doc(see: "crate::info")]
-#[add_doc(see: "crate::Log")]
-#[add_doc(doc_point)]
-*/
+/// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+/// @see crate::trace_all
+/// @see crate::trace
+/// @see crate::info
+/// @see crate::Log
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -169,17 +152,11 @@ macro_rules! trace_plain {
 /// [`crate::LogLevel::Trace`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the trace level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
-/*
-#[add_doc(input: values - "(optional) - if specified, the values are logged as if they were", "($($values:tt)*)")]
-#[add_doc(input: values - "parameters sent to [`std::format`]. If none are specified, the log")]
-#[add_doc(input: values - "level for this scope is set to [`crate::LogLevel::Trace`].")]
-#[add_doc(error: "bmw_core::ErrKind::IO" - "if an i/o error occurs")]
-#[add_doc(see: "crate::trace_plain")]
-#[add_doc(see: "crate::trace")]
-#[add_doc(see: "crate::info")]
-#[add_doc(see: "crate::Log")]
-#[add_doc(doc_point)]
-*/
+/// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+/// @see crate::trace_plain
+/// @see crate::trace
+/// @see crate::info
+/// @see crate::Log
 #[macro_export]
 macro_rules! trace_all {
         () => {
@@ -199,17 +176,11 @@ macro_rules! trace_all {
 /// calling [`crate::Logger::set_log_level`] with an argument of [`crate::LogLevel::Debug`] for the
 /// global logger. If arguments are supplied, the global logger will be called at the debug level
 /// and the formatted output will be logged if the threshold of the global logger permits it.
-/*
-#[add_doc(input: values - "(optional) - if specified, the values are logged as if they were", "($($values:tt)*)")]
-#[add_doc(input: values - "parameters sent to [`std::format`]. If none are specified, the log")]
-#[add_doc(input: values - "level for this scope is set to [`crate::LogLevel::Debug`].")]
-#[add_doc(error: "bmw_core::ErrKind::IO" - "if an i/o error occurs")]
-#[add_doc(see: "crate::debug_all")]
-#[add_doc(see: "crate::debug_plain")]
-#[add_doc(see: "crate::info")]
-#[add_doc(see: "crate::Log")]
-#[add_doc(doc_point)]
-*/
+/// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+/// @see crate::debug_all
+/// @see crate::debug_plain
+/// @see crate::info
+/// @see crate::Log
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -269,17 +240,11 @@ macro_rules! debug {
 /// [`crate::LogLevel::Debug`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the debug level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
-/*
-#[add_doc(input: values - "(optional) - if specified, the values are logged as if they were", "($($values:tt)*)")]
-#[add_doc(input: values - "parameters sent to [`std::format`]. If none are specified, the log")]
-#[add_doc(input: values - "level for this scope is set to [`crate::LogLevel::Debug`].")]
-#[add_doc(error: "bmw_core::ErrKind::IO" - "if an i/o error occurs")]
-#[add_doc(see: "crate::debug_all")]
-#[add_doc(see: "crate::debug")]
-#[add_doc(see: "crate::info")]
-#[add_doc(see: "crate::Log")]
-#[add_doc(doc_point)]
-*/
+/// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+/// @see crate::debug_all
+/// @see crate::debug
+/// @see crate::info
+/// @see crate::Log
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -339,17 +304,11 @@ macro_rules! debug_plain {
 /// [`crate::LogLevel::Debug`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the debug level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
-/*
-#[add_doc(input: values - "(optional) - if specified, the values are logged as if they were", "($($values:tt)*)")]
-#[add_doc(input: values - "parameters sent to [`std::format`]. If none are specified, the log")]
-#[add_doc(input: values - "level for this scope is set to [`crate::LogLevel::Debug`].")]
-#[add_doc(error: "bmw_core::ErrKind::IO" - "if an i/o error occurs")]
-#[add_doc(see: "crate::debug_plain")]
-#[add_doc(see: "crate::debgu")]
-#[add_doc(see: "crate::info")]
-#[add_doc(see: "crate::Log")]
-#[add_doc(doc_point)]
-*/
+/// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+/// @see crate::debug_plain
+/// @see crate::debgu
+/// @see crate::info
+/// @see crate::Log
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -424,17 +383,11 @@ macro_rules! debug_all {
 /// calling [`crate::Logger::set_log_level`] with an argument of [`crate::LogLevel::Info`] for the
 /// global logger. If arguments are supplied, the global logger will be called at the info level
 /// and the formatted output will be logged if the threshold of the global logger permits it.
-/*
-#[add_doc(input: values - "(optional) - if specified, the values are logged as if they were", "($($values:tt)*)")]
-#[add_doc(input: values - "parameters sent to [`std::format`]. If none are specified, the log")]
-#[add_doc(input: values - "level for this scope is set to [`crate::LogLevel::Info`].")]
-#[add_doc(error: "bmw_core::ErrKind::IO" - "if an i/o error occurs")]
-#[add_doc(see: "crate::info_all")]
-#[add_doc(see: "crate::info_plain")]
-#[add_doc(see: "crate::debug")]
-#[add_doc(see: "crate::Log")]
-#[add_doc(doc_point)]
-*/
+/// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+/// @see crate::info_all
+/// @see crate::info_plain
+/// @see crate::debug
+/// @see crate::Log
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -494,17 +447,11 @@ macro_rules! info {
 /// [`crate::LogLevel::Info`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the info level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
-/*
-#[add_doc(input: values - "(optional) - if specified, the values are logged as if they were", "($($values:tt)*)")]
-#[add_doc(input: values - "parameters sent to [`std::format`]. If none are specified, the log")]
-#[add_doc(input: values - "level for this scope is set to [`crate::LogLevel::Info`].")]
-#[add_doc(error: "bmw_core::ErrKind::IO" - "if an i/o error occurs")]
-#[add_doc(see: "crate::info_all")]
-#[add_doc(see: "crate::info")]
-#[add_doc(see: "crate::debug")]
-#[add_doc(see: "crate::Log")]
-#[add_doc(doc_point)]
-*/
+/// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+/// @see crate::info_all
+/// @see crate::info
+/// @see crate::debug
+/// @see crate::Log
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -564,17 +511,11 @@ macro_rules! info_plain {
 /// [`crate::LogLevel::Info`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the info level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
-/*
-#[add_doc(input: values - "(optional) - if specified, the values are logged as if they were", "($($values:tt)*)")]
-#[add_doc(input: values - "parameters sent to [`std::format`]. If none are specified, the log")]
-#[add_doc(input: values - "level for this scope is set to [`crate::LogLevel::Info`].")]
-#[add_doc(error: "bmw_core::ErrKind::IO" - "if an i/o error occurs")]
-#[add_doc(see: "crate::info_plain")]
-#[add_doc(see: "crate::info")]
-#[add_doc(see: "crate::debug")]
-#[add_doc(see: "crate::Log")]
-#[add_doc(doc_point)]
-*/
+/// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+/// @see crate::info_plain
+/// @see crate::info
+/// @see crate::debug
+/// @see crate::Log
 #[macro_export]
 macro_rules! info_all {
         () => {
@@ -594,17 +535,11 @@ macro_rules! info_all {
 /// calling [`crate::Logger::set_log_level`] with an argument of [`crate::LogLevel::Warn`] for the
 /// global logger. If arguments are supplied, the global logger will be called at the warn level
 /// and the formatted output will be logged if the threshold of the global logger permits it.
-/*
-#[add_doc(input: values - "(optional) - if specified, the values are logged as if they were", "($($values:tt)*)")]
-#[add_doc(input: values - "parameters sent to [`std::format`]. If none are specified, the log")]
-#[add_doc(input: values - "level for this scope is set to [`crate::LogLevel::Warn`].")]
-#[add_doc(error: "bmw_core::ErrKind::IO" - "if an i/o error occurs")]
-#[add_doc(see: "crate::warn_all")]
-#[add_doc(see: "crate::warn_plain")]
-#[add_doc(see: "crate::info")]
-#[add_doc(see: "crate::Log")]
-#[add_doc(doc_point)]
-*/
+/// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+/// @see crate::warn_all
+/// @see crate::warn_plain
+/// @see crate::info
+/// @see crate::Log
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -664,17 +599,11 @@ macro_rules! warn {
 /// [`crate::LogLevel::Warn`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the warn level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
-/*
-#[add_doc(input: values - "(optional) - if specified, the values are logged as if they were", "($($values:tt)*)")]
-#[add_doc(input: values - "parameters sent to [`std::format`]. If none are specified, the log")]
-#[add_doc(input: values - "level for this scope is set to [`crate::LogLevel::Warn`].")]
-#[add_doc(error: "bmw_core::ErrKind::IO" - "if an i/o error occurs")]
-#[add_doc(see: "crate::warn_all")]
-#[add_doc(see: "crate::warn")]
-#[add_doc(see: "crate::info")]
-#[add_doc(see: "crate::Log")]
-#[add_doc(doc_point)]
-*/
+/// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+/// @see crate::warn_all
+/// @see crate::warn
+/// @see crate::info
+/// @see crate::Log
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -734,17 +663,11 @@ macro_rules! warn_plain {
 /// [`crate::LogLevel::Warn`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the warn level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
-/*
-#[add_doc(input: values - "(optional) - if specified, the values are logged as if they were", "($($values:tt)*)")]
-#[add_doc(input: values - "parameters sent to [`std::format`]. If none are specified, the log")]
-#[add_doc(input: values - "level for this scope is set to [`crate::LogLevel::Warn`].")]
-#[add_doc(error: "bmw_core::ErrKind::IO" - "if an i/o error occurs")]
-#[add_doc(see: "crate::warn_plain")]
-#[add_doc(see: "crate::warn")]
-#[add_doc(see: "crate::info")]
-#[add_doc(see: "crate::Log")]
-#[add_doc(doc_point)]
-*/
+/// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+/// @see crate::warn_plain
+/// @see crate::warn
+/// @see crate::info
+/// @see crate::Log
 #[macro_export]
 macro_rules! warn_all {
         () => {
@@ -764,17 +687,11 @@ macro_rules! warn_all {
 /// calling [`crate::Logger::set_log_level`] with an argument of [`crate::LogLevel::Error`] for the
 /// global logger. If arguments are supplied, the global logger will be called at the error level
 /// and the formatted output will be logged if the threshold of the global logger permits it.
-/*
-#[add_doc(input: values - "(optional) - if specified, the values are logged as if they were", "($($values:tt)*)")]
-#[add_doc(input: values - "parameters sent to [`std::format`]. If none are specified, the log")]
-#[add_doc(input: values - "level for this scope is set to [`crate::LogLevel::Error`].")]
-#[add_doc(error: "bmw_core::ErrKind::IO" - "if an i/o error occurs")]
-#[add_doc(see: "crate::error_all")]
-#[add_doc(see: "crate::error_plain")]
-#[add_doc(see: "crate::info")]
-#[add_doc(see: "crate::Log")]
-#[add_doc(doc_point)]
-*/
+/// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+/// @see crate::error_all
+/// @see crate::error_plain
+/// @see crate::info
+/// @see crate::Log
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -834,17 +751,11 @@ macro_rules! error {
 /// [`crate::LogLevel::Error`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the error level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
-/*
-#[add_doc(input: values - "(optional) - if specified, the values are logged as if they were", "($($values:tt)*)")]
-#[add_doc(input: values - "parameters sent to [`std::format`]. If none are specified, the log")]
-#[add_doc(input: values - "level for this scope is set to [`crate::LogLevel::Error`].")]
-#[add_doc(error: "bmw_core::ErrKind::IO" - "if an i/o error occurs")]
-#[add_doc(see: "crate::error_all")]
-#[add_doc(see: "crate::error")]
-#[add_doc(see: "crate::info")]
-#[add_doc(see: "crate::Log")]
-#[add_doc(doc_point)]
-*/
+/// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+/// @see crate::error_all
+/// @see crate::error
+/// @see crate::info
+/// @see crate::Log
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -904,17 +815,11 @@ macro_rules! error_plain {
 /// [`crate::LogLevel::Error`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the error level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
-/*
-#[add_doc(input: values - "(optional) - if specified, the values are logged as if they were", "($($values:tt)*)")]
-#[add_doc(input: values - "parameters sent to [`std::format`]. If none are specified, the log")]
-#[add_doc(input: values - "level for this scope is set to [`crate::LogLevel::Error`].")]
-#[add_doc(error: "bmw_core::ErrKind::IO" - "if an i/o error occurs")]
-#[add_doc(see: "crate::error_plain")]
-#[add_doc(see: "crate::error")]
-#[add_doc(see: "crate::info")]
-#[add_doc(see: "crate::Log")]
-#[add_doc(doc_point)]
-*/
+/// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+/// @see crate::error_plain
+/// @see crate::error
+/// @see crate::info
+/// @see crate::Log
 #[macro_export]
 macro_rules! error_all {
         () => {
@@ -934,17 +839,11 @@ macro_rules! error_all {
 /// calling [`crate::Logger::set_log_level`] with an argument of [`crate::LogLevel::Fatal`] for the
 /// global logger. If arguments are supplied, the global logger will be called at the fatal level
 /// and the formatted output will be logged if the threshold of the global logger permits it.
-/*
-#[add_doc(input: values - "(optional) - if specified, the values are logged as if they were", "($($values:tt)*)")]
-#[add_doc(input: values - "parameters sent to [`std::format`]. If none are specified, the log")]
-#[add_doc(input: values - "level for this scope is set to [`crate::LogLevel::Fatal`].")]
-#[add_doc(error: "bmw_core::ErrKind::IO" - "if an i/o error occurs")]
-#[add_doc(see: "crate::fatal_all")]
-#[add_doc(see: "crate::fatal_plain")]
-#[add_doc(see: "crate::info")]
-#[add_doc(see: "crate::Log")]
-#[add_doc(doc_point)]
-*/
+/// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+/// @see crate::fatal_all
+/// @see crate::fatal_plain
+/// @see crate::info
+/// @see crate::Log
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -1004,17 +903,11 @@ macro_rules! fatal {
 /// [`crate::LogLevel::Fatal`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the fatal level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
-/*
-#[add_doc(input: values - "(optional) - if specified, the values are logged as if they were", "($($values:tt)*)")]
-#[add_doc(input: values - "parameters sent to [`std::format`]. If none are specified, the log")]
-#[add_doc(input: values - "level for this scope is set to [`crate::LogLevel::Fatal`].")]
-#[add_doc(error: "bmw_core::ErrKind::IO" - "if an i/o error occurs")]
-#[add_doc(see: "crate::fatal_all")]
-#[add_doc(see: "crate::fatal")]
-#[add_doc(see: "crate::info")]
-#[add_doc(see: "crate::Log")]
-#[add_doc(doc_point)]
-*/
+/// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+/// @see crate::fatal_all
+/// @see crate::fatal
+/// @see crate::info
+/// @see crate::Log
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -1074,17 +967,11 @@ macro_rules! fatal_plain {
 /// [`crate::LogLevel::Fatal`] for the global logger. If arguments are supplied, the global logger will
 /// be called at the fatal level and the formatted output will be logged if the threshold of the global
 /// logger permits it.
-/*
-#[add_doc(input: values - "(optional) - if specified, the values are logged as if they were", "($($values:tt)*)")]
-#[add_doc(input: values - "parameters sent to [`std::format`]. If none are specified, the log")]
-#[add_doc(input: values - "level for this scope is set to [`crate::LogLevel::Fatal`].")]
-#[add_doc(error: "bmw_core::ErrKind::IO" - "if an i/o error occurs")]
-#[add_doc(see: "crate::fatal_plain")]
-#[add_doc(see: "crate::fatal")]
-#[add_doc(see: "crate::info")]
-#[add_doc(see: "crate::Log")]
-#[add_doc(doc_point)]
-*/
+/// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
+/// @see crate::fatal_plain
+/// @see crate::fatal
+/// @see crate::info
+/// @see crate::Log
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -1219,17 +1106,12 @@ macro_rules! fatal_all {
 /// false in a production environment. The default value is false.
 /// * `DebugLinenoIsNone(bool)` - this is an option used in testing. This option _MUST_ be set to
 /// false in a production environment. The default value is false.
+/// @see crate::Log
+/// @see crate::logger
+/// @see crate::info
 /*
-#[add_doc(error: "bmw_core::ErrKind::Configuration" - "if a configuration option is specified more than once")]
-#[add_doc(error: "bmw_core::ErrKind::IO" - "if the file cannot be accessed")]
-#[add_doc(error: "bmw_core::ErrKind::Log" - "if the MaxAgeMillis option is set to less than 1,000")]
-#[add_doc(error: "bmw_core::ErrKind::Log" - "if the MaxSizeBytes option is set to less than 50")]
-#[add_doc(error: "bmw_core::ErrKind::Log" - "if the LineNumDataMaxLen option is set to less than 10")]
-#[add_doc(return: "On success, a [`crate::Log`] is returned", " Result < Box < dyn Log + Send + Sync , Error >")]
-#[add_doc(see: "crate::Log")]
-#[add_doc(see: "crate::logger")]
-#[add_doc(see: "crate::info")]
-#[add_doc(doc_point)]
+#[add_doc(error: "bmw_core::ErrKind::Log" - "if the log is not initialized.
+#[add_doc(error: "bmw_core::ErrKind::Log" - "if `option` is a [`crate::LogConstOptions::LogFilePath`].
 */
 #[macro_export]
 macro_rules! log_init {
@@ -1246,14 +1128,11 @@ macro_rules! log_init {
 /// The [`crate::set_log_option`] macro calls the [`crate::Log::set_config_option`] function on the
 /// global logger.
 /*
-#[add_doc(input: option - "The LogConstOptions to set. After initialization, most of the", " crate::LogConstOptions ")]
-#[add_doc(input: option - "configuration settings may be changed. The only exception is")]
-#[add_doc(input: option - "[`crate::LogConstOptions::LogFilePath`]. Attempting to set this option will result in an error")]
-#[add_doc(error: "bmw_core::ErrKind::Log" - "if the log is not initialized.")]
-#[add_doc(error: "bmw_core::ErrKind::Log" - "if `option` is a [`crate::LogConstOptions::LogFilePath`].")]
-#[add_doc(see: "crate::logger")]
-#[add_doc(see: "crate::LogConstOptions")]
+#[add_doc(error: "bmw_core::ErrKind::Log" - "if the log is not initialized.
+#[add_doc(error: "bmw_core::ErrKind::Log" - "if `option` is a [`crate::LogConstOptions::LogFilePath`].
 */
+/// @see crate::logger
+/// @see crate::LogConstOptions
 #[macro_export]
 macro_rules! set_log_option {
 	($option:expr) => {{
@@ -1266,12 +1145,9 @@ macro_rules! set_log_option {
 #[document]
 /// The [`crate::log_rotate`] macro calls the [`crate::Log::rotate`] function on the global logger.
 /// This results in the global logger's log to be rotated if needed.
-/*
-#[add_doc(see: "crate::need_rotate")]
-#[add_doc(see: "crate::logger")]
-#[add_doc(see: "crate::log_init")]
-#[add_doc(doc_point)]
-*/
+/// @see crate::need_rotate
+/// @see crate::logger
+/// @see crate::log_init
 #[macro_export]
 macro_rules! log_rotate {
 	() => {{
@@ -1283,13 +1159,10 @@ macro_rules! log_rotate {
 #[document]
 /// The [`crate::need_rotate`] macro calls the [`crate::Log::need_rotate`] function on the
 /// underlying global logger and returns the [`bool`] value returned by that function.
-/*
-#[add_doc(return: "[`true`] if the global logger needs to be rotated. Otherwise, returns [`false`].", " bool ")]
-#[add_doc(see: "crate::log_rotate")]
-#[add_doc(see: "crate::logger")]
-#[add_doc(see: "crate::log_init")]
-#[add_doc(doc_point)]
-*/
+/// @return [`true`] if the global logger needs to be rotated. Otherwise, returns [`false`].
+/// @see crate::log_rotate
+/// @see crate::logger
+/// @see crate::log_init
 #[macro_export]
 macro_rules! need_rotate {
 	() => {{
