@@ -58,6 +58,7 @@ struct Fn {
 }
 
 impl Fn {
+	#[cfg(not(tarpaulin_include))]
 	fn new(span: Span) -> Self {
 		Self {
 			span,
@@ -88,6 +89,7 @@ struct Var {
 }
 
 impl Var {
+	#[cfg(not(tarpaulin_include))]
 	fn new(name: String, span: Span) -> Self {
 		Self {
 			name,
@@ -99,6 +101,7 @@ impl Var {
 }
 
 impl Display for FieldType {
+	#[cfg(not(tarpaulin_include))]
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
 		match self {
 			FieldType::Usize => write!(f, "[`usize`]")?,
@@ -158,6 +161,7 @@ struct Const {
 }
 
 impl Const {
+	#[cfg(not(tarpaulin_include))]
 	fn new(name: String, span: Span) -> Self {
 		Self {
 			name,
@@ -170,6 +174,7 @@ impl Const {
 		}
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn is_multi(&self) -> bool {
 		match &self.field_type {
 			Some(f) => match f {
@@ -199,6 +204,7 @@ struct Pub {
 }
 
 impl Pub {
+	#[cfg(not(tarpaulin_include))]
 	fn new(name: String, span: Span, comments: Vec<String>) -> Self {
 		Self {
 			name: name.clone(),
@@ -218,6 +224,7 @@ struct PubCrate {
 }
 
 impl PubCrate {
+	#[cfg(not(tarpaulin_include))]
 	fn new(name: String, span: Span) -> Self {
 		Self {
 			name: name.clone(),
@@ -325,6 +332,7 @@ struct StateMachine {
 }
 
 impl StateMachine {
+	#[cfg(not(tarpaulin_include))]
 	fn new(debug: bool) -> Self {
 		Self {
 			debug,
@@ -363,6 +371,7 @@ impl StateMachine {
 		}
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn derive(&mut self, attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
 		self.parse_attr(attr)?;
 
@@ -422,6 +431,7 @@ impl StateMachine {
 		Ok(self.ret.clone())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn check_semantics(&mut self) -> Result<(), Error> {
 		let mut trait_views = self.build_trait_views()?;
 
@@ -489,6 +499,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn build_generic1(&self) -> Result<String, Error> {
 		Ok(match &self.generic1 {
 			Some(generic) => format!("<{}>", generic),
@@ -496,6 +507,7 @@ impl StateMachine {
 		})
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn build_generic2(&self) -> Result<String, Error> {
 		Ok(match &self.generic2 {
 			Some(generic) => format!("<{}>", generic),
@@ -503,6 +515,7 @@ impl StateMachine {
 		})
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn build_where(&self) -> Result<String, Error> {
 		Ok(match &self.where_clause {
 			Some(where_clause) => format!("where {}", where_clause),
@@ -510,6 +523,7 @@ impl StateMachine {
 		})
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn build_var_params_replace(&self) -> Result<String, Error> {
 		let mut replace = "".to_string();
 		for item in &self.var_list {
@@ -518,6 +532,7 @@ impl StateMachine {
 		Ok(replace)
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn const_type_string(&self, item: &Const) -> Result<String, Error> {
 		let configurable_name = match &item.field_string {
 			Some(field_string) => field_string.clone(),
@@ -553,6 +568,7 @@ impl StateMachine {
 		Ok(type_str.to_string())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn build_const_params_replace(&self) -> Result<String, Error> {
 		let mut replace = "".to_string();
 		for item in &self.const_list {
@@ -562,6 +578,7 @@ impl StateMachine {
 		Ok(replace)
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_structs(&mut self, template: &String) -> Result<String, Error> {
 		let mut template = if self.clone_list.len() > 0 {
 			template.replace("${CLONE}", "#[derive(Clone)]").to_string()
@@ -585,6 +602,7 @@ impl StateMachine {
 		Ok(template)
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn build_trait_views(&self) -> Result<HashMap<String, Vec<Fn>>, Error> {
 		let mut ret: HashMap<String, Vec<Fn>> = HashMap::new();
 
@@ -604,6 +622,7 @@ impl StateMachine {
 		Ok(ret)
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn build_view_pub_map(&self) -> Result<HashMap<String, (Visibility, String)>, Error> {
 		let mut ret = HashMap::new();
 		let mut pub_view_set: HashSet<String> = HashSet::new();
@@ -804,6 +823,7 @@ impl StateMachine {
 		Ok(ret)
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn get_const_default_inits(&self) -> Result<String, Error> {
 		let mut ret = "".to_string();
 		for const_value in &self.const_list {
@@ -815,6 +835,7 @@ impl StateMachine {
 		Ok(ret)
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn get_const_default_params(&self) -> Result<String, Error> {
 		let mut ret = "".to_string();
 		for const_value in &self.const_list {
@@ -823,6 +844,7 @@ impl StateMachine {
 		Ok(ret)
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_const_default(&mut self, template: &String) -> Result<String, Error> {
 		let mut replace = include_str!("../templates/class_const_default.txt").to_string();
 		replace = replace.replace("${NAME}", &self.class_name.as_ref().unwrap());
@@ -832,6 +854,7 @@ impl StateMachine {
 		Ok(template)
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_impl_struct(&mut self, template: &String) -> Result<String, Error> {
 		let mut replace = include_str!("../templates/class_impl_struct_template.txt").to_string();
 		replace = replace.replace("${GENERIC1}", &self.build_generic1()?);
@@ -842,6 +865,7 @@ impl StateMachine {
 		Ok(template)
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_impl_var(&mut self, template: &String) -> Result<String, Error> {
 		let class_name = &self.class_name.as_ref().unwrap();
 		let mut replace = format!(
@@ -869,6 +893,7 @@ impl StateMachine {
 		Ok(template)
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_impl_const(&mut self, template: &String) -> Result<String, Error> {
 		let mut replace = format!("impl {}Const {{", &self.class_name.as_ref().unwrap());
 		let get_template = include_str!("../templates/class_get_template.txt").to_string();
@@ -887,6 +912,7 @@ impl StateMachine {
 		Ok(template)
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_traits(
 		&mut self,
 		template: &String,
@@ -974,6 +1000,7 @@ impl StateMachine {
 		Ok(template)
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_trait_impl(
 		&mut self,
 		template: &String,
@@ -1100,10 +1127,12 @@ impl StateMachine {
 		Ok(template)
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn escape(&self, s: &String) -> String {
 		s.replace("\"", "\\\"").to_string()
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn build_comments(
 		&self,
 		is_macro: bool,
@@ -1336,6 +1365,7 @@ impl StateMachine {
 		Ok(comment_text)
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_macros(
 		&mut self,
 		template: &String,
@@ -1635,6 +1665,7 @@ impl StateMachine {
 		Ok(template)
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn vis_for(
 		&self,
 		view: &String,
@@ -1651,6 +1682,7 @@ impl StateMachine {
 		.to_string()
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_builder(
 		&mut self,
 		template: &String,
@@ -1871,6 +1903,7 @@ impl StateMachine {
 		Ok(template)
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn generate_code(&mut self) -> Result<(), Error> {
 		let views = self.build_trait_views()?;
 		let view_pub_map = self.build_view_pub_map()?;
@@ -1906,6 +1939,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn expected(&mut self, expected: Vec<&str>, found: &str) -> Result<bool, Error> {
 		for expect in &expected {
 			if *expect == found {
@@ -1919,6 +1953,7 @@ impl StateMachine {
 		Ok(false)
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn append_error(&mut self, msg: &str) -> Result<(), Error> {
 		match self.span {
 			Some(span) => self.error_list.push(SpanError {
@@ -1930,6 +1965,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn print_errors(&self) -> Result<(), Error> {
 		let len = self.error_list.len();
 		for i in 0..len.saturating_sub(1) {
@@ -1943,6 +1979,7 @@ impl StateMachine {
 		abort!(diag, err.msg);
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn parse_item(&mut self, item: TokenStream) -> Result<(), Error> {
 		for token in item {
 			self.process_item_token(token)?;
@@ -1950,6 +1987,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn parse_attr(&mut self, attr: TokenStream) -> Result<(), Error> {
 		for token in attr {
 			self.process_attr_token(token)?;
@@ -1957,6 +1995,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_item_token(&mut self, token: TokenTree) -> Result<(), Error> {
 		self.span = Some(token.span());
 		match self.item_state {
@@ -1979,6 +2018,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_item_braces(&mut self, strm: TokenStream) -> Result<(), Error> {
 		self.item_state = ItemState::WantsFn;
 		for token in strm {
@@ -1988,6 +2028,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_append_fn(&mut self, token: TokenTree) -> Result<(), Error> {
 		if self.in_builder {
 			if self.builder_fn.len() == 0 {
@@ -2050,6 +2091,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_item_wants_fn_name(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ident) => {
@@ -2071,12 +2113,14 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_item_wants_fn(&mut self, token: TokenTree) -> Result<(), Error> {
 		self.expected(vec!["fn"], &token.to_string())?;
 		self.item_state = ItemState::WantsFnName;
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_name(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ident) => {
@@ -2089,6 +2133,8 @@ impl StateMachine {
 		}
 		Ok(())
 	}
+
+	#[cfg(not(tarpaulin_include))]
 	fn process_item_complete(&mut self, token: TokenTree) -> Result<(), Error> {
 		self.append_error(&format!(
 			"unexpected additional tokens. token: {}",
@@ -2097,6 +2143,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_where_or_brace(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ident) => {
@@ -2115,6 +2162,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_generic2(&mut self, token: TokenTree) -> Result<(), Error> {
 		if token.to_string() == ">" {
 			if self.in_generic2 {
@@ -2186,6 +2234,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_where_clause(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Group(group) => {
@@ -2228,6 +2277,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_item_wants_generic2_where_or_brace(
 		&mut self,
 		token: TokenTree,
@@ -2257,12 +2307,14 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_item_wants_impl(&mut self, token: TokenTree) -> Result<(), Error> {
 		self.expected(vec!["impl"], &token.to_string())?;
 		self.item_state = ItemState::WantsGeneric1OrName;
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_item_wants_generic1_or_name(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ident) => {
@@ -2287,6 +2339,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_item_wants_crate_or_impl(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ident) => {
@@ -2311,6 +2364,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_item_base(&mut self, token: TokenTree) -> Result<(), Error> {
 		let token_str = token.to_string();
 		if token_str == "pub" {
@@ -2324,6 +2378,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_attr_token(&mut self, token: TokenTree) -> Result<(), Error> {
 		self.span = Some(token.span());
 		match self.state {
@@ -2361,6 +2416,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn dequote(&self, s: &String) -> String {
 		let s = s.trim().to_string();
 		let s = match s.find("\"") {
@@ -2391,6 +2447,7 @@ impl StateMachine {
 		s
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_comment(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Group(ref group) => {
@@ -2441,6 +2498,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_no_send_wants_semi(&mut self, token: TokenTree) -> Result<(), Error> {
 		self.no_send = true;
 		self.expected(vec![";"], &token.to_string())?;
@@ -2449,6 +2507,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_no_sync_wants_semi(&mut self, token: TokenTree) -> Result<(), Error> {
 		self.no_sync = true;
 		self.expected(vec![";"], &token.to_string())?;
@@ -2457,6 +2516,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_generics(&mut self, token: TokenTree) -> Result<(), Error> {
 		let token_str = token.to_string();
 		if token_str == ">" {
@@ -2474,6 +2534,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_clone_identifier(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ref ident) => {
@@ -2491,6 +2552,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_clone_comma(&mut self, token: TokenTree) -> Result<(), Error> {
 		let token_str = token.to_string();
 		if token_str == ";" {
@@ -2505,6 +2567,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_base(&mut self, token: TokenTree) -> Result<(), Error> {
 		self.cur_is_pub_crate = false;
 		let token_str = token.to_string();
@@ -2552,6 +2615,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_pub_as(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ident) => {
@@ -2574,6 +2638,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_pub_identifier(&mut self, token: TokenTree) -> Result<(), Error> {
 		let token_str = token.to_string();
 		if token_str == ";" {
@@ -2604,6 +2669,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_pub_comma(&mut self, token: TokenTree) -> Result<(), Error> {
 		let token_str = token.to_string();
 		if token_str == "as" {
@@ -2618,6 +2684,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_pub(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ident) => {
@@ -2650,6 +2717,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_module(&mut self, token: TokenTree) -> Result<(), Error> {
 		let token_str = token.to_string();
 
@@ -2702,12 +2770,14 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_const_gt(&mut self, token: TokenTree) -> Result<(), Error> {
 		self.expected(vec![">"], &token.to_string())?;
 		self.state = State::WantsConstEqual;
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_const_field_type_vec(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ident) => {
@@ -2756,6 +2826,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_const_lt(&mut self, token: TokenTree) -> Result<(), Error> {
 		self.expected(vec!["<"], &token.to_string())?;
 
@@ -2763,6 +2834,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_const_value(&mut self, token: TokenTree) -> Result<(), Error> {
 		let token_str = token.to_string();
 		if token_str == ";" {
@@ -2813,12 +2885,14 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_const_equal(&mut self, token: TokenTree) -> Result<(), Error> {
 		self.expected(vec!["="], &token.to_string())?;
 		self.state = State::WantsConstValue;
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_const_field_type(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ident) => {
@@ -2865,12 +2939,14 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_const_colon(&mut self, token: TokenTree) -> Result<(), Error> {
 		self.expected(vec![":"], &token.to_string())?;
 		self.state = State::WantsConstFieldType;
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_const(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ref ident) => {
@@ -2891,6 +2967,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_var_type(&mut self, token: TokenTree) -> Result<(), Error> {
 		let token_str = token.to_string();
 		if token_str == ";" {
@@ -2942,12 +3019,14 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_var_colon(&mut self, token: TokenTree) -> Result<(), Error> {
 		self.expected(vec![":"], &token.to_string())?;
 		self.state = State::WantsVarType;
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_var(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ref ident) => {
@@ -2965,6 +3044,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_view_list_return_list(&mut self, token: TokenTree) -> Result<(), Error> {
 		if token.to_string() == ";" {
 			// if return_list is "" make it "()"
@@ -3049,6 +3129,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn check_type(
 		&mut self,
 		_param_name: String,
@@ -3066,6 +3147,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_view_list_param_list(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Group(ref group) => {
@@ -3187,6 +3269,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_view_list_fn_name(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ref ident) => match self.cur_fn.as_mut() {
@@ -3204,12 +3287,14 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_view_list_fn(&mut self, token: TokenTree) -> Result<(), Error> {
 		self.expected(vec!["fn"], &token.to_string())?;
 		self.state = State::WantsViewListFnName;
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_view_list_identifier(&mut self, token: TokenTree) -> Result<(), Error> {
 		let mut snake_err = false;
 		match token {
@@ -3234,7 +3319,7 @@ impl StateMachine {
 		self.state = State::WantsViewListComma;
 		Ok(())
 	}
-
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_view_list_comma(&mut self, token: TokenTree) -> Result<(), Error> {
 		self.expected(vec![","], &token.to_string())?;
 		self.state = State::WantsViewListIdentifier;
@@ -3242,6 +3327,7 @@ impl StateMachine {
 	}
 }
 
+#[cfg(not(tarpaulin_include))]
 pub(crate) fn do_derive_class(attr: TokenStream, item: TokenStream, debug: bool) -> TokenStream {
 	let mut state = StateMachine::new(debug);
 	match state.derive(attr, item) {

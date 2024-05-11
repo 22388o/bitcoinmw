@@ -49,6 +49,7 @@ enum FieldType {
 impl FromStr for FieldType {
 	type Err = Error;
 
+	#[cfg(not(tarpaulin_include))]
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
 		match s {
 			"Usize" => Ok(FieldType::Usize),
@@ -84,6 +85,7 @@ struct Field {
 }
 
 impl Field {
+	#[cfg(not(tarpaulin_include))]
 	fn new(span: Span) -> Self {
 		Self {
 			name: None,
@@ -204,6 +206,7 @@ macro_rules! update_template {
 }
 
 impl StateMachine {
+	#[cfg(not(tarpaulin_include))]
 	fn new() -> Self {
 		Self {
 			ret: TokenStream::new(),
@@ -216,6 +219,7 @@ impl StateMachine {
 		}
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn append_error(&mut self, msg: &str) -> Result<(), Error> {
 		match self.span {
 			Some(span) => self.error_list.push(SpanError {
@@ -227,6 +231,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn expected(&mut self, expected: &str, found: &str) -> Result<(), Error> {
 		self.append_error(&format!(
 			"expected token '{}', found token '{}'",
@@ -235,6 +240,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn print_errors(&self) -> Result<(), Error> {
 		let len = self.error_list.len();
 		for i in 0..len.saturating_sub(1) {
@@ -248,6 +254,7 @@ impl StateMachine {
 		abort!(diag, err.msg);
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn derive(&mut self, strm: &TokenStream) -> Result<TokenStream, Error> {
 		for token in strm.clone() {
 			self.process_token_tree(token)?;
@@ -262,6 +269,7 @@ impl StateMachine {
 		Ok(self.ret.clone())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn check_fields(&mut self) -> Result<(), Error> {
 		for field in self.fields.clone() {
 			if field.name.is_none() {
@@ -276,6 +284,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_token_tree(&mut self, token: TokenTree) -> Result<(), Error> {
 		self.span = Some(token.span());
 		match self.state {
@@ -294,6 +303,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_attribute(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Group(group) => {
@@ -312,6 +322,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_greater_than(&mut self, token: TokenTree) -> Result<(), Error> {
 		if token.to_string() != ">" {
 			self.expected(">", &token.to_string())?;
@@ -328,6 +339,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_type_extension(&mut self, token: TokenTree) -> Result<(), Error> {
 		match self.cur_field.as_mut() {
 			Some(cur_field) => {
@@ -371,6 +383,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_less_than(&mut self, token: TokenTree) -> Result<(), Error> {
 		if token.to_string() != "<" {
 			self.expected("<", &token.to_string())?;
@@ -380,6 +393,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_comma(&mut self, token: TokenTree) -> Result<(), Error> {
 		if token.to_string() != "," {
 			self.expected(",", &token.to_string())?;
@@ -389,6 +403,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_type(&mut self, token: TokenTree) -> Result<(), Error> {
 		match self.cur_field.as_mut() {
 			Some(cur_field) => {
@@ -453,6 +468,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_colon(&mut self, token: TokenTree) -> Result<(), Error> {
 		if token.to_string() == ":" {
 			match self.cur_field.as_mut() {
@@ -466,6 +482,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_field_name(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ident) => {
@@ -497,6 +514,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_group(&mut self, group: TokenTree) -> Result<(), Error> {
 		match group {
 			Group(group) => {
@@ -516,6 +534,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_struct(&mut self, token: TokenTree) -> Result<(), Error> {
 		if token.to_string() == "struct" {
 			self.state = State::WantsName;
@@ -523,12 +542,14 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn process_wants_name(&mut self, token: TokenTree) -> Result<(), Error> {
 		self.configurable_struct_name = Some(token.to_string());
 		self.state = State::WantsGroup;
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_enum_variants(&mut self, template: &mut String) -> Result<(), Error> {
 		let mut replace_str = "".to_string();
 		for field in &self.fields {
@@ -569,6 +590,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_options_enum_names_match(&mut self, template: &mut String) -> Result<(), Error> {
 		let mut replace_str = "".to_string();
 		let name = self.configurable_struct_name.as_ref().unwrap();
@@ -584,6 +606,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_set_string(&mut self, template: &mut String) -> Result<(), Error> {
 		let mut replace_str = "".to_string();
 		for field in &self.fields {
@@ -610,6 +633,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_options_enum_string_match(&mut self, template: &mut String) -> Result<(), Error> {
 		let mut replace_str = "".to_string();
 		let name = self.configurable_struct_name.as_ref().unwrap();
@@ -631,6 +655,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_string_params_push(&mut self, template: &mut String) -> Result<(), Error> {
 		let mut replace_str = "".to_string();
 		for field in &self.fields {
@@ -652,6 +677,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_vec_string_params_push(&mut self, template: &mut String) -> Result<(), Error> {
 		let mut replace_str = "".to_string();
 		for field in &self.fields {
@@ -672,6 +698,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_set_configurable(&mut self, template: &mut String) -> Result<(), Error> {
 		let mut replace_str = "".to_string();
 		let set_configurable_template =
@@ -706,6 +733,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_options_enum_configurable_match(
 		&mut self,
 		template: &mut String,
@@ -730,6 +758,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_configurable_params_push(&mut self, template: &mut String) -> Result<(), Error> {
 		let mut replace_str = "".to_string();
 		for field in &self.fields {
@@ -751,6 +780,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_vec_configurable_params_push(&mut self, template: &mut String) -> Result<(), Error> {
 		let set_configurable_template =
 			include_str!("../templates/config_vec_configurable_params_push.template.txt")
@@ -778,6 +808,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_dupes_inserts(&mut self, template: &mut String) -> Result<(), Error> {
 		let mut replace_str = "".to_string();
 
@@ -808,6 +839,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn update_required_inserts(&mut self, template: &mut String) -> Result<(), Error> {
 		let mut replace_str = "".to_string();
 
@@ -826,6 +858,7 @@ impl StateMachine {
 		Ok(())
 	}
 
+	#[cfg(not(tarpaulin_include))]
 	fn generate(&mut self) -> Result<(), Error> {
 		let name = self.configurable_struct_name.as_ref().unwrap().clone();
 		let mut template = include_str!("../templates/config.template.txt").to_string();
