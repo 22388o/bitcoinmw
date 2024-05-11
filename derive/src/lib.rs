@@ -269,7 +269,8 @@ use crate::class::do_derive_class;
 /// and views. Classes offer functionalities reminiscent of those found in other programming languages
 /// while upholding Rust's fundamental principles. Classes can implement traits and serve as fields within a
 /// struct or as variants of an enum if one of the boxed forms are generated.
-/// # Examples
+/// # Hello World Class
+/// Below is a simple example of a class. The comments explain each section of the class.
 ///```
 /// // use bmw_core::*; instead of the following three lines
 /// use bmw_base::*;
@@ -318,6 +319,72 @@ use crate::class::do_derive_class;
 ///     Ok(())
 /// }
 ///```
+/// # Using Multiple views for testing
+/// One of the use cases for multiple views of the class is for testing. In the example below, we
+/// create a regular view and a test view.
+///
+///```
+/// // use bmw_core::*; instead of the following three lines
+/// use bmw_base::*;
+/// use bmw_derive::*;
+/// use bmw_base as bmw_core;
+///
+/// #[class {
+///     // create a 'var' with a type boolean to use for testing.
+///     var is_test: bool;
+///
+///     // define two views for the bark function.
+///     [dog, test]
+///     fn bark(&self) -> Result<String, Error>;
+///
+///     // define a debug function that only the test view can execute
+///     [test]
+///     fn debug(&mut self);
+/// }] impl DogTest {}
+///
+/// impl DogTestVarBuilder for DogTestVar {
+///     fn builder(constants: &DogTestConst) -> Result<Self, Error> {
+///         // the builder function needs to initialize the is_test var.
+///         // we set it to false by default
+///         Ok(Self { is_test: false })
+///     }
+/// }
+///
+/// impl DogTest {
+///     fn bark(&self) -> Result<String, Error> {
+///         // check if the is_test flag is set.
+///         // if so, we return an error
+///         // otherwise return the expected value
+///         // we access the value via the 'vars()' function
+///         // which provides getters for all vars.
+///         if *self.vars().get_is_test() {
+///             err!(CoreErrorKind::IllegalState, "test")
+///         } else {
+///             Ok("ruff!".to_string())
+///         }
+///     }
+///
+///     fn debug(&mut self) {
+///         // set the is_test value using the .vars_mut() function.
+///         // which provides getters and mutters for all vars.
+///         *self.vars_mut().get_mut_is_test() = true;
+///     }
+/// }
+///
+/// fn main() -> Result<(), Error> {
+///     let dog = dog!()?;
+///     assert_eq!(dog.bark(), Ok("ruff!".to_string()));
+///     let mut test = test!()?;
+///     assert_eq!(test.bark(), Ok("ruff!".to_string()));
+///     test.debug();
+///     assert!(test.bark().is_err());
+///
+///     Ok(())
+/// }
+///```
+/// The advantage of using views this way is that it hides the debugging/testing details from the
+/// user of the class. So the developer can add in any needed test parameters to exercise the code
+/// in a full and controlled way while not exposing any of those details to the user.
 #[proc_macro_attribute]
 #[cfg(not(tarpaulin_include))]
 #[proc_macro_error]
