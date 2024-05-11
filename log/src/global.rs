@@ -29,6 +29,9 @@ pub struct GlobalLogFunctions {}
 lazy_static! {
 		#[doc(hidden)]
 		pub static ref BMW_GLOBAL_LOG: Arc<RwLock<Option<Box<dyn Logger + Send + Sync>>>> = Arc::new(RwLock::new(None));
+
+		#[doc(hidden)]
+		pub static ref CHECK_INIT_LOCK: Arc<RwLock<bool>> = Arc::new(RwLock::new(true));
 }
 
 impl GlobalLogFunctions {
@@ -100,6 +103,7 @@ impl GlobalLogFunctions {
 	}
 
 	fn check_init() -> Result<(), Error> {
+		let _check_init_lock = CHECK_INIT_LOCK.write()?;
 		let need_init;
 		{
 			let log = BMW_GLOBAL_LOG.read()?;
