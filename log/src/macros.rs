@@ -28,7 +28,7 @@ use bmw_core::*;
 /// @see crate::trace_all
 /// @see crate::trace_plain
 /// @see crate::info
-/// @see crate::Log
+/// @see crate::Logger
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -92,7 +92,7 @@ macro_rules! trace {
 /// @see crate::trace_all
 /// @see crate::trace
 /// @see crate::info
-/// @see crate::Log
+/// @see crate::Logger
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -156,7 +156,7 @@ macro_rules! trace_plain {
 /// @see crate::trace_plain
 /// @see crate::trace
 /// @see crate::info
-/// @see crate::Log
+/// @see crate::Logger
 #[macro_export]
 macro_rules! trace_all {
         () => {
@@ -180,7 +180,7 @@ macro_rules! trace_all {
 /// @see crate::debug_all
 /// @see crate::debug_plain
 /// @see crate::info
-/// @see crate::Log
+/// @see crate::Logger
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -244,7 +244,7 @@ macro_rules! debug {
 /// @see crate::debug_all
 /// @see crate::debug
 /// @see crate::info
-/// @see crate::Log
+/// @see crate::Logger
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -306,9 +306,9 @@ macro_rules! debug_plain {
 /// logger permits it.
 /// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
 /// @see crate::debug_plain
-/// @see crate::debgu
+/// @see crate::debug
 /// @see crate::info
-/// @see crate::Log
+/// @see crate::Logger
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -387,7 +387,7 @@ macro_rules! debug_all {
 /// @see crate::info_all
 /// @see crate::info_plain
 /// @see crate::debug
-/// @see crate::Log
+/// @see crate::Logger
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -451,7 +451,7 @@ macro_rules! info {
 /// @see crate::info_all
 /// @see crate::info
 /// @see crate::debug
-/// @see crate::Log
+/// @see crate::Logger
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -515,7 +515,7 @@ macro_rules! info_plain {
 /// @see crate::info_plain
 /// @see crate::info
 /// @see crate::debug
-/// @see crate::Log
+/// @see crate::Logger
 #[macro_export]
 macro_rules! info_all {
         () => {
@@ -539,7 +539,7 @@ macro_rules! info_all {
 /// @see crate::warn_all
 /// @see crate::warn_plain
 /// @see crate::info
-/// @see crate::Log
+/// @see crate::Logger
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -603,7 +603,7 @@ macro_rules! warn {
 /// @see crate::warn_all
 /// @see crate::warn
 /// @see crate::info
-/// @see crate::Log
+/// @see crate::Logger
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -667,7 +667,7 @@ macro_rules! warn_plain {
 /// @see crate::warn_plain
 /// @see crate::warn
 /// @see crate::info
-/// @see crate::Log
+/// @see crate::Logger
 #[macro_export]
 macro_rules! warn_all {
         () => {
@@ -691,7 +691,7 @@ macro_rules! warn_all {
 /// @see crate::error_all
 /// @see crate::error_plain
 /// @see crate::info
-/// @see crate::Log
+/// @see crate::Logger
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -755,7 +755,7 @@ macro_rules! error {
 /// @see crate::error_all
 /// @see crate::error
 /// @see crate::info
-/// @see crate::Log
+/// @see crate::Logger
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -819,7 +819,7 @@ macro_rules! error_plain {
 /// @see crate::error_plain
 /// @see crate::error
 /// @see crate::info
-/// @see crate::Log
+/// @see crate::Logger
 #[macro_export]
 macro_rules! error_all {
         () => {
@@ -843,7 +843,7 @@ macro_rules! error_all {
 /// @see crate::fatal_all
 /// @see crate::fatal_plain
 /// @see crate::info
-/// @see crate::Log
+/// @see crate::Logger
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -907,7 +907,7 @@ macro_rules! fatal {
 /// @see crate::fatal_all
 /// @see crate::fatal
 /// @see crate::info
-/// @see crate::Log
+/// @see crate::Logger
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -971,7 +971,7 @@ macro_rules! fatal_plain {
 /// @see crate::fatal_plain
 /// @see crate::fatal
 /// @see crate::info
-/// @see crate::Log
+/// @see crate::Logger
 /// # Examples
 ///```
 /// use bmw_core::*;
@@ -1106,13 +1106,13 @@ macro_rules! fatal_all {
 /// false in a production environment. The default value is false.
 /// * `DebugLinenoIsNone(bool)` - this is an option used in testing. This option _MUST_ be set to
 /// false in a production environment. The default value is false.
-/// @see crate::Log
+/// @see crate::Logger
 /// @see crate::logger
 /// @see crate::info
-/*
-#[add_doc(error: "bmw_core::ErrKind::Log" - "if the log is not initialized.
-#[add_doc(error: "bmw_core::ErrKind::Log" - "if `option` is a [`crate::LogConstOptions::LogFilePath`].
-*/
+/// @error crate::LogErrorKind::AlreadyInitialized if the log is already initialized.
+/// @error crate::LogErrorKind::IllegalState if the log file cannot be read.
+/// @error crate::LogErrorKind::MetaData if an error accessing the log file's metadata occurs.
+/// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
 #[macro_export]
 macro_rules! log_init {
         ($($config:tt)*) => {{
@@ -1127,12 +1127,11 @@ macro_rules! log_init {
 #[document]
 /// The [`crate::set_log_option`] macro calls the [`crate::Log::set_config_option`] function on the
 /// global logger.
-/*
-#[add_doc(error: "bmw_core::ErrKind::Log" - "if the log is not initialized.
-#[add_doc(error: "bmw_core::ErrKind::Log" - "if `option` is a [`crate::LogConstOptions::LogFilePath`].
-*/
+/// @error crate::LogErrorKind::NotInitialized if the log is not initialized.
+/// @error crate::LogErrorKind::IllegalArgument if the value is invalid.
+/// @error bmw_core::CoreErrorKind::IO if an i/o error occurs.
 /// @see crate::logger
-/// @see crate::LogConstOptions
+/// @see crate::Logger
 #[macro_export]
 macro_rules! set_log_option {
 	($option:expr) => {{
