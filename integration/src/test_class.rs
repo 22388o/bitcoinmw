@@ -679,6 +679,7 @@ mod test {
 	}
 
 	#[class{
+            generic abc: <A, B, C> where A: Serializable, B: Serializable + 'a, C: Clone;
             [test_as]
             fn x(&self) -> Result<String, Error> as y;
 
@@ -697,7 +698,7 @@ mod test {
 	}
 
 	impl TestAsFn {
-		fn x(&self) -> Result<String, Error> {
+		fn _x(&self) -> Result<String, Error> {
 			println!("x");
 			Ok("x".to_string())
 		}
@@ -707,7 +708,7 @@ mod test {
 			Ok("y".to_string())
 		}
 
-		fn a(&self) {
+		fn _a(&self) {
 			println!("a");
 		}
 		fn b(&self) {

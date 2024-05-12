@@ -196,6 +196,29 @@ impl Const {
 	}
 }
 
+#[derive(Debug, Clone)]
+struct Generic {
+	name: String,
+	generic: String,
+	where_clause: String,
+	in_where: bool,
+	prev_is_joint: bool,
+	expect_colon: bool,
+}
+
+impl Generic {
+	fn new(name: String) -> Self {
+		Self {
+			name,
+			generic: "".to_string(),
+			where_clause: "".to_string(),
+			in_where: false,
+			prev_is_joint: false,
+			expect_colon: true,
+		}
+	}
+}
+
 #[derive(Clone, Debug)]
 struct Pub {
 	name: String,
@@ -266,6 +289,7 @@ enum ItemState {
 
 enum State {
 	Base,
+	Generic,
 	NoSync,
 	NoSend,
 	WantsSemi,
@@ -312,6 +336,7 @@ struct StateMachine {
 	cur_const: Option<Const>,
 	cur_var: Option<Var>,
 	cur_fn: Option<Fn>,
+	cur_generic: Option<Generic>,
 	const_list: Vec<Const>,
 	var_list: Vec<Var>,
 	fn_list: Vec<Fn>,
@@ -333,6 +358,7 @@ struct StateMachine {
 	no_sync: bool,
 	no_send: bool,
 	cur_comments: Vec<String>,
+	generic_map: HashMap<String, Generic>,
 }
 
 impl StateMachine {
@@ -354,6 +380,7 @@ impl StateMachine {
 			cur_const: None,
 			cur_var: None,
 			cur_fn: None,
+			cur_generic: None,
 			const_list: vec![],
 			var_list: vec![],
 			clone_list: vec![],
@@ -372,6 +399,7 @@ impl StateMachine {
 			no_sync: false,
 			no_send: false,
 			cur_comments: vec![],
+			generic_map: HashMap::new(),
 		}
 	}
 
@@ -398,6 +426,11 @@ impl StateMachine {
 			println!("pub list:");
 			for p in &self.pub_views {
 				println!("{:?}", p);
+			}
+
+			println!("generic list:");
+			for (_k, g) in &self.generic_map {
+				println!("{:?}", g);
 			}
 		}
 		self.item_state = ItemState::Base;
@@ -488,6 +521,7 @@ impl StateMachine {
 			set.insert(c.name.clone());
 		}
 
+		/*
 		let mut set = HashSet::new();
 		for f in self.fn_list.clone() {
 			if set.contains(&f.name) {
@@ -499,6 +533,7 @@ impl StateMachine {
 			}
 			set.insert(f.name.clone());
 		}
+				*/
 
 		Ok(())
 	}
@@ -950,6 +985,7 @@ impl StateMachine {
 			} else {
 				""
 			};
+			let generic = self.generic_map.get(k);
 			let trait_name = k.to_case(Case::Pascal);
 			let vis = view_pub_map.get(&trait_name);
 			let vis = match vis {
@@ -974,9 +1010,15 @@ impl StateMachine {
 				trait_text,
 				vis,
 				trait_name,
-				self.build_generic2()?,
+				match generic {
+					Some(generic) => generic.generic.clone(),
+					None => self.build_generic2()?,
+				},
 				clone_text,
-				self.build_where()?,
+				match generic {
+					Some(generic) => generic.where_clause.clone(),
+					None => self.build_where()?,
+				},
 			);
 			for fn_info in v {
 				trait_text = format!("{}\n#[document]", trait_text);
@@ -1017,18 +1059,28 @@ impl StateMachine {
 		let mut trait_impl = "".to_string();
 		let class_name = &self.class_name.as_ref().unwrap();
 		for (k, v) in views {
+			let generic = self.generic_map.get(k);
 			let trait_name = k.to_case(Case::Pascal);
 
 			// trait implementation
 			trait_impl = format!(
 				"{}\nimpl {} {} {} for {} {}{} {{",
 				trait_impl,
-				self.build_generic1()?,
+				match generic {
+					Some(generic) => generic.generic.clone(),
+					None => self.build_generic1()?,
+				},
 				trait_name,
-				self.build_generic1()?,
+				match generic {
+					Some(generic) => generic.generic.clone(),
+					None => self.build_generic1()?,
+				},
 				class_name,
 				self.build_generic2()?,
-				self.build_where()?,
+				match generic {
+					Some(generic) => generic.where_clause.clone(),
+					None => self.build_where()?,
+				}
 			);
 			for fn_info in v {
 				trait_impl = format!(
@@ -1079,12 +1131,21 @@ impl StateMachine {
 				trait_impl = format!(
 					"{}\nimpl {} {} {} for &mut {} {}{} {{",
 					trait_impl,
-					self.build_generic1()?,
+					match generic {
+						Some(generic) => generic.generic.clone(),
+						None => self.build_generic1()?,
+					},
 					trait_name,
-					self.build_generic1()?,
+					match generic {
+						Some(generic) => generic.generic.clone(),
+						None => self.build_generic1()?,
+					},
 					class_name,
 					self.build_generic2()?,
-					self.build_where()?,
+					match generic {
+						Some(generic) => generic.where_clause.clone(),
+						None => self.build_where()?,
+					}
 				);
 				for fn_info in v {
 					trait_impl = format!(
@@ -1102,11 +1163,17 @@ impl StateMachine {
 							"{}{}::{}{}",
 							CHECK_RECURSION_CONST_PREFIX,
 							class_name,
-							fn_info.name,
+							match &fn_info.as_fn {
+								Some(as_fn) => as_fn,
+								None => &fn_info.name,
+							},
 							CHECK_RECURSION_CONST_SUFFIX
 						),
 						class_name,
-						fn_info.name,
+						match &fn_info.as_fn {
+							Some(as_fn) => as_fn,
+							None => &fn_info.name,
+						},
 						param_names
 					);
 					trait_impl = format!("{}\n\t}}", trait_impl);
@@ -1126,10 +1193,16 @@ impl StateMachine {
 				trait_impl = format!(
 					"{}\nbmw_deps::dyn_clone::clone_trait_object!({}{}{}{});",
 					trait_impl,
-					self.build_generic1()?,
+					match generic {
+						Some(generic) => generic.generic.clone(),
+						None => self.build_generic1()?,
+					},
 					trait_name,
 					self.build_generic2()?,
-					self.build_where()?
+					match generic {
+						Some(generic) => generic.where_clause.clone(),
+						None => self.build_where()?,
+					},
 				);
 			}
 		}
@@ -1884,13 +1957,30 @@ impl StateMachine {
 				"${VISIBILITY_SYNC_BOX}",
 				&self.vis_for(&format!("{}_sync_box", view), view_pub_map),
 			);
-			view_template = view_template.replace("${WHERE_CLAUSE}", &self.build_where()?);
 
-			view_template = view_template.replace("${GENERIC_PRE}", &self.build_generic1()?);
-			let gen_text = self.build_generic1()?;
+			let generic = self.generic_map.get(view);
+			let where_clause = match generic {
+				Some(generic) => generic.where_clause.clone(),
+				None => self.build_where()?,
+			};
+			let generic1 = match generic {
+				Some(generic) => generic.generic.clone(),
+				None => self.build_generic1()?,
+			};
+
+			view_template = view_template.replace("${WHERE_CLAUSE}", &where_clause);
+
+			view_template = view_template.replace("${GENERIC_PRE}", &generic1);
+			let gen_text = generic1;
 			let gen_text = gen_text.trim();
-			let lifetime = if gen_text.find("<'") == Some(0) {
-				let lifetime = gen_text.substring(2, gen_text.len());
+			let test_text = if gen_text.len() > 1 && gen_text.find("<") == Some(0) {
+				gen_text.substring(1, gen_text.len()).to_string()
+			} else {
+				"".to_string()
+			};
+			let test_text = test_text.trim().to_string();
+			let lifetime = if test_text.find("'") == Some(0) {
+				let lifetime = test_text.substring(1, test_text.len());
 				let lifetime = match lifetime.find(",") {
 					Some(pos) => lifetime.substring(0, pos),
 					None => match lifetime.find(">") {
@@ -2398,6 +2488,7 @@ impl StateMachine {
 			State::Const => self.process_const(token)?,
 			State::Var => self.process_var(token)?,
 			State::ViewList => self.process_wants_view_list_identifier(token)?,
+			State::Generic => self.process_generic(token)?,
 			State::WantsPubIdentifier => self.process_wants_pub_identifier(token)?,
 			State::WantsPubComma => self.process_wants_pub_comma(token)?,
 			State::WantsConstColon => self.process_wants_const_colon(token)?,
@@ -2424,6 +2515,76 @@ impl StateMachine {
 			State::NoSend => self.process_no_send_wants_semi(token)?,
 			State::NoSync => self.process_no_sync_wants_semi(token)?,
 			State::WantsSemi => self.process_wants_semi(token)?,
+		}
+		Ok(())
+	}
+
+	fn process_generic(&mut self, token: TokenTree) -> Result<(), Error> {
+		let token_str = token.to_string();
+		if self.cur_generic.is_none() {
+			match token {
+				Ident(ref ident) => {
+					if self.generic_map.get(&ident.to_string()).is_some() {
+						self.append_error(&format!(
+							"duplicate generic for '{}'",
+							ident.to_string()
+						))?;
+					}
+					self.cur_generic = Some(Generic::new(ident.to_string()));
+				}
+				_ => {
+					self.append_error(&format!("expected name, found token '{}'", token_str))?;
+				}
+			}
+		} else if token_str == ";" {
+			self.state = State::Base;
+			if self.cur_generic.is_some() {
+				let generic = self.cur_generic.as_ref().unwrap().clone();
+				let name = generic.name.clone();
+				self.generic_map.insert(name, generic);
+			}
+			self.cur_generic = None;
+		} else if self.cur_generic.is_some() {
+			if self.cur_generic.as_ref().unwrap().expect_colon {
+				self.expected(vec![":"], &token_str)?;
+				self.cur_generic.as_mut().unwrap().expect_colon = false;
+			} else {
+				let cur_generic = self.cur_generic.as_mut().unwrap();
+				let prev_is_joint = cur_generic.prev_is_joint;
+				match token {
+					Punct(p) => {
+						if p.spacing() == Spacing::Joint {
+							cur_generic.prev_is_joint = true;
+						} else {
+							cur_generic.prev_is_joint = false;
+						}
+					}
+					_ => {
+						cur_generic.prev_is_joint = false;
+					}
+				}
+
+				if token_str == "where" {
+					cur_generic.in_where = true;
+					cur_generic.where_clause = "where".to_string();
+				} else if cur_generic.in_where {
+					let mut where_clause = if prev_is_joint {
+						format!("{}{}", cur_generic.where_clause, token_str)
+					} else {
+						format!("{} {}", cur_generic.where_clause, token_str)
+					};
+					where_clause = where_clause.trim().to_string();
+					cur_generic.where_clause = where_clause;
+				} else {
+					let mut generic = if prev_is_joint {
+						format!("{}{}", cur_generic.generic, token_str)
+					} else {
+						format!("{} {}", cur_generic.generic, token_str)
+					};
+					generic = generic.trim().to_string();
+					cur_generic.generic = generic;
+				}
+			}
 		}
 		Ok(())
 	}
@@ -2604,7 +2765,12 @@ impl StateMachine {
 			self.state = State::NoSend;
 		} else if token_str == "no_sync" {
 			self.state = State::NoSync;
+		} else if token_str == "generic" {
+			self.state = State::Generic;
 		} else {
+			let expect_vec = vec![
+				"[", "pub", "var", "const", "module", "no_sync", "no_send", "clone", "generic",
+			];
 			match token {
 				Group(ref group) => {
 					if group.delimiter() == Delimiter::Bracket {
@@ -2616,7 +2782,7 @@ impl StateMachine {
 						self.state = State::WantsViewListFn;
 					} else {
 						// error
-						self.expected(vec!["[", "pub", "var", "const", "module"], &token_str)?;
+						self.expected(expect_vec, &token_str)?;
 					}
 				}
 				_ => {
@@ -2625,7 +2791,7 @@ impl StateMachine {
 						self.state = State::WantsComment;
 					} else {
 						// error
-						self.expected(vec!["[", "pub", "var", "const", "module"], &token_str)?;
+						self.expected(expect_vec, &token_str)?;
 					}
 				}
 			}
