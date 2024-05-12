@@ -677,4 +677,54 @@ mod test {
 
 		Ok(())
 	}
+
+	#[class{
+            [test_as]
+            fn x(&self) -> Result<String, Error> as y;
+
+            [test_as]
+            fn a(&self) as b;
+
+            [test_as]
+            fn some_fn(&self) as other;
+        }]
+	impl TestAsFn {}
+
+	impl TestAsFnVarBuilder for TestAsFnVar {
+		fn builder(_constants: &TestAsFnConst) -> Result<Self, Error> {
+			Ok(Self {})
+		}
+	}
+
+	impl TestAsFn {
+		fn x(&self) -> Result<String, Error> {
+			println!("x");
+			Ok("x".to_string())
+		}
+
+		fn y(&self) -> Result<String, Error> {
+			println!("y");
+			Ok("y".to_string())
+		}
+
+		fn a(&self) {
+			println!("a");
+		}
+		fn b(&self) {
+			println!("b");
+		}
+
+		fn other(&self) {
+			println!("other");
+		}
+	}
+
+	#[test]
+	fn test_as_fn() -> Result<(), Error> {
+		let test_as = test_as!()?;
+		assert_eq!(test_as.x()?, "y".to_string());
+		test_as.a();
+		test_as.some_fn();
+		Ok(())
+	}
 }

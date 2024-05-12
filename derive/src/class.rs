@@ -55,6 +55,7 @@ struct Fn {
 	return_list_span: Option<Span>,
 	generic_string: String,
 	comments: Vec<String>,
+	as_fn: Option<String>,
 }
 
 impl Fn {
@@ -76,6 +77,7 @@ impl Fn {
 			expect_gt_return_list: false,
 			generic_string: "".to_string(),
 			comments: vec![],
+			as_fn: None,
 		}
 	}
 }
@@ -266,6 +268,7 @@ enum State {
 	Base,
 	NoSync,
 	NoSend,
+	WantsSemi,
 	Pub,
 	Module,
 	Const,
@@ -286,6 +289,7 @@ enum State {
 	WantsViewListIdentifier,
 	WantsViewListComma,
 	WantsViewListFn,
+	WantsFnAs,
 	WantsViewListFnName,
 	WantsComment,
 	WantsViewListParamList,
@@ -1043,11 +1047,17 @@ impl StateMachine {
 						"{}{}::{}{}",
 						CHECK_RECURSION_CONST_PREFIX,
 						class_name,
-						fn_info.name,
+						match &fn_info.as_fn {
+							Some(as_fn) => as_fn,
+							None => &fn_info.name,
+						},
 						CHECK_RECURSION_CONST_SUFFIX
 					),
 					class_name,
-					fn_info.name,
+					match &fn_info.as_fn {
+						Some(as_fn) => as_fn,
+						None => &fn_info.name,
+					},
 					param_names
 				);
 
@@ -2408,10 +2418,12 @@ impl StateMachine {
 			State::WantsViewListReturnList => self.process_wants_view_list_return_list(token)?,
 			State::WantsViewListGenerics => self.process_generics(token)?,
 			State::WantsPubAs => self.process_wants_pub_as(token)?,
+			State::WantsFnAs => self.process_wants_fn_as(token)?,
 			State::Clone => self.process_wants_clone_identifier(token)?,
 			State::WantsCloneComma => self.process_wants_clone_comma(token)?,
 			State::NoSend => self.process_no_send_wants_semi(token)?,
 			State::NoSync => self.process_no_sync_wants_semi(token)?,
+			State::WantsSemi => self.process_wants_semi(token)?,
 		}
 		Ok(())
 	}
@@ -2494,6 +2506,13 @@ impl StateMachine {
 				))?;
 			}
 		}
+		self.state = State::Base;
+		Ok(())
+	}
+
+	#[cfg(not(tarpaulin_include))]
+	fn process_wants_semi(&mut self, token: TokenTree) -> Result<(), Error> {
+		self.expected(vec![";"], &token.to_string())?;
 		self.state = State::Base;
 		Ok(())
 	}
@@ -3044,9 +3063,57 @@ impl StateMachine {
 		Ok(())
 	}
 
+	fn process_wants_fn_as(&mut self, token: TokenTree) -> Result<(), Error> {
+		match token {
+			Ident(ident) => match self.cur_fn.as_mut() {
+				Some(cur_fn) => {
+					cur_fn.as_fn = Some(ident.to_string());
+					// if return_list is "" make it "()"
+					match self.cur_fn.as_mut() {
+						Some(cur_fn) => {
+							if cur_fn.return_list == "" {
+								cur_fn.return_list = "()".to_string();
+							}
+						}
+						None => {}
+					}
+
+					// check return list and param list with syn
+					let mut cur_fn = self.cur_fn.as_ref().unwrap().clone();
+					let expr: Result<Type, syn::Error> = parse_str(&cur_fn.return_list);
+					match expr {
+						Ok(_) => {}
+						Err(ref e) => {
+							self.span = match cur_fn.return_list_span {
+								Some(s) => Some(s),
+								None => Some(cur_fn.span),
+							};
+							self.append_error(&format!(
+								"failed to parse '{}'. Error: {:?}.",
+								cur_fn.return_list, e
+							))?;
+						}
+					}
+
+					cur_fn.comments.extend(self.cur_comments.clone());
+					self.cur_comments.clear();
+
+					self.fn_list.push(cur_fn.clone());
+				}
+				None => {}
+			},
+			_ => {
+				self.append_error(&format!("expected ident found, '{}'", token.to_string()))?;
+			}
+		}
+		self.state = State::WantsSemi;
+		Ok(())
+	}
+
 	#[cfg(not(tarpaulin_include))]
 	fn process_wants_view_list_return_list(&mut self, token: TokenTree) -> Result<(), Error> {
-		if token.to_string() == ";" {
+		let token_str = token.to_string();
+		if token_str == ";" {
 			// if return_list is "" make it "()"
 			match self.cur_fn.as_mut() {
 				Some(cur_fn) => {
@@ -3079,6 +3146,8 @@ impl StateMachine {
 
 			self.fn_list.push(cur_fn.clone());
 			self.state = State::Base;
+		} else if token_str == "as" {
+			self.state = State::WantsFnAs;
 		} else {
 			let (expect_dash_return_list, expect_gt_return_list) = {
 				let cur_fn = self.cur_fn.as_ref().unwrap();
