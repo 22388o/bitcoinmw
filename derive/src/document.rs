@@ -40,7 +40,7 @@ pub(crate) fn do_derive_document(_attr: TokenStream, item: TokenStream) -> Token
 fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 	let mut last_is_hash = false;
 	let mut last_is_hash2 = false;
-	let mut last_joint = None;
+	let mut last_joint: Option<String> = None;
 	let mut omit = false;
 	let mut in_signature = false;
 	let mut non_comments = TokenStream::new();
@@ -59,6 +59,12 @@ fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 			}
 			Group(ref group) => {
 				if group.delimiter() == Delimiter::Brace {
+					match last_joint {
+						Some(ref last_joint) => {
+							signature.extend(last_joint.parse::<TokenStream>());
+						}
+						None => {}
+					}
 					in_signature = false;
 				} else {
 					if group.delimiter() == Delimiter::Parenthesis && in_signature {
@@ -102,7 +108,14 @@ fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 				}
 
 				if punct.spacing() == Spacing::Joint {
-					last_joint = Some(punct.to_string());
+					match last_joint.as_mut() {
+						Some(last_joint) => {
+							*last_joint = format!("{}{}", last_joint, punct.to_string());
+						}
+						None => {
+							last_joint = Some(punct.to_string());
+						}
+					}
 					omit = true;
 				}
 			}
@@ -110,7 +123,6 @@ fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 				last_is_hash = false;
 			}
 		}
-
 		if !omit {
 			match token {
 				Group(ref g) => {
@@ -140,6 +152,7 @@ fn do_derive_document_impl(item: &TokenStream) -> Result<TokenStream, Error> {
 		omit = false;
 	}
 	let ret = build_docs(comment_vec, non_comments, signature, parameter_list)?;
+	//println!("ret='{}'", ret);
 	Ok(ret)
 }
 

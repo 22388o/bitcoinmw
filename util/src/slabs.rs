@@ -53,10 +53,28 @@
 use crate::misc::{set_max, slice_to_u64, slice_to_usize, usize_to_slice};
 use bmw_core::*;
 use bmw_log::*;
+use std::cell::RefCell;
 use std::cmp::Ordering;
 use SlabAllocatorErrors::*;
 
 info!();
+
+thread_local! {
+	pub static THREAD_LOCAL_SLAB_ALLOCATOR: RefCell<Box<dyn SlabAllocator>> = RefCell::new(
+		SlabAllocatorClassBuilder::build_slab_allocator_box(
+			vec![
+				SlabConfig(
+					Box::new(
+						SlabAllocatorConfig {
+							slab_size: 512,
+							slab_count: usize::MAX,
+						}
+					)
+				)
+			]
+		).unwrap()
+	);
+}
 
 /// Kinds of errors that can occur in a [`crate::slabs::SlabAllocator`].
 #[ErrorKind]

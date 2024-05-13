@@ -18,6 +18,7 @@
 
 use bmw_core::*;
 use bmw_log::*;
+use std::fmt::Debug;
 use std::marker::PhantomData;
 
 debug!();
@@ -283,10 +284,40 @@ where
 }
 */
 
+pub struct Iterator<'a, K>
+where
+	K: Serializable,
+{
+	hash_class: &'a HashClass<'a, K>,
+	cur: usize,
+	_phantom_data: PhantomData<K>,
+}
+
+impl<'a, K> std::iter::Iterator for Iterator<'a, K>
+where
+	K: Serializable,
+{
+	type Item = K;
+	fn next(&mut self) -> Option<<Self as std::iter::Iterator>::Item> {
+		/*
+		match self.hashtable.get_next(&mut self.cur) {
+				Ok(x) => x,
+				Err(e) => {
+						let _ = error!("get_next generated unexpected error: {}", e);
+						None
+				}
+		}
+				*/
+
+		todo!()
+	}
+}
+
 #[class {
         no_send;
         var phantom_data: PhantomData<&'a K>;
         generic hashtable: <'a, K, V> where K: Serializable + 'a, V: Serializable;
+        pub list as list_impl;
 
         [hashtable]
         fn insert(&mut self, key: K, value: V) -> Result<(), Error> as hashtable_insert;
@@ -294,8 +325,26 @@ where
         [hashset]
         fn insert(&mut self, key: K) -> Result<(), Error> as hashset_insert;
 
+        [hashtable]
+        fn get(&self, key: K) -> Result<Option<V>, Error>;
+
+        [hashset]
+        fn contains(&self, key: K) -> Result<bool, Error>;
+
+        [hashtable]
+        fn delete(&mut self, key: K) -> Result<Option<V>, Error> as hashtable_delete;
+
+        [hashset]
+        fn delete(&mut self, key: K) -> Result<bool, Error> as hashset_delete;
+
         [list]
         fn push(&mut self, value: K) -> Result<(), Error>;
+
+        [hashtable, hashset, list]
+        fn iter(&self) -> Iterator<K>;
+
+        [hashtable, hashset, list]
+        fn clear(&mut self) -> Result<(), Error>;
 }]
 impl<'a, K> HashClass<'a, K> where K: Serializable + 'a {}
 
@@ -322,8 +371,8 @@ where
 		Ok(())
 	}
 
-	fn hashset_insert(&mut self, _key: K) -> Result<(), Error> {
-		println!("insert hashset!");
+	fn hashset_insert(&mut self, key: K) -> Result<(), Error> {
+		println!("hashset insert!");
 		Ok(())
 	}
 
@@ -331,21 +380,82 @@ where
 		println!("push list!");
 		Ok(())
 	}
+
+	fn iter(&self) -> Iterator<K> {
+		todo!()
+	}
+
+	fn clear(&mut self) -> Result<(), Error> {
+		todo!()
+	}
+
+	fn hashtable_delete<V>(&mut self, _key: K) -> Result<Option<V>, Error>
+	where
+		V: Serializable,
+	{
+		todo!()
+	}
+
+	fn hashset_delete(&mut self, _key: K) -> Result<bool, Error> {
+		todo!()
+	}
+
+	fn contains(&self, _key: K) -> Result<bool, Error> {
+		todo!()
+	}
+
+	fn get<V>(&self, _key: K) -> Result<Option<V>, Error>
+	where
+		V: Serializable,
+	{
+		todo!()
+	}
+}
+
+macro_rules! list {
+	($( $x:expr ),*) => {{
+                let mut ret = list_impl!()?;
+                $(
+                    ret.push($x)?;
+                )*
+
+                ret
+	}};
 }
 
 #[cfg(test)]
 mod test {
 	use super::*;
+	use std::sync::{Arc, RwLock};
 
 	#[test]
 	fn test_hash_list() -> Result<(), Error> {
-		let mut hashtable = hashtable!()?;
+		let mut hashtable = hashtable_box!()?;
 		let mut hashset = hashset!()?;
-		let mut list = list!()?;
+		let mut list = list!["dd".to_string(), "ee".to_string()];
+		let mut hashtable2 = hashtable!()?;
+
+		hashtable2.insert("test".to_string(), 1usize)?;
 
 		hashtable.insert(&0usize, &1usize)?;
 		hashset.insert(&0usize)?;
-		list.push(&1u32)?;
+		list.push("ok".to_string())?;
+
+		let x = Arc::new(RwLock::new(hashset));
+		let mut x_clone = x.clone();
+
+		std::thread::spawn(move || -> Result<(), Error> {
+			println!("ok");
+			let mut v = x.write()?;
+			(*v).insert(&3usize)?;
+			Ok(())
+		});
+
+		std::thread::sleep(std::time::Duration::from_millis(1000));
+
+		let mut t = x_clone.write()?;
+		(*t).insert(&4usize)?;
+
 		/*
 		let mut hashtable: Box<dyn Hashtable<String, String>> = Box::new(Hash::new());
 		hashtable.insert(&"test".to_string(), &"abc".to_string())?;
