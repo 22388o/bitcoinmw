@@ -160,11 +160,12 @@ struct Const {
 	span: Span,
 	prev_token_is_joint: bool,
 	comments: Vec<String>,
+	required: bool,
 }
 
 impl Const {
 	#[cfg(not(tarpaulin_include))]
-	fn new(name: String, span: Span) -> Self {
+	fn new(name: String, span: Span, required: bool) -> Self {
 		Self {
 			name,
 			value_str: "".to_string(),
@@ -172,6 +173,7 @@ impl Const {
 			field_string: None,
 			span,
 			prev_token_is_joint: false,
+			required,
 			comments: vec![],
 		}
 	}
@@ -296,6 +298,7 @@ enum State {
 	Pub,
 	Module,
 	Const,
+	Required,
 	Var,
 	ViewList,
 	WantsPubAs,
@@ -612,7 +615,13 @@ impl StateMachine {
 		let mut replace = "".to_string();
 		for item in &self.const_list {
 			let type_str = self.const_type_string(item)?;
-			replace = format!("{}{}: {},\n\t", replace, item.name, type_str);
+			replace = format!(
+				"{}{}{}: {},\n\t",
+				replace,
+				if item.required { "#[required]" } else { "" },
+				item.name,
+				type_str
+			);
 		}
 		Ok(replace)
 	}
@@ -2486,6 +2495,7 @@ impl StateMachine {
 			State::Pub => self.process_pub(token)?,
 			State::Module => self.process_module(token)?,
 			State::Const => self.process_const(token)?,
+			State::Required => self.process_required(token)?,
 			State::Var => self.process_var(token)?,
 			State::ViewList => self.process_wants_view_list_identifier(token)?,
 			State::Generic => self.process_generic(token)?,
@@ -2757,6 +2767,8 @@ impl StateMachine {
 			self.state = State::Module;
 		} else if token_str == "const" {
 			self.state = State::Const;
+		} else if token_str == "required" {
+			self.state = State::Required;
 		} else if token_str == "var" {
 			self.state = State::Var;
 		} else if token_str == "clone" {
@@ -3132,10 +3144,31 @@ impl StateMachine {
 	}
 
 	#[cfg(not(tarpaulin_include))]
+	fn process_required(&mut self, token: TokenTree) -> Result<(), Error> {
+		match token {
+			Ident(ref ident) => {
+				let mut nconst = Const::new(ident.to_string(), token.span(), true);
+				nconst.comments.extend(self.cur_comments.clone());
+				self.cur_comments.clear();
+				self.cur_const = Some(nconst);
+			}
+			_ => {
+				self.append_error(&format!(
+					"expected required name, found, '{}'",
+					token.to_string()
+				))?;
+			}
+		}
+
+		self.state = State::WantsConstColon;
+		Ok(())
+	}
+
+	#[cfg(not(tarpaulin_include))]
 	fn process_const(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ref ident) => {
-				let mut nconst = Const::new(ident.to_string(), token.span());
+				let mut nconst = Const::new(ident.to_string(), token.span(), false);
 				nconst.comments.extend(self.cur_comments.clone());
 				self.cur_comments.clear();
 				self.cur_const = Some(nconst);

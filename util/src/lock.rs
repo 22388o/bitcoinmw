@@ -66,10 +66,20 @@ where
 	fn id(&self) -> u128;
 }
 
+/// Rebuild a [`crate::LockBox`] from te usize which is returned from the
+/// [`crate::LockBox::danger_to_usize`] function.
+pub fn lock_box_from_usize<T>(value: usize) -> Box<dyn LockBox<T> + Send + Sync>
+where
+	T: Send + Sync + 'static,
+{
+	let t = unsafe { Arc::from_raw(value as *mut RwLock<T>) };
+	Box::new(LockImpl { id: random(), t })
+}
+
 #[derive(Clone)]
-pub(crate) struct LockImpl<T> {
-	pub(crate) t: Arc<RwLock<T>>,
-	pub(crate) id: u128,
+struct LockImpl<T> {
+	t: Arc<RwLock<T>>,
+	id: u128,
 }
 
 impl<T> Clone for Box<dyn LockBox<T>>
@@ -82,16 +92,6 @@ where
 			t: self.inner().clone(),
 		})
 	}
-}
-
-/// Rebuild a [`crate::LockBox`] from te usize which is returned from the
-/// [`crate::LockBox::danger_to_usize`] function.
-pub fn lock_box_from_usize<T>(value: usize) -> Box<dyn LockBox<T> + Send + Sync>
-where
-	T: Send + Sync + 'static,
-{
-	let t = unsafe { Arc::from_raw(value as *mut RwLock<T>) };
-	Box::new(LockImpl { id: random(), t })
 }
 
 impl<T> Debug for LockImpl<T> {

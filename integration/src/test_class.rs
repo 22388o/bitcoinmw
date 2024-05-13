@@ -728,4 +728,38 @@ mod test {
 		test_as.some_fn();
 		Ok(())
 	}
+
+	#[class {
+            required abcdef: usize = 1;
+            const bbb0: usize = 10;
+
+            [req_1]
+            fn x(&self);
+        }]
+	impl TestRequired {}
+
+	impl TestRequiredVarBuilder for TestRequiredVar {
+		fn builder(constants: &TestRequiredConst) -> Result<Self, Error> {
+			Ok(Self {})
+		}
+	}
+
+	use std::fmt::{Debug, Formatter};
+	impl Debug for dyn Req1 {
+		fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+			write!(f, "req1")?;
+			Ok(())
+		}
+	}
+
+	#[test]
+	fn test_required() -> Result<(), Error> {
+		let req_1 = req_1!(Abcdef(2), Bbb0(0))?;
+
+		assert_eq!(
+			req_1_box!().unwrap_err().kind(),
+			kind!(CoreErrorKind::Builder)
+		);
+		Ok(())
+	}
 }

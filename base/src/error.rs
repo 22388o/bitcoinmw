@@ -124,6 +124,14 @@ impl Debug for CoreErrorKind {
 		impl_debug!(self, f, Poison, "poison");
 		impl_debug!(self, f, Parse, "parse");
 		impl_debug!(self, f, Configuration, "configuration");
+		impl_debug!(self, f, Builder, "builder");
+		impl_debug!(self, f, Var, "var");
+		impl_debug!(self, f, IO, "i/o");
+		impl_debug!(self, f, TryInto, "try_into error");
+		impl_debug!(self, f, OsString, "OsString");
+		impl_debug!(self, f, Utf8, "utf8");
+		impl_debug!(self, f, CorruptedData, "corrupted data");
+		impl_debug!(self, f, OperationNotSupported, "operation not supported");
 		Ok(())
 	}
 }
