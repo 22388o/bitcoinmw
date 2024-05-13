@@ -151,7 +151,7 @@ use crate::config::do_derive_configurable;
 /// Notice in the above example, only bmw_base and bmw_derive were used yet the other values were
 /// all imported by the macros. In higher level crates, bmw_core may be used to avoid having these
 /// two use statements.
-#[proc_macro_derive(Configurable, attributes(required))]
+#[proc_macro_derive(Configurable, attributes(required, passthrough))]
 #[proc_macro_error]
 #[cfg(not(tarpaulin_include))]
 pub fn derive_configurable(strm: TokenStream) -> TokenStream {

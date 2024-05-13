@@ -739,7 +739,7 @@ mod test {
 	impl TestRequired {}
 
 	impl TestRequiredVarBuilder for TestRequiredVar {
-		fn builder(constants: &TestRequiredConst) -> Result<Self, Error> {
+		fn builder(_constants: &TestRequiredConst) -> Result<Self, Error> {
 			Ok(Self {})
 		}
 	}
@@ -754,12 +754,82 @@ mod test {
 
 	#[test]
 	fn test_required() -> Result<(), Error> {
-		let req_1 = req_1!(Abcdef(2), Bbb0(0))?;
+		let _req_1 = req_1!(Abcdef(2), Bbb0(0))?;
 
 		assert_eq!(
 			req_1_box!().unwrap_err().kind(),
 			kind!(CoreErrorKind::Builder)
 		);
+		Ok(())
+	}
+
+	#[derive(Configurable, Clone)]
+	struct TestVarInConfig {
+		#[passthrough(my_pass, i32)]
+		#[passthrough(other_pass, i32)]
+		#[passthrough(my_string, String)]
+		#[passthrough(my_other_str, usize)]
+		passthroughs: Vec<Passthrough>,
+		x_123: usize,
+		y_ok_ok_2: u128,
+		str_abc: String,
+	}
+
+	impl Default for TestVarInConfig {
+		fn default() -> Self {
+			Self {
+				x_123: 1,
+				y_ok_ok_2: 2,
+				str_abc: "abc".to_string(),
+				passthroughs: vec![],
+			}
+		}
+	}
+
+	#[test]
+	fn test_var_in_configurable() -> Result<(), Error> {
+		let a = configure!(TestVarInConfig, TestVarInConfigOptions, vec![])?;
+		assert_eq!(a.x_123, 1);
+		//assert_eq!(a.my_pass, 8);
+
+		let a = configure!(TestVarInConfig, TestVarInConfigOptions, vec![X123(2)])?;
+		assert_eq!(a.x_123, 2);
+		//assert_eq!(a.my_pass, 8);
+
+		let a = configure!(
+			TestVarInConfig,
+			TestVarInConfigOptions,
+			vec![
+				MyPass(-102),
+				OtherPass(1112),
+				MyString("abcdef".to_string()),
+				MyOtherStr(10),
+			]
+		)?;
+		assert_eq!(a.x_123, 1);
+
+		println!("passthroughs: ");
+		for p in a.passthroughs {
+			let mut found = false;
+			match p.value.downcast_ref::<i32>() {
+				Ok(value) => {
+					found = true;
+					println!("p={},v(i32)={:?}", p.name, value,);
+				}
+				Err(_e) => {}
+			}
+			match p.value.downcast_ref::<String>() {
+				Ok(value) => {
+					found = true;
+					println!("p={},v(String)={:?}", p.name, value,)
+				}
+				Err(_e) => {}
+			}
+			if !found {
+				println!("p={},v=unknown", p.name);
+			}
+		}
+		//assert_eq!(a.my_pass, -1);
 		Ok(())
 	}
 }

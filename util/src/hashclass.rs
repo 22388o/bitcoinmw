@@ -18,7 +18,6 @@
 
 use bmw_core::*;
 use bmw_log::*;
-use std::fmt::Debug;
 use std::marker::PhantomData;
 
 debug!();
@@ -288,8 +287,8 @@ pub struct Iterator<'a, K>
 where
 	K: Serializable,
 {
-	hash_class: &'a HashClass<'a, K>,
-	cur: usize,
+	_hash_class: &'a HashClass<'a, K>,
+	_cur: usize,
 	_phantom_data: PhantomData<K>,
 }
 
@@ -371,7 +370,7 @@ where
 		Ok(())
 	}
 
-	fn hashset_insert(&mut self, key: K) -> Result<(), Error> {
+	fn hashset_insert(&mut self, _key: K) -> Result<(), Error> {
 		println!("hashset insert!");
 		Ok(())
 	}
@@ -412,6 +411,7 @@ where
 	}
 }
 
+#[macro_export]
 macro_rules! list {
 	($( $x:expr ),*) => {{
                 let mut ret = list_impl!()?;
@@ -442,7 +442,7 @@ mod test {
 		list.push("ok".to_string())?;
 
 		let x = Arc::new(RwLock::new(hashset));
-		let mut x_clone = x.clone();
+		let x_clone = x.clone();
 
 		std::thread::spawn(move || -> Result<(), Error> {
 			println!("ok");

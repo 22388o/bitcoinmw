@@ -16,8 +16,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bmw_deps::downcast::{downcast, Any};
 use bmw_deps::dyn_clone::{clone_trait_object, DynClone};
 use std::collections::HashSet;
+
+pub trait PassthroughValue: DynClone + Any {}
+clone_trait_object!(PassthroughValue);
+downcast!(dyn PassthroughValue);
+impl<T: Clone + Any> PassthroughValue for T {}
+
+#[derive(Clone)]
+pub struct Passthrough {
+	pub name: String,
+	pub value: Box<dyn PassthroughValue>,
+}
 
 /// The [`Configurable`] trait is used as a generic way to configure data structures. This trait is
 /// used by the `derive` crate and should generally through the derive proc_macro.
@@ -40,6 +52,8 @@ pub trait Configurable: DynClone {
 	fn set_bool(&mut self, name: &str, value: bool);
 	/// sets the configuration with the specified `name` to the specified `Configurable` value
 	fn set_configurable(&mut self, name: &str, value: &dyn Configurable);
+
+	fn set_passthrough(&mut self, passthrough: Passthrough);
 	/// returns a [`std::collections::HashSet`] with the configurations that allow duplicates.
 	/// This is used by the `config` macro when [`std::vec::Vec`] configuration
 	/// options are used.
@@ -139,4 +153,6 @@ pub trait ConfigurableOptions {
 	/// return the value of this [`ConfigurableOptions`] structure if it is a [`Configurable`]. Otherwise,
 	/// return [`None`].
 	fn value_configurable(&self) -> Option<Box<dyn Configurable>>;
+
+	fn value_passthrough(&self) -> Option<Passthrough>;
 }

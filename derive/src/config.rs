@@ -19,7 +19,7 @@
 use bmw_base::*;
 use bmw_deps::convert_case::{Case, Casing};
 use proc_macro::TokenTree::*;
-use proc_macro::{Delimiter, Span, TokenStream, TokenTree};
+use proc_macro::{Delimiter, Spacing, Span, TokenStream, TokenTree};
 use proc_macro_error::{abort, emit_error, Diagnostic, Level};
 use std::str::FromStr;
 use State::*;
@@ -44,6 +44,7 @@ enum FieldType {
 	VecU128,
 	VecCString,
 	VecConfigurable,
+	Passthrough,
 }
 
 impl FromStr for FieldType {
@@ -82,6 +83,7 @@ struct Field {
 	type_str: Option<String>,
 	required: bool,
 	span: Span,
+	passthrough: bool,
 }
 
 impl Field {
@@ -93,6 +95,7 @@ impl Field {
 			field_type: None,
 			required: false,
 			span,
+			passthrough: false,
 		}
 	}
 }
@@ -108,6 +111,7 @@ enum State {
 	WantsGroup,
 	WantsFieldName,
 	WantsColon,
+	AllowPassthrough,
 	WantsType,
 	WantsComma,
 	WantsLessThan,
@@ -136,19 +140,21 @@ macro_rules! update_template {
 
 		let mut replace_str = "".to_string();
 		for field in $fields {
-			let field_name = field.name.as_ref().unwrap();
-			let field_type = field.field_type.as_ref().unwrap();
-			let field_pascal = field_name.to_case(Case::Pascal);
-			if field_type == &match_type {
-				replace_str = format!(
-					"{}if name == \"{}\" {{ self.{} = value; }}\n",
-					replace_str, field_pascal, field_name
-				);
-			} else if field_type == &match_type_vec {
-				replace_str = format!(
-					"{}if name == \"{}\" {{ self.{}.push(value); }}\n",
-					replace_str, field_pascal, field_name
-				);
+			if !field.passthrough {
+				let field_name = field.name.as_ref().unwrap();
+				let field_type = field.field_type.as_ref().unwrap();
+				let field_pascal = field_name.to_case(Case::Pascal);
+				if field_type == &match_type {
+					replace_str = format!(
+						"{}if name == \"{}\" {{ self.{} = value; }}\n",
+						replace_str, field_pascal, field_name
+					);
+				} else if field_type == &match_type_vec {
+					replace_str = format!(
+						"{}if name == \"{}\" {{ self.{}.push(value); }}\n",
+						replace_str, field_pascal, field_name
+					);
+				}
 			}
 		}
 		let var_replace_name = &format!("${{SET_{}}}", type_upper);
@@ -156,14 +162,16 @@ macro_rules! update_template {
 
 		let mut replace_str = "".to_string();
 		for field in $fields {
-			let field_name = field.name.as_ref().unwrap();
-			let field_pascal = field_name.to_case(Case::Pascal);
-			let field_type = field.field_type.as_ref().unwrap();
-			if field_type == &match_type || field_type == &match_type_vec {
-				replace_str = format!(
-					"{}{}Options::{}(v) => Some(*v),\n",
-					replace_str, $name, field_pascal
-				);
+			if !field.passthrough {
+				let field_name = field.name.as_ref().unwrap();
+				let field_pascal = field_name.to_case(Case::Pascal);
+				let field_type = field.field_type.as_ref().unwrap();
+				if field_type == &match_type || field_type == &match_type_vec {
+					replace_str = format!(
+						"{}{}Options::{}(v) => Some(*v),\n",
+						replace_str, $name, field_pascal
+					);
+				}
 			}
 		}
 
@@ -172,14 +180,16 @@ macro_rules! update_template {
 
 		let mut replace_str = "".to_string();
 		for field in $fields {
-			let field_name = field.name.as_ref().unwrap();
-			let field_pascal = field_name.to_case(Case::Pascal);
-			let field_type = field.field_type.as_ref().unwrap();
-			if field_type == &match_type {
-				replace_str = format!(
-					"{}ret.push((\"{}\".to_string(), self.{}));\n",
-					replace_str, field_pascal, field_name
-				);
+			if !field.passthrough {
+				let field_name = field.name.as_ref().unwrap();
+				let field_pascal = field_name.to_case(Case::Pascal);
+				let field_type = field.field_type.as_ref().unwrap();
+				if field_type == &match_type {
+					replace_str = format!(
+						"{}ret.push((\"{}\".to_string(), self.{}));\n",
+						replace_str, field_pascal, field_name
+					);
+				}
 			}
 		}
 
@@ -188,14 +198,16 @@ macro_rules! update_template {
 
 		let mut replace_str = "".to_string();
 		for field in $fields {
-			let field_name = field.name.as_ref().unwrap();
-			let field_pascal = field_name.to_case(Case::Pascal);
-			let field_type = field.field_type.as_ref().unwrap();
-			if field_type == &match_type_vec {
-				replace_str = format!(
-					"{}ret.push((\"{}\".to_string(), self.{}.clone()));\n",
-					replace_str, field_pascal, field_name
-				);
+			if !field.passthrough {
+				let field_name = field.name.as_ref().unwrap();
+				let field_pascal = field_name.to_case(Case::Pascal);
+				let field_type = field.field_type.as_ref().unwrap();
+				if field_type == &match_type_vec {
+					replace_str = format!(
+						"{}ret.push((\"{}\".to_string(), self.{}.clone()));\n",
+						replace_str, field_pascal, field_name
+					);
+				}
 			}
 		}
 
@@ -293,6 +305,7 @@ impl StateMachine {
 			WantsGroup => self.process_wants_group(token)?,
 			WantsFieldName => self.process_wants_field_name(token)?,
 			WantsColon => self.process_wants_colon(token)?,
+			AllowPassthrough => self.process_allow_passthrough(token)?,
 			WantsType => self.process_wants_type(token)?,
 			WantsComma => self.process_wants_comma(token)?,
 			WantsLessThan => self.process_wants_less_than(token)?,
@@ -309,10 +322,71 @@ impl StateMachine {
 			Group(group) => {
 				for item in group.stream() {
 					let item_str = item.to_string();
-					if item_str == "required" {
-						let mut field = Field::new(self.span.as_ref().unwrap().clone());
-						field.required = true;
-						self.cur_field = Some(field);
+					if item_str == "required" || item_str == "passthrough" {
+						let field = match self.cur_field.as_mut() {
+							Some(field) => field,
+							None => {
+								self.cur_field =
+									Some(Field::new(self.span.as_ref().unwrap().clone()));
+								self.cur_field.as_mut().unwrap()
+							}
+						};
+						if item_str == "required" {
+							field.required = true;
+						} else if item_str == "passthrough" {
+							field.passthrough = true;
+						}
+					} else {
+						match self.cur_field.as_mut() {
+							Some(field) => {
+								if field.passthrough {
+									match item {
+										Group(group) => {
+											let mut expect_name = true;
+											let mut expect_comma = false;
+											let mut prev_is_joint = false;
+											for item in group.stream() {
+												if expect_name {
+													field.name = Some(item.to_string());
+													expect_name = false;
+													expect_comma = true;
+												} else if expect_comma {
+													expect_comma = false;
+												} else {
+													field.type_str = Some(
+														format!(
+															"{}{}{}",
+															field
+																.type_str
+																.as_ref()
+																.unwrap_or(&"".to_string()),
+															if prev_is_joint { "" } else { " " },
+															item.to_string(),
+														)
+														.trim()
+														.to_string(),
+													);
+
+													match item {
+														Punct(ref p) => {
+															if p.spacing() == Spacing::Joint {
+																prev_is_joint = true;
+															}
+														}
+														_ => {}
+													}
+												}
+											}
+										}
+										_ => {}
+									}
+									field.field_type = Some(FieldType::Passthrough);
+									self.fields.push(field.clone());
+									self.cur_field = None;
+								}
+							}
+							None => {}
+						}
 					}
 				}
 			}
@@ -368,7 +442,11 @@ impl StateMachine {
 						} else if ident_str == "u128" {
 							cur_field.field_type = Some(FieldType::VecU128);
 						} else {
-							cur_field.field_type = Some(FieldType::VecConfigurable);
+							if cur_field.passthrough {
+								cur_field.field_type = Some(FieldType::Passthrough);
+							} else {
+								cur_field.field_type = Some(FieldType::VecConfigurable);
+							}
 						}
 						cur_field.type_str = Some(format!("{}{}", type_str, ident_str));
 						self.state = State::WantsGreaterThan;
@@ -417,7 +495,11 @@ impl StateMachine {
 						} else if ident_str == "dyn" {
 						} else if cur_field.type_str.is_some() {
 							cur_field.type_str = Some(format!("Box<dyn {}>", token_str));
-							cur_field.field_type = Some(FieldType::Configurable);
+							if cur_field.passthrough {
+								cur_field.field_type = Some(FieldType::Passthrough);
+							} else {
+								cur_field.field_type = Some(FieldType::Configurable);
+							}
 						} else if ident_str != "Vec" {
 							cur_field.type_str = Some(ident_str.clone());
 							self.state = State::WantsComma;
@@ -439,7 +521,11 @@ impl StateMachine {
 							} else if ident_str == "u128" {
 								cur_field.field_type = Some(FieldType::U128);
 							} else {
-								cur_field.field_type = Some(FieldType::Configurable);
+								if cur_field.passthrough {
+									cur_field.field_type = Some(FieldType::Passthrough);
+								} else {
+									cur_field.field_type = Some(FieldType::Configurable);
+								}
 							}
 
 							self.fields.push(cur_field.clone());
@@ -482,6 +568,13 @@ impl StateMachine {
 		Ok(())
 	}
 
+	fn process_allow_passthrough(&mut self, token: TokenTree) -> Result<(), Error> {
+		if token.to_string() == "," {
+			self.state = State::WantsFieldName;
+		}
+		Ok(())
+	}
+
 	#[cfg(not(tarpaulin_include))]
 	fn process_wants_field_name(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
@@ -497,13 +590,17 @@ impl StateMachine {
 						self.cur_field = Some(field);
 					}
 				}
-				self.state = State::WantsColon;
+				if ident.to_string() == "passthroughs" {
+					self.state = State::AllowPassthrough;
+				} else {
+					self.state = State::WantsColon;
+				}
 			}
 			Punct(p) => {
 				if p != '#' {
 					self.append_error(&format!("expected field name, found, '{}'", p.to_string()))?;
 				} else {
-					// comments or 'required' attribute
+					// comments, 'passthrough', or 'required' attribute
 					self.state = State::WantsAttribute;
 				}
 			}
@@ -555,6 +652,10 @@ impl StateMachine {
 		for field in &self.fields {
 			let field_pascal = field.name.as_ref().unwrap().to_case(Case::Pascal);
 			let field_type = field.field_type.as_ref().unwrap();
+			let type_str = match field.type_str.as_ref() {
+				Some(type_str) => type_str.clone(),
+				None => "".to_string(),
+			};
 			match field_type {
 				FieldType::Configurable | FieldType::VecConfigurable => {
 					replace_str =
@@ -583,6 +684,9 @@ impl StateMachine {
 				}
 				FieldType::U128 | FieldType::VecU128 => {
 					replace_str = format!("{}{}(u128),\n", replace_str, field_pascal);
+				}
+				FieldType::Passthrough => {
+					replace_str = format!("{}{}({}),\n", replace_str, field_pascal, type_str);
 				}
 			}
 		}
@@ -758,6 +862,27 @@ impl StateMachine {
 		Ok(())
 	}
 
+	fn update_options_enum_passthrough_match(
+		&mut self,
+		template: &mut String,
+	) -> Result<(), Error> {
+		let mut replace_str = "".to_string();
+		let name = self.configurable_struct_name.as_ref().unwrap();
+		for field in &self.fields {
+			if field.passthrough {
+				let field_name = field.name.as_ref().unwrap();
+				let field_pascal = field_name.to_case(Case::Pascal);
+				replace_str = format!(
+					"{}{}Options::{}(v) => Some(Passthrough {{ name: \"{}\".to_string(), value: Box::new(v.clone()) }}),\n",
+					replace_str, name, field_pascal, field_pascal
+				);
+			}
+		}
+
+		*template = template.replace("${OPTIONS_ENUM_VALUE_PASSTHROUGH_MATCH}", &replace_str);
+		Ok(())
+	}
+
 	#[cfg(not(tarpaulin_include))]
 	fn update_configurable_params_push(&mut self, template: &mut String) -> Result<(), Error> {
 		let mut replace_str = "".to_string();
@@ -858,6 +983,25 @@ impl StateMachine {
 		Ok(())
 	}
 
+	fn update_passthroughs(&mut self, template: &mut String) -> Result<(), Error> {
+		let mut has_passthroughs = false;
+		for field in &self.fields {
+			if field.passthrough {
+				has_passthroughs = true;
+			}
+		}
+
+		if has_passthroughs {
+			*template = template.replace(
+				"${PASSTHROUGH_PUSH}",
+				"self.passthroughs.push(passthrough);",
+			);
+		} else {
+			*template = template.replace("${PASSTHROUGH_PUSH}", "");
+		}
+		Ok(())
+	}
+
 	#[cfg(not(tarpaulin_include))]
 	fn generate(&mut self) -> Result<(), Error> {
 		let name = self.configurable_struct_name.as_ref().unwrap().clone();
@@ -870,6 +1014,7 @@ impl StateMachine {
 		template = update_template!(template, u64, &self.fields, name);
 		template = update_template!(template, u128, &self.fields, name);
 		template = update_template!(template, bool, &self.fields, name);
+		self.update_passthroughs(&mut template)?;
 		self.update_set_string(&mut template)?;
 		self.update_set_configurable(&mut template)?;
 		self.update_dupes_inserts(&mut template)?;
@@ -881,13 +1026,13 @@ impl StateMachine {
 		self.update_options_enum_names_match(&mut template)?;
 		self.update_options_enum_string_match(&mut template)?;
 		self.update_options_enum_configurable_match(&mut template)?;
+		self.update_options_enum_passthrough_match(&mut template)?;
 		template = template.replace(
 			"${CONFIGURABLE_STRUCT}",
 			&self.configurable_struct_name.as_ref().unwrap(),
 		);
 
 		self.ret.extend(template.parse::<TokenStream>());
-		//println!("self.ret='{}'", self.ret);
 
 		Ok(())
 	}

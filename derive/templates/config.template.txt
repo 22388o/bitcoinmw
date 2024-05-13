@@ -41,6 +41,10 @@ impl Configurable for ${CONFIGURABLE_STRUCT} {
 		${SET_CONFIGURABLE}
 	}
 
+	fn set_passthrough(&mut self, passthrough: Passthrough) {
+		${PASSTHROUGH_PUSH}
+        }
+
 	fn allow_dupes(&self) -> std::collections::HashSet<String> {
 		let mut ret = std::collections::HashSet::new();
 		${DUPES_INSERTS}
@@ -222,5 +226,12 @@ impl ConfigurableOptions for ${CONFIGURABLE_STRUCT}Options <'_> {
                                 _ => None,
                         }
                 }
+
+		fn value_passthrough(&self) -> Option<Passthrough> {
+			match self {
+				${OPTIONS_ENUM_VALUE_PASSTHROUGH_MATCH}
+				_ => None,
+			}
+		}
 }
 

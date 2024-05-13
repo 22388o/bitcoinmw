@@ -88,16 +88,18 @@ struct Var {
 	type_str: String,
 	span: Span,
 	prev_token_is_joint: bool,
+	_var_in: bool,
 }
 
 impl Var {
 	#[cfg(not(tarpaulin_include))]
-	fn new(name: String, span: Span) -> Self {
+	fn new(name: String, span: Span, _var_in: bool) -> Self {
 		Self {
 			name,
 			type_str: "".to_string(),
 			span,
 			prev_token_is_joint: false,
+			_var_in,
 		}
 	}
 }
@@ -300,6 +302,7 @@ enum State {
 	Const,
 	Required,
 	Var,
+	VarIn,
 	ViewList,
 	WantsPubAs,
 	WantsPubIdentifier,
@@ -2483,6 +2486,7 @@ impl StateMachine {
 			State::Const => self.process_const(token)?,
 			State::Required => self.process_required(token)?,
 			State::Var => self.process_var(token)?,
+			State::VarIn => self.process_var_in(token)?,
 			State::ViewList => self.process_wants_view_list_identifier(token)?,
 			State::Generic => self.process_generic(token)?,
 			State::WantsPubIdentifier => self.process_wants_pub_identifier(token)?,
@@ -2757,6 +2761,8 @@ impl StateMachine {
 			self.state = State::Required;
 		} else if token_str == "var" {
 			self.state = State::Var;
+		} else if token_str == "var_in" {
+			self.state = State::VarIn;
 		} else if token_str == "clone" {
 			self.state = State::Clone;
 		} else if token_str == "no_send" {
@@ -3230,11 +3236,28 @@ impl StateMachine {
 		Ok(())
 	}
 
+	fn process_var_in(&mut self, token: TokenTree) -> Result<(), Error> {
+		match token {
+			Ident(ref ident) => {
+				self.cur_var = Some(Var::new(ident.to_string(), token.span(), true));
+			}
+			_ => {
+				self.append_error(&format!(
+					"expected var_in name, found, '{}'",
+					token.to_string()
+				))?;
+			}
+		}
+
+		self.state = State::WantsVarColon;
+		Ok(())
+	}
+
 	#[cfg(not(tarpaulin_include))]
 	fn process_var(&mut self, token: TokenTree) -> Result<(), Error> {
 		match token {
 			Ident(ref ident) => {
-				self.cur_var = Some(Var::new(ident.to_string(), token.span()));
+				self.cur_var = Some(Var::new(ident.to_string(), token.span(), false));
 			}
 			_ => {
 				self.append_error(&format!(

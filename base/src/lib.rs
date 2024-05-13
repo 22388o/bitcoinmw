@@ -32,7 +32,7 @@ mod macros;
 mod ser;
 mod utils;
 
-pub use config::{Configurable, ConfigurableOptions};
+pub use config::{Configurable, ConfigurableOptions, Passthrough, PassthroughValue};
 pub use error::{CoreErrorKind, Error, ErrorKind};
 pub use ser::{deserialize, serialize, BinReader, BinWriter, Reader, Serializable, Writer};
 pub use utils::is_recursive;
