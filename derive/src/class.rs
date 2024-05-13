@@ -524,20 +524,6 @@ impl StateMachine {
 			set.insert(c.name.clone());
 		}
 
-		/*
-		let mut set = HashSet::new();
-		for f in self.fn_list.clone() {
-			if set.contains(&f.name) {
-				self.span = match f.name_span {
-					Some(ns) => Some(ns),
-					None => Some(f.span),
-				};
-				self.append_error(&format!("duplicate fn. '{}' is already defined.", f.name))?;
-			}
-			set.insert(f.name.clone());
-		}
-				*/
-
 		Ok(())
 	}
 
