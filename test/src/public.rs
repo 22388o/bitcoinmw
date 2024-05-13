@@ -16,7 +16,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use bmw_deps::failure::Fail;
 use std::sync::mpsc::{Receiver, SyncSender};
 
 /// This trait defines the data which a test can use. A test can obtain one of these by calling the
@@ -64,13 +63,10 @@ pub trait TestInfo {
 }
 
 /// Kinds of errors that can occur in or are related to tests.
-#[derive(Debug, Fail)]
 pub enum TestErrorKind {
 	/// A test generated error
-	#[fail(display = "simulated error: {}", _0)]
 	Test(String),
 	/// The resource was not available
-	#[fail(display = "the requested resource was not available: {}", _0)]
 	ResourceNotAvailable(String),
 }
 

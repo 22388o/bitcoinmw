@@ -75,17 +75,6 @@ impl Error {
 	}
 }
 
-macro_rules! impl_debug {
-	($self:expr, $f:expr, $variant_name:ident, $type_str:expr) => {
-		match $self {
-			$variant_name(s) => {
-				write!($f, "{}: {}", $type_str, s)?;
-			}
-			_ => {}
-		}
-	};
-}
-
 impl Debug for Error {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
 		write!(f, "{}\n", self.kind)?;
@@ -114,6 +103,17 @@ impl Display for CoreErrorKind {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
 		write!(f, "{:?}", self)
 	}
+}
+
+macro_rules! impl_debug {
+	($self:expr, $f:expr, $variant_name:ident, $type_str:expr) => {
+		match $self {
+			$variant_name(s) => {
+				write!($f, "{}: {}", $type_str, s)?;
+			}
+			_ => {}
+		}
+	};
 }
 
 impl Debug for CoreErrorKind {

@@ -17,11 +17,13 @@
 // limitations under the License.
 
 use crate::types::TestInfoImpl;
+use crate::TestErrorKind::*;
 use crate::{TestErrorKind, TestInfo};
 use bmw_base::{Error, ErrorKind};
 use bmw_deps::backtrace;
 use bmw_deps::portpicker::is_free;
 use bmw_deps::rand::random;
+use std::fmt::{Debug, Display, Formatter};
 use std::fs::{create_dir_all, remove_dir_all};
 use std::sync::atomic::{AtomicU16, Ordering};
 use std::thread::{sleep, spawn};
@@ -131,5 +133,30 @@ impl ErrorKind for TestErrorKind {}
 impl From<TestErrorKind> for Error {
 	fn from(kind: TestErrorKind) -> Error {
 		Error::new(Box::new(kind))
+	}
+}
+
+macro_rules! impl_debug {
+	($self:expr, $f:expr, $variant_name:ident, $type_str:expr) => {
+		match $self {
+			$variant_name(s) => {
+				write!($f, "{}: {}", $type_str, s)?;
+			}
+			_ => {}
+		}
+	};
+}
+
+impl Debug for TestErrorKind {
+	fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+		impl_debug!(self, f, Test, "test");
+		impl_debug!(self, f, ResourceNotAvailable, "resource not available");
+		Ok(())
+	}
+}
+
+impl Display for TestErrorKind {
+	fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+		write!(f, "{:?}", self)
 	}
 }

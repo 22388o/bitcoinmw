@@ -19,8 +19,6 @@
 //! # The BitcoinMW test utility crate
 //! This crate contains macros utilized in tests across other crates within the BitcoinMW repository.
 
-use bmw_deps::failure;
-
 mod builder;
 mod impls;
 mod macros;
