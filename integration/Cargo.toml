@@ -13,3 +13,4 @@ edition = "2021"
 [dependencies]
 
 bmw_core   = { path = "../core" }
+bmw_log    = { path = "../log"  }

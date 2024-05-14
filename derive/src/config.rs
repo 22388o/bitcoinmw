@@ -404,7 +404,9 @@ impl StateMachine {
 			match self.cur_field.as_mut() {
 				Some(cur_field) => {
 					self.state = State::WantsComma;
-					self.fields.push(cur_field.clone());
+					if cur_field.name != Some("passthrough".to_string()) {
+						self.fields.push(cur_field.clone());
+					}
 					self.cur_field = None;
 				}
 				_ => {}
@@ -528,7 +530,9 @@ impl StateMachine {
 								}
 							}
 
-							self.fields.push(cur_field.clone());
+							if cur_field.name != Some("passthrough".to_string()) {
+								self.fields.push(cur_field.clone());
+							}
 							self.cur_field = None;
 						} else {
 							self.state = State::WantsLessThan;
@@ -541,7 +545,9 @@ impl StateMachine {
 						// append it later with Box
 						else if token_str == ">" {
 							self.state = State::WantsComma;
-							self.fields.push(cur_field.clone());
+							if cur_field.name != Some("passthrough".to_string()) {
+								self.fields.push(cur_field.clone());
+							}
 							self.cur_field = None;
 						} else {
 							self.expected("<type>", &token_str)?;
@@ -874,7 +880,7 @@ impl StateMachine {
 				let field_pascal = field_name.to_case(Case::Pascal);
 				replace_str = format!(
 					"{}{}Options::{}(v) => Some(Passthrough {{ name: \"{}\".to_string(), value: Box::new(v.clone()) }}),\n",
-					replace_str, name, field_pascal, field_pascal
+					replace_str, name, field_pascal, field_name
 				);
 			}
 		}
@@ -1033,7 +1039,7 @@ impl StateMachine {
 		);
 
 		self.ret.extend(template.parse::<TokenStream>());
-
+		//println!("ret_config='{}'", self.ret);
 		Ok(())
 	}
 }

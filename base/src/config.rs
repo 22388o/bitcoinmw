@@ -20,10 +20,10 @@ use bmw_deps::downcast::{downcast, Any};
 use bmw_deps::dyn_clone::{clone_trait_object, DynClone};
 use std::collections::HashSet;
 
-pub trait PassthroughValue: DynClone + Any {}
+pub trait PassthroughValue: DynClone + Any + Send + Sync {}
 clone_trait_object!(PassthroughValue);
 downcast!(dyn PassthroughValue);
-impl<T: Clone + Any> PassthroughValue for T {}
+impl<T: Clone + Any + Send + Sync> PassthroughValue for T {}
 
 #[derive(Clone)]
 pub struct Passthrough {

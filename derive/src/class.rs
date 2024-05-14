@@ -88,18 +88,18 @@ struct Var {
 	type_str: String,
 	span: Span,
 	prev_token_is_joint: bool,
-	_var_in: bool,
+	var_in: bool,
 }
 
 impl Var {
 	#[cfg(not(tarpaulin_include))]
-	fn new(name: String, span: Span, _var_in: bool) -> Self {
+	fn new(name: String, span: Span, var_in: bool) -> Self {
 		Self {
 			name,
 			type_str: "".to_string(),
 			span,
 			prev_token_is_joint: false,
-			_var_in,
+			var_in,
 		}
 	}
 }
@@ -612,6 +612,21 @@ impl StateMachine {
 				type_str
 			);
 		}
+
+		let mut var_in = false;
+		for item in &self.var_list {
+			if item.var_in {
+				var_in = true;
+				replace = format!(
+					"{}#[passthrough({}, {})]\n",
+					replace, item.name, item.type_str
+				);
+			}
+		}
+
+		if var_in {
+			replace = format!("{}\npassthroughs: Vec<Passthrough>,", replace);
+		}
 		Ok(replace)
 	}
 
@@ -869,6 +884,7 @@ impl StateMachine {
 				ret, const_value.name, const_value.value_str
 			);
 		}
+
 		Ok(ret)
 	}
 
@@ -878,6 +894,18 @@ impl StateMachine {
 		for const_value in &self.const_list {
 			ret = format!("{}{},\n\t\t\t", ret, const_value.name);
 		}
+
+		let mut vars_in = false;
+		for vars in &self.var_list {
+			if vars.var_in {
+				vars_in = true;
+			}
+		}
+
+		if vars_in {
+			ret = format!("{}\n\t\t\tpassthroughs: vec![],", ret);
+		}
+
 		Ok(ret)
 	}
 

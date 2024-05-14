@@ -17,7 +17,10 @@
 // limitations under the License.
 
 use bmw_core::*;
+use bmw_log::*;
 use std::any::Any;
+
+info!();
 
 #[class{
         module "bmw_int::test_class";
@@ -614,6 +617,38 @@ enum Test1<'a> {
 }
 */
 
+#[class {
+            var_in testvar1: i32;
+            [test_var_in]
+            fn x(&self) -> i32;
+        }]
+impl TestVarIn2 {}
+
+impl TestVarIn2VarBuilder for TestVarIn2Var {
+	fn builder(constants: &TestVarIn2Const) -> Result<Self, Error> {
+		let mut testvar1 = 0;
+		info!("in builder, passtlen={}", constants.passthroughs.len())?;
+		for passt in &constants.passthroughs {
+			info!("name={}", passt.name)?;
+			if passt.name == "testvar1" {
+				info!("found testvar1")?;
+				match passt.value.downcast_ref::<i32>() {
+					Ok(v) => {
+						testvar1 = v.clone();
+					}
+					_ => {}
+				}
+			}
+		}
+		Ok(Self { testvar1 })
+	}
+}
+impl TestVarIn2 {
+	fn x(&self) -> i32 {
+		*self.vars().get_testvar1()
+	}
+}
+
 #[cfg(test)]
 mod test {
 	use super::*;
@@ -809,10 +844,18 @@ mod test {
 		assert_eq!(a.x_123, 1);
 
 		println!("passthroughs: ");
+		let mut found_my_pass = false;
+		let mut found_other_pass = false;
+		let mut found_my_string = false;
 		for p in a.passthroughs {
 			let mut found = false;
 			match p.value.downcast_ref::<i32>() {
 				Ok(value) => {
+					if p.name == "my_pass" && *value == -102 {
+						found_my_pass = true;
+					} else if p.name == "other_pass" && *value == 1112 {
+						found_other_pass = true;
+					}
 					found = true;
 					println!("p={},v(i32)={:?}", p.name, value,);
 				}
@@ -821,6 +864,9 @@ mod test {
 			match p.value.downcast_ref::<String>() {
 				Ok(value) => {
 					found = true;
+					if p.name == "my_string" && *value == "abcdef".to_string() {
+						found_my_string = true;
+					}
 					println!("p={},v(String)={:?}", p.name, value,)
 				}
 				Err(_e) => {}
@@ -829,7 +875,20 @@ mod test {
 				println!("p={},v=unknown", p.name);
 			}
 		}
-		//assert_eq!(a.my_pass, -1);
+
+		assert!(found_my_pass);
+		assert!(found_other_pass);
+		assert!(found_my_string);
+		Ok(())
+	}
+
+	#[test]
+	fn test_var_in2() -> Result<(), Error> {
+		let test_var_in = test_var_in!(Testvar1(-9))?;
+		assert_eq!(test_var_in.x(), -9);
+
+		let test_var_in = test_var_in!()?;
+		assert_eq!(test_var_in.x(), 0);
 		Ok(())
 	}
 }

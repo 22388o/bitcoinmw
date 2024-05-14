@@ -484,7 +484,6 @@ macro_rules! configure {
 			}
 			match cfg.value_passthrough() {
 				Some(value) => {
-					println!("passthrough");
 					ret.set_passthrough(value);
 				}
 				None => {}
