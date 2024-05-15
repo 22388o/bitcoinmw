@@ -16,8 +16,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::lock::*;
 use crate::slabio::{slab_reader_box, slab_writer_box, SlabIOClassBuilder, SlabReader, SlabWriter};
-use crate::slabs::{SlabAllocator, THREAD_LOCAL_SLAB_ALLOCATOR};
+use crate::slabs::*;
 use bmw_core::*;
 use bmw_log::*;
 use std::fmt::{Debug, Formatter};
@@ -34,12 +35,14 @@ pub enum ArrayErrors {
 
 #[class {
     no_send;
-    var_in len: usize;
     var phantom_data: PhantomData<&'a T>;
     var slab_reader: Box<dyn SlabReader>;
     var slab_writer: Box<dyn SlabWriter>;
+    var_in slab_allocator_in: Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>;
     var root: u64;
+    var len: usize;
     required bytes_per_entry: usize = 0;
+    required len: usize = 0;
 
     [array]
     fn len(&self) -> usize;
@@ -57,14 +60,19 @@ where
 	T: Clone + Serializable + 'a,
 {
 	fn builder(constants: &ArrayClassConst) -> Result<Self, Error> {
-		let mut len = 0;
+		let len = constants.len;
 		let bytes_per_entry = constants.bytes_per_entry;
+		let mut slab_allocator_in = None;
+
 		for passthrough in &constants.passthroughs {
-			if passthrough.name == "len" {
-				debug!("found size")?;
-				match passthrough.value.downcast_ref::<usize>() {
-					Ok(l) => {
-						len = *l;
+			if passthrough.name == "slab_allocator_in" {
+				debug!("found slab allocator")?;
+				match passthrough
+					.value
+					.downcast_ref::<Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>>(
+					) {
+					Ok(slab_allocator) => {
+						slab_allocator_in = slab_allocator.clone();
 					}
 					_ => {}
 				}
@@ -72,18 +80,32 @@ where
 		}
 
 		if len == 0 {
-			err!(IllegalArgument, "Len must be specified and non-zero")
+			err!(IllegalArgument, "Len must not be zero")
 		} else {
-			let (id, _ptr_size, ids) =
-				THREAD_LOCAL_SLAB_ALLOCATOR.with(|f| -> Result<(u64, usize, Vec<u64>), Error> {
-					let mut sa = f.borrow_mut();
-					let id = sa.allocate(512)?;
-					let (ptr_size, ids) = Self::allocate(&mut *sa, len, bytes_per_entry, 512, id)?;
-					Ok((id, ptr_size, ids))
-				})?;
-			debug!("id={}", id)?;
 			let mut slab_reader = slab_reader_box!()?;
 			let mut slab_writer = slab_writer_box!()?;
+
+			let (id, _ptr_size, ids) = match slab_allocator_in.as_mut() {
+				Some(sa) => {
+					slab_reader.set_slab_allocator(sa.clone())?;
+					slab_writer.set_slab_allocator(sa.clone())?;
+					let mut sa = sa.wlock()?;
+					let id = sa.allocate(512)?;
+					let (ptr_size, ids) = Self::allocate(&mut *sa, len, bytes_per_entry, 512, id)?;
+					(id, ptr_size, ids)
+				}
+				None => THREAD_LOCAL_SLAB_ALLOCATOR.with(
+					|f| -> Result<(u64, usize, Vec<u64>), Error> {
+						let mut sa = f.borrow_mut();
+						let id = sa.allocate(512)?;
+						let (ptr_size, ids) =
+							Self::allocate(&mut *sa, len, bytes_per_entry, 512, id)?;
+						Ok((id, ptr_size, ids))
+					},
+				)?,
+			};
+
+			debug!("id={}", id)?;
 			slab_reader.seek(id, 0)?;
 			slab_writer.seek(id, 0)?;
 
@@ -97,6 +119,7 @@ where
 				slab_reader,
 				slab_writer,
 				root: id,
+				slab_allocator_in,
 			})
 		}
 	}
@@ -194,7 +217,13 @@ mod test {
 
 	#[test]
 	fn test_array() -> Result<(), Error> {
-		let mut array = array_box!(Len(100), BytesPerEntry(8))?;
+		let sa = slab_allocator_sync_box!(
+			SlabConfig(slab_config!(SlabSize(200))?),
+			SlabConfig(slab_config!(SlabSize(512), SlabCount(300))?),
+			SlabsPerResize(100),
+		)?;
+		let sa = Some(lock_box!(sa));
+		let mut array = array_box!(Len(100), BytesPerEntry(8), SlabAllocatorIn(sa))?;
 		array.set_value(0, &135u64)?;
 		debug!("size={}", array.len())?;
 
