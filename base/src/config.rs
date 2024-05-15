@@ -16,8 +16,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use bmw_deps::clone_trait_object;
 use bmw_deps::downcast::{downcast, Any};
-use bmw_deps::dyn_clone::{clone_trait_object, DynClone};
+use bmw_deps::dyn_clone::DynClone;
 use std::collections::HashSet;
 
 pub trait PassthroughValue: DynClone + Any + Send + Sync {}

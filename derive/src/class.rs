@@ -1217,7 +1217,7 @@ impl StateMachine {
 				trait_impl = format!("{}\n}}", trait_impl);
 			} else {
 				trait_impl = format!(
-					"{}\nbmw_deps::dyn_clone::clone_trait_object!({}{}{}{});",
+					"{}\nbmw_deps::clone_trait_object!({}{}{}{});",
 					trait_impl,
 					match generic {
 						Some(generic) => generic.generic.clone(),
