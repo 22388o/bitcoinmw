@@ -235,6 +235,7 @@ macro_rules! slab_config {
             configure_box!(SlabAllocatorConfig, SlabAllocatorConfigOptions, vec![$($params)*])
         }};
 }
+pub(crate) use slab_config;
 
 /// A statistical snapshot that represents the current state of this [`crate::slabs::SlabAllocator`]
 /// which is returned by the [`crate::slabs::SlabAllocator::stats`] function.
@@ -359,7 +360,7 @@ impl SlabDataHolder {
 #[class {
     module "bmw_util::slabs";
     /// A slab allocator allocates byte arrays, or `slabs`, to be used in data structures.
-    pub slab_allocator;
+    pub slab_allocator, slab_allocator_sync_box;
     /// Specifies a [`SlabAllocatorConfig`]. See [`crate::slab_config`].
     const slab_config: Vec<SlabAllocatorConfig> = vec![];
     /// The number of slabs allocated internally, the [`SlabAllocator`] when it has no slabs.
@@ -424,6 +425,8 @@ impl SlabDataHolder {
     fn stats(&self) -> Result<Vec<SlabStats>, Error>;
 }]
 impl SlabAllocatorClass {}
+
+pub(crate) use slab_allocator_sync_box;
 
 impl SlabAllocatorClassVarBuilder for SlabAllocatorClassVar {
 	fn builder(constants: &SlabAllocatorClassConst) -> Result<Self, Error> {

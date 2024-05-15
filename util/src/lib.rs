@@ -16,9 +16,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+pub mod array;
 pub mod hashclass;
 pub mod lock;
 mod misc;
+pub mod slabio;
 pub mod slabs;
 //pub mod test;
 

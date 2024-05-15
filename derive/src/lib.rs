@@ -155,7 +155,14 @@ use crate::config::do_derive_configurable;
 #[proc_macro_error]
 #[cfg(not(tarpaulin_include))]
 pub fn derive_configurable(strm: TokenStream) -> TokenStream {
-	do_derive_configurable(strm)
+	do_derive_configurable(strm, false)
+}
+
+#[proc_macro_derive(DebugConfigurable, attributes(required, passthrough))]
+#[proc_macro_error]
+#[cfg(not(tarpaulin_include))]
+pub fn derive_debug_configurable(strm: TokenStream) -> TokenStream {
+	do_derive_configurable(strm, true)
 }
 
 // ser section

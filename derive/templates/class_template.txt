@@ -21,7 +21,7 @@ trait ${NAME}VarBuilder {
 }
 
 
-#[derive(Configurable, Clone)]
+#[derive(${DEBUG}Configurable, Clone)]
 #[doc(hidden)]
 ${CLASS_VISIBILITY} struct ${NAME}Const {
         ${CONST_PARAMS}

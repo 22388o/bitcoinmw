@@ -32,6 +32,7 @@ macro_rules! lock_box {
 		build_lock_box($value)
 	}};
 }
+pub(crate) use lock_box;
 
 pub fn build_lock_box<T>(t: T) -> Box<dyn LockBox<T>>
 where
@@ -56,24 +57,10 @@ where
 	/// Same as [`crate::LockBox::rlock`] except that any poison errors are ignored
 	/// by calling the underlying into_inner() fn.
 	fn rlock_ignore_poison(&self) -> Result<RwLockReadGuard<'_, T>, Error>;
-	/// consume the inner Arc and return a usize value. This function is dangerous
-	/// because it potentially leaks memory. The usize must be rebuilt into a lockbox
-	/// that can then be dropped via the [`crate::lock_box_from_usize`] function.
-	fn danger_to_usize(&self) -> usize;
 	/// return the inner data holder.
 	fn inner(&self) -> Arc<RwLock<T>>;
 	/// return the id for this lockbox.
 	fn id(&self) -> u128;
-}
-
-/// Rebuild a [`crate::LockBox`] from te usize which is returned from the
-/// [`crate::LockBox::danger_to_usize`] function.
-pub fn lock_box_from_usize<T>(value: usize) -> Box<dyn LockBox<T> + Send + Sync>
-where
-	T: Send + Sync + 'static,
-{
-	let t = unsafe { Arc::from_raw(value as *mut RwLock<T>) };
-	Box::new(LockImpl { id: random(), t })
 }
 
 #[derive(Clone)]
@@ -118,10 +105,6 @@ where
 
 	fn wlock_ignore_poison(&mut self) -> Result<RwLockWriteGuard<'_, T>, Error> {
 		self.do_wlock(true)
-	}
-
-	fn danger_to_usize(&self) -> usize {
-		Arc::into_raw(self.t.clone()) as usize
 	}
 
 	fn inner(&self) -> Arc<RwLock<T>> {

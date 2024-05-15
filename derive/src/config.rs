@@ -121,6 +121,7 @@ enum State {
 }
 
 struct StateMachine {
+	debug: bool,
 	state: State,
 	ret: TokenStream,
 	configurable_struct_name: Option<String>,
@@ -219,8 +220,9 @@ macro_rules! update_template {
 
 impl StateMachine {
 	#[cfg(not(tarpaulin_include))]
-	fn new() -> Self {
+	fn new(debug: bool) -> Self {
 		Self {
+			debug,
 			ret: TokenStream::new(),
 			configurable_struct_name: None,
 			state: WantsStruct,
@@ -350,8 +352,10 @@ impl StateMachine {
 													field.name = Some(item.to_string());
 													expect_name = false;
 													expect_comma = true;
+													prev_is_joint = false;
 												} else if expect_comma {
 													expect_comma = false;
+													prev_is_joint = false;
 												} else {
 													field.type_str = Some(
 														format!(
@@ -373,7 +377,9 @@ impl StateMachine {
 																prev_is_joint = true;
 															}
 														}
-														_ => {}
+														_ => {
+															prev_is_joint = false;
+														}
 													}
 												}
 											}
@@ -692,6 +698,7 @@ impl StateMachine {
 					replace_str = format!("{}{}(u128),\n", replace_str, field_pascal);
 				}
 				FieldType::Passthrough => {
+					println!("pass through type_str={}", type_str);
 					replace_str = format!("{}{}({}),\n", replace_str, field_pascal, type_str);
 				}
 			}
@@ -1039,14 +1046,16 @@ impl StateMachine {
 		);
 
 		self.ret.extend(template.parse::<TokenStream>());
-		//println!("ret_config='{}'", self.ret);
+		if self.debug {
+			println!("ret_config='{}'", self.ret);
+		}
 		Ok(())
 	}
 }
 
 #[cfg(not(tarpaulin_include))]
-pub(crate) fn do_derive_configurable(strm: TokenStream) -> TokenStream {
-	let mut state = StateMachine::new();
+pub(crate) fn do_derive_configurable(strm: TokenStream, debug: bool) -> TokenStream {
+	let mut state = StateMachine::new(debug);
 	match state.derive(&strm) {
 		Ok(ret) => ret,
 		Err(e) => {

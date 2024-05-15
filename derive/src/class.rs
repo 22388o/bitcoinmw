@@ -2044,6 +2044,12 @@ impl StateMachine {
 		template = self.update_macros(&template, &views, &view_pub_map)?;
 		template = self.update_builder(&template, &views, &view_pub_map)?;
 
+		if self.debug {
+			template = template.replace("${DEBUG}", "Debug").to_string();
+		} else {
+			template = template.replace("${DEBUG}", "").to_string();
+		}
+
 		self.ret.extend(template.parse::<TokenStream>());
 
 		// add back in the non-builder fns
@@ -3063,7 +3069,7 @@ impl StateMachine {
 				Err(ref e) => {
 					self.span = Some(cur_const.span);
 					self.append_error(&format!(
-						"failed to parse '{}'. Error: {:?}.",
+						"failed to parse3 '{}'. Error: {:?}.",
 						cur_const.value_str, e
 					))?;
 				}
@@ -3217,7 +3223,7 @@ impl StateMachine {
 				Err(ref e) => {
 					self.span = Some(cur_var.span);
 					self.append_error(&format!(
-						"failed to parse '{}'. Error: {:?}.",
+						"failed to parse4 '{}'. Error: {:?}.",
 						cur_var.type_str, e
 					))?;
 				}
@@ -3325,7 +3331,7 @@ impl StateMachine {
 								None => Some(cur_fn.span),
 							};
 							self.append_error(&format!(
-								"failed to parse '{}'. Error: {:?}.",
+								"failed to parse5 '{}'. Error: {:?}.",
 								cur_fn.return_list, e
 							))?;
 						}
@@ -3371,7 +3377,7 @@ impl StateMachine {
 						None => Some(cur_fn.span),
 					};
 					self.append_error(&format!(
-						"failed to parse '{}'. Error: {:?}.",
+						"failed to parse1 '{}'. Error: {:?}.",
 						cur_fn.return_list, e
 					))?;
 				}
@@ -3446,7 +3452,7 @@ impl StateMachine {
 			Ok(_) => {}
 			Err(ref e) => {
 				self.span = Some(span);
-				self.append_error(&format!("failed to parse '{}'. Error: {:?}.", type_str, e))?;
+				self.append_error(&format!("failed to parse2 '{}'. Error: {:?}.", type_str, e))?;
 			}
 		}
 		Ok(())
@@ -3468,7 +3474,22 @@ impl StateMachine {
 							let mut in_type = false;
 							let mut last_token = token.clone();
 							let mut first = true;
+							let mut prev_is_joint = false;
+							let mut prev_token = None;
 							for token in group.stream() {
+								let local_prev_is_joint = prev_is_joint;
+								match token {
+									Punct(ref p) => {
+										if p.spacing() == Spacing::Joint {
+											prev_is_joint = true;
+										} else {
+											prev_is_joint = false;
+										}
+									}
+									_ => {
+										prev_is_joint = false;
+									}
+								}
 								last_token = token.clone();
 								self.span = Some(token.span());
 								let token_str = token.to_string();
@@ -3484,12 +3505,19 @@ impl StateMachine {
 								} else if token_str == ":" {
 									in_type = true;
 								} else if in_type {
-									cur_type =
-										format!("{} {}", cur_type, token_str).trim().to_string();
+									if local_prev_is_joint {
+										cur_type =
+											format!("{}{}", cur_type, token_str).trim().to_string();
+									} else {
+										cur_type = format!("{} {}", cur_type, token_str)
+											.trim()
+											.to_string();
+									}
 								} else {
 									if first {
 										if token_str != "&"
-											&& token_str != "mut" && token_str != "self"
+											&& token_str != "mut" && token_str != "self" && token_str
+											!= "\'" && prev_token.unwrap_or("".to_string()) != "\'"
 										{
 											self_error = true;
 										}
@@ -3507,6 +3535,7 @@ impl StateMachine {
 										cur_name = token_str.clone();
 									}
 								}
+								prev_token = Some(token_str);
 							}
 							if cur_name.len() > 0 {
 								cur_fn.param_names.push(cur_name);
