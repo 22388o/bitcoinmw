@@ -17,14 +17,15 @@
 
 use crate::lock::LockBox;
 use crate::slabs::{SlabAllocator, THREAD_LOCAL_SLAB_ALLOCATOR};
-use crate::{set_max, slice_to_usize, usize_to_slice};
+use crate::{set_max, slice_to_u64, slice_to_usize, usize_to_slice};
 use bmw_core::*;
 use bmw_log::*;
 
 info!();
 
 #[class {
-	no_send;
+        module "bmw_util::slabio";
+        pub slab_reader, slab_writer, slab_reader_box, slab_writer_box;
 	var slab_allocator: Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>;
 	var id: u64;
 	var offset: usize;
@@ -49,8 +50,21 @@ info!();
 
         [slab_writer]
         fn write_fixed_bytes_impl(&mut self, bytes: &[u8]) -> Result<(), Error>;
+
+        [slab_reader, slab_writer]
+        fn get_id(&self) -> u64;
+
+        [slab_reader, slab_writer]
+        fn get_offset(&self) -> usize;
+
+        [slab_writer]
+        fn free_tail(&mut self, id: u64) -> Result<(), Error>;
+
 }]
 impl SlabIOClass {}
+
+pub(crate) use slab_reader_box;
+pub(crate) use slab_writer_box;
 
 impl SlabIOClassVarBuilder for SlabIOClassVar {
 	fn builder(constants: &SlabIOClassConst) -> Result<Self, Error> {
@@ -88,6 +102,18 @@ impl SlabIOClassVarBuilder for SlabIOClassVar {
 }
 
 impl SlabIOClass {
+	fn free_tail(&mut self, _id: u64) -> Result<(), Error> {
+		todo!()
+	}
+
+	fn get_id(&self) -> u64 {
+		*self.vars().get_id()
+	}
+
+	fn get_offset(&self) -> usize {
+		*self.vars().get_offset()
+	}
+
 	fn set_slab_allocator(
 		&mut self,
 		slab_allocator: Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>,
@@ -102,8 +128,46 @@ impl SlabIOClass {
 		Ok(())
 	}
 
-	fn skip(&mut self, _bytes: usize) -> Result<(), Error> {
-		todo!()
+	fn skip(&mut self, bytes: usize) -> Result<(), Error> {
+		match self.slab_allocator() {
+			Some(mut slab_allocator) => {
+				let mut slab_allocator = slab_allocator.wlock()?;
+				self.do_skip(bytes, &mut *slab_allocator)?;
+			}
+			None => {
+				THREAD_LOCAL_SLAB_ALLOCATOR.with(|f| -> Result<(), Error> {
+					let mut sa = f.borrow_mut();
+					self.do_skip(bytes, &mut *sa)?;
+					Ok(())
+				})?;
+			}
+		}
+
+		Ok(())
+	}
+
+	fn do_skip(
+		&mut self,
+		bytes: usize,
+		slab_allocator: &mut Box<dyn SlabAllocator + Send + Sync>,
+	) -> Result<(), Error> {
+		let mut cur_id = *self.vars().get_id();
+		let cur_offset = *self.vars().get_offset();
+		let ptr_size = *self.vars().get_ptr_size();
+		let slab_size = *self.constants().get_slab_size();
+		let data_per_slab = slab_size - ptr_size;
+
+		*self.vars_mut().get_mut_offset() = (cur_offset + bytes) % data_per_slab;
+
+		let nblocks = (cur_offset + bytes) / data_per_slab;
+
+		for _ in 0..nblocks {
+			let cur_block = slab_allocator.read(cur_id)?;
+			cur_id = slice_to_u64(&cur_block[data_per_slab..data_per_slab + ptr_size])?;
+		}
+		*self.vars_mut().get_mut_id() = cur_id;
+
+		Ok(())
 	}
 
 	fn cur_id(&mut self) -> &mut u64 {
@@ -243,59 +307,9 @@ impl SlabIOClass {
 	}
 }
 
-/*
- * Slab Block format:
- * [data - (len - ptr_size)]
- * [next data ptr - ptr_size]
- */
-
 impl Reader for Box<dyn SlabReader> {
 	fn read_fixed_bytes(&mut self, ret: &mut [u8]) -> Result<(), Error> {
 		self.read_fixed_bytes_impl(ret)
-		/*
-		match self.slab_allocator() {
-			Some(slab_allocator) => {
-				let mut cur_slab = *self.cur_id();
-				let mut cur_offset = *self.cur_offset();
-				let slab_allocator = slab_allocator.rlock()?;
-				let slab_data_size = self.slab_data_size();
-				let ptr_size = self.ptr_size();
-				let mut rem = slab_data_size.saturating_sub(cur_offset);
-				let mut needed = ret.len();
-				let mut itt = 0;
-
-				loop {
-					let to_read = if needed < rem { needed } else { rem };
-					let slab_bytes = slab_allocator.read(cur_slab)?;
-
-					debug!("loop with cur_slab={},cur_offset={}", cur_slab, cur_offset)?;
-
-					ret[itt..itt + to_read]
-						.clone_from_slice(&slab_bytes[cur_offset..cur_offset + to_read]);
-
-					itt += to_read;
-					needed -= to_read;
-
-					if needed == 0 {
-						cur_offset += to_read;
-					}
-
-					cbreak!(needed == 0);
-
-					let next_slab =
-						slice_to_usize(&slab_bytes[slab_data_size..slab_data_size + ptr_size])?;
-					cur_slab = try_into!(next_slab)?;
-					cur_offset = 0;
-					rem = slab_data_size;
-				}
-
-				*self.cur_id() = cur_slab;
-				*self.cur_offset() = cur_offset;
-				Ok(())
-			}
-			None => todo!(),
-		}
-			*/
 	}
 }
 
@@ -310,6 +324,8 @@ mod test {
 	use super::*;
 	use crate::lock::{build_lock_box, lock_box};
 	use crate::slabs::*;
+
+	debug!();
 
 	#[test]
 	fn test_slab_reader() -> Result<(), Error> {
@@ -448,6 +464,46 @@ mod test {
 		assert_eq!(ser_in, ser_out);
 		let v_u64 = slab_reader.read_u64()?;
 		assert_eq!(v_u64, 1234);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_skip() -> Result<(), Error> {
+		let mut slab_allocator = slab_allocator_sync_box!(
+			SlabConfig(slab_config!(SlabSize(512), SlabCount(1_000))?),
+			SlabsPerResize(100),
+		)?;
+		let id = slab_allocator.allocate(512)?;
+		debug!("id={}", id)?;
+		let mut slab_reader = slab_reader_box!()?;
+		let mut slab_writer = slab_writer_box!()?;
+		let lb1 = lock_box!(slab_allocator);
+		let lb2 = lb1.clone();
+		slab_reader.set_slab_allocator(lb1)?;
+		slab_writer.set_slab_allocator(lb2)?;
+		slab_reader.seek(id, 0)?;
+		slab_writer.seek(id, 0)?;
+
+		for i in 0..100 {
+			(i as usize).write(&mut slab_writer)?;
+		}
+
+		let v = usize::read(&mut slab_reader)?;
+		assert_eq!(v, 0);
+
+		let v = usize::read(&mut slab_reader)?;
+		assert_eq!(v, 1);
+
+		slab_reader.skip(8)?;
+
+		let v = usize::read(&mut slab_reader)?;
+		assert_eq!(v, 3);
+
+		slab_reader.skip(600)?;
+
+		let v = usize::read(&mut slab_reader)?;
+		assert_eq!(v, 79);
 
 		Ok(())
 	}
