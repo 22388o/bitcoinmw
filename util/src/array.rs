@@ -22,7 +22,6 @@ use bmw_core::*;
 use bmw_log::*;
 use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
-use std::ops::{Index, IndexMut};
 use ArrayErrors::*;
 
 debug!();
@@ -44,12 +43,6 @@ pub enum ArrayErrors {
 
     [array]
     fn len(&self) -> usize;
-
-    [array]
-    fn get(&self, index: usize) -> &T;
-
-    [array]
-    fn get_mut(&mut self, index: usize) -> &mut T;
 
     [array]
     fn set_value(&mut self, index: usize, value: &T) -> Result<(), Error>;
@@ -157,31 +150,33 @@ where
 		*self.vars().get_len()
 	}
 
-	fn get(&self, _index: usize) -> &T {
-		todo!()
-	}
+	fn get_slab_offset(&mut self, index: usize) -> Result<(u64, usize), Error> {
+		let root = *self.vars().get_root();
+		let bytes_per_entry = *self.constants().get_bytes_per_entry();
+		let slab_reader = self.vars_mut().get_mut_slab_reader();
 
-	fn get_mut(&mut self, _index: usize) -> &mut T {
-		todo!()
+		slab_reader.seek(root, 0)?;
+		let slots = (index * bytes_per_entry) / 512;
+		let offset = (index * bytes_per_entry) % 512;
+		slab_reader.skip(8 * slots)?;
+		let ptr = u64::read(&mut *slab_reader)?;
+		Ok((ptr, offset))
 	}
 
 	fn set_value(&mut self, index: usize, value: &T) -> Result<(), Error> {
-		let root = *self.vars().get_root();
-		let slab_reader = self.vars_mut().get_mut_slab_reader();
-		slab_reader.seek(root, 0)?;
-		let mut ptr: usize = 0;
-		for _ in 0..(index + 1) {
-			ptr = usize::read(&mut *slab_reader)?;
-		}
-		debug!("ptr={}", ptr)?;
+		let (ptr, offset) = self.get_slab_offset(index)?;
+		debug!("ptr={},offset={}", ptr, offset)?;
 
 		let slab_writer = self.vars_mut().get_mut_slab_writer();
+		slab_writer.seek(ptr, offset)?;
 		value.write(&mut *slab_writer)?;
 		Ok(())
 	}
 
-	fn get_value(&mut self, _index: usize, value: &mut T) -> Result<(), Error> {
+	fn get_value(&mut self, index: usize, value: &mut T) -> Result<(), Error> {
+		let (ptr, offset) = self.get_slab_offset(index)?;
 		let slab_reader = self.vars_mut().get_mut_slab_reader();
+		slab_reader.seek(ptr, offset)?;
 		*value = T::read(&mut *slab_reader)?;
 		Ok(())
 	}
@@ -190,25 +185,6 @@ where
 impl<'a, T> Debug for dyn Array<'a, T> {
 	fn fmt(&self, _: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
 		Ok(())
-	}
-}
-
-impl<'a, T> IndexMut<usize> for dyn Array<'a, T>
-where
-	T: Clone + Serializable + 'a,
-{
-	fn index_mut(&mut self, index: usize) -> &mut <Self as Index<usize>>::Output {
-		self.get_mut(index)
-	}
-}
-
-impl<'a, T> Index<usize> for dyn Array<'a, T>
-where
-	T: Clone + Serializable + 'a,
-{
-	type Output = T;
-	fn index(&self, index: usize) -> &<Self as Index<usize>>::Output {
-		self.get(index)
 	}
 }
 
@@ -224,9 +200,21 @@ mod test {
 
 		assert_eq!(array.len(), 100);
 
+		array.set_value(90, &111)?;
+
 		let mut v: u64 = 0;
 		array.get_value(0, &mut v)?;
-		//assert_eq!(v, 135);
+		assert_eq!(v, 135);
+
+		array.set_value(1, &136u64)?;
+
+		let mut v: u64 = 0;
+		array.get_value(1, &mut v)?;
+		assert_eq!(v, 136);
+
+		let mut v: u64 = 0;
+		array.get_value(90, &mut v)?;
+		assert_eq!(v, 111);
 
 		Ok(())
 	}
