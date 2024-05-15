@@ -33,7 +33,6 @@ info!();
         var invalid_ptr: [u8; 8];
         var max_value: usize;
         var null_ptr: [u8; 8];
-        const max_slabs: usize = (u32::MAX as usize) - 2;
         const slab_size: usize = 512;
 
 	[slab_reader, slab_writer]
@@ -67,22 +66,12 @@ pub(crate) use slab_reader_box;
 pub(crate) use slab_writer_box;
 
 impl SlabIOClassVarBuilder for SlabIOClassVar {
-	fn builder(constants: &SlabIOClassConst) -> Result<Self, Error> {
+	fn builder(_constants: &SlabIOClassConst) -> Result<Self, Error> {
 		let slab_allocator = None;
 		let mut invalid_ptr = [0u8; 8];
 		let mut null_ptr = [0u8; 8];
 
-		let mut ptr_size = 0;
-		// add 2 (1 termination pointer and one for free status)
-		let mut x = constants.max_slabs.saturating_add(2);
-		loop {
-			if x == 0 {
-				break;
-			}
-			x >>= 8;
-			ptr_size += 1;
-		}
-
+		let ptr_size = 8;
 		let mut ptr = [0u8; 8];
 		set_max(&mut ptr[0..ptr_size]);
 		let max_value = slice_to_usize(&ptr[0..ptr_size])?;
@@ -102,8 +91,53 @@ impl SlabIOClassVarBuilder for SlabIOClassVar {
 }
 
 impl SlabIOClass {
-	fn free_tail(&mut self, _id: u64) -> Result<(), Error> {
-		todo!()
+	fn free_tail(&mut self, id: u64) -> Result<(), Error> {
+		match self.slab_allocator() {
+			Some(mut slab_allocator) => {
+				let mut slab_allocator = slab_allocator.wlock()?;
+				self.do_free_tail(id, &mut *slab_allocator)?;
+			}
+			None => {
+				THREAD_LOCAL_SLAB_ALLOCATOR.with(|f| -> Result<(), Error> {
+					let mut sa = f.borrow_mut();
+					self.do_free_tail(id, &mut *sa)?;
+					Ok(())
+				})?;
+			}
+		}
+
+		Ok(())
+	}
+
+	fn do_free_tail(
+		&mut self,
+		id: u64,
+		sa: &mut Box<dyn SlabAllocator + Send + Sync>,
+	) -> Result<(), Error> {
+		let ptr_size = *self.vars().get_ptr_size();
+		let invalid_ptr = *self.vars().get_invalid_ptr();
+		let slab_size = *self.constants().get_slab_size();
+		debug!("slab_size={}", slab_size)?;
+		let data_per_slab = slab_size - ptr_size;
+		debug!("do free tail {}", id)?;
+		let mut cur_id = id;
+		let mut to_free_list = vec![];
+		loop {
+			let cur_slab = sa.read(cur_id)?;
+			to_free_list.push(cur_id);
+			debug!("cur_slab.len={},cur_id={}", cur_slab.len(), cur_id)?;
+			if cur_slab[data_per_slab..data_per_slab + ptr_size] == invalid_ptr {
+				break;
+			}
+
+			cur_id = slice_to_u64(&cur_slab[data_per_slab..data_per_slab + ptr_size])?;
+		}
+
+		for id in to_free_list {
+			debug!("free {}", id)?;
+			sa.free(id)?;
+		}
+		Ok(())
 	}
 
 	fn get_id(&self) -> u64 {
@@ -166,6 +200,13 @@ impl SlabIOClass {
 			cur_id = slice_to_u64(&cur_block[data_per_slab..data_per_slab + ptr_size])?;
 		}
 		*self.vars_mut().get_mut_id() = cur_id;
+
+		debug!(
+			"skip set offset to {}, id = {}, data_per_slab = {}",
+			*self.vars_mut().get_mut_offset(),
+			cur_id,
+			data_per_slab,
+		)?;
 
 		Ok(())
 	}
@@ -254,6 +295,10 @@ impl SlabIOClass {
 			rem = slab_data_size;
 		}
 
+		debug!(
+			"setting cur_slab = {}, cur_offset = {}",
+			cur_slab, cur_offset
+		)?;
 		*self.cur_id() = cur_slab;
 		*self.cur_offset() = cur_offset;
 		Ok(())
@@ -266,6 +311,7 @@ impl SlabIOClass {
 	) -> Result<(), Error> {
 		let slab_size = *self.constants().get_slab_size();
 		let ptr_size = *self.vars().get_ptr_size();
+		let invalid_ptr = *self.vars().get_invalid_ptr();
 		let slab_data_size = slab_size - ptr_size;
 
 		let mut cur_slab = *self.cur_id();
@@ -290,6 +336,9 @@ impl SlabIOClass {
 				itt += rem;
 				cur_offset = 0;
 				let nslab_id = (*slab_allocator).allocate(slab_size)?;
+				debug!("allocated id = {}", nslab_id)?;
+				(*slab_allocator).write(nslab_id, &invalid_ptr[0..ptr_size], slab_data_size)?;
+
 				let mut ptr_bytes = [0u8; 8];
 				usize_to_slice(try_into!(nslab_id)?, &mut ptr_bytes[0..ptr_size])?;
 				debug!("Allocated new slab: {}", nslab_id)?;
@@ -504,6 +553,49 @@ mod test {
 
 		let v = usize::read(&mut slab_reader)?;
 		assert_eq!(v, 79);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_slabio_free_tail() -> Result<(), Error> {
+		let mut slab_allocator = slab_allocator_sync_box!(
+			SlabConfig(slab_config!(SlabSize(512), SlabCount(1_000))?),
+			SlabsPerResize(100),
+		)?;
+
+		let stats = slab_allocator.stats()?;
+		assert_eq!(stats[0].cur_slabs, 0);
+
+		let id = slab_allocator.allocate(512)?;
+
+		let stats = slab_allocator.stats()?;
+		assert_eq!(stats[0].cur_slabs, 1);
+		debug!("id={}", id)?;
+		let mut slab_reader = slab_reader_box!()?;
+		let mut slab_writer = slab_writer_box!()?;
+		let lb1 = lock_box!(slab_allocator);
+		let lb2 = lb1.clone();
+		let lb3 = lb1.clone();
+		slab_reader.set_slab_allocator(lb1)?;
+		slab_writer.set_slab_allocator(lb2)?;
+		slab_reader.seek(id, 0)?;
+		slab_writer.seek(id, 0)?;
+
+		let stats = lb3.rlock()?.stats()?;
+		assert_eq!(stats[0].cur_slabs, 1);
+
+		for i in 0..100 {
+			(i as usize).write(&mut slab_writer)?;
+		}
+
+		let stats = lb3.rlock()?.stats()?;
+		assert_eq!(stats[0].cur_slabs, 2);
+
+		slab_writer.free_tail(id)?;
+
+		let stats = lb3.rlock()?.stats()?;
+		assert_eq!(stats[0].cur_slabs, 0);
 
 		Ok(())
 	}
