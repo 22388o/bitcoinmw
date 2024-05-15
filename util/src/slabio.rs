@@ -15,20 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::lock::{build_lock_box, lock_box, LockBox};
-use crate::slabs::SlabAllocator;
-use crate::slabs::*;
+use crate::lock::LockBox;
+use crate::slabs::{SlabAllocator, THREAD_LOCAL_SLAB_ALLOCATOR};
 use crate::{set_max, slice_to_usize, usize_to_slice};
 use bmw_core::*;
 use bmw_log::*;
-use SlabIOErrors::*;
 
 info!();
-
-#[ErrorKind]
-pub enum SlabIOErrors {
-	CorruptedData,
-}
 
 #[class {
 	no_send;
@@ -51,28 +44,16 @@ pub enum SlabIOErrors {
 	[slab_reader, slab_writer]
 	fn skip(&mut self, bytes: usize) -> Result<(), Error>;
 
-        [slab_reader, slab_writer]
-        fn cur_id(&mut self) -> &mut u64;
+        [slab_reader]
+        fn read_fixed_bytes_impl(&mut self, bytes: &mut [u8]) -> Result<(), Error>;
 
-        [slab_reader, slab_writer]
-        fn cur_offset(&mut self) -> &mut usize;
-
-        [slab_reader, slab_writer]
-        fn slab_allocator(&mut self) -> Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>;
-
-        [slab_reader, slab_writer]
-        fn slab_size(&self) -> usize;
-
-        [slab_reader, slab_writer]
-        fn ptr_size(&self) -> usize;
-
-        [slab_reader, slab_writer]
-        fn slab_data_size(&self) -> usize;
+        [slab_writer]
+        fn write_fixed_bytes_impl(&mut self, bytes: &[u8]) -> Result<(), Error>;
 }]
-impl SlabReaderClass {}
+impl SlabIOClass {}
 
-impl SlabReaderClassVarBuilder for SlabReaderClassVar {
-	fn builder(constants: &SlabReaderClassConst) -> Result<Self, Error> {
+impl SlabIOClassVarBuilder for SlabIOClassVar {
+	fn builder(constants: &SlabIOClassConst) -> Result<Self, Error> {
 		let slab_allocator = None;
 		let mut invalid_ptr = [0u8; 8];
 		let mut null_ptr = [0u8; 8];
@@ -106,7 +87,7 @@ impl SlabReaderClassVarBuilder for SlabReaderClassVar {
 	}
 }
 
-impl SlabReaderClass {
+impl SlabIOClass {
 	fn set_slab_allocator(
 		&mut self,
 		slab_allocator: Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>,
@@ -133,20 +114,132 @@ impl SlabReaderClass {
 		self.vars_mut().get_mut_offset()
 	}
 
-	fn slab_size(&self) -> usize {
-		self.constants().slab_size
-	}
-
-	fn ptr_size(&self) -> usize {
-		*self.vars().get_ptr_size()
-	}
-
-	fn slab_data_size(&self) -> usize {
-		self.slab_size().saturating_sub(self.ptr_size())
-	}
-
 	fn slab_allocator(&mut self) -> Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>> {
 		(*self.vars_mut().get_mut_slab_allocator()).clone()
+	}
+
+	fn read_fixed_bytes_impl(&mut self, ret: &mut [u8]) -> Result<(), Error> {
+		match self.slab_allocator() {
+			Some(slab_allocator) => {
+				let slab_allocator = slab_allocator.rlock()?;
+				self.do_read_fixed_bytes_impl(ret, &*slab_allocator)?;
+			}
+			None => {
+				THREAD_LOCAL_SLAB_ALLOCATOR.with(|f| -> Result<(), Error> {
+					let sa = f.borrow();
+					self.do_read_fixed_bytes_impl(ret, &*sa)?;
+					Ok(())
+				})?;
+			}
+		}
+
+		Ok(())
+	}
+
+	fn write_fixed_bytes_impl(&mut self, bytes: &[u8]) -> Result<(), Error> {
+		match self.slab_allocator() {
+			Some(mut slab_allocator) => {
+				let mut slab_allocator = slab_allocator.wlock()?;
+				self.do_write_fixed_bytes_impl(bytes, &mut *slab_allocator)?;
+			}
+			None => {
+				THREAD_LOCAL_SLAB_ALLOCATOR.with(|f| -> Result<(), Error> {
+					let mut sa = f.borrow_mut();
+					self.do_write_fixed_bytes_impl(bytes, &mut *sa)?;
+					Ok(())
+				})?;
+			}
+		}
+		Ok(())
+	}
+
+	fn do_read_fixed_bytes_impl(
+		&mut self,
+		ret: &mut [u8],
+		slab_allocator: &Box<dyn SlabAllocator + Send + Sync>,
+	) -> Result<(), Error> {
+		let mut cur_slab = *self.cur_id();
+		let mut cur_offset = *self.cur_offset();
+		let ptr_size = *self.vars().get_ptr_size();
+		let slab_size = *self.constants().get_slab_size();
+		let slab_data_size = slab_size - ptr_size;
+		let mut rem = slab_data_size.saturating_sub(cur_offset);
+		let mut needed = ret.len();
+		let mut itt = 0;
+
+		loop {
+			let to_read = if needed < rem { needed } else { rem };
+			let slab_bytes = slab_allocator.read(cur_slab)?;
+
+			debug!("loop with cur_slab={},cur_offset={}", cur_slab, cur_offset)?;
+
+			ret[itt..itt + to_read].clone_from_slice(&slab_bytes[cur_offset..cur_offset + to_read]);
+
+			itt += to_read;
+			needed -= to_read;
+
+			if needed == 0 {
+				cur_offset += to_read;
+			}
+
+			cbreak!(needed == 0);
+
+			let next_slab = slice_to_usize(&slab_bytes[slab_data_size..slab_data_size + ptr_size])?;
+			cur_slab = try_into!(next_slab)?;
+			cur_offset = 0;
+			rem = slab_data_size;
+		}
+
+		*self.cur_id() = cur_slab;
+		*self.cur_offset() = cur_offset;
+		Ok(())
+	}
+
+	fn do_write_fixed_bytes_impl(
+		&mut self,
+		bytes: &[u8],
+		slab_allocator: &mut Box<dyn SlabAllocator + Send + Sync>,
+	) -> Result<(), Error> {
+		let slab_size = *self.constants().get_slab_size();
+		let ptr_size = *self.vars().get_ptr_size();
+		let slab_data_size = slab_size - ptr_size;
+
+		let mut cur_slab = *self.cur_id();
+		let mut cur_offset = *self.cur_offset();
+		let mut needed = bytes.len();
+		let mut itt = 0;
+
+		debug!("pre write loop")?;
+		loop {
+			let rem = slab_data_size - cur_offset;
+			if needed <= rem {
+				debug!(
+					"needed is enough write slab_id={},offset={}",
+					cur_slab, cur_offset
+				)?;
+				(*slab_allocator).write(cur_slab, &bytes[itt..itt + needed], cur_offset)?;
+				cur_offset += needed;
+				needed = 0;
+			} else {
+				(*slab_allocator).write(cur_slab, &bytes[itt..itt + rem], cur_offset)?;
+				needed -= rem;
+				itt += rem;
+				cur_offset = 0;
+				let nslab_id = (*slab_allocator).allocate(slab_size)?;
+				let mut ptr_bytes = [0u8; 8];
+				usize_to_slice(try_into!(nslab_id)?, &mut ptr_bytes[0..ptr_size])?;
+				debug!("Allocated new slab: {}", nslab_id)?;
+				(*slab_allocator).write(cur_slab, &ptr_bytes[0..ptr_size], slab_data_size)?;
+
+				cur_slab = nslab_id;
+			}
+
+			cbreak!(needed == 0);
+		}
+
+		*self.cur_id() = cur_slab;
+		*self.cur_offset() = cur_offset;
+		Ok(())
 	}
 }
 
@@ -157,56 +250,9 @@ impl SlabReaderClass {
  */
 
 impl Reader for Box<dyn SlabReader> {
-	fn read_u8(&mut self) -> Result<u8, Error> {
-		let mut ret = [0u8; 1];
-		self.read_fixed_bytes(&mut ret)?;
-		Ok(u8::from_be_bytes(try_into!(ret)?))
-	}
-	fn read_i8(&mut self) -> Result<i8, Error> {
-		let mut ret = [0u8; 1];
-		self.read_fixed_bytes(&mut ret)?;
-		Ok(i8::from_be_bytes(try_into!(ret)?))
-	}
-	fn read_i16(&mut self) -> Result<i16, Error> {
-		let mut ret = [0u8; 2];
-		self.read_fixed_bytes(&mut ret)?;
-		Ok(i16::from_be_bytes(try_into!(ret)?))
-	}
-	fn read_u16(&mut self) -> Result<u16, Error> {
-		let mut ret = [0u8; 2];
-		self.read_fixed_bytes(&mut ret)?;
-		Ok(u16::from_be_bytes(try_into!(ret)?))
-	}
-	fn read_u32(&mut self) -> Result<u32, Error> {
-		let mut ret = [0u8; 4];
-		self.read_fixed_bytes(&mut ret)?;
-		Ok(u32::from_be_bytes(try_into!(ret)?))
-	}
-	fn read_u64(&mut self) -> Result<u64, Error> {
-		// only 64 bit supported
-		Ok(try_into!(self.read_usize()?)?)
-	}
-	fn read_u128(&mut self) -> Result<u128, Error> {
-		let mut ret = [0u8; 16];
-		self.read_fixed_bytes(&mut ret)?;
-		Ok(u128::from_be_bytes(try_into!(ret)?))
-	}
-	fn read_i128(&mut self) -> Result<i128, Error> {
-		let mut ret = [0u8; 16];
-		self.read_fixed_bytes(&mut ret)?;
-		Ok(i128::from_be_bytes(try_into!(ret)?))
-	}
-	fn read_i32(&mut self) -> Result<i32, Error> {
-		let mut ret = [0u8; 4];
-		self.read_fixed_bytes(&mut ret)?;
-		Ok(i32::from_be_bytes(try_into!(ret)?))
-	}
-	fn read_i64(&mut self) -> Result<i64, Error> {
-		let mut ret = [0u8; 8];
-		self.read_fixed_bytes(&mut ret)?;
-		Ok(i64::from_be_bytes(try_into!(ret)?))
-	}
 	fn read_fixed_bytes(&mut self, ret: &mut [u8]) -> Result<(), Error> {
+		self.read_fixed_bytes_impl(ret)
+		/*
 		match self.slab_allocator() {
 			Some(slab_allocator) => {
 				let mut cur_slab = *self.cur_id();
@@ -249,83 +295,21 @@ impl Reader for Box<dyn SlabReader> {
 			}
 			None => todo!(),
 		}
-	}
-	fn read_usize(&mut self) -> Result<usize, Error> {
-		let mut ret = [0u8; 8];
-		self.read_fixed_bytes(&mut ret)?;
-		Ok(usize::from_be_bytes(try_into!(ret)?))
-	}
-	fn expect_u8(&mut self, x: u8) -> Result<u8, Error> {
-		let mut ret = [0u8; 1];
-		self.read_fixed_bytes(&mut ret)?;
-		if ret[0] != x {
-			err!(CorruptedData, "expected '{}', found '{}'", x, ret[0])
-		} else {
-			Ok(u8::from_be_bytes(try_into!(ret)?))
-		}
+			*/
 	}
 }
 
 impl Writer for Box<dyn SlabWriter> {
-	fn write_fixed_bytes<'a, T: AsRef<[u8]>>(&mut self, bytes: T) -> Result<(), Error> {
-		match self.slab_allocator() {
-			Some(mut slab_allocator) => {
-				let mut slab_allocator = slab_allocator.wlock()?;
-
-				let bytes = bytes.as_ref();
-				let ptr_size = self.ptr_size();
-				let slab_size = self.slab_size();
-				let slab_data_size = self.slab_data_size();
-
-				let mut cur_slab = *self.cur_id();
-				let mut cur_offset = *self.cur_offset();
-				let mut needed = bytes.len();
-				let mut itt = 0;
-
-				debug!("pre write loop")?;
-				loop {
-					let rem = slab_data_size - cur_offset;
-					if needed <= rem {
-						debug!(
-							"needed is enough write slab_id={},offset={}",
-							cur_slab, cur_offset
-						)?;
-						(*slab_allocator).write(cur_slab, &bytes[itt..itt + needed], cur_offset)?;
-						cur_offset += needed;
-						needed = 0;
-					} else {
-						(*slab_allocator).write(cur_slab, &bytes[itt..itt + rem], cur_offset)?;
-						needed -= rem;
-						itt += rem;
-						cur_offset = 0;
-						let nslab_id = (*slab_allocator).allocate(slab_size)?;
-						let mut ptr_bytes = [0u8; 8];
-						usize_to_slice(try_into!(nslab_id)?, &mut ptr_bytes[0..ptr_size])?;
-						debug!("Allocated new slab: {}", nslab_id)?;
-						(*slab_allocator).write(
-							cur_slab,
-							&ptr_bytes[0..ptr_size],
-							slab_data_size,
-						)?;
-
-						cur_slab = nslab_id;
-					}
-
-					cbreak!(needed == 0);
-				}
-
-				*self.cur_id() = cur_slab;
-				*self.cur_offset() = cur_offset;
-			}
-			None => todo!(),
-		}
-		Ok(())
+	fn write_fixed_bytes<T: AsRef<[u8]>>(&mut self, bytes: T) -> Result<(), Error> {
+		self.write_fixed_bytes_impl(bytes.as_ref())
 	}
 }
 
 #[cfg(test)]
 mod test {
 	use super::*;
+	use crate::lock::{build_lock_box, lock_box};
+	use crate::slabs::*;
 
 	#[test]
 	fn test_slab_reader() -> Result<(), Error> {
@@ -358,7 +342,35 @@ mod test {
 			debug!("x={:?}", x)?;
 		}
 
-		debug!("data_sz={}", slab_reader.slab_data_size())?;
+		Ok(())
+	}
+
+	#[test]
+	fn test_thread_local_slabs() -> Result<(), Error> {
+		let id = THREAD_LOCAL_SLAB_ALLOCATOR.with(|f| -> Result<u64, Error> {
+			let mut sa = f.borrow_mut();
+			sa.allocate(512)
+		})?;
+		debug!("id={}", id)?;
+		let mut slab_reader = slab_reader_box!()?;
+		let mut slab_writer = slab_writer_box!()?;
+		slab_reader.seek(id, 0)?;
+		slab_writer.seek(id, 0)?;
+
+		let mut v = 100;
+		for _ in 0..100 {
+			slab_writer.write_usize(v)?;
+			v += 100;
+		}
+
+		let mut v = 100;
+		for _ in 0..100 {
+			let x = slab_reader.read_usize()?;
+			assert_eq!(x, v);
+			v += 100;
+			debug!("x={:?}", x)?;
+		}
+
 		Ok(())
 	}
 
@@ -396,7 +408,6 @@ mod test {
 			}
 		}
 
-		debug!("data_sz={}", slab_reader.slab_data_size())?;
 		Ok(())
 	}
 

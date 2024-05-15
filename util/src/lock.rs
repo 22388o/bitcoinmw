@@ -32,6 +32,7 @@ macro_rules! lock_box {
 		build_lock_box($value)
 	}};
 }
+#[cfg(test)]
 pub(crate) use lock_box;
 
 pub fn build_lock_box<T>(t: T) -> Box<dyn LockBox<T>>

@@ -53,7 +53,7 @@ where
 {
 	fn builder(constants: &ArrayClassConst) -> Result<Self, Error> {
 		let mut len = 0;
-		let mut init_value: Option<T> = None;
+		let _init_value: Option<T> = None;
 		for passthrough in &constants.passthroughs {
 			if passthrough.name == "len" {
 				debug!("found size")?;
@@ -85,11 +85,11 @@ where
 		*self.vars().get_len()
 	}
 
-	fn get(&self, index: usize) -> &T {
+	fn get(&self, _index: usize) -> &T {
 		todo!()
 	}
 
-	fn get_mut(&mut self, index: usize) -> &mut T {
+	fn get_mut(&mut self, _index: usize) -> &mut T {
 		todo!()
 	}
 }
@@ -121,9 +121,8 @@ where
 
 #[cfg(test)]
 mod test {
-	use super::*;
-
-	//#[test]
+	/*
+	#[test]
 	fn test_array() -> Result<(), Error> {
 		let mut array = array_box!(Len(10))?;
 		array[0] = 1usize;
@@ -133,4 +132,5 @@ mod test {
 
 		Ok(())
 	}
+		*/
 }

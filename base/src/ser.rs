@@ -439,136 +439,6 @@ pub trait Writer {
 /// * [`crate::BinReader`]
 /// * [`crate::BinWriter`]
 pub trait Reader {
-	/// read a u8 from the reader and return the value
-	/// # Input Parameters
-	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
-	/// # Return
-	/// The [`u8`] that is read from the [`crate::Reader`].
-	/// # Errors
-	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
-	/// # Also see
-	/// * [`crate::Reader`]
-	/// * [`crate::Writer`]
-	/// * [`crate::BinReader`]
-	/// * [`crate::BinWriter`]
-	fn read_u8(&mut self) -> Result<u8, Error>;
-	/// read an i8 from the reader and return the value
-	/// # Input Parameters
-	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
-	/// # Return
-	/// The [`i8`] that is read from the [`crate::Reader`].
-	/// # Errors
-	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
-	/// # Also see
-	/// * [`crate::Reader`]
-	/// * [`crate::Writer`]
-	/// * [`crate::BinReader`]
-	/// * [`crate::BinWriter`]
-	fn read_i8(&mut self) -> Result<i8, Error>;
-	/// read an i16 from the reader and return the value
-	/// # Input Parameters
-	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
-	/// # Return
-	/// The [`i16`] that is read from the [`crate::Reader`].
-	/// # Errors
-	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
-	/// # Also see
-	/// * [`crate::Reader`]
-	/// * [`crate::Writer`]
-	/// * [`crate::BinReader`]
-	/// * [`crate::BinWriter`]
-	fn read_i16(&mut self) -> Result<i16, Error>;
-	/// read a u16 from the reader and return the value
-	/// # Input Parameters
-	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
-	/// # Return
-	/// The [`u16`] that is read from the [`crate::Reader`].
-	/// # Errors
-	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
-	/// # Also see
-	/// * [`crate::Reader`]
-	/// * [`crate::Writer`]
-	/// * [`crate::BinReader`]
-	/// * [`crate::BinWriter`]
-	fn read_u16(&mut self) -> Result<u16, Error>;
-	/// read a u32 from the reader and return the value
-	/// # Input Parameters
-	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
-	/// # Return
-	/// The [`u32`] that is read from the [`crate::Reader`].
-	/// # Errors
-	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
-	/// # Also see
-	/// * [`crate::Reader`]
-	/// * [`crate::Writer`]
-	/// * [`crate::BinReader`]
-	/// * [`crate::BinWriter`]
-	fn read_u32(&mut self) -> Result<u32, Error>;
-	/// read a u64 from the reader and return the value
-	/// # Input Parameters
-	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
-	/// # Return
-	/// The [`u64`] that is read from the [`crate::Reader`].
-	/// # Errors
-	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
-	/// # Also see
-	/// * [`crate::Reader`]
-	/// * [`crate::Writer`]
-	/// * [`crate::BinReader`]
-	/// * [`crate::BinWriter`]
-	fn read_u64(&mut self) -> Result<u64, Error>;
-	/// read a u128 from the reader and return the value
-	/// # Input Parameters
-	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
-	/// # Return
-	/// The [`u128`] that is read from the [`crate::Reader`].
-	/// # Errors
-	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
-	/// # Also see
-	/// * [`crate::Reader`]
-	/// * [`crate::Writer`]
-	/// * [`crate::BinReader`]
-	/// * [`crate::BinWriter`]
-	fn read_u128(&mut self) -> Result<u128, Error>;
-	/// read an i128 from the reader and return the value
-	/// # Input Parameters
-	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
-	/// # Return
-	/// The [`i128`] that is read from the [`crate::Reader`].
-	/// # Errors
-	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
-	/// # Also see
-	/// * [`crate::Reader`]
-	/// * [`crate::Writer`]
-	/// * [`crate::BinReader`]
-	/// * [`crate::BinWriter`]
-	fn read_i128(&mut self) -> Result<i128, Error>;
-	/// read an i32 from the reader and return the value
-	/// # Input Parameters
-	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
-	/// # Return
-	/// The [`i32`] that is read from the [`crate::Reader`].
-	/// # Errors
-	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
-	/// # Also see
-	/// * [`crate::Reader`]
-	/// * [`crate::Writer`]
-	/// * [`crate::BinReader`]
-	/// * [`crate::BinWriter`]
-	fn read_i32(&mut self) -> Result<i32, Error>;
-	/// read an i64 from the reader and return the value
-	/// # Input Parameters
-	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
-	/// # Return
-	/// The [`i64`] that is read from the [`crate::Reader`].
-	/// # Errors
-	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
-	/// # Also see
-	/// * [`crate::Reader`]
-	/// * [`crate::Writer`]
-	/// * [`crate::BinReader`]
-	/// * [`crate::BinWriter`]
-	fn read_i64(&mut self) -> Result<i64, Error>;
 	/// read a fixed length of bytes from the reader store them in `buf`
 	/// # Input Parameters
 	/// * `&mut self` - a mutable reference to self the [`crate::Reader`].
@@ -584,6 +454,176 @@ pub trait Reader {
 	/// * [`crate::BinReader`]
 	/// * [`crate::BinWriter`]
 	fn read_fixed_bytes(&mut self, buf: &mut [u8]) -> Result<(), Error>;
+	/// read a u8 from the reader and return the value
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`u8`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
+	fn read_u8(&mut self) -> Result<u8, Error> {
+		let mut b = [0u8; 1];
+		self.read_fixed_bytes(&mut b)?;
+		Ok(b[0])
+	}
+	/// read an i8 from the reader and return the value
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`i8`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
+	fn read_i8(&mut self) -> Result<i8, Error> {
+		let mut b = [0u8; 1];
+		self.read_fixed_bytes(&mut b)?;
+		Ok(b[0] as i8)
+	}
+	/// read an i16 from the reader and return the value
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`i16`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
+	fn read_i16(&mut self) -> Result<i16, Error> {
+		let mut b = [0u8; 2];
+		self.read_fixed_bytes(&mut b)?;
+		Ok(i16::from_be_bytes(b))
+	}
+	/// read a u16 from the reader and return the value
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`u16`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
+	fn read_u16(&mut self) -> Result<u16, Error> {
+		let mut b = [0u8; 2];
+		self.read_fixed_bytes(&mut b)?;
+		Ok(u16::from_be_bytes(b))
+	}
+	/// read a u32 from the reader and return the value
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`u32`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
+	fn read_u32(&mut self) -> Result<u32, Error> {
+		let mut b = [0u8; 4];
+		self.read_fixed_bytes(&mut b)?;
+		Ok(u32::from_be_bytes(b))
+	}
+	/// read a u64 from the reader and return the value
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`u64`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
+	fn read_u64(&mut self) -> Result<u64, Error> {
+		let mut b = [0u8; 8];
+		self.read_fixed_bytes(&mut b)?;
+		Ok(u64::from_be_bytes(b))
+	}
+	/// read a u128 from the reader and return the value
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`u128`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
+	fn read_u128(&mut self) -> Result<u128, Error> {
+		let mut b = [0u8; 16];
+		self.read_fixed_bytes(&mut b)?;
+		Ok(u128::from_be_bytes(b))
+	}
+	/// read an i128 from the reader and return the value
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`i128`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
+	fn read_i128(&mut self) -> Result<i128, Error> {
+		let mut b = [0u8; 16];
+		self.read_fixed_bytes(&mut b)?;
+		Ok(i128::from_be_bytes(b))
+	}
+	/// read an i32 from the reader and return the value
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`i32`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
+	fn read_i32(&mut self) -> Result<i32, Error> {
+		let mut b = [0u8; 4];
+		self.read_fixed_bytes(&mut b)?;
+		Ok(i32::from_be_bytes(b))
+	}
+	/// read an i64 from the reader and return the value
+	/// # Input Parameters
+	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
+	/// # Return
+	/// The [`i64`] that is read from the [`crate::Reader`].
+	/// # Errors
+	/// * [`crate::CoreErrorKind::IO`] - if an i/o error occurs
+	/// # Also see
+	/// * [`crate::Reader`]
+	/// * [`crate::Writer`]
+	/// * [`crate::BinReader`]
+	/// * [`crate::BinWriter`]
+	fn read_i64(&mut self) -> Result<i64, Error> {
+		let mut b = [0u8; 8];
+		self.read_fixed_bytes(&mut b)?;
+		Ok(i64::from_be_bytes(b))
+	}
 	/// read usize from the Reader.
 	/// # Input Parameters
 	/// `&mut self` - a mutable reference to self the [`crate::Reader`].
@@ -596,7 +636,11 @@ pub trait Reader {
 	/// * [`crate::Writer`]
 	/// * [`crate::BinReader`]
 	/// * [`crate::BinWriter`]
-	fn read_usize(&mut self) -> Result<usize, Error>;
+	fn read_usize(&mut self) -> Result<usize, Error> {
+		let mut b = [0u8; 8];
+		self.read_fixed_bytes(&mut b)?;
+		Ok(usize::from_be_bytes(b))
+	}
 	/// expect a specific byte, otherwise return an error
 	/// # Input Parameters
 	/// * `&mut self` - a mutable reference to self the [`crate::Reader`].
@@ -611,7 +655,15 @@ pub trait Reader {
 	/// * [`crate::Writer`]
 	/// * [`crate::BinReader`]
 	/// * [`crate::BinWriter`]
-	fn expect_u8(&mut self, val: u8) -> Result<u8, Error>;
+	fn expect_u8(&mut self, val: u8) -> Result<u8, Error> {
+		let b = self.read_u8()?;
+		if b == val {
+			Ok(b)
+		} else {
+			let fmt = format!("expected: {:?}, received: {:?}", val, b);
+			err!(CoreErrorKind::CorruptedData, fmt)
+		}
+	}
 
 	/// Read bytes, expect them all to be 0u8. Otherwise, reutrn an error.
 	/// # Input Parameters
@@ -918,75 +970,8 @@ impl<'a, R: Read> BinReader<'a, R> {
 }
 
 impl<'a, R: Read> Reader for BinReader<'a, R> {
-	fn read_u8(&mut self) -> Result<u8, Error> {
-		let mut b = [0u8; 1];
-		self.source.read_exact(&mut b)?;
-		Ok(b[0])
-	}
-	fn read_i8(&mut self) -> Result<i8, Error> {
-		let mut b = [0u8; 1];
-		self.source.read_exact(&mut b)?;
-		Ok(b[0] as i8)
-	}
-	fn read_i16(&mut self) -> Result<i16, Error> {
-		let mut b = [0u8; 2];
-		self.source.read_exact(&mut b)?;
-		Ok(i16::from_be_bytes(b))
-	}
-	fn read_u16(&mut self) -> Result<u16, Error> {
-		let mut b = [0u8; 2];
-		self.source.read_exact(&mut b)?;
-		Ok(u16::from_be_bytes(b))
-	}
-	fn read_u32(&mut self) -> Result<u32, Error> {
-		let mut b = [0u8; 4];
-		self.source.read_exact(&mut b)?;
-		Ok(u32::from_be_bytes(b))
-	}
-	fn read_i32(&mut self) -> Result<i32, Error> {
-		let mut b = [0u8; 4];
-		self.source.read_exact(&mut b)?;
-		Ok(i32::from_be_bytes(b))
-	}
-	fn read_u64(&mut self) -> Result<u64, Error> {
-		let mut b = [0u8; 8];
-		self.source.read_exact(&mut b)?;
-		Ok(u64::from_be_bytes(b))
-	}
-	fn read_i128(&mut self) -> Result<i128, Error> {
-		let mut b = [0u8; 16];
-		self.source.read_exact(&mut b)?;
-		Ok(i128::from_be_bytes(b))
-	}
-	fn read_usize(&mut self) -> Result<usize, Error> {
-		let mut b = [0u8; 8];
-		self.source.read_exact(&mut b)?;
-		Ok(usize::from_be_bytes(b))
-	}
-
-	fn read_u128(&mut self) -> Result<u128, Error> {
-		let mut b = [0u8; 16];
-		self.source.read_exact(&mut b)?;
-		Ok(u128::from_be_bytes(b))
-	}
-	fn read_i64(&mut self) -> Result<i64, Error> {
-		let mut b = [0u8; 8];
-		self.source.read_exact(&mut b)?;
-		Ok(i64::from_be_bytes(b))
-	}
-
 	fn read_fixed_bytes(&mut self, buf: &mut [u8]) -> Result<(), Error> {
 		self.source.read_exact(buf)?;
 		Ok(())
-	}
-
-	fn expect_u8(&mut self, val: u8) -> Result<u8, Error> {
-		let b = self.read_u8()?;
-		if b == val {
-			Ok(b)
-		} else {
-			let fmt = format!("expected: {:?}, received: {:?}", val, b);
-			err!(CoreErrorKind::CorruptedData, fmt)
-		}
 	}
 }

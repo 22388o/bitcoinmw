@@ -698,7 +698,6 @@ impl StateMachine {
 					replace_str = format!("{}{}(u128),\n", replace_str, field_pascal);
 				}
 				FieldType::Passthrough => {
-					println!("pass through type_str={}", type_str);
 					replace_str = format!("{}{}({}),\n", replace_str, field_pascal, type_str);
 				}
 			}

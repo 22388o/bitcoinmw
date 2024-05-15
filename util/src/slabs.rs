@@ -60,8 +60,8 @@ use SlabAllocatorErrors::*;
 info!();
 
 thread_local! {
-	pub static THREAD_LOCAL_SLAB_ALLOCATOR: RefCell<Box<dyn SlabAllocator>> = RefCell::new(
-		SlabAllocatorClassBuilder::build_slab_allocator_box(
+	pub static THREAD_LOCAL_SLAB_ALLOCATOR: RefCell<Box<dyn SlabAllocator + Send + Sync>> = RefCell::new(
+		SlabAllocatorClassBuilder::build_slab_allocator_sync_box(
 			vec![
 				SlabConfig(
 					Box::new(
@@ -235,6 +235,7 @@ macro_rules! slab_config {
             configure_box!(SlabAllocatorConfig, SlabAllocatorConfigOptions, vec![$($params)*])
         }};
 }
+#[cfg(test)]
 pub(crate) use slab_config;
 
 /// A statistical snapshot that represents the current state of this [`crate::slabs::SlabAllocator`]
@@ -426,6 +427,7 @@ impl SlabDataHolder {
 }]
 impl SlabAllocatorClass {}
 
+#[cfg(test)]
 pub(crate) use slab_allocator_sync_box;
 
 impl SlabAllocatorClassVarBuilder for SlabAllocatorClassVar {
