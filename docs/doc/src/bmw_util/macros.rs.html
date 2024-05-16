@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/macros.rs`."><title>macros.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.2 (25ef9e3d8 2024-04-09)" data-channel="1.77.2" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `util/src/macros.rs`."><title>macros.rs - source</title><script> if (window.location.protocol !== "file:") document.write(`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2">`)</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-e935ef01ae1c1829.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_util" data-themes="" data-resource-suffix="" data-rustdoc-version="1.78.0 (9b00956e5 2024-04-29)" data-channel="1.78.0" data-search-js="search-42d8da7a6b9792c2.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-12cf3b4f4f9dc36d.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
             <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../bmw_util/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
@@ -2807,7 +2807,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>lock {
+</span><span class="macro">macro_rules!</span> lock {
 	(<span class="macro-nonterminal">$value</span>:expr) =&gt; {{
 		bmw_util::UtilBuilder::build_lock(<span class="macro-nonterminal">$value</span>)
 	}};
@@ -2854,7 +2854,7 @@
 /// }   
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>lock_box {
+</span><span class="macro">macro_rules!</span> lock_box {
 	(<span class="macro-nonterminal">$value</span>:expr) =&gt; {{
 		bmw_util::UtilBuilder::build_lock_box(<span class="macro-nonterminal">$value</span>)
 	}};
@@ -2864,7 +2864,7 @@
 /// a single access to the variable. If more than one operation needs to be done, this macro
 /// should not be used.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>wlock {
+</span><span class="macro">macro_rules!</span> wlock {
 	(<span class="macro-nonterminal">$value</span>:expr) =&gt; {
 		<span class="kw-2">**</span>(<span class="macro-nonterminal">$value</span>.wlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>)
 	};
@@ -2874,7 +2874,7 @@
 /// a single access to the variable. If more than one operation needs to be done, this macro
 /// should not be used.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>rlock {
+</span><span class="macro">macro_rules!</span> rlock {
 	(<span class="macro-nonterminal">$value</span>:expr) =&gt; {
 		<span class="kw-2">**</span>(<span class="macro-nonterminal">$value</span>.rlock()<span class="question-mark">?</span>.guard()<span class="question-mark">?</span>)
 	};
@@ -2930,7 +2930,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>global_slab_allocator {
+</span><span class="macro">macro_rules!</span> global_slab_allocator {
 ( $( <span class="macro-nonterminal">$config</span>:expr ),* ) =&gt; {{
             <span class="attr">#[allow(unused_imports)]
             </span><span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
@@ -3080,7 +3080,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>slab_allocator {
+</span><span class="macro">macro_rules!</span> slab_allocator {
 	($(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; {{
 		<span class="kw">use </span>bmw_conf::config;
 		<span class="attr">#[allow(unused_imports)]
@@ -3199,7 +3199,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>pattern {
+</span><span class="macro">macro_rules!</span> pattern {
 	( $( <span class="macro-nonterminal">$pattern_items</span>:tt)* ) =&gt; {{
                 <span class="attr">#[allow(unused_imports)]
                 </span><span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
@@ -3211,7 +3211,7 @@
 
 <span class="doccomment">/// Create a default instance of [`crate::Match`].
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>tmatch {
+</span><span class="macro">macro_rules!</span> tmatch {
         ( $( <span class="macro-nonterminal">$match_items</span>:tt)* ) =&gt; {{
                 <span class="attr">#[allow(unused_imports)]
                 </span><span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
@@ -3393,7 +3393,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>search_trie {
+</span><span class="macro">macro_rules!</span> search_trie {
 	( <span class="macro-nonterminal">$patterns</span>:expr, $(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; {{
                 <span class="attr">#[allow(unused_imports)]
                 </span><span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
@@ -3461,7 +3461,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>search_trie_box {
+</span><span class="macro">macro_rules!</span> search_trie_box {
         ( <span class="macro-nonterminal">$patterns</span>:expr, $(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; {{
                 <span class="attr">#[allow(unused_imports)]
                 </span><span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
@@ -3547,7 +3547,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>hashtable {
+</span><span class="macro">macro_rules!</span> hashtable {
 	($(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; {{
                 <span class="attr">#[allow(unused_imports)]
                 </span><span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
@@ -3635,7 +3635,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>hashtable_box {
+</span><span class="macro">macro_rules!</span> hashtable_box {
         ($(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; {{
                 <span class="attr">#[allow(unused_imports)]
                 </span><span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
@@ -3725,7 +3725,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>hashtable_sync {
+</span><span class="macro">macro_rules!</span> hashtable_sync {
         ($(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; {{
                 <span class="attr">#[allow(unused_imports)]
                 </span><span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
@@ -3814,7 +3814,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>hashtable_sync_box {
+</span><span class="macro">macro_rules!</span> hashtable_sync_box {
         ($(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; {{
                 <span class="attr">#[allow(unused_imports)]
                 </span><span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
@@ -3897,7 +3897,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>hashset {
+</span><span class="macro">macro_rules!</span> hashset {
         ($(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; {{
                 <span class="attr">#[allow(unused_imports)]
                 </span><span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
@@ -3979,7 +3979,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>hashset_box {
+</span><span class="macro">macro_rules!</span> hashset_box {
         ($(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; {{
                 <span class="attr">#[allow(unused_imports)]
                 </span><span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
@@ -4065,7 +4065,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>hashset_sync {
+</span><span class="macro">macro_rules!</span> hashset_sync {
         ($(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; {{
                 <span class="attr">#[allow(unused_imports)]
                 </span><span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
@@ -4151,7 +4151,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>hashset_sync_box {
+</span><span class="macro">macro_rules!</span> hashset_sync_box {
         ($(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; {{
                 <span class="attr">#[allow(unused_imports)]
                 </span><span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
@@ -4226,7 +4226,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>list {
+</span><span class="macro">macro_rules!</span> list {
     ( $( <span class="macro-nonterminal">$x</span>:expr ),* ) =&gt; {
         {
             <span class="kw">use </span>bmw_util::List;
@@ -4305,7 +4305,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>list_box {
+</span><span class="macro">macro_rules!</span> list_box {
     ( $( <span class="macro-nonterminal">$x</span>:expr ),* ) =&gt; {
         {
             <span class="attr">#[allow(unused_mut)]
@@ -4382,7 +4382,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>list_sync {
+</span><span class="macro">macro_rules!</span> list_sync {
     ( $( <span class="macro-nonterminal">$x</span>:expr ),* ) =&gt; {
         {
             <span class="attr">#[allow(unused_mut)]
@@ -4463,7 +4463,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>list_sync_box {
+</span><span class="macro">macro_rules!</span> list_sync_box {
     ( $( <span class="macro-nonterminal">$x</span>:expr ),* ) =&gt; {
         {
             <span class="attr">#[allow(unused_mut)]
@@ -4511,7 +4511,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>array {
+</span><span class="macro">macro_rules!</span> array {
 	( <span class="macro-nonterminal">$size</span>:expr, <span class="macro-nonterminal">$default</span>:expr ) =&gt; {{
 		bmw_util::UtilBuilder::build_array(<span class="macro-nonterminal">$size</span>, <span class="macro-nonterminal">$default</span>)
 	}};
@@ -4592,7 +4592,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>array_list {
+</span><span class="macro">macro_rules!</span> array_list {
 	( <span class="macro-nonterminal">$size</span>:expr, <span class="macro-nonterminal">$default</span>:expr ) =&gt; {{
 		bmw_util::UtilBuilder::build_array_list(<span class="macro-nonterminal">$size</span>, <span class="macro-nonterminal">$default</span>)
 	}};
@@ -4673,7 +4673,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>array_list_box {
+</span><span class="macro">macro_rules!</span> array_list_box {
 	( <span class="macro-nonterminal">$size</span>:expr, <span class="macro-nonterminal">$default</span>:expr ) =&gt; {{
 		bmw_util::UtilBuilder::build_array_list_box(<span class="macro-nonterminal">$size</span>, <span class="macro-nonterminal">$default</span>)
 	}};
@@ -4754,7 +4754,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>array_list_sync {
+</span><span class="macro">macro_rules!</span> array_list_sync {
 	( <span class="macro-nonterminal">$size</span>:expr, <span class="macro-nonterminal">$default</span>:expr ) =&gt; {{
 		bmw_util::UtilBuilder::build_array_list_sync(<span class="macro-nonterminal">$size</span>, <span class="macro-nonterminal">$default</span>)
 	}};
@@ -4835,7 +4835,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>array_list_sync_box {
+</span><span class="macro">macro_rules!</span> array_list_sync_box {
 	( <span class="macro-nonterminal">$size</span>:expr, <span class="macro-nonterminal">$default</span>:expr ) =&gt; {{
 		bmw_util::UtilBuilder::build_array_list_sync_box(<span class="macro-nonterminal">$size</span>, <span class="macro-nonterminal">$default</span>)
 	}};
@@ -4878,7 +4878,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>queue {
+</span><span class="macro">macro_rules!</span> queue {
 	( <span class="macro-nonterminal">$size</span>:expr, <span class="macro-nonterminal">$default</span>:expr ) =&gt; {{
 		bmw_util::UtilBuilder::build_queue(<span class="macro-nonterminal">$size</span>, <span class="macro-nonterminal">$default</span>)
 	}};
@@ -4920,7 +4920,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>queue_box {
+</span><span class="macro">macro_rules!</span> queue_box {
 	( <span class="macro-nonterminal">$size</span>:expr, <span class="macro-nonterminal">$default</span>:expr ) =&gt; {{
 		bmw_util::UtilBuilder::build_queue_box(<span class="macro-nonterminal">$size</span>, <span class="macro-nonterminal">$default</span>)
 	}};
@@ -4962,7 +4962,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>queue_sync {
+</span><span class="macro">macro_rules!</span> queue_sync {
 	( <span class="macro-nonterminal">$size</span>:expr, <span class="macro-nonterminal">$default</span>:expr ) =&gt; {{
 		bmw_util::UtilBuilder::build_queue_sync(<span class="macro-nonterminal">$size</span>, <span class="macro-nonterminal">$default</span>)
 	}};
@@ -5005,7 +5005,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>queue_sync_box {
+</span><span class="macro">macro_rules!</span> queue_sync_box {
 	( <span class="macro-nonterminal">$size</span>:expr, <span class="macro-nonterminal">$default</span>:expr ) =&gt; {{
 		bmw_util::UtilBuilder::build_queue_sync_box(<span class="macro-nonterminal">$size</span>, <span class="macro-nonterminal">$default</span>)
 	}};
@@ -5048,7 +5048,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>stack {
+</span><span class="macro">macro_rules!</span> stack {
 	( <span class="macro-nonterminal">$size</span>:expr, <span class="macro-nonterminal">$default</span>:expr ) =&gt; {{
 		bmw_util::UtilBuilder::build_stack(<span class="macro-nonterminal">$size</span>, <span class="macro-nonterminal">$default</span>)
 	}};
@@ -5091,7 +5091,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>stack_box {
+</span><span class="macro">macro_rules!</span> stack_box {
 	( <span class="macro-nonterminal">$size</span>:expr, <span class="macro-nonterminal">$default</span>:expr ) =&gt; {{
 		bmw_util::UtilBuilder::build_stack_box(<span class="macro-nonterminal">$size</span>, <span class="macro-nonterminal">$default</span>)
 	}};
@@ -5134,7 +5134,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>stack_sync {
+</span><span class="macro">macro_rules!</span> stack_sync {
 	( <span class="macro-nonterminal">$size</span>:expr, <span class="macro-nonterminal">$default</span>:expr ) =&gt; {{
 		bmw_util::UtilBuilder::build_stack_sync(<span class="macro-nonterminal">$size</span>, <span class="macro-nonterminal">$default</span>)
 	}};
@@ -5177,7 +5177,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>stack_sync_box {
+</span><span class="macro">macro_rules!</span> stack_sync_box {
 	( <span class="macro-nonterminal">$size</span>:expr, <span class="macro-nonterminal">$default</span>:expr ) =&gt; {{
 		bmw_util::UtilBuilder::build_stack_sync_box(<span class="macro-nonterminal">$size</span>, <span class="macro-nonterminal">$default</span>)
 	}};
@@ -5185,7 +5185,7 @@
 
 <span class="doccomment">/// Append list2 to list1.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>list_append {
+</span><span class="macro">macro_rules!</span> list_append {
 	(<span class="macro-nonterminal">$list1</span>:expr, <span class="macro-nonterminal">$list2</span>:expr) =&gt; {{
 		<span class="kw">for </span>x <span class="kw">in </span><span class="macro-nonterminal">$list2</span>.iter() {
 			<span class="macro-nonterminal">$list1</span>.push(x)<span class="question-mark">?</span>;
@@ -5195,7 +5195,7 @@
 
 <span class="doccomment">/// Compares equality of list1 and list2.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>list_eq {
+</span><span class="macro">macro_rules!</span> list_eq {
 	(<span class="macro-nonterminal">$list1</span>:expr, <span class="macro-nonterminal">$list2</span>:expr) =&gt; {{
 		<span class="kw">let </span>list1 = <span class="kw-2">&amp;</span><span class="macro-nonterminal">$list1</span>;
 		<span class="kw">let </span>list2 = <span class="kw-2">&amp;</span><span class="macro-nonterminal">$list2</span>;
@@ -5367,7 +5367,7 @@
 /// }
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>thread_pool {
+</span><span class="macro">macro_rules!</span> thread_pool {
         ( $( <span class="macro-nonterminal">$match_items</span>:tt)* ) =&gt; {{
                 <span class="attr">#[allow(unused_imports)]
                 </span><span class="kw">use </span>bmw_conf::ConfigOption::<span class="kw-2">*</span>;
@@ -5422,7 +5422,7 @@
 ///
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>execute {
+</span><span class="macro">macro_rules!</span> execute {
 	(<span class="macro-nonterminal">$thread_pool</span>:expr, <span class="macro-nonterminal">$program</span>:expr) =&gt; {{
 		<span class="macro-nonterminal">$thread_pool</span>.execute(<span class="kw">async move </span>{ <span class="macro-nonterminal">$program </span>}, bmw_deps::rand::random())
 	}};
@@ -5477,7 +5477,7 @@
 ///
 ///```
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>block_on {
+</span><span class="macro">macro_rules!</span> block_on {
 	(<span class="macro-nonterminal">$res</span>:expr) =&gt; {{
 		<span class="macro-nonterminal">$res</span>.block_on()
 	}};

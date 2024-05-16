@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `log/src/macros.rs`."><title>macros.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_log" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.2 (25ef9e3d8 2024-04-09)" data-channel="1.77.2" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `log/src/macros.rs`."><title>macros.rs - source</title><script> if (window.location.protocol !== "file:") document.write(`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2">`)</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-e935ef01ae1c1829.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bmw_log" data-themes="" data-resource-suffix="" data-rustdoc-version="1.78.0 (9b00956e5 2024-04-29)" data-channel="1.78.0" data-search-js="search-42d8da7a6b9792c2.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-12cf3b4f4f9dc36d.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
             <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../bmw_log/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
@@ -690,7 +690,7 @@
 
 </span><span class="doccomment">/// a usize conversion macro
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>usize {
+</span><span class="macro">macro_rules!</span> usize {
 	(<span class="macro-nonterminal">$v</span>:expr) =&gt; {{
 		<span class="kw">use </span>std::convert::TryInto;
 		<span class="kw">let </span>v: usize = <span class="macro-nonterminal">$v</span>.try_into()<span class="question-mark">?</span>;
@@ -700,7 +700,7 @@
 
 <span class="doccomment">/// a u64 conversion macro
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>u64 {
+</span><span class="macro">macro_rules!</span> u64 {
 	(<span class="macro-nonterminal">$v</span>:expr) =&gt; {{
 		<span class="kw">use </span>std::convert::TryInto;
 		<span class="kw">let </span>v: u64 = <span class="macro-nonterminal">$v</span>.try_into()<span class="question-mark">?</span>;
@@ -736,7 +736,7 @@
 /// is to set the level at the top of each file and adjust as development is completed. You may
 /// start with debug or trace and eventually end up at info or warn.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>trace {
+</span><span class="macro">macro_rules!</span> trace {
 	() =&gt; {
                 <span class="attr">#[doc(hidden)]
                 </span><span class="kw">const </span>BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Trace;
@@ -754,7 +754,7 @@
 /// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
 /// details on each.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>trace_plain {
+</span><span class="macro">macro_rules!</span> trace_plain {
         () =&gt; {
                 <span class="attr">#[doc(hidden)]
                 </span><span class="kw">const </span>BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Trace;
@@ -772,7 +772,7 @@
 /// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
 /// details on each.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>trace_all {
+</span><span class="macro">macro_rules!</span> trace_all {
         () =&gt; {
                  <span class="attr">#[doc(hidden)]
                  </span><span class="kw">const </span>BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Trace;
@@ -814,7 +814,7 @@
 /// is to set the level at the top of each file and adjust as development is completed. You may
 /// start with debug or trace and eventually end up at info or warn.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>debug {
+</span><span class="macro">macro_rules!</span> debug {
         () =&gt; {
                 <span class="attr">#[doc(hidden)]
                 </span><span class="kw">const </span>BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Debug;
@@ -832,7 +832,7 @@
 /// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
 /// details on each.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>debug_plain {
+</span><span class="macro">macro_rules!</span> debug_plain {
         () =&gt; {
                 <span class="attr">#[doc(hidden)]
                 </span><span class="kw">const </span>BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Debug;
@@ -850,7 +850,7 @@
 /// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
 /// details on each.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>debug_all {
+</span><span class="macro">macro_rules!</span> debug_all {
         () =&gt; {
                 <span class="attr">#[doc(hidden)]
                 </span><span class="kw">const </span>BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Debug;
@@ -892,7 +892,7 @@
 /// is to set the level at the top of each file and adjust as development is completed. You may
 /// start with debug or trace and eventually end up at info or warn.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>info {
+</span><span class="macro">macro_rules!</span> info {
         () =&gt; {
                 <span class="attr">#[doc(hidden)]
                 </span><span class="kw">const </span>BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Info;
@@ -910,7 +910,7 @@
 /// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
 /// details on each.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>info_plain {
+</span><span class="macro">macro_rules!</span> info_plain {
         () =&gt; {
                 <span class="attr">#[doc(hidden)]
                 </span><span class="kw">const </span>BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Info;
@@ -928,7 +928,7 @@
 /// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
 /// details on each.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>info_all {
+</span><span class="macro">macro_rules!</span> info_all {
         () =&gt; {
                 <span class="attr">#[doc(hidden)]
                 </span><span class="kw">const </span>BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Info;
@@ -970,7 +970,7 @@
 /// is to set the level at the top of each file and adjust as development is completed. You may
 /// start with debug or trace and eventually end up at info or warn.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>warn {
+</span><span class="macro">macro_rules!</span> warn {
         () =&gt; {
                 <span class="attr">#[doc(hidden)]
                 </span><span class="kw">const </span>BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Warn;
@@ -988,7 +988,7 @@
 /// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
 /// details on each.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>warn_plain {
+</span><span class="macro">macro_rules!</span> warn_plain {
         () =&gt; {
                 <span class="attr">#[doc(hidden)]
                 </span><span class="kw">const </span>BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Warn;
@@ -1006,7 +1006,7 @@
 /// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
 /// details on each.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>warn_all {
+</span><span class="macro">macro_rules!</span> warn_all {
         () =&gt; {
                 <span class="attr">#[doc(hidden)]
                 </span><span class="kw">const </span>BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Warn;
@@ -1048,7 +1048,7 @@
 /// is to set the level at the top of each file and adjust as development is completed. You may
 /// start with debug or trace and eventually end up at info or warn.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>error {
+</span><span class="macro">macro_rules!</span> error {
         () =&gt; {
                 <span class="attr">#[doc(hidden)]
                 </span><span class="kw">const </span>BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Error;
@@ -1066,7 +1066,7 @@
 /// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
 /// details on each.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>error_plain {
+</span><span class="macro">macro_rules!</span> error_plain {
         () =&gt; {
                 <span class="attr">#[doc(hidden)]
                 </span><span class="kw">const </span>BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Error;
@@ -1084,7 +1084,7 @@
 /// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
 /// details on each.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>error_all {
+</span><span class="macro">macro_rules!</span> error_all {
         () =&gt; {
                 <span class="attr">#[doc(hidden)]
                 </span><span class="kw">const </span>BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Error;
@@ -1126,7 +1126,7 @@
 /// is to set the level at the top of each file and adjust as development is completed. You may
 /// start with debug or trace and eventually end up at info or warn.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>fatal {
+</span><span class="macro">macro_rules!</span> fatal {
         () =&gt; {
                 <span class="attr">#[doc(hidden)]
                 </span><span class="kw">const </span>BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Fatal;
@@ -1144,7 +1144,7 @@
 /// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
 /// details on each.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>fatal_plain {
+</span><span class="macro">macro_rules!</span> fatal_plain {
         () =&gt; {
                 <span class="attr">#[doc(hidden)]
                 </span><span class="kw">const </span>BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Fatal;
@@ -1162,7 +1162,7 @@
 /// is called instead of the the [`crate::Log::log`] function. See the [`crate::Log`] trait for
 /// details on each.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>fatal_all {
+</span><span class="macro">macro_rules!</span> fatal_all {
         () =&gt; {
                 <span class="attr">#[doc(hidden)]
                 </span><span class="kw">const </span>BMW_GLOBAL_LOG_LEVEL: bmw_log::LogLevel = bmw_log::LogLevel::Fatal;
@@ -1234,7 +1234,7 @@
 /// Also, see that macro for an exhaustive list of configuration options that are valid for this
 /// macro as well.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>log_init {
+</span><span class="macro">macro_rules!</span> log_init {
 	($(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; {{
 		<span class="kw">use </span>bmw_log::GlobalLogContainer;
                 <span class="kw">use </span>bmw_log::LogConfig2_Options::<span class="kw-2">*</span>;
@@ -1248,7 +1248,7 @@
 /// See [`crate::Log::set_config_option`] which is the underlying function call for
 /// full details.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>set_log_option {
+</span><span class="macro">macro_rules!</span> set_log_option {
 	(<span class="macro-nonterminal">$option</span>:expr) =&gt; {{
 		<span class="kw">use </span>bmw_log::GlobalLogContainer;
 		<span class="kw">use </span>bmw_log::LogConfig2_Options::<span class="kw-2">*</span>;
@@ -1259,7 +1259,7 @@
 <span class="doccomment">/// Rotate the global log. See [`crate::Log::rotate`] for full details on
 /// the underlying rotate function and log rotation in general.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>log_rotate {
+</span><span class="macro">macro_rules!</span> log_rotate {
 	() =&gt; {{
 		<span class="kw">use </span>bmw_log::GlobalLogContainer;
 		GlobalLogContainer::rotate()
@@ -1269,7 +1269,7 @@
 <span class="doccomment">/// See if the global log needs to be rotated. See [`crate::Log::need_rotate`] for full details
 /// on the underlying need_rotate function.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>need_rotate {
+</span><span class="macro">macro_rules!</span> need_rotate {
 	() =&gt; {{
 		<span class="kw">use </span>bmw_log::GlobalLogContainer;
 		GlobalLogContainer::need_rotate()
@@ -1335,7 +1335,7 @@
 /// * The value for LineNumDataMaxLen must be at least 10 bytes.
 /// * The parent directory of LogFilePath must exist.
 </span><span class="attr">#[macro_export]
-</span><span class="macro">macro_rules! </span>logger {
+</span><span class="macro">macro_rules!</span> logger {
         ($(<span class="macro-nonterminal">$config</span>:tt)<span class="kw-2">*</span>) =&gt; {{
                 <span class="kw">use </span>bmw_log::LogConfig2_Options::<span class="kw-2">*</span>;
                 <span class="kw">let </span>v: Vec&lt;LogConfig2_Options&gt; = <span class="macro">vec!</span>[$(<span class="macro-nonterminal">$config</span>)<span class="kw-2">*</span>];
