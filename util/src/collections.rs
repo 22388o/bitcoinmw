@@ -16,6 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::slabs::SlabAllocator;
 use bmw_core::*;
 use bmw_log::*;
 use std::hash::Hash;
@@ -80,12 +81,62 @@ where
 	}
 }
 
+#[derive(PartialEq)]
+struct IdOffsetPair {
+	id: u64,
+	offset: usize,
+}
+
+impl IdOffsetPair {
+	fn new(id: u64, offset: usize) -> Self {
+		Self { id, offset }
+	}
+}
+
+impl From<u64> for IdOffsetPair {
+	fn from(id: u64) -> Self {
+		Self { id, offset: 0 }
+	}
+}
+
+impl From<usize> for IdOffsetPair {
+	fn from(id: usize) -> Self {
+		Self {
+			id: try_into!(id).unwrap(),
+			offset: 0,
+		}
+	}
+}
+
+impl From<i32> for IdOffsetPair {
+	fn from(id: i32) -> Self {
+		Self {
+			id: try_into!(id).unwrap(),
+			offset: 0,
+		}
+	}
+}
+
+impl IdOffsetPair {
+	#[allow(non_snake_case)]
+	fn MAX() -> Self {
+		Self {
+			id: u64::MAX,
+			offset: usize::MAX,
+		}
+	}
+}
+
 #[class {
 		var phantom_data: PhantomData<&'a K>;
 		generic hashtable: <'a, K, V> where K: Serializable + Hash + 'a, V: Serializable;
                 generic hashset: <'a, K> where K: Serializable + Hash + 'a;
 		pub list as list_impl;
+
+                //var_in slab_allocator: Option<Box<dyn SlabAllocator + Send + Sync>>;
                 var entry_array: Vec<usize>;
+                var head: IdOffsetPair;
+                var tail: IdOffsetPair;
                 const entry_array_len: usize = 50 * 1024;
 
 		[hashtable]
@@ -134,10 +185,18 @@ where
 			vec![]
 		};
 
+		let head = IdOffsetPair::MAX();
+		let tail = IdOffsetPair::MAX();
+
+		//let slab_allocator = None;
+
 		debug!("name={}", constants.get_name())?;
 		Ok(Self {
 			phantom_data: PhantomData,
 			entry_array,
+			head,
+			tail,
+			//slab_allocator,
 		})
 	}
 }
@@ -160,6 +219,7 @@ where
 		Ok(())
 	}
 	fn insert_key(&mut self, s: K) -> Result<(), Error> {
+		self.insert_time_list(s)?;
 		Ok(())
 	}
 
@@ -204,10 +264,11 @@ impl<'a, K> Collection<'a, K>
 where
 	K: Serializable + 'a,
 {
-	fn push<V>(&mut self, _value: V) -> Result<(), Error>
+	fn push<V>(&mut self, value: V) -> Result<(), Error>
 	where
 		V: Serializable,
 	{
+		self.insert_time_list(value)?;
 		Ok(())
 	}
 
@@ -217,6 +278,13 @@ where
 
 	fn clear(&mut self) -> Result<(), Error> {
 		todo!()
+	}
+
+	fn insert_time_list<V>(&mut self, value: V) -> Result<IdOffsetPair, Error>
+	where
+		V: Serializable,
+	{
+		Ok(0.into())
 	}
 }
 
