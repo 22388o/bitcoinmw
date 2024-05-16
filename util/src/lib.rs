@@ -17,11 +17,10 @@
 // limitations under the License.
 
 pub mod array;
-pub mod hashclass;
+pub mod collections;
 pub mod lock;
-mod misc;
+pub mod misc;
 pub mod slabio;
 pub mod slabs;
-//pub mod test;
 
 pub use crate::misc::*;

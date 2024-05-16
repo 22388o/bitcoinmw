@@ -19,8 +19,8 @@
 use crate::lock::*;
 use crate::misc::{set_max, slice_to_usize, usize_to_slice};
 use crate::slabio::{
-	slab_reader_box, slab_writer_box, SlabIOClassBuilder, SlabIOClassConstOptions, SlabReader,
-	SlabWriter,
+	slab_reader_sync_box, slab_writer_sync_box, SlabIOClassBuilder, SlabIOClassConstOptions,
+	SlabReader, SlabWriter,
 };
 use crate::slabs::*;
 use bmw_core::*;
@@ -38,32 +38,36 @@ pub enum ArrayErrors {
 }
 
 #[class {
-    no_send;
-    var phantom_data: PhantomData<&'a T>;
-    var slab_reader: Box<dyn SlabReader>;
-    var slab_writer: Box<dyn SlabWriter>;
-    var_in slab_allocator_in: Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>;
-    var root: u64;
-    var len: usize;
-    var ptr_size: usize;
-    required bytes_per_entry: usize = 0;
-    required len: usize = 0;
-    const slab_size: usize = 512;
+        module "bmw_util::array";
+        /// @noexample
+	pub array_box, array_sync_box;
+	var phantom_data: PhantomData<T>;
+	var slab_reader: Box<dyn SlabReader + Send + Sync>;
+	var slab_writer: Box<dyn SlabWriter + Send + Sync>;
+	var_in slab_allocator_in: Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>;
+	var root: u64;
+	var len: usize;
+	var ptr_size: usize;
+	required bytes_per_entry: usize = 0;
+	required len: usize = 0;
+	const slab_size: usize = 512;
 
-    [array]
-    fn len(&self) -> usize;
+	[array]
+	fn len(&self) -> usize;
 
-    [array]
-    fn set_value(&mut self, index: usize, value: &T) -> Result<(), Error>;
+	[array]
+	fn set_value(&mut self, index: usize, value: &T) -> Result<(), Error>;
 
-    [array]
-    fn get_value(&mut self, index: usize, value: &mut T) -> Result<(), Error>;
+	[array]
+	fn get_value(&mut self, index: usize, value: &mut T) -> Result<(), Error>;
 }]
-impl<'a, T> ArrayClass<'a, T> where T: Clone + Serializable + 'a {}
+impl<T> ArrayClass<T> where T: Clone + Serializable + 'static {}
 
-impl<'a, T> ArrayClassVarBuilder for ArrayClassVar<'a, T>
+pub(crate) use array_sync_box;
+
+impl<T> ArrayClassVarBuilder for ArrayClassVar<T>
 where
-	T: Clone + Serializable + 'a,
+	T: Clone + Serializable,
 {
 	fn builder(constants: &ArrayClassConst) -> Result<Self, Error> {
 		let slab_size = constants.slab_size;
@@ -90,8 +94,10 @@ where
 		if len == 0 {
 			err!(IllegalArgument, "Len must not be zero")
 		} else {
-			let mut slab_reader = slab_reader_box!(SlabIOClassConstOptions::SlabSize(slab_size))?;
-			let mut slab_writer = slab_writer_box!(SlabIOClassConstOptions::SlabSize(slab_size))?;
+			let mut slab_reader =
+				slab_reader_sync_box!(SlabIOClassConstOptions::SlabSize(slab_size))?;
+			let mut slab_writer =
+				slab_writer_sync_box!(SlabIOClassConstOptions::SlabSize(slab_size))?;
 
 			let (id, ptr_size, ids) = match slab_allocator_in.as_mut() {
 				Some(sa) => {
@@ -135,9 +141,9 @@ where
 	}
 }
 
-impl<'a, T> ArrayClassVar<'a, T>
+impl<T> ArrayClassVar<T>
 where
-	T: Clone + Serializable + 'a,
+	T: Clone + Serializable,
 {
 	fn allocate(
 		slab_allocator: &mut Box<dyn SlabAllocator + Send + Sync>,
@@ -162,15 +168,7 @@ where
 			}
 		}
 
-		let mut ptr_size = 0;
-		let mut x = max_data_id;
-		loop {
-			if x == 0 {
-				break;
-			}
-			x >>= 8;
-			ptr_size += 1;
-		}
+		let ptr_size = 8;
 
 		let mut invalid_ptr = [0u8; 8];
 		let mut ptr = [0u8; 8];
@@ -184,9 +182,9 @@ where
 	}
 }
 
-impl<'a, T> Drop for ArrayClass<'a, T>
+impl<T> Drop for ArrayClass<T>
 where
-	T: Clone + Serializable + 'a,
+	T: Clone + Serializable,
 {
 	fn drop(&mut self) {
 		match self.clear() {
@@ -198,9 +196,9 @@ where
 	}
 }
 
-impl<'a, T> ArrayClass<'a, T>
+impl<T> ArrayClass<T>
 where
-	T: Clone + Serializable + 'a,
+	T: Clone + Serializable,
 {
 	fn clear(&mut self) -> Result<(), Error> {
 		debug!("clear")?;
@@ -290,7 +288,7 @@ where
 	}
 }
 
-impl<'a, T> Debug for dyn Array<'a, T> {
+impl<T> Debug for dyn Array<T> {
 	fn fmt(&self, _: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
 		Ok(())
 	}
@@ -401,6 +399,13 @@ mod test {
 
 		assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 0);
 
+		Ok(())
+	}
+
+	#[test]
+	fn test_array_type() -> Result<(), Error> {
+		let _arr: Box<dyn Array<usize> + Send + Sync> =
+			array_sync_box!(Len(100), BytesPerEntry(8))?;
 		Ok(())
 	}
 }

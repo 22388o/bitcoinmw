@@ -25,7 +25,7 @@ info!();
 
 #[class {
         module "bmw_util::slabio";
-        pub slab_reader, slab_writer, slab_reader_box, slab_writer_box;
+        pub slab_reader, slab_writer, slab_reader_box, slab_writer_box, slab_reader_sync_box, slab_writer_sync_box;
 	var slab_allocator: Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>;
 	var id: u64;
 	var offset: usize;
@@ -62,8 +62,8 @@ info!();
 }]
 impl SlabIOClass {}
 
-pub(crate) use slab_reader_box;
-pub(crate) use slab_writer_box;
+pub(crate) use slab_reader_sync_box;
+pub(crate) use slab_writer_sync_box;
 
 impl SlabIOClassVarBuilder for SlabIOClassVar {
 	fn builder(_constants: &SlabIOClassConst) -> Result<Self, Error> {
@@ -122,15 +122,25 @@ impl SlabIOClass {
 		debug!("do free tail {}", id)?;
 		let mut cur_id = id;
 		let mut to_free_list = vec![];
+		let mut count = 0;
 		loop {
 			let cur_slab = sa.read(cur_id)?;
 			to_free_list.push(cur_id);
-			debug!("cur_slab.len={},cur_id={}", cur_slab.len(), cur_id)?;
+			debug!(
+				"cur_slab.len={},cur_id={},ptr_size={}",
+				cur_slab.len(),
+				cur_id,
+				ptr_size
+			)?;
 			if cur_slab[data_per_slab..data_per_slab + ptr_size] == invalid_ptr {
 				break;
 			}
 
 			cur_id = slice_to_u64(&cur_slab[data_per_slab..data_per_slab + ptr_size])?;
+			count += 1;
+			if count == 10 {
+				panic!("too many loops");
+			}
 		}
 
 		for id in to_free_list {
@@ -363,6 +373,30 @@ impl Reader for Box<dyn SlabReader> {
 }
 
 impl Writer for Box<dyn SlabWriter> {
+	fn write_fixed_bytes<T: AsRef<[u8]>>(&mut self, bytes: T) -> Result<(), Error> {
+		self.write_fixed_bytes_impl(bytes.as_ref())
+	}
+}
+
+impl Reader for Box<dyn SlabReader + Send + Sync> {
+	fn read_fixed_bytes(&mut self, ret: &mut [u8]) -> Result<(), Error> {
+		self.read_fixed_bytes_impl(ret)
+	}
+}
+
+impl Writer for Box<dyn SlabWriter + Send + Sync> {
+	fn write_fixed_bytes<T: AsRef<[u8]>>(&mut self, bytes: T) -> Result<(), Error> {
+		self.write_fixed_bytes_impl(bytes.as_ref())
+	}
+}
+
+impl Reader for Box<dyn SlabReader + Send> {
+	fn read_fixed_bytes(&mut self, ret: &mut [u8]) -> Result<(), Error> {
+		self.read_fixed_bytes_impl(ret)
+	}
+}
+
+impl Writer for Box<dyn SlabWriter + Send> {
 	fn write_fixed_bytes<T: AsRef<[u8]>>(&mut self, bytes: T) -> Result<(), Error> {
 		self.write_fixed_bytes_impl(bytes.as_ref())
 	}

@@ -1,4 +1,4 @@
-//! Using dyn_clone subject to license agreement here: https://github.com/dtolnay/dyn-clone/blob/master/LICENSE-MIT
+//! Using dyn_clone subject to license agreement here: <https://github.com/dtolnay/dyn-clone/blob/master/LICENSE-MIT>
 extern crate alloc;
 
 #[cfg(doc)]

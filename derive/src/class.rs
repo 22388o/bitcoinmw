@@ -299,6 +299,7 @@ enum State {
 	WantsSemi,
 	Pub,
 	Module,
+	TestGeneric,
 	Const,
 	Required,
 	Var,
@@ -365,6 +366,7 @@ struct StateMachine {
 	no_send: bool,
 	cur_comments: Vec<String>,
 	generic_map: HashMap<String, Generic>,
+	test_generic: Option<String>,
 }
 
 impl StateMachine {
@@ -378,6 +380,7 @@ impl StateMachine {
 			span: None,
 			error_list: vec![],
 			module: None,
+			test_generic: None,
 			cur_is_pub_crate: false,
 			in_generic2: false,
 			in_builder: false,
@@ -601,7 +604,7 @@ impl StateMachine {
 
 	#[cfg(not(tarpaulin_include))]
 	fn build_const_params_replace(&self) -> Result<String, Error> {
-		let mut replace = "".to_string();
+		let mut replace = format!("name: String,\n\t");
 		for item in &self.const_list {
 			let type_str = self.const_type_string(item)?;
 			replace = format!(
@@ -890,7 +893,7 @@ impl StateMachine {
 
 	#[cfg(not(tarpaulin_include))]
 	fn get_const_default_params(&self) -> Result<String, Error> {
-		let mut ret = "".to_string();
+		let mut ret = "\t\t\tname: \"\".to_string(),".to_string();
 		for const_value in &self.const_list {
 			ret = format!("{}{},\n\t\t\t", ret, const_value.name);
 		}
@@ -962,6 +965,13 @@ impl StateMachine {
 	fn update_impl_const(&mut self, template: &String) -> Result<String, Error> {
 		let mut replace = format!("impl {}Const {{", &self.class_name.as_ref().unwrap());
 		let get_template = include_str!("../templates/class_get_template.txt").to_string();
+		replace = format!(
+			"{}\n{}",
+			replace,
+			get_template
+				.replace("${PARAM_NAME}", &"name".to_string())
+				.replace("${PARAM_TYPE}", &"String".to_string())
+		);
 		for c in &self.const_list {
 			let type_str = self.const_type_string(c)?;
 			replace = format!(
@@ -1395,15 +1405,22 @@ impl StateMachine {
 				comment_text, trait_name
 			);
 
+			let test_generic = match &self.test_generic {
+				Some(test_generic) => {
+					format!(": Box<dyn {}{}>", trait_name, test_generic)
+				}
+				None => "".to_string(),
+			};
+
 			if is_macro {
 				comment_text = format!(
-					"{}\n#[doc=\"     let mut object = {}!()?;\"]",
-					comment_text, macro_name
+					"{}\n#[doc=\"     let mut object{} = {}!()?;\"]",
+					comment_text, test_generic, macro_name
 				);
 			} else {
 				comment_text = format!(
-					"{}\n#[doc=\"     let mut object = {}Builder::build_{}{}(vec![])?;\"]",
-					comment_text, class_name, builder_fn_name, fmt
+					"{}\n#[doc=\"     let mut object{} = {}Builder::build_{}{}(vec![])?;\"]",
+					comment_text, test_generic, class_name, builder_fn_name, fmt
 				);
 			}
 
@@ -1416,13 +1433,13 @@ impl StateMachine {
 
 			if is_macro {
 				comment_text = format!(
-					"{}#[doc=\"\tlet object = {}!(\"]\n",
-					comment_text, macro_name
+					"{}#[doc=\"\tlet object{} = {}!(\"]\n",
+					comment_text, test_generic, macro_name
 				);
 			} else {
 				comment_text = format!(
-					"{}#[doc=\"\tlet object = {}Builder::build_{}{}(vec![\"]\n",
-					comment_text, class_name, builder_fn_name, fmt
+					"{}#[doc=\"\tlet object{} = {}Builder::build_{}{}(vec![\"]\n",
+					comment_text, test_generic, class_name, builder_fn_name, fmt
 				);
 			}
 
@@ -2517,6 +2534,7 @@ impl StateMachine {
 			State::Base => self.process_base(token)?,
 			State::Pub => self.process_pub(token)?,
 			State::Module => self.process_module(token)?,
+			State::TestGeneric => self.process_test_generic(token)?,
 			State::Const => self.process_const(token)?,
 			State::Required => self.process_required(token)?,
 			State::Var => self.process_var(token)?,
@@ -2789,6 +2807,8 @@ impl StateMachine {
 			self.state = State::Pub;
 		} else if token_str == "module" {
 			self.state = State::Module;
+		} else if token_str == "test_generic" {
+			self.state = State::TestGeneric;
 		} else if token_str == "const" {
 			self.state = State::Const;
 		} else if token_str == "required" {
@@ -2935,6 +2955,58 @@ impl StateMachine {
 			}
 			_ => {
 				self.append_error("expected, '(crate)' or view name")?;
+			}
+		}
+		Ok(())
+	}
+
+	fn process_test_generic(&mut self, token: TokenTree) -> Result<(), Error> {
+		let token_str = token.to_string();
+
+		if token_str == ";" {
+			self.state = State::Base;
+		} else {
+			if self.test_generic.is_some() {
+				self.append_error("test_generic may only be set once.")?;
+			}
+			match token {
+				Literal(literal) => {
+					let lit_str = literal.to_string();
+					let lit_str = lit_str.trim();
+					let lit_str = match lit_str.find("\"") {
+						Some(start) => {
+							if start == 0 {
+								match lit_str.rfind("\"") {
+									Some(end) => {
+										if end > start + 1 {
+											Some(lit_str.substring(start + 1, end).to_string())
+										} else {
+											None
+										}
+									}
+									None => None,
+								}
+							} else {
+								None
+							}
+						}
+						None => None,
+					};
+
+					if lit_str.is_none() {
+						self.append_error(&format!(
+							"unexpected literal string found: '{}', expected, '\"<test_generic_value>\"",
+							token_str
+						))?;
+					}
+					self.test_generic = lit_str;
+				}
+				_ => {
+					self.append_error(&format!(
+						"unexpected token found: '{}'. expected, '\"<test_generic_value>\"",
+						token_str
+					))?;
+				}
 			}
 		}
 		Ok(())

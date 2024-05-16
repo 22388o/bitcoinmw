@@ -73,7 +73,7 @@ use std::io::{Read, Write};
 ///     Ok(())
 /// }
 ///```
-pub trait Serializable {
+pub trait Serializable: Send + Sync {
 	/// read data from the reader and build the underlying type represented by that
 	/// data.
 	fn read<R: Reader>(reader: &mut R) -> Result<Self, Error>

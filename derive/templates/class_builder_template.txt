@@ -1,6 +1,7 @@
 	${IMPL_COMMENTS}
         ${VISIBILITY_IMPL} fn build_${VIEW} ${GENERIC_PRE} (options: Vec<${NAME}ConstOptions>) -> Result<impl ${TRAIT}, Error> ${WHERE_CLAUSE} {
-		let conf = configure!(${NAME}Const, ${NAME}ConstOptions, options)?;
+		let mut conf = configure!(${NAME}Const, ${NAME}ConstOptions, options)?;
+		conf.name = "${VIEW}".to_string();
                 match ${NAME}::builder(conf) {
 			Ok(v) => Ok(v),
 			Err(e) => err!(CoreErrorKind::Builder, e.kind().to_string()),
@@ -9,7 +10,8 @@
        
 	${BOX_COMMENTS}
         ${VISIBILITY_BOX} fn build_${VIEW}_box ${GENERIC_PRE} (options: Vec<${NAME}ConstOptions>) -> Result<Box<dyn ${TRAIT}>, Error> ${WHERE_CLAUSE} {
-		let conf = configure!(${NAME}Const, ${NAME}ConstOptions, options)?;
+		let mut conf = configure!(${NAME}Const, ${NAME}ConstOptions, options)?;
+		conf.name = "${VIEW}".to_string();
                 match ${NAME}::builder(conf) {
                         Ok(v) => Ok(Box::new(v)),
                         Err(e) => err!(CoreErrorKind::Builder, e.kind().to_string()),
@@ -21,7 +23,8 @@
 
         ${SEND_IMPL_COMMENTS}
         ${VISIBILITY_SEND_IMPL} fn build_${VIEW}_send ${GENERIC_PRE} (options: Vec<${NAME}ConstOptions>) -> Result<impl ${TRAIT} + Send, Error> ${WHERE_CLAUSE} {
-                let conf = configure!(${NAME}Const, ${NAME}ConstOptions, options)?;
+                let mut conf = configure!(${NAME}Const, ${NAME}ConstOptions, options)?;
+		conf.name = "${VIEW}".to_string();
                 match ${NAME}::builder(conf) {
                         Ok(v) => Ok(v),
                         Err(e) => err!(CoreErrorKind::Builder, e.kind().to_string()),
@@ -30,8 +33,8 @@
 
         ${SEND_BOX_COMMENTS}
         ${VISIBILITY_SEND_BOX} fn build_${VIEW}_send_box ${GENERIC_PRE} (options: Vec<${NAME}ConstOptions>) -> Result<Box<dyn ${TRAIT} + Send>, Error> ${WHERE_CLAUSE} {
-                let conf = configure!(${NAME}Const, ${NAME}ConstOptions, options)?;
-
+                let mut conf = configure!(${NAME}Const, ${NAME}ConstOptions, options)?;
+		conf.name = "${VIEW}".to_string();
                 match ${NAME}::builder(conf) {
                         Ok(v) => Ok(Box::new(v)),
                         Err(e) => err!(CoreErrorKind::Builder, e.kind().to_string()),
@@ -43,7 +46,8 @@
 
         ${SYNC_IMPL_COMMENTS}
         ${VISIBILITY_SYNC_IMPL} fn build_${VIEW}_sync ${GENERIC_PRE} (options: Vec<${NAME}ConstOptions>) -> Result<impl ${TRAIT} + Send + Sync, Error> ${WHERE_CLAUSE} {
-                let conf = configure!(${NAME}Const, ${NAME}ConstOptions, options)?;
+                let mut conf = configure!(${NAME}Const, ${NAME}ConstOptions, options)?;
+		conf.name = "${VIEW}".to_string();
                 match ${NAME}::builder(conf) {
                         Ok(v) => Ok(v),
                         Err(e) => err!(CoreErrorKind::Builder, e.kind().to_string()),
@@ -52,7 +56,8 @@
 
         ${SYNC_BOX_COMMENTS}
         ${VISIBILITY_SYNC_BOX} fn build_${VIEW}_sync_box ${GENERIC_PRE} (options: Vec<${NAME}ConstOptions>) -> Result<Box<dyn ${TRAIT} + Send + Sync>, Error> ${WHERE_CLAUSE} {
-                let conf = configure!(${NAME}Const, ${NAME}ConstOptions, options)?;
+                let mut conf = configure!(${NAME}Const, ${NAME}ConstOptions, options)?;
+		conf.name = "${VIEW}".to_string();
                 match ${NAME}::builder(conf) {
                         Ok(v) => Ok(Box::new(v)),
                         Err(e) => err!(CoreErrorKind::Builder, e.kind().to_string()),

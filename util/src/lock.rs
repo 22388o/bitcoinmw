@@ -47,15 +47,15 @@ where
 	T: Send + Sync,
 {
 	/// obtain a write lock and corresponding [`std::sync::RwLockWriteGuard`] for this
-	/// [`crate::LockBox`].
+	/// [`crate::lock::LockBox`].
 	fn wlock(&mut self) -> Result<RwLockWriteGuard<'_, T>, Error>;
 	/// obtain a read lock and corresponding [`std::sync::RwLockReadGuard`] for this
-	/// [`crate::LockBox`].
+	/// [`crate::lock::LockBox`].
 	fn rlock(&self) -> Result<RwLockReadGuard<'_, T>, Error>;
-	/// Same as [`crate::LockBox::wlock`] except that any poison errors are ignored
+	/// Same as [`crate::lock::LockBox::wlock`] except that any poison errors are ignored
 	/// by calling the underlying into_inner() fn.
 	fn wlock_ignore_poison(&mut self) -> Result<RwLockWriteGuard<'_, T>, Error>;
-	/// Same as [`crate::LockBox::rlock`] except that any poison errors are ignored
+	/// Same as [`crate::lock::LockBox::rlock`] except that any poison errors are ignored
 	/// by calling the underlying into_inner() fn.
 	fn rlock_ignore_poison(&self) -> Result<RwLockReadGuard<'_, T>, Error>;
 	/// return the inner data holder.
