@@ -16,20 +16,58 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::array::*;
 use bmw_core::*;
 use bmw_log::*;
+use std::hash::Hash;
 use std::marker::PhantomData;
 
 debug!();
+
+pub struct IteratorHashtable<'a, K, V>
+where
+	K: Serializable,
+	V: Serializable,
+{
+	collection: &'a dyn Hashtable<'a, K, V>,
+	cur: usize,
+}
+
+impl<'a, K, V> IteratorHashtable<'a, K, V>
+where
+	K: Serializable,
+	V: Serializable,
+{
+	fn new(collection: &'a dyn Hashtable<'a, K, V>) -> Self {
+		Self { collection, cur: 0 }
+	}
+}
+
+impl<'a, K, V> std::iter::Iterator for IteratorHashtable<'a, K, V>
+where
+	K: Serializable,
+	V: Serializable,
+{
+	type Item = (K, V);
+	fn next(&mut self) -> Option<<Self as std::iter::Iterator>::Item> {
+		None
+	}
+}
 
 pub struct Iterator<'a, K>
 where
 	K: Serializable,
 {
-	_hash_class: &'a Collection<'a, K>,
-	_cur: usize,
-	_phantom_data: PhantomData<K>,
+	collection: &'a Collection<'a, K>,
+	cur: usize,
+}
+
+impl<'a, K> Iterator<'a, K>
+where
+	K: Serializable,
+{
+	fn new(collection: &'a Collection<'a, K>) -> Self {
+		Self { collection, cur: 0 }
+	}
 }
 
 impl<'a, K> std::iter::Iterator for Iterator<'a, K>
@@ -38,25 +76,17 @@ where
 {
 	type Item = K;
 	fn next(&mut self) -> Option<<Self as std::iter::Iterator>::Item> {
-		/*
-		match self.hashtable.get_next(&mut self.cur) {
-				Ok(x) => x,
-				Err(e) => {
-						let _ = error!("get_next generated unexpected error: {}", e);
-						None
-				}
-		}
-				*/
-
-		todo!()
+		None
 	}
 }
 
 #[class {
 		var phantom_data: PhantomData<&'a K>;
-		generic hashtable: <'a, K, V> where K: Serializable + 'a, V: Serializable;
+		generic hashtable: <'a, K, V> where K: Serializable + Hash + 'a, V: Serializable;
+                generic hashset: <'a, K> where K: Serializable + Hash + 'a;
 		pub list as list_impl;
-		var hash_array: Option<Box<dyn Array<usize> + Send + Sync>>;
+                var entry_array: Vec<usize>;
+                const entry_array_len: usize = 50 * 1024;
 
 		[hashtable]
 		fn insert(&mut self, key: K, value: V) -> Result<(), Error> as hashtable_insert;
@@ -79,8 +109,11 @@ where
 		[list]
 		fn push(&mut self, value: K) -> Result<(), Error>;
 
-		[hashtable, hashset, list]
+		[hashset, list]
 		fn iter(&self) -> Iterator<K>;
+
+                [hashtable]
+                fn iter(&self) -> IteratorHashtable<K, V> as iter_hashtable;
 
 		[hashtable, hashset, list]
 		fn clear(&mut self) -> Result<(), Error>;
@@ -93,23 +126,25 @@ where
 {
 	fn builder(constants: &CollectionConst) -> Result<Self, Error> {
 		let name = constants.get_name();
-		let hash_array = if name == "hashtable" || name == "hashset" {
-			Some(array_sync_box!(Len(100), BytesPerEntry(30))?)
+		let entry_array = if name == "hashtable" || name == "hashset" {
+			let mut ret = vec![];
+			ret.resize(constants.entry_array_len, usize::MAX);
+			ret
 		} else {
-			None
+			vec![]
 		};
 
-		info!("name={}", constants.get_name())?;
+		debug!("name={}", constants.get_name())?;
 		Ok(Self {
 			phantom_data: PhantomData,
-			hash_array,
+			entry_array,
 		})
 	}
 }
 
 impl<'a, K> Collection<'a, K>
 where
-	K: Serializable + 'a,
+	K: Serializable + Hash + 'a,
 {
 	fn hashtable_insert<V>(&mut self, key: K, value: V) -> Result<(), Error>
 	where
@@ -124,7 +159,6 @@ where
 		self.insert_key(key)?;
 		Ok(())
 	}
-
 	fn insert_key(&mut self, s: K) -> Result<(), Error> {
 		Ok(())
 	}
@@ -134,18 +168,6 @@ where
 		V: Serializable,
 	{
 		Ok(())
-	}
-
-	fn push(&mut self, _value: K) -> Result<(), Error> {
-		Ok(())
-	}
-
-	fn iter(&self) -> Iterator<K> {
-		todo!()
-	}
-
-	fn clear(&mut self) -> Result<(), Error> {
-		todo!()
 	}
 
 	fn hashtable_delete<V>(&mut self, _key: K) -> Result<Option<V>, Error>
@@ -167,6 +189,33 @@ where
 	where
 		V: Serializable,
 	{
+		todo!()
+	}
+
+	fn iter_hashtable<V>(&self) -> IteratorHashtable<K, V>
+	where
+		V: Serializable,
+	{
+		IteratorHashtable::new(self)
+	}
+}
+
+impl<'a, K> Collection<'a, K>
+where
+	K: Serializable + 'a,
+{
+	fn push<V>(&mut self, _value: V) -> Result<(), Error>
+	where
+		V: Serializable,
+	{
+		Ok(())
+	}
+
+	fn iter(&self) -> Iterator<K> {
+		Iterator::new(self)
+	}
+
+	fn clear(&mut self) -> Result<(), Error> {
 		todo!()
 	}
 }
@@ -194,6 +243,11 @@ mod test {
 		let mut hashset = hashset!()?;
 		let mut list = list!["dd".to_string(), "ee".to_string()];
 		let mut hashtable2 = hashtable!()?;
+
+		for (k, v) in hashtable.iter() {}
+		for (k, v) in hashtable2.iter() {}
+		for k in hashset.iter() {}
+		for v in list.iter() {}
 
 		hashtable2.insert("test".to_string(), 1usize)?;
 

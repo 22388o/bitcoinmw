@@ -70,7 +70,15 @@ thread_local! {
 							slab_count: usize::MAX,
 						}
 					)
-				)
+				),
+								SlabConfig(
+										Box::new(
+												SlabAllocatorConfig {
+														slab_size: 51200,
+														slab_count: usize::MAX,
+												}
+										)
+								),
 			]
 		).unwrap()
 	);

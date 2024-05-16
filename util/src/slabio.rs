@@ -122,7 +122,6 @@ impl SlabIOClass {
 		debug!("do free tail {}", id)?;
 		let mut cur_id = id;
 		let mut to_free_list = vec![];
-		let mut count = 0;
 		loop {
 			let cur_slab = sa.read(cur_id)?;
 			to_free_list.push(cur_id);
@@ -137,10 +136,6 @@ impl SlabIOClass {
 			}
 
 			cur_id = slice_to_u64(&cur_slab[data_per_slab..data_per_slab + ptr_size])?;
-			count += 1;
-			if count == 10 {
-				panic!("too many loops");
-			}
 		}
 
 		for id in to_free_list {
