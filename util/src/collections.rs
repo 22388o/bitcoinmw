@@ -17,6 +17,7 @@
 // limitations under the License.
 
 use crate::lock::*;
+use crate::misc::{set_max, slice_to_usize, usize_to_slice};
 use crate::slabio::*;
 use crate::slabs::{SlabAllocator, ThreadLocalSlabAllocator, THREAD_LOCAL_SLAB_ALLOCATOR};
 use bmw_core::*;
@@ -36,8 +37,8 @@ where
 	K: Serializable,
 	V: Serializable,
 {
-	collection: &'a dyn Hashtable<K, V>,
-	cur: u64,
+	_collection: &'a dyn Hashtable<K, V>,
+	_cur: u64,
 }
 
 impl<'a, K, V> IteratorHashtable<'a, K, V>
@@ -45,8 +46,8 @@ where
 	K: Serializable,
 	V: Serializable,
 {
-	fn new(collection: &'a dyn Hashtable<K, V>, cur: u64) -> Self {
-		Self { collection, cur }
+	fn new(_collection: &'a dyn Hashtable<K, V>, _cur: u64) -> Self {
+		Self { _collection, _cur }
 	}
 }
 
@@ -65,20 +66,20 @@ pub struct Iterator<'a, K>
 where
 	K: Serializable + 'static,
 {
-	collection: &'a Collection<K>,
+	_phantom_data: &'a PhantomData<K>,
 	slab_reader: Box<dyn SlabReader + Send + Sync>,
 	cur: u64,
 }
 
 impl<'a, K> Iterator<'a, K>
 where
-	K: Serializable,
+	K: Serializable + Clone,
 {
 	fn new(collection: &'a Collection<K>, cur: u64) -> Self {
 		Self {
-			collection,
 			slab_reader: collection.slab_reader(),
 			cur,
+			_phantom_data: &PhantomData,
 		}
 	}
 }
@@ -125,6 +126,7 @@ impl IdOffsetPair {
 		Self { id, offset }
 	}
 
+	#[allow(dead_code)]
 	const MAX: Self = IdOffsetPair {
 		id: u64::MAX,
 		offset: u16::MAX,
@@ -157,8 +159,9 @@ impl From<i32> for IdOffsetPair {
 
 #[class {
 		var phantom_data: PhantomData<K>;
-		generic hashtable: <K, V> where K: Serializable + Hash + 'static, V: Serializable;
-                generic hashset: <K> where K: Serializable + Hash + 'static;
+		generic hashtable: <K, V> where K: Serializable + Clone + Hash + 'static, V: Serializable;
+                generic hashset: <K> where K: Serializable + Clone + Hash + 'static;
+                clone list;
 		pub list as list_impl;
 
                 var_in slab_allocator_in: Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>;
@@ -201,11 +204,25 @@ impl From<i32> for IdOffsetPair {
 		[hashtable, hashset, list]
 		fn clear(&mut self) -> Result<(), Error>;
 }]
-impl<K> Collection<K> where K: Serializable + 'static {}
+impl<K> Collection<K> where K: Serializable + Clone + 'static {}
+
+impl<K> Drop for Collection<K>
+where
+	K: Serializable + Clone + 'static,
+{
+	fn drop(&mut self) {
+		match self.clear() {
+			Ok(_) => {}
+			Err(e) => {
+				let _ = error!("drop generated error: {}", e);
+			}
+		}
+	}
+}
 
 impl<K> CollectionVarBuilder for CollectionVar<K>
 where
-	K: Serializable + 'static,
+	K: Serializable + Clone + 'static,
 {
 	fn builder(constants: &CollectionConst) -> Result<Self, Error> {
 		let name = constants.get_name();
@@ -248,7 +265,7 @@ where
 				sa.id()
 			}
 			None => THREAD_LOCAL_SLAB_ALLOCATOR.with(|f| -> Result<u128, Error> {
-				let mut sa = f.borrow();
+				let sa = f.borrow();
 				Ok(sa.id())
 			})?,
 		};
@@ -274,7 +291,7 @@ where
 
 impl<K> Collection<K>
 where
-	K: Serializable + Hash + 'static,
+	K: Serializable + Clone + Hash + 'static,
 {
 	fn hashtable_insert<V>(&mut self, key: K, value: V) -> Result<(), Error>
 	where
@@ -297,7 +314,7 @@ where
 	where
 		V: Serializable,
 	{
-		let mut slab_writer = self.vars_mut().get_mut_slab_writer();
+		let slab_writer = self.vars_mut().get_mut_slab_writer();
 		slab_writer.seek(pair.id, pair.offset.into())?;
 
 		// write the value which will be after the key
@@ -314,7 +331,7 @@ where
 	}
 
 	fn hashset_delete(&mut self, _key: K) -> Result<bool, Error> {
-		todo!()
+		Ok(false)
 	}
 
 	fn contains(&self, _key: K) -> Result<bool, Error> {
@@ -339,22 +356,10 @@ where
 
 impl<K> Collection<K>
 where
-	K: Serializable + 'static,
+	K: Serializable + Clone + 'static,
 {
 	fn slab_reader(&self) -> Box<dyn SlabReader + Send + Sync> {
 		self.vars().get_slab_reader().clone()
-	}
-	fn next<V>(&mut self, cur: u64) -> Result<(V, u64), Error>
-	where
-		V: Serializable,
-	{
-		let mut slab_reader = self.vars_mut().get_mut_slab_reader();
-		slab_reader.seek(cur, 8)?;
-		let next = u64::read(slab_reader)?;
-		let ret = V::read(slab_reader)?;
-		debug!("next slab: {}", next)?;
-
-		Ok((ret, next))
 	}
 	fn push<V>(&mut self, value: V) -> Result<(), Error>
 	where
@@ -370,29 +375,50 @@ where
 	}
 
 	fn clear(&mut self) -> Result<(), Error> {
-		todo!()
+		let mut cur = *self.vars().get_head();
+		let slab_reader = self.vars_mut().get_mut_slab_reader();
+		loop {
+			cbreak!(cur == u64::MAX);
+
+			debug!("clear cur = {}", cur)?;
+			slab_reader.free_tail(cur)?;
+			debug!("clear cur complete")?;
+			slab_reader.seek(cur, 8)?;
+			cur = u64::read(slab_reader)?;
+		}
+		*self.vars_mut().get_mut_head() = u64::MAX;
+		*self.vars_mut().get_mut_tail() = u64::MAX;
+		Ok(())
 	}
 
 	fn allocate(&mut self) -> Result<u64, Error> {
+		let mut invalid_ptr = [0u8; 8];
+		let ptr_size = 8;
+		let mut ptr = [0u8; 8];
+		set_max(&mut ptr[0..ptr_size]);
+		let max_value = slice_to_usize(&ptr[0..ptr_size])?;
+		usize_to_slice(max_value - 1, &mut invalid_ptr[0..ptr_size])?;
+
 		let slab_size = *self.constants().get_slab_size();
+		let slab_data_size = slab_size - 8;
 		match self.vars_mut().get_mut_slab_allocator_in() {
-			Some(sa) => sa.wlock()?.allocate(slab_size),
+			Some(sa) => {
+				let mut sa = sa.wlock()?;
+				let ret = sa.allocate(slab_size)?;
+				sa.write(ret, &invalid_ptr, slab_data_size)?;
+				Ok(ret)
+			}
 			None => ThreadLocalSlabAllocator::slab_allocator(
 				*self.vars().get_slab_allocator_id(),
 				|f| -> Result<u64, Error> {
 					let mut sa = f.borrow_mut();
 					let id = sa.allocate(slab_size)?;
+					sa.write(id, &invalid_ptr, slab_data_size)?;
 					Ok(id)
 				},
 			)?,
 		}
 	}
-
-	/*
-	 * [prev_time_list_id_offset_pair - 10 bytes]
-	 * [next_time_list_id_offset_pair - 10 bytes]
-	 * [variable bytes of serialized data]
-	 * */
 
 	fn insert_time_list<V>(&mut self, value: V) -> Result<IdOffsetPair, Error>
 	where
@@ -404,7 +430,7 @@ where
 		}
 
 		let tail = (*self.vars().get_tail()).clone();
-		let mut slab_writer = self.vars_mut().get_mut_slab_writer();
+		let slab_writer = self.vars_mut().get_mut_slab_writer();
 		slab_writer.seek(append, 0)?;
 
 		// write the entry
@@ -429,10 +455,7 @@ where
 	fn cur_id_offset(slab_writer: &mut Box<dyn SlabWriter + Send + Sync>) -> IdOffsetPair {
 		let id = slab_writer.get_id();
 		let offset = slab_writer.get_offset();
-		IdOffsetPair {
-			id,
-			offset: try_into!(offset).unwrap_or(u16::MAX.into()),
-		}
+		IdOffsetPair::new(id, try_into!(offset).unwrap_or(u16::MAX.into()))
 	}
 }
 
@@ -454,17 +477,17 @@ mod test {
 	use crate::slabs::slab_allocator_sync_box;
 	use crate::slabs::SlabAllocatorClassConstOptions::*;
 	use crate::slabs::*;
+	use bmw_test::*;
 	use std::sync::{Arc, RwLock};
 
 	#[test]
 	fn test_list_iter() -> Result<(), Error> {
+		let test_info = test_info!()?;
 		let sa = slab_allocator_sync_box!(
-			SlabConfig(slab_config!(SlabSize(200))?),
 			SlabConfig(slab_config!(SlabSize(512), SlabCount(300))?),
 			SlabsPerResize(100),
 		)?;
-		let sa = Some(lock_box!(sa));
-		//let mut list = list_impl!(SlabAllocatorIn(sa))?;
+
 		let mut list = list_impl!()?;
 		list.push("1".to_string())?;
 		list.push("2".to_string())?;
@@ -475,20 +498,44 @@ mod test {
 			info!("v={}", v)?;
 		}
 
+		let mut success = lock_box!(false);
+		let success_clone = success.clone();
+		let (tx, rx) = test_info.sync_channel();
+
+		let mut list2 = list_sync_box!(SlabAllocatorIn(Some(lock_box!(sa))))?;
+		list2.push(0)?;
+		let list2_clone = list2.clone();
+
 		std::thread::spawn(move || -> Result<(), Error> {
 			debug!("pre0")?;
 			for v in list.iter() {
 				info!("v={}", v)?;
 			}
 
+			list2.push(1)?;
+			list2.push(2)?;
+
 			debug!("Pre")?;
 			assert!(list.push("ok".to_string()).is_err());
 			debug!("post")?;
+			*success.wlock()? = true;
+			tx.send(())?;
 
 			Ok(())
 		});
 
-		std::thread::sleep(std::time::Duration::from_millis(3000));
+		rx.recv()?;
+		assert!(*success_clone.rlock()?);
+
+		let compare = vec![0, 1, 2];
+		let mut counter = 0;
+		for v in list2_clone.iter() {
+			assert_eq!(v, compare[counter]);
+			debug!("v={}", v)?;
+			counter += 1;
+		}
+		assert_eq!(counter, 3);
+
 		Ok(())
 	}
 
@@ -504,11 +551,6 @@ mod test {
 		let mut hashset = hashset!(SlabAllocatorIn(sa))?;
 		let mut list = list!["dd".to_string(), "ee".to_string()];
 		let mut hashtable2 = hashtable!()?;
-
-		for (k, v) in hashtable.iter() {}
-		for (k, v) in hashtable2.iter() {}
-		for k in hashset.iter() {}
-		for v in list.iter() {}
 
 		hashtable2.insert("test".to_string(), 1usize)?;
 
@@ -530,36 +572,74 @@ mod test {
 		let mut t = x_clone.write()?;
 		(*t).insert(&4usize)?;
 
-		/*
-		let mut hashtable: Box<dyn Hashtable<String, String>> = Box::new(Hash::new());
-		hashtable.insert(&"test".to_string(), &"abc".to_string())?;
+		Ok(())
+	}
 
-		let mut hashset: Box<dyn Hashset<String>> = Box::new(Hash::new());
-		hashset.insert(&"aaaa".to_string())?;
-			*/
-		//let mut hashtable = hashtable!()?;
-		//hashtable.insert(&0, &1)?;
+	#[test]
+	fn test_collection_clear() -> Result<(), Error> {
+		let sa = slab_allocator_sync_box!(
+			SlabConfig(slab_config!(SlabSize(512), SlabCount(300))?),
+			SlabsPerResize(10),
+		)?;
+		let lock_box = lock_box!(sa);
+		let lock_box_clone = lock_box.clone();
 
-		//let mut list = list!()?;
-		//list.push(&0)?;
-		//let test: Box<dyn Z> = Box::new(y);
-		//test.v(10);
-		/*
-				let b = 'b';
-				{
-					let mut hashtable = hashtable!()?;
-					{
-						let a = 'a';
-						hashtable.insert(&a, &b)?;
-					}
-					hashtable.remove(&'a')?;
+		assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 0);
 
-					let itt = hashtable.iterator()?;
-				}
+		let mut list = list_impl!(SlabAllocatorIn(Some(lock_box)))?;
+		list.push(1)?;
+		list.push(2)?;
+		list.push(3)?;
+		list.push(4)?;
+		assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 4);
+		let mut count = 0;
+		let expect = vec![1, 2, 3, 4];
+		for v in list.iter() {
+			assert_eq!(v, expect[count]);
+			count += 1;
+			debug!("v={}", v)?;
+		}
+		assert_eq!(count, 4);
 
-				let mut list = list!()?;
-				list.push(&1)?;
-		*/
+		list.clear()?;
+		assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 0);
+		let mut count = 0;
+		for v in list.iter() {
+			count += 1;
+			debug!("v={}", v)?;
+		}
+
+		assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 0);
+		assert_eq!(count, 0);
+
+		list.clear()?;
+		assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 0);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_collection_drop() -> Result<(), Error> {
+		let sa = slab_allocator_sync_box!(
+			SlabConfig(slab_config!(SlabSize(512), SlabCount(300))?),
+			SlabsPerResize(10),
+		)?;
+		let lock_box = lock_box!(sa);
+		let lock_box_clone = lock_box.clone();
+
+		assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 0);
+
+		{
+			let mut list = list_impl!(SlabAllocatorIn(Some(lock_box)))?;
+			list.push(1)?;
+			list.push(2)?;
+			list.push(3)?;
+			list.push(4)?;
+			list.push(9)?;
+			assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 5);
+		}
+
+		assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 0);
 		Ok(())
 	}
 }

@@ -56,7 +56,6 @@ use bmw_core::*;
 use bmw_log::*;
 use std::cell::RefCell;
 use std::cmp::Ordering;
-use std::thread::LocalKey;
 use SlabAllocatorErrors::*;
 
 info!();

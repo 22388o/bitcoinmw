@@ -20,7 +20,6 @@ use crate::slabs::{SlabAllocator, ThreadLocalSlabAllocator, THREAD_LOCAL_SLAB_AL
 use crate::{set_max, slice_to_u64, slice_to_usize, usize_to_slice};
 use bmw_core::*;
 use bmw_log::*;
-use SlabIOErrors::*;
 
 info!();
 
@@ -32,7 +31,7 @@ pub enum SlabIOErrors {
 #[class {
         module "bmw_util::slabio";
         pub slab_reader, slab_writer, slab_reader_box, slab_writer_box, slab_reader_sync_box, slab_writer_sync_box;
-        clone slab_reader;
+        clone slab_reader, slab_writer;
 	var slab_allocator: Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>;
 	var id: u64;
 	var offset: usize;
@@ -64,7 +63,10 @@ pub enum SlabIOErrors {
         [slab_reader, slab_writer]
         fn get_offset(&self) -> usize;
 
-        [slab_writer]
+        [slab_reader, slab_writer]
+        fn get_invalid_ptr(&self) -> &[u8];
+
+        [slab_reader, slab_writer]
         fn free_tail(&mut self, id: u64) -> Result<(), Error>;
 
 }]
@@ -105,6 +107,9 @@ impl SlabIOClassVarBuilder for SlabIOClassVar {
 }
 
 impl SlabIOClass {
+	fn get_invalid_ptr(&self) -> &[u8] {
+		self.vars().get_invalid_ptr()
+	}
 	fn free_tail(&mut self, id: u64) -> Result<(), Error> {
 		match self.slab_allocator() {
 			Some(mut slab_allocator) => {
@@ -135,6 +140,7 @@ impl SlabIOClass {
 		debug!("do free tail {}", id)?;
 		let mut cur_id = id;
 		let mut to_free_list = vec![];
+		let mut count = 0;
 		loop {
 			let cur_slab = sa.read(cur_id)?;
 			to_free_list.push(cur_id);
@@ -142,13 +148,17 @@ impl SlabIOClass {
 				"cur_slab.len={},cur_id={},ptr_size={}",
 				cur_slab.len(),
 				cur_id,
-				ptr_size
+				ptr_size,
 			)?;
 			if cur_slab[data_per_slab..data_per_slab + ptr_size] == invalid_ptr {
 				break;
 			}
 
 			cur_id = slice_to_u64(&cur_slab[data_per_slab..data_per_slab + ptr_size])?;
+			if count > 10 {
+				panic!("err");
+			}
+			count += 1;
 		}
 
 		for id in to_free_list {
@@ -253,7 +263,7 @@ impl SlabIOClass {
 				ThreadLocalSlabAllocator::slab_allocator(
 					*self.vars().get_slab_allocator_id(),
 					|f| -> Result<(), Error> {
-						let mut sa = f.borrow_mut();
+						let sa = f.borrow_mut();
 						self.do_read_fixed_bytes_impl(ret, &*sa)?;
 						Ok(())
 					},
