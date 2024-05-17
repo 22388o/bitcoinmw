@@ -80,6 +80,22 @@ thread_local! {
 						}
 					)
 				),
+				SlabConfig(
+					Box::new(
+						SlabAllocatorConfig {
+							slab_size: 50,
+							slab_count: usize::MAX,
+						}
+					)
+				),
+				SlabConfig(
+					Box::new(
+						SlabAllocatorConfig {
+							slab_size: 100,
+							slab_count: usize::MAX,
+						}
+					)
+				),
 			]
 		).unwrap()
 	);

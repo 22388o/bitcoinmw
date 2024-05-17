@@ -29,7 +29,7 @@ use std::hash::Hasher;
 use std::marker::PhantomData;
 use CollectionErrors::*;
 
-debug!();
+info!();
 
 #[ErrorKind]
 pub enum CollectionErrors {
@@ -39,31 +39,64 @@ pub enum CollectionErrors {
 
 pub struct IteratorHashtable<'a, K, V>
 where
-	K: Serializable,
+	K: Serializable + PartialEq + Clone + 'static,
 	V: Serializable,
 {
-	_collection: &'a dyn Hashtable<K, V>,
-	_cur: u64,
+	_phantom_data: PhantomData<V>,
+	collection: &'a Collection<K>,
+	cur: u64,
 }
 
 impl<'a, K, V> IteratorHashtable<'a, K, V>
 where
-	K: Serializable,
+	K: Serializable + PartialEq + Clone + 'static,
 	V: Serializable,
 {
-	fn new(_collection: &'a dyn Hashtable<K, V>, _cur: u64) -> Self {
-		Self { _collection, _cur }
+	fn new(collection: &'a Collection<K>, cur: u64) -> Self {
+		Self {
+			collection,
+			cur,
+			_phantom_data: PhantomData,
+		}
 	}
 }
 
 impl<K, V> std::iter::Iterator for IteratorHashtable<'_, K, V>
 where
-	K: Serializable,
+	K: Serializable + PartialEq + Clone + 'static,
 	V: Serializable,
 {
 	type Item = (K, V);
 	fn next(&mut self) -> Option<<Self as std::iter::Iterator>::Item> {
-		None
+		if self.cur == u64::MAX {
+			None
+		} else {
+			match self.next_impl() {
+				Ok(ret) => ret,
+				Err(e) => {
+					let _ = error!("iterator next generated error: {}", e);
+					None
+				}
+			}
+		}
+	}
+}
+
+impl<K, V> IteratorHashtable<'_, K, V>
+where
+	K: Serializable + PartialEq + Clone + 'static,
+	V: Serializable,
+{
+	fn next_impl(&mut self) -> Result<Option<<Self as std::iter::Iterator>::Item>, Error> {
+		let mut slab_reader = self.collection.slab_reader();
+		debug!("next impl read slab {} offt=8", self.cur)?;
+		slab_reader.seek(self.cur, TIME_LIST_NEXT_OFFSET)?;
+		self.cur = u64::read(&mut slab_reader)?;
+		debug!("next_impl set cur to {}", self.cur)?;
+		slab_reader.skip(8)?;
+		let ret_k = K::read(&mut slab_reader)?;
+		let ret_v = V::read(&mut slab_reader)?;
+		Ok(Some((ret_k, ret_v)))
 	}
 }
 
@@ -290,7 +323,7 @@ impl From<i32> for IdOffsetPair {
 		[list]
 		fn push(&mut self, value: K) -> Result<(), Error>;
 
-		[hashset, list]
+		[list]
 		fn iter_mut(&mut self) -> Result<IteratorMut<K>, Error>;
 
                 [hashset, list]
@@ -771,7 +804,7 @@ mod test {
 	use crate::slabs::SlabAllocatorClassConstOptions::*;
 	use crate::slabs::*;
 	use bmw_test::*;
-	use std::collections::HashSet;
+	use std::collections::{HashMap, HashSet};
 	use std::sync::{Arc, RwLock};
 	use std::time::Instant;
 
@@ -1091,7 +1124,7 @@ mod test {
 
 	#[test]
 	fn test_hash_collision_insert() -> Result<(), Error> {
-		let mut hash = hashtable!(EntryArrayLen(5))?;
+		let mut hash = hashtable!(CollectionConstOptions::SlabSize(50), EntryArrayLen(5))?;
 		hash.insert("testx".to_string(), 3usize)?;
 		hash.insert("1234".to_string(), 8usize)?;
 
@@ -1101,7 +1134,7 @@ mod test {
 		info!("get assertion complete")?;
 
 		let start = Instant::now();
-		let mut hash = hashtable!(EntryArrayLen(50))?;
+		let mut hash = hashtable!(EntryArrayLen(50), CollectionConstOptions::SlabSize(50))?;
 		for i in 0..100 {
 			hash.insert(i, format!("abc{}", i))?;
 		}
@@ -1204,7 +1237,7 @@ mod test {
 		let mut hash_set = HashSet::new();
 
 		let mut count = 0;
-		for x in hash.iter_mut()? {
+		for x in hash.iter()? {
 			info!("x={}", x)?;
 			hash_set.insert(x);
 			count += 1;
@@ -1216,6 +1249,28 @@ mod test {
 		assert!(!hash_set.contains(&"testx1h".to_string()));
 		assert_eq!(hash_set.len(), 3);
 		assert_eq!(count, 3);
+		Ok(())
+	}
+
+	#[test]
+	fn test_iter_hashtable() -> Result<(), Error> {
+		let mut hash = hashtable!()?;
+		hash.insert("test".to_string(), 0usize)?;
+		hash.insert("testx".to_string(), 3usize)?;
+		hash.insert("1234".to_string(), 8usize)?;
+
+		let mut hashmap = HashMap::new();
+		for (k, v) in hash.iter() {
+			hashmap.insert(k.clone(), v);
+			info!("k={},v={}", k, v)?;
+		}
+
+		assert_eq!(hashmap.len(), 3);
+		assert_eq!(hashmap.get(&"test".to_string()), Some(0usize).as_ref());
+		assert_eq!(hashmap.get(&"test".to_string()), Some(0usize).as_ref());
+		assert_eq!(hashmap.get(&"testx".to_string()), Some(3usize).as_ref());
+		assert_eq!(hashmap.get(&"1234".to_string()), Some(8usize).as_ref());
+
 		Ok(())
 	}
 }
