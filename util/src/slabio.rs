@@ -16,21 +16,29 @@
 // limitations under the License.
 
 use crate::lock::LockBox;
-use crate::slabs::{SlabAllocator, THREAD_LOCAL_SLAB_ALLOCATOR};
+use crate::slabs::{SlabAllocator, ThreadLocalSlabAllocator, THREAD_LOCAL_SLAB_ALLOCATOR};
 use crate::{set_max, slice_to_u64, slice_to_usize, usize_to_slice};
 use bmw_core::*;
 use bmw_log::*;
+use SlabIOErrors::*;
 
 info!();
+
+#[ErrorKind]
+pub enum SlabIOErrors {
+	WrongSlabAllocatorId,
+}
 
 #[class {
         module "bmw_util::slabio";
         pub slab_reader, slab_writer, slab_reader_box, slab_writer_box, slab_reader_sync_box, slab_writer_sync_box;
+        clone slab_reader;
 	var slab_allocator: Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>;
 	var id: u64;
 	var offset: usize;
         var ptr_size: usize;
         var invalid_ptr: [u8; 8];
+        var slab_allocator_id: u128;
         var max_value: usize;
         var null_ptr: [u8; 8];
         const slab_size: usize = 512;
@@ -78,6 +86,11 @@ impl SlabIOClassVarBuilder for SlabIOClassVar {
 		usize_to_slice(max_value - 1, &mut invalid_ptr[0..ptr_size])?;
 		usize_to_slice(max_value, &mut null_ptr[0..ptr_size])?;
 
+		let slab_allocator_id = THREAD_LOCAL_SLAB_ALLOCATOR.with(|f| -> Result<u128, Error> {
+			let sa = f.borrow();
+			Ok(sa.id())
+		})?;
+
 		Ok(Self {
 			slab_allocator,
 			id: try_into!(max_value)?,
@@ -86,6 +99,7 @@ impl SlabIOClassVarBuilder for SlabIOClassVar {
 			invalid_ptr,
 			null_ptr,
 			max_value,
+			slab_allocator_id,
 		})
 	}
 }
@@ -95,18 +109,17 @@ impl SlabIOClass {
 		match self.slab_allocator() {
 			Some(mut slab_allocator) => {
 				let mut slab_allocator = slab_allocator.wlock()?;
-				self.do_free_tail(id, &mut *slab_allocator)?;
+				self.do_free_tail(id, &mut *slab_allocator)
 			}
-			None => {
-				THREAD_LOCAL_SLAB_ALLOCATOR.with(|f| -> Result<(), Error> {
+			None => ThreadLocalSlabAllocator::slab_allocator(
+				*self.vars().get_slab_allocator_id(),
+				|f| -> Result<(), Error> {
 					let mut sa = f.borrow_mut();
 					self.do_free_tail(id, &mut *sa)?;
 					Ok(())
-				})?;
-			}
+				},
+			)?,
 		}
-
-		Ok(())
 	}
 
 	fn do_free_tail(
@@ -173,13 +186,14 @@ impl SlabIOClass {
 				let mut slab_allocator = slab_allocator.wlock()?;
 				self.do_skip(bytes, &mut *slab_allocator)?;
 			}
-			None => {
-				THREAD_LOCAL_SLAB_ALLOCATOR.with(|f| -> Result<(), Error> {
+			None => ThreadLocalSlabAllocator::slab_allocator(
+				*self.vars().get_slab_allocator_id(),
+				|f| -> Result<(), Error> {
 					let mut sa = f.borrow_mut();
 					self.do_skip(bytes, &mut *sa)?;
 					Ok(())
-				})?;
-			}
+				},
+			)??,
 		}
 
 		Ok(())
@@ -225,7 +239,8 @@ impl SlabIOClass {
 	}
 
 	fn slab_allocator(&mut self) -> Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>> {
-		(*self.vars_mut().get_mut_slab_allocator()).clone()
+		let ret = (*self.vars_mut().get_mut_slab_allocator()).clone();
+		ret
 	}
 
 	fn read_fixed_bytes_impl(&mut self, ret: &mut [u8]) -> Result<(), Error> {
@@ -235,11 +250,14 @@ impl SlabIOClass {
 				self.do_read_fixed_bytes_impl(ret, &*slab_allocator)?;
 			}
 			None => {
-				THREAD_LOCAL_SLAB_ALLOCATOR.with(|f| -> Result<(), Error> {
-					let sa = f.borrow();
-					self.do_read_fixed_bytes_impl(ret, &*sa)?;
-					Ok(())
-				})?;
+				ThreadLocalSlabAllocator::slab_allocator(
+					*self.vars().get_slab_allocator_id(),
+					|f| -> Result<(), Error> {
+						let mut sa = f.borrow_mut();
+						self.do_read_fixed_bytes_impl(ret, &*sa)?;
+						Ok(())
+					},
+				)??;
 			}
 		}
 
@@ -253,11 +271,14 @@ impl SlabIOClass {
 				self.do_write_fixed_bytes_impl(bytes, &mut *slab_allocator)?;
 			}
 			None => {
-				THREAD_LOCAL_SLAB_ALLOCATOR.with(|f| -> Result<(), Error> {
-					let mut sa = f.borrow_mut();
-					self.do_write_fixed_bytes_impl(bytes, &mut *sa)?;
-					Ok(())
-				})?;
+				ThreadLocalSlabAllocator::slab_allocator(
+					*self.vars().get_slab_allocator_id(),
+					|f| -> Result<(), Error> {
+						let mut sa = f.borrow_mut();
+						self.do_write_fixed_bytes_impl(bytes, &mut *sa)?;
+						Ok(())
+					},
+				)??;
 			}
 		}
 		Ok(())

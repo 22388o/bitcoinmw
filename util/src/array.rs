@@ -45,6 +45,7 @@ pub enum ArrayErrors {
 	var slab_reader: Box<dyn SlabReader + Send + Sync>;
 	var slab_writer: Box<dyn SlabWriter + Send + Sync>;
 	var_in slab_allocator_in: Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>;
+        var slab_allocator_id: u128;
 	var root: u64;
 	var len: usize;
 	var ptr_size: usize;
@@ -62,8 +63,6 @@ pub enum ArrayErrors {
 	fn get_value(&mut self, index: usize, value: &mut T) -> Result<(), Error>;
 }]
 impl<T> ArrayClass<T> where T: Clone + Serializable + 'static {}
-
-pub(crate) use array_sync_box;
 
 impl<T> ArrayClassVarBuilder for ArrayClassVar<T>
 where
@@ -99,23 +98,25 @@ where
 			let mut slab_writer =
 				slab_writer_sync_box!(SlabIOClassConstOptions::SlabSize(slab_size))?;
 
-			let (id, ptr_size, ids) = match slab_allocator_in.as_mut() {
+			let (id, ptr_size, ids, slab_allocator_id) = match slab_allocator_in.as_mut() {
 				Some(sa) => {
 					slab_reader.set_slab_allocator(sa.clone())?;
 					slab_writer.set_slab_allocator(sa.clone())?;
 					let mut sa = sa.wlock()?;
+					let said = sa.id();
 					let id = sa.allocate(slab_size)?;
 					let (ptr_size, ids) =
 						Self::allocate(&mut *sa, len, bytes_per_entry, slab_size, id)?;
-					(id, ptr_size, ids)
+					(id, ptr_size, ids, said)
 				}
 				None => THREAD_LOCAL_SLAB_ALLOCATOR.with(
-					|f| -> Result<(u64, usize, Vec<u64>), Error> {
+					|f| -> Result<(u64, usize, Vec<u64>, u128), Error> {
 						let mut sa = f.borrow_mut();
+						let said = sa.id();
 						let id = sa.allocate(slab_size)?;
 						let (ptr_size, ids) =
 							Self::allocate(&mut *sa, len, bytes_per_entry, slab_size, id)?;
-						Ok((id, ptr_size, ids))
+						Ok((id, ptr_size, ids, said))
 					},
 				)?,
 			};
@@ -136,6 +137,7 @@ where
 				root: id,
 				slab_allocator_in,
 				ptr_size,
+				slab_allocator_id,
 			})
 		}
 	}
@@ -226,16 +228,16 @@ where
 					Self::clear_slab(&mut sa, id)?;
 				}
 			}
-			None => {
-				THREAD_LOCAL_SLAB_ALLOCATOR.with(|f| -> Result<(), Error> {
+			None => ThreadLocalSlabAllocator::slab_allocator(
+				*self.vars().get_slab_allocator_id(),
+				|f| -> Result<(), Error> {
 					let mut sa = f.borrow_mut();
 					for id in ids {
 						Self::clear_slab(&mut sa, id)?;
 					}
-
 					Ok(())
-				})?;
-			}
+				},
+			)??,
 		}
 
 		let slab_writer = self.vars_mut().get_mut_slab_writer();

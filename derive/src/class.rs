@@ -604,7 +604,7 @@ impl StateMachine {
 
 	#[cfg(not(tarpaulin_include))]
 	fn build_const_params_replace(&self) -> Result<String, Error> {
-		let mut replace = format!("name: String,\n\t");
+		let mut replace = format!("name: String, is_box: bool, is_send: bool, is_sync: bool,\n\t");
 		for item in &self.const_list {
 			let type_str = self.const_type_string(item)?;
 			replace = format!(
@@ -893,7 +893,9 @@ impl StateMachine {
 
 	#[cfg(not(tarpaulin_include))]
 	fn get_const_default_params(&self) -> Result<String, Error> {
-		let mut ret = "\t\t\tname: \"\".to_string(),".to_string();
+		let mut ret =
+			"\t\t\tname: \"\".to_string(), is_box: false, is_send: false, is_sync: false,"
+				.to_string();
 		for const_value in &self.const_list {
 			ret = format!("{}{},\n\t\t\t", ret, const_value.name);
 		}

@@ -51,10 +51,12 @@
 //! }
 //!```
 use crate::misc::{set_max, slice_to_u64, slice_to_usize, usize_to_slice};
+use bmw_core::rand::random;
 use bmw_core::*;
 use bmw_log::*;
 use std::cell::RefCell;
 use std::cmp::Ordering;
+use std::thread::LocalKey;
 use SlabAllocatorErrors::*;
 
 info!();
@@ -71,17 +73,39 @@ thread_local! {
 						}
 					)
 				),
-								SlabConfig(
-										Box::new(
-												SlabAllocatorConfig {
-														slab_size: 51200,
-														slab_count: usize::MAX,
-												}
-										)
-								),
+				SlabConfig(
+					Box::new(
+						SlabAllocatorConfig {
+							slab_size: 51200,
+							slab_count: usize::MAX,
+						}
+					)
+				),
 			]
 		).unwrap()
 	);
+}
+
+pub struct ThreadLocalSlabAllocator {}
+
+impl ThreadLocalSlabAllocator {
+	pub fn slab_allocator<F, R>(expect_id: u128, f: F) -> Result<R, Error>
+	where
+		F: FnOnce(&RefCell<Box<dyn SlabAllocator + Send + Sync>>) -> R,
+	{
+		let slab_allocator_id = THREAD_LOCAL_SLAB_ALLOCATOR.with(|f| -> Result<u128, Error> {
+			let sa = f.borrow();
+			Ok(sa.id())
+		})?;
+		if slab_allocator_id != expect_id {
+			err!(
+				WrongSlabAllocatorId,
+				"perhaps you are trying to use a thread local slab allocator in another thread?"
+			)
+		} else {
+			Ok(THREAD_LOCAL_SLAB_ALLOCATOR.with(f))
+		}
+	}
 }
 
 /// Kinds of errors that can occur in a [`crate::slabs::SlabAllocator`].
@@ -94,6 +118,7 @@ pub enum SlabAllocatorErrors {
 	OutOfSlabs,
 	InvalidSlabId,
 	DoubleFree,
+	WrongSlabAllocatorId,
 }
 
 #[class {
@@ -373,11 +398,12 @@ impl SlabDataHolder {
     /// Specifies a [`SlabAllocatorConfig`]. See [`crate::slab_config`].
     const slab_config: Vec<SlabAllocatorConfig> = vec![];
     /// The number of slabs allocated internally, the [`SlabAllocator`] when it has no slabs.
-    const slabs_per_resize: usize = 1_000;
+    const slabs_per_resize: usize = 10;
     /// If set to true, all bytes in a slab that is returned by the [`crate::slabs::SlabAllocator::allocate`]
     /// function are set to `0u8`.
     const zeroed: bool = false;
     var slab_data: Vec<SlabDataHolder>;
+    var id: u128;
 
     /// Allocate a slab of the specified size.
     /// @param size the size, in bytes, of the slab.
@@ -432,6 +458,10 @@ impl SlabDataHolder {
     /// @see SlabStats
     [slab_allocator]
     fn stats(&self) -> Result<Vec<SlabStats>, Error>;
+
+    /// Returns the id for this slab allocator.
+    [slab_allocator]
+    fn id(&self) -> u128;
 }]
 impl SlabAllocatorClass {}
 
@@ -447,7 +477,8 @@ impl SlabAllocatorClassVarBuilder for SlabAllocatorClassVar {
 		} else {
 			let slab_data = vec![];
 
-			let mut ret = Self { slab_data };
+			let id = random();
+			let mut ret = Self { slab_data, id };
 			for config in &constants.slab_config {
 				let mut sd = slab_data_sync_box!()?;
 				let sdp = SlabDataParams::new(config.slab_size, config.slab_count)?;
@@ -465,6 +496,10 @@ impl SlabAllocatorClassVarBuilder for SlabAllocatorClassVar {
 }
 
 impl SlabAllocatorClass {
+	fn id(&self) -> u128 {
+		*self.vars().get_id()
+	}
+
 	fn stats(&self) -> Result<Vec<SlabStats>, Error> {
 		let mut ret = vec![];
 		let slab_data = self.vars().get_slab_data();
