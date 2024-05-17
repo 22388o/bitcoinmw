@@ -16,12 +16,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod array;
-pub mod collections;
-mod constants;
-pub mod lock;
-pub mod misc;
-pub mod slabio;
-pub mod slabs;
-
-pub use crate::misc::*;
+pub(crate) const TIME_LIST_PREV_OFFSET: usize = 0;
+pub(crate) const TIME_LIST_NEXT_OFFSET: usize = 8;
+pub(crate) const HASH_LIST_NEXT_OFFSET: usize = 16;

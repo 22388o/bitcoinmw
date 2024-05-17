@@ -16,13 +16,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::constants::*;
 use crate::lock::*;
 use crate::misc::{set_max, slice_to_usize, usize_to_slice};
 use crate::slabio::*;
 use crate::slabs::{SlabAllocator, ThreadLocalSlabAllocator, THREAD_LOCAL_SLAB_ALLOCATOR};
 use bmw_core::*;
 use bmw_log::*;
+use std::hash::DefaultHasher;
 use std::hash::Hash;
+use std::hash::Hasher;
 use std::marker::PhantomData;
 use CollectionErrors::*;
 
@@ -66,7 +69,7 @@ where
 
 pub struct Iterator<'a, K>
 where
-	K: Serializable + Clone + 'static,
+	K: Serializable + Clone + PartialEq + 'static,
 {
 	to_delete: Option<u64>,
 	collection: &'a Collection<K>,
@@ -75,7 +78,7 @@ where
 
 impl<'a, K> Iterator<'a, K>
 where
-	K: Serializable + Clone,
+	K: Serializable + Clone + PartialEq,
 {
 	fn new(collection: &'a Collection<K>, cur: u64) -> Result<Self, Error> {
 		Ok(Self {
@@ -88,7 +91,7 @@ where
 
 impl<K> std::iter::Iterator for Iterator<'_, K>
 where
-	K: Serializable + Clone,
+	K: Serializable + Clone + PartialEq,
 {
 	type Item = K;
 	fn next(&mut self) -> Option<<Self as std::iter::Iterator>::Item> {
@@ -107,15 +110,19 @@ where
 }
 impl<K> Iterator<'_, K>
 where
-	K: Serializable + Clone,
+	K: Serializable + Clone + PartialEq,
 {
 	fn next_impl(&mut self) -> Result<Option<<Self as std::iter::Iterator>::Item>, Error> {
+		let hash = self.collection.has_hashlist();
 		let mut slab_reader = self.collection.slab_reader();
 		debug!("next impl read slab {} offt=8", self.cur)?;
 		self.to_delete = Some(self.cur);
-		slab_reader.seek(self.cur, 8)?;
+		slab_reader.seek(self.cur, TIME_LIST_NEXT_OFFSET)?;
 		self.cur = u64::read(&mut slab_reader)?;
 		debug!("next_impl set cur to {}", self.cur)?;
+		if hash {
+			slab_reader.skip(8)?;
+		}
 		let ret = K::read(&mut slab_reader)?;
 		Ok(Some(ret))
 	}
@@ -123,7 +130,7 @@ where
 
 pub struct IteratorMut<'a, K>
 where
-	K: Serializable + Clone + 'static,
+	K: Serializable + Clone + PartialEq + 'static,
 {
 	to_delete: Option<u64>,
 	collection: &'a mut Collection<K>,
@@ -132,9 +139,10 @@ where
 
 impl<'a, K> IteratorMut<'a, K>
 where
-	K: Serializable + Clone,
+	K: Serializable + Clone + PartialEq,
 {
 	fn new(collection: &'a mut Collection<K>, cur: u64) -> Result<Self, Error> {
+		debug!("debug with cur = {}", cur)?;
 		Ok(Self {
 			collection,
 			to_delete: None,
@@ -145,12 +153,12 @@ where
 
 impl<K> IteratorMut<'_, K>
 where
-	K: Serializable + Clone,
+	K: Serializable + Clone + PartialEq,
 {
 	pub fn delete(&mut self) -> Result<(), Error> {
 		debug!("in delete_impl")?;
 		match self.to_delete {
-			Some(to_delete) => Collection::<K>::delete_impl(self.collection, to_delete),
+			Some(to_delete) => self.collection.delete_impl(to_delete),
 			None => {
 				err!(
 					NextNotCalled,
@@ -163,7 +171,7 @@ where
 
 impl<K> std::iter::Iterator for IteratorMut<'_, K>
 where
-	K: Serializable + Clone,
+	K: Serializable + Clone + PartialEq,
 {
 	type Item = K;
 	fn next(&mut self) -> Option<<Self as std::iter::Iterator>::Item> {
@@ -182,16 +190,22 @@ where
 }
 impl<K> IteratorMut<'_, K>
 where
-	K: Serializable + Clone,
+	K: Serializable + Clone + PartialEq,
 {
 	fn next_impl(&mut self) -> Result<Option<<Self as std::iter::Iterator>::Item>, Error> {
+		let hash = self.collection.has_hashlist();
+		debug!("next_impl with cur = {}", self.cur)?;
 		let mut slab_reader = self.collection.slab_reader();
 		debug!("next impl read slab {} offt=8", self.cur)?;
 		self.to_delete = Some(self.cur);
-		slab_reader.seek(self.cur, 8)?;
+		slab_reader.seek(self.cur, TIME_LIST_NEXT_OFFSET)?;
 		self.cur = u64::read(&mut slab_reader)?;
 		debug!("next_impl set cur to {}", self.cur)?;
+		if hash {
+			slab_reader.skip(8)?;
+		}
 		let ret = K::read(&mut slab_reader)?;
+		debug!("cur update = {}", self.cur)?;
 		Ok(Some(ret))
 	}
 }
@@ -240,13 +254,13 @@ impl From<i32> for IdOffsetPair {
 
 #[class {
 		var phantom_data: PhantomData<K>;
-		generic hashtable: <K, V> where K: Serializable + Clone + Hash + 'static, V: Serializable;
-                generic hashset: <K> where K: Serializable + Clone + Hash + 'static;
+		generic hashtable: <K, V> where K: Serializable + Clone + Hash + PartialEq + 'static, V: Serializable;
+                generic hashset: <K> where K: Serializable + Clone + Hash + PartialEq + 'static;
                 clone list;
 		pub list as list_impl;
 
                 var_in slab_allocator_in: Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>;
-                var entry_array: Vec<usize>;
+                var entry_array: Vec<u64>;
                 var head: u64;
                 var tail: u64;
                 var slab_reader: Box<dyn SlabReader + Send + Sync>;
@@ -288,11 +302,11 @@ impl From<i32> for IdOffsetPair {
 		[hashtable, hashset, list]
 		fn clear(&mut self) -> Result<(), Error>;
 }]
-impl<K> Collection<K> where K: Serializable + Clone + 'static {}
+impl<K> Collection<K> where K: Serializable + Clone + PartialEq + 'static {}
 
 impl<K> Drop for Collection<K>
 where
-	K: Serializable + Clone + 'static,
+	K: Serializable + Clone + PartialEq + 'static,
 {
 	fn drop(&mut self) {
 		match self.clear() {
@@ -306,13 +320,13 @@ where
 
 impl<K> CollectionVarBuilder for CollectionVar<K>
 where
-	K: Serializable + Clone + 'static,
+	K: Serializable + Clone + PartialEq + 'static,
 {
 	fn builder(constants: &CollectionConst) -> Result<Self, Error> {
 		let name = constants.get_name();
 		let entry_array = if name == "hashtable" || name == "hashset" {
 			let mut ret = vec![];
-			ret.resize(constants.entry_array_len, usize::MAX);
+			ret.resize(constants.entry_array_len, u64::MAX);
 			ret
 		} else {
 			vec![]
@@ -375,8 +389,15 @@ where
 
 impl<K> Collection<K>
 where
-	K: Serializable + Clone + Hash + 'static,
+	K: Serializable + Clone + Hash + PartialEq + 'static,
 {
+	fn slot(&self, key: &K) -> usize {
+		let len = self.vars().get_entry_array().len();
+		let mut hasher = DefaultHasher::new();
+		key.hash(&mut hasher);
+		let hash = hasher.finish() as usize % len;
+		hash
+	}
 	fn hashtable_insert<V>(&mut self, key: K, value: V) -> Result<(), Error>
 	where
 		V: Serializable,
@@ -390,8 +411,19 @@ where
 		self.insert_key(key)?;
 		Ok(())
 	}
+
 	fn insert_key(&mut self, key: K) -> Result<IdOffsetPair, Error> {
-		self.insert_time_list(key)
+		let slot = self.slot(&key);
+		let entry_array = self.vars().get_entry_array();
+		debug!("insert key with hash = {}", slot)?;
+
+		if entry_array[slot] != u64::MAX {
+			debug!("COLLISION")?;
+		}
+		let (id, ret) = self.insert_impl(key, Some(entry_array[slot]))?;
+		let entry_array = self.vars_mut().get_mut_entry_array();
+		entry_array[slot] = id;
+		Ok(ret)
 	}
 
 	fn insert_value<V>(&mut self, value: V, pair: IdOffsetPair) -> Result<(), Error>
@@ -407,26 +439,134 @@ where
 		Ok(())
 	}
 
-	fn hashtable_delete<V>(&mut self, _key: K) -> Result<Option<V>, Error>
+	fn hashtable_delete<V>(&mut self, key: K) -> Result<Option<V>, Error>
 	where
 		V: Serializable,
 	{
-		todo!()
+		debug!("hashtable_delete")?;
+
+		let slot = self.slot(&key);
+		let entry_array = self.vars().get_entry_array();
+		if entry_array[slot] == u64::MAX {
+			Ok(None)
+		} else {
+			debug!("slot={},key_loc={}", slot, entry_array[slot])?;
+			let mut slab_reader = self.slab_reader();
+			let mut cur = entry_array[slot];
+			let mut prev = u64::MAX;
+			loop {
+				let (next, read_key) = self.get_key(cur, &mut slab_reader)?;
+				if key == read_key {
+					debug!("found equal")?;
+
+					let ret = Some(V::read(&mut slab_reader)?);
+					self.delete_hash_impl(cur, prev, slot)?;
+					self.delete_impl(cur)?;
+					return Ok(ret);
+				} else if next == u64::MAX {
+					debug!("found ne")?;
+					break;
+				} else {
+					prev = cur;
+					cur = next;
+				}
+			}
+			Ok(None)
+		}
 	}
 
-	fn hashset_delete(&mut self, _key: K) -> Result<bool, Error> {
-		Ok(false)
+	fn hashset_delete(&mut self, key: K) -> Result<bool, Error> {
+		debug!("hashset_delete")?;
+
+		let slot = self.slot(&key);
+		let entry_array = self.vars().get_entry_array();
+		if entry_array[slot] == u64::MAX {
+			Ok(false)
+		} else {
+			debug!("slot={},key_loc={}", slot, entry_array[slot])?;
+			let mut slab_reader = self.slab_reader();
+			let mut cur = entry_array[slot];
+			let mut prev = u64::MAX;
+			loop {
+				let (next, read_key) = self.get_key(cur, &mut slab_reader)?;
+				if key == read_key {
+					debug!("found equal")?;
+					self.delete_hash_impl(cur, prev, slot)?;
+					self.delete_impl(cur)?;
+					return Ok(true);
+				} else if next == u64::MAX {
+					debug!("found ne")?;
+					break;
+				} else {
+					prev = cur;
+					cur = next;
+				}
+			}
+			Ok(false)
+		}
 	}
 
-	fn contains(&self, _key: K) -> Result<bool, Error> {
-		todo!()
+	fn contains(&self, key: K) -> Result<bool, Error> {
+		let slot = self.slot(&key);
+		let entry_array = self.vars().get_entry_array();
+		if entry_array[slot] == u64::MAX {
+			Ok(false)
+		} else {
+			debug!("slot={},key_loc={}", slot, entry_array[slot])?;
+			let mut slab_reader = self.slab_reader();
+			let mut cur = entry_array[slot];
+			loop {
+				let (next, read_key) = self.get_key(cur, &mut slab_reader)?;
+				if key == read_key {
+					debug!("found equal")?;
+					return Ok(true);
+				} else if next == u64::MAX {
+					debug!("found ne")?;
+					break;
+				} else {
+					cur = next;
+				}
+			}
+			Ok(false)
+		}
 	}
 
-	fn get<V>(&self, _key: K) -> Result<Option<V>, Error>
+	fn get<V>(&self, key: K) -> Result<Option<V>, Error>
 	where
 		V: Serializable,
 	{
-		todo!()
+		let slot = self.slot(&key);
+		let entry_array = self.vars().get_entry_array();
+		if entry_array[slot] == u64::MAX {
+			Ok(None)
+		} else {
+			debug!("slot={},key_loc={}", slot, entry_array[slot])?;
+			let mut slab_reader = self.slab_reader();
+			let mut cur = entry_array[slot];
+			loop {
+				let (next, read_key) = self.get_key(cur, &mut slab_reader)?;
+				if key == read_key {
+					debug!("found equal")?;
+					return Ok(Some(V::read(&mut slab_reader)?));
+				} else if next == u64::MAX {
+					debug!("found ne")?;
+					break;
+				} else {
+					cur = next;
+				}
+			}
+			Ok(None)
+		}
+	}
+
+	fn get_key(
+		&self,
+		id: u64,
+		slab_reader: &mut Box<dyn SlabReader + Send + Sync>,
+	) -> Result<(u64, K), Error> {
+		slab_reader.seek(id, HASH_LIST_NEXT_OFFSET)?;
+		let next = slab_reader.read_u64()?;
+		Ok((next, K::read(slab_reader)?))
 	}
 
 	fn iter_hashtable<V>(&self) -> IteratorHashtable<K, V>
@@ -440,8 +580,11 @@ where
 
 impl<K> Collection<K>
 where
-	K: Serializable + Clone + 'static,
+	K: Serializable + Clone + PartialEq + 'static,
 {
+	fn has_hashlist(&self) -> bool {
+		self.vars().get_entry_array().len() != 0
+	}
 	fn slab_reader(&self) -> Box<dyn SlabReader + Send + Sync> {
 		self.vars().get_slab_reader().clone()
 	}
@@ -453,7 +596,7 @@ where
 	where
 		V: Serializable,
 	{
-		self.insert_time_list(value)?;
+		self.insert_impl(value, None)?;
 		Ok(())
 	}
 
@@ -476,7 +619,7 @@ where
 			debug!("clear cur = {}", cur)?;
 			slab_reader.free_tail(cur)?;
 			debug!("clear cur complete")?;
-			slab_reader.seek(cur, 8)?;
+			slab_reader.seek(cur, TIME_LIST_NEXT_OFFSET)?;
 			cur = u64::read(slab_reader)?;
 		}
 		*self.vars_mut().get_mut_head() = u64::MAX;
@@ -513,7 +656,11 @@ where
 		}
 	}
 
-	fn insert_time_list<V>(&mut self, value: V) -> Result<IdOffsetPair, Error>
+	fn insert_impl<V>(
+		&mut self,
+		value: V,
+		hash_list_next: Option<u64>,
+	) -> Result<(u64, IdOffsetPair), Error>
 	where
 		V: Serializable,
 	{
@@ -524,25 +671,31 @@ where
 
 		let tail = (*self.vars().get_tail()).clone();
 		let slab_writer = self.vars_mut().get_mut_slab_writer();
-		slab_writer.seek(append, 0)?;
+		slab_writer.seek(append, TIME_LIST_PREV_OFFSET)?;
 
 		// write the entry
 		tail.write(slab_writer)?; // prev is current tail
 		u64::MAX.write(slab_writer)?; // next is MAX (null)
+		match hash_list_next {
+			Some(next) => {
+				next.write(slab_writer)?;
+			}
+			None => {}
+		}
 		value.write(slab_writer)?;
 		let ret = Self::cur_id_offset(slab_writer);
 
 		// update prev tail to point to us if this is not the only entry
 		if tail != u64::MAX {
 			debug!("update prev at tail = {}", tail)?;
-			slab_writer.seek(tail, 8)?;
+			slab_writer.seek(tail, TIME_LIST_NEXT_OFFSET)?;
 			append.write(slab_writer)?;
 		}
 
 		debug!("Setting tail to {:?}", append)?;
 		*self.vars_mut().get_mut_tail() = append;
 
-		Ok(ret)
+		Ok((append, ret))
 	}
 
 	fn cur_id_offset(slab_writer: &mut Box<dyn SlabWriter + Send + Sync>) -> IdOffsetPair {
@@ -551,18 +704,35 @@ where
 		IdOffsetPair::new(id, try_into!(offset).unwrap_or(u16::MAX.into()))
 	}
 
+	fn delete_hash_impl(&mut self, id: u64, prev: u64, hash: usize) -> Result<(), Error> {
+		let mut slab_reader = self.slab_reader();
+		let mut slab_writer = self.slab_writer();
+
+		slab_reader.seek(id, HASH_LIST_NEXT_OFFSET)?;
+		let next = u64::read(&mut slab_reader)?;
+
+		if prev == u64::MAX {
+			let entry_array = self.vars_mut().get_mut_entry_array();
+			entry_array[hash] = next;
+		} else {
+			slab_writer.seek(prev, HASH_LIST_NEXT_OFFSET)?;
+			slab_writer.write_u64(next)?;
+		}
+		Ok(())
+	}
+
 	fn delete_impl(&mut self, id: u64) -> Result<(), Error> {
 		debug!("delete_impl: {}", id)?;
 		let mut slab_reader = self.slab_reader();
 		let mut slab_writer = self.slab_writer();
 
-		slab_reader.seek(id, 0)?;
+		slab_reader.seek(id, TIME_LIST_PREV_OFFSET)?;
 		let prev = u64::read(&mut slab_reader)?;
 		let next = u64::read(&mut slab_reader)?;
 
 		if prev != u64::MAX {
 			debug!("setting {} next ptr for {}", prev, next)?;
-			slab_writer.seek(prev, 8)?;
+			slab_writer.seek(prev, TIME_LIST_NEXT_OFFSET)?;
 			next.write(&mut slab_writer)?;
 		} else {
 			*self.vars_mut().get_mut_head() = next;
@@ -570,7 +740,7 @@ where
 
 		if next != u64::MAX {
 			debug!("setting {} prev ptr to {}", next, prev)?;
-			slab_writer.seek(next, 0)?;
+			slab_writer.seek(next, TIME_LIST_PREV_OFFSET)?;
 			prev.write(&mut slab_writer)?;
 		} else {
 			*self.vars_mut().get_mut_tail() = prev;
@@ -601,7 +771,9 @@ mod test {
 	use crate::slabs::SlabAllocatorClassConstOptions::*;
 	use crate::slabs::*;
 	use bmw_test::*;
+	use std::collections::HashSet;
 	use std::sync::{Arc, RwLock};
+	use std::time::Instant;
 
 	#[test]
 	fn test_list_iter() -> Result<(), Error> {
@@ -898,6 +1070,152 @@ mod test {
 
 		assert_eq!(count, expect.len());
 
+		Ok(())
+	}
+
+	#[test]
+	fn test_hash_insert() -> Result<(), Error> {
+		let mut hash = hashtable!()?;
+		hash.insert("test".to_string(), 0usize)?;
+		hash.insert("testx".to_string(), 3usize)?;
+		hash.insert("1234".to_string(), 8usize)?;
+
+		info!("calling get")?;
+		assert_eq!(hash.get("1234".to_string())?, Some(8));
+		assert_eq!(hash.get("testx".to_string())?, Some(3));
+		assert_eq!(hash.get("test".to_string())?, Some(0));
+		info!("get assertion complete")?;
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_hash_collision_insert() -> Result<(), Error> {
+		let mut hash = hashtable!(EntryArrayLen(5))?;
+		hash.insert("testx".to_string(), 3usize)?;
+		hash.insert("1234".to_string(), 8usize)?;
+
+		info!("calling get")?;
+		assert_eq!(hash.get("1234".to_string())?, Some(8));
+		assert_eq!(hash.get("testx".to_string())?, Some(3));
+		info!("get assertion complete")?;
+
+		let start = Instant::now();
+		let mut hash = hashtable!(EntryArrayLen(50))?;
+		for i in 0..100 {
+			hash.insert(i, format!("abc{}", i))?;
+		}
+		let duration = start.elapsed().as_millis();
+		info!("inserts took {} ms", duration)?;
+
+		let start = Instant::now();
+		for i in 0..100 {
+			assert_eq!(hash.get(i)?, Some(format!("abc{}", i)));
+		}
+		let duration = start.elapsed().as_millis();
+		info!("gets took {} ms", duration)?;
+
+		assert_eq!(hash.get(1_000)?, None);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_hashtable_delete() -> Result<(), Error> {
+		let mut hash = hashtable!()?;
+		hash.insert("test".to_string(), 0usize)?;
+		hash.insert("testx".to_string(), 3usize)?;
+		hash.insert("1234".to_string(), 8usize)?;
+
+		info!("calling get")?;
+		assert_eq!(hash.get("1234".to_string())?, Some(8));
+		assert_eq!(hash.get("testx".to_string())?, Some(3));
+		assert_eq!(hash.get("test".to_string())?, Some(0));
+
+		hash.delete("test".to_string())?;
+
+		assert_eq!(hash.get("1234".to_string())?, Some(8));
+		assert_eq!(hash.get("testx".to_string())?, Some(3));
+		assert_eq!(hash.get("test".to_string())?, None);
+
+		let mut hash = hashtable!(EntryArrayLen(1))?;
+
+		hash.insert("test".to_string(), 0usize)?;
+		hash.insert("testx".to_string(), 3usize)?;
+		hash.insert("1234".to_string(), 8usize)?;
+
+		info!("calling get")?;
+		assert_eq!(hash.get("1234".to_string())?, Some(8));
+		assert_eq!(hash.get("testx".to_string())?, Some(3));
+		assert_eq!(hash.get("test".to_string())?, Some(0));
+
+		hash.delete("test".to_string())?;
+
+		assert_eq!(hash.get("1234".to_string())?, Some(8));
+		assert_eq!(hash.get("testx".to_string())?, Some(3));
+		assert_eq!(hash.get("test".to_string())?, None);
+
+		hash.delete("testx".to_string())?;
+
+		assert_eq!(hash.get("1234".to_string())?, Some(8));
+		assert_eq!(hash.get("testx".to_string())?, None);
+		assert_eq!(hash.get("test".to_string())?, None);
+
+		hash.delete("1234".to_string())?;
+
+		assert_eq!(hash.get("1234".to_string())?, None);
+		assert_eq!(hash.get("testx".to_string())?, None);
+		assert_eq!(hash.get("test".to_string())?, None);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_hashset_delete() -> Result<(), Error> {
+		let mut hash = hashset!(EntryArrayLen(5))?;
+		hash.insert("testx".to_string())?;
+		hash.insert("1234".to_string())?;
+		hash.insert("5678".to_string())?;
+
+		assert!(hash.contains("testx".to_string())?);
+		assert!(hash.contains("1234".to_string())?);
+		assert!(!hash.contains("test1x".to_string())?);
+
+		hash.delete("1234".to_string())?;
+
+		assert!(hash.contains("testx".to_string())?);
+		assert!(!hash.contains("1234".to_string())?);
+		assert!(!hash.contains("test1x".to_string())?);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_hashset_insert() -> Result<(), Error> {
+		let mut hash = hashset!(EntryArrayLen(5))?;
+		hash.insert("testx".to_string())?;
+		hash.insert("1234".to_string())?;
+		hash.insert("5678".to_string())?;
+
+		assert!(hash.contains("testx".to_string())?);
+		assert!(hash.contains("1234".to_string())?);
+		assert!(!hash.contains("test1x".to_string())?);
+
+		let mut hash_set = HashSet::new();
+
+		let mut count = 0;
+		for x in hash.iter_mut()? {
+			info!("x={}", x)?;
+			hash_set.insert(x);
+			count += 1;
+		}
+
+		assert!(hash_set.contains(&"testx".to_string()));
+		assert!(hash_set.contains(&"1234".to_string()));
+		assert!(hash_set.contains(&"5678".to_string()));
+		assert!(!hash_set.contains(&"testx1h".to_string()));
+		assert_eq!(hash_set.len(), 3);
+		assert_eq!(count, 3);
 		Ok(())
 	}
 }
