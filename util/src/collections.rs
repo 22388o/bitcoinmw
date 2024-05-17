@@ -24,12 +24,14 @@ use bmw_core::*;
 use bmw_log::*;
 use std::hash::Hash;
 use std::marker::PhantomData;
+use CollectionErrors::*;
 
 debug!();
 
 #[ErrorKind]
 pub enum CollectionErrors {
 	WrongSlabAllocatorId,
+	NextNotCalled,
 }
 
 pub struct IteratorHashtable<'a, K, V>
@@ -64,10 +66,10 @@ where
 
 pub struct Iterator<'a, K>
 where
-	K: Serializable + 'static,
+	K: Serializable + Clone + 'static,
 {
-	_phantom_data: &'a PhantomData<K>,
-	slab_reader: Box<dyn SlabReader + Send + Sync>,
+	to_delete: Option<u64>,
+	collection: &'a Collection<K>,
 	cur: u64,
 }
 
@@ -75,18 +77,18 @@ impl<'a, K> Iterator<'a, K>
 where
 	K: Serializable + Clone,
 {
-	fn new(collection: &'a Collection<K>, cur: u64) -> Self {
-		Self {
-			slab_reader: collection.slab_reader(),
+	fn new(collection: &'a Collection<K>, cur: u64) -> Result<Self, Error> {
+		Ok(Self {
+			collection,
+			to_delete: None,
 			cur,
-			_phantom_data: &PhantomData,
-		}
+		})
 	}
 }
 
 impl<K> std::iter::Iterator for Iterator<'_, K>
 where
-	K: Serializable,
+	K: Serializable + Clone,
 {
 	type Item = K;
 	fn next(&mut self) -> Option<<Self as std::iter::Iterator>::Item> {
@@ -105,12 +107,91 @@ where
 }
 impl<K> Iterator<'_, K>
 where
-	K: Serializable,
+	K: Serializable + Clone,
 {
 	fn next_impl(&mut self) -> Result<Option<<Self as std::iter::Iterator>::Item>, Error> {
-		self.slab_reader.seek(self.cur, 8)?;
-		self.cur = u64::read(&mut self.slab_reader)?;
-		let ret = K::read(&mut self.slab_reader)?;
+		let mut slab_reader = self.collection.slab_reader();
+		debug!("next impl read slab {} offt=8", self.cur)?;
+		self.to_delete = Some(self.cur);
+		slab_reader.seek(self.cur, 8)?;
+		self.cur = u64::read(&mut slab_reader)?;
+		debug!("next_impl set cur to {}", self.cur)?;
+		let ret = K::read(&mut slab_reader)?;
+		Ok(Some(ret))
+	}
+}
+
+pub struct IteratorMut<'a, K>
+where
+	K: Serializable + Clone + 'static,
+{
+	to_delete: Option<u64>,
+	collection: &'a mut Collection<K>,
+	cur: u64,
+}
+
+impl<'a, K> IteratorMut<'a, K>
+where
+	K: Serializable + Clone,
+{
+	fn new(collection: &'a mut Collection<K>, cur: u64) -> Result<Self, Error> {
+		Ok(Self {
+			collection,
+			to_delete: None,
+			cur,
+		})
+	}
+}
+
+impl<K> IteratorMut<'_, K>
+where
+	K: Serializable + Clone,
+{
+	pub fn delete(&mut self) -> Result<(), Error> {
+		debug!("in delete_impl")?;
+		match self.to_delete {
+			Some(to_delete) => Collection::<K>::delete_impl(self.collection, to_delete),
+			None => {
+				err!(
+					NextNotCalled,
+					"next must be called before delete can be called"
+				)
+			}
+		}
+	}
+}
+
+impl<K> std::iter::Iterator for IteratorMut<'_, K>
+where
+	K: Serializable + Clone,
+{
+	type Item = K;
+	fn next(&mut self) -> Option<<Self as std::iter::Iterator>::Item> {
+		if self.cur == u64::MAX {
+			None
+		} else {
+			match self.next_impl() {
+				Ok(ret) => ret,
+				Err(e) => {
+					let _ = error!("iterator next generated error: {}", e);
+					None
+				}
+			}
+		}
+	}
+}
+impl<K> IteratorMut<'_, K>
+where
+	K: Serializable + Clone,
+{
+	fn next_impl(&mut self) -> Result<Option<<Self as std::iter::Iterator>::Item>, Error> {
+		let mut slab_reader = self.collection.slab_reader();
+		debug!("next impl read slab {} offt=8", self.cur)?;
+		self.to_delete = Some(self.cur);
+		slab_reader.seek(self.cur, 8)?;
+		self.cur = u64::read(&mut slab_reader)?;
+		debug!("next_impl set cur to {}", self.cur)?;
+		let ret = K::read(&mut slab_reader)?;
 		Ok(Some(ret))
 	}
 }
@@ -196,7 +277,10 @@ impl From<i32> for IdOffsetPair {
 		fn push(&mut self, value: K) -> Result<(), Error>;
 
 		[hashset, list]
-		fn iter(&self) -> Iterator<K>;
+		fn iter_mut(&mut self) -> Result<IteratorMut<K>, Error>;
+
+                [hashset, list]
+                fn iter(&self) -> Result<Iterator<K>, Error>;
 
                 [hashtable]
                 fn iter(&self) -> IteratorHashtable<K, V> as iter_hashtable;
@@ -361,6 +445,10 @@ where
 	fn slab_reader(&self) -> Box<dyn SlabReader + Send + Sync> {
 		self.vars().get_slab_reader().clone()
 	}
+	fn slab_writer(&self) -> Box<dyn SlabWriter + Send + Sync> {
+		self.vars().get_slab_writer().clone()
+	}
+
 	fn push<V>(&mut self, value: V) -> Result<(), Error>
 	where
 		V: Serializable,
@@ -369,9 +457,14 @@ where
 		Ok(())
 	}
 
-	fn iter(&self) -> Iterator<K> {
+	fn iter(&self) -> Result<Iterator<K>, Error> {
 		let head = *self.vars().get_head();
 		Iterator::new(self, head)
+	}
+
+	fn iter_mut(&mut self) -> Result<IteratorMut<K>, Error> {
+		let head = *self.vars().get_head();
+		IteratorMut::new(self, head)
 	}
 
 	fn clear(&mut self) -> Result<(), Error> {
@@ -457,6 +550,36 @@ where
 		let offset = slab_writer.get_offset();
 		IdOffsetPair::new(id, try_into!(offset).unwrap_or(u16::MAX.into()))
 	}
+
+	fn delete_impl(&mut self, id: u64) -> Result<(), Error> {
+		debug!("delete_impl: {}", id)?;
+		let mut slab_reader = self.slab_reader();
+		let mut slab_writer = self.slab_writer();
+
+		slab_reader.seek(id, 0)?;
+		let prev = u64::read(&mut slab_reader)?;
+		let next = u64::read(&mut slab_reader)?;
+
+		if prev != u64::MAX {
+			debug!("setting {} next ptr for {}", prev, next)?;
+			slab_writer.seek(prev, 8)?;
+			next.write(&mut slab_writer)?;
+		} else {
+			*self.vars_mut().get_mut_head() = next;
+		}
+
+		if next != u64::MAX {
+			debug!("setting {} prev ptr to {}", next, prev)?;
+			slab_writer.seek(next, 0)?;
+			prev.write(&mut slab_writer)?;
+		} else {
+			*self.vars_mut().get_mut_tail() = prev;
+		}
+
+		slab_reader.free_tail(id)?;
+
+		Ok(())
+	}
 }
 
 #[macro_export]
@@ -494,7 +617,7 @@ mod test {
 		list.push("3".to_string())?;
 		list.push("last one".to_string())?;
 
-		for v in list.iter() {
+		for v in list.iter_mut()? {
 			info!("v={}", v)?;
 		}
 
@@ -504,11 +627,11 @@ mod test {
 
 		let mut list2 = list_sync_box!(SlabAllocatorIn(Some(lock_box!(sa))))?;
 		list2.push(0)?;
-		let list2_clone = list2.clone();
+		let mut list2_clone = list2.clone();
 
 		std::thread::spawn(move || -> Result<(), Error> {
 			debug!("pre0")?;
-			for v in list.iter() {
+			for v in list.iter_mut()? {
 				info!("v={}", v)?;
 			}
 
@@ -529,7 +652,7 @@ mod test {
 
 		let compare = vec![0, 1, 2];
 		let mut counter = 0;
-		for v in list2_clone.iter() {
+		for v in list2_clone.iter_mut()? {
 			assert_eq!(v, compare[counter]);
 			debug!("v={}", v)?;
 			counter += 1;
@@ -594,7 +717,7 @@ mod test {
 		assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 4);
 		let mut count = 0;
 		let expect = vec![1, 2, 3, 4];
-		for v in list.iter() {
+		for v in list.iter_mut()? {
 			assert_eq!(v, expect[count]);
 			count += 1;
 			debug!("v={}", v)?;
@@ -604,7 +727,7 @@ mod test {
 		list.clear()?;
 		assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 0);
 		let mut count = 0;
-		for v in list.iter() {
+		for v in list.iter_mut()? {
 			count += 1;
 			debug!("v={}", v)?;
 		}
@@ -636,10 +759,145 @@ mod test {
 			list.push(3)?;
 			list.push(4)?;
 			list.push(9)?;
+
 			assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 5);
+
+			let mut itt = list.iter_mut()?;
+			loop {
+				let next = itt.next();
+
+				match next {
+					Some(next) => {
+						debug!("next={}", next)?;
+						if next == 2 {
+							itt.delete()?;
+						}
+					}
+					None => break,
+				}
+			}
+
+			assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 4);
 		}
 
 		assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 0);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_iter_immutable() -> Result<(), Error> {
+		let list = list![101, 102, 103, 104];
+
+		let mut iter = list.iter()?;
+		let expect = vec![101, 102, 103, 104];
+		let mut count = 0;
+		loop {
+			let next = iter.next();
+			cbreak!(next.is_none());
+			let next = next.unwrap();
+
+			assert_eq!(next, expect[count]);
+			count += 1;
+		}
+		assert_eq!(count, 4);
+		Ok(())
+	}
+
+	#[test]
+	fn test_iter_delete() -> Result<(), Error> {
+		let mut list = list![101, 102, 103, 104];
+
+		let mut iter = list.iter_mut()?;
+		let expect = vec![101, 102, 103, 104];
+		let mut count = 0;
+		loop {
+			let next = iter.next();
+			cbreak!(next.is_none());
+			let next = next.unwrap();
+
+			if next == 102 {
+				iter.delete()?;
+			}
+			assert_eq!(next, expect[count]);
+			count += 1;
+		}
+		assert_eq!(count, 4);
+
+		let expect = vec![101, 103, 104];
+		let mut count = 0;
+
+		let mut iter = list.iter_mut()?;
+		assert!(iter.delete().is_err());
+		for v in iter {
+			assert_eq!(expect[count], v);
+			count += 1;
+		}
+
+		assert_eq!(count, expect.len());
+
+		// delete head
+		let mut list = list![101, 102, 103, 104];
+
+		let mut iter = list.iter_mut()?;
+		let expect = vec![101, 102, 103, 104];
+		let mut count = 0;
+		loop {
+			let next = iter.next();
+			cbreak!(next.is_none());
+			let next = next.unwrap();
+
+			if next == 101 {
+				iter.delete()?;
+			}
+			assert_eq!(next, expect[count]);
+			count += 1;
+		}
+		assert_eq!(count, 4);
+
+		let expect = vec![102, 103, 104];
+		let mut count = 0;
+
+		let mut iter = list.iter_mut()?;
+		assert!(iter.delete().is_err());
+		for v in iter {
+			assert_eq!(expect[count], v);
+			count += 1;
+		}
+
+		assert_eq!(count, expect.len());
+
+		// delete tail
+		let mut list = list![101, 102, 103, 104];
+
+		let mut iter = list.iter_mut()?;
+		let expect = vec![101, 102, 103, 104];
+		let mut count = 0;
+		loop {
+			let next = iter.next();
+			cbreak!(next.is_none());
+			let next = next.unwrap();
+
+			if next == 104 {
+				iter.delete()?;
+			}
+			assert_eq!(next, expect[count]);
+			count += 1;
+		}
+		assert_eq!(count, 4);
+
+		let expect = vec![101, 102, 103];
+		let mut count = 0;
+
+		let mut iter = list.iter_mut()?;
+		assert!(iter.delete().is_err());
+		for v in iter {
+			assert_eq!(expect[count], v);
+			count += 1;
+		}
+
+		assert_eq!(count, expect.len());
+
 		Ok(())
 	}
 }
