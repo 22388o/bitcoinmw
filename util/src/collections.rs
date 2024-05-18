@@ -37,6 +37,11 @@ pub enum CollectionErrors {
 	NextNotCalled,
 }
 
+enum Direction {
+	Forward,
+	Backward,
+}
+
 pub struct IteratorHashsetMut<'a, K>
 where
 	K: Serializable + PartialEq + Clone + 'static,
@@ -281,17 +286,19 @@ where
 	to_delete: Option<u64>,
 	collection: &'a Collection<K>,
 	cur: u64,
+	direction: Direction,
 }
 
 impl<'a, K> Iterator<'a, K>
 where
 	K: Serializable + Clone + PartialEq,
 {
-	fn new(collection: &'a Collection<K>, cur: u64) -> Result<Self, Error> {
+	fn new(collection: &'a Collection<K>, cur: u64, direction: Direction) -> Result<Self, Error> {
 		Ok(Self {
 			collection,
 			to_delete: None,
 			cur,
+			direction,
 		})
 	}
 }
@@ -324,8 +331,13 @@ where
 		let mut slab_reader = self.collection.slab_reader();
 		debug!("next impl read slab {} offt=8", self.cur)?;
 		self.to_delete = Some(self.cur);
-		slab_reader.seek(self.cur, TIME_LIST_NEXT_OFFSET)?;
+		match self.direction {
+			Direction::Forward => slab_reader.seek(self.cur, TIME_LIST_NEXT_OFFSET)?,
+			Direction::Backward => slab_reader.seek(self.cur, TIME_LIST_PREV_OFFSET)?,
+		}
+		let cur = self.cur;
 		self.cur = u64::read(&mut slab_reader)?;
+		slab_reader.seek(cur, HASH_LIST_NEXT_OFFSET)?;
 		debug!("next_impl set cur to {}", self.cur)?;
 		if hash {
 			slab_reader.skip(8)?;
@@ -460,64 +472,67 @@ impl From<i32> for IdOffsetPair {
 }
 
 #[class {
-		var phantom_data: PhantomData<K>;
-		generic hashtable: <K, V> where K: Serializable + Clone + Hash + PartialEq + 'static, V: Serializable;
-                generic hashset: <K> where K: Serializable + Clone + Hash + PartialEq + 'static;
-                clone list;
-		pub list as list_impl;
+	generic hashtable: <K, V> where K: Serializable + Clone + Hash + PartialEq + 'static, V: Serializable;
+        generic hashset: <K> where K: Serializable + Clone + Hash + PartialEq + 'static;
+        clone list;
+	pub list as list_impl;
 
-                var_in slab_allocator_in: Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>;
-                var entry_array: Vec<u64>;
-                var len: usize;
-                var head: u64;
-                var tail: u64;
-                var slab_reader: Box<dyn SlabReader + Send + Sync>;
-                var slab_writer: Box<dyn SlabWriter + Send + Sync>;
-                var slab_allocator_id: u128;
-                const entry_array_len: usize = 50 * 1024;
-                const slab_size: usize = 512;
+        var phantom_data: PhantomData<K>;
+        var_in slab_allocator_in: Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>;
+        var entry_array: Vec<u64>;
+        var len: usize;
+        var head: u64;
+        var tail: u64;
+        var slab_reader: Box<dyn SlabReader + Send + Sync>;
+        var slab_writer: Box<dyn SlabWriter + Send + Sync>;
+        var slab_allocator_id: u128;
+        const entry_array_len: usize = 50 * 1024;
+        const slab_size: usize = 512;
 
-		[hashtable]
-		fn insert(&mut self, key: &K, value: &V) -> Result<(), Error> as hashtable_insert;
+	[hashtable]
+	fn insert(&mut self, key: &K, value: &V) -> Result<(), Error> as hashtable_insert;
 
-		[hashset]
-		fn insert(&mut self, key: &K) -> Result<(), Error> as hashset_insert;
+	[hashset]
+	fn insert(&mut self, key: &K) -> Result<(), Error> as hashset_insert;
 
-		[hashtable]
-		fn get(&self, key: &K) -> Result<Option<V>, Error>;
+	[hashtable]
+	fn get(&self, key: &K) -> Result<Option<V>, Error>;
 
-		[hashset]
-		fn contains(&self, key: &K) -> Result<bool, Error>;
+	[hashset]
+	fn contains(&self, key: &K) -> Result<bool, Error>;
 
-		[hashtable]
-		fn delete(&mut self, key: &K) -> Result<Option<V>, Error> as hashtable_delete;
+	[hashtable]
+	fn delete(&mut self, key: &K) -> Result<Option<V>, Error> as hashtable_delete;
 
-		[hashset]
-		fn delete(&mut self, key: &K) -> Result<bool, Error> as hashset_delete;
+	[hashset]
+	fn delete(&mut self, key: &K) -> Result<bool, Error> as hashset_delete;
 
-		[list]
-		fn push(&mut self, value: &K) -> Result<(), Error>;
+	[list]
+	fn push(&mut self, value: &K) -> Result<(), Error>;
 
-		[list]
-		fn iter_mut(&mut self) -> Result<IteratorMut<K>, Error>;
+	[hashtable, hashset, list]
+	fn clear(&mut self) -> Result<(), Error>;
 
-                [hashset, list]
-                fn iter(&self) -> Result<Iterator<K>, Error>;
+        [hashtable, hashset, list]
+        fn len(&self) -> usize;
 
-                [hashtable]
-                fn iter(&self) -> Result<IteratorHashtable<K, V>, Error> as iter_hashtable;
+        [hashset, list]
+        fn iter(&self) -> Result<Iterator<K>, Error>;
 
-                [hashset]
-                fn iter_mut(&mut self) -> Result<IteratorHashsetMut<K>, Error> as iter_mut_hashset;
+        [hashtable]
+        fn iter(&self) -> Result<IteratorHashtable<K, V>, Error> as iter_hashtable;
 
-                [hashtable]
-                fn iter_mut(&mut self) -> Result<IteratorHashtableMut<K, V>, Error> as iter_mut_hashtable;
+        [hashset, list]
+        fn iter_rev(&self) -> Result<Iterator<K>, Error>;
 
-		[hashtable, hashset, list]
-		fn clear(&mut self) -> Result<(), Error>;
+        [list]
+        fn iter_mut(&mut self) -> Result<IteratorMut<K>, Error>;
 
-                [hashtable, hashset, list]
-                fn len(&self) -> usize;
+        [hashset]
+        fn iter_mut(&mut self) -> Result<IteratorHashsetMut<K>, Error> as iter_mut_hashset;
+
+        [hashtable]
+        fn iter_mut(&mut self) -> Result<IteratorHashtableMut<K, V>, Error> as iter_mut_hashtable;
 }]
 impl<K> Collection<K> where K: Serializable + Clone + PartialEq + 'static {}
 
@@ -844,7 +859,12 @@ where
 
 	fn iter(&self) -> Result<Iterator<K>, Error> {
 		let head = *self.vars().get_head();
-		Iterator::new(self, head)
+		Iterator::new(self, head, Direction::Forward)
+	}
+
+	fn iter_rev(&self) -> Result<Iterator<K>, Error> {
+		let tail = *self.vars().get_tail();
+		Iterator::new(self, tail, Direction::Backward)
 	}
 
 	fn iter_mut(&mut self) -> Result<IteratorMut<K>, Error> {
@@ -1677,6 +1697,53 @@ mod test {
 		assert!(!hash_set.contains(&"testx1h".to_string()));
 		assert_eq!(hash_set.len(), 2);
 		assert_eq!(count, 2);
+		Ok(())
+	}
+
+	#[test]
+	fn test_iter_rev() -> Result<(), Error> {
+		let list = list![&1, &2, &3, &4];
+		let expect = vec![4, 3, 2, 1];
+		let mut count = 0;
+		for x in list.iter_rev()? {
+			assert_eq!(x, expect[count]);
+			count += 1;
+		}
+		assert_eq!(count, 4);
+
+		let mut hashset = hashset!()?;
+
+		hashset.insert(&1)?;
+		hashset.insert(&2)?;
+		hashset.insert(&3)?;
+		hashset.insert(&4)?;
+		let mut vec1 = vec![];
+		let mut vec2 = vec![];
+
+		for x in hashset.iter()? {
+			vec1.push(x);
+		}
+
+		for x in hashset.iter_rev()? {
+			vec2.push(x);
+		}
+
+		assert_eq!(vec1.len(), 4);
+		assert_eq!(vec2.len(), 4);
+
+		let mut vec3 = vec![];
+
+		let mut count = 3;
+		loop {
+			vec3.push(vec2[count]);
+			if count == 0 {
+				break;
+			}
+			count -= 1;
+		}
+
+		assert_eq!(vec1, vec3);
+
 		Ok(())
 	}
 }
