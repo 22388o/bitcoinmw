@@ -294,6 +294,7 @@ impl From<i32> for IdOffsetPair {
 
                 var_in slab_allocator_in: Option<Box<dyn LockBox<Box<dyn SlabAllocator + Send + Sync>>>>;
                 var entry_array: Vec<u64>;
+                var len: usize;
                 var head: u64;
                 var tail: u64;
                 var slab_reader: Box<dyn SlabReader + Send + Sync>;
@@ -334,6 +335,9 @@ impl From<i32> for IdOffsetPair {
 
 		[hashtable, hashset, list]
 		fn clear(&mut self) -> Result<(), Error>;
+
+                [hashtable, hashset, list]
+                fn len(&self) -> usize;
 }]
 impl<K> Collection<K> where K: Serializable + Clone + PartialEq + 'static {}
 
@@ -407,6 +411,8 @@ where
 			constants.is_sync,
 			constants.is_box,
 		)?;
+		let len = 0;
+
 		Ok(Self {
 			phantom_data: PhantomData,
 			entry_array,
@@ -416,6 +422,7 @@ where
 			slab_reader,
 			slab_writer,
 			slab_allocator_id,
+			len,
 		})
 	}
 }
@@ -441,7 +448,9 @@ where
 	}
 
 	fn hashset_insert(&mut self, key: K) -> Result<(), Error> {
-		self.insert_key(key)?;
+		if !self.contains(key.clone())? {
+			self.insert_key(key)?;
+		}
 		Ok(())
 	}
 
@@ -615,6 +624,9 @@ impl<K> Collection<K>
 where
 	K: Serializable + Clone + PartialEq + 'static,
 {
+	fn len(&self) -> usize {
+		*self.vars().get_len()
+	}
 	fn has_hashlist(&self) -> bool {
 		self.vars().get_entry_array().len() != 0
 	}
@@ -657,6 +669,7 @@ where
 		}
 		*self.vars_mut().get_mut_head() = u64::MAX;
 		*self.vars_mut().get_mut_tail() = u64::MAX;
+		*self.vars_mut().get_mut_len() = 0;
 		Ok(())
 	}
 
@@ -727,6 +740,7 @@ where
 
 		debug!("Setting tail to {:?}", append)?;
 		*self.vars_mut().get_mut_tail() = append;
+		*self.vars_mut().get_mut_len() += 1;
 
 		Ok((append, ret))
 	}
@@ -780,6 +794,7 @@ where
 		}
 
 		slab_reader.free_tail(id)?;
+		*self.vars_mut().get_mut_len() -= 1;
 
 		Ok(())
 	}
@@ -929,6 +944,7 @@ mod test {
 		}
 		assert_eq!(count, 4);
 
+		assert_eq!(list.len(), 4);
 		list.clear()?;
 		assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 0);
 		let mut count = 0;
@@ -940,7 +956,9 @@ mod test {
 		assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 0);
 		assert_eq!(count, 0);
 
+		assert_eq!(list.len(), 0);
 		list.clear()?;
+		assert_eq!(list.len(), 0);
 		assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 0);
 
 		Ok(())
@@ -967,6 +985,8 @@ mod test {
 
 			assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 5);
 
+			assert_eq!(list.len(), 5);
+
 			let mut itt = list.iter_mut()?;
 			loop {
 				let next = itt.next();
@@ -981,6 +1001,8 @@ mod test {
 					None => break,
 				}
 			}
+
+			assert_eq!(list.len(), 4);
 
 			assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 4);
 		}
@@ -1270,6 +1292,20 @@ mod test {
 		assert_eq!(hashmap.get(&"test".to_string()), Some(0usize).as_ref());
 		assert_eq!(hashmap.get(&"testx".to_string()), Some(3usize).as_ref());
 		assert_eq!(hashmap.get(&"1234".to_string()), Some(8usize).as_ref());
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_insert_overwrite() -> Result<(), Error> {
+		let mut hash = hashset!()?;
+		hash.insert(1)?;
+		hash.insert(2)?;
+
+		assert_eq!(hash.len(), 2);
+
+		hash.insert(2)?;
+		assert_eq!(hash.len(), 2);
 
 		Ok(())
 	}
