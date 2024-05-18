@@ -37,6 +37,180 @@ pub enum CollectionErrors {
 	NextNotCalled,
 }
 
+pub struct IteratorHashsetMut<'a, K>
+where
+	K: Serializable + PartialEq + Clone + 'static,
+{
+	collection: &'a mut Collection<K>,
+	cur: u64,
+	to_delete: Option<u64>,
+}
+
+impl<'a, K> IteratorHashsetMut<'a, K>
+where
+	K: Serializable + PartialEq + Clone + 'static,
+{
+	fn new(collection: &'a mut Collection<K>, cur: u64) -> Self {
+		Self {
+			collection,
+			cur,
+			to_delete: None,
+		}
+	}
+}
+
+impl<K> std::iter::Iterator for IteratorHashsetMut<'_, K>
+where
+	K: Serializable + PartialEq + Clone + 'static,
+{
+	type Item = K;
+	fn next(&mut self) -> Option<<Self as std::iter::Iterator>::Item> {
+		if self.cur == u64::MAX {
+			None
+		} else {
+			match self.next_impl() {
+				Ok(ret) => ret,
+				Err(e) => {
+					let _ = error!("iterator next generated error: {}", e);
+					None
+				}
+			}
+		}
+	}
+}
+
+impl<K> IteratorHashsetMut<'_, K>
+where
+	K: Serializable + PartialEq + Clone + 'static,
+{
+	fn next_impl(&mut self) -> Result<Option<<Self as std::iter::Iterator>::Item>, Error> {
+		let mut slab_reader = self.collection.slab_reader();
+		debug!("next impl read slab {} offt=8", self.cur)?;
+		self.to_delete = Some(self.cur);
+		slab_reader.seek(self.cur, TIME_LIST_NEXT_OFFSET)?;
+		self.cur = u64::read(&mut slab_reader)?;
+		debug!("next_impl set cur to {}", self.cur)?;
+		slab_reader.skip(8)?;
+		let ret = K::read(&mut slab_reader)?;
+		Ok(Some(ret))
+	}
+}
+
+impl<K> IteratorHashsetMut<'_, K>
+where
+	K: Serializable + Clone + PartialEq + Hash,
+{
+	pub fn delete(&mut self) -> Result<(), Error> {
+		debug!("in delete_impl")?;
+		match self.to_delete {
+			Some(to_delete) => {
+				let mut slab_reader = self.collection.slab_reader();
+				let key = self.collection.get_key(to_delete, &mut slab_reader)?;
+				let res = self.collection.hashset_delete(&key.1)?;
+				debug!("res={}", res)?;
+				Ok(())
+			}
+			None => {
+				err!(
+					NextNotCalled,
+					"next must be called before delete can be called"
+				)
+			}
+		}
+	}
+}
+
+pub struct IteratorHashtableMut<'a, K, V>
+where
+	K: Serializable + PartialEq + Clone + 'static,
+	V: Serializable,
+{
+	_phantom_data: PhantomData<V>,
+	collection: &'a mut Collection<K>,
+	cur: u64,
+	to_delete: Option<u64>,
+}
+
+impl<'a, K, V> IteratorHashtableMut<'a, K, V>
+where
+	K: Serializable + PartialEq + Clone + 'static,
+	V: Serializable,
+{
+	fn new(collection: &'a mut Collection<K>, cur: u64) -> Self {
+		Self {
+			collection,
+			cur,
+			_phantom_data: PhantomData,
+			to_delete: None,
+		}
+	}
+}
+
+impl<K, V> std::iter::Iterator for IteratorHashtableMut<'_, K, V>
+where
+	K: Serializable + PartialEq + Clone + 'static,
+	V: Serializable,
+{
+	type Item = (K, V);
+	fn next(&mut self) -> Option<<Self as std::iter::Iterator>::Item> {
+		if self.cur == u64::MAX {
+			None
+		} else {
+			match self.next_impl() {
+				Ok(ret) => ret,
+				Err(e) => {
+					let _ = error!("iterator next generated error: {}", e);
+					None
+				}
+			}
+		}
+	}
+}
+
+impl<K, V> IteratorHashtableMut<'_, K, V>
+where
+	K: Serializable + PartialEq + Clone + 'static,
+	V: Serializable,
+{
+	fn next_impl(&mut self) -> Result<Option<<Self as std::iter::Iterator>::Item>, Error> {
+		let mut slab_reader = self.collection.slab_reader();
+		debug!("next impl read slab {} offt=8", self.cur)?;
+		self.to_delete = Some(self.cur);
+		slab_reader.seek(self.cur, TIME_LIST_NEXT_OFFSET)?;
+		self.cur = u64::read(&mut slab_reader)?;
+		debug!("next_impl set cur to {}", self.cur)?;
+		slab_reader.skip(8)?;
+		let ret_k = K::read(&mut slab_reader)?;
+		let ret_v = V::read(&mut slab_reader)?;
+		Ok(Some((ret_k, ret_v)))
+	}
+}
+
+impl<K, V> IteratorHashtableMut<'_, K, V>
+where
+	K: Serializable + Clone + PartialEq + Hash,
+	V: Serializable,
+{
+	pub fn delete(&mut self) -> Result<(), Error> {
+		debug!("in delete_impl")?;
+		match self.to_delete {
+			Some(to_delete) => {
+				let mut slab_reader = self.collection.slab_reader();
+				let key = self.collection.get_key(to_delete, &mut slab_reader)?;
+				let res = self.collection.hashset_delete(&key.1)?;
+				debug!("res={}", res)?;
+				Ok(())
+			}
+			None => {
+				err!(
+					NextNotCalled,
+					"next must be called before delete can be called"
+				)
+			}
+		}
+	}
+}
+
 pub struct IteratorHashtable<'a, K, V>
 where
 	K: Serializable + PartialEq + Clone + 'static,
@@ -304,25 +478,25 @@ impl From<i32> for IdOffsetPair {
                 const slab_size: usize = 512;
 
 		[hashtable]
-		fn insert(&mut self, key: K, value: V) -> Result<(), Error> as hashtable_insert;
+		fn insert(&mut self, key: &K, value: &V) -> Result<(), Error> as hashtable_insert;
 
 		[hashset]
-		fn insert(&mut self, key: K) -> Result<(), Error> as hashset_insert;
+		fn insert(&mut self, key: &K) -> Result<(), Error> as hashset_insert;
 
 		[hashtable]
-		fn get(&self, key: K) -> Result<Option<V>, Error>;
+		fn get(&self, key: &K) -> Result<Option<V>, Error>;
 
 		[hashset]
-		fn contains(&self, key: K) -> Result<bool, Error>;
+		fn contains(&self, key: &K) -> Result<bool, Error>;
 
 		[hashtable]
-		fn delete(&mut self, key: K) -> Result<Option<V>, Error> as hashtable_delete;
+		fn delete(&mut self, key: &K) -> Result<Option<V>, Error> as hashtable_delete;
 
 		[hashset]
-		fn delete(&mut self, key: K) -> Result<bool, Error> as hashset_delete;
+		fn delete(&mut self, key: &K) -> Result<bool, Error> as hashset_delete;
 
 		[list]
-		fn push(&mut self, value: K) -> Result<(), Error>;
+		fn push(&mut self, value: &K) -> Result<(), Error>;
 
 		[list]
 		fn iter_mut(&mut self) -> Result<IteratorMut<K>, Error>;
@@ -331,7 +505,13 @@ impl From<i32> for IdOffsetPair {
                 fn iter(&self) -> Result<Iterator<K>, Error>;
 
                 [hashtable]
-                fn iter(&self) -> IteratorHashtable<K, V> as iter_hashtable;
+                fn iter(&self) -> Result<IteratorHashtable<K, V>, Error> as iter_hashtable;
+
+                [hashset]
+                fn iter_mut(&mut self) -> Result<IteratorHashsetMut<K>, Error> as iter_mut_hashset;
+
+                [hashtable]
+                fn iter_mut(&mut self) -> Result<IteratorHashtableMut<K, V>, Error> as iter_mut_hashtable;
 
 		[hashtable, hashset, list]
 		fn clear(&mut self) -> Result<(), Error>;
@@ -431,6 +611,19 @@ impl<K> Collection<K>
 where
 	K: Serializable + Clone + Hash + PartialEq + 'static,
 {
+	fn iter_mut_hashset(&mut self) -> Result<IteratorHashsetMut<K>, Error> {
+		let head = *self.vars().get_head();
+		Ok(IteratorHashsetMut::new(self, head))
+	}
+
+	fn iter_mut_hashtable<V>(&mut self) -> Result<IteratorHashtableMut<K, V>, Error>
+	where
+		V: Serializable,
+	{
+		let head = *self.vars().get_head();
+		Ok(IteratorHashtableMut::new(self, head))
+	}
+
 	fn slot(&self, key: &K) -> usize {
 		let len = self.vars().get_entry_array().len();
 		let mut hasher = DefaultHasher::new();
@@ -438,24 +631,28 @@ where
 		let hash = hasher.finish() as usize % len;
 		hash
 	}
-	fn hashtable_insert<V>(&mut self, key: K, value: V) -> Result<(), Error>
+	fn hashtable_insert<V>(&mut self, key: &K, value: &V) -> Result<(), Error>
 	where
 		V: Serializable,
 	{
+		// TODO: perf improvement
+		if <Collection<K> as Hashtable<K, V>>::get(self, key)?.is_some() {
+			self.hashtable_delete::<V>(key)?;
+		}
 		let pair = self.insert_key(key)?;
 		self.insert_value(value, pair)?;
 		Ok(())
 	}
 
-	fn hashset_insert(&mut self, key: K) -> Result<(), Error> {
-		if !self.contains(key.clone())? {
+	fn hashset_insert(&mut self, key: &K) -> Result<(), Error> {
+		if !self.contains(key)? {
 			self.insert_key(key)?;
 		}
 		Ok(())
 	}
 
-	fn insert_key(&mut self, key: K) -> Result<IdOffsetPair, Error> {
-		let slot = self.slot(&key);
+	fn insert_key(&mut self, key: &K) -> Result<IdOffsetPair, Error> {
+		let slot = self.slot(key);
 		let entry_array = self.vars().get_entry_array();
 		debug!("insert key with hash = {}", slot)?;
 
@@ -468,7 +665,7 @@ where
 		Ok(ret)
 	}
 
-	fn insert_value<V>(&mut self, value: V, pair: IdOffsetPair) -> Result<(), Error>
+	fn insert_value<V>(&mut self, value: &V, pair: IdOffsetPair) -> Result<(), Error>
 	where
 		V: Serializable,
 	{
@@ -481,13 +678,13 @@ where
 		Ok(())
 	}
 
-	fn hashtable_delete<V>(&mut self, key: K) -> Result<Option<V>, Error>
+	fn hashtable_delete<V>(&mut self, key: &K) -> Result<Option<V>, Error>
 	where
 		V: Serializable,
 	{
 		debug!("hashtable_delete")?;
 
-		let slot = self.slot(&key);
+		let slot = self.slot(key);
 		let entry_array = self.vars().get_entry_array();
 		if entry_array[slot] == u64::MAX {
 			Ok(None)
@@ -498,7 +695,7 @@ where
 			let mut prev = u64::MAX;
 			loop {
 				let (next, read_key) = self.get_key(cur, &mut slab_reader)?;
-				if key == read_key {
+				if key == &read_key {
 					debug!("found equal")?;
 
 					let ret = Some(V::read(&mut slab_reader)?);
@@ -517,7 +714,7 @@ where
 		}
 	}
 
-	fn hashset_delete(&mut self, key: K) -> Result<bool, Error> {
+	fn hashset_delete(&mut self, key: &K) -> Result<bool, Error> {
 		debug!("hashset_delete")?;
 
 		let slot = self.slot(&key);
@@ -531,7 +728,7 @@ where
 			let mut prev = u64::MAX;
 			loop {
 				let (next, read_key) = self.get_key(cur, &mut slab_reader)?;
-				if key == read_key {
+				if key == &read_key {
 					debug!("found equal")?;
 					self.delete_hash_impl(cur, prev, slot)?;
 					self.delete_impl(cur)?;
@@ -548,8 +745,8 @@ where
 		}
 	}
 
-	fn contains(&self, key: K) -> Result<bool, Error> {
-		let slot = self.slot(&key);
+	fn contains(&self, key: &K) -> Result<bool, Error> {
+		let slot = self.slot(key);
 		let entry_array = self.vars().get_entry_array();
 		if entry_array[slot] == u64::MAX {
 			Ok(false)
@@ -559,7 +756,7 @@ where
 			let mut cur = entry_array[slot];
 			loop {
 				let (next, read_key) = self.get_key(cur, &mut slab_reader)?;
-				if key == read_key {
+				if key == &read_key {
 					debug!("found equal")?;
 					return Ok(true);
 				} else if next == u64::MAX {
@@ -573,11 +770,11 @@ where
 		}
 	}
 
-	fn get<V>(&self, key: K) -> Result<Option<V>, Error>
+	fn get<V>(&self, key: &K) -> Result<Option<V>, Error>
 	where
 		V: Serializable,
 	{
-		let slot = self.slot(&key);
+		let slot = self.slot(key);
 		let entry_array = self.vars().get_entry_array();
 		if entry_array[slot] == u64::MAX {
 			Ok(None)
@@ -587,7 +784,7 @@ where
 			let mut cur = entry_array[slot];
 			loop {
 				let (next, read_key) = self.get_key(cur, &mut slab_reader)?;
-				if key == read_key {
+				if key == &read_key {
 					debug!("found equal")?;
 					return Ok(Some(V::read(&mut slab_reader)?));
 				} else if next == u64::MAX {
@@ -611,12 +808,12 @@ where
 		Ok((next, K::read(slab_reader)?))
 	}
 
-	fn iter_hashtable<V>(&self) -> IteratorHashtable<K, V>
+	fn iter_hashtable<V>(&self) -> Result<IteratorHashtable<K, V>, Error>
 	where
 		V: Serializable,
 	{
 		let head = *self.vars().get_head();
-		IteratorHashtable::new(self, head)
+		Ok(IteratorHashtable::new(self, head))
 	}
 }
 
@@ -715,7 +912,7 @@ where
 			*self.vars_mut().get_mut_head() = append;
 		}
 
-		let tail = (*self.vars().get_tail()).clone();
+		let tail = *self.vars().get_tail();
 		let slab_writer = self.vars_mut().get_mut_slab_writer();
 		slab_writer.seek(append, TIME_LIST_PREV_OFFSET)?;
 
@@ -832,10 +1029,10 @@ mod test {
 		)?;
 
 		let mut list = list_impl!()?;
-		list.push("1".to_string())?;
-		list.push("2".to_string())?;
-		list.push("3".to_string())?;
-		list.push("last one".to_string())?;
+		list.push(&"1".to_string())?;
+		list.push(&"2".to_string())?;
+		list.push(&"3".to_string())?;
+		list.push(&"last one".to_string())?;
 
 		for v in list.iter_mut()? {
 			info!("v={}", v)?;
@@ -846,7 +1043,7 @@ mod test {
 		let (tx, rx) = test_info.sync_channel();
 
 		let mut list2 = list_sync_box!(SlabAllocatorIn(Some(lock_box!(sa))))?;
-		list2.push(0)?;
+		list2.push(&0)?;
 		let mut list2_clone = list2.clone();
 
 		std::thread::spawn(move || -> Result<(), Error> {
@@ -855,11 +1052,11 @@ mod test {
 				info!("v={}", v)?;
 			}
 
-			list2.push(1)?;
-			list2.push(2)?;
+			list2.push(&1)?;
+			list2.push(&2)?;
 
 			debug!("Pre")?;
-			assert!(list.push("ok".to_string()).is_err());
+			assert!(list.push(&"ok".to_string()).is_err());
 			debug!("post")?;
 			*success.wlock()? = true;
 			tx.send(())?;
@@ -892,14 +1089,14 @@ mod test {
 		let sa = Some(lock_box!(sa));
 		let mut hashtable = hashtable_box!(SlabAllocatorIn(sa.clone()))?;
 		let mut hashset = hashset!(SlabAllocatorIn(sa))?;
-		let mut list = list!["dd".to_string(), "ee".to_string()];
+		let mut list = list![&"dd".to_string(), &"ee".to_string()];
 		let mut hashtable2 = hashtable!()?;
 
-		hashtable2.insert("test".to_string(), 1usize)?;
+		hashtable2.insert(&"test".to_string(), &1usize)?;
 
 		hashtable.insert(&0usize, &1usize)?;
 		hashset.insert(&0usize)?;
-		list.push("ok".to_string())?;
+		list.push(&"ok".to_string())?;
 
 		let x = Arc::new(RwLock::new(hashset));
 		let x_clone = x.clone();
@@ -930,10 +1127,10 @@ mod test {
 		assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 0);
 
 		let mut list = list_impl!(SlabAllocatorIn(Some(lock_box)))?;
-		list.push(1)?;
-		list.push(2)?;
-		list.push(3)?;
-		list.push(4)?;
+		list.push(&1)?;
+		list.push(&2)?;
+		list.push(&3)?;
+		list.push(&4)?;
 		assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 4);
 		let mut count = 0;
 		let expect = vec![1, 2, 3, 4];
@@ -977,11 +1174,11 @@ mod test {
 
 		{
 			let mut list = list_impl!(SlabAllocatorIn(Some(lock_box)))?;
-			list.push(1)?;
-			list.push(2)?;
-			list.push(3)?;
-			list.push(4)?;
-			list.push(9)?;
+			list.push(&1)?;
+			list.push(&2)?;
+			list.push(&3)?;
+			list.push(&4)?;
+			list.push(&9)?;
 
 			assert_eq!(lock_box_clone.rlock()?.stats()?[0].cur_slabs, 5);
 
@@ -1014,7 +1211,7 @@ mod test {
 
 	#[test]
 	fn test_iter_immutable() -> Result<(), Error> {
-		let list = list![101, 102, 103, 104];
+		let list = list![&101, &102, &103, &104];
 
 		let mut iter = list.iter()?;
 		let expect = vec![101, 102, 103, 104];
@@ -1033,7 +1230,7 @@ mod test {
 
 	#[test]
 	fn test_iter_delete() -> Result<(), Error> {
-		let mut list = list![101, 102, 103, 104];
+		let mut list = list![&101, &102, &103, &104];
 
 		let mut iter = list.iter_mut()?;
 		let expect = vec![101, 102, 103, 104];
@@ -1064,7 +1261,7 @@ mod test {
 		assert_eq!(count, expect.len());
 
 		// delete head
-		let mut list = list![101, 102, 103, 104];
+		let mut list = list![&101, &102, &103, &104];
 
 		let mut iter = list.iter_mut()?;
 		let expect = vec![101, 102, 103, 104];
@@ -1095,7 +1292,7 @@ mod test {
 		assert_eq!(count, expect.len());
 
 		// delete tail
-		let mut list = list![101, 102, 103, 104];
+		let mut list = list![&101, &102, &103, &104];
 
 		let mut iter = list.iter_mut()?;
 		let expect = vec![101, 102, 103, 104];
@@ -1131,14 +1328,14 @@ mod test {
 	#[test]
 	fn test_hash_insert() -> Result<(), Error> {
 		let mut hash = hashtable!()?;
-		hash.insert("test".to_string(), 0usize)?;
-		hash.insert("testx".to_string(), 3usize)?;
-		hash.insert("1234".to_string(), 8usize)?;
+		hash.insert(&"test".to_string(), &0usize)?;
+		hash.insert(&"testx".to_string(), &3usize)?;
+		hash.insert(&"1234".to_string(), &8usize)?;
 
 		info!("calling get")?;
-		assert_eq!(hash.get("1234".to_string())?, Some(8));
-		assert_eq!(hash.get("testx".to_string())?, Some(3));
-		assert_eq!(hash.get("test".to_string())?, Some(0));
+		assert_eq!(hash.get(&"1234".to_string())?, Some(8));
+		assert_eq!(hash.get(&"testx".to_string())?, Some(3));
+		assert_eq!(hash.get(&"test".to_string())?, Some(0));
 		info!("get assertion complete")?;
 
 		Ok(())
@@ -1147,30 +1344,30 @@ mod test {
 	#[test]
 	fn test_hash_collision_insert() -> Result<(), Error> {
 		let mut hash = hashtable!(CollectionConstOptions::SlabSize(50), EntryArrayLen(5))?;
-		hash.insert("testx".to_string(), 3usize)?;
-		hash.insert("1234".to_string(), 8usize)?;
+		hash.insert(&"testx".to_string(), &3usize)?;
+		hash.insert(&"1234".to_string(), &8usize)?;
 
 		info!("calling get")?;
-		assert_eq!(hash.get("1234".to_string())?, Some(8));
-		assert_eq!(hash.get("testx".to_string())?, Some(3));
+		assert_eq!(hash.get(&"1234".to_string())?, Some(8));
+		assert_eq!(hash.get(&"testx".to_string())?, Some(3));
 		info!("get assertion complete")?;
 
 		let start = Instant::now();
 		let mut hash = hashtable!(EntryArrayLen(50), CollectionConstOptions::SlabSize(50))?;
 		for i in 0..100 {
-			hash.insert(i, format!("abc{}", i))?;
+			hash.insert(&i, &format!("abc{}", i))?;
 		}
 		let duration = start.elapsed().as_millis();
 		info!("inserts took {} ms", duration)?;
 
 		let start = Instant::now();
 		for i in 0..100 {
-			assert_eq!(hash.get(i)?, Some(format!("abc{}", i)));
+			assert_eq!(hash.get(&i)?, Some(format!("abc{}", i)));
 		}
 		let duration = start.elapsed().as_millis();
 		info!("gets took {} ms", duration)?;
 
-		assert_eq!(hash.get(1_000)?, None);
+		assert_eq!(hash.get(&1_000)?, None);
 
 		Ok(())
 	}
@@ -1178,49 +1375,49 @@ mod test {
 	#[test]
 	fn test_hashtable_delete() -> Result<(), Error> {
 		let mut hash = hashtable!()?;
-		hash.insert("test".to_string(), 0usize)?;
-		hash.insert("testx".to_string(), 3usize)?;
-		hash.insert("1234".to_string(), 8usize)?;
+		hash.insert(&"test".to_string(), &0usize)?;
+		hash.insert(&"testx".to_string(), &3usize)?;
+		hash.insert(&"1234".to_string(), &8usize)?;
 
 		info!("calling get")?;
-		assert_eq!(hash.get("1234".to_string())?, Some(8));
-		assert_eq!(hash.get("testx".to_string())?, Some(3));
-		assert_eq!(hash.get("test".to_string())?, Some(0));
+		assert_eq!(hash.get(&"1234".to_string())?, Some(8));
+		assert_eq!(hash.get(&"testx".to_string())?, Some(3));
+		assert_eq!(hash.get(&"test".to_string())?, Some(0));
 
-		hash.delete("test".to_string())?;
+		hash.delete(&"test".to_string())?;
 
-		assert_eq!(hash.get("1234".to_string())?, Some(8));
-		assert_eq!(hash.get("testx".to_string())?, Some(3));
-		assert_eq!(hash.get("test".to_string())?, None);
+		assert_eq!(hash.get(&"1234".to_string())?, Some(8));
+		assert_eq!(hash.get(&"testx".to_string())?, Some(3));
+		assert_eq!(hash.get(&"test".to_string())?, None);
 
 		let mut hash = hashtable!(EntryArrayLen(1))?;
 
-		hash.insert("test".to_string(), 0usize)?;
-		hash.insert("testx".to_string(), 3usize)?;
-		hash.insert("1234".to_string(), 8usize)?;
+		hash.insert(&"test".to_string(), &0usize)?;
+		hash.insert(&"testx".to_string(), &3usize)?;
+		hash.insert(&"1234".to_string(), &8usize)?;
 
 		info!("calling get")?;
-		assert_eq!(hash.get("1234".to_string())?, Some(8));
-		assert_eq!(hash.get("testx".to_string())?, Some(3));
-		assert_eq!(hash.get("test".to_string())?, Some(0));
+		assert_eq!(hash.get(&"1234".to_string())?, Some(8));
+		assert_eq!(hash.get(&"testx".to_string())?, Some(3));
+		assert_eq!(hash.get(&"test".to_string())?, Some(0));
 
-		hash.delete("test".to_string())?;
+		hash.delete(&"test".to_string())?;
 
-		assert_eq!(hash.get("1234".to_string())?, Some(8));
-		assert_eq!(hash.get("testx".to_string())?, Some(3));
-		assert_eq!(hash.get("test".to_string())?, None);
+		assert_eq!(hash.get(&"1234".to_string())?, Some(8));
+		assert_eq!(hash.get(&"testx".to_string())?, Some(3));
+		assert_eq!(hash.get(&"test".to_string())?, None);
 
-		hash.delete("testx".to_string())?;
+		hash.delete(&"testx".to_string())?;
 
-		assert_eq!(hash.get("1234".to_string())?, Some(8));
-		assert_eq!(hash.get("testx".to_string())?, None);
-		assert_eq!(hash.get("test".to_string())?, None);
+		assert_eq!(hash.get(&"1234".to_string())?, Some(8));
+		assert_eq!(hash.get(&"testx".to_string())?, None);
+		assert_eq!(hash.get(&"test".to_string())?, None);
 
-		hash.delete("1234".to_string())?;
+		hash.delete(&"1234".to_string())?;
 
-		assert_eq!(hash.get("1234".to_string())?, None);
-		assert_eq!(hash.get("testx".to_string())?, None);
-		assert_eq!(hash.get("test".to_string())?, None);
+		assert_eq!(hash.get(&"1234".to_string())?, None);
+		assert_eq!(hash.get(&"testx".to_string())?, None);
+		assert_eq!(hash.get(&"test".to_string())?, None);
 
 		Ok(())
 	}
@@ -1228,19 +1425,19 @@ mod test {
 	#[test]
 	fn test_hashset_delete() -> Result<(), Error> {
 		let mut hash = hashset!(EntryArrayLen(5))?;
-		hash.insert("testx".to_string())?;
-		hash.insert("1234".to_string())?;
-		hash.insert("5678".to_string())?;
+		hash.insert(&"testx".to_string())?;
+		hash.insert(&"1234".to_string())?;
+		hash.insert(&"5678".to_string())?;
 
-		assert!(hash.contains("testx".to_string())?);
-		assert!(hash.contains("1234".to_string())?);
-		assert!(!hash.contains("test1x".to_string())?);
+		assert!(hash.contains(&"testx".to_string())?);
+		assert!(hash.contains(&"1234".to_string())?);
+		assert!(!hash.contains(&"test1x".to_string())?);
 
-		hash.delete("1234".to_string())?;
+		hash.delete(&"1234".to_string())?;
 
-		assert!(hash.contains("testx".to_string())?);
-		assert!(!hash.contains("1234".to_string())?);
-		assert!(!hash.contains("test1x".to_string())?);
+		assert!(hash.contains(&"testx".to_string())?);
+		assert!(!hash.contains(&"1234".to_string())?);
+		assert!(!hash.contains(&"test1x".to_string())?);
 
 		Ok(())
 	}
@@ -1248,13 +1445,13 @@ mod test {
 	#[test]
 	fn test_hashset_insert() -> Result<(), Error> {
 		let mut hash = hashset!(EntryArrayLen(5))?;
-		hash.insert("testx".to_string())?;
-		hash.insert("1234".to_string())?;
-		hash.insert("5678".to_string())?;
+		hash.insert(&"testx".to_string())?;
+		hash.insert(&"1234".to_string())?;
+		hash.insert(&"5678".to_string())?;
 
-		assert!(hash.contains("testx".to_string())?);
-		assert!(hash.contains("1234".to_string())?);
-		assert!(!hash.contains("test1x".to_string())?);
+		assert!(hash.contains(&"testx".to_string())?);
+		assert!(hash.contains(&"1234".to_string())?);
+		assert!(!hash.contains(&"test1x".to_string())?);
 
 		let mut hash_set = HashSet::new();
 
@@ -1277,12 +1474,12 @@ mod test {
 	#[test]
 	fn test_iter_hashtable() -> Result<(), Error> {
 		let mut hash = hashtable!()?;
-		hash.insert("test".to_string(), 0usize)?;
-		hash.insert("testx".to_string(), 3usize)?;
-		hash.insert("1234".to_string(), 8usize)?;
+		hash.insert(&"test".to_string(), &0usize)?;
+		hash.insert(&"testx".to_string(), &3usize)?;
+		hash.insert(&"1234".to_string(), &8usize)?;
 
 		let mut hashmap = HashMap::new();
-		for (k, v) in hash.iter() {
+		for (k, v) in hash.iter()? {
 			hashmap.insert(k.clone(), v);
 			info!("k={},v={}", k, v)?;
 		}
@@ -1299,14 +1496,187 @@ mod test {
 	#[test]
 	fn test_insert_overwrite() -> Result<(), Error> {
 		let mut hash = hashset!()?;
-		hash.insert(1)?;
-		hash.insert(2)?;
+		hash.insert(&1)?;
+		hash.insert(&2)?;
 
 		assert_eq!(hash.len(), 2);
 
-		hash.insert(2)?;
+		hash.insert(&2)?;
 		assert_eq!(hash.len(), 2);
 
+		Ok(())
+	}
+
+	#[test]
+	fn test_insert_overwrite_hashtable() -> Result<(), Error> {
+		let mut hash = hashtable!()?;
+		hash.insert(&1, &101)?;
+		hash.insert(&2, &102)?;
+
+		assert_eq!(hash.len(), 2);
+
+		hash.insert(&2, &103)?;
+		assert_eq!(hash.len(), 2);
+
+		assert_eq!(hash.get(&2)?, Some(103));
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_hash_iter_mut() -> Result<(), Error> {
+		let mut hash = hashtable!()?;
+		hash.insert(&"test".to_string(), &0usize)?;
+		hash.insert(&"testx".to_string(), &3usize)?;
+		hash.insert(&"1234".to_string(), &8usize)?;
+
+		let mut hashmap = HashMap::new();
+		for (k, v) in hash.iter_mut()? {
+			hashmap.insert(k.clone(), v);
+			info!("k={},v={}", k, v)?;
+		}
+
+		assert_eq!(hashmap.len(), 3);
+		assert_eq!(hashmap.get(&"test".to_string()), Some(0usize).as_ref());
+		assert_eq!(hashmap.get(&"test".to_string()), Some(0usize).as_ref());
+		assert_eq!(hashmap.get(&"testx".to_string()), Some(3usize).as_ref());
+		assert_eq!(hashmap.get(&"1234".to_string()), Some(8usize).as_ref());
+
+		let mut hash = hashset!(EntryArrayLen(5))?;
+		hash.insert(&"testx".to_string())?;
+		hash.insert(&"1234".to_string())?;
+		hash.insert(&"5678".to_string())?;
+
+		assert!(hash.contains(&"testx".to_string())?);
+		assert!(hash.contains(&"1234".to_string())?);
+		assert!(!hash.contains(&"test1x".to_string())?);
+
+		let mut hash_set = HashSet::new();
+
+		let mut count = 0;
+		for x in hash.iter_mut()? {
+			info!("x={}", x)?;
+			hash_set.insert(x);
+			count += 1;
+		}
+
+		assert!(hash_set.contains(&"testx".to_string()));
+		assert!(hash_set.contains(&"1234".to_string()));
+		assert!(hash_set.contains(&"5678".to_string()));
+		assert!(!hash_set.contains(&"testx1h".to_string()));
+		assert_eq!(hash_set.len(), 3);
+		assert_eq!(count, 3);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_hashset_iter_mut_with_del() -> Result<(), Error> {
+		let mut hash = hashset!(EntryArrayLen(5))?;
+		hash.insert(&"testx".to_string())?;
+		hash.insert(&"1234".to_string())?;
+		hash.insert(&"5678".to_string())?;
+
+		assert!(hash.contains(&"testx".to_string())?);
+		assert!(hash.contains(&"1234".to_string())?);
+		assert!(!hash.contains(&"test1x".to_string())?);
+
+		let mut hash_set = HashSet::new();
+
+		let mut count = 0;
+		let mut iter = hash.iter_mut()?;
+		loop {
+			let next = iter.next();
+			cbreak!(next.is_none());
+			let next = next.unwrap();
+			info!("x={}", next)?;
+			if next == "1234".to_string() {
+				iter.delete()?;
+			}
+			hash_set.insert(next);
+			count += 1;
+		}
+
+		assert!(hash_set.contains(&"testx".to_string()));
+		assert!(hash_set.contains(&"1234".to_string()));
+		assert!(hash_set.contains(&"5678".to_string()));
+		assert!(!hash_set.contains(&"testx1h".to_string()));
+		assert_eq!(hash_set.len(), 3);
+		assert_eq!(count, 3);
+
+		let mut hash_set = HashSet::new();
+		let mut count = 0;
+		let mut iter = hash.iter()?;
+		loop {
+			let next = iter.next();
+			cbreak!(next.is_none());
+			let next = next.unwrap();
+			info!("x={}", next)?;
+			hash_set.insert(next);
+			count += 1;
+		}
+
+		assert!(hash_set.contains(&"testx".to_string()));
+		assert!(!hash_set.contains(&"1234".to_string()));
+		assert!(hash_set.contains(&"5678".to_string()));
+		assert!(!hash_set.contains(&"testx1h".to_string()));
+		assert_eq!(hash_set.len(), 2);
+		assert_eq!(count, 2);
+		Ok(())
+	}
+
+	#[test]
+	fn test_hashtable_iter_mut_with_del() -> Result<(), Error> {
+		let mut hash = hashtable!(EntryArrayLen(5))?;
+		hash.insert(&"testx".to_string(), &1)?;
+		hash.insert(&"1234".to_string(), &2)?;
+		hash.insert(&"5678".to_string(), &3)?;
+
+		assert!(hash.get(&"testx".to_string())?.is_some());
+		assert!(hash.get(&"1234".to_string())?.is_some());
+		assert!(!hash.get(&"test1x".to_string())?.is_some());
+
+		let mut hash_set = HashSet::new();
+
+		let mut count = 0;
+		let mut iter = hash.iter_mut()?;
+		loop {
+			let next = iter.next();
+			cbreak!(next.is_none());
+			let (next, value) = next.unwrap();
+			info!("x={},v={}", next, value)?;
+			if next == "1234".to_string() {
+				iter.delete()?;
+			}
+			hash_set.insert(next);
+			count += 1;
+		}
+
+		assert!(hash_set.contains(&"testx".to_string()));
+		assert!(hash_set.contains(&"1234".to_string()));
+		assert!(hash_set.contains(&"5678".to_string()));
+		assert!(!hash_set.contains(&"testx1h".to_string()));
+		assert_eq!(hash_set.len(), 3);
+		assert_eq!(count, 3);
+
+		let mut hash_set = HashSet::new();
+		let mut count = 0;
+		let mut iter = hash.iter()?;
+		loop {
+			let next = iter.next();
+			cbreak!(next.is_none());
+			let (next, value) = next.unwrap();
+			info!("x={},v={}", next, value)?;
+			hash_set.insert(next);
+			count += 1;
+		}
+
+		assert!(hash_set.contains(&"testx".to_string()));
+		assert!(!hash_set.contains(&"1234".to_string()));
+		assert!(hash_set.contains(&"5678".to_string()));
+		assert!(!hash_set.contains(&"testx1h".to_string()));
+		assert_eq!(hash_set.len(), 2);
+		assert_eq!(count, 2);
 		Ok(())
 	}
 }
