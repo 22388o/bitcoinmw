@@ -16,13 +16,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use bmw_core::*;
 use std::mem::size_of;
 
 // include build information
 #[doc(hidden)]
-pub mod built_info {
-	include!(concat!(env!("OUT_DIR"), "/built.rs"));
+pub mod build_info {
+	include!(concat!(env!("OUT_DIR"), "/bmw_build.rs"));
 }
 
 fn main() -> Result<(), Error> {
@@ -34,14 +33,21 @@ fn real_main(debug_startup_32: bool) -> Result<(), Error> {
 	// ensure we only support 64 bit
 	match size_of::<&char>() == 8 && debug_startup_32 == false {
 		true => {}
-		false => ret_err!(MainErrorKind::UnsupportedArch, "Only 64 bit arch supported"),
+		false => panic!("unsuported arch"),
+		/*ret_err!(MainErrorKind::UnsupportedArch, "Only 64 bit arch supported")*/
 	}
 
 	println!("main currently doesn't do anything");
+	println!("build pkg_version = {}", build_info::PKG_VERSION);
 	Ok(())
 }
 
+#[derive(Debug)]
+pub enum Error {}
+
+/*
 #[ErrorKind]
 enum MainErrorKind {
 	UnsupportedArch,
 }
+*/

@@ -17,12 +17,13 @@
 // limitations under the License.
 
 //! Build hooks to spit out version+build time info
-
-use built;
-
-use std::env;
+use std::env::var;
+use std::fs::File;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+
+const CARGO_MANIFEST_ERROR: &str = "could not retrieve CARGO_MANIFEST_DIR env var";
 
 fn main() {
 	// Setting up git hooks in the project: rustfmt and so on.
@@ -44,14 +45,21 @@ fn main() {
 			.expect("failed to execute git config for hooks");
 	}
 
-	// set our output directory
-	let out_dir_path = format!("{}{}", env::var("OUT_DIR").unwrap(), "/built.rs");
+	// create build file with needed info
+	let mut build_file = PathBuf::new();
+	build_file.push(Path::new(
+		&var("OUT_DIR").expect("Build error: OUT_DIR not set"),
+	));
+	build_file.push("bmw_build.rs");
 
-	// write built file with options
-	match built::write_built_file_with_opts(
-		Some(Path::new(env!("CARGO_MANIFEST_DIR"))),
-		Path::new(&out_dir_path),
-	) {
+	let pkg_version = var("CARGO_PKG_VERSION").expect(CARGO_MANIFEST_ERROR);
+	let build_text = format!("pub const PKG_VERSION: &str = \"{}\";", pkg_version);
+
+	let mut file = match File::create(build_file) {
+		Ok(file) => file,
+		Err(e) => panic!("Build Error: {}", e),
+	};
+	match file.write_all(build_text.as_bytes()) {
 		Ok(_) => {}
 		Err(e) => panic!("Build Error: {}", e),
 	}

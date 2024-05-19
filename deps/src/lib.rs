@@ -17,56 +17,7 @@
 // limitations under the License.
 
 //! # The BitcoinMW Dependency crate
-//! This is the dependency crate. All BitcoinMW dependencies are included in this crate as re-exports and
+//! This is the dependency crate. All BitcoinMW dependencies are included in this crate and
 //! used by the other crates within the repo.
 
-#[cfg(target_os = "windows")]
-pub use wepoll_sys;
-#[cfg(target_os = "windows")]
-pub use windows_sys;
-
-#[cfg(target_os = "macos")]
-//pub use kqueue_sys;
-#[cfg(target_os = "macos")]
-//pub use libc;
-#[cfg(target_os = "macos")]
-//pub use nix;
-#[cfg(target_os = "linux")]
-pub use libc;
-#[cfg(target_os = "linux")]
-pub use nix;
-
-pub use backtrace;
-//pub use base64;
-//pub use bitvec;
-//pub use byteorder;
-pub use chrono;
-pub use colored;
-pub use convert_case;
-pub use dirs;
-pub use downcast;
-//pub use errno;
-//pub use failure;
-//pub use failure_derive;
-//pub use flate2;
-//pub use futures;
-//pub use itertools;
-pub use lazy_static;
-pub use litrs;
-//pub use math;
-//pub use num_format;
-//pub use path_clean;
-pub use portpicker;
-pub use proc_macro_error;
-pub use rand;
-//pub use rand_core;
-//pub use random_string;
-//pub use ring;
-//pub use sha1;
-pub use substring;
-pub use syn;
-//pub use url;
-pub use url_path;
-
-// incorporated modules
 pub mod dyn_clone;

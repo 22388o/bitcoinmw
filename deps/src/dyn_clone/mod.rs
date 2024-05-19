@@ -1,4 +1,92 @@
 //! Using dyn_clone subject to license agreement here: <https://github.com/dtolnay/dyn-clone/blob/master/LICENSE-MIT>
+//! [![github]](https://github.com/dtolnay/dyn-clone)&ensp;[![crates-io]](https://crates.io/crates/dyn-clone)&ensp;[![docs-rs]](https://docs.rs/dyn-clone)
+//!
+//! [github]: https://img.shields.io/badge/github-8da0cb?style=for-the-badge&labelColor=555555&logo=github
+//! [crates-io]: https://img.shields.io/badge/crates.io-fc8d62?style=for-the-badge&labelColor=555555&logo=rust
+//! [docs-rs]: https://img.shields.io/badge/docs.rs-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs
+//!
+//! <br>
+//!
+//! This crate provides a [`DynClone`] trait that can be used in trait objects,
+//! and a [`clone_box`] function that can clone any sized or dynamically sized
+//! implementation of `DynClone`. Types that implement the standard library's
+//! [`std::clone::Clone`] trait are automatically usable by a `DynClone` trait
+//! object.
+//!
+//! # Example
+//!
+//! ```
+//! use bmw_deps::dyn_clone::DynClone;
+//!
+//! trait MyTrait: DynClone {
+//!     fn recite(&self);
+//! }
+//!
+//! impl MyTrait for String {
+//!     fn recite(&self) {
+//!         println!("{} ♫", self);
+//!     }
+//! }
+//!
+//! fn main() {
+//!     let line = "The slithy structs did gyre and gimble the namespace";
+//!
+//!     // Build a trait object holding a String.
+//!     // This requires String to implement MyTrait and std::clone::Clone.
+//!     let x: Box<dyn MyTrait> = Box::new(String::from(line));
+//!
+//!     x.recite();
+//!
+//!     // The type of x2 is a Box<dyn MyTrait> cloned from x.
+//!     let x2 = bmw_deps::dyn_clone::clone_box(&*x);
+//!
+//!     x2.recite();
+//! }
+//! ```
+//!
+//! This crate includes a macro for concisely implementing `impl
+//! std::clone::Clone for Box<dyn MyTrait>` in terms of `dyn_clone::clone_box`.
+//!
+//! ```
+//! # use bmw_deps::dyn_clone::DynClone;
+//! #
+//! // As before.
+//! trait MyTrait: DynClone {
+//!     /* ... */
+//! }
+//!
+//! bmw_deps::clone_trait_object!(MyTrait);
+//!
+//! // Now data structures containing Box<dyn MyTrait> can derive Clone:
+//! #[derive(Clone)]
+//! struct Container {
+//!     trait_object: Box<dyn MyTrait>,
+//! }
+//! ```
+//!
+//! The `clone_trait_object!` macro expands to just the following, which you can
+//! handwrite instead if you prefer:
+//!
+//! ```
+//! # use bmw_deps::dyn_clone::DynClone;
+//! #
+//! # trait MyTrait: DynClone {}
+//! #
+//! impl Clone for Box<dyn MyTrait> {
+//!     fn clone(&self) -> Self {
+//!         bmw_deps::dyn_clone::clone_box(&**self)
+//!     }
+//! }
+//!
+//! // and similar for Box<dyn MyTrait + Send>, Box<dyn MyTrait + Sync>, Box<dyn MyTrait + Send + Sync>
+//! ```
+
+#![allow(
+	clippy::missing_panics_doc,
+	clippy::needless_doctest_main,
+	clippy::ptr_as_ptr
+)]
+
 extern crate alloc;
 
 #[cfg(doc)]

@@ -14,27 +14,13 @@ edition = "2021"
 [workspace]
 members = [
 	"deps",
-	"base",
-	"derive",
-	"core",
-	"log",
-	"util",
-	"test",
-	"integration",
 ]
 exclude = ["etc"]
 
 [dependencies]
-bmw_base   = { path = "./base"   }
-bmw_derive = { path = "./derive" }
-bmw_core   = { path = "./core"   }
-bmw_log    = { path = "./log"    }
-bmw_util   = { path = "./util"   }
+bmw_deps = { path = "./deps"   }
 
 [dev-dependencies]
-bmw_test = { path = "./test" }
-bmw_int = { path = "./integration" }
 
 [build-dependencies]
-built = { version = "0.7.2", features = ["git2"]}
 

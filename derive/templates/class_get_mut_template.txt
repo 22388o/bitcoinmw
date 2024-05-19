@@ -1,7 +1,0 @@
-	pub(crate) fn get_${PARAM_NAME}(&self) -> &${PARAM_TYPE} {
-        	&self.${PARAM_NAME}
-	}
-
-	pub(crate) fn get_mut_${PARAM_NAME}(&mut self) -> &mut ${PARAM_TYPE} {
-        	&mut self.${PARAM_NAME}
-	}

@@ -1,3 +1,0 @@
-        pub(crate) fn get_${PARAM_NAME}(&self) -> &${PARAM_TYPE} {
-                self._hidden_const_struct.get_${PARAM_NAME}()
-        }
