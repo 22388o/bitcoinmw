@@ -354,18 +354,24 @@ where
 	to_delete: Option<u64>,
 	collection: &'a mut Collection<K>,
 	cur: u64,
+	direction: Direction,
 }
 
 impl<'a, K> IteratorMut<'a, K>
 where
 	K: Serializable + Clone + PartialEq,
 {
-	fn new(collection: &'a mut Collection<K>, cur: u64) -> Result<Self, Error> {
+	fn new(
+		collection: &'a mut Collection<K>,
+		cur: u64,
+		direction: Direction,
+	) -> Result<Self, Error> {
 		debug!("debug with cur = {}", cur)?;
 		Ok(Self {
 			collection,
 			to_delete: None,
 			cur,
+			direction,
 		})
 	}
 }
@@ -417,9 +423,14 @@ where
 		let mut slab_reader = self.collection.slab_reader();
 		debug!("next impl read slab {} offt=8", self.cur)?;
 		self.to_delete = Some(self.cur);
-		slab_reader.seek(self.cur, TIME_LIST_NEXT_OFFSET)?;
+		match self.direction {
+			Direction::Forward => slab_reader.seek(self.cur, TIME_LIST_NEXT_OFFSET)?,
+			Direction::Backward => slab_reader.seek(self.cur, TIME_LIST_PREV_OFFSET)?,
+		}
+		let cur = self.cur;
 		self.cur = u64::read(&mut slab_reader)?;
 		debug!("next_impl set cur to {}", self.cur)?;
+		slab_reader.seek(cur, HASH_LIST_NEXT_OFFSET)?;
 		if hash {
 			slab_reader.skip(8)?;
 		}
@@ -524,6 +535,9 @@ impl From<i32> for IdOffsetPair {
 
         [hashset, list]
         fn iter_rev(&self) -> Result<Iterator<K>, Error>;
+
+        [list]
+        fn iter_rev_mut(&mut self) -> Result<IteratorMut<K>, Error>;
 
         [list]
         fn iter_mut(&mut self) -> Result<IteratorMut<K>, Error>;
@@ -869,7 +883,12 @@ where
 
 	fn iter_mut(&mut self) -> Result<IteratorMut<K>, Error> {
 		let head = *self.vars().get_head();
-		IteratorMut::new(self, head)
+		IteratorMut::new(self, head, Direction::Forward)
+	}
+
+	fn iter_rev_mut(&mut self) -> Result<IteratorMut<K>, Error> {
+		let tail = *self.vars().get_tail();
+		IteratorMut::new(self, tail, Direction::Backward)
 	}
 
 	fn clear(&mut self) -> Result<(), Error> {
@@ -1743,6 +1762,103 @@ mod test {
 		}
 
 		assert_eq!(vec1, vec3);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_iter_rev_mut() -> Result<(), Error> {
+		let mut list = list![&101, &102, &103, &104];
+
+		let mut iter = list.iter_rev_mut()?;
+		let expect = vec![104, 103, 102, 101];
+		let mut count = 0;
+		loop {
+			let next = iter.next();
+			cbreak!(next.is_none());
+			let next = next.unwrap();
+
+			if next == 102 {
+				iter.delete()?;
+			}
+			assert_eq!(next, expect[count]);
+			count += 1;
+		}
+		assert_eq!(count, 4);
+
+		let expect = vec![104, 103, 101];
+		let mut count = 0;
+
+		let mut iter = list.iter_rev_mut()?;
+		assert!(iter.delete().is_err());
+		for v in iter {
+			assert_eq!(expect[count], v);
+			count += 1;
+		}
+
+		assert_eq!(count, expect.len());
+
+		// delete head
+		let mut list = list![&101, &102, &103, &104];
+
+		let mut iter = list.iter_rev_mut()?;
+		let expect = vec![104, 103, 102, 101];
+		let mut count = 0;
+		loop {
+			let next = iter.next();
+			cbreak!(next.is_none());
+			let next = next.unwrap();
+
+			if next == 101 {
+				iter.delete()?;
+			}
+			assert_eq!(next, expect[count]);
+			count += 1;
+		}
+		assert_eq!(count, 4);
+
+		let expect = vec![104, 103, 102];
+		let mut count = 0;
+
+		let mut iter = list.iter_rev_mut()?;
+		assert!(iter.delete().is_err());
+		for v in iter {
+			assert_eq!(expect[count], v);
+			count += 1;
+		}
+
+		assert_eq!(count, expect.len());
+
+		// delete tail
+		let mut list = list![&101, &102, &103, &104];
+
+		let mut iter = list.iter_rev_mut()?;
+		let expect = vec![104, 103, 102, 101];
+		let mut count = 0;
+		loop {
+			let next = iter.next();
+			cbreak!(next.is_none());
+			let next = next.unwrap();
+
+			if next == 104 {
+				iter.delete()?;
+			}
+			assert_eq!(next, expect[count]);
+			count += 1;
+		}
+		assert_eq!(count, 4);
+
+		let expect = vec![103, 102, 101];
+		let mut count = 0;
+
+		let mut iter = list.iter_rev_mut()?;
+		assert!(iter.delete().is_err());
+		for v in iter {
+			assert_eq!(expect[count], v);
+			count += 1;
+		}
+
+		assert_eq!(count, expect.len());
 
 		Ok(())
 	}
