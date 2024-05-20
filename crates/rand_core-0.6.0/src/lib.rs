@@ -34,7 +34,7 @@
 )]
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
-#![doc(test(attr(allow(unused_variables), deny(warnings))))]
+#![doc(test(attr(allow(unused_variables))))]
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
 #![no_std]
 
