@@ -1,16 +1,16 @@
-use crate::dyn_clone::DynClone;
+use crate::DynClone;
 
 /// Implement the standard library `Clone` for a trait object that has
 /// `DynClone` as a supertrait.
 ///
 /// ```
-/// use bmw_deps::dyn_clone::DynClone;
+/// use dyn_clone::DynClone;
 ///
 /// trait MyTrait: DynClone {
 ///     /* ... */
 /// }
 ///
-/// bmw_deps::clone_trait_object!(MyTrait);
+/// dyn_clone::clone_trait_object!(MyTrait);
 ///
 /// // Now data structures containing Box<dyn MyTrait> can derive Clone.
 /// #[derive(Clone)]
@@ -22,14 +22,14 @@ use crate::dyn_clone::DynClone;
 /// The macro supports traits that have type parameters and/or `where` clauses.
 ///
 /// ```
-/// use bmw_deps::dyn_clone::DynClone;
+/// use dyn_clone::DynClone;
 /// use std::io::Read;
 ///
 /// trait Difficult<R>: DynClone where R: Read {
 ///     /* ... */
 /// }
 ///
-/// bmw_deps::clone_trait_object!(<R> Difficult<R> where R: Read);
+/// dyn_clone::clone_trait_object!(<R> Difficult<R> where R: Read);
 /// ```
 #[macro_export]
 macro_rules! clone_trait_object {
@@ -89,30 +89,30 @@ macro_rules! __internal_clone_trait_object {
     // The impl.
     (impl ($($generics:tt)*) ($($path:tt)*) ($($bound:tt)*)) => {
         #[allow(unknown_lints, non_local_definitions)] // false positive: https://github.com/rust-lang/rust/issues/121621
-        impl<'clone, $($generics)*> $crate::dyn_clone::__private::Clone for $crate::dyn_clone::__private::Box<dyn $($path)* + 'clone> where $($bound)* {
+        impl<'clone, $($generics)*> $crate::__private::Clone for $crate::__private::Box<dyn $($path)* + 'clone> where $($bound)* {
             fn clone(&self) -> Self {
-                $crate::dyn_clone::clone_box(&**self)
+                $crate::clone_box(&**self)
             }
         }
 
         #[allow(unknown_lints, non_local_definitions)]
-        impl<'clone, $($generics)*> $crate::dyn_clone::__private::Clone for $crate::dyn_clone::__private::Box<dyn $($path)* + $crate::dyn_clone::__private::Send + 'clone> where $($bound)* {
+        impl<'clone, $($generics)*> $crate::__private::Clone for $crate::__private::Box<dyn $($path)* + $crate::__private::Send + 'clone> where $($bound)* {
             fn clone(&self) -> Self {
-                $crate::dyn_clone::clone_box(&**self)
+                $crate::clone_box(&**self)
             }
         }
 
         #[allow(unknown_lints, non_local_definitions)]
-        impl<'clone, $($generics)*> $crate::dyn_clone::__private::Clone for $crate::dyn_clone::__private::Box<dyn $($path)* + $crate::dyn_clone::__private::Sync + 'clone> where $($bound)* {
+        impl<'clone, $($generics)*> $crate::__private::Clone for $crate::__private::Box<dyn $($path)* + $crate::__private::Sync + 'clone> where $($bound)* {
             fn clone(&self) -> Self {
-                $crate::dyn_clone::clone_box(&**self)
+                $crate::clone_box(&**self)
             }
         }
 
         #[allow(unknown_lints, non_local_definitions)]
-        impl<'clone, $($generics)*> $crate::dyn_clone::__private::Clone for $crate::dyn_clone::__private::Box<dyn $($path)* + $crate::dyn_clone::__private::Send + $crate::dyn_clone::__private::Sync + 'clone> where $($bound)* {
+        impl<'clone, $($generics)*> $crate::__private::Clone for $crate::__private::Box<dyn $($path)* + $crate::__private::Send + $crate::__private::Sync + 'clone> where $($bound)* {
             fn clone(&self) -> Self {
-                $crate::dyn_clone::clone_box(&**self)
+                $crate::clone_box(&**self)
             }
         }
     };

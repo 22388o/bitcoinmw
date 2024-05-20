@@ -16,9 +16,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # The BitcoinMW Dependency crate
-//! This is the dependency crate. All BitcoinMW dependencies are included in this crate and
-//! used by the other crates within the repo.
+#[cfg(test)]
+mod test {
+	use crate::error::{CoreErrorKind, Error, ErrorKind};
+	use crate::{err, kind};
 
-pub use downcast;
-pub use dyn_clone;
+	fn ret_err() -> Result<(), Error> {
+		err!(CoreErrorKind::IllegalArgument, "simulated error")
+	}
+
+	#[test]
+	fn test_errors() -> Result<(), Error> {
+		let err = ret_err().unwrap_err();
+		assert_eq!(err.kind(), kind!(CoreErrorKind::IllegalArgument));
+		Ok(())
+	}
+}

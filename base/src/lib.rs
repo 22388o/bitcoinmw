@@ -16,9 +16,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # The BitcoinMW Dependency crate
-//! This is the dependency crate. All BitcoinMW dependencies are included in this crate and
-//! used by the other crates within the repo.
+mod config;
+mod error;
+mod macros;
+mod ser;
+mod test;
 
-pub use downcast;
-pub use dyn_clone;
+pub use crate::error::{CoreErrorKind, Error, ErrorKind};
+pub use crate::ser::{deserialize, serialize, BinReader, BinWriter, Reader, Serializable, Writer};

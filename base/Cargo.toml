@@ -1,28 +1,15 @@
 [package]
-name = "bitcoinmw"
+name = "bmw_base"
 version = "0.0.3-beta.2"
 authors = ["The BitcoinMW Developers"]
-description = "BitcoinMW core libraries"
+description = "Core Library for defining traits/enums/structs used in derive"
 license = "Apache-2.0"
 repository = "https://github.com/cgilliard/bitcoinmw"
 keywords = [ "crypto", "bitcoinmw"]
 readme = "README.md"
 exclude = ["**/*.bmw", "**/*.bmw"]
-build = "src/build/build.rs"
 edition = "2021"
 
-[workspace]
-members = [
-	"deps",
-	"base",
-]
-exclude = ["etc"]
-
 [dependencies]
-bmw_deps = { path = "./deps" }
-bmw_base = { path = "./base" }
 
-[dev-dependencies]
-
-[build-dependencies]
-
+bmw_deps = { path = "../deps"  }

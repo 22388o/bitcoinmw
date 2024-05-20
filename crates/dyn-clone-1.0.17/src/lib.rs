@@ -1,4 +1,3 @@
-//! Using dyn_clone subject to license agreement here: <https://github.com/dtolnay/dyn-clone/blob/master/LICENSE-MIT>
 //! [![github]](https://github.com/dtolnay/dyn-clone)&ensp;[![crates-io]](https://crates.io/crates/dyn-clone)&ensp;[![docs-rs]](https://docs.rs/dyn-clone)
 //!
 //! [github]: https://img.shields.io/badge/github-8da0cb?style=for-the-badge&labelColor=555555&logo=github
@@ -16,7 +15,7 @@
 //! # Example
 //!
 //! ```
-//! use bmw_deps::dyn_clone::DynClone;
+//! use dyn_clone::DynClone;
 //!
 //! trait MyTrait: DynClone {
 //!     fn recite(&self);
@@ -38,7 +37,7 @@
 //!     x.recite();
 //!
 //!     // The type of x2 is a Box<dyn MyTrait> cloned from x.
-//!     let x2 = bmw_deps::dyn_clone::clone_box(&*x);
+//!     let x2 = dyn_clone::clone_box(&*x);
 //!
 //!     x2.recite();
 //! }
@@ -48,14 +47,14 @@
 //! std::clone::Clone for Box<dyn MyTrait>` in terms of `dyn_clone::clone_box`.
 //!
 //! ```
-//! # use bmw_deps::dyn_clone::DynClone;
+//! # use dyn_clone::DynClone;
 //! #
 //! // As before.
 //! trait MyTrait: DynClone {
 //!     /* ... */
 //! }
 //!
-//! bmw_deps::clone_trait_object!(MyTrait);
+//! dyn_clone::clone_trait_object!(MyTrait);
 //!
 //! // Now data structures containing Box<dyn MyTrait> can derive Clone:
 //! #[derive(Clone)]
@@ -68,19 +67,21 @@
 //! handwrite instead if you prefer:
 //!
 //! ```
-//! # use bmw_deps::dyn_clone::DynClone;
+//! # use dyn_clone::DynClone;
 //! #
 //! # trait MyTrait: DynClone {}
 //! #
 //! impl Clone for Box<dyn MyTrait> {
 //!     fn clone(&self) -> Self {
-//!         bmw_deps::dyn_clone::clone_box(&**self)
+//!         dyn_clone::clone_box(&**self)
 //!     }
 //! }
 //!
 //! // and similar for Box<dyn MyTrait + Send>, Box<dyn MyTrait + Sync>, Box<dyn MyTrait + Send + Sync>
 //! ```
 
+#![doc(html_root_url = "https://docs.rs/dyn-clone/1.0.17")]
+#![no_std]
 #![allow(
 	clippy::missing_panics_doc,
 	clippy::needless_doctest_main,
@@ -104,7 +105,7 @@ pub mod __private {
 	pub use core::marker::{Send, Sync};
 
 	#[doc(hidden)]
-	pub type Box<T> = std::boxed::Box<T>;
+	pub type Box<T> = alloc::boxed::Box<T>;
 }
 
 mod sealed {
@@ -115,7 +116,7 @@ mod sealed {
 	pub struct Private;
 }
 
-use crate::dyn_clone::sealed::{Private, Sealed};
+use crate::sealed::{Private, Sealed};
 use alloc::boxed::Box;
 use alloc::rc::Rc;
 use alloc::sync::Arc;

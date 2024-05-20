@@ -11,6 +11,8 @@ exclude = ["**/*.bmw", "**/*.bmw"]
 edition = "2021"
 
 [dependencies]
+dyn-clone = { path = "../crates/dyn-clone-1.0.17" }
+downcast = { path = "../crates/downcast-0.11.0" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 
