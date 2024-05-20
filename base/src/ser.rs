@@ -906,6 +906,7 @@ macro_rules! impl_arr {
 				writer.write_fixed_bytes(self)?;
 				Ok(())
 			}
+
 			fn read<R: Reader>(reader: &mut R) -> Result<[u8; $count], Error> {
 				let mut r = [0u8; $count];
 				reader.read_fixed_bytes(&mut r)?;
