@@ -13,7 +13,7 @@ edition = "2021"
 [dependencies]
 dyn-clone = { path = "../crates/dyn-clone-1.0.17" }
 downcast = { path = "../crates/downcast-0.11.0" }
-rand = { path = "../crates/rand-0.8.5", features = ["getrandom"] }
+rand = { path = "../crates/rand-0.8.5" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 
