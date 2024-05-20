@@ -22,3 +22,4 @@
 
 pub use downcast;
 pub use dyn_clone;
+pub use rand;

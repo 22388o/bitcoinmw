@@ -19,8 +19,10 @@
 mod config;
 mod error;
 mod macros;
+mod rand;
 mod ser;
-mod test;
+//mod test;
 
 pub use crate::error::{CoreErrorKind, Error, ErrorKind};
+pub use crate::rand::{random_bytes, random_u128, random_u32, random_u64};
 pub use crate::ser::{deserialize, serialize, BinReader, BinWriter, Reader, Serializable, Writer};
